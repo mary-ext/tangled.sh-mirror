@@ -1,5 +1,5 @@
 {
-  description = "web frontend for git";
+  description = "atproto github";
 
   inputs.nixpkgs.url = "github:nixos/nixpkgs";
 
@@ -14,38 +14,6 @@
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
     in
     {
-      packages = forAllSystems (system:
-        let
-          pkgs = nixpkgsFor.${system};
-          legit = self.packages.${system}.legit;
-          files = pkgs.lib.fileset.toSource {
-            root = ./.;
-            fileset = pkgs.lib.fileset.unions [
-              ./config.yaml
-              ./static
-              ./templates
-            ];
-          };
-        in
-        {
-          legit = pkgs.buildGoModule {
-            name = "legit";
-            rev = "master";
-            src = ./.;
-
-            vendorHash = "sha256-ynv0pBdVPIhTz7RvCwVWr0vUWwfw+PEjFXs9PdQMqm8=";
-          };
-          docker = pkgs.dockerTools.buildLayeredImage {
-            name = "sini:5000/legit";
-            tag = "latest";
-            contents = [ files legit pkgs.git ];
-            config = {
-              Entrypoint = [ "${legit}/bin/legit" ];
-              ExposedPorts = { "5555/tcp" = { }; };
-            };
-          };
-        });
-
       defaultPackage = forAllSystems (system: self.packages.${system}.legit);
       devShells = forAllSystems (system:
         let
@@ -55,6 +23,7 @@
           default = pkgs.mkShell {
             nativeBuildInputs = with pkgs; [
               go
+              air
             ];
           };
         });
