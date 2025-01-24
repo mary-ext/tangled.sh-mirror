@@ -25,7 +25,9 @@ type deps struct {
 }
 
 func (d *deps) Index(w http.ResponseWriter, r *http.Request) {
-	dirs, err := os.ReadDir(d.c.Repo.ScanPath)
+	user := "@" + chi.URLParam(r, "user")
+	path := filepath.Join(d.c.Repo.ScanPath, user)
+	dirs, err := os.ReadDir(path)
 	if err != nil {
 		d.Write500(w)
 		log.Printf("reading scan path: %s", err)
@@ -45,7 +47,6 @@ func (d *deps) Index(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		path := filepath.Join(d.c.Repo.ScanPath, name)
 		gr, err := git.Open(path, "")
 		if err != nil {
 			log.Println(err)

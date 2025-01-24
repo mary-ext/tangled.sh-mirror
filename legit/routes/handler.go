@@ -33,10 +33,10 @@ func Handlers(c *config.Config) http.Handler {
 	r := chi.NewRouter()
 	d := deps{c}
 
-	r.Get("/", d.Index)
 	r.Get("/static/{file}", d.ServeStatic)
 
 	r.Route("/@{user}", func(r chi.Router) {
+		r.Get("/", d.Index)
 		r.Route("/{name}", func(r chi.Router) {
 			r.Get("/", d.Multiplex)
 			r.Post("/", d.Multiplex)
