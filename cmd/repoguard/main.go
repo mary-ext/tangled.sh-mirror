@@ -49,7 +49,7 @@ func main() {
 	})
 
 	if sshCommand == "" {
-		exitWithLog("access denied: no ssh command provided")
+		exitWithLog("access denied: we don't serve interactive shells :)")
 	}
 
 	cmdParts := strings.Fields(sshCommand)
