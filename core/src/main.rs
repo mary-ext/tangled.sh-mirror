@@ -160,7 +160,7 @@ mod login {
             })
             .await
             .unwrap();
-        Ok(Redirect::temporary(&res))
+        Ok(Redirect::to(&res))
     }
 }
 
