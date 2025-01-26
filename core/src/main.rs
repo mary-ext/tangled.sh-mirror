@@ -1,25 +1,18 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use atrium_api::{
     agent::{AtpAgent, store::MemorySessionStore},
-    client::AtpServiceClient,
     did_doc::DidDocument,
     types::string::AtIdentifier,
-    xrpc::types::AuthorizationToken,
 };
 use atrium_common::resolver::Resolver;
 use atrium_identity::{
     did::{CommonDidResolver, CommonDidResolverConfig, DEFAULT_PLC_DIRECTORY_URL},
     handle::{AtprotoHandleResolver, AtprotoHandleResolverConfig, DnsTxtResolver},
 };
-use atrium_oauth_client::{
-    AtprotoClientMetadata, AtprotoLocalhostClientMetadata, AuthorizeOptionPrompt, AuthorizeOptions,
-    DefaultHttpClient, DpopClient, KnownScope, OAuthClient, OAuthClientConfig, OAuthResolverConfig,
-    Scope, store::state::MemoryStateStore,
-};
+use atrium_oauth_client::DefaultHttpClient;
 use atrium_xrpc::HttpClient;
-use atrium_xrpc_client::isahc::{IsahcClient, IsahcClientBuilder};
+use atrium_xrpc_client::isahc::IsahcClient;
 use axum::{Router, routing};
 use hickory_resolver::TokioAsyncResolver;
 
@@ -45,7 +38,6 @@ async fn main() {
 
 #[derive(Clone)]
 struct AppState {
-    inner: Arc<Mutex<AppStateInner>>,
     did_resolver: Arc<CommonDidResolver<DefaultHttpClient>>,
     handle_resolver: Arc<AtprotoHandleResolver<HickoryDnsTxtResolver, DefaultHttpClient>>,
 }
@@ -54,7 +46,6 @@ impl AppState {
     fn new() -> Self {
         let client = Arc::new(DefaultHttpClient::default());
         Self {
-            inner: Arc::new(Mutex::new(AppStateInner::new(client.clone()))),
             did_resolver: Arc::new(did_resolver(client.clone())),
             handle_resolver: Arc::new(handle_resolver(client.clone())),
         }
@@ -90,41 +81,8 @@ fn handle_resolver<H: HttpClient>(
     })
 }
 
-struct AppStateInner {
-    agent: Option<AtpAgent<MemorySessionStore, IsahcClient>>,
-}
-
-impl AppStateInner {
-    fn new(http_client: Arc<DefaultHttpClient>) -> Self {
-        // let config = OAuthClientConfig {
-        //     client_metadata: AtprotoLocalhostClientMetadata {
-        //         // TODO: change this
-        //         redirect_uris: Some(vec![String::from("http://127.0.0.1:3000/callback")]),
-        //         scopes: Some(vec![
-        //             Scope::Known(KnownScope::Atproto),
-        //             Scope::Known(KnownScope::TransitionGeneric),
-        //         ]),
-        //     },
-        //     keys: None,
-        //     resolver: OAuthResolverConfig {
-        //         did_resolver: did_resolver(http_client.clone()),
-        //         handle_resolver: handle_resolver(http_client.clone()),
-        //         authorization_server_metadata: Default::default(),
-        //         protected_resource_metadata: Default::default(),
-        //     },
-        //     state_store: MemoryStateStore::default(),
-        // };
-        // let oauth_client = OAuthClient::new(config).unwrap();
-        Self { agent: None }
-    }
-}
-
 mod login {
-    use axum::{
-        extract::{Form, State},
-        http::StatusCode,
-        response::IntoResponse,
-    };
+    use axum::{extract::Form, http::StatusCode, response::IntoResponse};
     use serde::Deserialize;
 
     use super::*;
@@ -139,14 +97,9 @@ mod login {
         app_password: String,
     }
 
-    pub async fn post(
-        State(state): State<AppState>,
-        session: tower_sessions::Session,
-        Form(req): Form<Req>,
-    ) -> impl IntoResponse {
-        let did_document = state.resolve_did_document(&req.handle).await.unwrap();
+    pub async fn post(session: tower_sessions::Session, Form(req): Form<Req>) -> impl IntoResponse {
         let agent = AtpAgent::new(
-            IsahcClient::new(did_document.get_pds_endpoint().unwrap()),
+            IsahcClient::new("https://dummy.example"),
             MemorySessionStore::default(),
         );
         let res = agent.login(req.handle, req.app_password).await.unwrap();
@@ -169,9 +122,8 @@ mod index {
         {
             None => "no session",
             Some(s) => {
-                // let did_doc = s.did_doc.unwrap();
                 let agent = AtpAgent::new(
-                    IsahcClient::new("https://bsky.social"),
+                    IsahcClient::new("https://dummy.example"),
                     MemorySessionStore::default(),
                 );
                 println!("resuming session of {:?} ({:?})", s.handle, s.did);
