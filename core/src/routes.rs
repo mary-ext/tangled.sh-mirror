@@ -1,10 +1,15 @@
 pub mod login {
+    use crate::AppState;
     use atrium_api::{
         agent::{AtpAgent, store::MemorySessionStore},
         types::string::AtIdentifier,
     };
     use atrium_xrpc_client::isahc::IsahcClient;
-    use axum::{extract::Form, http::StatusCode, response::IntoResponse};
+    use axum::{
+        extract::{Form, State},
+        http::StatusCode,
+        response::IntoResponse,
+    };
     use serde::Deserialize;
 
     pub async fn get() -> String {
@@ -17,9 +22,14 @@ pub mod login {
         app_password: String,
     }
 
-    pub async fn post(session: tower_sessions::Session, Form(req): Form<Req>) -> impl IntoResponse {
+    pub async fn post(
+        State(state): State<AppState>,
+        session: tower_sessions::Session,
+        Form(req): Form<Req>,
+    ) -> impl IntoResponse {
+        let did_doc = state.resolve_did_document(&req.handle).await.unwrap();
         let agent = AtpAgent::new(
-            IsahcClient::new("https://dummy.example"),
+            IsahcClient::new(did_doc.get_pds_endpoint().unwrap()),
             MemorySessionStore::default(),
         );
         let res = agent.login(req.handle, req.app_password).await.unwrap();
@@ -31,10 +41,16 @@ pub mod login {
 }
 
 pub mod index {
+    use crate::AppState;
     use atrium_api::agent::{AtpAgent, store::MemorySessionStore};
+    use atrium_api::types::string::AtIdentifier;
     use atrium_xrpc_client::isahc::IsahcClient;
+    use axum::extract::State;
 
-    pub async fn get(session: tower_sessions::Session) -> &'static str {
+    pub async fn get(
+        session: tower_sessions::Session,
+        State(state): State<AppState>,
+    ) -> &'static str {
         match session
             .get::<atrium_api::agent::Session>("bild_session")
             .await
@@ -42,8 +58,12 @@ pub mod index {
         {
             None => "no session",
             Some(s) => {
+                let did_doc = state
+                    .resolve_did_document(&AtIdentifier::Did(s.did.clone()))
+                    .await
+                    .unwrap();
                 let agent = AtpAgent::new(
-                    IsahcClient::new("https://dummy.example"),
+                    IsahcClient::new(did_doc.get_pds_endpoint().unwrap()),
                     MemorySessionStore::default(),
                 );
                 println!("resuming session of {:?} ({:?})", s.handle, s.did);
@@ -123,7 +143,9 @@ pub mod keys {
                 let did = sess.did.clone().into();
                 db.conn
                     .call(|c| {
-                        c.execute("INSERT INTO keys VALUES (?1, ?2)", [did, req.key])?;
+                        c.execute("INSERT INTO keys (did, key) VALUES (?1, ?2)", [
+                            did, req.key,
+                        ])?;
                         Ok(())
                     })
                     .await
