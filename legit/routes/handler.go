@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"html/template"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -29,10 +30,11 @@ func (d *deps) Multiplex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Handlers(c *config.Config) http.Handler {
+func Handlers(c *config.Config, t *template.Template) http.Handler {
 	r := chi.NewRouter()
-	d := deps{c}
+	d := deps{c, t}
 
+	r.Get("/login", d.Login)
 	r.Get("/static/{file}", d.ServeStatic)
 
 	r.Route("/@{user}", func(r chi.Router) {

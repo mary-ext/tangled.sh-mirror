@@ -22,6 +22,7 @@ import (
 
 type deps struct {
 	c *config.Config
+	t *template.Template
 }
 
 func (d *deps) Index(w http.ResponseWriter, r *http.Request) {
@@ -73,14 +74,11 @@ func (d *deps) Index(w http.ResponseWriter, r *http.Request) {
 		return infos[j].d.Before(infos[i].d)
 	})
 
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
 	data := make(map[string]interface{})
 	data["meta"] = d.c.Meta
 	data["info"] = infos
 
-	if err := t.ExecuteTemplate(w, "index", data); err != nil {
+	if err := d.t.ExecuteTemplate(w, "index", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -143,9 +141,6 @@ func (d *deps) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
 	if len(commits) >= 3 {
 		commits = commits[:3]
 	}
@@ -161,7 +156,7 @@ func (d *deps) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	data["meta"] = d.c.Meta
 	data["gomod"] = isGoModule(gr)
 
-	if err := t.ExecuteTemplate(w, "repo", data); err != nil {
+	if err := d.t.ExecuteTemplate(w, "repo", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -327,9 +322,6 @@ func (d *deps) Log(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
 	data := make(map[string]interface{})
 	data["commits"] = commits
 	data["meta"] = d.c.Meta
@@ -339,7 +331,7 @@ func (d *deps) Log(w http.ResponseWriter, r *http.Request) {
 	data["desc"] = getDescription(path)
 	data["log"] = true
 
-	if err := t.ExecuteTemplate(w, "log", data); err != nil {
+	if err := d.t.ExecuteTemplate(w, "log", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -367,9 +359,6 @@ func (d *deps) Diff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
 	data := make(map[string]interface{})
 
 	data["commit"] = diff.Commit
@@ -381,7 +370,7 @@ func (d *deps) Diff(w http.ResponseWriter, r *http.Request) {
 	data["ref"] = ref
 	data["desc"] = getDescription(path)
 
-	if err := t.ExecuteTemplate(w, "commit", data); err != nil {
+	if err := d.t.ExecuteTemplate(w, "commit", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -414,9 +403,6 @@ func (d *deps) Refs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
 	data := make(map[string]interface{})
 
 	data["meta"] = d.c.Meta
@@ -426,7 +412,7 @@ func (d *deps) Refs(w http.ResponseWriter, r *http.Request) {
 	data["tags"] = tags
 	data["desc"] = getDescription(path)
 
-	if err := t.ExecuteTemplate(w, "refs", data); err != nil {
+	if err := d.t.ExecuteTemplate(w, "refs", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -437,4 +423,11 @@ func (d *deps) ServeStatic(w http.ResponseWriter, r *http.Request) {
 	f = filepath.Clean(filepath.Join(d.c.Dirs.Static, f))
 
 	http.ServeFile(w, r, f)
+}
+
+func (d *deps) Login(w http.ResponseWriter, r *http.Request) {
+	if err := d.t.ExecuteTemplate(w, "login", nil); err != nil {
+		log.Println(err)
+		return
+	}
 }
