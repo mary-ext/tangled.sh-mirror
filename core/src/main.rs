@@ -1,7 +1,11 @@
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use atrium_api::{
-    client::AtpServiceClient, did_doc::DidDocument, types::string::AtIdentifier,
+    agent::{AtpAgent, store::MemorySessionStore},
+    client::AtpServiceClient,
+    did_doc::DidDocument,
+    types::string::AtIdentifier,
     xrpc::types::AuthorizationToken,
 };
 use atrium_common::resolver::Resolver;
@@ -29,9 +33,9 @@ async fn main() {
     let app_state = AppState::new();
     let service = Router::new()
         .route("/", routing::get(index::get))
-        .route("/test-auth", routing::get(test_atproto::get))
+        // .route("/test-auth", routing::get(test_atproto::get))
         .route("/login", routing::get(login::get).post(login::post))
-        .route("/callback", routing::get(callback::get))
+        // .route("/callback", routing::get(callback::get))
         .layer(session_layer)
         .with_state(app_state);
 
@@ -41,72 +45,19 @@ async fn main() {
 
 #[derive(Clone)]
 struct AppState {
-    inner: Arc<AppStateInner>,
+    inner: Arc<Mutex<AppStateInner>>,
+    did_resolver: Arc<CommonDidResolver<DefaultHttpClient>>,
+    handle_resolver: Arc<AtprotoHandleResolver<HickoryDnsTxtResolver, DefaultHttpClient>>,
 }
 
 impl AppState {
     fn new() -> Self {
-        Self {
-            inner: Arc::new(AppStateInner::new()),
-        }
-    }
-}
-
-struct AppStateInner {
-    did_resolver: CommonDidResolver<DefaultHttpClient>,
-    handle_resolver: AtprotoHandleResolver<HickoryDnsTxtResolver, DefaultHttpClient>,
-    oauth_client: OAuthClient<
-        atrium_oauth_client::store::state::MemoryStateStore,
-        CommonDidResolver<DefaultHttpClient>,
-        atrium_identity::handle::AtprotoHandleResolver<HickoryDnsTxtResolver, DefaultHttpClient>,
-    >,
-}
-
-impl AppStateInner {
-    fn new() -> Self {
         let client = Arc::new(DefaultHttpClient::default());
-        let did_resolver = Self::did_resolver(client.clone());
-        let handle_resolver = Self::handle_resolver(client.clone());
-        let config = OAuthClientConfig {
-            client_metadata: AtprotoLocalhostClientMetadata {
-                // TODO: change this
-                redirect_uris: Some(vec![String::from("http://127.0.0.1:3000/callback")]),
-                scopes: Some(vec![
-                    Scope::Known(KnownScope::Atproto),
-                    Scope::Known(KnownScope::TransitionGeneric),
-                ]),
-            },
-            keys: None,
-            resolver: OAuthResolverConfig {
-                did_resolver: Self::did_resolver(client.clone()),
-                handle_resolver: Self::handle_resolver(client.clone()),
-                authorization_server_metadata: Default::default(),
-                protected_resource_metadata: Default::default(),
-            },
-            state_store: MemoryStateStore::default(),
-        };
-        let oauth_client = OAuthClient::new(config).unwrap();
         Self {
-            oauth_client,
-            did_resolver,
-            handle_resolver,
+            inner: Arc::new(Mutex::new(AppStateInner::new(client.clone()))),
+            did_resolver: Arc::new(did_resolver(client.clone())),
+            handle_resolver: Arc::new(handle_resolver(client.clone())),
         }
-    }
-
-    fn did_resolver<H: HttpClient>(http_client: Arc<H>) -> CommonDidResolver<H> {
-        CommonDidResolver::new(CommonDidResolverConfig {
-            plc_directory_url: DEFAULT_PLC_DIRECTORY_URL.to_string(),
-            http_client,
-        })
-    }
-
-    fn handle_resolver<H: HttpClient>(
-        http_client: Arc<H>,
-    ) -> AtprotoHandleResolver<HickoryDnsTxtResolver, H> {
-        AtprotoHandleResolver::new(AtprotoHandleResolverConfig {
-            dns_txt_resolver: HickoryDnsTxtResolver::default(),
-            http_client,
-        })
     }
 
     async fn resolve_did_document(
@@ -123,10 +74,56 @@ impl AppStateInner {
     }
 }
 
+fn did_resolver<H: HttpClient>(http_client: Arc<H>) -> CommonDidResolver<H> {
+    CommonDidResolver::new(CommonDidResolverConfig {
+        plc_directory_url: DEFAULT_PLC_DIRECTORY_URL.to_string(),
+        http_client,
+    })
+}
+
+fn handle_resolver<H: HttpClient>(
+    http_client: Arc<H>,
+) -> AtprotoHandleResolver<HickoryDnsTxtResolver, H> {
+    AtprotoHandleResolver::new(AtprotoHandleResolverConfig {
+        dns_txt_resolver: HickoryDnsTxtResolver::default(),
+        http_client,
+    })
+}
+
+struct AppStateInner {
+    agent: Option<AtpAgent<MemorySessionStore, IsahcClient>>,
+}
+
+impl AppStateInner {
+    fn new(http_client: Arc<DefaultHttpClient>) -> Self {
+        // let config = OAuthClientConfig {
+        //     client_metadata: AtprotoLocalhostClientMetadata {
+        //         // TODO: change this
+        //         redirect_uris: Some(vec![String::from("http://127.0.0.1:3000/callback")]),
+        //         scopes: Some(vec![
+        //             Scope::Known(KnownScope::Atproto),
+        //             Scope::Known(KnownScope::TransitionGeneric),
+        //         ]),
+        //     },
+        //     keys: None,
+        //     resolver: OAuthResolverConfig {
+        //         did_resolver: did_resolver(http_client.clone()),
+        //         handle_resolver: handle_resolver(http_client.clone()),
+        //         authorization_server_metadata: Default::default(),
+        //         protected_resource_metadata: Default::default(),
+        //     },
+        //     state_store: MemoryStateStore::default(),
+        // };
+        // let oauth_client = OAuthClient::new(config).unwrap();
+        Self { agent: None }
+    }
+}
+
 mod login {
     use axum::{
         extract::{Form, State},
-        response::{IntoResponse, Redirect, Result},
+        http::StatusCode,
+        response::IntoResponse,
     };
     use serde::Deserialize;
 
@@ -139,139 +136,49 @@ mod login {
     #[derive(Deserialize, Debug)]
     pub struct Req {
         handle: AtIdentifier,
+        app_password: String,
     }
 
     pub async fn post(
         State(state): State<AppState>,
-        Form(req): Form<Req>,
-    ) -> Result<impl IntoResponse> {
-        let did_document = state.inner.resolve_did_document(&req.handle).await.unwrap();
-        dbg!(&did_document);
-        let res = state
-            .inner
-            .oauth_client
-            .authorize(did_document.get_pds_endpoint().unwrap(), AuthorizeOptions {
-                scopes: vec![
-                    Scope::Known(KnownScope::Atproto),
-                    Scope::Known(KnownScope::TransitionGeneric),
-                ],
-                prompt: Some(AuthorizeOptionPrompt::Login),
-                ..Default::default()
-            })
-            .await
-            .unwrap();
-        Ok(Redirect::to(&res))
-    }
-}
-
-mod callback {
-    use axum::{
-        extract::{Query, State},
-        http::StatusCode,
-    };
-
-    use super::*;
-
-    pub async fn get(
-        Query(params): Query<atrium_oauth_client::CallbackParams>,
-        State(state): State<AppState>,
         session: tower_sessions::Session,
-    ) -> StatusCode {
-        let ts = state.inner.oauth_client.callback(params).await.unwrap();
-        let _ = session.insert("bild", &ts).await;
+        Form(req): Form<Req>,
+    ) -> impl IntoResponse {
+        let did_document = state.resolve_did_document(&req.handle).await.unwrap();
+        let agent = AtpAgent::new(
+            IsahcClient::new(did_document.get_pds_endpoint().unwrap()),
+            MemorySessionStore::default(),
+        );
+        let res = agent.login(req.handle, req.app_password).await.unwrap();
+        println!("logged in as {:?} ({:?})", res.handle, res.did);
+        session.insert("at_session", res).await.unwrap();
+        println!("stored session");
         StatusCode::OK
     }
 }
 
 // dummy endpoint to test if sessions are working
 mod index {
-    use axum::http::StatusCode;
-
-    pub async fn get(session: tower_sessions::Session) -> StatusCode {
-        dbg!(
-            session
-                .get::<atrium_oauth_client::TokenSet>("bild")
-                .await
-                .unwrap()
-        );
-        StatusCode::OK
-    }
-}
-
-struct AuthenticatedClient {
-    token: String,
-    base_uri: String,
-    inner: IsahcClient,
-}
-
-impl atrium_xrpc::HttpClient for AuthenticatedClient {
-    async fn send_http(
-        &self,
-        request: atrium_xrpc::http::Request<Vec<u8>>,
-    ) -> Result<
-        atrium_xrpc::http::Response<Vec<u8>>,
-        Box<dyn std::error::Error + Send + Sync + 'static>,
-    > {
-        self.inner.send_http(request).await
-    }
-}
-
-impl atrium_xrpc::XrpcClient for AuthenticatedClient {
-    fn base_uri(&self) -> String {
-        self.base_uri.clone()
-    }
-    async fn authorization_token(&self, _: bool) -> Option<AuthorizationToken> {
-        Some(AuthorizationToken::Dpop(self.token.clone()))
-    }
-}
-
-// dummy endpoint to perform an atproto request with access token
-mod test_atproto {
-    use atrium_api::{
-        agent::{AtpAgent, store::MemorySessionStore},
-        app, com,
-    };
-    use axum::http::StatusCode;
-
     use super::*;
 
-    fn get_session_client(
-        tokenset: &atrium_oauth_client::TokenSet,
-    ) -> AtpServiceClient<AuthenticatedClient> {
-        //) -> AtpAgent<MemorySessionStore, AuthenticatedClient> {
-        // AtpAgent::new(
-        //     AuthenticatedClient {
-        //         token: tokenset.access_token.clone(),
-        //         base_uri: tokenset.iss.clone(),
-        //         inner: IsahcClient::new(tokenset.iss.clone()),
-        //     },
-        //     MemorySessionStore::default(),
-        // )
-        AtpServiceClient::new(AuthenticatedClient {
-            token: tokenset.access_token.clone(),
-            base_uri: tokenset.aud.clone(),
-            inner: IsahcClient::new(tokenset.aud.clone()),
-        })
-    }
-
-    pub async fn get(session: tower_sessions::Session) -> StatusCode {
-        let token_set = session
-            .get::<atrium_oauth_client::TokenSet>("bild")
+    pub async fn get(session: tower_sessions::Session) -> &'static str {
+        match session
+            .get::<atrium_api::agent::Session>("at_session")
             .await
-            .ok()
-            .flatten()
-            .unwrap();
-        let client = get_session_client(&token_set);
-        let res = client
-            .service
-            .com
-            .atproto
-            .repo
-            .upload_blob(vec![0])
-            .await
-            .unwrap();
-        dbg!(res);
-        StatusCode::OK
+            .unwrap()
+        {
+            None => "no session",
+            Some(s) => {
+                // let did_doc = s.did_doc.unwrap();
+                let agent = AtpAgent::new(
+                    IsahcClient::new("https://bsky.social"),
+                    MemorySessionStore::default(),
+                );
+                println!("resuming session of {:?} ({:?})", s.handle, s.did);
+                agent.resume_session(s).await.unwrap();
+                "resuming session"
+            }
+        }
     }
 }
 
