@@ -87,7 +87,7 @@ pub mod keys {
 
     #[derive(Deserialize)]
     pub struct GetReq {
-        id: AtIdentifier,
+        handle: AtIdentifier,
     }
 
     #[derive(Serialize)]
@@ -101,7 +101,7 @@ pub mod keys {
         State(state): State<AppState>,
         Query(req): Query<GetReq>,
     ) -> impl IntoResponse {
-        let did_doc = state.resolve_did_document(&req.id).await.unwrap();
+        let did_doc = state.resolve_did_document(&req.handle).await.unwrap();
         let keys = db
             .conn
             .call(|c| {
@@ -115,7 +115,7 @@ pub mod keys {
             .await
             .unwrap();
         Json(GetRes {
-            id: req.id.clone(),
+            id: req.handle.clone(),
             keys,
         })
     }
@@ -123,6 +123,7 @@ pub mod keys {
     #[derive(Deserialize)]
     pub struct PutReq {
         key: String,
+        name: String,
     }
 
     pub async fn put(
@@ -141,11 +142,13 @@ pub mod keys {
             None => StatusCode::UNAUTHORIZED,
             Some(sess) => {
                 let did = sess.did.clone().into();
+                let handle = sess.handle.clone().into();
                 db.conn
                     .call(|c| {
-                        c.execute("INSERT INTO keys (did, key) VALUES (?1, ?2)", [
-                            did, req.key,
-                        ])?;
+                        c.execute(
+                            "INSERT INTO keys (did, handle, key, name) VALUES (?1, ?2, ?3, ?4)",
+                            [did, handle, req.key, req.name],
+                        )?;
                         Ok(())
                     })
                     .await
@@ -153,5 +156,37 @@ pub mod keys {
                 StatusCode::OK
             }
         }
+    }
+
+    pub async fn keys_file(Extension(db): Extension<Arc<db::Db>>) -> impl IntoResponse {
+        authorized_keys_file(db).await
+    }
+
+    // TODO: use this
+    async fn write_authorized_keys_file(db: Arc<db::Db>) {
+        let file = authorized_keys_file(db).await;
+        tokio::fs::write("/home/git/.ssh/authorized_keys", &file)
+            .await
+            .unwrap();
+    }
+
+    // TODO: use this
+    async fn authorized_keys_file(db: Arc<db::Db>) -> String {
+        db.conn
+            .call(|c| {
+                let mut stmt = c.prepare("SELECT handle, key FROM keys")?;
+                let file = stmt
+                    .query_map([], |row| {
+                        let handle = row.get::<usize, String>(0)?;
+                        let key = row.get::<usize, String>(1)?;
+                        Ok(format!(r##"command="/home/git/repoguard -base-dir /home/git -user {handle} -log-path /home/git/log ",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty {key}"##))
+                    })?
+                    .filter_map(|r| r.ok())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                Ok(file)
+            })
+            .await
+            .unwrap()
     }
 }

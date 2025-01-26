@@ -17,8 +17,10 @@ impl Db {
                     CREATE TABLE IF NOT EXISTS keys (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         did TEXT NOT NULL,
+                        handle TEXT NOT NULL,
                         key TEXT NOT NULL,
-                        UNIQUE(did, key)
+                        name TEXT NOT NULL,
+                        UNIQUE(did, handle, key)
                     )
                     ",
                     [],

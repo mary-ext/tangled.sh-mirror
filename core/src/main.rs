@@ -32,6 +32,7 @@ async fn main() {
         .route("/", routing::get(index::get))
         .route("/login", routing::get(login::get).post(login::post))
         .route("/keys", routing::get(keys::get).put(keys::put))
+        .route("/keys-file", routing::get(keys::keys_file))
         .layer(session_layer)
         .with_state(app_state)
         .layer(Extension(Arc::new(db)));
