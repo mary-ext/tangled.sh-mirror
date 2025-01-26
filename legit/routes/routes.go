@@ -26,7 +26,7 @@ type deps struct {
 }
 
 func (d *deps) Index(w http.ResponseWriter, r *http.Request) {
-	user := "@" + chi.URLParam(r, "user")
+	user := chi.URLParam(r, "user")
 	path := filepath.Join(d.c.Repo.ScanPath, user)
 	dirs, err := os.ReadDir(path)
 	if err != nil {
