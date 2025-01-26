@@ -40,6 +40,7 @@
           pkgs.go
           pkgs.air
 
+          pkgs.httpie
           pkgs.bacon
           rust-bin
           pkgs.pkg-config

@@ -417,6 +417,7 @@ dependencies = [
  "atrium-xrpc-client",
  "axum",
  "hickory-resolver",
+ "serde",
  "tokio",
  "tower-sessions",
 ]

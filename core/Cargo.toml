@@ -15,4 +15,5 @@ atrium-common = { workspace=true }
 hickory-resolver = "0.24.2"
 anyhow = "1.0.95"
 tower-sessions = "0.14.0"
+serde = "1.0.217"
 
