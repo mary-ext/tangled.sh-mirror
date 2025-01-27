@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -15,30 +16,34 @@ import (
 	"github.com/icyphox/bild/legit/git"
 )
 
-func (d *deps) Write404(w http.ResponseWriter) {
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
+func (h *Handle) Write404(w http.ResponseWriter) {
 	w.WriteHeader(404)
-	if err := t.ExecuteTemplate(w, "404", nil); err != nil {
+	if err := h.t.ExecuteTemplate(w, "404", nil); err != nil {
 		log.Printf("404 template: %s", err)
 	}
 }
 
-func (d *deps) Write500(w http.ResponseWriter) {
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
+func (h *Handle) Write500(w http.ResponseWriter) {
 	w.WriteHeader(500)
-	if err := t.ExecuteTemplate(w, "500", nil); err != nil {
+	if err := h.t.ExecuteTemplate(w, "500", nil); err != nil {
 		log.Printf("500 template: %s", err)
 	}
 }
 
-func (d *deps) listFiles(files []git.NiceTree, data map[string]any, w http.ResponseWriter) {
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
+func (h *Handle) WriteOOBNotice(w http.ResponseWriter, id, msg string) {
+	html := fmt.Sprintf(`<span id="%s" hx-swap-oob="innerHTML">%s</span>`, id, msg)
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(html))
+}
+
+func (h *Handle) listFiles(files []git.NiceTree, data map[string]any, w http.ResponseWriter) {
+	tpath := filepath.Join(h.c.Dirs.Templates, "*")
 	t := template.Must(template.ParseGlob(tpath))
 
 	data["files"] = files
-	data["meta"] = d.c.Meta
+	data["meta"] = h.c.Meta
 
 	if err := t.ExecuteTemplate(w, "tree", data); err != nil {
 		log.Println(err)
@@ -72,7 +77,7 @@ func countLines(r io.Reader) (int, error) {
 	}
 }
 
-func (d *deps) showFileWithHighlight(name, content string, data map[string]any, w http.ResponseWriter) {
+func (d *Handle) showFileWithHighlight(name, content string, data map[string]any, w http.ResponseWriter) {
 	tpath := filepath.Join(d.c.Dirs.Templates, "*")
 	t := template.Must(template.ParseGlob(tpath))
 
@@ -114,7 +119,7 @@ func (d *deps) showFileWithHighlight(name, content string, data map[string]any, 
 	}
 }
 
-func (d *deps) showFile(content string, data map[string]any, w http.ResponseWriter) {
+func (d *Handle) showFile(content string, data map[string]any, w http.ResponseWriter) {
 	tpath := filepath.Join(d.c.Dirs.Templates, "*")
 	t := template.Must(template.ParseGlob(tpath))
 
@@ -142,7 +147,7 @@ func (d *deps) showFile(content string, data map[string]any, w http.ResponseWrit
 	}
 }
 
-func (d *deps) showRaw(content string, w http.ResponseWriter) {
+func (d *Handle) showRaw(content string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(content))

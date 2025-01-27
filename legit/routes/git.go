@@ -10,7 +10,7 @@ import (
 	"github.com/icyphox/bild/legit/git/service"
 )
 
-func (d *deps) InfoRefs(w http.ResponseWriter, r *http.Request) {
+func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	name := uniqueName(r)
 	name = filepath.Clean(name)
 
@@ -31,7 +31,7 @@ func (d *deps) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (d *deps) UploadPack(w http.ResponseWriter, r *http.Request) {
+func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 	name := uniqueName(r)
 	name = filepath.Clean(name)
 

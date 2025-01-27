@@ -1,16 +1,19 @@
 package routes
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/icyphox/bild/legit/config"
+	"github.com/icyphox/bild/legit/db"
 )
 
 // Checks for gitprotocol-http(5) specific smells; if found, passes
 // the request on to the git http service, else render the web frontend.
-func (d *deps) Multiplex(w http.ResponseWriter, r *http.Request) {
+func (h *Handle) Multiplex(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "*")
 
 	if r.URL.RawQuery == "service=git-receive-pack" {
@@ -22,45 +25,63 @@ func (d *deps) Multiplex(w http.ResponseWriter, r *http.Request) {
 	if path == "info/refs" &&
 		r.URL.RawQuery == "service=git-upload-pack" &&
 		r.Method == "GET" {
-		d.InfoRefs(w, r)
+		h.InfoRefs(w, r)
 	} else if path == "git-upload-pack" && r.Method == "POST" {
-		d.UploadPack(w, r)
+		h.UploadPack(w, r)
 	} else if r.Method == "GET" {
-		d.RepoIndex(w, r)
+		h.RepoIndex(w, r)
 	}
 }
 
-func Handlers(c *config.Config, t *template.Template) http.Handler {
+func Setup(c *config.Config) (http.Handler, error) {
 	r := chi.NewRouter()
-	d := deps{c, t}
+	t := template.Must(template.ParseGlob(filepath.Join(c.Dirs.Templates, "*")))
+	db, err := db.Setup(c.Server.DBPath)
 
-	r.Get("/login", d.Login)
-	r.Get("/static/{file}", d.ServeStatic)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup db: %w", err)
+	}
+
+	h := Handle{
+		c:  c,
+		t:  t,
+		db: db,
+	}
+
+	r.Get("/login", h.Login)
+	r.Get("/static/{file}", h.ServeStatic)
+
+	r.Route("/settings", func(r chi.Router) {
+		r.Get("/keys", h.Keys)
+		r.Put("/keys", h.Keys)
+	})
 
 	r.Route("/@{user}", func(r chi.Router) {
-		r.Get("/", d.Index)
+		r.Get("/", h.Index)
+
+		// Repo routes
 		r.Route("/{name}", func(r chi.Router) {
-			r.Get("/", d.Multiplex)
-			r.Post("/", d.Multiplex)
+			r.Get("/", h.Multiplex)
+			r.Post("/", h.Multiplex)
 
 			r.Route("/tree/{ref}", func(r chi.Router) {
-				r.Get("/*", d.RepoTree)
+				r.Get("/*", h.RepoTree)
 			})
 
 			r.Route("/blob/{ref}", func(r chi.Router) {
-				r.Get("/*", d.FileContent)
+				r.Get("/*", h.FileContent)
 			})
 
-			r.Get("/log/{ref}", d.Log)
-			r.Get("/archive/{file}", d.Archive)
-			r.Get("/commit/{ref}", d.Diff)
-			r.Get("/refs/", d.Refs)
+			r.Get("/log/{ref}", h.Log)
+			r.Get("/archive/{file}", h.Archive)
+			r.Get("/commit/{ref}", h.Diff)
+			r.Get("/refs/", h.Refs)
 
 			// Catch-all routes
-			r.Get("/*", d.Multiplex)
-			r.Post("/*", d.Multiplex)
+			r.Get("/*", h.Multiplex)
+			r.Post("/*", h.Multiplex)
 		})
 	})
 
-	return r
+	return r, nil
 }

@@ -1,0 +1,35 @@
+{{ define "keys" }}
+<html>
+    {{ template "head" . }}
+
+    <body>
+        <main>
+            <form>
+                <p>
+                    Give your key a name and paste your
+                    <strong>public</strong> key here. This is what you'll use to
+                    push to your Git repository.
+                </p>
+                <div id="keys"></div>
+                <div>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="my laptop"
+                    />
+                    <input
+                        type="text"
+                        id="public_key"
+                        name="key"
+                        placeholder="ssh-ed25519 AAABBBHUNTER2..."
+                    />
+                </div>
+                <button hx-put="/settings/keys" hx-swap="none" type="submit">
+                    Submit
+                </button>
+            </form>
+        </main>
+    </body>
+</html>
+{{ end }}

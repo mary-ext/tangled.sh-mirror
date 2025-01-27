@@ -18,3 +18,4 @@ server:
   name: github.com/icyphox/bild
   host: 0.0.0.0
   port: 5555
+  dbpath: bild.db

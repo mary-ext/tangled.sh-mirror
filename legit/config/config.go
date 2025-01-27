@@ -26,9 +26,10 @@ type Config struct {
 		SyntaxHighlight string `yaml:"syntaxHighlight"`
 	} `yaml:"meta"`
 	Server struct {
-		Name string `yaml:"name,omitempty"`
-		Host string `yaml:"host"`
-		Port int    `yaml:"port"`
+		Name   string `yaml:"name,omitempty"`
+		Host   string `yaml:"host"`
+		Port   int    `yaml:"port"`
+		DBPath string `yaml:"dbpath"`
 	} `yaml:"server"`
 }
 

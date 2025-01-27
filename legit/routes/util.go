@@ -43,8 +43,8 @@ func getDescription(path string) (desc string) {
 	return
 }
 
-func (d *deps) isUnlisted(name string) bool {
-	for _, i := range d.c.Repo.Unlisted {
+func (h *Handle) isUnlisted(name string) bool {
+	for _, i := range h.c.Repo.Unlisted {
 		if name == i {
 			return true
 		}
@@ -53,8 +53,8 @@ func (d *deps) isUnlisted(name string) bool {
 	return false
 }
 
-func (d *deps) isIgnored(name string) bool {
-	for _, i := range d.c.Repo.Ignore {
+func (h *Handle) isIgnored(name string) bool {
+	for _, i := range h.c.Repo.Ignore {
 		if name == i {
 			return true
 		}
@@ -69,7 +69,7 @@ type repoInfo struct {
 	Category string
 }
 
-func (d *deps) getAllRepos() ([]repoInfo, error) {
+func (d *Handle) getAllRepos() ([]repoInfo, error) {
 	repos := []repoInfo{}
 	max := strings.Count(d.c.Repo.ScanPath, string(os.PathSeparator)) + 2
 
@@ -113,7 +113,7 @@ func (d *deps) getAllRepos() ([]repoInfo, error) {
 	return repos, err
 }
 
-func (d *deps) category(path string) string {
+func (d *Handle) category(path string) string {
 	return strings.TrimPrefix(filepath.Dir(strings.TrimPrefix(path, d.c.Repo.ScanPath)), string(os.PathSeparator))
 }
 

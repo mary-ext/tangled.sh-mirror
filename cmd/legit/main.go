@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"html/template"
 	"log"
+	"log/slog"
 	"net/http"
-	"path/filepath"
+	"os"
 
 	"github.com/icyphox/bild/legit/config"
 	"github.com/icyphox/bild/legit/routes"
@@ -17,14 +17,18 @@ func main() {
 	flag.StringVar(&cfg, "config", "./config.yaml", "path to config file")
 	flag.Parse()
 
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+
 	c, err := config.Read(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	t := template.Must(template.ParseGlob(filepath.Join(c.Dirs.Templates, "*")))
+	mux, err := routes.Setup(c)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	mux := routes.Handlers(c, t)
 	addr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
 	log.Println("starting server on", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
