@@ -1,0 +1,8 @@
+[build]
+cmd = "go build -o bild ./cmd/legit/main.go"
+bin = "bild"
+root = "."
+
+exclude_regex = [".*_templ.go"]
+include_ext = ["go", "templ"]
+exclude_dir = ["target", "atrium"]
