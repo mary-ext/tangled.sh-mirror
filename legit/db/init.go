@@ -22,6 +22,7 @@ func Setup(dbPath string) (*DB, error) {
 			did text not null,
 			name text not null,
 			key text not null,
+			created timestamp default current_timestamp,
 			unique(did, name, key)
 		);
 		create table if not exists repos (
@@ -29,6 +30,7 @@ func Setup(dbPath string) (*DB, error) {
 			did text not null,
 			name text not null,
 			description text not null,
+			created timestamp default current_timestamp,
 			unique(did, name)
 		)
 	`)

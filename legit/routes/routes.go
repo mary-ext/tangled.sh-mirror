@@ -445,8 +445,16 @@ func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		// TODO: fetch keys from db
-		if err := h.t.ExecuteTemplate(w, "keys", nil); err != nil {
+		keys, err := h.db.GetPublicKeys("did:ashtntnashtx")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "invalid `did`", http.StatusBadRequest)
+			return
+		}
+
+		data := make(map[string]interface{})
+		data["keys"] = keys
+		if err := h.t.ExecuteTemplate(w, "keys", data); err != nil {
 			log.Println(err)
 			return
 		}

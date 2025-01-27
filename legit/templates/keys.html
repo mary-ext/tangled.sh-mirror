@@ -29,6 +29,24 @@
                     Submit
                 </button>
             </form>
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Name</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{ range .keys }}
+                <tr>
+                  <td>{{ .Name }}</td>
+                  <td>{{ .Created }}</td>
+                  <td>{{ .Key }}</td>
+                </tr>
+                {{ end }}
+              </tbody>
+            </table>
         </main>
     </body>
 </html>

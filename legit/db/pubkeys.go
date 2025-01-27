@@ -1,5 +1,7 @@
 package db
 
+import "time"
+
 func (d *DB) AddPublicKey(did, name, key string) error {
 	query := `insert into public_keys (did, name, key) values (?, ?, ?)`
 	_, err := d.db.Exec(query, did, name, key)
@@ -12,12 +14,32 @@ func (d *DB) RemovePublicKey(did string) error {
 	return err
 }
 
-func (d *DB) GetPublicKey(did string) (string, error) {
-	var key string
-	query := `select key from public_keys where did = ?`
-	err := d.db.QueryRow(query, did).Scan(&key)
+type PublicKey struct {
+	Key     string
+	Name    string
+	Created time.Time
+}
+
+func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
+	var keys []PublicKey
+
+	rows, err := d.db.Query(`select key, name, created from public_keys where did = ?`, did)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return key, nil
+	defer rows.Close()
+
+	for rows.Next() {
+		var publicKey PublicKey
+		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.Created); err != nil {
+			return nil, err
+		}
+		keys = append(keys, publicKey)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return keys, nil
 }
