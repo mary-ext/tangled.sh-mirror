@@ -2,6 +2,7 @@ package routes
 
 import (
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -14,9 +15,14 @@ import (
 	"strings"
 	"time"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/gorilla/sessions"
 	"github.com/icyphox/bild/legit/config"
 	"github.com/icyphox/bild/legit/db"
 	"github.com/icyphox/bild/legit/git"
@@ -27,6 +33,7 @@ import (
 type Handle struct {
 	c  *config.Config
 	t  *template.Template
+	s  *sessions.CookieStore
 	db *db.DB
 }
 
@@ -435,17 +442,65 @@ func (h *Handle) ServeStatic(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, f)
 }
 
+func resolveIdent(arg string) (*identity.Identity, error) {
+	id, err := syntax.ParseAtIdentifier(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	dir := identity.DefaultDirectory()
+	return dir.Lookup(ctx, *id)
+}
+
 func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
-	if err := h.t.ExecuteTemplate(w, "login", nil); err != nil {
+	ctx := context.Background()
+	username := r.FormValue("username")
+	appPassword := r.FormValue("app_password")
+
+	resolved, err := resolveIdent(username)
+	if err != nil {
+		http.Error(w, "invalid `handle`", http.StatusBadRequest)
+		return
+	}
+
+	pdsUrl := resolved.PDSEndpoint()
+	client := xrpc.Client{
+		Host: pdsUrl,
+	}
+
+	atSession, err := comatproto.ServerCreateSession(ctx, &client, &comatproto.ServerCreateSession_Input{
+		Identifier: resolved.DID.String(),
+		Password:   appPassword,
+	})
+
+	clientSession, _ := h.s.Get(r, "bild-session")
+	clientSession.Values["handle"] = atSession.Handle
+	clientSession.Values["did"] = atSession.Did
+	clientSession.Values["accessJwt"] = atSession.AccessJwt
+	clientSession.Values["refreshJwt"] = atSession.RefreshJwt
+	clientSession.Values["pds"] = pdsUrl
+	clientSession.Values["authenticated"] = true
+
+	err = clientSession.Save(r, w)
+
+	if err != nil {
+		log.Printf("failed to store session for did: %s\n", atSession.Did)
 		log.Println(err)
 		return
 	}
+
+	log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
+	http.Redirect(w, r, "/", 302)
 }
 
 func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.s.Get(r, "bild-session")
+	did := session.Values["did"].(string)
+
 	switch r.Method {
 	case http.MethodGet:
-		keys, err := h.db.GetPublicKeys("did:ashtntnashtx")
+		keys, err := h.db.GetPublicKeys(did)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "invalid `did`", http.StatusBadRequest)
@@ -469,8 +524,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// TODO: add did here
-		if err := h.db.AddPublicKey("did:ashtntnashtx", name, key); err != nil {
+		if err := h.db.AddPublicKey(did, name, key); err != nil {
 			h.WriteOOBNotice(w, "keys", "Failed to add key.")
 			log.Printf("adding public key: %s", err)
 			return
@@ -482,6 +536,9 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.s.Get(r, "bild-session")
+	did := session.Values["did"].(string)
+
 	switch r.Method {
 	case http.MethodGet:
 		if err := h.t.ExecuteTemplate(w, "new", nil); err != nil {
@@ -492,14 +549,13 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		name := r.FormValue("name")
 		description := r.FormValue("description")
 
-		// TODO: Get handle from session. We need this to construct the repository path.
 		err := git.InitBare(filepath.Join(h.c.Repo.ScanPath, "example.com", name))
 		if err != nil {
 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
 			return
 		}
 
-		err = h.db.AddRepo("did:ashtntnashtx", name, description)
+		err = h.db.AddRepo(did, name, description)
 		if err != nil {
 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
 			return

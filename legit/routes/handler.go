@@ -6,7 +6,11 @@ import (
 	"net/http"
 	"path/filepath"
 
+	_ "github.com/bluesky-social/indigo/atproto/identity"
+	_ "github.com/bluesky-social/indigo/atproto/syntax"
+	_ "github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/sessions"
 	"github.com/icyphox/bild/legit/config"
 	"github.com/icyphox/bild/legit/db"
 )
@@ -36,6 +40,7 @@ func (h *Handle) Multiplex(w http.ResponseWriter, r *http.Request) {
 func Setup(c *config.Config) (http.Handler, error) {
 	r := chi.NewRouter()
 	t := template.Must(template.ParseGlob(filepath.Join(c.Dirs.Templates, "*")))
+	s := sessions.NewCookieStore([]byte("TODO_CHANGE_ME"))
 	db, err := db.Setup(c.Server.DBPath)
 
 	if err != nil {
@@ -45,20 +50,26 @@ func Setup(c *config.Config) (http.Handler, error) {
 	h := Handle{
 		c:  c,
 		t:  t,
+		s:  s,
 		db: db,
 	}
 
 	r.Get("/login", h.Login)
+	r.Post("/login", h.Login)
 	r.Get("/static/{file}", h.ServeStatic)
 
 	r.Route("/repo", func(r chi.Router) {
+		r.Use(h.AuthMiddleware)
 		r.Get("/new", h.NewRepo)
 		r.Put("/new", h.NewRepo)
 	})
 
-	r.Route("/settings", func(r chi.Router) {
-		r.Get("/keys", h.Keys)
-		r.Put("/keys", h.Keys)
+	r.Group(func(r chi.Router) {
+		r.Use(h.AuthMiddleware)
+		r.Route("/settings", func(r chi.Router) {
+			r.Get("/keys", h.Keys)
+			r.Put("/keys", h.Keys)
+		})
 	})
 
 	r.Route("/@{user}", func(r chi.Router) {
