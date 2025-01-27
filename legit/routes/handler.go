@@ -2,9 +2,7 @@ package routes
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
-	"path/filepath"
 
 	_ "github.com/bluesky-social/indigo/atproto/identity"
 	_ "github.com/bluesky-social/indigo/atproto/syntax"
@@ -13,6 +11,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/icyphox/bild/legit/config"
 	"github.com/icyphox/bild/legit/db"
+	"github.com/icyphox/bild/legit/routes/tmpl"
 )
 
 // Checks for gitprotocol-http(5) specific smells; if found, passes
@@ -39,10 +38,13 @@ func (h *Handle) Multiplex(w http.ResponseWriter, r *http.Request) {
 
 func Setup(c *config.Config) (http.Handler, error) {
 	r := chi.NewRouter()
-	t := template.Must(template.ParseGlob(filepath.Join(c.Dirs.Templates, "*")))
 	s := sessions.NewCookieStore([]byte("TODO_CHANGE_ME"))
-	db, err := db.Setup(c.Server.DBPath)
+	t, err := tmpl.Load(c.Dirs.Templates)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load templates: %w", err)
+	}
 
+	db, err := db.Setup(c.Server.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup db: %w", err)
 	}

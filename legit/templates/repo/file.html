@@ -1,9 +1,8 @@
-{{ define "file" }}
 <html>
-  {{ template "head" . }}
-  {{ template "repoheader" . }}
+  {{ template "layouts/head" . }}
+  {{ template "layouts/repo-header" . }}
   <body>
-    {{ template "nav" . }}
+    {{ template "layouts/nav" . }}
     <main>
       <p>{{ .path }} (<a style="color: gray" href="?raw=true">view raw</a>)</p>
       {{if .chroma }}
@@ -33,4 +32,3 @@
     </main>
   </body>
 </html>
-{{ end }}

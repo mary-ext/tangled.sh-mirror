@@ -1,10 +1,10 @@
-{{ define "log" }}
 <html>
-{{ template "head" . }}
+{{ template "layouts/head" . }}
 
-  {{ template "repoheader" . }}
+{{ template "layouts/repo-header" . }}
+
   <body>
-    {{ template "nav" . }}
+    {{ template "layouts/nav" . }}
     <main>
       {{ $repo := .name }}
       <div class="log">
@@ -19,7 +19,18 @@
         </div>
         {{ end }}
       </div>
+{{- if .readme }}
+      <article class="readme">
+        {{- .readme -}}
+      </article>
+{{- end -}}
+
+      <div class="clone-url">
+      <strong>clone</strong>
+        <pre>
+git clone https://{{ .servername }}/{{ .name }}
+        </pre>
+      </div>
     </main>
   </body>
 </html>
-{{ end }}

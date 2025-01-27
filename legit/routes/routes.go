@@ -106,11 +106,10 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	name = filepath.Clean(name)
 	path := filepath.Join(h.c.Repo.ScanPath, name)
 
-	fmt.Println(path)
 	gr, err := git.Open(path, "")
 	if err != nil {
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
-			h.t.ExecuteTemplate(w, "empty", nil)
+			h.t.ExecuteTemplate(w, "repo/empty", nil)
 			return
 		} else {
 			h.Write404(w)
@@ -173,7 +172,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	data["meta"] = h.c.Meta
 	data["gomod"] = isGoModule(gr)
 
-	if err := h.t.ExecuteTemplate(w, "repo", data); err != nil {
+	if err := h.t.ExecuteTemplate(w, "repo/repo", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -192,7 +191,6 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	name = filepath.Clean(name)
 	path := filepath.Join(h.c.Repo.ScanPath, name)
-	fmt.Println(path)
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		h.Write404(w)
@@ -348,7 +346,7 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 	data["desc"] = getDescription(path)
 	data["log"] = true
 
-	if err := h.t.ExecuteTemplate(w, "log", data); err != nil {
+	if err := h.t.ExecuteTemplate(w, "repo/log", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -387,7 +385,7 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 	data["ref"] = ref
 	data["desc"] = getDescription(path)
 
-	if err := h.t.ExecuteTemplate(w, "commit", data); err != nil {
+	if err := h.t.ExecuteTemplate(w, "repo/commit", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -429,7 +427,7 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 	data["tags"] = tags
 	data["desc"] = getDescription(path)
 
-	if err := h.t.ExecuteTemplate(w, "refs", data); err != nil {
+	if err := h.t.ExecuteTemplate(w, "repo/refs", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -509,7 +507,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 
 		data := make(map[string]interface{})
 		data["keys"] = keys
-		if err := h.t.ExecuteTemplate(w, "keys", data); err != nil {
+		if err := h.t.ExecuteTemplate(w, "settings/keys", data); err != nil {
 			log.Println(err)
 			return
 		}
@@ -541,7 +539,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		if err := h.t.ExecuteTemplate(w, "new", nil); err != nil {
+		if err := h.t.ExecuteTemplate(w, "repo/new", nil); err != nil {
 			log.Println(err)
 			return
 		}

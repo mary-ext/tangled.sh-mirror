@@ -1,14 +1,9 @@
-{{ define "login" }}
 <html>
-    {{ template "head" . }}
+    {{ template "layouts/head" . }}
 
     <body>
         <main>
-            <form
-                class="form-login"
-                method="post"
-                action="/login"
-            >
+            <form class="form-login" method="post" action="/login">
                 <p>
                     You will be redirected to bsky.social (or your PDS) to
                     complete login.
@@ -32,4 +27,3 @@
         </main>
     </body>
 </html>
-{{ end }}

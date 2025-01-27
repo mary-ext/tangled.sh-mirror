@@ -2,12 +2,10 @@ package routes
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/alecthomas/chroma/v2/formatters/html"
@@ -16,36 +14,11 @@ import (
 	"github.com/icyphox/bild/legit/git"
 )
 
-func (h *Handle) Write404(w http.ResponseWriter) {
-	w.WriteHeader(404)
-	if err := h.t.ExecuteTemplate(w, "404", nil); err != nil {
-		log.Printf("404 template: %s", err)
-	}
-}
-
-func (h *Handle) Write500(w http.ResponseWriter) {
-	w.WriteHeader(500)
-	if err := h.t.ExecuteTemplate(w, "500", nil); err != nil {
-		log.Printf("500 template: %s", err)
-	}
-}
-
-func (h *Handle) WriteOOBNotice(w http.ResponseWriter, id, msg string) {
-	html := fmt.Sprintf(`<span id="%s" hx-swap-oob="innerHTML">%s</span>`, id, msg)
-
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(html))
-}
-
 func (h *Handle) listFiles(files []git.NiceTree, data map[string]any, w http.ResponseWriter) {
-	tpath := filepath.Join(h.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
 	data["files"] = files
 	data["meta"] = h.c.Meta
 
-	if err := t.ExecuteTemplate(w, "tree", data); err != nil {
+	if err := h.t.ExecuteTemplate(w, "repo/tree", data); err != nil {
 		log.Println(err)
 		return
 	}
@@ -77,16 +50,13 @@ func countLines(r io.Reader) (int, error) {
 	}
 }
 
-func (d *Handle) showFileWithHighlight(name, content string, data map[string]any, w http.ResponseWriter) {
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
+func (h *Handle) showFileWithHighlight(name, content string, data map[string]any, w http.ResponseWriter) {
 	lexer := lexers.Get(name)
 	if lexer == nil {
 		lexer = lexers.Get(".txt")
 	}
 
-	style := styles.Get(d.c.Meta.SyntaxHighlight)
+	style := styles.Get(h.c.Meta.SyntaxHighlight)
 	if style == nil {
 		style = styles.Get("monokailight")
 	}
@@ -98,31 +68,28 @@ func (d *Handle) showFileWithHighlight(name, content string, data map[string]any
 
 	iterator, err := lexer.Tokenise(nil, content)
 	if err != nil {
-		d.Write500(w)
+		h.Write500(w)
 		return
 	}
 
 	var code bytes.Buffer
 	err = formatter.Format(&code, style, iterator)
 	if err != nil {
-		d.Write500(w)
+		h.Write500(w)
 		return
 	}
 
 	data["content"] = template.HTML(code.String())
-	data["meta"] = d.c.Meta
+	data["meta"] = h.c.Meta
 	data["chroma"] = true
 
-	if err := t.ExecuteTemplate(w, "file", data); err != nil {
+	if err := h.t.ExecuteTemplate(w, "repo/file", data); err != nil {
 		log.Println(err)
 		return
 	}
 }
 
-func (d *Handle) showFile(content string, data map[string]any, w http.ResponseWriter) {
-	tpath := filepath.Join(d.c.Dirs.Templates, "*")
-	t := template.Must(template.ParseGlob(tpath))
-
+func (h *Handle) showFile(content string, data map[string]any, w http.ResponseWriter) {
 	lc, err := countLines(strings.NewReader(content))
 	if err != nil {
 		// Non-fatal, we'll just skip showing line numbers in the template.
@@ -138,16 +105,16 @@ func (d *Handle) showFile(content string, data map[string]any, w http.ResponseWr
 
 	data["linecount"] = lines
 	data["content"] = content
-	data["meta"] = d.c.Meta
+	data["meta"] = h.c.Meta
 	data["chroma"] = false
 
-	if err := t.ExecuteTemplate(w, "file", data); err != nil {
+	if err := h.t.ExecuteTemplate(w, "repo/file", data); err != nil {
 		log.Println(err)
 		return
 	}
 }
 
-func (d *Handle) showRaw(content string, w http.ResponseWriter) {
+func (h *Handle) showRaw(content string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(content))

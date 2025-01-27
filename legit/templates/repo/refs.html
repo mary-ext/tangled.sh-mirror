@@ -1,10 +1,9 @@
-{{ define "refs" }}
 <html>
-{{ template "head" . }}
+{{ template "layouts/head" . }}
 
-  {{ template "repoheader" . }}
+  {{ template "layouts/repo-header" . }}
   <body>
-    {{ template "nav" . }}
+    {{ template "layouts/nav" . }}
     <main>
       {{ $name := .name }}
       <h3>branches</h3>
@@ -37,4 +36,3 @@
     </main>
   </body>
 </html>
-{{ end }}

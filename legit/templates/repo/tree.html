@@ -1,11 +1,10 @@
-{{ define "tree" }}
 <html>
 
-{{ template "head" . }}
+{{ template "layouts/head" . }}
 
-  {{ template "repoheader" . }}
+  {{ template "layouts/repo-header" . }}
   <body>
-    {{ template "nav" . }}
+    {{ template "layouts/nav" . }}
     <main>
       {{ $repo := .name }}
       {{ $ref := .ref }}
@@ -52,4 +51,3 @@
     </main>
   </body>
 </html>
-{{ end }}
