@@ -19,6 +19,7 @@ import (
 	"github.com/icyphox/bild/legit/db"
 	"github.com/icyphox/bild/legit/git"
 	"github.com/russross/blackfriday/v2"
+	"golang.org/x/crypto/ssh"
 )
 
 type Handle struct {
@@ -435,6 +436,7 @@ func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
+
 	switch r.Method {
 	case http.MethodGet:
 		// TODO: fetch keys from db
@@ -445,6 +447,14 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		key := r.FormValue("key")
 		name := r.FormValue("name")
+
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
+		if err != nil {
+			h.WriteOOBNotice(w, "keys", "Invalid public key. Check your formatting and try again.")
+			log.Printf("parsing public key: %s", err)
+			return
+		}
+
 		// TODO: add did here
 		if err := h.db.AddPublicKey("did:ashtntnashtx", name, key); err != nil {
 			h.WriteOOBNotice(w, "keys", "Failed to add key")
