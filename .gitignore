@@ -1,1 +1,4 @@
 .direnv/
+tmp
+bild
+*.db
