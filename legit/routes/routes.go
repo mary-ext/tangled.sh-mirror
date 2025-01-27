@@ -440,57 +440,64 @@ func (h *Handle) ServeStatic(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, f)
 }
 
-func resolveIdent(arg string) (*identity.Identity, error) {
+func resolveIdent(ctx context.Context, arg string) (*identity.Identity, error) {
 	id, err := syntax.ParseAtIdentifier(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := context.Background()
 	dir := identity.DefaultDirectory()
 	return dir.Lookup(ctx, *id)
 }
 
 func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	username := r.FormValue("username")
-	appPassword := r.FormValue("app_password")
+	switch r.Method {
+	case http.MethodGet:
+		if err := h.t.ExecuteTemplate(w, "user/login", nil); err != nil {
+			log.Println(err)
+			return
+		}
+	case http.MethodPost:
+		ctx := r.Context()
+		username := r.FormValue("username")
+		appPassword := r.FormValue("app_password")
 
-	resolved, err := resolveIdent(username)
-	if err != nil {
-		http.Error(w, "invalid `handle`", http.StatusBadRequest)
-		return
+		resolved, err := resolveIdent(ctx, username)
+		if err != nil {
+			http.Error(w, "invalid `handle`", http.StatusBadRequest)
+			return
+		}
+
+		pdsUrl := resolved.PDSEndpoint()
+		client := xrpc.Client{
+			Host: pdsUrl,
+		}
+
+		atSession, err := comatproto.ServerCreateSession(ctx, &client, &comatproto.ServerCreateSession_Input{
+			Identifier: resolved.DID.String(),
+			Password:   appPassword,
+		})
+
+		clientSession, _ := h.s.Get(r, "bild-session")
+		clientSession.Values["handle"] = atSession.Handle
+		clientSession.Values["did"] = atSession.Did
+		clientSession.Values["accessJwt"] = atSession.AccessJwt
+		clientSession.Values["refreshJwt"] = atSession.RefreshJwt
+		clientSession.Values["expiry"] = time.Now().Add(time.Hour).String()
+		clientSession.Values["pds"] = pdsUrl
+		clientSession.Values["authenticated"] = true
+
+		err = clientSession.Save(r, w)
+
+		if err != nil {
+			log.Printf("failed to store session for did: %s\n", atSession.Did)
+			log.Println(err)
+			return
+		}
+
+		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
+		http.Redirect(w, r, "/@"+atSession.Handle, 302)
 	}
-
-	pdsUrl := resolved.PDSEndpoint()
-	client := xrpc.Client{
-		Host: pdsUrl,
-	}
-
-	atSession, err := comatproto.ServerCreateSession(ctx, &client, &comatproto.ServerCreateSession_Input{
-		Identifier: resolved.DID.String(),
-		Password:   appPassword,
-	})
-
-	clientSession, _ := h.s.Get(r, "bild-session")
-	clientSession.Values["handle"] = atSession.Handle
-	clientSession.Values["did"] = atSession.Did
-	clientSession.Values["accessJwt"] = atSession.AccessJwt
-	clientSession.Values["refreshJwt"] = atSession.RefreshJwt
-	clientSession.Values["expiry"] = time.Now().Add(time.Hour).String()
-	clientSession.Values["pds"] = pdsUrl
-	clientSession.Values["authenticated"] = true
-
-	err = clientSession.Save(r, w)
-
-	if err != nil {
-		log.Printf("failed to store session for did: %s\n", atSession.Did)
-		log.Println(err)
-		return
-	}
-
-	log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
-	http.Redirect(w, r, "/", 302)
 }
 
 func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
