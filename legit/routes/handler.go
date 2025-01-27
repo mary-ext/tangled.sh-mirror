@@ -51,6 +51,11 @@ func Setup(c *config.Config) (http.Handler, error) {
 	r.Get("/login", h.Login)
 	r.Get("/static/{file}", h.ServeStatic)
 
+	r.Route("/repo", func(r chi.Router) {
+		r.Get("/new", h.NewRepo)
+		r.Put("/new", h.NewRepo)
+	})
+
 	r.Route("/settings", func(r chi.Router) {
 		r.Get("/keys", h.Keys)
 		r.Put("/keys", h.Keys)

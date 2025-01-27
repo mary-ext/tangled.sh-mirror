@@ -2,6 +2,7 @@ package routes
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/icyphox/bild/legit/config"
 	"github.com/icyphox/bild/legit/db"
 	"github.com/icyphox/bild/legit/git"
@@ -100,8 +102,13 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(path)
 	gr, err := git.Open(path, "")
 	if err != nil {
-		h.Write404(w)
-		return
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			h.t.ExecuteTemplate(w, "empty", nil)
+			return
+		} else {
+			h.Write404(w)
+			return
+		}
 	}
 	commits, err := gr.Commits()
 	if err != nil {
@@ -436,7 +443,6 @@ func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
-
 	switch r.Method {
 	case http.MethodGet:
 		// TODO: fetch keys from db
@@ -457,12 +463,41 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 
 		// TODO: add did here
 		if err := h.db.AddPublicKey("did:ashtntnashtx", name, key); err != nil {
-			h.WriteOOBNotice(w, "keys", "Failed to add key")
+			h.WriteOOBNotice(w, "keys", "Failed to add key.")
 			log.Printf("adding public key: %s", err)
 			return
 		}
 
 		h.WriteOOBNotice(w, "keys", "Key added!")
 		return
+	}
+}
+
+func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		if err := h.t.ExecuteTemplate(w, "new", nil); err != nil {
+			log.Println(err)
+			return
+		}
+	case http.MethodPut:
+		name := r.FormValue("name")
+		description := r.FormValue("description")
+
+		// TODO: Get handle from session. We need this to construct the repository path.
+		err := git.InitBare(filepath.Join(h.c.Repo.ScanPath, "example.com", name))
+		if err != nil {
+			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
+			return
+		}
+
+		err = h.db.AddRepo("did:ashtntnashtx", name, description)
+		if err != nil {
+			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
+			return
+		}
+
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/@example.com/%s", name))
+		w.WriteHeader(http.StatusOK)
 	}
 }

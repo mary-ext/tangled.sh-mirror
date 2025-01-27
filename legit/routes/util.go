@@ -26,7 +26,7 @@ func isGoModule(gr *git.GitRepo) bool {
 func uniqueName(r *http.Request) string {
 	user := chi.URLParam(r, "user")
 	name := chi.URLParam(r, "name")
-	return fmt.Sprintf("@%s/%s", user, name)
+	return fmt.Sprintf("%s/%s", user, name)
 }
 
 func getDisplayName(name string) string {
