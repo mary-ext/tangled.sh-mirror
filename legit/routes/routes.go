@@ -477,6 +477,7 @@ func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 	clientSession.Values["did"] = atSession.Did
 	clientSession.Values["accessJwt"] = atSession.AccessJwt
 	clientSession.Values["refreshJwt"] = atSession.RefreshJwt
+	clientSession.Values["expiry"] = time.Now().Add(time.Hour).String()
 	clientSession.Values["pds"] = pdsUrl
 	clientSession.Values["authenticated"] = true
 

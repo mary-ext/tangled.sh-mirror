@@ -28,6 +28,7 @@
           pkgs.air
           pkgs.templ
           pkgs.gopls
+          pkgs.httpie
         ];
       };
     });
