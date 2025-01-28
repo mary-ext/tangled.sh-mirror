@@ -431,6 +431,64 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//	func (h *Handle) addUserToRepo(w http.ResponseWriter, r *http.Request) {
+//		repoOwnerHandle := chi.URLParam(r, "user")
+//		repoOwner, err := auth.ResolveIdent(r.Context(), repoOwnerHandle)
+//		if err != nil {
+//			log.Println("invalid did")
+//			http.Error(w, "invalid did", http.StatusNotFound)
+//			return
+//		}
+//		repoName := chi.URLParam(r, "name")
+//		session, _ := h.s.Get(r, "bild-session")
+//		did := session.Values["did"].(string)
+//
+//		err := h.db.SetWriter()
+//	}
+func (h *Handle) Collaborators(w http.ResponseWriter, r *http.Request) {
+	// put repo resolution in middleware
+	repoOwnerHandle := chi.URLParam(r, "user")
+	repoOwner, err := auth.ResolveIdent(r.Context(), repoOwnerHandle)
+	if err != nil {
+		log.Println("invalid did")
+		http.Error(w, "invalid did", http.StatusNotFound)
+		return
+	}
+	repoName := chi.URLParam(r, "name")
+
+	switch r.Method {
+	case http.MethodGet:
+		// TODO fetch a list of collaborators and their access rights
+		http.Error(w, "unimpl 1", http.StatusInternalServerError)
+		return
+	case http.MethodPut:
+		newUser := r.FormValue("newUser")
+		if newUser == "" {
+			// TODO: htmx this
+			http.Error(w, "unimpl 2", http.StatusInternalServerError)
+			return
+		}
+		newUserIdentity, err := auth.ResolveIdent(r.Context(), newUser)
+		if err != nil {
+			// TODO: htmx this
+			log.Println("invalid handle")
+			http.Error(w, "unimpl 3", http.StatusBadRequest)
+			return
+		}
+		err = h.db.SetWriter(newUserIdentity.DID.String(), repoOwner.DID.String(), repoName)
+		if err != nil {
+			// TODO: htmx this
+			log.Println("failed to add collaborator")
+			http.Error(w, "unimpl 4", http.StatusInternalServerError)
+			return
+		}
+
+		log.Println("success")
+		return
+
+	}
+}
+
 func (h *Handle) ServeStatic(w http.ResponseWriter, r *http.Request) {
 	f := chi.URLParam(r, "file")
 	f = filepath.Clean(filepath.Join(h.c.Dirs.Static, f))
@@ -554,8 +612,25 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// For use by repoguard
+		didPath := filepath.Join(repoPath, "did")
+		err = os.WriteFile(didPath, []byte(did), 0644)
+		if err != nil {
+			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
+			return
+		}
+
+		// TODO: add repo & setting-to-owner must happen in the same transaction
 		err = h.db.AddRepo(did, name, description)
 		if err != nil {
+			log.Println(err)
+			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
+			return
+		}
+		// current user is set to owner of did/name repo
+		err = h.db.SetOwner(did, did, name)
+		if err != nil {
+			log.Println(err)
 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
 			return
 		}

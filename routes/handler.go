@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/icyphox/bild/auth"
 	"github.com/icyphox/bild/config"
-	"github.com/icyphox/bild/db"
+	database "github.com/icyphox/bild/db"
 	"github.com/icyphox/bild/routes/middleware"
 	"github.com/icyphox/bild/routes/tmpl"
 )
@@ -38,7 +38,7 @@ func (h *Handle) Multiplex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
+func Setup(c *config.Config, db *database.DB) (http.Handler, error) {
 	r := chi.NewRouter()
 	s := sessions.NewCookieStore([]byte("TODO_CHANGE_ME"))
 	t, err := tmpl.Load(c.Dirs.Templates)
@@ -99,6 +99,14 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 			r.Get("/archive/{file}", h.Archive)
 			r.Get("/commit/{ref}", h.Diff)
 			r.Get("/refs/", h.Refs)
+
+			r.Group(func(r chi.Router) {
+				// settings page is only accessible to owners
+				r.Use(h.AccessLevel(database.Owner))
+				r.Route("/settings", func(r chi.Router) {
+					r.Put("/collaborators", h.Collaborators)
+				})
+			})
 
 			// Catch-all routes
 			r.Get("/*", h.Multiplex)
