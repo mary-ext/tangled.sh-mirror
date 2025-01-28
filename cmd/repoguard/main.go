@@ -143,6 +143,14 @@ func cleanup() {
 }
 
 func isAllowedUser(user, repoPath string) bool {
-	pathUser := strings.Split(repoPath, "/")[0]
-	return pathUser == user
+	fullPath := filepath.Join(*baseDirFlag, repoPath)
+	didPath := filepath.Join(fullPath, "did")
+
+	didBytes, err := os.ReadFile(didPath)
+	if err != nil {
+		return false
+	}
+
+	allowedUser := strings.TrimSpace(string(didBytes))
+	return allowedUser == user
 }

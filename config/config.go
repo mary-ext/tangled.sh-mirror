@@ -30,6 +30,9 @@ type Config struct {
 		Host   string `yaml:"host"`
 		Port   int    `yaml:"port"`
 		DBPath string `yaml:"dbpath"`
+
+		InternalHost string `yaml:"internalHost,omitempty"`
+		InternalPort int    `yaml:"internalPort,omitempty"`
 	} `yaml:"server"`
 }
 

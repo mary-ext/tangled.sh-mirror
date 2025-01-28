@@ -17,13 +17,14 @@ func (d *DB) RemovePublicKey(did string) error {
 type PublicKey struct {
 	Key     string
 	Name    string
+	DID     string
 	Created time.Time
 }
 
-func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
+func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 	var keys []PublicKey
 
-	rows, err := d.db.Query(`select key, name, created from public_keys where did = ?`, did)
+	rows, err := d.db.Query(`select key, name, did, created from public_keys`)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +32,31 @@ func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
 
 	for rows.Next() {
 		var publicKey PublicKey
-		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.Created); err != nil {
+		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.DID, &publicKey.Created); err != nil {
+			return nil, err
+		}
+		keys = append(keys, publicKey)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return keys, nil
+}
+
+func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
+	var keys []PublicKey
+
+	rows, err := d.db.Query(`select did, key, name, created from public_keys where did = ?`, did)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var publicKey PublicKey
+		if err := rows.Scan(&publicKey.DID, &publicKey.Key, &publicKey.Name, &publicKey.Created); err != nil {
 			return nil, err
 		}
 		keys = append(keys, publicKey)

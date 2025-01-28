@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/icyphox/bild/config"
+	"github.com/icyphox/bild/db"
 	"github.com/icyphox/bild/routes"
 )
 
@@ -23,13 +24,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	db, err := db.Setup(c.Server.DBPath)
+	if err != nil {
+		log.Fatalf("failed to setup db: %s", err)
+	}
 
-	mux, err := routes.Setup(c)
+	mux, err := routes.Setup(c, db)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	internalMux := routes.SetupInternal(c, db)
+
 	addr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
-	log.Println("starting server on", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	internalAddr := fmt.Sprintf("%s:%d", c.Server.InternalHost, c.Server.InternalPort)
+
+	log.Println("starting main server on", addr)
+	go http.ListenAndServe(addr, mux)
+
+	log.Println("starting internal server on", internalAddr)
+	log.Fatal(http.ListenAndServe(internalAddr, internalMux))
 }

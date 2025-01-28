@@ -524,7 +524,16 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		name := r.FormValue("name")
 		description := r.FormValue("description")
 
-		err := git.InitBare(filepath.Join(h.c.Repo.ScanPath, handle, name))
+		repoPath := filepath.Join(h.c.Repo.ScanPath, handle, name)
+		err := git.InitBare(repoPath)
+		if err != nil {
+			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
+			return
+		}
+
+		// For use by repoguard
+		didPath := filepath.Join(repoPath, "did")
+		err = os.WriteFile(didPath, []byte(did), 0644)
 		if err != nil {
 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
 			return

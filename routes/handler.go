@@ -37,7 +37,7 @@ func (h *Handle) Multiplex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Setup(c *config.Config) (http.Handler, error) {
+func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 	r := chi.NewRouter()
 	s := sessions.NewCookieStore([]byte("TODO_CHANGE_ME"))
 	t, err := tmpl.Load(c.Dirs.Templates)
@@ -46,11 +46,6 @@ func Setup(c *config.Config) (http.Handler, error) {
 	}
 
 	auth := auth.NewAuth(s)
-
-	db, err := db.Setup(c.Server.DBPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup db: %w", err)
-	}
 
 	h := Handle{
 		c:    c,
