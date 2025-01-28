@@ -11,7 +11,7 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
-	"github.com/icyphox/bild/legit/git"
+	"github.com/icyphox/bild/git"
 )
 
 func (h *Handle) listFiles(files []git.NiceTree, data map[string]any, w http.ResponseWriter) {

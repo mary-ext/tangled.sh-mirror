@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/icyphox/bild/legit/git"
+	"github.com/icyphox/bild/git"
 	"github.com/microcosm-cc/bluemonday"
 )
 

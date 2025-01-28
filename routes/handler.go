@@ -9,10 +9,10 @@ import (
 	_ "github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
-	"github.com/icyphox/bild/legit/config"
-	"github.com/icyphox/bild/legit/db"
-	"github.com/icyphox/bild/legit/routes/auth"
-	"github.com/icyphox/bild/legit/routes/tmpl"
+	"github.com/icyphox/bild/config"
+	"github.com/icyphox/bild/db"
+	"github.com/icyphox/bild/routes/auth"
+	"github.com/icyphox/bild/routes/tmpl"
 )
 
 // Checks for gitprotocol-http(5) specific smells; if found, passes

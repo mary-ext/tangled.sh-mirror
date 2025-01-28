@@ -9,8 +9,8 @@ repo:
     - master
     - main
 dirs:
-  templates: ./legit/templates
-  static: ./legit/static
+  templates: ./templates
+  static: ./static
 meta:
   title: icy does git
   description: come get your free software

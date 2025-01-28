@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/icyphox/bild/legit/config"
-	"github.com/icyphox/bild/legit/routes"
+	"github.com/icyphox/bild/config"
+	"github.com/icyphox/bild/routes"
 )
 
 func main() {

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/icyphox/bild/legit/git/service"
+	"github.com/icyphox/bild/git/service"
 )
 
 func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
