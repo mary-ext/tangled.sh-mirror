@@ -49,6 +49,7 @@
           pkgs.gopls
           pkgs.httpie
           pkgs.indigo-lexgen
+          pkgs.litecli
         ];
       };
     });

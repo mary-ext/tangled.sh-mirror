@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "sh.bild.publicKey",
+  "needsCbor": true,
+  "needsType": true,
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "created"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 4096,
+            "maxGraphemes": 4096,
+            "description": "public key contents"
+          },
+          "name": {
+            "type": "string",
+            "format": "string",
+            "description": "human-readable name for this key"
+          },
+          "created": {
+            "type": "string",
+            "format": "datetime",
+            "description": "key upload timestamp"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "package": "bild",
+    "prefix": "sh.bild",
+    "outdir": "api/bild",
+    "import": "github.com/icyphox/bild/api/bild",
+    "gen-server": true
+  }
+]

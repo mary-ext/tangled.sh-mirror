@@ -31,6 +31,30 @@ func resolveIdent(ctx context.Context, arg string) (*identity.Identity, error) {
 	return dir.Lookup(ctx, *id)
 }
 
+func (a *Auth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
+	clientSession, err := a.s.Get(r, "bild-session")
+
+	if err != nil || clientSession.IsNew {
+		return nil, err
+	}
+
+	did := clientSession.Values["did"].(string)
+	pdsUrl := clientSession.Values["pds"].(string)
+	accessJwt := clientSession.Values["accessJwt"].(string)
+	refreshJwt := clientSession.Values["refreshJwt"].(string)
+
+	client := &xrpc.Client{
+		Host: pdsUrl,
+		Auth: &xrpc.AuthInfo{
+			AccessJwt:  accessJwt,
+			RefreshJwt: refreshJwt,
+			Did:        did,
+		},
+	}
+
+	return client, nil
+}
+
 func (a *Auth) CreateInitialSession(w http.ResponseWriter, r *http.Request, username, appPassword string) (AtSessionCreate, error) {
 	ctx := r.Context()
 	resolved, err := resolveIdent(ctx, username)

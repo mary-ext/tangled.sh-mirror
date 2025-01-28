@@ -14,10 +14,14 @@ import (
 	"strings"
 	"time"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
+	shbild "github.com/icyphox/bild/api/bild"
 	"github.com/icyphox/bild/config"
 	"github.com/icyphox/bild/db"
 	"github.com/icyphox/bild/git"
@@ -490,6 +494,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		key := r.FormValue("key")
 		name := r.FormValue("name")
+		client, _ := h.auth.AuthorizedClient(r)
 
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
 		if err != nil {
@@ -503,6 +508,27 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 			log.Printf("adding public key: %s", err)
 			return
 		}
+
+		// store in pds too
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: "sh.bild.publicKey",
+			Repo:       did,
+			Rkey:       uuid.New().String(),
+			Record: &lexutil.LexiconTypeDecoder{Val: &shbild.PublicKey{
+				Created: time.Now().String(),
+				Key:     key,
+				Name:    name,
+			}},
+		})
+
+		// invalid record
+		if err != nil {
+			h.WriteOOBNotice(w, "keys", "Invalid inputs. Check your formatting and try again.")
+			log.Printf("failed to create record: %s", err)
+			return
+		}
+
+		log.Println("created atproto record: ", resp.Uri)
 
 		h.WriteOOBNotice(w, "keys", "Key added!")
 		return
