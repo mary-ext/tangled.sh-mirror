@@ -2,7 +2,6 @@ package routes
 
 import (
 	"compress/gzip"
-	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -15,10 +14,6 @@ import (
 	"strings"
 	"time"
 
-	comatproto "github.com/bluesky-social/indigo/api/atproto"
-	"github.com/bluesky-social/indigo/atproto/identity"
-	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -26,15 +21,17 @@ import (
 	"github.com/icyphox/bild/legit/config"
 	"github.com/icyphox/bild/legit/db"
 	"github.com/icyphox/bild/legit/git"
+	"github.com/icyphox/bild/legit/routes/auth"
 	"github.com/russross/blackfriday/v2"
 	"golang.org/x/crypto/ssh"
 )
 
 type Handle struct {
-	c  *config.Config
-	t  *template.Template
-	s  *sessions.CookieStore
-	db *db.DB
+	c    *config.Config
+	t    *template.Template
+	s    *sessions.CookieStore
+	db   *db.DB
+	auth *auth.Auth
 }
 
 func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
@@ -440,16 +437,6 @@ func (h *Handle) ServeStatic(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, f)
 }
 
-func resolveIdent(ctx context.Context, arg string) (*identity.Identity, error) {
-	id, err := syntax.ParseAtIdentifier(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	dir := identity.DefaultDirectory()
-	return dir.Lookup(ctx, *id)
-}
-
 func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -458,45 +445,26 @@ func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPost:
-		ctx := r.Context()
 		username := r.FormValue("username")
 		appPassword := r.FormValue("app_password")
 
-		resolved, err := resolveIdent(ctx, username)
+		atSession, err := h.auth.CreateInitialSession(w, r, username, appPassword)
 		if err != nil {
-			http.Error(w, "invalid `handle`", http.StatusBadRequest)
+			h.WriteOOBNotice(w, "login", "Invalid username or app password.")
+			log.Printf("creating initial session: %s", err)
 			return
 		}
 
-		pdsUrl := resolved.PDSEndpoint()
-		client := xrpc.Client{
-			Host: pdsUrl,
-		}
-
-		atSession, err := comatproto.ServerCreateSession(ctx, &client, &comatproto.ServerCreateSession_Input{
-			Identifier: resolved.DID.String(),
-			Password:   appPassword,
-		})
-
-		clientSession, _ := h.s.Get(r, "bild-session")
-		clientSession.Values["handle"] = atSession.Handle
-		clientSession.Values["did"] = atSession.Did
-		clientSession.Values["accessJwt"] = atSession.AccessJwt
-		clientSession.Values["refreshJwt"] = atSession.RefreshJwt
-		clientSession.Values["expiry"] = time.Now().Add(time.Hour).String()
-		clientSession.Values["pds"] = pdsUrl
-		clientSession.Values["authenticated"] = true
-
-		err = clientSession.Save(r, w)
-
+		err = h.auth.StoreSession(r, w, &atSession, nil)
 		if err != nil {
-			log.Printf("failed to store session for did: %s\n", atSession.Did)
-			log.Println(err)
+			h.WriteOOBNotice(w, "login", "Failed to store session.")
+			log.Printf("storing session: %s", err)
 			return
 		}
 
 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
-		http.Redirect(w, r, "/@"+atSession.Handle, 302)
+		w.Header().Set("HX-Redirect", "/")
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -508,8 +476,8 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		keys, err := h.db.GetPublicKeys(did)
 		if err != nil {
+			h.WriteOOBNotice(w, "keys", "Failed to list keys. Try again later.")
 			log.Println(err)
-			http.Error(w, "invalid `did`", http.StatusBadRequest)
 			return
 		}
 

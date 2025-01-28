@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/icyphox/bild/legit/config"
 	"github.com/icyphox/bild/legit/db"
+	"github.com/icyphox/bild/legit/routes/auth"
 	"github.com/icyphox/bild/legit/routes/tmpl"
 )
 
@@ -44,16 +45,19 @@ func Setup(c *config.Config) (http.Handler, error) {
 		return nil, fmt.Errorf("failed to load templates: %w", err)
 	}
 
+	auth := auth.NewAuth(s)
+
 	db, err := db.Setup(c.Server.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup db: %w", err)
 	}
 
 	h := Handle{
-		c:  c,
-		t:  t,
-		s:  s,
-		db: db,
+		c:    c,
+		t:    t,
+		s:    s,
+		db:   db,
+		auth: auth,
 	}
 
 	r.Get("/login", h.Login)

@@ -7,6 +7,7 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
+	rauth "github.com/icyphox/bild/legit/routes/auth"
 )
 
 const (
@@ -19,7 +20,7 @@ func (h *Handle) AuthMiddleware(next http.Handler) http.Handler {
 		auth, ok := session.Values["authenticated"].(bool)
 
 		if !ok || !auth {
-			http.Error(w, "Forbidden: You are not logged in", http.StatusForbidden)
+			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -43,28 +44,16 @@ func (h *Handle) AuthMiddleware(next http.Handler) http.Handler {
 				},
 			}
 			atSession, err := comatproto.ServerRefreshSession(r.Context(), &client)
-
 			if err != nil {
 				log.Println(err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				h.Write500(w)
 				return
 			}
 
-			clientSession, _ := h.s.Get(r, "bild-session")
-			clientSession.Values["handle"] = atSession.Handle
-			clientSession.Values["did"] = atSession.Did
-			clientSession.Values["accessJwt"] = atSession.AccessJwt
-			clientSession.Values["refreshJwt"] = atSession.RefreshJwt
-			clientSession.Values["expiry"] = time.Now().Add(time.Hour).String()
-			clientSession.Values["pds"] = pdsUrl
-			clientSession.Values["authenticated"] = true
-
-			err = clientSession.Save(r, w)
-
+			err = h.auth.StoreSession(r, w, nil, &rauth.AtSessionRefresh{ServerRefreshSession_Output: *atSession, PDSEndpoint: pdsUrl})
 			if err != nil {
-				log.Printf("failed to store session for did: %s\n", atSession.Did)
-				log.Println(err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				log.Printf("failed to store session for did: %s\n: %s", atSession.Did, err)
+				h.Write500(w)
 				return
 			}
 
