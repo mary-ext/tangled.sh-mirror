@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "indigo": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1738055559,
+        "narHash": "sha256-wsey8gs825Tm9Q3zITqg4B6TmHCDuV9vyQlXEnD/7/I=",
+        "owner": "oppiliappan",
+        "repo": "indigo",
+        "rev": "9b475b7509c21b98b6ccd97c6d3f2e8d8ea3eae0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oppiliappan",
+        "repo": "indigo",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1737753923,
@@ -17,6 +33,7 @@
     },
     "root": {
       "inputs": {
+        "indigo": "indigo",
         "nixpkgs": "nixpkgs"
       }
     }

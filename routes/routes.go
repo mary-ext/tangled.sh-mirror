@@ -512,6 +512,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.s.Get(r, "bild-session")
 	did := session.Values["did"].(string)
+	handle := session.Values["handle"].(string)
 
 	switch r.Method {
 	case http.MethodGet:
@@ -523,7 +524,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		name := r.FormValue("name")
 		description := r.FormValue("description")
 
-		err := git.InitBare(filepath.Join(h.c.Repo.ScanPath, "example.com", name))
+		err := git.InitBare(filepath.Join(h.c.Repo.ScanPath, handle, name))
 		if err != nil {
 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
 			return
