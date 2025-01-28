@@ -20,6 +20,7 @@ func (h *Handle) AuthMiddleware(next http.Handler) http.Handler {
 		auth, ok := session.Values["authenticated"].(bool)
 
 		if !ok || !auth {
+			log.Printf("not logged in, redirecting")
 			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 			return
 		}
@@ -58,6 +59,12 @@ func (h *Handle) AuthMiddleware(next http.Handler) http.Handler {
 			}
 
 			log.Println("successfully refreshed token")
+		}
+
+		if r.URL.Path == "/login" {
+			log.Println("already logged in")
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
 		}
 
 		next.ServeHTTP(w, r)

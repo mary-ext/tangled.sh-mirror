@@ -60,8 +60,11 @@ func Setup(c *config.Config) (http.Handler, error) {
 		auth: auth,
 	}
 
-	r.Get("/login", h.Login)
-	r.Post("/login", h.Login)
+	r.Group(func(r chi.Router) {
+		r.Use(h.AuthMiddleware)
+		r.Get("/login", h.Login)
+		r.Post("/login", h.Login)
+	})
 	r.Get("/static/{file}", h.ServeStatic)
 
 	r.Route("/repo", func(r chi.Router) {

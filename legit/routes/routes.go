@@ -463,8 +463,8 @@ func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
-		w.Header().Set("HX-Redirect", "/")
-		w.WriteHeader(http.StatusOK)
+		http.Redirect(w, r, "/", http.StatusPermanentRedirect)
+		return
 	}
 }
 
