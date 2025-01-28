@@ -21,7 +21,7 @@ func NewAuth(store sessions.Store) *Auth {
 	return &Auth{store}
 }
 
-func resolveIdent(ctx context.Context, arg string) (*identity.Identity, error) {
+func ResolveIdent(ctx context.Context, arg string) (*identity.Identity, error) {
 	id, err := syntax.ParseAtIdentifier(arg)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (a *Auth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
 
 func (a *Auth) CreateInitialSession(w http.ResponseWriter, r *http.Request, username, appPassword string) (AtSessionCreate, error) {
 	ctx := r.Context()
-	resolved, err := resolveIdent(ctx, username)
+	resolved, err := ResolveIdent(ctx, username)
 	if err != nil {
 		return AtSessionCreate{}, fmt.Errorf("invalid handle: %s", err)
 	}
@@ -118,5 +118,5 @@ func (a *Auth) GetSessionUser(r *http.Request) (*identity.Identity, error) {
 		return nil, fmt.Errorf("user is not authenticated")
 	}
 
-	return resolveIdent(r.Context(), did)
+	return ResolveIdent(r.Context(), did)
 }

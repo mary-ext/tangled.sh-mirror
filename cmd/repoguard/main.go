@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/icyphox/bild/routes/auth"
 )
 
 var (
@@ -58,7 +62,10 @@ func main() {
 	}
 
 	gitCommand := cmdParts[0]
-	repoName := strings.Trim(cmdParts[1], "'")
+
+	// example.com/repo
+	handlePath := strings.Trim(cmdParts[1], "'")
+	repoName := handleToDID(handlePath)
 
 	validCommands := map[string]bool{
 		"git-receive-pack":   true,
@@ -69,8 +76,11 @@ func main() {
 		exitWithLog("access denied: invalid git command")
 	}
 
-	if !isAllowedUser(*allowedUser, repoName) {
-		exitWithLog("access denied: user not allowed")
+	did := path.Dir(repoName)
+	if gitCommand != "git-upload-pack" {
+		if !isAllowedUser(*allowedUser, did) {
+			exitWithLog("access denied: user not allowed")
+		}
 	}
 
 	fullPath := filepath.Join(*baseDirFlag, repoName)
@@ -99,6 +109,20 @@ func main() {
 		"repo":    repoName,
 		"success": true,
 	})
+}
+
+func handleToDID(handlePath string) string {
+	handle := path.Dir(handlePath)
+
+	ident, err := auth.ResolveIdent(context.Background(), handle)
+	if err != nil {
+		exitWithLog(fmt.Sprintf("error resolving handle: %v", err))
+	}
+
+	// did:plc:foobarbaz/repo
+	didPath := filepath.Join(ident.DID.String(), path.Base(handlePath))
+
+	return didPath
 }
 
 func initLogger() {
@@ -142,15 +166,6 @@ func cleanup() {
 	}
 }
 
-func isAllowedUser(user, repoPath string) bool {
-	fullPath := filepath.Join(*baseDirFlag, repoPath)
-	didPath := filepath.Join(fullPath, "did")
-
-	didBytes, err := os.ReadFile(didPath)
-	if err != nil {
-		return false
-	}
-
-	allowedUser := strings.TrimSpace(string(didBytes))
-	return allowedUser == user
+func isAllowedUser(user, did string) bool {
+	return user == did
 }
