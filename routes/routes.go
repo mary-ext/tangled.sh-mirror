@@ -22,10 +22,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	shbild "github.com/icyphox/bild/api/bild"
+	"github.com/icyphox/bild/auth"
 	"github.com/icyphox/bild/config"
 	"github.com/icyphox/bild/db"
 	"github.com/icyphox/bild/git"
-	"github.com/icyphox/bild/routes/auth"
 	"github.com/russross/blackfriday/v2"
 	"golang.org/x/crypto/ssh"
 )
@@ -39,8 +39,8 @@ type Handle struct {
 }
 
 func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
-	user := chi.URLParam(r, "user")
-	path := filepath.Join(h.c.Repo.ScanPath, user)
+	name := displayRepoName(r)
+	path := filepath.Join(h.c.Repo.ScanPath, name)
 	dirs, err := os.ReadDir(path)
 	if err != nil {
 		h.Write500(w)
@@ -75,7 +75,7 @@ func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
 		}
 
 		infos = append(infos, info{
-			DisplayName: getDisplayName(name),
+			DisplayName: trimDotGit(name),
 			Name:        name,
 			Desc:        getDescription(path),
 			Idle:        humanize.Time(c.Author.When),
@@ -98,14 +98,13 @@ func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
-	name := uniqueName(r)
+	name := displayRepoName(r)
 	if h.isIgnored(name) {
 		h.Write404(w)
 		return
 	}
 
-	name = filepath.Clean(name)
-	path := filepath.Join(h.c.Repo.ScanPath, name)
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 
 	gr, err := git.Open(path, "")
 	if err != nil {
@@ -164,7 +163,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string]any)
 	data["name"] = name
-	data["displayname"] = getDisplayName(name)
+	data["displayname"] = trimDotGit(name)
 	data["ref"] = mainBranch
 	data["readme"] = readmeContent
 	data["commits"] = commits
@@ -182,7 +181,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
-	name := uniqueName(r)
+	name := displayRepoName(r)
 	if h.isIgnored(name) {
 		h.Write404(w)
 		return
@@ -190,8 +189,7 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
 
-	name = filepath.Clean(name)
-	path := filepath.Join(h.c.Repo.ScanPath, name)
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		h.Write404(w)
@@ -207,7 +205,7 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string]any)
 	data["name"] = name
-	data["displayname"] = getDisplayName(name)
+	data["displayname"] = trimDotGit(name)
 	data["ref"] = ref
 	data["parent"] = treePath
 	data["desc"] = getDescription(path)
@@ -223,7 +221,7 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 		raw = rawParam
 	}
 
-	name := uniqueName(r)
+	name := displayRepoName(r)
 
 	if h.isIgnored(name) {
 		h.Write404(w)
@@ -232,8 +230,7 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
 
-	name = filepath.Clean(name)
-	path := filepath.Join(h.c.Repo.ScanPath, name)
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		h.Write404(w)
@@ -247,7 +244,7 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 	}
 	data := make(map[string]any)
 	data["name"] = name
-	data["displayname"] = getDisplayName(name)
+	data["displayname"] = trimDotGit(name)
 	data["ref"] = ref
 	data["desc"] = getDescription(path)
 	data["path"] = treePath
@@ -266,7 +263,7 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
-	name := uniqueName(r)
+	name := displayRepoName(r)
 	if h.isIgnored(name) {
 		h.Write404(w)
 		return
@@ -288,7 +285,7 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 	setContentDisposition(w, filename)
 	setGZipMIME(w)
 
-	path := filepath.Join(h.c.Repo.ScanPath, name)
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		h.Write404(w)
@@ -317,14 +314,14 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
-	name := uniqueName(r)
+	name := displayRepoName(r)
 	if h.isIgnored(name) {
 		h.Write404(w)
 		return
 	}
 	ref := chi.URLParam(r, "ref")
 
-	path := filepath.Join(h.c.Repo.ScanPath, name)
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		h.Write404(w)
@@ -342,7 +339,7 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 	data["commits"] = commits
 	data["meta"] = h.c.Meta
 	data["name"] = name
-	data["displayname"] = getDisplayName(name)
+	data["displayname"] = trimDotGit(name)
 	data["ref"] = ref
 	data["desc"] = getDescription(path)
 	data["log"] = true
@@ -354,14 +351,14 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
-	name := uniqueName(r)
+	name := displayRepoName(r)
 	if h.isIgnored(name) {
 		h.Write404(w)
 		return
 	}
 	ref := chi.URLParam(r, "ref")
 
-	path := filepath.Join(h.c.Repo.ScanPath, name)
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		h.Write404(w)
@@ -382,7 +379,7 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 	data["diff"] = diff.Diff
 	data["meta"] = h.c.Meta
 	data["name"] = name
-	data["displayname"] = getDisplayName(name)
+	data["displayname"] = trimDotGit(name)
 	data["ref"] = ref
 	data["desc"] = getDescription(path)
 
@@ -399,7 +396,7 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := filepath.Join(h.c.Repo.ScanPath, name)
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, "")
 	if err != nil {
 		h.Write404(w)
@@ -423,7 +420,7 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 
 	data["meta"] = h.c.Meta
 	data["name"] = name
-	data["displayname"] = getDisplayName(name)
+	data["displayname"] = trimDotGit(name)
 	data["branches"] = branches
 	data["tags"] = tags
 	data["desc"] = getDescription(path)
@@ -550,16 +547,8 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		name := r.FormValue("name")
 		description := r.FormValue("description")
 
-		repoPath := filepath.Join(h.c.Repo.ScanPath, handle, name)
+		repoPath := filepath.Join(h.c.Repo.ScanPath, did, name)
 		err := git.InitBare(repoPath)
-		if err != nil {
-			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
-			return
-		}
-
-		// For use by repoguard
-		didPath := filepath.Join(repoPath, "did")
-		err = os.WriteFile(didPath, []byte(did), 0644)
 		if err != nil {
 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
 			return
@@ -571,7 +560,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Header().Set("HX-Redirect", fmt.Sprintf("/@example.com/%s", name))
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/@%s/%s", handle, name))
 		w.WriteHeader(http.StatusOK)
 	}
 }

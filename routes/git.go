@@ -11,7 +11,7 @@ import (
 )
 
 func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
-	name := uniqueName(r)
+	name := displayRepoName(r)
 	name = filepath.Clean(name)
 
 	repo := filepath.Join(d.c.Repo.ScanPath, name)
@@ -32,7 +32,7 @@ func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
-	name := uniqueName(r)
+	name := displayRepoName(r)
 	name = filepath.Clean(name)
 
 	repo := filepath.Join(d.c.Repo.ScanPath, name)

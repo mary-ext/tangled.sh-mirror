@@ -9,9 +9,10 @@ import (
 	_ "github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
+	"github.com/icyphox/bild/auth"
 	"github.com/icyphox/bild/config"
 	"github.com/icyphox/bild/db"
-	"github.com/icyphox/bild/routes/auth"
+	"github.com/icyphox/bild/routes/middleware"
 	"github.com/icyphox/bild/routes/tmpl"
 )
 
@@ -77,6 +78,7 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 	})
 
 	r.Route("/@{user}", func(r chi.Router) {
+		r.Use(middleware.AddDID)
 		r.Get("/", h.Index)
 
 		// Repo routes

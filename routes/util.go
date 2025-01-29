@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/icyphox/bild/auth"
 	"github.com/icyphox/bild/git"
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -23,13 +24,27 @@ func isGoModule(gr *git.GitRepo) bool {
 	return err == nil
 }
 
-func uniqueName(r *http.Request) string {
-	user := chi.URLParam(r, "user")
+func displayRepoName(r *http.Request) string {
+	user := r.Context().Value("did").(string)
 	name := chi.URLParam(r, "name")
-	return fmt.Sprintf("%s/%s", user, name)
+
+	handle, err := auth.ResolveIdent(r.Context(), user)
+	if err != nil {
+		log.Printf("failed to resolve ident: %s: %s", user, err)
+		return fmt.Sprintf("%s/%s", user, name)
+	}
+
+	return fmt.Sprintf("@%s/%s", handle.Handle.String(), name)
 }
 
-func getDisplayName(name string) string {
+func didPath(r *http.Request) string {
+	did := r.Context().Value("did").(string)
+	path := filepath.Join(did, chi.URLParam(r, "name"))
+	filepath.Clean(path)
+	return path
+}
+
+func trimDotGit(name string) string {
 	return strings.TrimSuffix(name, ".git")
 }
 
