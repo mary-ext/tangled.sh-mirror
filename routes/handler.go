@@ -56,8 +56,9 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 		auth: auth,
 	}
 
+	r.Get("/", h.Timeline)
+
 	r.Group(func(r chi.Router) {
-		r.Use(h.AuthMiddleware)
 		r.Get("/login", h.Login)
 		r.Post("/login", h.Login)
 	})

@@ -464,7 +464,7 @@ func (h *Handle) Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
-		http.Redirect(w, r, "/", http.StatusPermanentRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 }
@@ -562,5 +562,21 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("HX-Redirect", fmt.Sprintf("/@%s/%s", handle, name))
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (h *Handle) Timeline(w http.ResponseWriter, r *http.Request) {
+	session, err := h.s.Get(r, "bild-session")
+	user := make(map[string]string)
+	if err != nil || session.IsNew {
+		// user is not logged in
+	} else {
+		user["handle"] = session.Values["handle"].(string)
+		user["did"] = session.Values["did"].(string)
+	}
+
+	if err := h.t.ExecuteTemplate(w, "timeline", user); err != nil {
+		log.Println(err)
+		return
 	}
 }
