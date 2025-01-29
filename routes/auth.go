@@ -7,7 +7,7 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
-	rauth "github.com/icyphox/bild/routes/auth"
+	rauth "github.com/icyphox/bild/auth"
 )
 
 const (

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/icyphox/bild/routes/auth"
+	"github.com/icyphox/bild/auth"
 )
 
 var (
