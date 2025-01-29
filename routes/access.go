@@ -2,8 +2,8 @@ package routes
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/icyphox/bild/auth"
 	"github.com/icyphox/bild/db"
-	auth "github.com/icyphox/bild/routes/auth"
 	"log"
 	"net/http"
 )

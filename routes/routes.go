@@ -431,20 +431,6 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//	func (h *Handle) addUserToRepo(w http.ResponseWriter, r *http.Request) {
-//		repoOwnerHandle := chi.URLParam(r, "user")
-//		repoOwner, err := auth.ResolveIdent(r.Context(), repoOwnerHandle)
-//		if err != nil {
-//			log.Println("invalid did")
-//			http.Error(w, "invalid did", http.StatusNotFound)
-//			return
-//		}
-//		repoName := chi.URLParam(r, "name")
-//		session, _ := h.s.Get(r, "bild-session")
-//		did := session.Values["did"].(string)
-//
-//		err := h.db.SetWriter()
-//	}
 func (h *Handle) Collaborators(w http.ResponseWriter, r *http.Request) {
 	// put repo resolution in middleware
 	repoOwnerHandle := chi.URLParam(r, "user")
