@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/icyphox/bild/knotserver/git/service"
 )
-func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
-	name := displayRepoName(r)
-	name = filepath.Clean(name)
 
-	repo := filepath.Join(d.c.Repo.ScanPath, name)
+func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
+	did := chi.URLParam(r, "did")
+	name := chi.URLParam(r, "name")
+	repo := filepath.Join(d.c.Repo.ScanPath, did, name)
 
 	w.Header().Set("content-type", "application/x-git-upload-pack-advertisement")
 	w.WriteHeader(http.StatusOK)
@@ -31,10 +32,9 @@ func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
-	name := displayRepoName(r)
-	name = filepath.Clean(name)
-
-	repo := filepath.Join(d.c.Repo.ScanPath, name)
+	did := chi.URLParam(r, "did")
+	name := chi.URLParam(r, "name")
+	repo := filepath.Join(d.c.Repo.ScanPath, did, name)
 
 	w.Header().Set("content-type", "application/x-git-upload-pack-result")
 	w.Header().Set("Connection", "Keep-Alive")

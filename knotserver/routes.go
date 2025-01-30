@@ -30,6 +30,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			writeMsg(w, "repo empty")
 			return
 		} else {
+			log.Println(err)
 			notFound(w)
 			return
 		}
@@ -201,6 +202,7 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.URL.Path)
 	ref := chi.URLParam(r, "ref")
 
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))

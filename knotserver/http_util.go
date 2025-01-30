@@ -22,5 +22,5 @@ func notFound(w http.ResponseWriter) {
 }
 
 func writeMsg(w http.ResponseWriter, msg string) {
-	writeJson(w, map[string]string{"msg": msg})
+	writeJSON(w, map[string]string{"msg": msg})
 }

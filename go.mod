@@ -9,7 +9,6 @@ require (
 	github.com/bluekeyes/go-gitdiff v0.8.0
 	github.com/bluesky-social/indigo v0.0.0-20250123072624-9e3b84fdbb20
 	github.com/dustin/go-humanize v1.0.1
-	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/uuid v1.6.0

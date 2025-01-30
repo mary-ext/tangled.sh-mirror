@@ -10,7 +10,7 @@ import (
 
 	"github.com/icyphox/bild/config"
 	"github.com/icyphox/bild/db"
-	"github.com/icyphox/bild/routes"
+	"github.com/icyphox/bild/knotserver"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("failed to setup db: %s", err)
 	}
 
-	mux, err := routes.Setup(c, db)
+	mux, err := knotserver.Setup(c, db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,5 +37,5 @@ func main() {
 	addr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
 
 	log.Println("starting main server on", addr)
-	go http.ListenAndServe(addr, mux)
+	log.Fatal(http.ListenAndServe(addr, mux))
 }

@@ -32,8 +32,10 @@ func displayRepoName(r *http.Request) string {
 	return fmt.Sprintf("@%s/%s", handle.Handle.String(), name)
 }
 
-func didPath(r *http.Request, did string) string {
-	path := filepath.Join(did, chi.URLParam(r, "name"))
+func didPath(r *http.Request) string {
+	did := chi.URLParam(r, "did")
+	name := chi.URLParam(r, "name")
+	path := filepath.Join(did, name)
 	filepath.Clean(path)
 	return path
 }
