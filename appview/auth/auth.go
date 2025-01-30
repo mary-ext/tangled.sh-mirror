@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
-	"github.com/whyrusleeping/go-did"
 )
 
 type Auth struct {
@@ -66,12 +67,17 @@ func (a *Auth) CreateInitialSession(ctx context.Context, username, appPassword s
 }
 
 func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSession *comatproto.ServerCreateSession_Output) error {
-	didDoc, ok := (*atSession.DidDoc).(did.Document)
-	if !ok {
+	var didDoc identity.DIDDocument
+
+	bytes, _ := json.Marshal(atSession.DidDoc)
+	err := json.Unmarshal(bytes, &didDoc)
+	if err != nil {
+		log.Printf("did: %+v", *atSession.DidDoc)
 		return fmt.Errorf("invalid did document for session")
 	}
 
-	pdsEndpoint := getPdsEndpoint(&didDoc)
+	identity := identity.ParseIdentity(&didDoc)
+	pdsEndpoint := identity.PDSEndpoint()
 
 	if pdsEndpoint == "" {
 		return fmt.Errorf("no pds endpoint found")
@@ -87,19 +93,4 @@ func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSession *c
 	clientSession.Values["authenticated"] = true
 
 	return clientSession.Save(r, w)
-}
-
-func getPdsEndpoint(didDoc *did.Document) string {
-	fullId := didDoc.ID.String()
-	id := "#atproto_pds"
-	type_ := "AtprotoPersonalDataServer"
-
-	for _, service := range didDoc.Service {
-		serviceId := service.ID.String()
-		if serviceId == id || serviceId == fullId+id || service.Type == type_ {
-			return service.ServiceEndpoint
-		}
-	}
-
-	return ""
 }
