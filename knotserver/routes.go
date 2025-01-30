@@ -155,8 +155,7 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
-	name := displayRepoName(r)
-
+	name := chi.URLParam(r, "name")
 	file := chi.URLParam(r, "file")
 
 	// TODO: extend this to add more files compression (e.g.: xz)
@@ -231,11 +230,6 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
-	name := displayRepoName(r)
-	if h.isIgnored(name) {
-		notFound(w)
-		return
-	}
 	ref := chi.URLParam(r, "ref")
 
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
