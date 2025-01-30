@@ -2,6 +2,7 @@ package knotserver
 
 import (
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -13,7 +14,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/icyphox/bild/git"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/icyphox/bild/knotserver/git"
 	"github.com/russross/blackfriday/v2"
 )
 
@@ -84,8 +86,6 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	data["readme"] = readmeContent
 	data["commits"] = commits
 	data["desc"] = getDescription(path)
-	data["servername"] = h.c.Server.Name
-	data["meta"] = h.c.Meta
 
 	writeJSON(w, data)
 	return
@@ -218,12 +218,44 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get page parameters
+	page := 1
+	pageSize := 30
+
+	if pageParam := r.URL.Query().Get("page"); pageParam != "" {
+		if p, err := strconv.Atoi(pageParam); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if pageSizeParam := r.URL.Query().Get("per_page"); pageSizeParam != "" {
+		if ps, err := strconv.Atoi(pageSizeParam); err == nil && ps > 0 {
+			pageSize = ps
+		}
+	}
+
+	// Calculate pagination
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	total := len(commits)
+
+	if start >= total {
+		commits = []*object.Commit{}
+	} else {
+		if end > total {
+			end = total
+		}
+		commits = commits[start:end]
+	}
+
 	data := make(map[string]interface{})
 	data["commits"] = commits
-	data["meta"] = h.c.Meta
 	data["ref"] = ref
 	data["desc"] = getDescription(path)
 	data["log"] = true
+	data["total"] = total
+	data["page"] = page
+	data["per_page"] = pageSize
 
 	writeJSON(w, data)
 	return
@@ -251,7 +283,6 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 	data["commit"] = diff.Commit
 	data["stat"] = diff.Stat
 	data["diff"] = diff.Diff
-	data["meta"] = h.c.Meta
 	data["ref"] = ref
 	data["desc"] = getDescription(path)
 
@@ -282,20 +313,12 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string]interface{})
 
-	data["meta"] = h.c.Meta
 	data["branches"] = branches
 	data["tags"] = tags
 	data["desc"] = getDescription(path)
 
 	writeJSON(w, data)
 	return
-}
-
-func (h *Handle) ServeStatic(w http.ResponseWriter, r *http.Request) {
-	f := chi.URLParam(r, "file")
-	f = filepath.Clean(filepath.Join(h.c.Dirs.Static, f))
-
-	http.ServeFile(w, r, f)
 }
 
 // func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
@@ -361,38 +384,29 @@ func (h *Handle) ServeStatic(w http.ResponseWriter, r *http.Request) {
 // 	}
 // }
 
-// func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
-// 	session, _ := h.s.Get(r, "bild-session")
-// 	did := session.Values["did"].(string)
-// 	handle := session.Values["handle"].(string)
+func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		DID  string `json:"did"`
+		Name string `json:"name"`
+	}{}
 
-// 	switch r.Method {
-// 	case http.MethodGet:
-// 		if err := h.t.ExecuteTemplate(w, "repo/new", nil); err != nil {
-// 			log.Println(err)
-// 			return
-// 		}
-// 	case http.MethodPut:
-// 		name := r.FormValue("name")
-// 		description := r.FormValue("description")
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
 
-// 		repoPath := filepath.Join(h.c.Repo.ScanPath, did, name)
-// 		err := git.InitBare(repoPath)
-// 		if err != nil {
-// 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
-// 			return
-// 		}
+	did := data.DID
+	name := data.Name
 
-// 		err = h.db.AddRepo(did, name, description)
-// 		if err != nil {
-// 			h.WriteOOBNotice(w, "repo", "Error creating repo. Try again later.")
-// 			return
-// 		}
+	repoPath := filepath.Join(h.c.Repo.ScanPath, did, name)
+	err := git.InitBare(repoPath)
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-// 		w.Header().Set("HX-Redirect", fmt.Sprintf("/@%s/%s", handle, name))
-// 		w.WriteHeader(http.StatusOK)
-// 	}
-// }
+	w.WriteHeader(http.StatusNoContent)
+}
 
 // func (h *Handle) Timeline(w http.ResponseWriter, r *http.Request) {
 // 	session, err := h.s.Get(r, "bild-session")

@@ -17,6 +17,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/russross/blackfriday/v2 v2.1.0
+	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/whyrusleeping/cbor-gen v0.2.1-0.20241030202151-b7a6831be65e
 	golang.org/x/crypto v0.31.0
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028

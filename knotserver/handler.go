@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/icyphox/bild/config"
 	"github.com/icyphox/bild/db"
+	"github.com/icyphox/bild/knotserver/config"
 )
 
 func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
@@ -16,12 +16,6 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 		c:  c,
 		db: db,
 	}
-
-	// r.Route("/repo", func(r chi.Router) {
-	// 	r.Use(h.AuthMiddleware)
-	// 	r.Get("/new", h.NewRepo)
-	// 	r.Put("/new", h.NewRepo)
-	// })
 
 	r.Get("/", h.Index)
 	r.Route("/{did}", func(r chi.Router) {
@@ -44,6 +38,10 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 			r.Get("/commit/{ref}", h.Diff)
 			r.Get("/refs/", h.Refs)
 		})
+	})
+
+	r.Route("/repo", func(r chi.Router) {
+		r.Put("/new", h.NewRepo)
 	})
 
 	return r, nil

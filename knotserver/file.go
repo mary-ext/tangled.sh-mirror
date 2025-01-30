@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/icyphox/bild/git"
+	"github.com/icyphox/bild/knotserver/git"
 )
 
 func (h *Handle) listFiles(files []git.NiceTree, data map[string]any, w http.ResponseWriter) {
 	data["files"] = files
-	data["meta"] = h.c.Meta
 
 	writeJSON(w, data)
 	return
@@ -60,7 +59,6 @@ func (h *Handle) showFile(content string, data map[string]any, w http.ResponseWr
 
 	data["linecount"] = lines
 	data["content"] = content
-	data["meta"] = h.c.Meta
 
 	writeJSON(w, data)
 	return
