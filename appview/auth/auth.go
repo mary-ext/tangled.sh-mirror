@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -13,10 +12,11 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
+	"github.com/icyphox/bild/appview"
 )
 
 type Auth struct {
-	store sessions.Store
+	Store *sessions.CookieStore
 }
 
 type AtSessionCreate struct {
@@ -30,7 +30,7 @@ type AtSessionRefresh struct {
 }
 
 func Make() (*Auth, error) {
-	store := sessions.NewCookieStore([]byte("TODO_CHANGE_ME"))
+	store := sessions.NewCookieStore([]byte(appview.SESSION_COOKIE_SECRET))
 	return &Auth{store}, nil
 }
 
@@ -66,13 +66,89 @@ func (a *Auth) CreateInitialSession(ctx context.Context, username, appPassword s
 	return atSession, nil
 }
 
-func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSession *comatproto.ServerCreateSession_Output) error {
+// Sessionish is an interface that provides access to the common fields of both types.
+type Sessionish interface {
+	GetAccessJwt() string
+	GetActive() *bool
+	GetDid() string
+	GetDidDoc() *interface{}
+	GetHandle() string
+	GetRefreshJwt() string
+	GetStatus() *string
+}
+
+// Create a wrapper type for ServerRefreshSession_Output
+type RefreshSessionWrapper struct {
+	*comatproto.ServerRefreshSession_Output
+}
+
+func (s *RefreshSessionWrapper) GetAccessJwt() string {
+	return s.AccessJwt
+}
+
+func (s *RefreshSessionWrapper) GetActive() *bool {
+	return s.Active
+}
+
+func (s *RefreshSessionWrapper) GetDid() string {
+	return s.Did
+}
+
+func (s *RefreshSessionWrapper) GetDidDoc() *interface{} {
+	return s.DidDoc
+}
+
+func (s *RefreshSessionWrapper) GetHandle() string {
+	return s.Handle
+}
+
+func (s *RefreshSessionWrapper) GetRefreshJwt() string {
+	return s.RefreshJwt
+}
+
+func (s *RefreshSessionWrapper) GetStatus() *string {
+	return s.Status
+}
+
+// Create a wrapper type for ServerRefreshSession_Output
+type CreateSessionWrapper struct {
+	*comatproto.ServerCreateSession_Output
+}
+
+func (s *CreateSessionWrapper) GetAccessJwt() string {
+	return s.AccessJwt
+}
+
+func (s *CreateSessionWrapper) GetActive() *bool {
+	return s.Active
+}
+
+func (s *CreateSessionWrapper) GetDid() string {
+	return s.Did
+}
+
+func (s *CreateSessionWrapper) GetDidDoc() *interface{} {
+	return s.DidDoc
+}
+
+func (s *CreateSessionWrapper) GetHandle() string {
+	return s.Handle
+}
+
+func (s *CreateSessionWrapper) GetRefreshJwt() string {
+	return s.RefreshJwt
+}
+
+func (s *CreateSessionWrapper) GetStatus() *string {
+	return s.Status
+}
+
+func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish Sessionish) error {
 	var didDoc identity.DIDDocument
 
-	bytes, _ := json.Marshal(atSession.DidDoc)
+	bytes, _ := json.Marshal(atSessionish.GetDidDoc())
 	err := json.Unmarshal(bytes, &didDoc)
 	if err != nil {
-		log.Printf("did: %+v", *atSession.DidDoc)
 		return fmt.Errorf("invalid did document for session")
 	}
 
@@ -83,14 +159,14 @@ func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSession *c
 		return fmt.Errorf("no pds endpoint found")
 	}
 
-	clientSession, _ := a.store.Get(r, "appview-session")
-	clientSession.Values["handle"] = atSession.Handle
-	clientSession.Values["did"] = atSession.Did
-	clientSession.Values["pds"] = pdsEndpoint
-	clientSession.Values["accessJwt"] = atSession.AccessJwt
-	clientSession.Values["refreshJwt"] = atSession.RefreshJwt
-	clientSession.Values["expiry"] = time.Now().Add(time.Hour).String()
-	clientSession.Values["authenticated"] = true
+	clientSession, _ := a.Store.Get(r, appview.SESSION_NAME)
+	clientSession.Values[appview.SESSION_HANDLE] = atSessionish.GetHandle()
+	clientSession.Values[appview.SESSION_DID] = atSessionish.GetDid()
+	clientSession.Values[appview.SESSION_PDS] = pdsEndpoint
+	clientSession.Values[appview.SESSION_ACCESSJWT] = atSessionish.GetAccessJwt()
+	clientSession.Values[appview.SESSION_REFRESHJWT] = atSessionish.GetRefreshJwt()
+	clientSession.Values[appview.SESSION_EXPIRY] = time.Now().Add(time.Hour).Format(appview.TIME_LAYOUT)
+	clientSession.Values[appview.SESSION_AUTHENTICATED] = true
 
 	return clientSession.Save(r, w)
 }
