@@ -17,6 +17,13 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 		db: db,
 	}
 
+	// r.Group(func(r chi.Router) {
+	// 	r.Route("/settings", func(r chi.Router) {
+	// 		r.Get("/keys", h.Keys)
+	// 		r.Put("/keys", h.Keys)
+	// 	})
+	// })
+
 	r.Get("/", h.Index)
 	r.Route("/{did}", func(r chi.Router) {
 		// Repo routes
@@ -42,6 +49,11 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 
 	r.Route("/repo", func(r chi.Router) {
 		r.Put("/new", h.NewRepo)
+	})
+
+	r.Route("/internal", func(r chi.Router) {
+		r.Use(h.VerifySignature)
+		r.Get("/health", h.Health)
 	})
 
 	return r, nil

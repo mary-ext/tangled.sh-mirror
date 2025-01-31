@@ -358,27 +358,6 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 // 			return
 // 		}
 
-// 		// store in pds too
-// 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
-// 			Collection: "sh.bild.publicKey",
-// 			Repo:       did,
-// 			Rkey:       uuid.New().String(),
-// 			Record: &lexutil.LexiconTypeDecoder{Val: &shbild.PublicKey{
-// 				Created: time.Now().String(),
-// 				Key:     key,
-// 				Name:    name,
-// 			}},
-// 		})
-
-// 		// invalid record
-// 		if err != nil {
-// 			h.WriteOOBNotice(w, "keys", "Invalid inputs. Check your formatting and try again.")
-// 			log.Printf("failed to create record: %s", err)
-// 			return
-// 		}
-
-// 		log.Println("created atproto record: ", resp.Uri)
-
 // 		h.WriteOOBNotice(w, "keys", "Key added!")
 // 		return
 // 	}
@@ -423,3 +402,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 // 		return
 // 	}
 // }
+
+func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("ok"))
+}
