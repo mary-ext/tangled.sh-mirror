@@ -2,6 +2,9 @@ package knotserver
 
 import (
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -404,5 +407,10 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 // }
 
 func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
+	log.Println("got health check")
+	mac := hmac.New(sha256.New, []byte(h.c.Secret))
+	mac.Write([]byte("ok"))
+	w.Header().Add("X-Signature", hex.EncodeToString(mac.Sum(nil)))
+
 	w.Write([]byte("ok"))
 }

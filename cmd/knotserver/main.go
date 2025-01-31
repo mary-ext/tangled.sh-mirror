@@ -7,16 +7,15 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/icyphox/bild/knotserver"
 	"github.com/icyphox/bild/knotserver/config"
 )
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	ctx := context.Background()
+	// ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// defer stop()
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 

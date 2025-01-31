@@ -108,9 +108,11 @@ func (d *DB) GetRegistrationKey(domain string) (string, error) {
 
 	var secret string
 	err := res.Scan(&secret)
-	if err != nil {
-		return "", nil
+	if err != nil || secret == "" {
+		return "", err
 	}
+
+	log.Println("domain, secret: ", domain, secret)
 
 	return secret, nil
 }

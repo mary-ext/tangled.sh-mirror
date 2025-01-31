@@ -4,9 +4,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -83,13 +83,13 @@ func (s *State) Key(w http.ResponseWriter, r *http.Request) {
 
 		// check if domain is valid url, and strip extra bits down to just host
 		domain := r.FormValue("domain")
-		url, err := url.Parse(domain)
 		if domain == "" || err != nil {
+			log.Println(err)
 			http.Error(w, "Invalid form", http.StatusBadRequest)
 			return
 		}
 
-		key, err := s.Db.GenerateRegistrationKey(url.Host, did)
+		key, err := s.Db.GenerateRegistrationKey(domain, did)
 
 		if err != nil {
 			log.Println(err)
@@ -112,24 +112,23 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("checking ", domain)
+
 	secret, err := s.Db.GetRegistrationKey(domain)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
 	}
-
-	hmac := hmac.New(sha256.New, []byte(secret))
-	signature := hex.EncodeToString(hmac.Sum(nil))
+	log.Println("has secret ", secret)
 
 	// make a request do the knotserver with an empty body and above signature
-	url, _ := url.Parse(domain)
-	url = url.JoinPath("check")
-	pingRequest, err := http.NewRequest("GET", url.String(), nil)
+	url := fmt.Sprintf("http://%s/internal/health", domain)
+
+	pingRequest, err := buildPingRequest(url, secret)
 	if err != nil {
-		log.Println("failed to create ping request for ", url.String())
+		log.Println("failed to build ping request", err)
 		return
 	}
-	pingRequest.Header.Set("X-Signature", signature)
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,
@@ -142,16 +141,50 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Println("status nok")
+		log.Println("status nok", resp.StatusCode)
 		w.Write([]byte("no dice"))
 		return
 	}
+
+	// verify response mac
+	signature := resp.Header.Get("X-Signature")
+	signatureBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return
+	}
+
+	expectedMac := hmac.New(sha256.New, []byte(secret))
+	expectedMac.Write([]byte("ok"))
+
+	if !hmac.Equal(expectedMac.Sum(nil), signatureBytes) {
+		log.Printf("response body signature mismatch: %x\n", signatureBytes)
+		return
+	}
+
 	w.Write([]byte("check success"))
 
 	// mark as registered
 	s.Db.Register(domain)
 
 	return
+}
+
+func buildPingRequest(url, secret string) (*http.Request, error) {
+	pingRequest, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	timestamp := time.Now().Format(time.RFC3339)
+	mac := hmac.New(sha256.New, []byte(secret))
+	message := pingRequest.Method + pingRequest.URL.Path + timestamp
+	mac.Write([]byte(message))
+	signature := hex.EncodeToString(mac.Sum(nil))
+
+	pingRequest.Header.Set("X-Signature", signature)
+	pingRequest.Header.Set("X-Timestamp", timestamp)
+
+	return pingRequest, nil
 }
 
 func (s *State) Router() http.Handler {
