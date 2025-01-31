@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -116,13 +117,18 @@ func (d *DB) Register(domain, secret string) error {
 
 	res := tx.QueryRow(`select secret from registrations where domain = ?`, domain)
 
-	var storedSecret string
-	err = res.Scan(&storedSecret)
+	var hexSecret string
+	err = res.Scan(&hexSecret)
 	if err != nil {
 		return err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(storedSecret), []byte(secret))
+	decoded, err := hex.DecodeString(hexSecret)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword(decoded, []byte(secret))
 	if err != nil {
 		return err
 	}

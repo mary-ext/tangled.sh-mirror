@@ -108,6 +108,12 @@ func (s *State) Register(w http.ResponseWriter, r *http.Request) {
 		domain := req.Domain
 		secret := req.Secret
 
+		err := s.Db.Register(domain, secret)
+		if err != nil {
+			log.Println("failed to register domain", err)
+			return
+		}
+
 		log.Printf("Registered domain: %s with secret: %s", domain, secret)
 	}
 }
@@ -116,6 +122,7 @@ func (s *State) Router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/login", s.Login)
+	r.Post("/node/register", s.Register)
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(s))
 		r.Post("/node/generate-key", s.GenerateRegistrationKey)
