@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
+	"time"
 )
 
 func (h *Handle) VerifySignature(next http.Handler) http.Handler {
@@ -20,7 +21,21 @@ func (h *Handle) VerifySignature(next http.Handler) http.Handler {
 
 func (h *Handle) verifyHMAC(signature string, r *http.Request) bool {
 	secret := h.c.Secret
-	message := r.Method + r.URL.Path + r.URL.RawQuery
+	timestamp := r.Header.Get("X-Timestamp")
+	if timestamp == "" {
+		return false
+	}
+
+	// Verify that the timestamp is not older than a minute
+	reqTime, err := time.Parse(time.RFC3339, timestamp)
+	if err != nil {
+		return false
+	}
+	if time.Since(reqTime) > time.Minute {
+		return false
+	}
+
+	message := r.Method + r.URL.Path + timestamp
 
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(message))
