@@ -1,9 +1,13 @@
 package state
 
 import (
-	"encoding/json"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"log"
 	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/icyphox/bild/appview"
@@ -61,71 +65,107 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // requires auth
-func (s *State) GenerateRegistrationKey(w http.ResponseWriter, r *http.Request) {
-	session, err := s.Auth.Store.Get(r, appview.SESSION_NAME)
-	if err != nil || session.IsNew {
-		log.Println("unauthorized attempt to generate registration key")
-		http.Error(w, "Forbidden", http.StatusUnauthorized)
+func (s *State) Key(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		// list open registrations under this did
+
+		return
+	case http.MethodPost:
+		session, err := s.Auth.Store.Get(r, appview.SESSION_NAME)
+		if err != nil || session.IsNew {
+			log.Println("unauthorized attempt to generate registration key")
+			http.Error(w, "Forbidden", http.StatusUnauthorized)
+			return
+		}
+
+		did := session.Values[appview.SESSION_DID].(string)
+
+		// check if domain is valid url, and strip extra bits down to just host
+		domain := r.FormValue("domain")
+		url, err := url.Parse(domain)
+		if domain == "" || err != nil {
+			http.Error(w, "Invalid form", http.StatusBadRequest)
+			return
+		}
+
+		key, err := s.Db.GenerateRegistrationKey(url.Host, did)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "unable to register this domain", http.StatusNotAcceptable)
+			return
+		}
+
+		w.Write([]byte(key))
 		return
 	}
+}
 
-	did := session.Values[appview.SESSION_DID].(string)
+// create a signed request and check if a node responds to that
+//
+// we should also rate limit these checks to avoid ddosing knotservers
+func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	domain := r.FormValue("domain")
 	if domain == "" {
 		http.Error(w, "Invalid form", http.StatusBadRequest)
 		return
 	}
 
-	key, err := s.Db.GenerateRegistrationKey(domain, did)
-
+	secret, err := s.Db.GetRegistrationKey(domain)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, "unable to register this domain", http.StatusNotAcceptable)
+		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
 	}
 
-	w.Write([]byte(key))
+	hmac := hmac.New(sha256.New, []byte(secret))
+	signature := hex.EncodeToString(hmac.Sum(nil))
+
+	// make a request do the knotserver with an empty body and above signature
+	url, _ := url.Parse(domain)
+	url = url.JoinPath("check")
+	pingRequest, err := http.NewRequest("GET", url.String(), nil)
+	if err != nil {
+		log.Println("failed to create ping request for ", url.String())
+		return
+	}
+	pingRequest.Header.Set("X-Signature", signature)
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Do(pingRequest)
+	if err != nil {
+		w.Write([]byte("no dice"))
+		log.Println("domain was unreachable after 5 seconds")
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Println("status nok")
+		w.Write([]byte("no dice"))
+		return
+	}
+	w.Write([]byte("check success"))
+
+	// mark as registered
+	s.Db.Register(domain)
+
 	return
-}
-
-type RegisterRequest struct {
-	Domain string `json:"domain"`
-	Secret string `json:"secret"`
-}
-
-func (s *State) Register(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		log.Println("unimplemented")
-		return
-	case http.MethodPost:
-		var req RegisterRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid request body", http.StatusBadRequest)
-			return
-		}
-
-		domain := req.Domain
-		secret := req.Secret
-
-		err := s.Db.Register(domain, secret)
-		if err != nil {
-			log.Println("failed to register domain", err)
-			return
-		}
-
-		log.Printf("Registered domain: %s with secret: %s", domain, secret)
-	}
 }
 
 func (s *State) Router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/login", s.Login)
-	r.Post("/node/register", s.Register)
-	r.Group(func(r chi.Router) {
-		r.Use(AuthMiddleware(s))
-		r.Post("/node/generate-key", s.GenerateRegistrationKey)
+
+	r.Route("/node", func(r chi.Router) {
+		r.Post("/check", s.Check)
+
+		r.Group(func(r chi.Router) {
+			r.Use(AuthMiddleware(s))
+			r.Post("/key", s.Key)
+		})
 	})
 
 	return r

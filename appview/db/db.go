@@ -1,15 +1,12 @@
 package db
 
 import (
-	"context"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"log"
 
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type DB struct {
@@ -88,7 +85,6 @@ func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 	}
 
 	secret := uuid.New().String()
-	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(secret), 3)
 
 	if err != nil {
 		return "", err
@@ -98,7 +94,7 @@ func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 		insert into registrations (domain, did, secret)
 		values (?, ?, ?)
 		on conflict(domain) do update set did = excluded.did, secret = excluded.secret
-		`, domain, did, fmt.Sprintf("%x", hashedSecret))
+		`, domain, did, secret)
 
 	if err != nil {
 		return "", err
@@ -107,45 +103,33 @@ func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 	return secret, nil
 }
 
-func (d *DB) Register(domain, secret string) error {
-	ctx := context.TODO()
+func (d *DB) GetRegistrationKey(domain string) (string, error) {
+	res := d.db.QueryRow(`select secret from registrations where domain = ?`, domain)
 
-	tx, err := d.db.BeginTx(ctx, nil)
+	var secret string
+	err := res.Scan(&secret)
 	if err != nil {
-		return err
+		return "", nil
 	}
 
-	res := tx.QueryRow(`select secret from registrations where domain = ?`, domain)
+	return secret, nil
+}
 
-	var hexSecret string
-	err = res.Scan(&hexSecret)
-	if err != nil {
-		return err
-	}
-
-	decoded, err := hex.DecodeString(hexSecret)
-	if err != nil {
-		return err
-	}
-
-	err = bcrypt.CompareHashAndPassword(decoded, []byte(secret))
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
+func (d *DB) Register(domain string) error {
+	_, err := d.db.Exec(`
 		update registrations
 		set registered = strftime('%s', 'now')
 		where domain = ?;
 		`, domain)
-	if err != nil {
-		return err
-	}
 
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
+// type Registration struct {
+// 	status RegStatus
+// }
+// func (d *DB) RegistrationsForDid(did string) ()
