@@ -22,7 +22,7 @@ func (h *Handle) VerifySignature(next http.Handler) http.Handler {
 }
 
 func (h *Handle) verifyHMAC(signature string, r *http.Request) bool {
-	secret := h.c.Secret
+	secret := h.c.Server.Secret
 	timestamp := r.Header.Get("X-Timestamp")
 	if timestamp == "" {
 		return false

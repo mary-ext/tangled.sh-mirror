@@ -1,6 +1,6 @@
 [build]
-cmd = "go build -o bild ./cmd/legit/main.go"
-bin = "bild"
+cmd = "go build -o knot ./cmd/knotserver/main.go"
+bin = "knot"
 root = "."
 
 exclude_regex = [".*_templ.go"]

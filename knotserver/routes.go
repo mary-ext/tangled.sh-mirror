@@ -15,9 +15,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/icyphox/bild/db"
 	"github.com/icyphox/bild/knotserver/git"
 	"github.com/russross/blackfriday/v2"
 )
@@ -324,47 +326,46 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
-// 	session, _ := h.s.Get(r, "bild-session")
-// 	did := session.Values["did"].(string)
+func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		keys, err := h.db.GetAllPublicKeys()
+		if err != nil {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
 
-// 	switch r.Method {
-// 	case http.MethodGet:
-// 		keys, err := h.db.GetPublicKeys(did)
-// 		if err != nil {
-// 			h.WriteOOBNotice(w, "keys", "Failed to list keys. Try again later.")
-// 			log.Println(err)
-// 			return
-// 		}
+		data := make([]map[string]interface{}, 0)
+		for _, key := range keys {
+			j := key.JSON()
+			data = append(data, j)
+		}
+		writeJSON(w, data)
+		return
 
-// 		data := make(map[string]interface{})
-// 		data["keys"] = keys
-// 		if err := h.t.ExecuteTemplate(w, "settings/keys", data); err != nil {
-// 			log.Println(err)
-// 			return
-// 		}
-// 	case http.MethodPut:
-// 		key := r.FormValue("key")
-// 		name := r.FormValue("name")
-// 		client, _ := h.auth.AuthorizedClient(r)
+	case http.MethodPut:
+		pk := db.PublicKey{}
+		if err := json.NewDecoder(r.Body).Decode(&pk); err != nil {
+			writeError(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
 
-// 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
-// 		if err != nil {
-// 			h.WriteOOBNotice(w, "keys", "Invalid public key. Check your formatting and try again.")
-// 			log.Printf("parsing public key: %s", err)
-// 			return
-// 		}
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pk.Key))
+		if err != nil {
+			writeError(w, "invalid pubkey", http.StatusBadRequest)
+		}
 
-// 		if err := h.db.AddPublicKey(did, name, key); err != nil {
-// 			h.WriteOOBNotice(w, "keys", "Failed to add key.")
-// 			log.Printf("adding public key: %s", err)
-// 			return
-// 		}
+		if err := h.db.AddPublicKey(pk.DID, pk.Name, pk.Key); err != nil {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("adding public key: %s", err)
+			return
+		}
 
-// 		h.WriteOOBNotice(w, "keys", "Key added!")
-// 		return
-// 	}
-// }
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+}
 
 func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	data := struct {
@@ -389,22 +390,6 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
-
-// func (h *Handle) Timeline(w http.ResponseWriter, r *http.Request) {
-// 	session, err := h.s.Get(r, "bild-session")
-// 	user := make(map[string]string)
-// 	if err != nil || session.IsNew {
-// 		// user is not logged in
-// 	} else {
-// 		user["handle"] = session.Values["handle"].(string)
-// 		user["did"] = session.Values["did"].(string)
-// 	}
-
-// 	if err := h.t.ExecuteTemplate(w, "timeline", user); err != nil {
-// 		log.Println(err)
-// 		return
-// 	}
-// }
 
 func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
 	log.Println("got health check")

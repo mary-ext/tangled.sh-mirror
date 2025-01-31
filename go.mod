@@ -9,6 +9,7 @@ require (
 	github.com/bluekeyes/go-gitdiff v0.8.0
 	github.com/bluesky-social/indigo v0.0.0-20250123072624-9e3b84fdbb20
 	github.com/dustin/go-humanize v1.0.1
+	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/uuid v1.6.0
@@ -28,6 +29,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/carlmjohnson/versioninfo v0.22.5 // indirect

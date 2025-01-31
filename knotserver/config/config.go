@@ -12,12 +12,16 @@ type Repo struct {
 	MainBranch []string `env:"MAIN_BRANCH"`
 }
 
-type Config struct {
-	Host   string `env:"KNOTSERVER_HOST, default=0.0.0.0"`
-	Port   int    `env:"KNOTSERVER_PORT, default=5555"`
-	Secret string `env:"KNOTSERVER_SECRET, required"`
+type Server struct {
+	Host   string `env:"HOST, default=0.0.0.0"`
+	Port   int    `env:"PORT, default=5555"`
+	Secret string `env:"SECRET, required"`
+	DBPath string `env:"DB_PATH, default=knotserver.db"`
+}
 
-	Repo Repo `env:",prefix=KNOTSERVER_REPO_"`
+type Config struct {
+	Repo   Repo   `env:",prefix=KNOT_REPO_"`
+	Server Server `env:",prefix=KNOT_SERVER_"`
 }
 
 func Load(ctx context.Context) (*Config, error) {

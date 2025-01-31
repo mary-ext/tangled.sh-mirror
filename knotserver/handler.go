@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/icyphox/bild/db"
 	"github.com/icyphox/bild/knotserver/config"
+	"github.com/icyphox/bild/knotserver/db"
 )
 
 func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
@@ -17,12 +17,10 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 		db: db,
 	}
 
-	// r.Group(func(r chi.Router) {
-	// 	r.Route("/settings", func(r chi.Router) {
-	// 		r.Get("/keys", h.Keys)
-	// 		r.Put("/keys", h.Keys)
-	// 	})
-	// })
+	r.Route("/settings", func(r chi.Router) {
+		r.Get("/keys", h.Keys)
+		r.Put("/keys", h.Keys)
+	})
 
 	r.Get("/", h.Index)
 	r.Route("/{did}", func(r chi.Router) {
