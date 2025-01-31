@@ -393,7 +393,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
 	log.Println("got health check")
-	mac := hmac.New(sha256.New, []byte(h.c.Secret))
+	mac := hmac.New(sha256.New, []byte(h.c.Server.Secret))
 	mac.Write([]byte("ok"))
 	w.Header().Add("X-Signature", hex.EncodeToString(mac.Sum(nil)))
 

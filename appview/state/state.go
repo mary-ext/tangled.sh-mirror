@@ -122,7 +122,7 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	log.Println("has secret ", secret)
 
 	// make a request do the knotserver with an empty body and above signature
-	url := fmt.Sprintf("http://%s/internal/health", domain)
+	url := fmt.Sprintf("http://%s/health", domain)
 
 	pingRequest, err := buildPingRequest(url, secret)
 	if err != nil {
@@ -164,7 +164,11 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("check success"))
 
 	// mark as registered
-	s.Db.Register(domain)
+	err = s.Db.Register(domain)
+	if err != nil {
+		log.Println("failed to register domain", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	return
 }
