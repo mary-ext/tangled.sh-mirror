@@ -19,7 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/icyphox/bild/db"
+	"github.com/icyphox/bild/knotserver/db"
 	"github.com/icyphox/bild/knotserver/git"
 	"github.com/russross/blackfriday/v2"
 )
