@@ -9,15 +9,20 @@ import (
 	"net/http"
 	"time"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	shbild "github.com/icyphox/bild/api/bild"
 	"github.com/icyphox/bild/appview"
 	"github.com/icyphox/bild/appview/auth"
 	"github.com/icyphox/bild/appview/db"
 )
 
 type State struct {
-	Db   *db.DB
-	Auth *auth.Auth
+	db   *db.DB
+	auth *auth.Auth
 }
 
 func Make() (*State, error) {
@@ -42,17 +47,26 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		log.Println("unimplemented")
 		return
 	case http.MethodPost:
-		username := r.FormValue("username")
-		appPassword := r.FormValue("password")
+		handle := r.FormValue("handle")
+		appPassword := r.FormValue("app_password")
 
-		atSession, err := s.Auth.CreateInitialSession(ctx, username, appPassword)
+		fmt.Println("handle", handle)
+		fmt.Println("app_password", appPassword)
+
+		resolved, err := auth.ResolveIdent(ctx, handle)
+		if err != nil {
+			log.Printf("resolving identity: %s", err)
+			return
+		}
+
+		atSession, err := s.auth.CreateInitialSession(ctx, resolved, appPassword)
 		if err != nil {
 			log.Printf("creating initial session: %s", err)
 			return
 		}
-		sessionish := auth.CreateSessionWrapper{atSession}
+		sessionish := auth.CreateSessionWrapper{ServerCreateSession_Output: atSession}
 
-		err = s.Auth.StoreSession(r, w, &sessionish)
+		err = s.auth.StoreSession(r, w, &sessionish, resolved.PDSEndpoint())
 		if err != nil {
 			log.Printf("storing session: %s", err)
 			return
@@ -65,14 +79,14 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // requires auth
-func (s *State) Key(w http.ResponseWriter, r *http.Request) {
+func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// list open registrations under this did
 
 		return
 	case http.MethodPost:
-		session, err := s.Auth.Store.Get(r, appview.SESSION_NAME)
+		session, err := s.auth.Store.Get(r, appview.SESSION_NAME)
 		if err != nil || session.IsNew {
 			log.Println("unauthorized attempt to generate registration key")
 			http.Error(w, "Forbidden", http.StatusUnauthorized)
@@ -83,13 +97,12 @@ func (s *State) Key(w http.ResponseWriter, r *http.Request) {
 
 		// check if domain is valid url, and strip extra bits down to just host
 		domain := r.FormValue("domain")
-		if domain == "" || err != nil {
-			log.Println(err)
+		if domain == "" {
 			http.Error(w, "Invalid form", http.StatusBadRequest)
 			return
 		}
 
-		key, err := s.Db.GenerateRegistrationKey(domain, did)
+		key, err := s.db.GenerateRegistrationKey(domain, did)
 
 		if err != nil {
 			log.Println(err)
@@ -98,6 +111,52 @@ func (s *State) Key(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Write([]byte(key))
+	}
+}
+
+func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Write([]byte("unimplemented"))
+		log.Println("unimplemented")
+		return
+	case http.MethodPut:
+		did := s.auth.GetDID(r)
+		key := r.FormValue("key")
+		name := r.FormValue("name")
+		client, _ := s.auth.AuthorizedClient(r)
+
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
+		if err != nil {
+			log.Printf("parsing public key: %s", err)
+			return
+		}
+
+		if err := s.db.AddPublicKey(did, name, key); err != nil {
+			log.Printf("adding public key: %s", err)
+			return
+		}
+
+		// store in pds too
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: "sh.bild.publicKey",
+			Repo:       did,
+			Rkey:       uuid.New().String(),
+			Record: &lexutil.LexiconTypeDecoder{Val: &shbild.PublicKey{
+				Created: time.Now().String(),
+				Key:     key,
+				Name:    name,
+			}},
+		})
+
+		// invalid record
+		if err != nil {
+			log.Printf("failed to create record: %s", err)
+			return
+		}
+
+		log.Println("created atproto record: ", resp.Uri)
+
 		return
 	}
 }
@@ -114,7 +173,7 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("checking ", domain)
 
-	secret, err := s.Db.GetRegistrationKey(domain)
+	secret, err := s.db.GetRegistrationKey(domain)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
@@ -164,7 +223,7 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("check success"))
 
 	// mark as registered
-	err = s.Db.Register(domain)
+	err = s.db.Register(domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -201,8 +260,13 @@ func (s *State) Router() http.Handler {
 
 		r.Group(func(r chi.Router) {
 			r.Use(AuthMiddleware(s))
-			r.Post("/key", s.Key)
+			r.Post("/key", s.RegistrationKey)
 		})
+	})
+
+	r.Route("/settings", func(r chi.Router) {
+		r.Use(AuthMiddleware(s))
+		r.Put("/keys", s.Keys)
 	})
 
 	return r

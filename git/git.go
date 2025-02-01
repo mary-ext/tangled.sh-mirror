@@ -202,11 +202,7 @@ func (g *GitRepo) Branches() ([]*plumbing.Reference, error) {
 }
 
 func (g *GitRepo) FindMainBranch(branches []string) (string, error) {
-	branches = append(branches, []string{
-		"main",
-		"master",
-		"trunk",
-	}...)
+
 	for _, b := range branches {
 		_, err := g.r.ResolveRevision(plumbing.Revision(b))
 		if err == nil {

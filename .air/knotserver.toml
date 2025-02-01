@@ -1,0 +1,7 @@
+[build]
+cmd = "go build -o .bin/knot ./cmd/knotserver/main.go"
+bin = ".bin/knot"
+root = "."
+
+exclude_regex = [""]
+include_ext = ["go", "templ"]

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -44,11 +43,7 @@ func ResolveIdent(ctx context.Context, arg string) (*identity.Identity, error) {
 	return dir.Lookup(ctx, *id)
 }
 
-func (a *Auth) CreateInitialSession(ctx context.Context, username, appPassword string) (*comatproto.ServerCreateSession_Output, error) {
-	resolved, err := ResolveIdent(ctx, username)
-	if err != nil {
-		return nil, fmt.Errorf("invalid handle: %s", err)
-	}
+func (a *Auth) CreateInitialSession(ctx context.Context, resolved *identity.Identity, appPassword string) (*comatproto.ServerCreateSession_Output, error) {
 
 	pdsUrl := resolved.PDSEndpoint()
 	client := xrpc.Client{
@@ -143,22 +138,7 @@ func (s *CreateSessionWrapper) GetStatus() *string {
 	return s.Status
 }
 
-func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish Sessionish) error {
-	var didDoc identity.DIDDocument
-
-	bytes, _ := json.Marshal(atSessionish.GetDidDoc())
-	err := json.Unmarshal(bytes, &didDoc)
-	if err != nil {
-		return fmt.Errorf("invalid did document for session")
-	}
-
-	identity := identity.ParseIdentity(&didDoc)
-	pdsEndpoint := identity.PDSEndpoint()
-
-	if pdsEndpoint == "" {
-		return fmt.Errorf("no pds endpoint found")
-	}
-
+func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish Sessionish, pdsEndpoint string) error {
 	clientSession, _ := a.Store.Get(r, appview.SESSION_NAME)
 	clientSession.Values[appview.SESSION_HANDLE] = atSessionish.GetHandle()
 	clientSession.Values[appview.SESSION_DID] = atSessionish.GetDid()
@@ -169,4 +149,42 @@ func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish
 	clientSession.Values[appview.SESSION_AUTHENTICATED] = true
 
 	return clientSession.Save(r, w)
+}
+
+func (a *Auth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
+	clientSession, err := a.Store.Get(r, "appview-session")
+
+	if err != nil || clientSession.IsNew {
+		return nil, err
+	}
+
+	did := clientSession.Values["did"].(string)
+	pdsUrl := clientSession.Values["pds"].(string)
+	accessJwt := clientSession.Values["accessJwt"].(string)
+	refreshJwt := clientSession.Values["refreshJwt"].(string)
+
+	client := &xrpc.Client{
+		Host: pdsUrl,
+		Auth: &xrpc.AuthInfo{
+			AccessJwt:  accessJwt,
+			RefreshJwt: refreshJwt,
+			Did:        did,
+		},
+	}
+
+	return client, nil
+}
+
+func (a *Auth) GetSession(r *http.Request) (*sessions.Session, error) {
+	return a.Store.Get(r, appview.SESSION_NAME)
+}
+
+func (a *Auth) GetDID(r *http.Request) string {
+	clientSession, _ := a.Store.Get(r, appview.SESSION_NAME)
+	return clientSession.Values[appview.SESSION_DID].(string)
+}
+
+func (a *Auth) GetHandle(r *http.Request) string {
+	clientSession, _ := a.Store.Get(r, appview.SESSION_NAME)
+	return clientSession.Values[appview.SESSION_HANDLE].(string)
 }

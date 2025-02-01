@@ -16,7 +16,7 @@ type Middleware func(http.Handler) http.Handler
 func AuthMiddleware(s *State) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, _ := s.Auth.Store.Get(r, appview.SESSION_NAME)
+			session, _ := s.auth.Store.Get(r, appview.SESSION_NAME)
 			authorized, ok := session.Values[appview.SESSION_AUTHENTICATED].(bool)
 
 			if !ok || !authorized {
@@ -56,7 +56,7 @@ func AuthMiddleware(s *State) Middleware {
 
 				sessionish := auth.RefreshSessionWrapper{atSession}
 
-				err = s.Auth.StoreSession(r, w, &sessionish)
+				err = s.auth.StoreSession(r, w, &sessionish, pdsUrl)
 				if err != nil {
 					log.Printf("failed to store session for did: %s\n: %s", atSession.Did, err)
 					return

@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,7 +26,14 @@ func Make(dbPath string) (*DB, error) {
 			did text not null,
 			secret text not null,
 			created integer default (strftime('%s', 'now')),
-			registered integer
+			registered integer);
+		create table if not exists public_keys (
+			id integer primary key autoincrement,
+			did text not null,
+			name text not null,
+			key text not null,
+			created timestamp default current_timestamp,
+			unique(did, name, key)
 		);
 	`)
 	if err != nil {
@@ -85,10 +93,6 @@ func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 	}
 
 	secret := uuid.New().String()
-
-	if err != nil {
-		return "", err
-	}
 
 	_, err = d.db.Exec(`
 		insert into registrations (domain, did, secret)
