@@ -21,8 +21,8 @@ import (
 )
 
 type State struct {
-	db   *db.DB
-	auth *auth.Auth
+	Db   *db.DB
+	Auth *auth.Auth
 }
 
 func Make() (*State, error) {
@@ -36,7 +36,7 @@ func Make() (*State, error) {
 		return nil, err
 	}
 
-	return &State{db, auth}, nil
+	return &State{db, auth, nil}, nil
 }
 
 func (s *State) Login(w http.ResponseWriter, r *http.Request) {
@@ -223,9 +223,28 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("check success"))
 
 	// mark as registered
-	err = s.db.Register(domain)
+	err = s.Db.Register(domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	// set permissions for this did as owner
+	_, did, err := s.Db.RegistrationStatus(domain)
+	if err != nil {
+		log.Println("failed to register domain", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	e, err := NewEnforcer(domain)
+	if err != nil {
+		log.Println("failed to setup owner of domain", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	err = e.AddOwner(did)
+	if err != nil {
+		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
