@@ -226,13 +226,12 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("check success"))
-
 	// mark as registered
 	err = s.db.Register(domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// set permissions for this did as owner
@@ -240,11 +239,7 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	if err != nil {
-		log.Println("failed to setup owner of domain", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// add basic acls for this domain
@@ -252,6 +247,7 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// add this did as owner of this domain
@@ -259,7 +255,10 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	w.Write([]byte("check success"))
 
 	return
 }
