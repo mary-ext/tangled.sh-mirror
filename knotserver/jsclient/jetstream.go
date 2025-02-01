@@ -36,7 +36,6 @@ func (j *JetstreamClient) buildWebsocketURL(queryParams string) url.URL {
 		RawQuery: queryParams,
 	}
 
-	fmt.Println("URL:", u.String())
 	return u
 }
 
@@ -70,7 +69,7 @@ func (j *JetstreamClient) buildQueryParams(cursor int64) string {
 
 	var collections, dids string
 	if len(j.collections) > 0 {
-		collections = fmt.Sprintf("wantedCollections=%s", j.collections[0])
+		collections = fmt.Sprintf("wantedCollections=%s&cursor=%d", j.collections[0], cursor)
 		for _, collection := range j.collections[1:] {
 			collections += fmt.Sprintf("&wantedCollections=%s", collection)
 		}
@@ -101,6 +100,8 @@ func (j *JetstreamClient) connect(cursor int64) error {
 	queryParams := j.buildQueryParams(cursor)
 	u := j.buildWebsocketURL(queryParams)
 
+	log.Printf("connecting to jetstream at: %s", u.String())
+
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
 	}
@@ -130,8 +131,8 @@ func (j *JetstreamClient) readMessages(ctx context.Context, messages chan []byte
 			return
 		case <-j.reconnectCh:
 			// Reconnect with new parameters
-			// cursor := time.Now().Add(-5 * time.Second).UnixMicro()
-			if err := j.connect(0); err != nil {
+			cursor := time.Now().Add(-5 * time.Second).UnixMicro()
+			if err := j.connect(cursor); err != nil {
 				log.Printf("error reconnecting to jetstream: %v", err)
 				return
 			}

@@ -94,6 +94,8 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 		}
 	}()
 
+	log.Printf("started jetstream")
+
 	return nil
 }
 
