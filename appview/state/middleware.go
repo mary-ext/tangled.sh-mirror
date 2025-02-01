@@ -18,7 +18,6 @@ func AuthMiddleware(s *State) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, _ := s.auth.Store.Get(r, appview.SessionName)
 			authorized, ok := session.Values[appview.SessionAuthenticated].(bool)
-
 			if !ok || !authorized {
 				log.Printf("not logged in, redirecting")
 				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)

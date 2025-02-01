@@ -147,7 +147,6 @@ func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish
 	clientSession.Values[appview.SessionRefreshJwt] = atSessionish.GetRefreshJwt()
 	clientSession.Values[appview.SessionExpiry] = time.Now().Add(time.Hour).Format(appview.TimeLayout)
 	clientSession.Values[appview.SessionAuthenticated] = true
-
 	return clientSession.Save(r, w)
 }
 
@@ -185,6 +184,6 @@ func (a *Auth) GetDID(r *http.Request) string {
 }
 
 func (a *Auth) GetHandle(r *http.Request) string {
-	clientSession, _ := a.Store.Get(r, appview.SessionName)
+	clientSession, _ := a.Store.Get(r, appview.SessionHandle)
 	return clientSession.Values[appview.SessionHandle].(string)
 }
