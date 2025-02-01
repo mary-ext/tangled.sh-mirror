@@ -29,7 +29,7 @@ type AtSessionRefresh struct {
 }
 
 func Make() (*Auth, error) {
-	store := sessions.NewCookieStore([]byte(appview.SESSION_COOKIE_SECRET))
+	store := sessions.NewCookieStore([]byte(appview.SessionCookieSecret))
 	return &Auth{store}, nil
 }
 
@@ -139,14 +139,14 @@ func (s *CreateSessionWrapper) GetStatus() *string {
 }
 
 func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish Sessionish, pdsEndpoint string) error {
-	clientSession, _ := a.Store.Get(r, appview.SESSION_NAME)
-	clientSession.Values[appview.SESSION_HANDLE] = atSessionish.GetHandle()
-	clientSession.Values[appview.SESSION_DID] = atSessionish.GetDid()
-	clientSession.Values[appview.SESSION_PDS] = pdsEndpoint
-	clientSession.Values[appview.SESSION_ACCESSJWT] = atSessionish.GetAccessJwt()
-	clientSession.Values[appview.SESSION_REFRESHJWT] = atSessionish.GetRefreshJwt()
-	clientSession.Values[appview.SESSION_EXPIRY] = time.Now().Add(time.Hour).Format(appview.TIME_LAYOUT)
-	clientSession.Values[appview.SESSION_AUTHENTICATED] = true
+	clientSession, _ := a.Store.Get(r, appview.SessionName)
+	clientSession.Values[appview.SessionHandle] = atSessionish.GetHandle()
+	clientSession.Values[appview.SessionDid] = atSessionish.GetDid()
+	clientSession.Values[appview.SessionPds] = pdsEndpoint
+	clientSession.Values[appview.SessionAccessJwt] = atSessionish.GetAccessJwt()
+	clientSession.Values[appview.SessionRefreshJwt] = atSessionish.GetRefreshJwt()
+	clientSession.Values[appview.SessionExpiry] = time.Now().Add(time.Hour).Format(appview.TimeLayout)
+	clientSession.Values[appview.SessionAuthenticated] = true
 
 	return clientSession.Save(r, w)
 }
@@ -176,15 +176,15 @@ func (a *Auth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
 }
 
 func (a *Auth) GetSession(r *http.Request) (*sessions.Session, error) {
-	return a.Store.Get(r, appview.SESSION_NAME)
+	return a.Store.Get(r, appview.SessionName)
 }
 
 func (a *Auth) GetDID(r *http.Request) string {
-	clientSession, _ := a.Store.Get(r, appview.SESSION_NAME)
-	return clientSession.Values[appview.SESSION_DID].(string)
+	clientSession, _ := a.Store.Get(r, appview.SessionName)
+	return clientSession.Values[appview.SessionDid].(string)
 }
 
 func (a *Auth) GetHandle(r *http.Request) string {
-	clientSession, _ := a.Store.Get(r, appview.SESSION_NAME)
-	return clientSession.Values[appview.SESSION_HANDLE].(string)
+	clientSession, _ := a.Store.Get(r, appview.SessionName)
+	return clientSession.Values[appview.SessionHandle].(string)
 }

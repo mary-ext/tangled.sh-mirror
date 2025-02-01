@@ -92,14 +92,14 @@ func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
 
 		return
 	case http.MethodPost:
-		session, err := s.auth.Store.Get(r, appview.SESSION_NAME)
+		session, err := s.auth.Store.Get(r, appview.SessionName)
 		if err != nil || session.IsNew {
 			log.Println("unauthorized attempt to generate registration key")
 			http.Error(w, "Forbidden", http.StatusUnauthorized)
 			return
 		}
 
-		did := session.Values[appview.SESSION_DID].(string)
+		did := session.Values[appview.SessionDid].(string)
 
 		// check if domain is valid url, and strip extra bits down to just host
 		domain := r.FormValue("domain")

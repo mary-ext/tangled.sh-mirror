@@ -16,8 +16,8 @@ type Middleware func(http.Handler) http.Handler
 func AuthMiddleware(s *State) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, _ := s.auth.Store.Get(r, appview.SESSION_NAME)
-			authorized, ok := session.Values[appview.SESSION_AUTHENTICATED].(bool)
+			session, _ := s.auth.Store.Get(r, appview.SessionName)
+			authorized, ok := session.Values[appview.SessionAuthenticated].(bool)
 
 			if !ok || !authorized {
 				log.Printf("not logged in, redirecting")
@@ -27,15 +27,15 @@ func AuthMiddleware(s *State) Middleware {
 
 			// refresh if nearing expiry
 			// TODO: dedup with /login
-			expiryStr := session.Values[appview.SESSION_EXPIRY].(string)
-			expiry, err := time.Parse(appview.TIME_LAYOUT, expiryStr)
+			expiryStr := session.Values[appview.SessionExpiry].(string)
+			expiry, err := time.Parse(appview.TimeLayout, expiryStr)
 			if err != nil {
 				log.Println("invalid expiry time", err)
 				return
 			}
-			pdsUrl := session.Values[appview.SESSION_PDS].(string)
-			did := session.Values[appview.SESSION_DID].(string)
-			refreshJwt := session.Values[appview.SESSION_REFRESHJWT].(string)
+			pdsUrl := session.Values[appview.SessionPds].(string)
+			did := session.Values[appview.SessionDid].(string)
+			refreshJwt := session.Values[appview.SessionRefreshJwt].(string)
 
 			if time.Now().After(expiry) {
 				log.Println("token expired, refreshing ...")
