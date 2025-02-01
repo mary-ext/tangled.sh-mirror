@@ -36,7 +36,7 @@ func Make() (*State, error) {
 		return nil, err
 	}
 
-	return &State{db, auth, nil}, nil
+	return &State{db, auth}, nil
 }
 
 func (s *State) Login(w http.ResponseWriter, r *http.Request) {

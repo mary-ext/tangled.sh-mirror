@@ -53,5 +53,23 @@
         ];
       };
     });
+    apps = forAllSystems (system: 
+        let
+            pkgs = nixpkgsFor."${system}";
+            air-watcher = name: pkgs.writeShellScriptBin "run"
+            ''
+                ${pkgs.air}/bin/air -c /dev/null -build.cmd "${pkgs.go}/bin/go build -o ${name}.out ./cmd/${name}/main.go" -build.bin "./${name}.out"
+            '';
+        in
+    {
+        watch-appview = {
+            type = "app";
+            program = ''${air-watcher "appview"}/bin/run'';
+        };
+        watch-knotserver = {
+            type = "app";
+            program = ''${air-watcher "knotserver"}/bin/run'';
+        };
+    });
   };
 }
