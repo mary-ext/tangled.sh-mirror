@@ -21,8 +21,9 @@ import (
 )
 
 type State struct {
-	Db   *db.DB
-	Auth *auth.Auth
+	db       *db.DB
+	auth     *auth.Auth
+	enforcer *Enforcer
 }
 
 func Make() (*State, error) {
@@ -36,7 +37,12 @@ func Make() (*State, error) {
 		return nil, err
 	}
 
-	return &State{db, auth}, nil
+	enforcer, err := NewEnforcer()
+	if err != nil {
+		return nil, err
+	}
+
+	return &State{db, auth, enforcer}, nil
 }
 
 func (s *State) Login(w http.ResponseWriter, r *http.Request) {
@@ -223,26 +229,33 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("check success"))
 
 	// mark as registered
-	err = s.Db.Register(domain)
+	err = s.db.Register(domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	// set permissions for this did as owner
-	_, did, err := s.Db.RegistrationStatus(domain)
+	_, did, err := s.db.RegistrationStatus(domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	e, err := NewEnforcer(domain)
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	err = e.AddOwner(did)
+	// add basic acls for this domain
+	err = s.enforcer.AddDomain(domain)
+	if err != nil {
+		log.Println("failed to setup owner of domain", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	// add this did as owner of this domain
+	err = s.enforcer.AddOwner(domain, did)
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

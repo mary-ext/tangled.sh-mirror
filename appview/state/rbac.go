@@ -24,13 +24,12 @@ g = _, _, _
 e = some(where (p.eft == allow))
 
 [matchers]
-m = (r.act == p.act && r.dom == p.dom && keyMatch2(r.obj, p.obj) && g(r.sub, p.sub, r.dom))
+m = r.act == p.act && r.dom == p.dom && keyMatch2(r.obj, p.obj) && g(r.sub, p.sub, r.dom)
 `
 )
 
 type Enforcer struct {
-	E      *casbin.SyncedEnforcer
-	domain string
+	E *casbin.SyncedEnforcer
 }
 
 func keyMatch2(key1 string, key2 string) bool {
@@ -38,7 +37,7 @@ func keyMatch2(key1 string, key2 string) bool {
 	return matched
 }
 
-func NewEnforcer(domain string) (*Enforcer, error) {
+func NewEnforcer() (*Enforcer, error) {
 	m, err := model.NewModelFromString(Model)
 	if err != nil {
 		return nil, err
@@ -63,36 +62,41 @@ func NewEnforcer(domain string) (*Enforcer, error) {
 	e.EnableAutoSave(true)
 	e.AddFunction("keyMatch2", keyMatch2Func)
 
-	// Add policies with patterns
-	_, err = e.AddPolicies([][]string{
-		{"server:owner", domain, domain, "server:invite"},
-		{"server:owner", domain, domain, "repo:create"},
-		{"server:owner", domain, domain, "repo:delete"},  // priveledged operation, delete any repo in domain
-		{"server:member", domain, domain, "repo:create"}, // priveledged operation, delete any repo in domain
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &Enforcer{e, domain}, nil
+	return &Enforcer{e}, nil
 }
 
-func (e *Enforcer) AddOwner(owner string) error {
-	_, err := e.E.AddGroupingPolicy(owner, "server:owner", e.domain)
+func (e *Enforcer) AddDomain(domain string) error {
+	// Add policies with patterns
+	_, err := e.E.AddPolicies([][]string{
+		{"server:owner", domain, domain, "server:invite"},
+		{"server:member", domain, domain, "repo:create"},
+	})
+	if err != nil {
+		return err
+	}
+
+	// all owners are also members
+	_, err = e.E.AddGroupingPolicy("server:owner", "server:member", domain)
 	return err
 }
 
-func (e *Enforcer) AddMember(member string) error {
-	_, err := e.E.AddGroupingPolicy(member, "server:member", e.domain)
+func (e *Enforcer) AddOwner(domain, owner string) error {
+	_, err := e.E.AddGroupingPolicy(owner, "server:owner", domain)
+	return err
+}
+
+func (e *Enforcer) AddMember(domain, member string) error {
+	_, err := e.E.AddGroupingPolicy(member, "server:member", domain)
 	return err
 }
 
 func (e *Enforcer) AddRepo(member, domain, repo string) error {
 	_, err := e.E.AddPolicies([][]string{
-		{member, e.domain, repo, "repo:push"},
-		{member, e.domain, repo, "repo:owner"},
-		{member, e.domain, repo, "repo:invite"},
-		{member, e.domain, repo, "repo:delete"},
+		{member, domain, repo, "repo:push"},
+		{member, domain, repo, "repo:owner"},
+		{member, domain, repo, "repo:invite"},
+		{member, domain, repo, "repo:delete"},
+		{"server:owner", domain, repo, "repo:delete"}, // server owner can delete any repo
 	})
 	return err
 }
