@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("failed to setup db: %s", err)
 	}
 
-	mux, err := knotserver.Setup(c, db)
+	mux, err := knotserver.Setup(ctx, c, db)
 	if err != nil {
 		log.Fatal(err)
 	}

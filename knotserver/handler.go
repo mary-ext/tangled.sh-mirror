@@ -1,20 +1,35 @@
 package knotserver
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/icyphox/bild/knotserver/config"
 	"github.com/icyphox/bild/knotserver/db"
+	"github.com/icyphox/bild/knotserver/jsclient"
 )
 
-func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
+type Handle struct {
+	c  *config.Config
+	db *db.DB
+	js *jsclient.JetstreamClient
+}
+
+func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	h := Handle{
 		c:  c,
 		db: db,
+	}
+
+	err := h.StartJetstream(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
 	r.Get("/", h.Index)
@@ -55,9 +70,31 @@ func Setup(c *config.Config, db *db.DB) (http.Handler, error) {
 	return r, nil
 }
 
-type Handle struct {
-	c  *config.Config
-	db *db.DB
+func (h *Handle) StartJetstream(ctx context.Context) error {
+	colections := []string{"sh.bild.publicKeys"}
+	dids := []string{}
+
+	h.js = jsclient.NewJetstreamClient(colections, dids)
+	messages, err := h.js.ReadJetstream(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to read from jetstream: %w", err)
+	}
+
+	go func() {
+		for msg := range messages {
+			var data map[string]interface{}
+			if err := json.Unmarshal(msg, &data); err != nil {
+				log.Printf("error unmarshaling message: %v", err)
+				continue
+			}
+
+			if kind, ok := data["kind"].(string); ok && kind == "commit" {
+				log.Printf("commit event: %+v", data)
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (h *Handle) Multiplex(w http.ResponseWriter, r *http.Request) {
