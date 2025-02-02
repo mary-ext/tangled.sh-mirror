@@ -56,17 +56,20 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, erro
 		})
 	})
 
+	// Create a new repository
 	r.Route("/repo", func(r chi.Router) {
+		r.Use(h.VerifySignature)
 		r.Put("/new", h.NewRepo)
 	})
 
+	// Add a new user to the knot
+	// r.With(h.VerifySignature).Put("/user", h.AddUser)
+
+	// Health check. Used for two-way verification with appview.
 	r.With(h.VerifySignature).Get("/health", h.Health)
 
-	r.Group(func(r chi.Router) {
-		r.Use(h.VerifySignature)
-		r.Get("/keys", h.Keys)
-		r.Put("/keys", h.Keys)
-	})
+	// All public keys on the knot
+	r.Get("/keys", h.Keys)
 
 	return r, nil
 }
@@ -90,35 +93,21 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 			}
 
 			if kind, ok := data["kind"].(string); ok && kind == "commit" {
-				log.Printf("commit event: %+v", data)
+				commit := data["commit"].(map[string]interface{})
+
+				switch commit["collection"].(string) {
+				case tangled.PublicKeyNSID:
+					record := commit["record"].(map[string]interface{})
+					if err := h.db.AddPublicKeyFromRecord(record); err != nil {
+						log.Printf("failed to add public key: %v", err)
+					}
+					log.Printf("added public key from firehose: %s", data["did"])
+				default:
+				}
 			}
+
 		}
 	}()
 
-	log.Printf("started jetstream")
-
 	return nil
-}
-
-func (h *Handle) Multiplex(w http.ResponseWriter, r *http.Request) {
-	path := chi.URLParam(r, "*")
-
-	if r.URL.RawQuery == "service=git-receive-pack" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("no pushing allowed!"))
-		return
-	}
-
-	fmt.Println(r.URL.RawQuery)
-	fmt.Println(r.Method)
-
-	if path == "info/refs" &&
-		r.URL.RawQuery == "service=git-upload-pack" &&
-		r.Method == "GET" {
-		h.InfoRefs(w, r)
-	} else if path == "git-upload-pack" && r.Method == "POST" {
-		h.UploadPack(w, r)
-	} else if r.Method == "GET" {
-		h.RepoIndex(w, r)
-	}
 }

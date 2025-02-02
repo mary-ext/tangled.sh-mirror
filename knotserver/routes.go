@@ -356,7 +356,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 			writeError(w, "invalid pubkey", http.StatusBadRequest)
 		}
 
-		if err := h.db.AddPublicKey(pk.DID, pk.Name, pk.Key); err != nil {
+		if err := h.db.AddPublicKey(pk); err != nil {
 			writeError(w, err.Error(), http.StatusInternalServerError)
 			log.Printf("adding public key: %s", err)
 			return

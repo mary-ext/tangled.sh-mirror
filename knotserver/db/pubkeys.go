@@ -1,10 +1,41 @@
 package db
 
-import "time"
+import (
+	"time"
 
-func (d *DB) AddPublicKey(did, name, key string) error {
+	shbild "github.com/icyphox/bild/api/bild"
+)
+
+type PublicKey struct {
+	Did string
+	shbild.PublicKey
+}
+
+func (d *DB) AddPublicKeyFromRecord(recordIface map[string]interface{}) error {
+	record := make(map[string]string)
+	for k, v := range recordIface {
+		if str, ok := v.(string); ok {
+			record[k] = str
+		}
+	}
+
+	pk := PublicKey{
+		Did: record["did"],
+	}
+	pk.Name = record["name"]
+	pk.Key = record["key"]
+	pk.Created = record["created"]
+
+	return d.AddPublicKey(pk)
+}
+
+func (d *DB) AddPublicKey(pk PublicKey) error {
+	if pk.Created == "" {
+		pk.Created = time.Now().Format("2006-01-02 15:04:05.99999999 -0700 MST m=-0000.000000000")
+	}
+
 	query := `insert into public_keys (did, name, key, created) values (?, ?, ?, ?)`
-	_, err := d.db.Exec(query, did, name, key, time.Now())
+	_, err := d.db.Exec(query, pk.Did, pk.Name, pk.Key, pk.Created)
 	return err
 }
 
@@ -14,16 +45,9 @@ func (d *DB) RemovePublicKey(did string) error {
 	return err
 }
 
-type PublicKey struct {
-	Key     string
-	Name    string
-	DID     string
-	Created time.Time
-}
-
 func (pk *PublicKey) JSON() map[string]interface{} {
 	return map[string]interface{}{
-		pk.DID: map[string]interface{}{
+		pk.Did: map[string]interface{}{
 			"key":     pk.Key,
 			"name":    pk.Name,
 			"created": pk.Created,
@@ -42,7 +66,7 @@ func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 
 	for rows.Next() {
 		var publicKey PublicKey
-		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.DID, &publicKey.Created); err != nil {
+		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.Did, &publicKey.Created); err != nil {
 			return nil, err
 		}
 		keys = append(keys, publicKey)
@@ -66,7 +90,7 @@ func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
 
 	for rows.Next() {
 		var publicKey PublicKey
-		if err := rows.Scan(&publicKey.DID, &publicKey.Key, &publicKey.Name, &publicKey.Created); err != nil {
+		if err := rows.Scan(&publicKey.Did, &publicKey.Key, &publicKey.Name, &publicKey.Created); err != nil {
 			return nil, err
 		}
 		keys = append(keys, publicKey)
