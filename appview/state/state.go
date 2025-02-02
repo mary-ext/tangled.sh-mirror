@@ -14,7 +14,7 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	shbild "github.com/icyphox/bild/api/bild"
+	tangled "github.com/icyphox/bild/api/tangled"
 	"github.com/icyphox/bild/appview"
 	"github.com/icyphox/bild/appview/auth"
 	"github.com/icyphox/bild/appview/db"
@@ -148,7 +148,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 			Collection: "sh.bild.publicKey",
 			Repo:       did,
 			Rkey:       uuid.New().String(),
-			Record: &lexutil.LexiconTypeDecoder{Val: &shbild.PublicKey{
+			Record: &lexutil.LexiconTypeDecoder{Val: &tangled.PublicKey{
 				Created: time.Now().String(),
 				Key:     key,
 				Name:    name,

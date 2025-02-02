@@ -1,9 +1,9 @@
 [
   {
-    "package": "bild",
-    "prefix": "sh.bild",
-    "outdir": "api/bild",
-    "import": "github.com/icyphox/bild/api/bild",
+    "package": "tangled",
+    "prefix": "sh.tangled",
+    "outdir": "api/tangled",
+    "import": "github.com/icyphox/bild/api/tangled",
     "gen-server": true
   }
 ]

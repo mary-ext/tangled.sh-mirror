@@ -1,7 +1,7 @@
 package main
 
 import (
-	shbild "github.com/icyphox/bild/api/bild"
+	shtangled "github.com/icyphox/bild/api/tangled"
 	cbg "github.com/whyrusleeping/cbor-gen"
 )
 
@@ -12,9 +12,9 @@ func main() {
 	}
 
 	if err := genCfg.WriteMapEncodersToFile(
-		"api/bild/cbor_gen.go",
-		"bild",
-		shbild.PublicKey{},
+		"api/tangled/cbor_gen.go",
+		"tangled",
+		shtangled.PublicKey{},
 	); err != nil {
 		panic(err)
 	}

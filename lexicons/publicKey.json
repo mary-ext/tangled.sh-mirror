@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "sh.bild.publicKey",
+  "id": "sh.tangled.publicKey",
   "needsCbor": true,
   "needsType": true,
   "defs": {

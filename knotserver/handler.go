@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	tangled "github.com/icyphox/bild/api/tangled"
 	"github.com/icyphox/bild/knotserver/config"
 	"github.com/icyphox/bild/knotserver/db"
 	"github.com/icyphox/bild/knotserver/jsclient"
@@ -71,7 +72,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, erro
 }
 
 func (h *Handle) StartJetstream(ctx context.Context) error {
-	colections := []string{"sh.bild.publicKeys"}
+	colections := []string{tangled.PublicKeyNSID}
 	dids := []string{}
 
 	h.js = jsclient.NewJetstreamClient(colections, dids)

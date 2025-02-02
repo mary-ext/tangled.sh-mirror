@@ -50,6 +50,7 @@
           pkgs.httpie
           pkgs.indigo-lexgen
           pkgs.litecli
+          pkgs.websocat
         ];
       };
     });
