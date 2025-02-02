@@ -145,7 +145,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 
 		// store in pds too
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
-			Collection: "sh.bild.publicKey",
+			Collection: tangled.PublicKeyNSID,
 			Repo:       did,
 			Rkey:       uuid.New().String(),
 			Record: &lexutil.LexiconTypeDecoder{Val: &tangled.PublicKey{
