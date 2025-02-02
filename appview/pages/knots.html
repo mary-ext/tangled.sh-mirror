@@ -1,0 +1,34 @@
+{{define "title"}}knots{{end}}
+
+{{define "content"}}
+    <a href="/">back to timeline</a>
+    <h1>knots</h1>
+
+    <h2>register</h2>
+    put in a domain, and use the key while booting up your knotserver
+    <form hx-post="/knots/key">
+        <label for="domain">domain:</label>
+        <input type="text" id="domain" name="domain" required>
+
+        <button type="domain">generate key</button>
+    </form>
+
+    <h3>existing registrations</h3>
+    <ul id="registrations">
+        {{range .Registrations}}
+            <li>
+                <code>domain: {{.Domain}}</code><br>
+                <code>opened by: {{.ByDid}}</code><br>
+                <code>on: {{.Created}}</code><br>
+                {{if .Registered}}
+                <code>registered on: {{.Registered}}</code>
+                {{else}}
+                <code>pending registration</code>
+                <button hx-post="/knots/init/{{.Domain}}">initialize</button>
+                {{end}}
+            </li>
+        {{else}}
+            <p>no registrations yet</p>
+        {{end}}
+    </ul>
+{{end}}

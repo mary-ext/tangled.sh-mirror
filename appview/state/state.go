@@ -87,7 +87,6 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	fmt.Printf("%+v\n", user)
 	pages.Timeline(w, pages.TimelineParams{
 		User: user,
 	})
@@ -142,8 +141,6 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 		User:    user,
 		PubKeys: pubKeys,
 	})
-	return
-
 }
 
 func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
@@ -194,12 +191,10 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 }
 
 // create a signed request and check if a node responds to that
-//
-// we should also rate limit these checks to avoid ddosing knotservers
-func (s *State) Check(w http.ResponseWriter, r *http.Request) {
-	domain := r.FormValue("domain")
+func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
+	domain := chi.URLParam(r, "domain")
 	if domain == "" {
-		http.Error(w, "Invalid form", http.StatusBadRequest)
+		http.Error(w, "malformed url", http.StatusBadRequest)
 		return
 	}
 
@@ -261,7 +256,7 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set permissions for this did as owner
-	_, did, err := s.db.RegistrationStatus(domain)
+	reg, err := s.db.RegistrationByDomain(domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -277,7 +272,7 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// add this did as owner of this domain
-	err = s.enforcer.AddOwner(domain, did)
+	err = s.enforcer.AddOwner(domain, reg.ByDid)
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -285,8 +280,21 @@ func (s *State) Check(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("check success"))
+}
 
-	return
+// get knots registered by this user
+func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
+	// for now, this is just pubkeys
+	user := s.auth.GetUser(r)
+	registrations, err := s.db.RegistrationsByDid(user.Did)
+	if err != nil {
+		log.Println(err)
+	}
+
+	pages.Knots(w, pages.KnotsParams{
+		User:          user,
+		Registrations: registrations,
+	})
 }
 
 func buildPingRequest(url, secret string) (*http.Request, error) {
@@ -315,13 +323,11 @@ func (s *State) Router() http.Handler {
 	r.Get("/login", s.Login)
 	r.Post("/login", s.Login)
 
-	r.Route("/node", func(r chi.Router) {
-		r.Post("/check", s.Check)
-
-		r.Group(func(r chi.Router) {
-			r.Use(AuthMiddleware(s))
-			r.Post("/key", s.RegistrationKey)
-		})
+	r.Route("/knots", func(r chi.Router) {
+		r.Use(AuthMiddleware(s))
+		r.Get("/", s.Knots)
+		r.Post("/init/{domain}", s.InitKnotServer)
+		r.Post("/key", s.RegistrationKey)
 	})
 
 	r.Group(func(r chi.Router) {

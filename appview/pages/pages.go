@@ -57,3 +57,12 @@ type SettingsParams struct {
 func Settings(w io.Writer, p SettingsParams) error {
 	return parse("settings.html").Execute(w, p)
 }
+
+type KnotsParams struct {
+	User          *auth.User
+	Registrations []db.Registration
+}
+
+func Knots(w io.Writer, p KnotsParams) error {
+	return parse("knots.html").Execute(w, p)
+}

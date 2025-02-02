@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
-
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,8 +25,8 @@ func Make(dbPath string) (*DB, error) {
 			domain text not null unique,
 			did text not null,
 			secret text not null,
-			created integer default (strftime('%s', 'now')),
-			registered integer);
+			created timestamp default current_timestamp,
+			registered timestamp);
 		create table if not exists public_keys (
 			id integer primary key autoincrement,
 			did text not null,
@@ -42,54 +42,114 @@ func Make(dbPath string) (*DB, error) {
 	return &DB{db: db}, nil
 }
 
-type RegStatus uint32
+type Registration struct {
+	Domain     string
+	ByDid      string
+	Created    *time.Time
+	Registered *time.Time
+}
+
+func (r *Registration) Status() Status {
+	if r.Registered != nil {
+		return Registered
+	} else {
+		return Pending
+	}
+}
+
+type Status uint32
 
 const (
-	Registered RegStatus = iota
-	Unregistered
+	Registered Status = iota
 	Pending
 )
 
 // returns registered status, did of owner, error
-func (d *DB) RegistrationStatus(domain string) (RegStatus, string, error) {
-	var registeredBy string
-	var registratedAt *uint64
-	err := d.db.QueryRow(`
-		select did, registered from registrations
-		where domain = ?
-	`, domain).Scan(&registeredBy, &registratedAt)
+func (d *DB) RegistrationsByDid(did string) ([]Registration, error) {
+	var registrations []Registration
+
+	rows, err := d.db.Query(`
+		select domain, did, created, registered from registrations
+		where did = ?
+	`, did)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return Unregistered, "", nil
+		return nil, err
+	}
+
+	for rows.Next() {
+		var createdAt *int64
+		var registeredAt *int64
+		var registration Registration
+		err = rows.Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
+
+		if err != nil {
+			log.Println(err)
 		} else {
-			return Unregistered, "", err
+			createdAtTime := time.Unix(*createdAt, 0)
+
+			var registeredAtTime *time.Time
+			if registeredAt != nil {
+				x := time.Unix(*registeredAt, 0)
+				registeredAtTime = &x
+			}
+
+			registration.Created = &createdAtTime
+			registration.Registered = registeredAtTime
+			registrations = append(registrations, registration)
 		}
 	}
 
-	if registratedAt != nil {
-		return Registered, registeredBy, nil
-	} else {
-		return Pending, registeredBy, nil
+	return registrations, nil
+}
+
+// returns registered status, did of owner, error
+func (d *DB) RegistrationByDomain(domain string) (*Registration, error) {
+	var createdAt *int64
+	var registeredAt *int64
+	var registration Registration
+	err := d.db.QueryRow(`
+		select domain, did, created, registered from registrations
+		where domain = ?
+	`, domain).Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
+
+	createdAtTime := time.Unix(*createdAt, 0)
+	var registeredAtTime *time.Time
+	if registeredAt != nil {
+		x := time.Unix(*registeredAt, 0)
+		registeredAtTime = &x
 	}
+
+	registration.Created = &createdAtTime
+	registration.Registered = registeredAtTime
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	return &registration, nil
 }
 
 func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 	// sanity check: does this domain already have a registration?
-	status, owner, err := d.RegistrationStatus(domain)
+	reg, err := d.RegistrationByDomain(domain)
 	if err != nil {
 		return "", err
 	}
-	switch status {
-	case Registered:
-		// already registered by `owner`
-		return "", fmt.Errorf("%s already registered by %s", domain, owner)
-	case Pending:
-		log.Printf("%s registered by %s, status pending", domain, owner)
-		// TODO: provide a warning here, and allow the current user to overwrite
-		// the registration, this prevents users from registering domains that they
-		// do not own
-	default:
-		// ok, we can register this domain
+
+	// registration is open
+	if reg != nil {
+		switch reg.Status() {
+		case Registered:
+			// already registered by `owner`
+			return "", fmt.Errorf("%s already registered by %s", domain, reg.ByDid)
+		case Pending:
+			// TODO: be loud about this
+			log.Printf("%s registered by %s, status pending", domain, reg.ByDid)
+		}
 	}
 
 	secret := uuid.New().String()
@@ -134,8 +194,3 @@ func (d *DB) Register(domain string) error {
 
 	return nil
 }
-
-// type Registration struct {
-// 	status RegStatus
-// }
-// func (d *DB) RegistrationsForDid(did string) ()
