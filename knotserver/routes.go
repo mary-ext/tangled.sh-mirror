@@ -391,6 +391,83 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handle) AddUser(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		DID       string `json:"did"`
+		PublicKey string `json:"pubkey"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.DID
+	key := data.PublicKey
+
+	if err := h.db.AddUser(did); err == nil {
+		pk := db.PublicKey{
+			Did: did,
+		}
+		pk.Key = key
+		pk.Name = "default"
+		err := h.db.AddPublicKey(pk)
+		if err != nil {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.js.UpdateDids([]string{did})
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// TODO: make this set the initial user as the owner
+func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
+	if h.knotInitialized {
+		writeError(w, "knot already initialized", http.StatusConflict)
+		return
+	}
+
+	data := struct {
+		DID       string `json:"did"`
+		PublicKey string `json:"pubkey"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.DID
+	key := data.PublicKey
+
+	if err := h.db.AddUser(did); err == nil {
+		pk := db.PublicKey{
+			Did: did,
+		}
+		pk.Key = key
+		pk.Name = "default"
+		err := h.db.AddPublicKey(pk)
+		if err != nil {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.js.UpdateDids([]string{did})
+	// Signal that the knot is ready
+	close(h.init)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
 	log.Println("got health check")
 	mac := hmac.New(sha256.New, []byte(h.c.Server.Secret))

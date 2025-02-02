@@ -11,7 +11,7 @@ type PublicKey struct {
 	tangled.PublicKey
 }
 
-func (d *DB) AddPublicKeyFromRecord(recordIface map[string]interface{}) error {
+func (d *DB) AddPublicKeyFromRecord(did string, recordIface map[string]interface{}) error {
 	record := make(map[string]string)
 	for k, v := range recordIface {
 		if str, ok := v.(string); ok {
@@ -20,7 +20,7 @@ func (d *DB) AddPublicKeyFromRecord(recordIface map[string]interface{}) error {
 	}
 
 	pk := PublicKey{
-		Did: record["did"],
+		Did: did,
 	}
 	pk.Name = record["name"]
 	pk.Key = record["key"]

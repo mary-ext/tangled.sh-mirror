@@ -45,7 +45,6 @@
         nativeBuildInputs = [
           pkgs.go
           pkgs.air
-          pkgs.templ
           pkgs.gopls
           pkgs.httpie
           pkgs.indigo-lexgen
@@ -54,7 +53,7 @@
         ];
       };
     });
-    apps = forAllSystems (system: 
+    apps = forAllSystems (system:
         let
             pkgs = nixpkgsFor."${system}";
             air-watcher = name: pkgs.writeShellScriptBin "run"

@@ -100,8 +100,6 @@ func (j *JetstreamClient) connect(cursor int64) error {
 	queryParams := j.buildQueryParams(cursor)
 	u := j.buildWebsocketURL(queryParams)
 
-	log.Printf("connecting to jetstream at: %s", u.String())
-
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
 	}

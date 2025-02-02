@@ -18,20 +18,31 @@ type Handle struct {
 	c  *config.Config
 	db *db.DB
 	js *jsclient.JetstreamClient
+
+	// init is a channel that is closed when the knot has been initailized
+	// i.e. when the first user (knot owner) has been added.
+	init            chan struct{}
+	knotInitialized bool
 }
 
 func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	h := Handle{
-		c:  c,
-		db: db,
+		c:    c,
+		db:   db,
+		init: make(chan struct{}),
 	}
 
 	err := h.StartJetstream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
+
+	// TODO: close this channel and set h.knotInitialized *only after*
+	// checking if we have an owner.
+	close(h.init)
+	h.knotInitialized = true
 
 	r.Get("/", h.Index)
 	r.Route("/{did}", func(r chi.Router) {
@@ -63,7 +74,8 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, erro
 	})
 
 	// Add a new user to the knot
-	// r.With(h.VerifySignature).Put("/user", h.AddUser)
+	r.With(h.VerifySignature).Put("/user", h.AddUser)
+	r.With(h.VerifySignature).Post("/init", h.Init)
 
 	// Health check. Used for two-way verification with appview.
 	r.With(h.VerifySignature).Get("/health", h.Health)
@@ -85,6 +97,10 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 	}
 
 	go func() {
+		log.Println("waiting for knot to be initialized")
+		<-h.init
+		log.Println("initalized jetstream watcher")
+
 		for msg := range messages {
 			var data map[string]interface{}
 			if err := json.Unmarshal(msg, &data); err != nil {
@@ -97,8 +113,9 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 
 				switch commit["collection"].(string) {
 				case tangled.PublicKeyNSID:
+					did := data["did"].(string)
 					record := commit["record"].(map[string]interface{})
-					if err := h.db.AddPublicKeyFromRecord(record); err != nil {
+					if err := h.db.AddPublicKeyFromRecord(did, record); err != nil {
 						log.Printf("failed to add public key: %v", err)
 					}
 					log.Printf("added public key from firehose: %s", data["did"])

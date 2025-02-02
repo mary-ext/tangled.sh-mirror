@@ -25,6 +25,12 @@ func Setup(dbPath string) (*DB, error) {
 			created timestamp default current_timestamp,
 			unique(did, name, key)
 		);
+		create table if not exists users (
+			id integer primary key autoincrement,
+			did text not null,
+			unique(did),
+			foreign key (did) references public_keys(did) on delete cascade
+		);
 		create table if not exists repos (
 			id integer primary key autoincrement,
 			did text not null,
