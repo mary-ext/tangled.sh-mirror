@@ -39,10 +39,18 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, erro
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
-	// TODO: close this channel and set h.knotInitialized *only after*
-	// checking if we have an owner.
-	close(h.init)
-	h.knotInitialized = true
+	// Check if the knot knows about any DIDs;
+	// if it does, it is already initialized and we can repopulate the
+	// Jetstream subscriptions.
+	dids, err := db.GetAllDIDs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all DIDs: %w", err)
+	}
+	if len(dids) > 0 {
+		h.knotInitialized = true
+		close(h.init)
+		h.js.UpdateDids(dids)
+	}
 
 	r.Get("/", h.Index)
 	r.Route("/{did}", func(r chi.Router) {
@@ -67,20 +75,19 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, erro
 		})
 	})
 
-	// Create a new repository
+	// Create a new repository.
 	r.Route("/repo", func(r chi.Router) {
 		r.Use(h.VerifySignature)
 		r.Put("/new", h.NewRepo)
 	})
 
-	// Add a new user to the knot
-	r.With(h.VerifySignature).Put("/user", h.AddUser)
+	// Initialize the knot with an owner and public key.
 	r.With(h.VerifySignature).Post("/init", h.Init)
 
 	// Health check. Used for two-way verification with appview.
 	r.With(h.VerifySignature).Get("/health", h.Health)
 
-	// All public keys on the knot
+	// All public keys on the knot.
 	r.Get("/keys", h.Keys)
 
 	return r, nil
@@ -117,8 +124,9 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 					record := commit["record"].(map[string]interface{})
 					if err := h.db.AddPublicKeyFromRecord(did, record); err != nil {
 						log.Printf("failed to add public key: %v", err)
+					} else {
+						log.Printf("added public key from firehose: %s", data["did"])
 					}
-					log.Printf("added public key from firehose: %s", data["did"])
 				default:
 				}
 			}

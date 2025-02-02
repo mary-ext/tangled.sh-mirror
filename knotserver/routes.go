@@ -391,41 +391,6 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handle) AddUser(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		DID       string `json:"did"`
-		PublicKey string `json:"pubkey"`
-	}{}
-
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		writeError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	did := data.DID
-	key := data.PublicKey
-
-	if err := h.db.AddUser(did); err == nil {
-		pk := db.PublicKey{
-			Did: did,
-		}
-		pk.Key = key
-		pk.Name = "default"
-		err := h.db.AddPublicKey(pk)
-		if err != nil {
-			writeError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	h.js.UpdateDids([]string{did})
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
 // TODO: make this set the initial user as the owner
 func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	if h.knotInitialized {
@@ -435,7 +400,8 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		DID       string `json:"did"`
-		PublicKey string `json:"pubkey"`
+		PublicKey string `json:"key"`
+		Created   string `json:"created"`
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -445,13 +411,29 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 
 	did := data.DID
 	key := data.PublicKey
+	created := data.Created
 
-	if err := h.db.AddUser(did); err == nil {
+	if did == "" {
+		writeError(w, "did is empty", http.StatusBadRequest)
+		return
+	}
+
+	if key == "" {
+		writeError(w, "key is empty", http.StatusBadRequest)
+		return
+	}
+
+	if created == "" {
+		writeError(w, "created timestamp is empty", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.db.AddDID(did); err == nil {
 		pk := db.PublicKey{
 			Did: did,
 		}
 		pk.Key = key
-		pk.Name = "default"
+		pk.Created = created
 		err := h.db.AddPublicKey(pk)
 		if err != nil {
 			writeError(w, err.Error(), http.StatusInternalServerError)

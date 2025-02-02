@@ -17,20 +17,18 @@ func Setup(dbPath string) (*DB, error) {
 	}
 
 	_, err = db.Exec(`
+		create table if not exists known_dids (
+			did text primary key
+		);
 		create table if not exists public_keys (
 			id integer primary key autoincrement,
 			did text not null,
-			name text not null,
 			key text not null,
 			created timestamp default current_timestamp,
-			unique(did, name, key)
+			unique(did, key),
+			foreign key (did) references known_dids(did) on delete cascade
 		);
-		create table if not exists users (
-			id integer primary key autoincrement,
-			did text not null,
-			unique(did),
-			foreign key (did) references public_keys(did) on delete cascade
-		);
+
 		create table if not exists repos (
 			id integer primary key autoincrement,
 			did text not null,

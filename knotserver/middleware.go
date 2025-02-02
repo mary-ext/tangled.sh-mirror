@@ -10,6 +10,9 @@ import (
 )
 
 func (h *Handle) VerifySignature(next http.Handler) http.Handler {
+	if h.c.Server.Dev {
+		return next
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		signature := r.Header.Get("X-Signature")
 		log.Println(signature)

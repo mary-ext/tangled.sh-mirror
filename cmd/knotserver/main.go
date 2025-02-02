@@ -24,6 +24,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	if c.Server.Dev {
+		log.Println("running in dev mode, signature verification is disabled")
+	}
+
 	db, err := db.Setup(c.Server.DBPath)
 	if err != nil {
 		log.Fatalf("failed to setup db: %s", err)
