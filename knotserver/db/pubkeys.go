@@ -3,12 +3,12 @@ package db
 import (
 	"time"
 
-	shbild "github.com/icyphox/bild/api/bild"
+	tangled "github.com/icyphox/bild/api/tangled"
 )
 
 type PublicKey struct {
 	Did string
-	shbild.PublicKey
+	tangled.PublicKey
 }
 
 func (d *DB) AddPublicKeyFromRecord(recordIface map[string]interface{}) error {
