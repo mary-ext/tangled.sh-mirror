@@ -59,7 +59,7 @@
             pkgs = nixpkgsFor."${system}";
             air-watcher = name: pkgs.writeShellScriptBin "run"
             ''
-                ${pkgs.air}/bin/air -c /dev/null -build.cmd "${pkgs.go}/bin/go build -o ${name}.out ./cmd/${name}/main.go" -build.bin "./${name}.out"
+                ${pkgs.air}/bin/air -c /dev/null -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" -build.bin "./out/${name}.out"
             '';
         in
     {
