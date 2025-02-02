@@ -1,7 +1,7 @@
 package main
 
 import (
-	shtangled "github.com/icyphox/bild/api/tangled"
+	shtangled "github.com/sotangled/tangled/api/tangled"
 	cbg "github.com/whyrusleeping/cbor-gen"
 )
 

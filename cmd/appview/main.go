@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/icyphox/bild/appview/state"
+	"github.com/sotangled/tangled/appview/state"
 )
 
 func main() {

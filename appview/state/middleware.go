@@ -7,8 +7,8 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
-	"github.com/icyphox/bild/appview"
-	"github.com/icyphox/bild/appview/auth"
+	"github.com/sotangled/tangled/appview"
+	"github.com/sotangled/tangled/appview/auth"
 )
 
 type Middleware func(http.Handler) http.Handler

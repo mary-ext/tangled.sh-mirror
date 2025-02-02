@@ -3,7 +3,7 @@ package db
 import (
 	"time"
 
-	tangled "github.com/icyphox/bild/api/tangled"
+	"github.com/sotangled/tangled/api/tangled"
 )
 
 type PublicKey struct {

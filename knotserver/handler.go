@@ -8,10 +8,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	tangled "github.com/icyphox/bild/api/tangled"
-	"github.com/icyphox/bild/knotserver/config"
-	"github.com/icyphox/bild/knotserver/db"
-	"github.com/icyphox/bild/knotserver/jsclient"
+	tangled "github.com/sotangled/tangled/api/tangled"
+	"github.com/sotangled/tangled/knotserver/config"
+	"github.com/sotangled/tangled/knotserver/db"
+	"github.com/sotangled/tangled/knotserver/jsclient"
 )
 
 type Handle struct {

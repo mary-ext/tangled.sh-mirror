@@ -15,7 +15,7 @@ meta:
   title: icy does git
   description: come get your free software
 server:
-  name: github.com/icyphox/bild
+  name: github.com/sotangled/tangled
   host: 0.0.0.0
   port: 5555
   dbpath: bild.db

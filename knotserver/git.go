@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/icyphox/bild/knotserver/git/service"
+	"github.com/sotangled/tangled/knotserver/git/service"
 )
 
 func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {

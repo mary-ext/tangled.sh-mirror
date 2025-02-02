@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/icyphox/bild/knotserver"
-	"github.com/icyphox/bild/knotserver/config"
-	"github.com/icyphox/bild/knotserver/db"
+	"github.com/sotangled/tangled/knotserver"
+	"github.com/sotangled/tangled/knotserver/config"
+	"github.com/sotangled/tangled/knotserver/db"
 )
 
 func main() {

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/icyphox/bild/knotserver/git"
+	"github.com/sotangled/tangled/knotserver/git"
 )
 
 func (h *Handle) listFiles(files []git.NiceTree, data map[string]any, w http.ResponseWriter) {

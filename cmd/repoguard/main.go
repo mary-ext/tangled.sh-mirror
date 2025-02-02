@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/icyphox/bild/appview/auth"
+	"github.com/sotangled/tangled/appview/auth"
 )
 
 var (

@@ -14,10 +14,10 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	tangled "github.com/icyphox/bild/api/tangled"
-	"github.com/icyphox/bild/appview"
-	"github.com/icyphox/bild/appview/auth"
-	"github.com/icyphox/bild/appview/db"
+	tangled "github.com/sotangled/tangled/api/tangled"
+	"github.com/sotangled/tangled/appview"
+	"github.com/sotangled/tangled/appview/auth"
+	"github.com/sotangled/tangled/appview/db"
 )
 
 type State struct {

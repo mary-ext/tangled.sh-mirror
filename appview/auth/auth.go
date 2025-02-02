@@ -11,7 +11,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
-	"github.com/icyphox/bild/appview"
+	"github.com/sotangled/tangled/appview"
 )
 
 type Auth struct {
