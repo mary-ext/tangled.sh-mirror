@@ -1,0 +1,34 @@
+{{define "title"}}settings{{end}}
+
+{{define "content"}}
+    <a href="/">back to timeline</a>
+    <h1>settings</h1>
+
+    <h2>profile</h2>
+    <p><strong>handle:</strong> {{.User.Handle}}</p>
+    <p><strong>did:</strong> {{.User.Did}}</p>
+    <p><strong>pds:</strong> {{.User.Pds}}</p>
+
+    <h2>ssh keys</h2>
+    <form hx-put="/settings/keys">
+        <label for="name">key name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="key">pub key:</label>
+        <textarea id="key" name="key" placeholder="ssh-rsa AAAAAA..." required></textarea>
+
+        <button type="submit">add key</button>
+    </form>
+
+    <h3>existing keys</h3>
+    <ul id="key-list">
+        {{range .PubKeys}}
+            <li>
+                <strong>{{.Name}}</strong><br>
+                <code>{{.Key}}</code>
+            </li>
+        {{else}}
+            <p>no ssh keys added yet</p>
+        {{end}}
+    </ul>
+{{end}}

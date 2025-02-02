@@ -1,0 +1,10 @@
+{{define "title"}}timeline{{end}}
+
+{{define "content"}}
+    <h1>timeline</h1>
+
+    {{ if .User }}
+    <p>logged in as {{ .User.Handle }}</p>
+    <a href="/settings">settings</a>
+    {{ end }}
+{{end}}

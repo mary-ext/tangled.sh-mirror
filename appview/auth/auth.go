@@ -179,11 +179,39 @@ func (a *Auth) GetSession(r *http.Request) (*sessions.Session, error) {
 }
 
 func (a *Auth) GetDID(r *http.Request) string {
-	clientSession, _ := a.Store.Get(r, appview.SessionName)
+	clientSession, err := a.Store.Get(r, appview.SessionName)
+	if err != nil || clientSession.IsNew {
+		return ""
+	}
+
 	return clientSession.Values[appview.SessionDid].(string)
 }
 
 func (a *Auth) GetHandle(r *http.Request) string {
-	clientSession, _ := a.Store.Get(r, appview.SessionHandle)
+	clientSession, err := a.Store.Get(r, appview.SessionName)
+	if err != nil || clientSession.IsNew {
+		return ""
+	}
+
 	return clientSession.Values[appview.SessionHandle].(string)
+}
+
+type User struct {
+	Handle string
+	Did    string
+	Pds    string
+}
+
+func (a *Auth) GetUser(r *http.Request) *User {
+	clientSession, err := a.Store.Get(r, appview.SessionName)
+
+	if err != nil || clientSession.IsNew {
+		return nil
+	}
+
+	return &User{
+		Handle: clientSession.Values[appview.SessionHandle].(string),
+		Did:    clientSession.Values[appview.SessionDid].(string),
+		Pds:    clientSession.Values[appview.SessionPds].(string),
+	}
 }

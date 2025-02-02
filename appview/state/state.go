@@ -18,6 +18,7 @@ import (
 	"github.com/sotangled/tangled/appview"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
+	"github.com/sotangled/tangled/appview/pages"
 )
 
 type State struct {
@@ -50,7 +51,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		log.Println("unimplemented")
+		pages.Login(w, pages.LoginParams{})
 		return
 	case http.MethodPost:
 		handle := r.FormValue("handle")
@@ -82,6 +83,15 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+}
+
+func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	fmt.Printf("%+v\n", user)
+	pages.Timeline(w, pages.TimelineParams{
+		User: user,
+	})
+	return
 }
 
 // requires auth
@@ -118,6 +128,22 @@ func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
 
 		w.Write([]byte(key))
 	}
+}
+
+func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
+	// for now, this is just pubkeys
+	user := s.auth.GetUser(r)
+	pubKeys, err := s.db.GetPublicKeys(user.Did)
+	if err != nil {
+		log.Println(err)
+	}
+
+	pages.Settings(w, pages.SettingsParams{
+		User:    user,
+		PubKeys: pubKeys,
+	})
+	return
+
 }
 
 func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
@@ -284,6 +310,9 @@ func buildPingRequest(url, secret string) (*http.Request, error) {
 func (s *State) Router() http.Handler {
 	r := chi.NewRouter()
 
+	r.Get("/", s.Timeline)
+
+	r.Get("/login", s.Login)
 	r.Post("/login", s.Login)
 
 	r.Route("/node", func(r chi.Router) {
@@ -295,9 +324,10 @@ func (s *State) Router() http.Handler {
 		})
 	})
 
-	r.Route("/settings", func(r chi.Router) {
+	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(s))
-		r.Put("/keys", s.Keys)
+		r.Get("/settings", s.Settings)
+		r.Put("/settings/keys", s.Keys)
 	})
 
 	return r
