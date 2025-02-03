@@ -66,3 +66,14 @@ type KnotsParams struct {
 func Knots(w io.Writer, p KnotsParams) error {
 	return parse("knots.html").Execute(w, p)
 }
+
+type KnotParams struct {
+	User         *auth.User
+	Registration *db.Registration
+	Members      []string
+	IsOwner      bool
+}
+
+func Knot(w io.Writer, p KnotParams) error {
+	return parse("knot.html").Execute(w, p)
+}

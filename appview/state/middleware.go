@@ -7,6 +7,7 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
+	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/appview"
 	"github.com/sotangled/tangled/appview/auth"
 )
@@ -62,6 +63,36 @@ func AuthMiddleware(s *State) Middleware {
 				}
 
 				log.Println("successfully refreshed token")
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func RoleMiddleware(s *State, group string) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// requires auth also
+			actor := s.auth.GetUser(r)
+			if actor == nil {
+				// we need a logged in user
+				log.Printf("not logged in, redirecting")
+				http.Error(w, "Forbiden", http.StatusUnauthorized)
+				return
+			}
+			domain := chi.URLParam(r, "domain")
+			if domain == "" {
+				http.Error(w, "malformed url", http.StatusBadRequest)
+				return
+			}
+
+			ok, err := s.enforcer.E.HasGroupingPolicy(actor.Did, group, domain)
+			if err != nil || !ok {
+				// we need a logged in user
+				log.Printf("%s does not have perms of a %s in domain %s", actor.Did, group, domain)
+				http.Error(w, "Forbiden", http.StatusUnauthorized)
+				return
 			}
 
 			next.ServeHTTP(w, r)

@@ -1,0 +1,37 @@
+{{define "title"}}knot{{end}}
+
+{{define "content"}}
+    <a href="/">back to timeline</a>
+    <a href="/knots">back to all knots</a>
+    <h1>{{.Registration.Domain}}</h1>
+    <p>
+      <code>
+        opened by: {{.Registration.ByDid}}
+        {{ if $.IsOwner }}
+        (you)
+        {{ end }}
+      </code><br>
+      <code>on: {{.Registration.Created}}</code><br>
+      {{ if .Registration.Registered }}
+      <code>registered on: {{.Registration.Registered}}</code>
+      {{ else }}
+      <code>pending registration</code>
+      <button hx-post="/knots/{{.Domain}}/init">initialize</button>
+      {{ end }}
+    </p>
+
+    {{ if .Registration.Registered }}
+    <h3> members </h3>
+    {{ range $.Members }}
+    <ol>
+      <li>{{.}}</li>
+    </ol>
+    {{ else }}
+    <p>no members</p>
+    {{ end }}
+    {{ end }}
+
+    {{ if $.IsOwner }}
+    <a href="/knots/{{.Registration.Domain}}/member">add member</a>
+    {{ end }}
+{{end}}

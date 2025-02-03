@@ -189,9 +189,5 @@ func (d *DB) Register(domain string) error {
 		where domain = ?;
 		`, domain)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

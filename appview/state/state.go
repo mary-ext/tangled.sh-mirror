@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -283,6 +284,42 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("check success"))
 }
 
+func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
+	domain := chi.URLParam(r, "domain")
+	if domain == "" {
+		http.Error(w, "malformed url", http.StatusBadRequest)
+		return
+	}
+
+	user := s.auth.GetUser(r)
+	reg, err := s.db.RegistrationByDomain(domain)
+	if err != nil {
+		w.Write([]byte("failed to pull up registration info"))
+		return
+	}
+
+	var members []string
+	if reg.Registered != nil {
+		members, err = s.enforcer.E.GetUsersForRole("server:member", domain)
+		if err != nil {
+			w.Write([]byte("failed to fetch member list"))
+			return
+		}
+	}
+
+	ok, err := s.enforcer.E.HasGroupingPolicy(user.Did, "server:owner", domain)
+	isOwner := err == nil && ok
+
+	p := pages.KnotParams{
+		User:         user,
+		Registration: reg,
+		Members:      members,
+		IsOwner:      isOwner,
+	}
+
+	pages.Knot(w, p)
+}
+
 // get knots registered by this user
 func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
 	// for now, this is just pubkeys
@@ -296,6 +333,61 @@ func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
 		User:          user,
 		Registrations: registrations,
 	})
+}
+
+// list members of domain, requires auth and requires owner status
+func (s *State) ListMembers(w http.ResponseWriter, r *http.Request) {
+	domain := chi.URLParam(r, "domain")
+	if domain == "" {
+		http.Error(w, "malformed url", http.StatusBadRequest)
+		return
+	}
+
+	// list all members for this domain
+	memberDids, err := s.enforcer.E.GetUsersForRole("server:member", domain)
+	if err != nil {
+		w.Write([]byte("failed to fetch member list"))
+		return
+	}
+
+	w.Write([]byte(strings.Join(memberDids, "\n")))
+	return
+}
+
+// add member to domain, requires auth and requires invite access
+func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
+	domain := chi.URLParam(r, "domain")
+	if domain == "" {
+		http.Error(w, "malformed url", http.StatusBadRequest)
+		return
+	}
+
+	memberDid := r.FormValue("member")
+	if memberDid == "" {
+		http.Error(w, "malformed form", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: validate member did?
+	memberIdent, err := auth.ResolveIdent(r.Context(), memberDid)
+	if err != nil {
+		w.Write([]byte("failed to resolve member did to a handle"))
+		return
+	}
+
+	log.Printf("adding %s to %s\n", memberIdent.Handle.String(), domain)
+
+	err = s.enforcer.AddMember(domain, memberDid)
+	if err != nil {
+		w.Write([]byte(fmt.Sprint("failed to add member: ", err)))
+		return
+	}
+
+	w.Write([]byte(fmt.Sprint("added member: ", memberIdent.Handle.String())))
+}
+
+// list members of domain, requires auth and requires owner status
+func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildPingRequest(url, secret string) (*http.Request, error) {
@@ -327,8 +419,18 @@ func (s *State) Router() http.Handler {
 	r.Route("/knots", func(r chi.Router) {
 		r.Use(AuthMiddleware(s))
 		r.Get("/", s.Knots)
-		r.Post("/init/{domain}", s.InitKnotServer)
 		r.Post("/key", s.RegistrationKey)
+
+		r.Route("/{domain}", func(r chi.Router) {
+			r.Get("/", s.KnotServerInfo)
+			r.Post("/init", s.InitKnotServer)
+			r.Route("/member", func(r chi.Router) {
+				r.Use(RoleMiddleware(s, "server:owner"))
+				r.Get("/", s.ListMembers)
+				r.Put("/", s.AddMember)
+				r.Delete("/", s.RemoveMember)
+			})
+		})
 	})
 
 	r.Group(func(r chi.Router) {

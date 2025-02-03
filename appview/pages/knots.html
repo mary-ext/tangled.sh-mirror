@@ -13,20 +13,33 @@
         <button type="domain">generate key</button>
     </form>
 
-    <h3>existing registrations</h3>
-    <ul id="registrations">
+    <h3>my knots</h3>
+    <ul id="my-knots">
         {{range .Registrations}}
+        {{ if .Registered }}
+            <li>
+                <p>domain: <a href="/knots/{{.Domain}}">{{.Domain}}</a></p><br>
+                <code>opened by: {{.ByDid}}</code><br>
+                <code>on: {{.Created}}</code><br>
+                <code>registered on: {{.Registered}}</code>
+            </li>
+        {{ end }}
+        {{else}}
+            <p>you don't have any knots yet</p>
+        {{end}}
+    </ul>
+    <h3>pending registrations</h3>
+    <ul id="pending-registrations">
+        {{range .Registrations}}
+        {{ if not .Registered }}
             <li>
                 <code>domain: {{.Domain}}</code><br>
                 <code>opened by: {{.ByDid}}</code><br>
                 <code>on: {{.Created}}</code><br>
-                {{if .Registered}}
-                <code>registered on: {{.Registered}}</code>
-                {{else}}
                 <code>pending registration</code>
-                <button hx-post="/knots/init/{{.Domain}}">initialize</button>
-                {{end}}
+                <button hx-post="/knots/{{.Domain}}/init">initialize</button>
             </li>
+        {{ end }}
         {{else}}
             <p>no registrations yet</p>
         {{end}}
