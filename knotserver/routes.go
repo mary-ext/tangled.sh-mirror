@@ -384,6 +384,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	repoPath := filepath.Join(h.c.Repo.ScanPath, did, name)
 	err := git.InitBare(repoPath)
 	if err != nil {
+		log.Println(err)
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -399,9 +400,8 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Did       string `json:"did"`
-		PublicKey string `json:"key"`
-		Created   string `json:"created"`
+		Did        string   `json:"did"`
+		PublicKeys []string `json:"keys"`
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -409,52 +409,39 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	did := data.Did
-	key := data.PublicKey
-	created := data.Created
-
-	if did == "" {
+	if data.Did == "" {
 		writeError(w, "did is empty", http.StatusBadRequest)
 		return
 	}
 
-	if key == "" {
-		writeError(w, "key is empty", http.StatusBadRequest)
-		return
-	}
-
-	if created == "" {
-		writeError(w, "created timestamp is empty", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.db.AddDid(did); err == nil {
-		pk := db.PublicKey{
-			Did: did,
-		}
-		pk.Key = key
-		pk.Created = created
-		err := h.db.AddPublicKey(pk)
-		if err != nil {
-			writeError(w, err.Error(), http.StatusInternalServerError)
-			return
+	if err := h.db.AddDid(data.Did); err == nil {
+		for _, k := range data.PublicKeys {
+			pk := db.PublicKey{
+				Did: data.Did,
+			}
+			pk.Key = k
+			err := h.db.AddPublicKey(pk)
+			if err != nil {
+				writeError(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	} else {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.js.UpdateDids([]string{did})
+	h.js.UpdateDids([]string{data.Did})
 	// Signal that the knot is ready
 	close(h.init)
-	w.WriteHeader(http.StatusNoContent)
-}
 
-func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
-	log.Println("got health check")
 	mac := hmac.New(sha256.New, []byte(h.c.Server.Secret))
 	mac.Write([]byte("ok"))
 	w.Header().Add("X-Signature", hex.EncodeToString(mac.Sum(nil)))
 
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
