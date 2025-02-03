@@ -212,15 +212,14 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	// make a request do the knotserver with an empty body and above signature
 	url := fmt.Sprintf("http://%s/health", domain)
 
-	pingRequest, err := buildPingRequest(url, secret)
+	pingRequest, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Println("failed to build ping request", err)
 		return
 	}
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := SignedClient(secret)
+
 	resp, err := client.Do(pingRequest)
 	if err != nil {
 		w.Write([]byte("no dice"))
@@ -389,23 +388,23 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 }
 
-func buildPingRequest(url, secret string) (*http.Request, error) {
-	pingRequest, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	timestamp := time.Now().Format(time.RFC3339)
-	mac := hmac.New(sha256.New, []byte(secret))
-	message := pingRequest.Method + pingRequest.URL.Path + timestamp
-	mac.Write([]byte(message))
-	signature := hex.EncodeToString(mac.Sum(nil))
-
-	pingRequest.Header.Set("X-Signature", signature)
-	pingRequest.Header.Set("X-Timestamp", timestamp)
-
-	return pingRequest, nil
-}
+// func buildPingRequest(url, secret string) (*http.Request, error) {
+// 	pingRequest, err := http.NewRequest("GET", url, nil)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	timestamp := time.Now().Format(time.RFC3339)
+// 	mac := hmac.New(sha256.New, []byte(secret))
+// 	message := pingRequest.Method + pingRequest.URL.Path + timestamp
+// 	mac.Write([]byte(message))
+// 	signature := hex.EncodeToString(mac.Sum(nil))
+//
+// 	pingRequest.Header.Set("X-Signature", signature)
+// 	pingRequest.Header.Set("X-Timestamp", timestamp)
+//
+// 	return pingRequest, nil
+// }
 
 func (s *State) Router() http.Handler {
 	r := chi.NewRouter()

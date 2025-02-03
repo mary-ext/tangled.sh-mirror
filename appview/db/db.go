@@ -25,14 +25,14 @@ func Make(dbPath string) (*DB, error) {
 			domain text not null unique,
 			did text not null,
 			secret text not null,
-			created timestamp default current_timestamp,
-			registered timestamp);
+			created integer default (strftime('%s', 'now')),
+			registered integer);
 		create table if not exists public_keys (
 			id integer primary key autoincrement,
 			did text not null,
 			name text not null,
 			key text not null,
-			created timestamp default current_timestamp,
+			created integer default (strftime('%s', 'now')),
 			unique(did, name, key)
 		);
 	`)
