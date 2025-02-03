@@ -15,7 +15,7 @@ func main() {
 		"api/tangled/cbor_gen.go",
 		"tangled",
 		shtangled.PublicKey{},
-		shtangled.KnotPolicy{},
+		shtangled.KnotMember{},
 	); err != nil {
 		panic(err)
 	}

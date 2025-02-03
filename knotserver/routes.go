@@ -432,6 +432,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.js.UpdateDids([]string{data.Did})
+	h.e.AddOwner(ThisServer, data.Did)
 	// Signal that the knot is ready
 	close(h.init)
 

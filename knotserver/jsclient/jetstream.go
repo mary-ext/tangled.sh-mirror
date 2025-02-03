@@ -55,6 +55,14 @@ func (j *JetstreamClient) UpdateDids(dids []string) {
 	j.triggerReconnect()
 }
 
+// Adds one did to the did list
+func (j *JetstreamClient) AddDid(did string) {
+	j.mu.Lock()
+	j.dids = append(j.dids, did)
+	j.mu.Unlock()
+	j.triggerReconnect()
+}
+
 func (j *JetstreamClient) triggerReconnect() {
 	select {
 	case j.reconnectCh <- struct{}{}:

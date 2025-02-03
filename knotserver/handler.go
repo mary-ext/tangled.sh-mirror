@@ -12,12 +12,18 @@ import (
 	"github.com/sotangled/tangled/knotserver/config"
 	"github.com/sotangled/tangled/knotserver/db"
 	"github.com/sotangled/tangled/knotserver/jsclient"
+	"github.com/sotangled/tangled/rbac"
+)
+
+const (
+	ThisServer = "thisserver" // resource identifier for rbac enforcement
 )
 
 type Handle struct {
 	c  *config.Config
 	db *db.DB
 	js *jsclient.JetstreamClient
+	e  *rbac.Enforcer
 
 	// init is a channel that is closed when the knot has been initailized
 	// i.e. when the first user (knot owner) has been added.
@@ -25,16 +31,22 @@ type Handle struct {
 	knotInitialized bool
 }
 
-func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, error) {
+func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	h := Handle{
 		c:    c,
 		db:   db,
+		e:    e,
 		init: make(chan struct{}),
 	}
 
-	err := h.StartJetstream(ctx)
+	err := e.AddDomain(ThisServer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
+	}
+
+	err = h.StartJetstream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
@@ -94,10 +106,10 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, erro
 }
 
 func (h *Handle) StartJetstream(ctx context.Context) error {
-	colections := []string{tangled.PublicKeyNSID}
+	collections := []string{tangled.PublicKeyNSID, tangled.KnotMemberNSID}
 	dids := []string{}
 
-	h.js = jsclient.NewJetstreamClient(colections, dids)
+	h.js = jsclient.NewJetstreamClient(collections, dids)
 	messages, err := h.js.ReadJetstream(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read from jetstream: %w", err)
@@ -126,6 +138,16 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 						log.Printf("failed to add public key: %v", err)
 					} else {
 						log.Printf("added public key from firehose: %s", data["did"])
+					}
+				case tangled.KnotMemberNSID:
+					did := data["did"].(string)
+					record := commit["record"].(map[string]interface{})
+					ok, err := h.e.E.Enforce(did, ThisServer, ThisServer, "server:invite")
+					if err != nil || !ok {
+						log.Printf("failed to add member from did %s", did)
+					} else {
+						log.Printf("adding member")
+						h.e.AddMember(ThisServer, record["member"].(string))
 					}
 				default:
 				}

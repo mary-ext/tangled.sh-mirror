@@ -216,15 +216,20 @@ func (t *PublicKey) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *KnotPolicy) MarshalCBOR(w io.Writer) error {
+func (t *KnotMember) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
 	}
 
 	cw := cbg.NewCborWriter(w)
+	fieldCount := 4
 
-	if _, err := cw.Write([]byte{165}); err != nil {
+	if t.AddedAt == nil {
+		fieldCount--
+	}
+
+	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
 		return err
 	}
 
@@ -240,33 +245,10 @@ func (t *KnotPolicy) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.knot.policy"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.knot.member"))); err != nil {
 		return err
 	}
-	if _, err := cw.WriteString(string("sh.tangled.knot.policy")); err != nil {
-		return err
-	}
-
-	// t.Action (string) (string)
-	if len("action") > 1000000 {
-		return xerrors.Errorf("Value in field \"action\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("action"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("action")); err != nil {
-		return err
-	}
-
-	if len(t.Action) > 1000000 {
-		return xerrors.Errorf("Value in field t.Action was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Action))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Action)); err != nil {
+	if _, err := cw.WriteString(string("sh.tangled.knot.member")); err != nil {
 		return err
 	}
 
@@ -293,56 +275,65 @@ func (t *KnotPolicy) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Object (string) (string)
-	if len("object") > 1000000 {
-		return xerrors.Errorf("Value in field \"object\" was too long")
+	// t.Member (string) (string)
+	if len("member") > 1000000 {
+		return xerrors.Errorf("Value in field \"member\" was too long")
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("object"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("member"))); err != nil {
 		return err
 	}
-	if _, err := cw.WriteString(string("object")); err != nil {
-		return err
-	}
-
-	if len(t.Object) > 1000000 {
-		return xerrors.Errorf("Value in field t.Object was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Object))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Object)); err != nil {
+	if _, err := cw.WriteString(string("member")); err != nil {
 		return err
 	}
 
-	// t.Subject (string) (string)
-	if len("subject") > 1000000 {
-		return xerrors.Errorf("Value in field \"subject\" was too long")
+	if len(t.Member) > 1000000 {
+		return xerrors.Errorf("Value in field t.Member was too long")
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("subject"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Member))); err != nil {
 		return err
 	}
-	if _, err := cw.WriteString(string("subject")); err != nil {
+	if _, err := cw.WriteString(string(t.Member)); err != nil {
 		return err
 	}
 
-	if len(t.Subject) > 1000000 {
-		return xerrors.Errorf("Value in field t.Subject was too long")
-	}
+	// t.AddedAt (string) (string)
+	if t.AddedAt != nil {
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Subject))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Subject)); err != nil {
-		return err
+		if len("addedAt") > 1000000 {
+			return xerrors.Errorf("Value in field \"addedAt\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("addedAt"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("addedAt")); err != nil {
+			return err
+		}
+
+		if t.AddedAt == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if len(*t.AddedAt) > 1000000 {
+				return xerrors.Errorf("Value in field t.AddedAt was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.AddedAt))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(*t.AddedAt)); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
-func (t *KnotPolicy) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = KnotPolicy{}
+func (t *KnotMember) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = KnotMember{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -361,7 +352,7 @@ func (t *KnotPolicy) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("KnotPolicy: map struct too large (%d)", extra)
+		return fmt.Errorf("KnotMember: map struct too large (%d)", extra)
 	}
 
 	n := extra
@@ -393,17 +384,6 @@ func (t *KnotPolicy) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.LexiconTypeID = string(sval)
 			}
-			// t.Action (string) (string)
-		case "action":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Action = string(sval)
-			}
 			// t.Domain (string) (string)
 		case "domain":
 
@@ -415,8 +395,8 @@ func (t *KnotPolicy) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Domain = string(sval)
 			}
-			// t.Object (string) (string)
-		case "object":
+			// t.Member (string) (string)
+		case "member":
 
 			{
 				sval, err := cbg.ReadStringWithMax(cr, 1000000)
@@ -424,18 +404,28 @@ func (t *KnotPolicy) UnmarshalCBOR(r io.Reader) (err error) {
 					return err
 				}
 
-				t.Object = string(sval)
+				t.Member = string(sval)
 			}
-			// t.Subject (string) (string)
-		case "subject":
+			// t.AddedAt (string) (string)
+		case "addedAt":
 
 			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				b, err := cr.ReadByte()
 				if err != nil {
 					return err
 				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
 
-				t.Subject = string(sval)
+					sval, err := cbg.ReadStringWithMax(cr, 1000000)
+					if err != nil {
+						return err
+					}
+
+					t.AddedAt = (*string)(&sval)
+				}
 			}
 
 		default:

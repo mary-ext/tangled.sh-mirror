@@ -11,6 +11,7 @@ import (
 	"github.com/sotangled/tangled/knotserver"
 	"github.com/sotangled/tangled/knotserver/config"
 	"github.com/sotangled/tangled/knotserver/db"
+	"github.com/sotangled/tangled/rbac"
 )
 
 func main() {
@@ -34,7 +35,12 @@ func main() {
 		log.Fatalf("failed to setup db: %s", err)
 	}
 
-	mux, err := knotserver.Setup(ctx, c, db)
+	e, err := rbac.NewEnforcer(c.Server.DBPath)
+	if err != nil {
+		log.Fatalf("failed to setup rbac enforcer: %s", err)
+	}
+
+	mux, err := knotserver.Setup(ctx, c, db, e)
 	if err != nil {
 		log.Fatal(err)
 	}

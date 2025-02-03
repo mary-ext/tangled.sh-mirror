@@ -22,16 +22,18 @@ import (
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/appview/pages"
+	"github.com/sotangled/tangled/rbac"
 )
 
 type State struct {
 	db       *db.DB
 	auth     *auth.Auth
-	enforcer *Enforcer
+	enforcer *rbac.Enforcer
 }
 
 func Make() (*State, error) {
-	db, err := db.Make("appview.db")
+
+	db, err := db.Make(appview.SqliteDbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +43,7 @@ func Make() (*State, error) {
 		return nil, err
 	}
 
-	enforcer, err := NewEnforcer()
+	enforcer, err := rbac.NewEnforcer(appview.SqliteDbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -175,13 +177,13 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 			Collection: tangled.PublicKeyNSID,
 			Repo:       did,
 			Rkey:       uuid.New().String(),
-			Record: &lexutil.LexiconTypeDecoder{Val: &tangled.PublicKey{
-				Created: time.Now().String(),
-				Key:     key,
-				Name:    name,
-			}},
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.PublicKey{
+					Created: time.Now().Format(time.RFC3339),
+					Key:     key,
+					Name:    name,
+				}},
 		})
-
 		// invalid record
 		if err != nil {
 			log.Printf("failed to create record: %s", err)
@@ -382,8 +384,30 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("failed to resolve member did to a handle"))
 		return
 	}
-
 	log.Printf("adding %s to %s\n", memberIdent.Handle.String(), domain)
+
+	// announce this relation into the firehose, store into owners' pds
+	client, _ := s.auth.AuthorizedClient(r)
+	currentUser := s.auth.GetUser(r)
+	addedAt := time.Now().Format(time.RFC3339)
+	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		Collection: tangled.KnotMemberNSID,
+		Repo:       currentUser.Did,
+		Rkey:       uuid.New().String(),
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.KnotMember{
+				Member:  memberIdent.DID.String(),
+				Domain:  domain,
+				AddedAt: &addedAt,
+			}},
+	})
+	// invalid record
+	if err != nil {
+		log.Printf("failed to create record: %s", err)
+		return
+	}
+
+	log.Println("created atproto record: ", resp.Uri)
 
 	err = s.enforcer.AddMember(domain, memberIdent.DID.String())
 	if err != nil {
@@ -481,8 +505,8 @@ func (s *State) Router() http.Handler {
 		r.Post("/key", s.RegistrationKey)
 
 		r.Route("/{domain}", func(r chi.Router) {
-			r.Get("/", s.KnotServerInfo)
 			r.Post("/init", s.InitKnotServer)
+			r.Get("/", s.KnotServerInfo)
 			r.Route("/member", func(r chi.Router) {
 				r.Use(RoleMiddleware(s, "server:owner"))
 				r.Get("/", s.ListMembers)

@@ -1,4 +1,4 @@
-package state
+package rbac
 
 import (
 	"database/sql"
@@ -37,14 +37,13 @@ func keyMatch2(key1 string, key2 string) bool {
 	return matched
 }
 
-func NewEnforcer() (*Enforcer, error) {
+func NewEnforcer(path string) (*Enforcer, error) {
 	m, err := model.NewModelFromString(Model)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: conf this
-	db, err := sql.Open("sqlite3", "appview.db")
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, err
 	}
