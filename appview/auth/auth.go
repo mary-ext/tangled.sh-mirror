@@ -178,7 +178,7 @@ func (a *Auth) GetSession(r *http.Request) (*sessions.Session, error) {
 	return a.Store.Get(r, appview.SessionName)
 }
 
-func (a *Auth) GetDID(r *http.Request) string {
+func (a *Auth) GetDid(r *http.Request) string {
 	clientSession, err := a.Store.Get(r, appview.SessionName)
 	if err != nil || clientSession.IsNew {
 		return ""

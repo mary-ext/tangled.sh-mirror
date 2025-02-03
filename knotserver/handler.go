@@ -39,12 +39,12 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB) (http.Handler, erro
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
-	// Check if the knot knows about any DIDs;
+	// Check if the knot knows about any Dids;
 	// if it does, it is already initialized and we can repopulate the
 	// Jetstream subscriptions.
-	dids, err := db.GetAllDIDs()
+	dids, err := db.GetAllDids()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all DIDs: %w", err)
+		return nil, fmt.Errorf("failed to get all Dids: %w", err)
 	}
 	if len(dids) > 0 {
 		h.knotInitialized = true

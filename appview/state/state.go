@@ -154,7 +154,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 		log.Println("unimplemented")
 		return
 	case http.MethodPut:
-		did := s.auth.GetDID(r)
+		did := s.auth.GetDid(r)
 		key := r.FormValue("key")
 		name := r.FormValue("name")
 		client, _ := s.auth.AuthorizedClient(r)

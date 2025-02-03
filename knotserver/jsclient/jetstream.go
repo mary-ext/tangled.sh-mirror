@@ -47,7 +47,7 @@ func (j *JetstreamClient) UpdateCollections(collections []string) {
 	j.triggerReconnect()
 }
 
-// UpdateDids updates the DIDs list and triggers a reconnection
+// UpdateDids updates the Dids list and triggers a reconnection
 func (j *JetstreamClient) UpdateDids(dids []string) {
 	j.mu.Lock()
 	j.dids = dids

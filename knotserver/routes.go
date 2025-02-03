@@ -369,7 +369,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	data := struct {
-		DID  string `json:"did"`
+		Did  string `json:"did"`
 		Name string `json:"name"`
 	}{}
 
@@ -378,7 +378,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	did := data.DID
+	did := data.Did
 	name := data.Name
 
 	repoPath := filepath.Join(h.c.Repo.ScanPath, did, name)
@@ -399,7 +399,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		DID       string `json:"did"`
+		Did       string `json:"did"`
 		PublicKey string `json:"key"`
 		Created   string `json:"created"`
 	}{}
@@ -409,7 +409,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	did := data.DID
+	did := data.Did
 	key := data.PublicKey
 	created := data.Created
 
@@ -428,7 +428,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.AddDID(did); err == nil {
+	if err := h.db.AddDid(did); err == nil {
 		pk := db.PublicKey{
 			Did: did,
 		}

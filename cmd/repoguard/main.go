@@ -65,7 +65,7 @@ func main() {
 
 	// example.com/repo
 	handlePath := strings.Trim(cmdParts[1], "'")
-	repoName := handleToDID(handlePath)
+	repoName := handleToDid(handlePath)
 
 	validCommands := map[string]bool{
 		"git-receive-pack":   true,
@@ -111,7 +111,7 @@ func main() {
 	})
 }
 
-func handleToDID(handlePath string) string {
+func handleToDid(handlePath string) string {
 	handle := path.Dir(handlePath)
 
 	ident, err := auth.ResolveIdent(context.Background(), handle)
