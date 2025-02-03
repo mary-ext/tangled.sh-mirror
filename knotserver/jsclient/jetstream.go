@@ -153,10 +153,12 @@ func (j *JetstreamClient) readMessages(ctx context.Context, messages chan []byte
 	}
 }
 
-func (j *JetstreamClient) ReadJetstream(ctx context.Context) (chan []byte, error) {
-	fiveSecondsAgo := time.Now().Add(-5 * time.Second).UnixMicro()
+func (j *JetstreamClient) ReadJetstream(ctx context.Context, lastTimestamp int64) (chan []byte, error) {
+	if lastTimestamp == 0 {
+		lastTimestamp = time.Now().Add(-5 * time.Second).UnixMicro()
+	}
 
-	if err := j.connect(fiveSecondsAgo); err != nil {
+	if err := j.connect(lastTimestamp); err != nil {
 		log.Printf("error connecting to jetstream: %v", err)
 		return nil, err
 	}

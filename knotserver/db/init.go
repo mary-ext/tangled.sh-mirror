@@ -20,6 +20,7 @@ func Setup(dbPath string) (*DB, error) {
 		create table if not exists known_dids (
 			did text primary key
 		);
+
 		create table if not exists public_keys (
 			id integer primary key autoincrement,
 			did text not null,
@@ -37,14 +38,10 @@ func Setup(dbPath string) (*DB, error) {
 			created timestamp default current_timestamp,
 			unique(did, name)
 		);
-		create table if not exists access_levels (
+
+		create table if not exists _jetstream (
 			id integer primary key autoincrement,
-			repo_id integer not null,
-			did text not null,
-			access text not null check (access in ('OWNER', 'WRITER')),
-			created timestamp default current_timestamp,
-			unique(repo_id, did),
-			foreign key (repo_id) references repos(id) on delete cascade
+			last_time_us integer not null
 		);
 	`)
 	if err != nil {

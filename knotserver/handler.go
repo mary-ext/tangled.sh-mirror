@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	tangled "github.com/sotangled/tangled/api/tangled"
@@ -109,8 +110,27 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 	collections := []string{tangled.PublicKeyNSID, tangled.KnotMemberNSID}
 	dids := []string{}
 
+	var lastTimeUs int64
+	var err error
+	lastTimeUs, err = h.db.GetLastTimeUs()
+	if err != nil {
+		log.Println("couldn't get last time us, starting from now")
+		lastTimeUs = time.Now().UnixMicro()
+	}
+	// If last time is older than a week, start from now
+	if time.Now().UnixMicro()-lastTimeUs > 7*24*60*60*1000*1000 {
+		lastTimeUs = time.Now().UnixMicro()
+		log.Printf("last time us is older than a week. discarding that and starting from now.")
+		err = h.db.SaveLastTimeUs(lastTimeUs)
+		if err != nil {
+			log.Println("failed to save last time us")
+		}
+	}
+
+	log.Printf("found last time_us %d", lastTimeUs)
+
 	h.js = jsclient.NewJetstreamClient(collections, dids)
-	messages, err := h.js.ReadJetstream(ctx)
+	messages, err := h.js.ReadJetstream(ctx, lastTimeUs)
 	if err != nil {
 		return fmt.Errorf("failed to read from jetstream: %w", err)
 	}
@@ -150,6 +170,11 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 						h.e.AddMember(ThisServer, record["member"].(string))
 					}
 				default:
+				}
+
+				lastTimeUs := int64(data["time_us"].(float64))
+				if err := h.db.SaveLastTimeUs(lastTimeUs); err != nil {
+					log.Printf("failed to save last time us: %v", err)
 				}
 			}
 
