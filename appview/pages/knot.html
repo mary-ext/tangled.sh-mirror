@@ -7,7 +7,7 @@
     <p>
       <code>
         opened by: {{.Registration.ByDid}}
-        {{ if $.IsOwner }}
+        {{ if eq $.User.Did $.Registration.ByDid }}
         (you)
         {{ end }}
       </code><br>
@@ -22,16 +22,21 @@
 
     {{ if .Registration.Registered }}
     <h3> members </h3>
-    {{ range $.Members }}
     <ol>
+    {{ range $.Members }}
       <li>{{.}}</li>
-    </ol>
     {{ else }}
     <p>no members</p>
     {{ end }}
     {{ end }}
+    </ol>
 
     {{ if $.IsOwner }}
-    <a href="/knots/{{.Registration.Domain}}/member">add member</a>
+    <h3>add member</h3>
+    <form hx-put="/knots/{{.Registration.Domain}}/member">
+        <label for="member">did or handle:</label>
+        <input type="text" id="member" name="member" required>
+        <button type="text">add member</button>
+    </form>
     {{ end }}
 {{end}}

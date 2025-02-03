@@ -9,8 +9,7 @@
     <form hx-post="/knots/key">
         <label for="domain">domain:</label>
         <input type="text" id="domain" name="domain" required>
-
-        <button type="domain">generate key</button>
+        <button type="text">generate key</button>
     </form>
 
     <h3>my knots</h3>
@@ -18,7 +17,7 @@
         {{range .Registrations}}
         {{ if .Registered }}
             <li>
-                <p>domain: <a href="/knots/{{.Domain}}">{{.Domain}}</a></p><br>
+                <code>domain: <a href="/knots/{{.Domain}}">{{.Domain}}</a></code><br>
                 <code>opened by: {{.ByDid}}</code><br>
                 <code>on: {{.Created}}</code><br>
                 <code>registered on: {{.Registered}}</code>
@@ -33,7 +32,7 @@
         {{range .Registrations}}
         {{ if not .Registered }}
             <li>
-                <code>domain: {{.Domain}}</code><br>
+                <code>domain: <a href="/knots/{{.Domain}}">{{.Domain}}</a></code><br>
                 <code>opened by: {{.ByDid}}</code><br>
                 <code>on: {{.Created}}</code><br>
                 <code>pending registration</code>

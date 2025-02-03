@@ -368,7 +368,6 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: validate member did?
 	memberIdent, err := auth.ResolveIdent(r.Context(), memberDid)
 	if err != nil {
 		w.Write([]byte("failed to resolve member did to a handle"))
@@ -377,7 +376,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("adding %s to %s\n", memberIdent.Handle.String(), domain)
 
-	err = s.enforcer.AddMember(domain, memberDid)
+	err = s.enforcer.AddMember(domain, memberIdent.DID.String())
 	if err != nil {
 		w.Write([]byte(fmt.Sprint("failed to add member: ", err)))
 		return
