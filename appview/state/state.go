@@ -450,6 +450,19 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// add to local db
+		repo := &db.Repo{
+			Did:  user.Did,
+			Name: repoName,
+			Knot: domain,
+		}
+
+		err = s.db.AddRepo(repo)
+		if err != nil {
+			log.Println("failed to add repo to db", err)
+			return
+		}
+
 		w.Write([]byte("created!"))
 	}
 }
