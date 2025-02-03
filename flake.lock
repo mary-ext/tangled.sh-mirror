@@ -3,11 +3,11 @@
     "indigo": {
       "flake": false,
       "locked": {
-        "lastModified": 1738055559,
-        "narHash": "sha256-wsey8gs825Tm9Q3zITqg4B6TmHCDuV9vyQlXEnD/7/I=",
+        "lastModified": 1738491661,
+        "narHash": "sha256-+njDigkvjH4XmXZMog5Mp0K4x9mamHX6gSGJCZB9mE4=",
         "owner": "oppiliappan",
         "repo": "indigo",
-        "rev": "9b475b7509c21b98b6ccd97c6d3f2e8d8ea3eae0",
+        "rev": "feb802f02a462ac0a6392ffc3e40b0529f0cdf71",
         "type": "github"
       },
       "original": {
@@ -18,11 +18,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1737753923,
-        "narHash": "sha256-O30NErrRU1AMlHoIbsKWs57Lvi8IgGvs+2ZtkTtq7b8=",
+        "lastModified": 1738589849,
+        "narHash": "sha256-YbBrqtYjo7HB+gA2WKN2jWxj0H2e5dBwYrbWeIyirAc=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "a019ad96aa3710cd05710839f153f58c0325d486",
+        "rev": "e4a4b2cf12d2c4c15dd6387c74421999095c49ad",
         "type": "github"
       },
       "original": {

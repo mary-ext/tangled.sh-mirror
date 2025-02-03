@@ -216,3 +216,235 @@ func (t *PublicKey) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
+func (t *KnotPolicy) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+
+	if _, err := cw.Write([]byte{165}); err != nil {
+		return err
+	}
+
+	// t.LexiconTypeID (string) (string)
+	if len("$type") > 1000000 {
+		return xerrors.Errorf("Value in field \"$type\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("$type"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("$type")); err != nil {
+		return err
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.knot.policy"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("sh.tangled.knot.policy")); err != nil {
+		return err
+	}
+
+	// t.Action (string) (string)
+	if len("action") > 1000000 {
+		return xerrors.Errorf("Value in field \"action\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("action"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("action")); err != nil {
+		return err
+	}
+
+	if len(t.Action) > 1000000 {
+		return xerrors.Errorf("Value in field t.Action was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Action))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Action)); err != nil {
+		return err
+	}
+
+	// t.Domain (string) (string)
+	if len("domain") > 1000000 {
+		return xerrors.Errorf("Value in field \"domain\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("domain"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("domain")); err != nil {
+		return err
+	}
+
+	if len(t.Domain) > 1000000 {
+		return xerrors.Errorf("Value in field t.Domain was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Domain))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Domain)); err != nil {
+		return err
+	}
+
+	// t.Object (string) (string)
+	if len("object") > 1000000 {
+		return xerrors.Errorf("Value in field \"object\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("object"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("object")); err != nil {
+		return err
+	}
+
+	if len(t.Object) > 1000000 {
+		return xerrors.Errorf("Value in field t.Object was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Object))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Object)); err != nil {
+		return err
+	}
+
+	// t.Subject (string) (string)
+	if len("subject") > 1000000 {
+		return xerrors.Errorf("Value in field \"subject\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("subject"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("subject")); err != nil {
+		return err
+	}
+
+	if len(t.Subject) > 1000000 {
+		return xerrors.Errorf("Value in field t.Subject was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Subject))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Subject)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *KnotPolicy) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = KnotPolicy{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("KnotPolicy: map struct too large (%d)", extra)
+	}
+
+	n := extra
+
+	nameBuf := make([]byte, 7)
+	for i := uint64(0); i < n; i++ {
+		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		switch string(nameBuf[:nameLen]) {
+		// t.LexiconTypeID (string) (string)
+		case "$type":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.LexiconTypeID = string(sval)
+			}
+			// t.Action (string) (string)
+		case "action":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Action = string(sval)
+			}
+			// t.Domain (string) (string)
+		case "domain":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Domain = string(sval)
+			}
+			// t.Object (string) (string)
+		case "object":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Object = string(sval)
+			}
+			// t.Subject (string) (string)
+		case "subject":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Subject = string(sval)
+			}
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}

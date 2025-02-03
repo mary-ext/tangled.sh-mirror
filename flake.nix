@@ -29,7 +29,7 @@
           version = "0.1.0";
           src = indigo;
           subPackage = ["cmd/lexgen"];
-          vendorHash = null;
+          vendorHash = "sha256-pGc29fgJFq8LP7n/pY1cv6ExZl88PAeFqIbFEhB3xXs=";
           doCheck = false;
         };
     };
@@ -53,23 +53,22 @@
         ];
       };
     });
-    apps = forAllSystems (system:
-        let
-            pkgs = nixpkgsFor."${system}";
-            air-watcher = name: pkgs.writeShellScriptBin "run"
-            ''
-                ${pkgs.air}/bin/air -c /dev/null -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" -build.bin "./out/${name}.out"
-            '';
-        in
-    {
-        watch-appview = {
-            type = "app";
-            program = ''${air-watcher "appview"}/bin/run'';
-        };
-        watch-knotserver = {
-            type = "app";
-            program = ''${air-watcher "knotserver"}/bin/run'';
-        };
+    apps = forAllSystems (system: let
+      pkgs = nixpkgsFor."${system}";
+      air-watcher = name:
+        pkgs.writeShellScriptBin "run"
+        ''
+          ${pkgs.air}/bin/air -c /dev/null -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" -build.bin "./out/${name}.out"
+        '';
+    in {
+      watch-appview = {
+        type = "app";
+        program = ''${air-watcher "appview"}/bin/run'';
+      };
+      watch-knotserver = {
+        type = "app";
+        program = ''${air-watcher "knotserver"}/bin/run'';
+      };
     });
   };
 }
