@@ -150,6 +150,32 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
+	user := chi.URLParam(r, "user")
+	user = strings.TrimPrefix(user, "@")
+
+	if user == "" {
+		w.Write([]byte("not found"))
+		return
+	}
+
+	id, err := auth.ResolveIdent(r.Context(), user)
+	if err != nil {
+		w.Write([]byte("not found"))
+		return
+	}
+
+	pubKeys, err := s.db.GetPublicKeys(id.DID.String())
+	if err != nil {
+		w.Write([]byte("not found"))
+		return
+	}
+
+	for _, k := range pubKeys {
+		w.Write([]byte(fmt.Sprintln(k.Key)))
+	}
+}
+
+func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Write([]byte("unimplemented"))
@@ -524,11 +550,13 @@ func (s *State) Router() http.Handler {
 		// r.Post("/import", s.ImportRepo)
 	})
 
-	r.Group(func(r chi.Router) {
+	r.Route("/settings", func(r chi.Router) {
 		r.Use(AuthMiddleware(s))
-		r.Get("/settings", s.Settings)
-		r.Put("/settings/keys", s.Keys)
+		r.Get("/", s.Settings)
+		r.Put("/keys", s.SettingsKeys)
 	})
+
+	r.Get("/keys/{user}", s.Keys)
 
 	return r
 }

@@ -381,8 +381,17 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	did := data.Did
 	name := data.Name
 
-	repoPath := filepath.Join(h.c.Repo.ScanPath, did, name)
+	relativeRepoPath := filepath.Join(did, name)
+	repoPath := filepath.Join(h.c.Repo.ScanPath, relativeRepoPath)
 	err := git.InitBare(repoPath)
+	if err != nil {
+		log.Println(err)
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// add perms for this user to access the repo
+	err = h.e.AddRepo(did, ThisServer, relativeRepoPath)
 	if err != nil {
 		log.Println(err)
 		writeError(w, err.Error(), http.StatusInternalServerError)
