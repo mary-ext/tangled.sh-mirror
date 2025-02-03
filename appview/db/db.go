@@ -107,10 +107,19 @@ func (d *DB) RegistrationByDomain(domain string) (*Registration, error) {
 	var createdAt *int64
 	var registeredAt *int64
 	var registration Registration
+
 	err := d.db.QueryRow(`
 		select domain, did, created, registered from registrations
 		where domain = ?
 	`, domain).Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
 
 	createdAtTime := time.Unix(*createdAt, 0)
 	var registeredAtTime *time.Time
@@ -121,14 +130,6 @@ func (d *DB) RegistrationByDomain(domain string) (*Registration, error) {
 
 	registration.Created = &createdAtTime
 	registration.Registered = registeredAtTime
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
 
 	return &registration, nil
 }

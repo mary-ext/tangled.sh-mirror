@@ -7,5 +7,8 @@
     <p>logged in as {{ .User.Handle }}</p>
     <a href="/settings">settings</a>
     <a href="/knots">knots</a>
+    {{ else }}
+    <p>not logged in</p>
+    <a href="/login">login</a>
     {{ end }}
 {{end}}

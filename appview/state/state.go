@@ -63,6 +63,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		resolved, err := auth.ResolveIdent(ctx, handle)
 		if err != nil {
 			log.Printf("resolving identity: %s", err)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
