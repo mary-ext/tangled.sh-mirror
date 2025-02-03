@@ -1,6 +1,9 @@
 package db
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 func (d *DB) AddPublicKey(did, name, key string) error {
 	query := `insert into public_keys (did, name, key) values (?, ?, ?)`
@@ -15,10 +18,21 @@ func (d *DB) RemovePublicKey(did string) error {
 }
 
 type PublicKey struct {
-	Key     string
-	Name    string
-	DID     string
+	Did     string `json:"did"`
+	Key     string `json:"key"`
+	Name    string `json:"name"`
 	Created time.Time
+}
+
+func (p PublicKey) MarshalJSON() ([]byte, error) {
+	type Alias PublicKey
+	return json.Marshal(&struct {
+		Created int64 `json:"created"`
+		*Alias
+	}{
+		Created: p.Created.Unix(),
+		Alias:   (*Alias)(&p),
+	})
 }
 
 func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
@@ -33,7 +47,7 @@ func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 	for rows.Next() {
 		var publicKey PublicKey
 		var createdAt *int64
-		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.DID, &createdAt); err != nil {
+		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.Did, &createdAt); err != nil {
 			return nil, err
 		}
 		publicKey.Created = time.Unix(*createdAt, 0)
@@ -59,7 +73,7 @@ func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
 	for rows.Next() {
 		var publicKey PublicKey
 		var createdAt *int64
-		if err := rows.Scan(&publicKey.DID, &publicKey.Key, &publicKey.Name, &createdAt); err != nil {
+		if err := rows.Scan(&publicKey.Did, &publicKey.Key, &publicKey.Name, &createdAt); err != nil {
 			return nil, err
 		}
 		publicKey.Created = time.Unix(*createdAt, 0)

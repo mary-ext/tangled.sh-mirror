@@ -77,3 +77,11 @@ type KnotParams struct {
 func Knot(w io.Writer, p KnotParams) error {
 	return parse("knot.html").Execute(w, p)
 }
+
+type NewRepoParams struct {
+	User *auth.User
+}
+
+func NewRepo(w io.Writer, p NewRepoParams) error {
+	return parse("new-repo.html").Execute(w, p)
+}

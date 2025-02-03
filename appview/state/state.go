@@ -1,9 +1,11 @@
 package state
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -194,30 +196,32 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 
 // create a signed request and check if a node responds to that
 func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
 	domain := chi.URLParam(r, "domain")
 	if domain == "" {
 		http.Error(w, "malformed url", http.StatusBadRequest)
 		return
 	}
-
 	log.Println("checking ", domain)
+
+	url := fmt.Sprintf("http://%s/init", domain)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"did":  user.Did,
+		"keys": []string{},
+	})
+	pingRequest, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		log.Println("failed to build ping request", err)
+		return
+	}
 
 	secret, err := s.db.GetRegistrationKey(domain)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
 	}
-	log.Println("has secret ", secret)
-
-	// make a request do the knotserver with an empty body and above signature
-	url := fmt.Sprintf("http://%s/health", domain)
-
-	pingRequest, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Println("failed to build ping request", err)
-		return
-	}
-
 	client := SignedClient(secret)
 
 	resp, err := client.Do(pingRequest)
@@ -227,7 +231,13 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode == http.StatusConflict {
+		log.Println("status conflict", resp.StatusCode)
+		w.Write([]byte("already registered, sorry!"))
+		return
+	}
+
+	if resp.StatusCode != http.StatusNoContent {
 		log.Println("status nok", resp.StatusCode)
 		w.Write([]byte("no dice"))
 		return
@@ -384,27 +394,65 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprint("added member: ", memberIdent.Handle.String())))
 }
 
-// list members of domain, requires auth and requires owner status
 func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 }
 
-// func buildPingRequest(url, secret string) (*http.Request, error) {
-// 	pingRequest, err := http.NewRequest("GET", url, nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	timestamp := time.Now().Format(time.RFC3339)
-// 	mac := hmac.New(sha256.New, []byte(secret))
-// 	message := pingRequest.Method + pingRequest.URL.Path + timestamp
-// 	mac.Write([]byte(message))
-// 	signature := hex.EncodeToString(mac.Sum(nil))
-//
-// 	pingRequest.Header.Set("X-Signature", signature)
-// 	pingRequest.Header.Set("X-Timestamp", timestamp)
-//
-// 	return pingRequest, nil
-// }
+func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		pages.NewRepo(w, pages.NewRepoParams{
+			User: s.auth.GetUser(r),
+		})
+	case http.MethodPost:
+		user := s.auth.GetUser(r)
+
+		domain := r.FormValue("domain")
+		if domain == "" {
+			log.Println("invalid form")
+			return
+		}
+
+		repoName := r.FormValue("name")
+		if repoName == "" {
+			log.Println("invalid form")
+			return
+		}
+
+		ok, err := s.enforcer.E.Enforce(user.Did, domain, domain, "repo:create")
+		if err != nil || !ok {
+			w.Write([]byte("domain inaccessible to you"))
+			return
+		}
+
+		secret, err := s.db.GetRegistrationKey(domain)
+		if err != nil {
+			log.Printf("no key found for domain %s: %s\n", domain, err)
+			return
+		}
+
+		client := SignedClient(secret)
+		url := fmt.Sprintf("http://%s/repo/new", domain)
+		body, _ := json.Marshal(map[string]interface{}{
+			"did":  user.Did,
+			"name": repoName,
+		})
+		createRepoRequest, err := http.NewRequest("PUT", url, bytes.NewReader(body))
+
+		resp, err := client.Do(createRepoRequest)
+
+		if err != nil {
+			log.Println("failed to send create repo request", err)
+			return
+		}
+
+		if resp.StatusCode != http.StatusNoContent {
+			log.Println("server returned ", resp.StatusCode)
+			return
+		}
+
+		w.Write([]byte("created!"))
+	}
+}
 
 func (s *State) Router() http.Handler {
 	r := chi.NewRouter()
@@ -429,6 +477,14 @@ func (s *State) Router() http.Handler {
 				r.Delete("/", s.RemoveMember)
 			})
 		})
+	})
+
+	r.Route("/repo", func(r chi.Router) {
+		r.Route("/new", func(r chi.Router) {
+			r.Get("/", s.AddRepo)
+			r.Post("/", s.AddRepo)
+		})
+		// r.Post("/import", s.ImportRepo)
 	})
 
 	r.Group(func(r chi.Router) {

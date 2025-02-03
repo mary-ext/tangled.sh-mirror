@@ -177,8 +177,6 @@ func (d *DB) GetRegistrationKey(domain string) (string, error) {
 		return "", err
 	}
 
-	log.Println("domain, secret: ", domain, secret)
-
 	return secret, nil
 }
 
