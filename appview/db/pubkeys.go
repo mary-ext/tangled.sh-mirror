@@ -32,9 +32,11 @@ func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 
 	for rows.Next() {
 		var publicKey PublicKey
-		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.DID, &publicKey.Created); err != nil {
+		var createdAt *int64
+		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.DID, &createdAt); err != nil {
 			return nil, err
 		}
+		publicKey.Created = time.Unix(*createdAt, 0)
 		keys = append(keys, publicKey)
 	}
 
@@ -56,9 +58,11 @@ func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
 
 	for rows.Next() {
 		var publicKey PublicKey
-		if err := rows.Scan(&publicKey.DID, &publicKey.Key, &publicKey.Name, &publicKey.Created); err != nil {
+		var createdAt *int64
+		if err := rows.Scan(&publicKey.DID, &publicKey.Key, &publicKey.Name, &createdAt); err != nil {
 			return nil, err
 		}
+		publicKey.Created = time.Unix(*createdAt, 0)
 		keys = append(keys, publicKey)
 	}
 
