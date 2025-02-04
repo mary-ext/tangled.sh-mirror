@@ -4,12 +4,12 @@ import (
 	"fmt"
 )
 
-func formatKeyData(repoguardPath string, data map[string]string) string {
+func formatKeyData(repoguardPath string, data []map[string]interface{}) string {
 	var result string
-	for user, key := range data {
+	for _, entry := range data {
 		result += fmt.Sprintf(
 			`command="%s -base-dir /home/git -user %s -log-path /home/git/log ",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s`+"\n",
-			repoguardPath, user, key)
+			repoguardPath, entry["did"], entry["key"])
 	}
 	return result
 }

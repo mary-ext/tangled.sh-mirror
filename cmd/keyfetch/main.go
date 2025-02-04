@@ -10,11 +10,11 @@ import (
 )
 
 func main() {
-	endpoint := flag.String("internal-api", "http://localhost:5444", "Internal API endpoint")
+	endpoint := flag.String("internal-api", "http://localhost:5555", "Internal API endpoint")
 	repoguardPath := flag.String("repoguard-path", "/home/git/repoguard", "Path to the repoguard binary")
 	flag.Parse()
 
-	resp, err := http.Get(*endpoint + "/internal/allkeys")
+	resp, err := http.Get(*endpoint + "/keys")
 	if err != nil {
 		log.Fatalf("error fetching keys: %v", err)
 	}
@@ -25,7 +25,7 @@ func main() {
 		log.Fatalf("error reading response body: %v", err)
 	}
 
-	var data map[string]string
+	var data []map[string]interface{}
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		log.Fatalf("error unmarshalling response body: %v", err)
