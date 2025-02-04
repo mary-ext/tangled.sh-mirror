@@ -401,7 +401,40 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// TODO: make this set the initial user as the owner
+func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Did        string   `json:"did"`
+		PublicKeys []string `json:"keys"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.Did
+	for _, k := range data.PublicKeys {
+		pk := db.PublicKey{
+			Did: did,
+		}
+		pk.Key = k
+		err := h.db.AddPublicKey(pk)
+		if err != nil {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	h.js.UpdateDids([]string{did})
+	if err := h.e.AddMember(ThisServer, did); err != nil {
+		log.Println(err)
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	if h.knotInitialized {
 		writeError(w, "knot already initialized", http.StatusConflict)
@@ -441,7 +474,11 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.js.UpdateDids([]string{data.Did})
-	h.e.AddOwner(ThisServer, data.Did)
+	if err := h.e.AddOwner(ThisServer, data.Did); err != nil {
+		log.Println(err)
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	// Signal that the knot is ready
 	close(h.init)
 

@@ -22,8 +22,9 @@ type Server struct {
 }
 
 type Config struct {
-	Repo   Repo   `env:",prefix=KNOT_REPO_"`
-	Server Server `env:",prefix=KNOT_SERVER_"`
+	Repo            Repo   `env:",prefix=KNOT_REPO_"`
+	Server          Server `env:",prefix=KNOT_SERVER_"`
+	AppViewEndpoint string `env:"APPVIEW_ENDPOINT, default=https://tangled.sh"`
 }
 
 func Load(ctx context.Context) (*Config, error) {
