@@ -110,6 +110,12 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 
 func (h *Handle) processKnotMember(ctx context.Context, did string, record map[string]interface{}) error {
 	l := log.FromContext(ctx)
+
+	if record["domain"] != h.c.Server.Hostname {
+		l.Error("domain mismatch", "domain", record["domain"], "expected", h.c.Server.Hostname)
+		return fmt.Errorf("domain mismatch: %s != %s", record["domain"], h.c.Server.Hostname)
+	}
+
 	ok, err := h.e.E.Enforce(did, ThisServer, ThisServer, "server:invite")
 	if err != nil || !ok {
 		l.Error("failed to add member", "did", did)

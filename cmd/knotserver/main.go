@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/sotangled/tangled/knotserver"
@@ -46,16 +45,13 @@ func main() {
 		l.Error("failed to setup server", "error", err)
 		return
 	}
-	addr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
-
 	imux := knotserver.Internal(ctx, db, e)
-	iaddr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.InternalPort)
 
-	l.Info("starting internal server", "address", iaddr)
-	go http.ListenAndServe(iaddr, imux)
+	l.Info("starting internal server", "address", c.Server.InternalListenAddr)
+	go http.ListenAndServe(c.Server.InternalListenAddr, imux)
 
-	l.Info("starting main server", "address", addr)
-	l.Error("server error", "error", http.ListenAndServe(addr, mux))
+	l.Info("starting main server", "address", c.Server.ListenAddr)
+	l.Error("server error", "error", http.ListenAndServe(c.Server.ListenAddr, mux))
 
 	return
 }
