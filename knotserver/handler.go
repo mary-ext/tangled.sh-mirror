@@ -92,7 +92,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer) (
 
 	r.Route("/member", func(r chi.Router) {
 		r.Use(h.VerifySignature)
-		r.Put("/add", h.NewRepo)
+		r.Put("/add", h.AddMember)
 	})
 
 	// Initialize the knot with an owner and public key.

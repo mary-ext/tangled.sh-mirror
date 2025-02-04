@@ -3,6 +3,7 @@ package rbac
 import (
 	"database/sql"
 	"path"
+	"strings"
 
 	sqladapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"
@@ -98,6 +99,36 @@ func (e *Enforcer) AddRepo(member, domain, repo string) error {
 		{"server:owner", domain, repo, "repo:delete"}, // server owner can delete any repo
 	})
 	return err
+}
+
+func (e *Enforcer) GetUserByRole(role, domain string) ([]string, error) {
+	var membersWithoutRoles []string
+
+	// this includes roles too, casbin does not differentiate.
+	// the filtering criteria is to remove strings not starting with `did:`
+	members, err := e.E.Enforcer.GetImplicitUsersForRole(role, domain)
+	for _, m := range members {
+		if strings.HasPrefix(m, "did:") {
+			membersWithoutRoles = append(membersWithoutRoles, m)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return membersWithoutRoles, nil
+}
+
+func (e *Enforcer) isRole(user, role, domain string) (bool, error) {
+	return e.E.HasGroupingPolicy(user, role, domain)
+}
+
+func (e *Enforcer) IsServerOwner(user, domain string) (bool, error) {
+	return e.isRole(user, "server:owner", domain)
+}
+
+func (e *Enforcer) IsServerMember(user, domain string) (bool, error) {
+	return e.isRole(user, "server:member", domain)
 }
 
 // keyMatch2Func is a wrapper for keyMatch2 to make it compatible with Casbin

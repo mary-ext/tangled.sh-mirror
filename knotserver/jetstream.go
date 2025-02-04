@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"path"
+	"net/url"
 	"strings"
 	"time"
 
@@ -66,7 +66,13 @@ func (h *Handle) processPublicKey(did string, record map[string]interface{}) {
 }
 
 func (h *Handle) fetchAndAddKeys(did string) {
-	resp, err := http.Get(path.Join(h.c.AppViewEndpoint, did))
+	keysEndpoint, err := url.JoinPath(h.c.AppViewEndpoint, "keys", did)
+	if err != nil {
+		log.Printf("error building endpoint url: %s: %v", did, err)
+		return
+	}
+
+	resp, err := http.Get(keysEndpoint)
 	if err != nil {
 		log.Printf("error getting keys for %s: %v", did, err)
 		return
@@ -112,7 +118,6 @@ func (h *Handle) processKnotMember(did string, record map[string]interface{}) {
 }
 
 func (h *Handle) processMessages(messages <-chan []byte) {
-	log.Println("waiting for knot to be initialized")
 	<-h.init
 	log.Println("initalized jetstream watcher")
 

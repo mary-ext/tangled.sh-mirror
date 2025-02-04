@@ -1,14 +1,13 @@
 package state
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -234,26 +233,18 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("checking ", domain)
 
-	url := fmt.Sprintf("http://%s/init", domain)
-
-	body, _ := json.Marshal(map[string]interface{}{
-		"did":  user.Did,
-		"keys": []string{},
-	})
-	pingRequest, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
-	if err != nil {
-		log.Println("failed to build ping request", err)
-		return
-	}
-
 	secret, err := s.db.GetRegistrationKey(domain)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
 	}
-	client := SignedClient(secret)
 
-	resp, err := client.Do(pingRequest)
+	client, err := NewSignedClient(domain, secret)
+	if err != nil {
+		log.Println("failed to create client to ", domain)
+	}
+
+	resp, err := client.Init(user.Did, []string{})
 	if err != nil {
 		w.Write([]byte("no dice"))
 		log.Println("domain was unreachable after 5 seconds")
@@ -338,14 +329,14 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 
 	var members []string
 	if reg.Registered != nil {
-		members, err = s.enforcer.E.GetUsersForRole("server:member", domain)
+		members, err = s.enforcer.GetUserByRole("server:member", domain)
 		if err != nil {
 			w.Write([]byte("failed to fetch member list"))
 			return
 		}
 	}
 
-	ok, err := s.enforcer.E.HasGroupingPolicy(user.Did, "server:owner", domain)
+	ok, err := s.enforcer.IsServerOwner(user.Did, domain)
 	isOwner := err == nil && ok
 
 	p := pages.KnotParams{
@@ -382,7 +373,7 @@ func (s *State) ListMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// list all members for this domain
-	memberDids, err := s.enforcer.E.GetUsersForRole("server:member", domain)
+	memberDids, err := s.enforcer.GetUserByRole("server:member", domain)
 	if err != nil {
 		w.Write([]byte("failed to fetch member list"))
 		return
@@ -433,8 +424,29 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		log.Printf("failed to create record: %s", err)
 		return
 	}
-
 	log.Println("created atproto record: ", resp.Uri)
+
+	secret, err := s.db.GetRegistrationKey(domain)
+	if err != nil {
+		log.Printf("no key found for domain %s: %s\n", domain, err)
+		return
+	}
+
+	ksClient, err := NewSignedClient(domain, secret)
+	if err != nil {
+		log.Println("failed to create client to ", domain)
+		return
+	}
+
+	ksResp, err := ksClient.AddMember(memberIdent.DID.String(), []string{})
+	if err != nil {
+		log.Printf("failet to make request to %s: %s", domain, err)
+	}
+
+	if ksResp.StatusCode != http.StatusNoContent {
+		w.Write([]byte(fmt.Sprint("knotserver failed to add member: ", err)))
+		return
+	}
 
 	err = s.enforcer.AddMember(domain, memberIdent.DID.String())
 	if err != nil {
@@ -481,21 +493,16 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client := SignedClient(secret)
-		url := fmt.Sprintf("http://%s/repo/new", domain)
-		body, _ := json.Marshal(map[string]interface{}{
-			"did":  user.Did,
-			"name": repoName,
-		})
-		createRepoRequest, err := http.NewRequest("PUT", url, bytes.NewReader(body))
+		client, err := NewSignedClient(domain, secret)
+		if err != nil {
+			log.Println("failed to create client to ", domain)
+		}
 
-		resp, err := client.Do(createRepoRequest)
-
+		resp, err := client.NewRepo(user.Did, repoName)
 		if err != nil {
 			log.Println("failed to send create repo request", err)
 			return
 		}
-
 		if resp.StatusCode != http.StatusNoContent {
 			log.Println("server returned ", resp.StatusCode)
 			return
@@ -507,10 +514,16 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			Name: repoName,
 			Knot: domain,
 		}
-
 		err = s.db.AddRepo(repo)
 		if err != nil {
 			log.Println("failed to add repo to db", err)
+			return
+		}
+
+		// acls
+		err = s.enforcer.AddRepo(user.Did, domain, filepath.Join(user.Did, repoName))
+		if err != nil {
+			log.Println("failed to set up acls", err)
 			return
 		}
 
