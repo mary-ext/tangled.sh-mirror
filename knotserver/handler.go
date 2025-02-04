@@ -68,6 +68,8 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l
 	r.Route("/{did}", func(r chi.Router) {
 		// Repo routes
 		r.Route("/{name}", func(r chi.Router) {
+			r.Post("/collaborator/add", h.AddRepoCollaborator)
+
 			r.Get("/", h.RepoIndex)
 			r.Get("/info/refs", h.InfoRefs)
 			r.Post("/git-upload-pack", h.UploadPack)

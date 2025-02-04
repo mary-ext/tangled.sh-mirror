@@ -420,8 +420,7 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "AddMember")
 
 	data := struct {
-		Did        string   `json:"did"`
-		PublicKeys []string `json:"keys"`
+		Did string `json:"did"`
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -430,16 +429,11 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	did := data.Did
-	for _, k := range data.PublicKeys {
-		pk := db.PublicKey{
-			Did: did,
-		}
-		pk.Key = k
-		err := h.db.AddPublicKey(pk)
-		if err != nil {
-			writeError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+
+	if err := h.db.AddDid(did); err != nil {
+		l.Error("adding did", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	h.js.UpdateDids([]string{did})
@@ -449,7 +443,51 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.fetchAndAddKeys(r.Context(), did); err != nil {
+		l.Error("fetching and adding keys", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handle) AddRepoCollaborator(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "AddRepoCollaborator")
+
+	data := struct {
+		Did string `json:"did"`
+	}{}
+
+	ownerDid := chi.URLParam(r, "did")
+	repo := chi.URLParam(r, "name")
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.db.AddDid(data.Did); err != nil {
+		l.Error("adding did", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.js.UpdateDids([]string{data.Did})
+
+	repoName := filepath.Join(ownerDid, repo)
+	if err := h.e.AddRepo(data.Did, ThisServer, repoName); err != nil {
+		l.Error("adding repo collaborator", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.fetchAndAddKeys(r.Context(), data.Did); err != nil {
+		l.Error("fetching and adding keys", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
@@ -461,8 +499,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Did        string   `json:"did"`
-		PublicKeys []string `json:"keys"`
+		Did string `json:"did"`
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -472,25 +509,12 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if data.Did == "" {
-		l.Error("empty DID in request")
+		l.Error("empty DID in request", "did", data.Did)
 		writeError(w, "did is empty", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.db.AddDid(data.Did); err == nil {
-		for _, k := range data.PublicKeys {
-			pk := db.PublicKey{
-				Did: data.Did,
-			}
-			pk.Key = k
-			err := h.db.AddPublicKey(pk)
-			if err != nil {
-				l.Error("failed to add public key", "error", err.Error())
-				writeError(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-	} else {
+	if err := h.db.AddDid(data.Did); err != nil {
 		l.Error("failed to add DID", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -499,6 +523,12 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	h.js.UpdateDids([]string{data.Did})
 	if err := h.e.AddOwner(ThisServer, data.Did); err != nil {
 		l.Error("adding owner", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.fetchAndAddKeys(r.Context(), data.Did); err != nil {
+		l.Error("fetching and adding keys", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
