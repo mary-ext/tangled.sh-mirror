@@ -131,6 +131,10 @@ func (e *Enforcer) IsServerMember(user, domain string) (bool, error) {
 	return e.isRole(user, "server:member", domain)
 }
 
+func (e *Enforcer) IsPushAllowed(user, domain, repo string) (bool, error) {
+	return e.E.Enforce(user, domain, repo, "repo:push")
+}
+
 // keyMatch2Func is a wrapper for keyMatch2 to make it compatible with Casbin
 func keyMatch2Func(args ...interface{}) (interface{}, error) {
 	name1 := args[0].(string)

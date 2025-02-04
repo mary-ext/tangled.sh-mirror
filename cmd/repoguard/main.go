@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -21,9 +23,10 @@ var (
 	clientIP string
 
 	// Command line flags
-	allowedUser = flag.String("user", "", "Allowed git user")
-	baseDirFlag = flag.String("base-dir", "/home/git", "Base directory for git repositories")
-	logPathFlag = flag.String("log-path", "/var/log/git-wrapper.log", "Path to log file")
+	incomingUser = flag.String("user", "", "Allowed git user")
+	baseDirFlag  = flag.String("base-dir", "/home/git", "Base directory for git repositories")
+	logPathFlag  = flag.String("log-path", "/var/log/git-wrapper.log", "Path to log file")
+	endpoint     = flag.String("internal-api", "http://localhost:5555", "Internal API endpoint")
 )
 
 func main() {
@@ -40,14 +43,14 @@ func main() {
 		}
 	}
 
-	if *allowedUser == "" {
+	if *incomingUser == "" {
 		exitWithLog("access denied: no user specified")
 	}
 
 	sshCommand := os.Getenv("SSH_ORIGINAL_COMMAND")
 
 	logEvent("Connection attempt", map[string]interface{}{
-		"user":    *allowedUser,
+		"user":    *incomingUser,
 		"command": sshCommand,
 		"client":  clientIP,
 	})
@@ -63,9 +66,17 @@ func main() {
 
 	gitCommand := cmdParts[0]
 
-	// example.com/repo
-	handlePath := strings.Trim(cmdParts[1], "'")
-	repoName := handleToDid(handlePath)
+	// did:foo/repo-name or
+	// handle/repo-name
+	components := filepath.SplitList(cmdParts[2])
+	if len(components) != 2 {
+		exitWithLog("invalid repo format, needs <user>/<repo>")
+	}
+
+	didOrHandle := components[0]
+	did := resolveToDid(didOrHandle)
+	repoName := components[1]
+	qualifiedRepoName := filepath.Join(did, repoName)
 
 	validCommands := map[string]bool{
 		"git-receive-pack":   true,
@@ -76,18 +87,17 @@ func main() {
 		exitWithLog("access denied: invalid git command")
 	}
 
-	did := path.Dir(repoName)
 	if gitCommand != "git-upload-pack" {
-		if !isAllowedUser(*allowedUser, did) {
+		if !isPushPermitted(*incomingUser, qualifiedRepoName) {
 			exitWithLog("access denied: user not allowed")
 		}
 	}
 
-	fullPath := filepath.Join(*baseDirFlag, repoName)
+	fullPath := filepath.Join(*baseDirFlag, qualifiedRepoName)
 	fullPath = filepath.Clean(fullPath)
 
 	logEvent("Processing command", map[string]interface{}{
-		"user":     *allowedUser,
+		"user":     *incomingUser,
 		"command":  gitCommand,
 		"repo":     repoName,
 		"fullPath": fullPath,
@@ -104,11 +114,21 @@ func main() {
 	}
 
 	logEvent("Command completed", map[string]interface{}{
-		"user":    *allowedUser,
+		"user":    *incomingUser,
 		"command": gitCommand,
 		"repo":    repoName,
 		"success": true,
 	})
+}
+
+func resolveToDid(didOrHandle string) string {
+	ident, err := auth.ResolveIdent(context.Background(), didOrHandle)
+	if err != nil {
+		exitWithLog(fmt.Sprintf("error resolving handle: %v", err))
+	}
+
+	// did:plc:foobarbaz/repo
+	return ident.DID.String()
 }
 
 func handleToDid(handlePath string) string {
@@ -166,6 +186,15 @@ func cleanup() {
 	}
 }
 
-func isAllowedUser(user, did string) bool {
-	return user == did
+func isPushPermitted(user, qualifiedRepoName string) bool {
+	url, _ := url.Parse(*endpoint + "/push-allowed/")
+	url.Query().Add(user, user)
+	url.Query().Add(user, qualifiedRepoName)
+
+	req, err := http.Get(url.String())
+	if err != nil {
+		exitWithLog(fmt.Sprintf("error verifying permissions: %v", err))
+	}
+
+	return req.StatusCode == http.StatusNoContent
 }

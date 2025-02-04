@@ -13,10 +13,11 @@ type Repo struct {
 }
 
 type Server struct {
-	Host   string `env:"HOST, default=0.0.0.0"`
-	Port   int    `env:"PORT, default=5555"`
-	Secret string `env:"SECRET, required"`
-	DBPath string `env:"DB_PATH, default=knotserver.db"`
+	Host         string `env:"HOST, default=0.0.0.0"`
+	Port         int    `env:"PORT, default=5555"`
+	InternalPort int    `env:"PORT, default=5444"`
+	Secret       string `env:"SECRET, required"`
+	DBPath       string `env:"DB_PATH, default=knotserver.db"`
 	// This disables signature verification so use with caution.
 	Dev bool `env:"DEV, default=false"`
 }

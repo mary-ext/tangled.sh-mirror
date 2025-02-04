@@ -46,10 +46,16 @@ func main() {
 		l.Error("failed to setup server", "error", err)
 		return
 	}
-
 	addr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
+
+	imux := knotserver.Internal(ctx, db, e)
+	iaddr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.InternalPort)
+
+	l.Info("starting internal server", "address", iaddr)
+	go http.ListenAndServe(iaddr, imux)
 
 	l.Info("starting main server", "address", addr)
 	l.Error("server error", "error", http.ListenAndServe(addr, mux))
+
 	return
 }
