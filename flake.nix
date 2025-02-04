@@ -40,8 +40,11 @@
     formatter = forAllSystems (system: nixpkgsFor."${system}".alejandra);
     devShells = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
+      staticShell = pkgs.mkShell.override {
+          stdenv = pkgs.pkgsStatic.stdenv;
+      };
     in {
-      default = pkgs.mkShell {
+      default = staticShell {
         nativeBuildInputs = [
           pkgs.go
           pkgs.air
