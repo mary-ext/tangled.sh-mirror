@@ -26,7 +26,7 @@ var (
 	incomingUser = flag.String("user", "", "Allowed git user")
 	baseDirFlag  = flag.String("base-dir", "/home/git", "Base directory for git repositories")
 	logPathFlag  = flag.String("log-path", "/var/log/git-wrapper.log", "Path to log file")
-	endpoint     = flag.String("internal-api", "http://localhost:5555", "Internal API endpoint")
+	endpoint     = flag.String("internal-api", "http://localhost:5444", "Internal API endpoint")
 )
 
 func main() {
@@ -68,7 +68,11 @@ func main() {
 
 	// did:foo/repo-name or
 	// handle/repo-name
-	components := filepath.SplitList(cmdParts[2])
+
+	components := strings.Split(strings.Trim(cmdParts[1], "'"), "/")
+	logEvent("Command components", map[string]interface{}{
+		"components": components,
+	})
 	if len(components) != 2 {
 		exitWithLog("invalid repo format, needs <user>/<repo>")
 	}
@@ -89,6 +93,10 @@ func main() {
 
 	if gitCommand != "git-upload-pack" {
 		if !isPushPermitted(*incomingUser, qualifiedRepoName) {
+			logEvent("all infos", map[string]interface{}{
+				"did":      *incomingUser,
+				"reponame": qualifiedRepoName,
+			})
 			exitWithLog("access denied: user not allowed")
 		}
 	}
@@ -187,14 +195,21 @@ func cleanup() {
 }
 
 func isPushPermitted(user, qualifiedRepoName string) bool {
-	url, _ := url.Parse(*endpoint + "/push-allowed/")
-	url.Query().Add(user, user)
-	url.Query().Add(user, qualifiedRepoName)
+	u, _ := url.Parse(*endpoint + "/push-allowed")
+	q := u.Query()
+	q.Add("user", user)
+	q.Add("repo", qualifiedRepoName)
+	u.RawQuery = q.Encode()
 
-	req, err := http.Get(url.String())
+	req, err := http.Get(u.String())
 	if err != nil {
 		exitWithLog(fmt.Sprintf("error verifying permissions: %v", err))
 	}
+
+	logEvent("url", map[string]interface{}{
+		"url":    u.String(),
+		"status": req.Status,
+	})
 
 	return req.StatusCode == http.StatusNoContent
 }
