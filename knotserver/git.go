@@ -3,7 +3,6 @@ package knotserver
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
 	"path/filepath"
 
@@ -26,7 +25,7 @@ func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 
 	if err := cmd.InfoRefs(); err != nil {
 		http.Error(w, err.Error(), 500)
-		log.Printf("git: failed to execute git-upload-pack (info/refs) %s", err)
+		d.l.Error("git: failed to execute git-upload-pack (info/refs)", "handler", "InfoRefs", "error", err)
 		return
 	}
 }
@@ -53,7 +52,7 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 		reader, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
-			log.Printf("git: failed to create gzip reader: %s", err)
+			d.l.Error("git: failed to create gzip reader", "handler", "UploadPack", "error", err)
 			return
 		}
 		defer reader.Close()
@@ -62,7 +61,7 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 	cmd.Stdin = reader
 	if err := cmd.UploadPack(); err != nil {
 		http.Error(w, err.Error(), 500)
-		log.Printf("git: failed to execute git-upload-pack %s", err)
+		d.l.Error("git: failed to execute git-upload-pack", "handler", "UploadPack", "error", err)
 		return
 	}
 }

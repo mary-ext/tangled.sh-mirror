@@ -3,7 +3,7 @@ package knotserver
 import (
 	"bytes"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -43,11 +43,11 @@ func countLines(r io.Reader) (int, error) {
 	}
 }
 
-func (h *Handle) showFile(content string, data map[string]any, w http.ResponseWriter) {
+func (h *Handle) showFile(content string, data map[string]any, w http.ResponseWriter, l *slog.Logger) {
 	lc, err := countLines(strings.NewReader(content))
 	if err != nil {
 		// Non-fatal, we'll just skip showing line numbers in the template.
-		log.Printf("counting lines: %s", err)
+		l.Warn("counting lines", "error", err)
 	}
 
 	lines := make([]int, lc)

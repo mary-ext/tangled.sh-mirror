@@ -3,6 +3,7 @@ package knotserver
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -21,6 +22,7 @@ type Handle struct {
 	db *db.DB
 	js *jsclient.JetstreamClient
 	e  *rbac.Enforcer
+	l  *slog.Logger
 
 	// init is a channel that is closed when the knot has been initailized
 	// i.e. when the first user (knot owner) has been added.
@@ -28,13 +30,14 @@ type Handle struct {
 	knotInitialized bool
 }
 
-func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer) (http.Handler, error) {
+func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l *slog.Logger) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	h := Handle{
 		c:    c,
 		db:   db,
 		e:    e,
+		l:    l,
 		init: make(chan struct{}),
 	}
 

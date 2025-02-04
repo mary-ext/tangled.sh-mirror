@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -30,6 +29,7 @@ func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	l := h.l.With("path", path, "handler", "RepoIndex")
 
 	gr, err := git.Open(path, "")
 	if err != nil {
@@ -37,7 +37,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			writeMsg(w, "repo empty")
 			return
 		} else {
-			log.Println(err)
+			l.Error("opening repo", "error", err.Error())
 			notFound(w)
 			return
 		}
@@ -45,7 +45,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	commits, err := gr.Commits()
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
-		log.Println(err)
+		l.Error("fetching commits", "error", err.Error())
 		return
 	}
 
@@ -73,13 +73,13 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if readmeContent == "" {
-		log.Printf("no readme found for %s", path)
+		l.Warn("no readme found")
 	}
 
 	mainBranch, err := gr.FindMainBranch(h.c.Repo.MainBranch)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
-		log.Println(err)
+		l.Error("finding main branch", "error", err.Error())
 		return
 	}
 
@@ -100,6 +100,8 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
 
+	l := h.l.With("handler", "RepoTree", "ref", ref, "treePath", treePath)
+
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
@@ -110,7 +112,7 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 	files, err := gr.FileTree(treePath)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
-		log.Println(err)
+		l.Error("file tree", "error", err.Error())
 		return
 	}
 
@@ -132,6 +134,8 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
+
+	l := h.l.With("handler", "FileContent", "ref", ref, "treePath", treePath)
 
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
@@ -155,13 +159,15 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 	if raw {
 		h.showRaw(string(safe), w)
 	} else {
-		h.showFile(string(safe), data, w)
+		h.showFile(string(safe), data, w, l)
 	}
 }
 
 func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	file := chi.URLParam(r, "file")
+
+	l := h.l.With("handler", "Archive", "name", name, "file", file)
 
 	// TODO: extend this to add more files compression (e.g.: xz)
 	if !strings.HasSuffix(file, ".tar.gz") {
@@ -192,7 +198,7 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// once we start writing to the body we can't report error anymore
 		// so we are only left with printing the error.
-		log.Println(err)
+		l.Error("writing tar file", "error", err.Error())
 		return
 	}
 
@@ -200,16 +206,17 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// once we start writing to the body we can't report error anymore
 		// so we are only left with printing the error.
-		log.Println(err)
+		l.Error("flushing?", "error", err.Error())
 		return
 	}
 }
 
 func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.URL.Path)
 	ref := chi.URLParam(r, "ref")
-
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+
+	l := h.l.With("handler", "Log", "ref", ref, "path", path)
+
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		notFound(w)
@@ -219,7 +226,7 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 	commits, err := gr.Commits()
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
-		log.Println(err)
+		l.Error("fetching commits", "error", err.Error())
 		return
 	}
 
@@ -269,6 +276,8 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
 
+	l := h.l.With("handler", "Diff", "ref", ref)
+
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
@@ -279,7 +288,7 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 	diff, err := gr.Diff()
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
-		log.Println(err)
+		l.Error("getting diff", "error", err.Error())
 		return
 	}
 
@@ -297,6 +306,8 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	l := h.l.With("handler", "Refs")
+
 	gr, err := git.Open(path, "")
 	if err != nil {
 		notFound(w)
@@ -306,12 +317,12 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 	tags, err := gr.Tags()
 	if err != nil {
 		// Non-fatal, we *should* have at least one branch to show.
-		log.Println(err)
+		l.Error("getting tags", "error", err.Error())
 	}
 
 	branches, err := gr.Branches()
 	if err != nil {
-		log.Println(err)
+		l.Error("getting branches", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -327,12 +338,14 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "Keys")
+
 	switch r.Method {
 	case http.MethodGet:
 		keys, err := h.db.GetAllPublicKeys()
 		if err != nil {
 			writeError(w, err.Error(), http.StatusInternalServerError)
-			log.Println(err)
+			l.Error("getting public keys", "error", err.Error())
 			return
 		}
 
@@ -358,7 +371,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 
 		if err := h.db.AddPublicKey(pk); err != nil {
 			writeError(w, err.Error(), http.StatusInternalServerError)
-			log.Printf("adding public key: %s", err)
+			l.Error("adding public key", "error", err.Error())
 			return
 		}
 
@@ -368,6 +381,8 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "NewRepo")
+
 	data := struct {
 		Did  string `json:"did"`
 		Name string `json:"name"`
@@ -385,7 +400,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	repoPath := filepath.Join(h.c.Repo.ScanPath, relativeRepoPath)
 	err := git.InitBare(repoPath)
 	if err != nil {
-		log.Println(err)
+		l.Error("initializing bare repo", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -393,7 +408,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	// add perms for this user to access the repo
 	err = h.e.AddRepo(did, ThisServer, relativeRepoPath)
 	if err != nil {
-		log.Println(err)
+		l.Error("adding repo permissions", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -402,6 +417,8 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "AddMember")
+
 	data := struct {
 		Did        string   `json:"did"`
 		PublicKeys []string `json:"keys"`
@@ -427,7 +444,7 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	h.js.UpdateDids([]string{did})
 	if err := h.e.AddMember(ThisServer, did); err != nil {
-		log.Println(err)
+		l.Error("adding member", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -436,6 +453,8 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "Init")
+
 	if h.knotInitialized {
 		writeError(w, "knot already initialized", http.StatusConflict)
 		return
@@ -447,11 +466,13 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		l.Error("failed to decode request body", "error", err.Error())
 		writeError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if data.Did == "" {
+		l.Error("empty DID in request")
 		writeError(w, "did is empty", http.StatusBadRequest)
 		return
 	}
@@ -464,22 +485,24 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 			pk.Key = k
 			err := h.db.AddPublicKey(pk)
 			if err != nil {
+				l.Error("failed to add public key", "error", err.Error())
 				writeError(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
 	} else {
+		l.Error("failed to add DID", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	h.js.UpdateDids([]string{data.Did})
 	if err := h.e.AddOwner(ThisServer, data.Did); err != nil {
-		log.Println(err)
+		l.Error("adding owner", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Signal that the knot is ready
+
 	close(h.init)
 
 	mac := hmac.New(sha256.New, []byte(h.c.Server.Secret))
