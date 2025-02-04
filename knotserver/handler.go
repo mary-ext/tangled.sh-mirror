@@ -167,7 +167,11 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 						log.Printf("failed to add member from did %s", did)
 					} else {
 						log.Printf("adding member")
-						h.e.AddMember(ThisServer, record["member"].(string))
+						if err := h.e.AddMember(ThisServer, record["member"].(string)); err != nil {
+							log.Printf("failed to add member: %v", err)
+						} else {
+							log.Printf("added member from firehose: %s", record["member"])
+						}
 					}
 				default:
 				}

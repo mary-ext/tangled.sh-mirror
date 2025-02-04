@@ -171,7 +171,8 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, k := range pubKeys {
-		w.Write([]byte(fmt.Sprintln(k.Key)))
+		key := strings.TrimRight(k.Key, "\n")
+		w.Write([]byte(fmt.Sprintln(key)))
 	}
 }
 
