@@ -177,6 +177,11 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		l.Info("no keys found for did", "did", did)
+		return nil
+	}
+
 	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/plain") {
 		return fmt.Errorf("unexpected content type: %s", ct)
 	}

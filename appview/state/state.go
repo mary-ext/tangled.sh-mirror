@@ -160,19 +160,24 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 	user = strings.TrimPrefix(user, "@")
 
 	if user == "" {
-		w.Write([]byte("not found"))
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	id, err := auth.ResolveIdent(r.Context(), user)
 	if err != nil {
-		w.Write([]byte("not found"))
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	pubKeys, err := s.db.GetPublicKeys(id.DID.String())
 	if err != nil {
-		w.Write([]byte("not found"))
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if len(pubKeys) == 0 {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
