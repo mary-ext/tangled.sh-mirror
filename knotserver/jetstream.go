@@ -8,13 +8,23 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/bluesky-social/jetstream/pkg/client"
+	"github.com/bluesky-social/jetstream/pkg/client/schedulers/sequential"
+	"github.com/bluesky-social/jetstream/pkg/models"
 	"github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/knotserver/db"
-	"github.com/sotangled/tangled/knotserver/jsclient"
 	"github.com/sotangled/tangled/log"
 )
+
+type JetstreamClient struct {
+	cfg         *client.ClientConfig
+	client      *client.Client
+	reconnectCh chan struct{}
+	mu          sync.RWMutex
+}
 
 func (h *Handle) StartJetstream(ctx context.Context) error {
 	l := h.l.With("component", "jetstream")
@@ -27,15 +37,58 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 		return err
 	}
 
-	h.js = jsclient.NewJetstreamClient(collections, dids)
-	messages, err := h.js.ReadJetstream(ctx, lastTimeUs)
+	cfg := client.DefaultClientConfig()
+	cfg.WebsocketURL = "wss://jetstream1.us-west.bsky.network/subscribe"
+	cfg.WantedCollections = collections
+	cfg.WantedDids = dids
+
+	sched := sequential.NewScheduler("knotserver", l, h.processMessages)
+
+	client, err := client.NewClient(cfg, l, sched)
 	if err != nil {
-		return fmt.Errorf("failed to read from jetstream: %w", err)
+		l.Error("failed to create jetstream client", "error", err)
 	}
 
-	go h.processMessages(ctx, messages)
+	jc := &JetstreamClient{
+		cfg:         cfg,
+		client:      client,
+		reconnectCh: make(chan struct{}),
+	}
 
+	h.jc = jc
+
+	go func() {
+		for len(h.jc.cfg.WantedDids) == 0 {
+			time.Sleep(time.Second)
+		}
+		h.connectAndRead(ctx, &lastTimeUs)
+	}()
 	return nil
+}
+
+func (h *Handle) connectAndRead(ctx context.Context, cursor *int64) {
+	l := log.FromContext(ctx)
+	for {
+		select {
+		case <-h.jc.reconnectCh:
+			l.Info("reconnecting jetstream client")
+			h.jc.client.Scheduler.Shutdown()
+			if err := h.jc.client.ConnectAndRead(ctx, cursor); err != nil {
+				l.Error("error reading jetstream", "error", err)
+			}
+		default:
+			if err := h.jc.client.ConnectAndRead(ctx, cursor); err != nil {
+				l.Error("error reading jetstream", "error", err)
+			}
+		}
+	}
+}
+
+func (j *JetstreamClient) UpdateDids(dids []string) {
+	j.mu.Lock()
+	j.cfg.WantedDids = dids
+	j.mu.Unlock()
+	j.reconnectCh <- struct{}{}
 }
 
 func (h *Handle) getLastTimeUs(ctx context.Context) (int64, error) {
@@ -60,13 +113,51 @@ func (h *Handle) getLastTimeUs(ctx context.Context) (int64, error) {
 	return lastTimeUs, nil
 }
 
-func (h *Handle) processPublicKey(ctx context.Context, did string, record map[string]interface{}) error {
+func (h *Handle) processPublicKey(ctx context.Context, did string, record tangled.PublicKey) error {
 	l := log.FromContext(ctx)
-	if err := h.db.AddPublicKeyFromRecord(did, record); err != nil {
+	pk := db.PublicKey{
+		Did:       did,
+		PublicKey: record,
+	}
+	if err := h.db.AddPublicKey(pk); err != nil {
 		l.Error("failed to add public key", "error", err)
 		return fmt.Errorf("failed to add public key: %w", err)
 	}
 	l.Info("added public key from firehose", "did", did)
+	return nil
+}
+
+func (h *Handle) processKnotMember(ctx context.Context, did string, record tangled.KnotMember) error {
+	l := log.FromContext(ctx)
+
+	if record.Domain != h.c.Server.Hostname {
+		l.Error("domain mismatch", "domain", record.Domain, "expected", h.c.Server.Hostname)
+		return fmt.Errorf("domain mismatch: %s != %s", record.Domain, h.c.Server.Hostname)
+	}
+
+	ok, err := h.e.E.Enforce(did, ThisServer, ThisServer, "server:invite")
+	if err != nil || !ok {
+		l.Error("failed to add member", "did", did)
+		return fmt.Errorf("failed to enforce permissions: %w", err)
+	}
+
+	l.Info("adding member")
+	if err := h.e.AddMember(ThisServer, record.Member); err != nil {
+		l.Error("failed to add member", "error", err)
+		return fmt.Errorf("failed to add member: %w", err)
+	}
+	l.Info("added member from firehose", "member", record.Member)
+
+	if err := h.db.AddDid(did); err != nil {
+		l.Error("failed to add did", "error", err)
+		return fmt.Errorf("failed to add did: %w", err)
+	}
+
+	if err := h.fetchAndAddKeys(ctx, did); err != nil {
+		return fmt.Errorf("failed to fetch and add keys: %w", err)
+	}
+
+	h.jc.UpdateDids([]string{did})
 	return nil
 }
 
@@ -87,7 +178,6 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 	defer resp.Body.Close()
 
 	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/plain") {
-		l.Error("unexpected content type", "content-type", ct)
 		return fmt.Errorf("unexpected content type: %s", ct)
 	}
 
@@ -113,80 +203,35 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 	return nil
 }
 
-func (h *Handle) processKnotMember(ctx context.Context, did string, record map[string]interface{}) error {
-	l := log.FromContext(ctx)
+func (h *Handle) processMessages(ctx context.Context, event *models.Event) error {
+	did := event.Did
 
-	if record["domain"] != h.c.Server.Hostname {
-		l.Error("domain mismatch", "domain", record["domain"], "expected", h.c.Server.Hostname)
-		return fmt.Errorf("domain mismatch: %s != %s", record["domain"], h.c.Server.Hostname)
+	raw := json.RawMessage(event.Commit.Record)
+
+	switch event.Commit.Collection {
+	case tangled.PublicKeyNSID:
+		var record tangled.PublicKey
+		if err := json.Unmarshal(raw, &record); err != nil {
+			return fmt.Errorf("failed to unmarshal record: %w", err)
+		}
+		if err := h.processPublicKey(ctx, did, record); err != nil {
+			return fmt.Errorf("failed to process public key: %w", err)
+		}
+
+	case tangled.KnotMemberNSID:
+		var record tangled.KnotMember
+		if err := json.Unmarshal(raw, &record); err != nil {
+			return fmt.Errorf("failed to unmarshal record: %w", err)
+		}
+		if err := h.processKnotMember(ctx, did, record); err != nil {
+			return fmt.Errorf("failed to process knot member: %w", err)
+		}
 	}
 
-	ok, err := h.e.E.Enforce(did, ThisServer, ThisServer, "server:invite")
-	if err != nil || !ok {
-		l.Error("failed to add member", "did", did)
-		return fmt.Errorf("failed to enforce permissions: %w", err)
+	lastTimeUs := event.TimeUS
+	if err := h.db.SaveLastTimeUs(lastTimeUs); err != nil {
+		return fmt.Errorf("failed to save last time us: %w", err)
 	}
 
-	l.Info("adding member")
-	if err := h.e.AddMember(ThisServer, record["member"].(string)); err != nil {
-		l.Error("failed to add member", "error", err)
-		return fmt.Errorf("failed to add member: %w", err)
-	}
-	l.Info("added member from firehose", "member", record["member"])
-
-	if err := h.db.AddDid(did); err != nil {
-		l.Error("failed to add did", "error", err)
-		return fmt.Errorf("failed to add did: %w", err)
-	}
-
-	if err := h.fetchAndAddKeys(ctx, did); err != nil {
-		return fmt.Errorf("failed to fetch and add keys: %w", err)
-	}
-
-	h.js.UpdateDids([]string{did})
 	return nil
-}
-
-func (h *Handle) processMessages(ctx context.Context, messages <-chan []byte) {
-	l := log.FromContext(ctx)
-	l.Info("waiting for knot to be initialized")
-	<-h.init
-	l.Info("initialized jetstream watcher")
-
-	for msg := range messages {
-		var data map[string]interface{}
-		if err := json.Unmarshal(msg, &data); err != nil {
-			l.Error("error unmarshaling message", "error", err)
-			continue
-		}
-
-		if kind, ok := data["kind"].(string); ok && kind == "commit" {
-			commit := data["commit"].(map[string]interface{})
-			did := data["did"].(string)
-			record := commit["record"].(map[string]interface{})
-
-			var processErr error
-			switch commit["collection"].(string) {
-			case tangled.PublicKeyNSID:
-				if err := h.processPublicKey(ctx, did, record); err != nil {
-					processErr = fmt.Errorf("failed to process public key: %w", err)
-				}
-			case tangled.KnotMemberNSID:
-				if err := h.processKnotMember(ctx, did, record); err != nil {
-					processErr = fmt.Errorf("failed to process knot member: %w", err)
-				}
-			}
-
-			if processErr != nil {
-				l.Error("error processing message", "error", processErr)
-				continue
-			}
-
-			lastTimeUs := int64(data["time_us"].(float64))
-			if err := h.db.SaveLastTimeUs(lastTimeUs); err != nil {
-				l.Error("failed to save last time us", "error", err)
-				continue
-			}
-		}
-	}
 }

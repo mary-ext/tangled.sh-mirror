@@ -436,7 +436,7 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.js.UpdateDids([]string{did})
+	h.jc.UpdateDids([]string{did})
 	if err := h.e.AddMember(ThisServer, did); err != nil {
 		l.Error("adding member", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
@@ -472,7 +472,7 @@ func (h *Handle) AddRepoCollaborator(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	h.js.UpdateDids([]string{data.Did})
+	h.jc.UpdateDids([]string{data.Did})
 
 	repoName := filepath.Join(ownerDid, repo)
 	if err := h.e.AddRepo(data.Did, ThisServer, repoName); err != nil {
@@ -520,7 +520,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.js.UpdateDids([]string{data.Did})
+	h.jc.UpdateDids([]string{data.Did})
 	if err := h.e.AddOwner(ThisServer, data.Did); err != nil {
 		l.Error("adding owner", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)

@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/knotserver/config"
 	"github.com/sotangled/tangled/knotserver/db"
-	"github.com/sotangled/tangled/knotserver/jsclient"
 	"github.com/sotangled/tangled/rbac"
 )
 
@@ -20,7 +19,7 @@ const (
 type Handle struct {
 	c  *config.Config
 	db *db.DB
-	js *jsclient.JetstreamClient
+	jc *JetstreamClient
 	e  *rbac.Enforcer
 	l  *slog.Logger
 
@@ -61,7 +60,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l
 	if len(dids) > 0 {
 		h.knotInitialized = true
 		close(h.init)
-		h.js.UpdateDids(dids)
+		h.jc.UpdateDids(dids)
 	}
 
 	r.Get("/", h.Index)
