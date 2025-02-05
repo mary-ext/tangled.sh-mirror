@@ -33,6 +33,22 @@ func (h *InternalHandle) PushAllowed(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
+	keys, err := h.db.GetAllPublicKeys()
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := make([]map[string]interface{}, 0)
+	for _, key := range keys {
+		j := key.JSON()
+		data = append(data, j)
+	}
+	writeJSON(w, data)
+	return
+}
+
 func Internal(ctx context.Context, db *db.DB, e *rbac.Enforcer) http.Handler {
 	r := chi.NewRouter()
 
@@ -42,6 +58,7 @@ func Internal(ctx context.Context, db *db.DB, e *rbac.Enforcer) http.Handler {
 	}
 
 	r.Get("/push-allowed", h.PushAllowed)
+	r.Get("/keys", h.InternalKeys)
 
 	return r
 }
