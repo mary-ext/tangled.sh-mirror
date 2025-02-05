@@ -1,7 +1,7 @@
 package db
 
 func (d *DB) AddDid(did string) error {
-	_, err := d.db.Exec(`insert into known_dids (did) values (?)`, did)
+	_, err := d.db.Exec(`insert or ignore into known_dids (did) values (?)`, did)
 	return err
 }
 

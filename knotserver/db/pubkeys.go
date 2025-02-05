@@ -33,7 +33,7 @@ func (d *DB) AddPublicKey(pk PublicKey) error {
 		pk.Created = time.Now().Format("2006-01-02 15:04:05.99999999 -0700 MST m=-0000.000000000")
 	}
 
-	query := `insert into public_keys (did, key, created) values (?, ?, ?)`
+	query := `insert or ignore into public_keys (did, key, created) values (?, ?, ?)`
 	_, err := d.db.Exec(query, pk.Did, pk.Key, pk.Created)
 	return err
 }
