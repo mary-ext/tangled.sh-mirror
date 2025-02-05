@@ -112,6 +112,12 @@ func main() {
 		"client":   clientIP,
 	})
 
+	if gitCommand == "git-upload-pack" {
+		fmt.Fprintf(os.Stderr, "\x02%s\n", "Welcome to this knot!")
+	} else {
+		fmt.Fprintf(os.Stderr, "%s\n", "Welcome to this knot!")
+	}
+
 	cmd := exec.Command(gitCommand, fullPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
