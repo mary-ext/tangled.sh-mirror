@@ -28,7 +28,7 @@ func AuthMiddleware(s *State) Middleware {
 			// refresh if nearing expiry
 			// TODO: dedup with /login
 			expiryStr := session.Values[appview.SessionExpiry].(string)
-			expiry, err := time.Parse(appview.TimeLayout, expiryStr)
+			expiry, err := time.Parse(time.RFC3339, expiryStr)
 			if err != nil {
 				log.Println("invalid expiry time", err)
 				return

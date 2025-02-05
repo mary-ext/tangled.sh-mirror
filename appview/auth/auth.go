@@ -145,7 +145,7 @@ func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish
 	clientSession.Values[appview.SessionPds] = pdsEndpoint
 	clientSession.Values[appview.SessionAccessJwt] = atSessionish.GetAccessJwt()
 	clientSession.Values[appview.SessionRefreshJwt] = atSessionish.GetRefreshJwt()
-	clientSession.Values[appview.SessionExpiry] = time.Now().Add(time.Hour).Format(appview.TimeLayout)
+	clientSession.Values[appview.SessionExpiry] = time.Now().Add(time.Hour).Format(time.RFC3339)
 	clientSession.Values[appview.SessionAuthenticated] = true
 	return clientSession.Save(r, w)
 }

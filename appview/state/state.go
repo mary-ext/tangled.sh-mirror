@@ -16,7 +16,6 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	tangled "github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview"
 	"github.com/sotangled/tangled/appview/auth"
