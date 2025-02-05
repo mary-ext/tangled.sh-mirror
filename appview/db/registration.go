@@ -35,7 +35,7 @@ const (
 func (d *DB) RegistrationsByDid(did string) ([]Registration, error) {
 	var registrations []Registration
 
-	rows, err := d.db.Query(`
+	rows, err := d.Db.Query(`
 		select domain, did, created, registered from registrations
 		where did = ?
 	`, did)
@@ -75,7 +75,38 @@ func (d *DB) RegistrationByDomain(domain string) (*Registration, error) {
 	var registeredAt *int64
 	var registration Registration
 
-	err := d.db.QueryRow(`
+	err := d.Db.QueryRow(`
+		select domain, did, created, registered from registrations
+		where domain = ?
+	`, domain).Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	createdAtTime := time.Unix(*createdAt, 0)
+	var registeredAtTime *time.Time
+	if registeredAt != nil {
+		x := time.Unix(*registeredAt, 0)
+		registeredAtTime = &x
+	}
+
+	registration.Created = &createdAtTime
+	registration.Registered = registeredAtTime
+
+	return &registration, nil
+}
+
+func (d *DB) RegistrationByDomainTx(tx *sql.Tx, domain string) (*Registration, error) {
+	var createdAt *int64
+	var registeredAt *int64
+	var registration Registration
+
+	err := tx.QueryRow(`
 		select domain, did, created, registered from registrations
 		where domain = ?
 	`, domain).Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
@@ -122,7 +153,7 @@ func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 
 	secret := uuid.New().String()
 
-	_, err = d.db.Exec(`
+	_, err = d.Db.Exec(`
 		insert into registrations (domain, did, secret)
 		values (?, ?, ?)
 		on conflict(domain) do update set did = excluded.did, secret = excluded.secret
@@ -136,7 +167,19 @@ func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 }
 
 func (d *DB) GetRegistrationKey(domain string) (string, error) {
-	res := d.db.QueryRow(`select secret from registrations where domain = ?`, domain)
+	res := d.Db.QueryRow(`select secret from registrations where domain = ?`, domain)
+
+	var secret string
+	err := res.Scan(&secret)
+	if err != nil || secret == "" {
+		return "", err
+	}
+
+	return secret, nil
+}
+
+func (d *DB) GetRegistrationKeyTx(tx *sql.Tx, domain string) (string, error) {
+	res := tx.QueryRow(`select secret from registrations where domain = ?`, domain)
 
 	var secret string
 	err := res.Scan(&secret)
@@ -148,7 +191,17 @@ func (d *DB) GetRegistrationKey(domain string) (string, error) {
 }
 
 func (d *DB) Register(domain string) error {
-	_, err := d.db.Exec(`
+	_, err := d.Db.Exec(`
+		update registrations
+		set registered = strftime('%s', 'now')
+		where domain = ?;
+		`, domain)
+
+	return err
+}
+
+func (d *DB) RegisterTx(tx *sql.Tx, domain string) error {
+	_, err := tx.Exec(`
 		update registrations
 		set registered = strftime('%s', 'now')
 		where domain = ?;

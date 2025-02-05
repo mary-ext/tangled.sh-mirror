@@ -200,7 +200,16 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.db.AddPublicKey(did, name, key); err != nil {
+		// Start transaction
+		tx, err := s.db.Db.Begin()
+		if err != nil {
+			log.Printf("failed to start transaction: %s", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback() // Will rollback if not committed
+
+		if err := s.db.AddPublicKeyTx(tx, did, name, key); err != nil {
 			log.Printf("adding public key: %s", err)
 			return
 		}
@@ -223,6 +232,13 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// If everything succeeded, commit the transaction
+		if err := tx.Commit(); err != nil {
+			log.Printf("failed to commit transaction: %s", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
 		log.Println("created atproto record: ", resp.Uri)
 
 		return
@@ -240,7 +256,16 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("checking ", domain)
 
-	secret, err := s.db.GetRegistrationKey(domain)
+	// Start transaction
+	tx, err := s.db.Db.Begin()
+	if err != nil {
+		log.Printf("failed to start transaction: %s", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback() // Will rollback if not committed
+
+	secret, err := s.db.GetRegistrationKeyTx(tx, domain)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
@@ -285,23 +310,23 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// mark as registered
-	err = s.db.Register(domain)
+	// mark as registered within transaction
+	err = s.db.RegisterTx(tx, domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// set permissions for this did as owner
-	reg, err := s.db.RegistrationByDomain(domain)
+	// set permissions for this did as owner within transaction
+	reg, err := s.db.RegistrationByDomainTx(tx, domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// add basic acls for this domain
+	// add basic acls for this domain within transaction
 	err = s.enforcer.AddDomain(domain)
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
@@ -309,11 +334,18 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// add this did as owner of this domain
+	// add this did as owner of this domain within transaction
 	err = s.enforcer.AddOwner(domain, reg.ByDid)
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		log.Printf("failed to commit transaction: %s", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -411,7 +443,41 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("adding %s to %s\n", memberIdent.Handle.String(), domain)
 
-	// announce this relation into the firehose, store into owners' pds
+	// Start transaction
+	tx, err := s.db.Db.Begin()
+	if err != nil {
+		log.Printf("failed to start transaction: %s", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback() // Will rollback if not committed
+
+	// Get registration key within transaction
+	secret, err := s.db.GetRegistrationKeyTx(tx, domain)
+	if err != nil {
+		log.Printf("no key found for domain %s: %s\n", domain, err)
+		return
+	}
+
+	// Make the external call to the knot server
+	ksClient, err := NewSignedClient(domain, secret)
+	if err != nil {
+		log.Println("failed to create client to ", domain)
+		return
+	}
+
+	ksResp, err := ksClient.AddMember(memberIdent.DID.String(), []string{})
+	if err != nil {
+		log.Printf("failed to make request to %s: %s", domain, err)
+		return
+	}
+
+	if ksResp.StatusCode != http.StatusNoContent {
+		w.Write([]byte(fmt.Sprint("knotserver failed to add member: ", err)))
+		return
+	}
+
+	// Create ATProto record within transaction
 	client, _ := s.auth.AuthorizedClient(r)
 	currentUser := s.auth.GetUser(r)
 	addedAt := time.Now().Format(time.RFC3339)
@@ -426,41 +492,26 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 				AddedAt: &addedAt,
 			}},
 	})
-	// invalid record
 	if err != nil {
 		log.Printf("failed to create record: %s", err)
 		return
 	}
-	log.Println("created atproto record: ", resp.Uri)
 
-	secret, err := s.db.GetRegistrationKey(domain)
-	if err != nil {
-		log.Printf("no key found for domain %s: %s\n", domain, err)
-		return
-	}
-
-	ksClient, err := NewSignedClient(domain, secret)
-	if err != nil {
-		log.Println("failed to create client to ", domain)
-		return
-	}
-
-	ksResp, err := ksClient.AddMember(memberIdent.DID.String(), []string{})
-	if err != nil {
-		log.Printf("failet to make request to %s: %s", domain, err)
-	}
-
-	if ksResp.StatusCode != http.StatusNoContent {
-		w.Write([]byte(fmt.Sprint("knotserver failed to add member: ", err)))
-		return
-	}
-
+	// Update RBAC within transaction
 	err = s.enforcer.AddMember(domain, memberIdent.DID.String())
 	if err != nil {
 		w.Write([]byte(fmt.Sprint("failed to add member: ", err)))
 		return
 	}
 
+	// If everything succeeded, commit the transaction
+	if err := tx.Commit(); err != nil {
+		log.Printf("failed to commit transaction: %s", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("created atproto record: ", resp.Uri)
 	w.Write([]byte(fmt.Sprint("added member: ", memberIdent.Handle.String())))
 }
 
@@ -494,7 +545,16 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		secret, err := s.db.GetRegistrationKey(domain)
+		// Start transaction
+		tx, err := s.db.Db.Begin()
+		if err != nil {
+			log.Printf("failed to start transaction: %s", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback() // Will rollback if not committed
+
+		secret, err := s.db.GetRegistrationKeyTx(tx, domain)
 		if err != nil {
 			log.Printf("no key found for domain %s: %s\n", domain, err)
 			return
@@ -503,6 +563,7 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		client, err := NewSignedClient(domain, secret)
 		if err != nil {
 			log.Println("failed to create client to ", domain)
+			return
 		}
 
 		resp, err := client.NewRepo(user.Did, repoName)
@@ -515,22 +576,29 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// add to local db
+		// add to local db within transaction
 		repo := &db.Repo{
 			Did:  user.Did,
 			Name: repoName,
 			Knot: domain,
 		}
-		err = s.db.AddRepo(repo)
+		err = s.db.AddRepoTx(tx, repo)
 		if err != nil {
 			log.Println("failed to add repo to db", err)
 			return
 		}
 
-		// acls
+		// acls within transaction
 		err = s.enforcer.AddRepo(user.Did, domain, filepath.Join(user.Did, repoName))
 		if err != nil {
 			log.Println("failed to set up acls", err)
+			return
+		}
+
+		// Commit transaction
+		if err := tx.Commit(); err != nil {
+			log.Printf("failed to commit transaction: %s", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 

@@ -1,19 +1,26 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 )
 
 func (d *DB) AddPublicKey(did, name, key string) error {
 	query := `insert into public_keys (did, name, key) values (?, ?, ?)`
-	_, err := d.db.Exec(query, did, name, key)
+	_, err := d.Db.Exec(query, did, name, key)
+	return err
+}
+
+func (d *DB) AddPublicKeyTx(tx *sql.Tx, did, name, key string) error {
+	query := `insert into public_keys (did, name, key) values (?, ?, ?)`
+	_, err := tx.Exec(query, did, name, key)
 	return err
 }
 
 func (d *DB) RemovePublicKey(did string) error {
 	query := `delete from public_keys where did = ?`
-	_, err := d.db.Exec(query, did)
+	_, err := d.Db.Exec(query, did)
 	return err
 }
 
@@ -38,7 +45,7 @@ func (p PublicKey) MarshalJSON() ([]byte, error) {
 func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 	var keys []PublicKey
 
-	rows, err := d.db.Query(`select key, name, did, created from public_keys`)
+	rows, err := d.Db.Query(`select key, name, did, created from public_keys`)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +71,7 @@ func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
 	var keys []PublicKey
 
-	rows, err := d.db.Query(`select did, key, name, created from public_keys where did = ?`, did)
+	rows, err := d.Db.Query(`select did, key, name, created from public_keys where did = ?`, did)
 	if err != nil {
 		return nil, err
 	}

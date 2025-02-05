@@ -1,5 +1,7 @@
 package db
 
+import "database/sql"
+
 type Repo struct {
 	Did     string
 	Name    string
@@ -10,7 +12,7 @@ type Repo struct {
 func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select did, name, knot, created from repos where did = ?`, did)
+	rows, err := d.Db.Query(`select did, name, knot, created from repos where did = ?`, did)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +38,7 @@ func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 func (d *DB) GetRepo(did, name string) (*Repo, error) {
 	var repo Repo
 
-	row := d.db.QueryRow(`select did, name, knot, created from repos where did = ? and name = ?`, did, name)
+	row := d.Db.QueryRow(`select did, name, knot, created from repos where did = ? and name = ?`, did, name)
 	var createdAt *int64
 	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt); err != nil {
 		return nil, err
@@ -47,11 +49,16 @@ func (d *DB) GetRepo(did, name string) (*Repo, error) {
 }
 
 func (d *DB) AddRepo(repo *Repo) error {
-	_, err := d.db.Exec(`insert into repos (did, name, knot) values (?, ?, ?)`, repo.Did, repo.Name, repo.Knot)
+	_, err := d.Db.Exec(`insert into repos (did, name, knot) values (?, ?, ?)`, repo.Did, repo.Name, repo.Knot)
+	return err
+}
+
+func (d *DB) AddRepoTx(tx *sql.Tx, repo *Repo) error {
+	_, err := tx.Exec(`insert into repos (did, name, knot) values (?, ?, ?)`, repo.Did, repo.Name, repo.Knot)
 	return err
 }
 
 func (d *DB) RemoveRepo(did, name, knot string) error {
-	_, err := d.db.Exec(`delete from repos where did = ? and name = ? and knot = ?`, did, name, knot)
+	_, err := d.Db.Exec(`delete from repos where did = ? and name = ? and knot = ?`, did, name, knot)
 	return err
 }
