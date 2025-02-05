@@ -201,6 +201,7 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		did := s.auth.GetDid(r)
 		key := r.FormValue("key")
+		key = strings.TrimSpace(key)
 		name := r.FormValue("name")
 		client, _ := s.auth.AuthorizedClient(r)
 
@@ -261,7 +262,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to create client to ", domain)
 	}
 
-	resp, err := client.Init(user.Did, []string{})
+	resp, err := client.Init(user.Did)
 	if err != nil {
 		w.Write([]byte("no dice"))
 		log.Println("domain was unreachable after 5 seconds")
@@ -455,9 +456,9 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksResp, err := ksClient.AddMember(memberIdent.DID.String(), []string{})
+	ksResp, err := ksClient.AddMember(memberIdent.DID.String())
 	if err != nil {
-		log.Printf("failet to make request to %s: %s", domain, err)
+		log.Printf("failed to make request to %s: %s", domain, err)
 	}
 
 	if ksResp.StatusCode != http.StatusNoContent {
@@ -596,8 +597,12 @@ func (s *State) UserRouter() http.Handler {
 	// strip @ from user
 	r.Use(StripLeadingAt)
 
-	r.Route("/{user}", func(r chi.Router) {
+	r.With(ResolveIdent).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.ProfilePage)
+		r.With(ResolveRepoDomain(s)).Route("/{repo}", func(r chi.Router) {
+			r.Get("/", s.RepoIndex)
+			// r.Get("/info/refs", s.InfoRefs)
+		})
 	})
 
 	return r

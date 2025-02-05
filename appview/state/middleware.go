@@ -1,12 +1,14 @@
 package state
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/appview"
@@ -109,4 +111,47 @@ func StripLeadingAt(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, req)
 	})
+}
+
+func ResolveIdent(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		didOrHandle := chi.URLParam(req, "user")
+
+		log.Println(didOrHandle)
+		id, err := auth.ResolveIdent(req.Context(), didOrHandle)
+		if err != nil {
+			// invalid did or handle
+			log.Println("failed to resolve did/handle")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		ctx := context.WithValue(req.Context(), "resolvedId", *id)
+		next.ServeHTTP(w, req.WithContext(ctx))
+	})
+}
+
+func ResolveRepoDomain(s *State) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			repoName := chi.URLParam(req, "repo")
+			id, ok := req.Context().Value("resolvedId").(identity.Identity)
+			if !ok {
+				log.Println("malformed middleware")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			repo, err := s.db.GetRepo(id.DID.String(), repoName)
+			if err != nil {
+				// invalid did or handle
+				log.Println("failed to resolve repo")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			ctx := context.WithValue(req.Context(), "domain", repo.Knot)
+			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	}
 }

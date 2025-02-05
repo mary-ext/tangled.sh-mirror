@@ -59,15 +59,14 @@ func (s *SignedClient) newRequest(method, endpoint string, body []byte) (*http.R
 	return http.NewRequest(method, s.Url.JoinPath(endpoint).String(), bytes.NewReader(body))
 }
 
-func (s *SignedClient) Init(did string, keys []string) (*http.Response, error) {
+func (s *SignedClient) Init(did string) (*http.Response, error) {
 	const (
 		Method   = "POST"
 		Endpoint = "/init"
 	)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"did":  did,
-		"keys": keys,
+		"did": did,
 	})
 
 	req, err := s.newRequest(Method, Endpoint, body)
@@ -97,18 +96,31 @@ func (s *SignedClient) NewRepo(did, repoName string) (*http.Response, error) {
 	return s.client.Do(req)
 }
 
-func (s *SignedClient) AddMember(did string, keys []string) (*http.Response, error) {
+func (s *SignedClient) AddMember(did string) (*http.Response, error) {
 	const (
 		Method   = "PUT"
 		Endpoint = "/member/add"
 	)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"did":  did,
-		"keys": keys,
+		"did": did,
 	})
 
 	req, err := s.newRequest(Method, Endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}
+
+func (s *SignedClient) RepoIndex(did, repo string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+	endpoint := fmt.Sprint("/%s/%s", did, repo)
+
+	req, err := s.newRequest(Method, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
