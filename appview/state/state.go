@@ -538,7 +538,62 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
+	didOrHandle := chi.URLParam(r, "user")
+	if didOrHandle == "" {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	ident, err := auth.ResolveIdent(r.Context(), didOrHandle)
+	if err != nil {
+		log.Printf("resolving identity: %s", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	repos, err := s.db.GetAllReposByDid(ident.DID.String())
+	if err != nil {
+		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
+	}
+
+	pages.ProfilePage(w, pages.ProfilePageParams{
+		LoggedInUser: s.auth.GetUser(r),
+		UserDid:      ident.DID.String(),
+		UserHandle:   ident.Handle.String(),
+		Repos:        repos,
+	})
+}
+
 func (s *State) Router() http.Handler {
+	router := chi.NewRouter()
+
+	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+		pat := chi.URLParam(r, "*")
+		if strings.HasPrefix(pat, "did:") || strings.HasPrefix(pat, "@") {
+			s.UserRouter().ServeHTTP(w, r)
+		} else {
+			s.StandardRouter().ServeHTTP(w, r)
+		}
+	})
+
+	return router
+}
+
+func (s *State) UserRouter() http.Handler {
+	r := chi.NewRouter()
+
+	// strip @ from user
+	r.Use(StripLeadingAt)
+
+	r.Route("/{user}", func(r chi.Router) {
+		r.Get("/", s.ProfilePage)
+	})
+
+	return r
+}
+
+func (s *State) StandardRouter() http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/", s.Timeline)

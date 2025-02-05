@@ -85,3 +85,14 @@ type NewRepoParams struct {
 func NewRepo(w io.Writer, p NewRepoParams) error {
 	return parse("new-repo.html").Execute(w, p)
 }
+
+type ProfilePageParams struct {
+	LoggedInUser *auth.User
+	UserDid      string
+	UserHandle   string
+	Repos        []db.Repo
+}
+
+func ProfilePage(w io.Writer, p ProfilePageParams) error {
+	return parse("profile.html").Execute(w, p)
+}

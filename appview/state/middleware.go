@@ -3,6 +3,7 @@ package state
 import (
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -98,4 +99,14 @@ func RoleMiddleware(s *State, group string) Middleware {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func StripLeadingAt(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		path := req.URL.Path
+		if strings.HasPrefix(path, "/@") {
+			req.URL.Path = "/" + strings.TrimPrefix(path, "/@")
+		}
+		next.ServeHTTP(w, req)
+	})
 }

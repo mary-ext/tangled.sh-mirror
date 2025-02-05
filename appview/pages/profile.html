@@ -1,0 +1,18 @@
+{{define "title"}}{{ or .UserHandle .UserDid }}{{end}}
+
+{{define "content"}}
+    <a href="/">back to timeline</a>
+    <h1>{{ or .UserHandle .UserDid }} profile</h1>
+
+    <h3>repos</h3>
+    <ul id="my-knots">
+        {{range .Repos}}
+        <li>
+          <code>name: {{.Name}}</code><br>
+          <code>knot: {{.Knot}}</code><br>
+        </li>
+        {{else}}
+            <p>you don't have any knots yet</p>
+        {{end}}
+    </ul>
+{{end}}
