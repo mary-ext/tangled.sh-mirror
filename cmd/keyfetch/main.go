@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	endpoint := flag.String("internal-api", "http://localhost:5555", "Internal API endpoint")
+	endpoint := flag.String("internal-api", "http://localhost:5444", "Internal API endpoint")
 	repoguardPath := flag.String("repoguard-path", "/home/git/repoguard", "Path to the repoguard binary")
 	flag.Parse()
 
