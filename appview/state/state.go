@@ -12,6 +12,7 @@ import (
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
@@ -28,6 +29,7 @@ type State struct {
 	db       *db.DB
 	auth     *auth.Auth
 	enforcer *rbac.Enforcer
+	tidClock *syntax.TIDClock
 }
 
 func Make() (*State, error) {
@@ -47,7 +49,13 @@ func Make() (*State, error) {
 		return nil, err
 	}
 
-	return &State{db, auth, enforcer}, nil
+	clock := syntax.NewTIDClock(0)
+
+	return &State{db, auth, enforcer, clock}, nil
+}
+
+func (s *State) TID() string {
+	return s.tidClock.Next().String()
 }
 
 func (s *State) Login(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +210,7 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.PublicKeyNSID,
 			Repo:       did,
-			Rkey:       uuid.New().String(),
+			Rkey:       s.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.PublicKey{
 					Created: time.Now().Format(time.RFC3339),
@@ -411,7 +419,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.KnotMemberNSID,
 		Repo:       currentUser.Did,
-		Rkey:       uuid.New().String(),
+		Rkey:       s.TID(),
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.KnotMember{
 				Member:  memberIdent.DID.String(),
