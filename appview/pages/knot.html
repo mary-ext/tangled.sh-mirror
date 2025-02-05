@@ -24,7 +24,7 @@
     <h3> members </h3>
     <ol>
     {{ range $.Members }}
-      <li>{{.}}</li>
+    <li><a href="/{{.}}">{{.}}</a></li>
     {{ else }}
     <p>no members</p>
     {{ end }}
