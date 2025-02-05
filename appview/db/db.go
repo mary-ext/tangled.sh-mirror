@@ -7,7 +7,7 @@ import (
 )
 
 type DB struct {
-	Db *sql.DB
+	db *sql.DB
 }
 
 func Make(dbPath string) (*DB, error) {
@@ -43,5 +43,5 @@ func Make(dbPath string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DB{Db: db}, nil
+	return &DB{db: db}, nil
 }
