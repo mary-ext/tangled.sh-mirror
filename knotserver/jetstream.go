@@ -86,6 +86,11 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 	}
 	defer resp.Body.Close()
 
+	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/plain") {
+		l.Error("unexpected content type", "content-type", ct)
+		return fmt.Errorf("unexpected content type: %s", ct)
+	}
+
 	plaintext, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Error("error reading response body", "error", err)
