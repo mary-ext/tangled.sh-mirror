@@ -1,3 +1,12 @@
+// This program must be configured to run as the sshd AuthorizedKeysCommand.
+// The format looks something like this:
+//   Match User git
+//     AuthorizedKeysCommand /keyfetch -internal-api http://localhost:5444 -repoguard-path /home/git/repoguard
+//     AuthorizedKeysCommandUser nobody
+//
+// The command and its parent directories must be owned by root and set to 0755. Hence, the ideal location for this is
+// somewhere already owned by root so you don't have to mess with directory perms.
+
 package main
 
 import (
