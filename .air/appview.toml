@@ -4,5 +4,5 @@ bin = ".bin/app"
 root = "."
 
 exclude_regex = [".*_templ.go"]
-include_ext = ["go", "templ"]
+include_ext = ["go", "templ", "html"]
 exclude_dir = ["target", "atrium"]

@@ -29,10 +29,10 @@ type State struct {
 	auth     *auth.Auth
 	enforcer *rbac.Enforcer
 	tidClock *syntax.TIDClock
+	pages    *pages.Pages
 }
 
 func Make() (*State, error) {
-
 	db, err := db.Make(appview.SqliteDbPath)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,9 @@ func Make() (*State, error) {
 
 	clock := syntax.NewTIDClock(0)
 
-	return &State{db, auth, enforcer, clock}, nil
+	pgs := pages.NewPages()
+
+	return &State{db, auth, enforcer, clock, pgs}, nil
 }
 
 func (s *State) TID() string {
@@ -62,7 +64,10 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		pages.Login(w, pages.LoginParams{})
+		err := s.pages.Login(w, pages.LoginParams{})
+		if err != nil {
+			log.Printf("rendering login page: %s", err)
+		}
 		return
 	case http.MethodPost:
 		handle := r.FormValue("handle")
@@ -99,7 +104,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	pages.Timeline(w, pages.TimelineParams{
+	s.pages.Timeline(w, pages.TimelineParams{
 		User: user,
 	})
 	return
@@ -149,7 +154,7 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	pages.Settings(w, pages.SettingsParams{
+	s.pages.Settings(w, pages.SettingsParams{
 		User:    user,
 		PubKeys: pubKeys,
 	})
@@ -358,7 +363,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 		IsOwner:      isOwner,
 	}
 
-	pages.Knot(w, p)
+	s.pages.Knot(w, p)
 }
 
 // get knots registered by this user
@@ -370,7 +375,7 @@ func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	pages.Knots(w, pages.KnotsParams{
+	s.pages.Knots(w, pages.KnotsParams{
 		User:          user,
 		Registrations: registrations,
 	})
@@ -475,7 +480,7 @@ func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		pages.NewRepo(w, pages.NewRepoParams{
+		s.pages.NewRepo(w, pages.NewRepoParams{
 			User: s.auth.GetUser(r),
 		})
 	case http.MethodPost:
@@ -562,7 +567,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
 	}
 
-	pages.ProfilePage(w, pages.ProfilePageParams{
+	s.pages.ProfilePage(w, pages.ProfilePageParams{
 		LoggedInUser: s.auth.GetUser(r),
 		UserDid:      ident.DID.String(),
 		UserHandle:   ident.Handle.String(),

@@ -2,51 +2,80 @@ package pages
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
 	"io"
-	"sync"
+	"io/fs"
+	"log"
+	"strings"
 
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
 )
 
-//go:embed *.html
+//go:embed templates/*
 var files embed.FS
 
-var (
-	cache = make(map[string]*template.Template)
-	mutex sync.Mutex
-)
+type Pages struct {
+	t map[string]*template.Template
+}
 
-func parse(file string) *template.Template {
-	mutex.Lock()
-	defer mutex.Unlock()
+func NewPages() *Pages {
+	templates := make(map[string]*template.Template)
 
-	if tmpl, found := cache[file]; found {
-		return tmpl
+	// Walk through embedded templates directory and parse all .html files
+	err := fs.WalkDir(files, "templates", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() && strings.HasSuffix(path, ".html") {
+			name := strings.TrimPrefix(path, "templates/")
+			name = strings.TrimSuffix(name, ".html")
+
+			if !strings.HasPrefix(path, "templates/layouts/") {
+				// Add the page template on top of the base
+				tmpl, err := template.New(name).ParseFS(files, path, "templates/layouts/*.html")
+				if err != nil {
+					return fmt.Errorf("setting up template: %w", err)
+				}
+
+				templates[name] = tmpl
+				log.Printf("loaded template: %s", name)
+			}
+
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("walking template dir: %v", err)
 	}
 
-	tmpl := template.Must(
-		template.New("layout.html").ParseFS(files, "layout.html", file),
-	)
+	log.Printf("total templates loaded: %d", len(templates))
 
-	cache[file] = tmpl
-	return tmpl
+	return &Pages{
+		t: templates,
+	}
 }
 
 type LoginParams struct {
 }
 
-func Login(w io.Writer, p LoginParams) error {
-	return parse("login.html").Execute(w, p)
+func (p *Pages) execute(name string, w io.Writer, params any) error {
+	return p.t[name].ExecuteTemplate(w, "layouts/base", params)
+}
+
+func (p *Pages) Login(w io.Writer, params LoginParams) error {
+	return p.t["user/login"].ExecuteTemplate(w, "layouts/base", params)
 }
 
 type TimelineParams struct {
 	User *auth.User
 }
 
-func Timeline(w io.Writer, p TimelineParams) error {
-	return parse("timeline.html").Execute(w, p)
+func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
+	return p.execute("timeline", w, params)
 }
 
 type SettingsParams struct {
@@ -54,8 +83,8 @@ type SettingsParams struct {
 	PubKeys []db.PublicKey
 }
 
-func Settings(w io.Writer, p SettingsParams) error {
-	return parse("settings.html").Execute(w, p)
+func (p *Pages) Settings(w io.Writer, params SettingsParams) error {
+	return p.execute("settings/keys", w, params)
 }
 
 type KnotsParams struct {
@@ -63,8 +92,8 @@ type KnotsParams struct {
 	Registrations []db.Registration
 }
 
-func Knots(w io.Writer, p KnotsParams) error {
-	return parse("knots.html").Execute(w, p)
+func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
+	return p.execute("knots", w, params)
 }
 
 type KnotParams struct {
@@ -74,16 +103,16 @@ type KnotParams struct {
 	IsOwner      bool
 }
 
-func Knot(w io.Writer, p KnotParams) error {
-	return parse("knot.html").Execute(w, p)
+func (p *Pages) Knot(w io.Writer, params KnotParams) error {
+	return p.execute("knot", w, params)
 }
 
 type NewRepoParams struct {
 	User *auth.User
 }
 
-func NewRepo(w io.Writer, p NewRepoParams) error {
-	return parse("new-repo.html").Execute(w, p)
+func (p *Pages) NewRepo(w io.Writer, params NewRepoParams) error {
+	return p.execute("repo/new", w, params)
 }
 
 type ProfilePageParams struct {
@@ -93,6 +122,6 @@ type ProfilePageParams struct {
 	Repos        []db.Repo
 }
 
-func ProfilePage(w io.Writer, p ProfilePageParams) error {
-	return parse("profile.html").Execute(w, p)
+func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
+	return p.execute("user/profile", w, params)
 }
