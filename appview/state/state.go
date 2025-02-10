@@ -599,9 +599,11 @@ func (s *State) UserRouter() http.Handler {
 
 	r.With(ResolveIdent).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.ProfilePage)
-		r.With(ResolveRepoDomain(s)).Route("/{repo}", func(r chi.Router) {
+		r.With(ResolveRepoKnot(s)).Route("/{repo}", func(r chi.Router) {
 			r.Get("/", s.RepoIndex)
-			// r.Get("/info/refs", s.InfoRefs)
+			// These routes get proxied to the knot
+			r.Get("/info/refs", s.InfoRefs)
+			r.Post("/git-upload-pack", s.UploadPack)
 		})
 	})
 

@@ -131,7 +131,7 @@ func ResolveIdent(next http.Handler) http.Handler {
 	})
 }
 
-func ResolveRepoDomain(s *State) Middleware {
+func ResolveRepoKnot(s *State) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			repoName := chi.URLParam(req, "repo")
@@ -150,7 +150,7 @@ func ResolveRepoDomain(s *State) Middleware {
 				return
 			}
 
-			ctx := context.WithValue(req.Context(), "domain", repo.Knot)
+			ctx := context.WithValue(req.Context(), "knot", repo.Knot)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	}

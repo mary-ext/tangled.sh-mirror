@@ -14,7 +14,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	repoName := chi.URLParam(r, "repo")
 
-	domain, ok := ctx.Value("domain").(string)
+	knot, ok := ctx.Value("knot").(string)
 	if !ok {
 		log.Println("malformed middleware")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -28,7 +28,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s", domain, id.DID.String(), repoName))
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s", knot, id.DID.String(), repoName))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
