@@ -1,21 +1,15 @@
-{{define "title"}} {{ or .UserHandle .UserDid }} / {{ .Name }} {{end}}
+{{define "title"}} {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }} {{end}}
 
 {{define "content"}}
-{{- $id := "" -}}
-{{- if .UserHandle -}}
-  {{- $id = printf "@%s" .UserHandle -}}
-{{- else -}}
-  {{- $id = .UserDid -}}
-{{- end -}}
 
 <h1>
-{{ $id }} / {{ .Name }}
+{{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }}
 </h1>
     <main>
       <div class="log">
         {{ range .Commits }}
         <div>
-          <div><a href="/{{ $id }}/{{ $.Name }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
+          <div><a href="/{{ $.RepoInfo.OwnerWithAt }}/{{ $.RepoInfo.Name }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
           <pre>{{ .Message }}</pre>
         </div>
         <div class="commit-info">
@@ -33,7 +27,7 @@
       <div class="clone-url">
       <strong>clone</strong>
         <pre>
-git clone https://tangled.sh/{{ $id }}/{{ .Name }}
+git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}
         </pre>
       </div>
     </main>

@@ -266,16 +266,17 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 		commits = commits[start:end]
 	}
 
-	data := make(map[string]interface{})
-	data["commits"] = commits
-	data["ref"] = ref
-	data["desc"] = getDescription(path)
-	data["log"] = true
-	data["total"] = total
-	data["page"] = page
-	data["per_page"] = pageSize
+	resp := types.RepoLogResponse{
+		Commits:     commits,
+		Ref:         ref,
+		Description: getDescription(path),
+		Log:         true,
+		Total:       total,
+		Page:        page,
+		PerPage:     pageSize,
+	}
 
-	writeJSON(w, data)
+	writeJSON(w, resp)
 	return
 }
 

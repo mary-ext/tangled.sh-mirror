@@ -13,3 +13,13 @@ type RepoIndexResponse struct {
 	Commits     []*object.Commit `json:"commits,omitempty"`
 	Description string           `json:"description,omitempty"`
 }
+
+type RepoLogResponse struct {
+	Commits     []*object.Commit `json:"commits,omitempty"`
+	Ref         string           `json:"ref,omitempty"`
+	Description string           `json:"description,omitempty"`
+	Log         bool             `json:"log,omitempty"`
+	Total       int              `json:"total,omitempty"`
+	Page        int              `json:"page,omitempty"`
+	PerPage     int              `json:"per_page,omitempty"`
+}

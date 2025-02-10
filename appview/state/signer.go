@@ -113,17 +113,3 @@ func (s *SignedClient) AddMember(did string) (*http.Response, error) {
 
 	return s.client.Do(req)
 }
-
-func (s *SignedClient) RepoIndex(did, repo string) (*http.Response, error) {
-	const (
-		Method = "GET"
-	)
-	endpoint := fmt.Sprint("/%s/%s", did, repo)
-
-	req, err := s.newRequest(Method, endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.client.Do(req)
-}

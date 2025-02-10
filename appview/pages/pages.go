@@ -127,14 +127,36 @@ func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
 	return p.execute("user/profile", w, params)
 }
 
+type RepoInfo struct {
+	Name        string
+	OwnerDid    string
+	OwnerHandle string
+}
+
+func (r RepoInfo) OwnerWithAt() string {
+	if r.OwnerHandle != "" {
+		return fmt.Sprintf("@%s", r.OwnerHandle)
+	} else {
+		return r.OwnerDid
+	}
+}
+
 type RepoIndexParams struct {
 	LoggedInUser *auth.User
-	Name         string
-	UserDid      string
-	UserHandle   string
+	RepoInfo     RepoInfo
 	types.RepoIndexResponse
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 	return p.execute("repo/index", w, params)
+}
+
+type RepoLogParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	types.RepoLogResponse
+}
+
+func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
+	return p.execute("repo/log", w, params)
 }

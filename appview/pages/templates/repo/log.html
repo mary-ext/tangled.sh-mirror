@@ -1,15 +1,15 @@
-<html>
-{{ template "layouts/head" . }}
+{{define "title"}} log | {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }} {{end}}
 
-  {{ template "layouts/repo-header" . }}
-  <body>
-    {{ template "layouts/nav" . }}
+{{define "content"}}
+
+<h1>
+log | {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }}
+</h1>
     <main>
-      {{ $repo := .name }}
       <div class="log">
-        {{ range .commits }}
+        {{ range .Commits }}
         <div>
-          <div><a href="/{{ $repo }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
+          <div><a href="/{{ $.RepoInfo.OwnerWithAt }}/{{ $.RepoInfo.Name }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
           <pre>{{ .Message }}</pre>
         </div>
         <div class="commit-info">
@@ -19,5 +19,4 @@
         {{ end }}
       </div>
     </main>
-  </body>
-</html>
+{{end}}
