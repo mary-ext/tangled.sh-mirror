@@ -13,9 +13,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/go-git/go-git/v5 v5.12.0
-	github.com/google/uuid v1.6.0
 	github.com/gorilla/sessions v1.4.0
-	github.com/gorilla/websocket v1.5.1
 	github.com/ipfs/go-cid v0.4.1
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/microcosm-cc/bluemonday v1.0.27
@@ -47,8 +45,10 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect

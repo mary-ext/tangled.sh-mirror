@@ -27,15 +27,10 @@ type JetstreamClient struct {
 }
 
 func (h *Handle) StartJetstream(ctx context.Context) error {
-	l := h.l.With("component", "jetstream")
+	l := h.l
 	ctx = log.IntoContext(ctx, l)
 	collections := []string{tangled.PublicKeyNSID, tangled.KnotMemberNSID}
 	dids := []string{}
-
-	lastTimeUs, err := h.getLastTimeUs(ctx)
-	if err != nil {
-		return err
-	}
 
 	cfg := client.DefaultClientConfig()
 	cfg.WebsocketURL = "wss://jetstream1.us-west.bsky.network/subscribe"
@@ -58,6 +53,7 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 	h.jc = jc
 
 	go func() {
+		lastTimeUs := h.getLastTimeUs(ctx)
 		for len(h.jc.cfg.WantedDids) == 0 {
 			time.Sleep(time.Second)
 		}
@@ -71,7 +67,7 @@ func (h *Handle) connectAndRead(ctx context.Context, cursor *int64) {
 	for {
 		select {
 		case <-h.jc.reconnectCh:
-			l.Info("reconnecting jetstream client")
+			l.Info("(re)connecting jetstream client")
 			h.jc.client.Scheduler.Shutdown()
 			if err := h.jc.client.ConnectAndRead(ctx, cursor); err != nil {
 				l.Error("error reading jetstream", "error", err)
@@ -91,18 +87,22 @@ func (j *JetstreamClient) UpdateDids(dids []string) {
 	j.reconnectCh <- struct{}{}
 }
 
-func (h *Handle) getLastTimeUs(ctx context.Context) (int64, error) {
+func (h *Handle) getLastTimeUs(ctx context.Context) int64 {
 	l := log.FromContext(ctx)
 	lastTimeUs, err := h.db.GetLastTimeUs()
 	if err != nil {
-		l.Info("couldn't get last time us, starting from now")
+		l.Warn("couldn't get last time us, starting from now", "error", err)
 		lastTimeUs = time.Now().UnixMicro()
+		err = h.db.SaveLastTimeUs(lastTimeUs)
+		if err != nil {
+			l.Error("failed to save last time us")
+		}
 	}
 
 	// If last time is older than a week, start from now
 	if time.Now().UnixMicro()-lastTimeUs > 7*24*60*60*1000*1000 {
 		lastTimeUs = time.Now().UnixMicro()
-		l.Info("last time us is older than a week. discarding that and starting from now")
+		l.Warn("last time us is older than a week. discarding that and starting from now")
 		err = h.db.SaveLastTimeUs(lastTimeUs)
 		if err != nil {
 			l.Error("failed to save last time us")
@@ -110,7 +110,7 @@ func (h *Handle) getLastTimeUs(ctx context.Context) (int64, error) {
 	}
 
 	l.Info("found last time_us", "time_us", lastTimeUs)
-	return lastTimeUs, nil
+	return lastTimeUs
 }
 
 func (h *Handle) processPublicKey(ctx context.Context, did string, record tangled.PublicKey) error {
