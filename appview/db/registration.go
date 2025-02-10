@@ -1,12 +1,12 @@
 package db
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Registration struct {
@@ -101,6 +101,12 @@ func (d *DB) RegistrationByDomain(domain string) (*Registration, error) {
 	return &registration, nil
 }
 
+func genSecret() string {
+	key := make([]byte, 32)
+	rand.Read(key)
+	return hex.EncodeToString(key)
+}
+
 func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 	// sanity check: does this domain already have a registration?
 	reg, err := d.RegistrationByDomain(domain)
@@ -120,7 +126,7 @@ func (d *DB) GenerateRegistrationKey(domain, did string) (string, error) {
 		}
 	}
 
-	secret := uuid.New().String()
+	secret := genSecret()
 
 	_, err = d.db.Exec(`
 		insert into registrations (domain, did, secret)
