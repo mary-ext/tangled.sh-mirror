@@ -1,16 +1,21 @@
-<html>
-{{ template "layouts/head" . }}
+{{define "title"}} {{ or .UserHandle .UserDid }} / {{ .Name }} {{end}}
 
-{{ template "layouts/repo-header" . }}
+{{define "content"}}
+{{- $id := "" -}}
+{{- if .UserHandle -}}
+  {{- $id = printf "@%s" .UserHandle -}}
+{{- else -}}
+  {{- $id = .UserDid -}}
+{{- end -}}
 
-  <body>
-    {{ template "layouts/nav" . }}
+<h1>
+{{ $id }} / {{ .Name }}
+</h1>
     <main>
-      {{ $repo := .name }}
       <div class="log">
-        {{ range .commits }}
+        {{ range .Commits }}
         <div>
-          <div><a href="/{{ $repo }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
+          <div><a href="/{{ $id }}/{{ $.Name }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
           <pre>{{ .Message }}</pre>
         </div>
         <div class="commit-info">
@@ -19,18 +24,18 @@
         </div>
         {{ end }}
       </div>
-{{- if .readme }}
+{{- if .Readme }}
       <article class="readme">
-        {{- .readme -}}
+        {{- .Readme -}}
       </article>
 {{- end -}}
 
       <div class="clone-url">
       <strong>clone</strong>
         <pre>
-git clone https://{{ .servername }}/{{ .name }}
+git clone https://tangled.sh/{{ $id }}/{{ .Name }}
         </pre>
       </div>
     </main>
-  </body>
-</html>
+{{end}}
+

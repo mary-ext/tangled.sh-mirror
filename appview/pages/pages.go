@@ -11,6 +11,7 @@ import (
 
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
+	"github.com/sotangled/tangled/types"
 )
 
 //go:embed templates/*
@@ -124,4 +125,16 @@ type ProfilePageParams struct {
 
 func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
 	return p.execute("user/profile", w, params)
+}
+
+type RepoIndexParams struct {
+	LoggedInUser *auth.User
+	Name         string
+	UserDid      string
+	UserHandle   string
+	types.RepoIndexResponse
+}
+
+func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
+	return p.execute("repo/index", w, params)
 }

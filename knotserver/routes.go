@@ -21,10 +21,11 @@ import (
 	"github.com/russross/blackfriday/v2"
 	"github.com/sotangled/tangled/knotserver/db"
 	"github.com/sotangled/tangled/knotserver/git"
+	"github.com/sotangled/tangled/types"
 )
 
 func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This is a knot, part of the wider Tangle network: https://knots.sh"))
+	w.Write([]byte("This is a knot, part of the wider Tangle network: https://tangled.sh"))
 }
 
 func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +35,10 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	gr, err := git.Open(path, "")
 	if err != nil {
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
-			writeMsg(w, "repo empty")
+			resp := types.RepoIndexResponse{
+				IsEmpty: true,
+			}
+			writeJSON(w, resp)
 			return
 		} else {
 			l.Error("opening repo", "error", err.Error())
@@ -86,13 +90,15 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	if len(commits) >= 3 {
 		commits = commits[:3]
 	}
-	data := make(map[string]any)
-	data["ref"] = mainBranch
-	data["readme"] = readmeContent
-	data["commits"] = commits
-	data["desc"] = getDescription(path)
+	resp := types.RepoIndexResponse{
+		IsEmpty:     false,
+		Ref:         mainBranch,
+		Commits:     commits,
+		Description: getDescription(path),
+		Readme:      readmeContent,
+	}
 
-	writeJSON(w, data)
+	writeJSON(w, resp)
 	return
 }
 
