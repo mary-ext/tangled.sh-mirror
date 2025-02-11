@@ -43,30 +43,14 @@ func countLines(r io.Reader) (int, error) {
 	}
 }
 
-func (h *Handle) showFile(content string, data map[string]any, w http.ResponseWriter, l *slog.Logger) {
-	lc, err := countLines(strings.NewReader(content))
+func (h *Handle) showFile(resp types.RepoBlobResponse, w http.ResponseWriter, l *slog.Logger) {
+	lc, err := countLines(strings.NewReader(resp.Contents))
 	if err != nil {
 		// Non-fatal, we'll just skip showing line numbers in the template.
 		l.Warn("counting lines", "error", err)
 	}
 
-	lines := make([]int, lc)
-	if lc > 0 {
-		for i := range lines {
-			lines[i] = i + 1
-		}
-	}
-
-	data["linecount"] = lines
-	data["content"] = content
-
-	writeJSON(w, data)
-	return
-}
-
-func (h *Handle) showRaw(content string, w http.ResponseWriter) {
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(content))
+	resp.Lines = lc
+	writeJSON(w, resp)
 	return
 }

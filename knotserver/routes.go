@@ -129,23 +129,12 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 		DotDot:      filepath.Dir(treePath),
 		Files:       files,
 	}
-	// data := make(map[string]any)
-	// data["ref"] = ref
-	// data["parent"] = treePath
-	// data["desc"] = getDescription(path)
-	// data["dotdot"] = filepath.Dir(treePath)
 
 	writeJSON(w, resp)
-	// h.listFiles(files, data, w)
 	return
 }
 
-func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
-	var raw bool
-	if rawParam, err := strconv.ParseBool(r.URL.Query().Get("raw")); err == nil {
-		raw = rawParam
-	}
-
+func (h *Handle) Blob(w http.ResponseWriter, r *http.Request) {
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
 
@@ -163,18 +152,16 @@ func (h *Handle) FileContent(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	data := make(map[string]any)
-	data["ref"] = ref
-	data["desc"] = getDescription(path)
-	data["path"] = treePath
 
-	safe := sanitize([]byte(contents))
+	safe := string(sanitize([]byte(contents)))
 
-	if raw {
-		h.showRaw(string(safe), w)
-	} else {
-		h.showFile(string(safe), data, w, l)
+	resp := types.RepoBlobResponse{
+		Ref:      ref,
+		Contents: string(safe),
+		Path:     treePath,
 	}
+
+	h.showFile(resp, w, l)
 }
 
 func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
@@ -341,6 +328,11 @@ func (h *Handle) Tags(w http.ResponseWriter, r *http.Request) {
 			},
 			Tag: tag.TagObject(),
 		}
+
+		if tag.Message() != "" {
+			tr.Message = tag.Message()
+		}
+
 		rtags = append(rtags, &tr)
 	}
 

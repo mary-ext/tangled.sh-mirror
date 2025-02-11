@@ -48,7 +48,6 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			OwnerDid:    id.DID.String(),
 			OwnerHandle: id.Handle.String(),
 			Name:        repoName,
-			Description: result.Description,
 		},
 		RepoIndexResponse: result,
 	})
@@ -89,7 +88,6 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 			OwnerDid:    id.DID.String(),
 			OwnerHandle: id.Handle.String(),
 			Name:        repoName,
-			Description: result.Description,
 		},
 		RepoLogResponse: result,
 	})
@@ -171,7 +169,6 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 			OwnerDid:    id.DID.String(),
 			OwnerHandle: id.Handle.String(),
 			Name:        repoName,
-			Description: result.Description,
 		},
 		RepoTreeResponse: result,
 	})
@@ -250,6 +247,46 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 			Name:        repoName,
 		},
 		RepoBranchesResponse: result,
+	})
+	return
+}
+
+func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
+	repoName, knot, id, err := repoKnotAndId(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	ref := chi.URLParam(r, "ref")
+	filePath := chi.URLParam(r, "*")
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/blob/%s/%s", knot, id.DID.String(), repoName, ref, filePath))
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoBlobResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return
+	}
+
+	s.pages.RepoBlob(w, pages.RepoBlobParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo: pages.RepoInfo{
+			OwnerDid:    id.DID.String(),
+			OwnerHandle: id.Handle.String(),
+			Name:        repoName,
+		},
+		RepoBlobResponse: result,
 	})
 	return
 }

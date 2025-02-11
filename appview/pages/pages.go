@@ -22,6 +22,17 @@ type Pages struct {
 	t map[string]*template.Template
 }
 
+func funcMap() template.FuncMap {
+	return template.FuncMap{
+		"split": func(s string) []string {
+			return strings.Split(s, "\n")
+		},
+		"add": func(a, b int) int {
+			return a + b
+		},
+	}
+}
+
 func NewPages() *Pages {
 	templates := make(map[string]*template.Template)
 
@@ -37,7 +48,9 @@ func NewPages() *Pages {
 
 			if !strings.HasPrefix(path, "templates/layouts/") {
 				// Add the page template on top of the base
-				tmpl, err := template.New(name).ParseFS(files, "templates/layouts/*.html", path)
+				tmpl, err := template.New(name).
+					Funcs(funcMap()).
+					ParseFS(files, "templates/layouts/*.html", path)
 				if err != nil {
 					return fmt.Errorf("setting up template: %w", err)
 				}
@@ -214,4 +227,14 @@ type RepoTagsParams struct {
 
 func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 	return p.executeRepo("repo/tags", w, params)
+}
+
+type RepoBlobParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	types.RepoBlobResponse
+}
+
+func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
+	return p.executeRepo("repo/blob", w, params)
 }

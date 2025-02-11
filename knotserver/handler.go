@@ -78,7 +78,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l
 			})
 
 			r.Route("/blob/{ref}", func(r chi.Router) {
-				r.Get("/*", h.FileContent)
+				r.Get("/*", h.Blob)
 			})
 
 			r.Get("/log/{ref}", h.Log)

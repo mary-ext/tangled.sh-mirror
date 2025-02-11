@@ -1,0 +1,12 @@
+{{ define "repoContent" }}
+    <table>
+    <tbody><tr>
+        <td class="line-numbers">
+            {{ range $i, $x := split .Contents }}
+            {{ add $i 1 }} {{ $x }} <br>
+            {{ end }}
+        </td>
+        <td class="file-content"></td>
+    </tbody></tr>
+    </table>
+{{end}}
