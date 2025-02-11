@@ -1,6 +1,5 @@
 {{ define "title" }}
-    branches | {{ .RepoInfo.OwnerWithAt }} /
-    {{ .RepoInfo.Name }}
+    branches | {{ .RepoInfo.FullName }}
 {{ end }}
 
 {{ define "content" }}

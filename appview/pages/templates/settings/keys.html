@@ -1,13 +1,12 @@
 {{define "title"}}settings{{end}}
 
 {{define "content"}}
-    <a href="/">back to timeline</a>
     <h1>settings</h1>
 
     <h2>profile</h2>
-    <p><strong>handle:</strong> {{.User.Handle}}</p>
-    <p><strong>did:</strong> {{.User.Did}}</p>
-    <p><strong>pds:</strong> {{.User.Pds}}</p>
+    <p><strong>handle:</strong> {{.LoggedInUser.Handle}}</p>
+    <p><strong>did:</strong> {{.LoggedInUser.Did}}</p>
+    <p><strong>pds:</strong> {{.LoggedInUser.Pds}}</p>
 
     <h2>ssh keys</h2>
     <form hx-put="/settings/keys">

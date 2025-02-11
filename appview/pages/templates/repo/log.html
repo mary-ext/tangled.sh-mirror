@@ -1,9 +1,9 @@
-{{define "title"}} log | {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }} {{end}}
+{{define "title"}} log | {{ .RepoInfo.FullName }} {{end}}
 
 {{define "content"}}
 
 <h1>
-log | {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }}
+log | {{ .RepoInfo.FullName }}
 </h1>
     <main>
       <div class="log">

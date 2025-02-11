@@ -69,11 +69,11 @@ func (p *Pages) execute(name string, w io.Writer, params any) error {
 }
 
 func (p *Pages) Login(w io.Writer, params LoginParams) error {
-	return p.t["user/login"].ExecuteTemplate(w, "layouts/base", params)
+	return p.execute("user/login", w, params)
 }
 
 type TimelineParams struct {
-	User *auth.User
+	LoggedInUser *auth.User
 }
 
 func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
@@ -81,8 +81,8 @@ func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
 }
 
 type SettingsParams struct {
-	User    *auth.User
-	PubKeys []db.PublicKey
+	LoggedInUser *auth.User
+	PubKeys      []db.PublicKey
 }
 
 func (p *Pages) Settings(w io.Writer, params SettingsParams) error {
@@ -90,7 +90,7 @@ func (p *Pages) Settings(w io.Writer, params SettingsParams) error {
 }
 
 type KnotsParams struct {
-	User          *auth.User
+	LoggedInUser  *auth.User
 	Registrations []db.Registration
 }
 
@@ -99,7 +99,7 @@ func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
 }
 
 type KnotParams struct {
-	User         *auth.User
+	LoggedInUser *auth.User
 	Registration *db.Registration
 	Members      []string
 	IsOwner      bool
@@ -110,7 +110,7 @@ func (p *Pages) Knot(w io.Writer, params KnotParams) error {
 }
 
 type NewRepoParams struct {
-	User *auth.User
+	LoggedInUser *auth.User
 }
 
 func (p *Pages) NewRepo(w io.Writer, params NewRepoParams) error {
@@ -153,6 +153,7 @@ type RepoIndexParams struct {
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
+
 	return p.execute("repo/index", w, params)
 }
 

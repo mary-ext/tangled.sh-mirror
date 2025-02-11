@@ -113,7 +113,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	s.pages.Timeline(w, pages.TimelineParams{
-		User: user,
+		LoggedInUser: user,
 	})
 	return
 }
@@ -163,8 +163,8 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.Settings(w, pages.SettingsParams{
-		User:    user,
-		PubKeys: pubKeys,
+		LoggedInUser: user,
+		PubKeys:      pubKeys,
 	})
 }
 
@@ -366,7 +366,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 	isOwner := err == nil && ok
 
 	p := pages.KnotParams{
-		User:         user,
+		LoggedInUser: user,
 		Registration: reg,
 		Members:      members,
 		IsOwner:      isOwner,
@@ -385,7 +385,7 @@ func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.Knots(w, pages.KnotsParams{
-		User:          user,
+		LoggedInUser:  user,
 		Registrations: registrations,
 	})
 }
@@ -490,7 +490,7 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		s.pages.NewRepo(w, pages.NewRepoParams{
-			User: s.auth.GetUser(r),
+			LoggedInUser: s.auth.GetUser(r),
 		})
 	case http.MethodPost:
 		user := s.auth.GetUser(r)

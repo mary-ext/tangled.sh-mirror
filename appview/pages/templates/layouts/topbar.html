@@ -1,0 +1,18 @@
+{{ define "layouts/topbar" }}
+
+{{ with .LoggedInUser }}
+<nav>
+    <a href="/settings">settings</a>&nbsp;·
+    <a href="/knots">knots</a>&nbsp;·
+    <a href="/repo/new">add repos</a>&nbsp;·
+    {{ if .Handle }}
+    <a href="/@{{ .Handle }}">my profile</a>
+    {{ else }}
+    <a href="/{{ .Did }}">my profile</a>
+    {{ end }}
+</nav>
+{{ else }}
+<button onclick="window.location.href='/login'">login</button>
+{{ end }}
+
+{{ end }}

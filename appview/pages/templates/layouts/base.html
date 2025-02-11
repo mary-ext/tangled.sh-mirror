@@ -12,6 +12,11 @@
         <title>{{block "title" .}}{{end}}</title>
     </head>
     <body>
+        <header class="topbar">
+          {{ block "topbar" .}}
+          {{ template "layouts/topbar" . }}
+          {{end}}
+        </header>
         <main class="content">{{block "content" .}}{{end}}</main>
     </body>
 </html>

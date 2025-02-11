@@ -1,13 +1,11 @@
 {{define "title"}}{{ .Registration.Domain }}{{end}}
 
 {{define "content"}}
-    <a href="/">back to timeline</a>
-    <a href="/knots">back to all knots</a>
     <h1>{{.Registration.Domain}}</h1>
     <p>
       <code>
         opened by: {{.Registration.ByDid}}
-        {{ if eq $.User.Did $.Registration.ByDid }}
+        {{ if eq $.LoggedInUser.Did $.Registration.ByDid }}
         (you)
         {{ end }}
       </code><br>
