@@ -175,3 +175,13 @@ type RepoCommitParams struct {
 func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
 	return p.execute("repo/commit", w, params)
 }
+
+type RepoTreeParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	types.RepoTreeResponse
+}
+
+func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
+	return p.execute("repo/tree", w, params)
+}

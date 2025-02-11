@@ -602,6 +602,9 @@ func (s *State) UserRouter() http.Handler {
 		r.With(ResolveRepoKnot(s)).Route("/{repo}", func(r chi.Router) {
 			r.Get("/", s.RepoIndex)
 			r.Get("/log/{ref}", s.RepoLog)
+			r.Route("/tree/{ref}", func(r chi.Router) {
+				r.Get("/*", s.RepoTree)
+			})
 			r.Get("/commit/{ref}", s.RepoCommit)
 
 			// These routes get proxied to the knot

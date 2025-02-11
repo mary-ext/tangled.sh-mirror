@@ -122,13 +122,21 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := make(map[string]any)
-	data["ref"] = ref
-	data["parent"] = treePath
-	data["desc"] = getDescription(path)
-	data["dotdot"] = filepath.Dir(treePath)
+	resp := types.RepoTreeResponse{
+		Ref:         ref,
+		Parent:      treePath,
+		Description: getDescription(path),
+		DotDot:      filepath.Dir(treePath),
+		Files:       files,
+	}
+	// data := make(map[string]any)
+	// data["ref"] = ref
+	// data["parent"] = treePath
+	// data["desc"] = getDescription(path)
+	// data["dotdot"] = filepath.Dir(treePath)
 
-	h.listFiles(files, data, w)
+	writeJSON(w, resp)
+	// h.listFiles(files, data, w)
 	return
 }
 

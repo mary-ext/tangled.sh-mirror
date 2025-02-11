@@ -133,6 +133,48 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
+	repoName, knot, id, err := repoKnotAndId(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	ref := chi.URLParam(r, "ref")
+	treePath := chi.URLParam(r, "*")
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/tree/%s/%s", knot, id.DID.String(), repoName, ref, treePath))
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoTreeResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return
+	}
+
+	log.Println(result)
+
+	s.pages.RepoTree(w, pages.RepoTreeParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo: pages.RepoInfo{
+			OwnerDid:    id.DID.String(),
+			OwnerHandle: id.Handle.String(),
+			Name:        repoName,
+		},
+		RepoTreeResponse: result,
+	})
+	return
+}
+
 func repoKnotAndId(r *http.Request) (string, string, identity.Identity, error) {
 	repoName := chi.URLParam(r, "repo")
 	knot, ok := r.Context().Value("knot").(string)

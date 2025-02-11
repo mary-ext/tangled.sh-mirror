@@ -1,9 +1,9 @@
-{{define "title"}} {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }} {{end}}
+{{define "title"}} {{ .RepoInfo.FullName }} {{end}}
 
 {{define "content"}}
 
 <h1>
-{{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }}
+{{ .RepoInfo.FullName }}
 </h1>
     <main>
 {{- if .IsEmpty }}

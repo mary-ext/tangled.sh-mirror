@@ -24,13 +24,15 @@ type RepoLogResponse struct {
 	PerPage     int              `json:"per_page,omitempty"`
 }
 
-// data["commit"] = diff.Commit
-//
-//	data["stat"] = diff.Stat
-//	data["diff"] = diff.Diff
-//	data["ref"] = ref
-//	data["desc"] = getDescription(path)
 type RepoCommitResponse struct {
 	Ref  string    `json:"ref,omitempty"`
 	Diff *NiceDiff `json:"diff,omitempty"`
+}
+
+type RepoTreeResponse struct {
+	Ref         string     `json:"ref,omitempty"`
+	Parent      string     `json:"parent,omitempty"`
+	Description string     `json:"description,omitempty"`
+	DotDot      string     `json:"dotdot,omitempty"`
+	Files       []NiceTree `json:"files,omitempty"`
 }

@@ -4,15 +4,16 @@ import (
 	"fmt"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/sotangled/tangled/types"
 )
 
-func (g *GitRepo) FileTree(path string) ([]NiceTree, error) {
+func (g *GitRepo) FileTree(path string) ([]types.NiceTree, error) {
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
 		return nil, fmt.Errorf("commit object: %w", err)
 	}
 
-	files := []NiceTree{}
+	files := []types.NiceTree{}
 	tree, err := c.Tree()
 	if err != nil {
 		return nil, fmt.Errorf("file tree: %w", err)
@@ -39,22 +40,13 @@ func (g *GitRepo) FileTree(path string) ([]NiceTree, error) {
 	return files, nil
 }
 
-// A nicer git tree representation.
-type NiceTree struct {
-	Name      string
-	Mode      string
-	Size      int64
-	IsFile    bool
-	IsSubtree bool
-}
-
-func makeNiceTree(t *object.Tree) []NiceTree {
-	nts := []NiceTree{}
+func makeNiceTree(t *object.Tree) []types.NiceTree {
+	nts := []types.NiceTree{}
 
 	for _, e := range t.Entries {
 		mode, _ := e.Mode.ToOSFileMode()
 		sz, _ := t.Size(e.Name)
-		nts = append(nts, NiceTree{
+		nts = append(nts, types.NiceTree{
 			Name:   e.Name,
 			Mode:   mode.String(),
 			IsFile: e.Mode.IsFile(),
