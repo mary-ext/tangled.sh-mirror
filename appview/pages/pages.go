@@ -185,3 +185,23 @@ type RepoTreeParams struct {
 func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
 	return p.execute("repo/tree", w, params)
 }
+
+type RepoBranchesParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	types.RepoBranchesResponse
+}
+
+func (p *Pages) RepoBranches(w io.Writer, params RepoBranchesParams) error {
+	return p.execute("repo/branches", w, params)
+}
+
+type RepoTagsParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	types.RepoTagsResponse
+}
+
+func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
+	return p.execute("repo/tags", w, params)
+}

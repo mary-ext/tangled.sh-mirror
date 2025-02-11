@@ -347,3 +347,11 @@ func (t *TagReference) Message() string {
 	}
 	return ""
 }
+
+func (t *TagReference) TagObject() *object.Tag {
+	return t.tag
+}
+
+func (t *TagReference) Hash() plumbing.Hash {
+	return t.ref.Hash()
+}

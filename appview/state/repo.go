@@ -175,6 +175,82 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
+	repoName, knot, id, err := repoKnotAndId(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/tags", knot, id.DID.String(), repoName))
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoTagsResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return
+	}
+
+	s.pages.RepoTags(w, pages.RepoTagsParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo: pages.RepoInfo{
+			OwnerDid:    id.DID.String(),
+			OwnerHandle: id.Handle.String(),
+			Name:        repoName,
+		},
+		RepoTagsResponse: result,
+	})
+	return
+}
+
+func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
+	repoName, knot, id, err := repoKnotAndId(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/branches", knot, id.DID.String(), repoName))
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoBranchesResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return
+	}
+
+	s.pages.RepoBranches(w, pages.RepoBranchesParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo: pages.RepoInfo{
+			OwnerDid:    id.DID.String(),
+			OwnerHandle: id.Handle.String(),
+			Name:        repoName,
+		},
+		RepoBranchesResponse: result,
+	})
+	return
+}
+
 func repoKnotAndId(r *http.Request) (string, string, identity.Identity, error) {
 	repoName := chi.URLParam(r, "repo")
 	knot, ok := r.Context().Value("knot").(string)

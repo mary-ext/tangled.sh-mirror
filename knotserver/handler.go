@@ -84,7 +84,8 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l
 			r.Get("/log/{ref}", h.Log)
 			r.Get("/archive/{file}", h.Archive)
 			r.Get("/commit/{ref}", h.Diff)
-			r.Get("/refs/", h.Refs)
+			r.Get("/tags", h.Tags)
+			r.Get("/branches", h.Branches)
 		})
 	})
 

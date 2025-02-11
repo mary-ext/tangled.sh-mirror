@@ -1,0 +1,18 @@
+{{ define "title" }}
+    branches | {{ .RepoInfo.OwnerWithAt }} /
+    {{ .RepoInfo.Name }}
+{{ end }}
+
+{{ define "content" }}
+    {{ $name := .RepoInfo.Name }}
+    <h3>branches</h3>
+    <div class="refs">
+        {{ range .Branches }}
+            <div>
+                <strong>{{ .Name }}</strong>
+                <a href="/{{ $name }}/tree/{{ .Name }}/">browse</a>
+                <a href="/{{ $name }}/log/{{ .Name }}">log</a>
+            </div>
+        {{ end }}
+    </div>
+{{ end }}

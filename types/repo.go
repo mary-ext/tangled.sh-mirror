@@ -36,3 +36,26 @@ type RepoTreeResponse struct {
 	DotDot      string     `json:"dotdot,omitempty"`
 	Files       []NiceTree `json:"files,omitempty"`
 }
+
+type TagReference struct {
+	Ref     Reference   `json:"ref,omitempty"`
+	Tag     *object.Tag `json:"tag,omitempty"`
+	Message string      `json:"message,omitempty"`
+}
+
+type Reference struct {
+	Name string `json:"name"`
+	Hash string `json:"hash"`
+}
+
+type Branch struct {
+	Reference `json:"reference"`
+}
+
+type RepoTagsResponse struct {
+	Tags []*TagReference `json:"tags,omitempty"`
+}
+
+type RepoBranchesResponse struct {
+	Branches []Branch `json:"branches,omitempty"`
+}

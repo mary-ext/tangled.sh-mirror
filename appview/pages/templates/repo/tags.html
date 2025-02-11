@@ -1,0 +1,22 @@
+{{ define "title" }}
+    tags | {{ .RepoInfo.OwnerWithAt }} /
+    {{ .RepoInfo.Name }}
+{{ end }}
+
+{{ define "content" }}
+    {{ $name := .RepoInfo.Name }}
+    <h3>tags</h3>
+    <div class="refs">
+        {{ range .Tags }}
+            <div>
+                <strong>{{ .Ref.Name }}</strong>
+                <a href="/{{ $name }}/tree/{{ .Ref.Name }}/">browse</a>
+                <a href="/{{ $name }}/log/{{ .Ref.Name }}">log</a>
+                <a href="/{{ $name }}/archive/{{ .Ref.Name }}.tar.gz">tar.gz</a>
+                {{ if .Message }}
+                    <pre>{{ .Message }}</pre>
+                {{ end }}
+            </div>
+        {{ end }}
+    </div>
+{{ end }}

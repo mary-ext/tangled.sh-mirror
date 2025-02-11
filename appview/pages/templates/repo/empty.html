@@ -1,9 +1,7 @@
-<html>
-    {{ template "layouts/head" . }}
+{{ define "title" }}{{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }}{{ end }}
 
-    <body>
-        <main></main>
-            <p>This is an empty Git repository. Push some commits here.</p>
-        </main>
-    </body>
-</html>
+{{ define "content" }}
+    <main>
+        <p>This is an empty Git repository. Push some commits here.</p>
+    </main>
+{{ end }}

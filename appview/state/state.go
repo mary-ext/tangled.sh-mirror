@@ -614,6 +614,8 @@ func (s *State) UserRouter() http.Handler {
 				r.Get("/*", s.RepoTree)
 			})
 			r.Get("/commit/{ref}", s.RepoCommit)
+			r.Get("/branches", s.RepoBranches)
+			r.Get("/tags", s.RepoTags)
 
 			// These routes get proxied to the knot
 			r.Get("/info/refs", s.InfoRefs)

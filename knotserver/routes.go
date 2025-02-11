@@ -316,7 +316,7 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
+func (h *Handle) Tags(w http.ResponseWriter, r *http.Request) {
 	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
 	l := h.l.With("handler", "Refs")
 
@@ -329,7 +329,37 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 	tags, err := gr.Tags()
 	if err != nil {
 		// Non-fatal, we *should* have at least one branch to show.
-		l.Error("getting tags", "error", err.Error())
+		l.Warn("getting tags", "error", err.Error())
+	}
+
+	rtags := []*types.TagReference{}
+	for _, tag := range tags {
+		tr := types.TagReference{
+			Ref: types.Reference{
+				Name: tag.Name(),
+				Hash: tag.Hash().String(),
+			},
+			Tag: tag.TagObject(),
+		}
+		rtags = append(rtags, &tr)
+	}
+
+	resp := types.RepoTagsResponse{
+		Tags: rtags,
+	}
+
+	writeJSON(w, resp)
+	return
+}
+
+func (h *Handle) Branches(w http.ResponseWriter, r *http.Request) {
+	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	l := h.l.With("handler", "Branches")
+
+	gr, err := git.Open(path, "")
+	if err != nil {
+		notFound(w)
+		return
 	}
 
 	branches, err := gr.Branches()
@@ -339,13 +369,19 @@ func (h *Handle) Refs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := make(map[string]interface{})
+	bs := []types.Branch{}
+	for _, branch := range branches {
+		b := types.Branch{}
+		b.Hash = branch.Hash().String()
+		b.Name = branch.Name().Short()
+		bs = append(bs, b)
+	}
 
-	data["branches"] = branches
-	data["tags"] = tags
-	data["desc"] = getDescription(path)
+	resp := types.RepoBranchesResponse{
+		Branches: bs,
+	}
 
-	writeJSON(w, data)
+	writeJSON(w, resp)
 	return
 }
 
