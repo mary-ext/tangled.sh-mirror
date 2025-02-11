@@ -299,15 +299,12 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := make(map[string]interface{})
+	resp := types.RepoCommitResponse{
+		Ref:  ref,
+		Diff: diff,
+	}
 
-	data["commit"] = diff.Commit
-	data["stat"] = diff.Stat
-	data["diff"] = diff.Diff
-	data["ref"] = ref
-	data["desc"] = getDescription(path)
-
-	writeJSON(w, data)
+	writeJSON(w, resp)
 	return
 }
 

@@ -23,3 +23,14 @@ type RepoLogResponse struct {
 	Page        int              `json:"page,omitempty"`
 	PerPage     int              `json:"per_page,omitempty"`
 }
+
+// data["commit"] = diff.Commit
+//
+//	data["stat"] = diff.Stat
+//	data["diff"] = diff.Diff
+//	data["ref"] = ref
+//	data["desc"] = getDescription(path)
+type RepoCommitResponse struct {
+	Ref  string    `json:"ref,omitempty"`
+	Diff *NiceDiff `json:"diff,omitempty"`
+}

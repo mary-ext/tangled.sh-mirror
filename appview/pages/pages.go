@@ -160,3 +160,13 @@ type RepoLogParams struct {
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
 	return p.execute("repo/log", w, params)
 }
+
+type RepoCommitParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	types.RepoCommitResponse
+}
+
+func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
+	return p.execute("repo/commit", w, params)
+}

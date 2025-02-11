@@ -7,41 +7,10 @@ import (
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/sotangled/tangled/types"
 )
 
-type TextFragment struct {
-	Header string
-	Lines  []gitdiff.Line
-}
-
-type Diff struct {
-	Name struct {
-		Old string
-		New string
-	}
-	TextFragments []TextFragment
-	IsBinary      bool
-	IsNew         bool
-	IsDelete      bool
-}
-
-// A nicer git diff representation.
-type NiceDiff struct {
-	Commit struct {
-		Message string
-		Author  object.Signature
-		This    string
-		Parent  string
-	}
-	Stat struct {
-		FilesChanged int
-		Insertions   int
-		Deletions    int
-	}
-	Diff []Diff
-}
-
-func (g *GitRepo) Diff() (*NiceDiff, error) {
+func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
 		return nil, fmt.Errorf("commit object: %w", err)
@@ -76,7 +45,7 @@ func (g *GitRepo) Diff() (*NiceDiff, error) {
 		log.Println(err)
 	}
 
-	nd := NiceDiff{}
+	nd := types.NiceDiff{}
 	nd.Commit.This = c.Hash.String()
 
 	if parent.Hash.IsZero() {
@@ -88,7 +57,7 @@ func (g *GitRepo) Diff() (*NiceDiff, error) {
 	nd.Commit.Message = c.Message
 
 	for _, d := range diffs {
-		ndiff := Diff{}
+		ndiff := types.Diff{}
 		ndiff.Name.New = d.NewName
 		ndiff.Name.Old = d.OldName
 		ndiff.IsBinary = d.IsBinary
@@ -96,7 +65,7 @@ func (g *GitRepo) Diff() (*NiceDiff, error) {
 		ndiff.IsDelete = d.IsDelete
 
 		for _, tf := range d.TextFragments {
-			ndiff.TextFragments = append(ndiff.TextFragments, TextFragment{
+			ndiff.TextFragments = append(ndiff.TextFragments, types.TextFragment{
 				Header: tf.Header(),
 				Lines:  tf.Lines,
 			})

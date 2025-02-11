@@ -94,6 +94,45 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
+	repoName, knot, id, err := repoKnotAndId(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	ref := chi.URLParam(r, "ref")
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/commit/%s", knot, id.DID.String(), repoName, ref))
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoCommitResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return
+	}
+
+	s.pages.RepoCommit(w, pages.RepoCommitParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo: pages.RepoInfo{
+			OwnerDid:    id.DID.String(),
+			OwnerHandle: id.Handle.String(),
+			Name:        repoName,
+		},
+		RepoCommitResponse: result,
+	})
+	return
+}
+
 func repoKnotAndId(r *http.Request) (string, string, identity.Identity, error) {
 	repoName := chi.URLParam(r, "repo")
 	knot, ok := r.Context().Value("knot").(string)
