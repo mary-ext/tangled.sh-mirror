@@ -9,7 +9,7 @@ log | {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }}
       <div class="log">
         {{ range .Commits }}
         <div>
-          <div><a href="/{{ $.RepoInfo.OwnerWithAt }}/{{ $.RepoInfo.Name }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
+          <div><a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
           <pre>{{ .Message }}</pre>
         </div>
         <div class="commit-info">

@@ -2,7 +2,7 @@
 
 {{ define "content" }}
 
-{{ $repo := .RepoInfo.Name }}
+{{ $repo := .RepoInfo.FullName }}
 {{ $commit := .Diff.Commit }}
 {{ $stat := .Diff.Stat }}
 {{ $diff := .Diff.Diff }}
@@ -17,7 +17,7 @@
   <div>
   <strong>commit</strong>
   <p><a href="/{{ $repo }}/commit/{{ $commit.This }}" class="commit-hash">
-    {{ $commit.This }}
+    {{ slice $commit.This 0 8 }}
   </a>
   </p>
   </div>
@@ -26,7 +26,7 @@
   <div>
   <strong>parent</strong>
   <p><a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="commit-hash">
-    {{ $commit.Parent }}
+    {{ slice $commit.Parent 0 8 }}
   </a></p>
   </div>
 

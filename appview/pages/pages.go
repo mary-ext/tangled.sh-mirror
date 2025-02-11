@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"path"
 	"strings"
 
 	"github.com/sotangled/tangled/appview/auth"
@@ -139,6 +140,10 @@ func (r RepoInfo) OwnerWithAt() string {
 	} else {
 		return r.OwnerDid
 	}
+}
+
+func (r RepoInfo) FullName() string {
+	return path.Join(r.OwnerWithAt(), r.Name)
 }
 
 type RepoIndexParams struct {
