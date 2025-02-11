@@ -9,12 +9,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/sotangled/tangled/appview/auth"
+	"github.com/sotangled/tangled/appview"
 )
 
 var (
@@ -136,27 +135,14 @@ func main() {
 }
 
 func resolveToDid(didOrHandle string) string {
-	ident, err := auth.ResolveIdent(context.Background(), didOrHandle)
+	resolver := appview.NewResolver()
+	ident, err := resolver.ResolveIdent(context.Background(), didOrHandle)
 	if err != nil {
 		exitWithLog(fmt.Sprintf("error resolving handle: %v", err))
 	}
 
 	// did:plc:foobarbaz/repo
 	return ident.DID.String()
-}
-
-func handleToDid(handlePath string) string {
-	handle := path.Dir(handlePath)
-
-	ident, err := auth.ResolveIdent(context.Background(), handle)
-	if err != nil {
-		exitWithLog(fmt.Sprintf("error resolving handle: %v", err))
-	}
-
-	// did:plc:foobarbaz/repo
-	didPath := filepath.Join(ident.DID.String(), path.Base(handlePath))
-
-	return didPath
 }
 
 func initLogger() {

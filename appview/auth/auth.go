@@ -8,7 +8,6 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
 	"github.com/sotangled/tangled/appview"
@@ -31,16 +30,6 @@ type AtSessionRefresh struct {
 func Make() (*Auth, error) {
 	store := sessions.NewCookieStore([]byte(appview.SessionCookieSecret))
 	return &Auth{store}, nil
-}
-
-func ResolveIdent(ctx context.Context, arg string) (*identity.Identity, error) {
-	id, err := syntax.ParseAtIdentifier(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	dir := identity.DefaultDirectory()
-	return dir.Lookup(ctx, *id)
 }
 
 func (a *Auth) CreateInitialSession(ctx context.Context, resolved *identity.Identity, appPassword string) (*comatproto.ServerCreateSession_Output, error) {

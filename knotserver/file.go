@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sotangled/tangled/knotserver/git"
+	"github.com/sotangled/tangled/types"
 )
 
-func (h *Handle) listFiles(files []git.NiceTree, data map[string]any, w http.ResponseWriter) {
+func (h *Handle) listFiles(files []types.NiceTree, data map[string]any, w http.ResponseWriter) {
 	data["files"] = files
 
 	writeJSON(w, data)

@@ -30,6 +30,7 @@ type State struct {
 	enforcer *rbac.Enforcer
 	tidClock *syntax.TIDClock
 	pages    *pages.Pages
+	resolver *appview.Resolver
 }
 
 func Make() (*State, error) {
@@ -52,7 +53,14 @@ func Make() (*State, error) {
 
 	pgs := pages.NewPages()
 
-	return &State{db, auth, enforcer, clock, pgs}, nil
+	resolver := appview.NewResolver()
+
+	state := &State{
+		db,
+		auth, enforcer, clock, pgs, resolver,
+	}
+
+	return state, nil
 }
 
 func (s *State) TID() string {
@@ -76,7 +84,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("handle", handle)
 		fmt.Println("app_password", appPassword)
 
-		resolved, err := auth.ResolveIdent(ctx, handle)
+		resolved, err := s.resolver.ResolveIdent(ctx, handle)
 		if err != nil {
 			log.Printf("resolving identity: %s", err)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -169,7 +177,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := auth.ResolveIdent(r.Context(), user)
+	id, err := s.resolver.ResolveIdent(r.Context(), user)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -415,7 +423,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memberIdent, err := auth.ResolveIdent(r.Context(), memberDid)
+	memberIdent, err := s.resolver.ResolveIdent(r.Context(), memberDid)
 	if err != nil {
 		w.Write([]byte("failed to resolve member did to a handle"))
 		return
@@ -556,7 +564,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ident, err := auth.ResolveIdent(r.Context(), didOrHandle)
+	ident, err := s.resolver.ResolveIdent(r.Context(), didOrHandle)
 	if err != nil {
 		log.Printf("resolving identity: %s", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -597,7 +605,7 @@ func (s *State) UserRouter() http.Handler {
 	// strip @ from user
 	r.Use(StripLeadingAt)
 
-	r.With(ResolveIdent).Route("/{user}", func(r chi.Router) {
+	r.With(ResolveIdent(s)).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.ProfilePage)
 		r.With(ResolveRepoKnot(s)).Route("/{repo}", func(r chi.Router) {
 			r.Get("/", s.RepoIndex)
