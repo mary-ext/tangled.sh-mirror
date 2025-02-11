@@ -6,6 +6,9 @@
 {{ .RepoInfo.OwnerWithAt }} / {{ .RepoInfo.Name }}
 </h1>
     <main>
+{{- if .IsEmpty }}
+this repo is empty
+{{ else }}
       <div class="log">
         {{ range .Commits }}
         <div>
@@ -23,6 +26,7 @@
       <article class="readme">
         {{- .Readme -}}
       </article>
+{{- end -}}
 {{- end -}}
 
       <div class="clone-url">
