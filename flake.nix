@@ -53,6 +53,7 @@
           pkgs.indigo-lexgen
           pkgs.litecli
           pkgs.websocat
+          pkgs.tailwindcss
         ];
       };
     });

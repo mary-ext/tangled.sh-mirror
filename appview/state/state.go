@@ -618,6 +618,8 @@ func (s *State) UserRouter() http.Handler {
 func (s *State) StandardRouter() http.Handler {
 	r := chi.NewRouter()
 
+	r.Handle("/static/*", s.pages.Static())
+
 	r.Get("/", s.Timeline)
 
 	r.Get("/login", s.Login)

@@ -2,3 +2,4 @@
 tmp
 *.db
 .bin/
+appview/pages/static/

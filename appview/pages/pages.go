@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net/http"
 	"path"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 	"github.com/sotangled/tangled/types"
 )
 
-//go:embed templates/*
+//go:embed templates/* static/*
 var files embed.FS
 
 type Pages struct {
@@ -238,4 +239,12 @@ type RepoBlobParams struct {
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	return p.executeRepo("repo/blob", w, params)
+}
+
+func (p *Pages) Static() http.Handler {
+	sub, err := fs.Sub(files, "static")
+	if err != nil {
+		log.Fatalf("no static dir found? that's crazy: %v", err)
+	}
+	return http.StripPrefix("/static/", http.FileServer(http.FS(sub)))
 }
