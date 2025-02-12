@@ -16,6 +16,7 @@ func main() {
 		"tangled",
 		shtangled.PublicKey{},
 		shtangled.KnotMember{},
+		shtangled.GraphFollow{},
 	); err != nil {
 		panic(err)
 	}

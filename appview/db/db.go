@@ -40,6 +40,13 @@ func Make(dbPath string) (*DB, error) {
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, name, knot)
 		);
+		create table if not exists follows (
+			user_did text not null,
+			subject_did text not null,
+			followed_at text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			primary key (user_did, subject_did),
+			check (user_did <> subject_did)
+		);
 	`)
 	if err != nil {
 		return nil, err
