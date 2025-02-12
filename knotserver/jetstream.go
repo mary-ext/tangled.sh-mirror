@@ -47,7 +47,7 @@ func (h *Handle) StartJetstream(ctx context.Context) error {
 	jc := &JetstreamClient{
 		cfg:         cfg,
 		client:      client,
-		reconnectCh: make(chan struct{}),
+		reconnectCh: make(chan struct{}, 1),
 	}
 
 	h.jc = jc
@@ -78,6 +78,13 @@ func (h *Handle) connectAndRead(ctx context.Context, cursor *int64) {
 			}
 		}
 	}
+}
+
+func (j *JetstreamClient) AddDid(did string) {
+	j.mu.Lock()
+	j.cfg.WantedDids = append(j.cfg.WantedDids, did)
+	j.mu.Unlock()
+	j.reconnectCh <- struct{}{}
 }
 
 func (j *JetstreamClient) UpdateDids(dids []string) {

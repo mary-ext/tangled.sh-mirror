@@ -467,6 +467,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 	ksResp, err := ksClient.AddMember(memberIdent.DID.String())
 	if err != nil {
 		log.Printf("failed to make request to %s: %s", domain, err)
+		return
 	}
 
 	if ksResp.StatusCode != http.StatusNoContent {
