@@ -21,16 +21,16 @@ type PublicKey struct {
 	Did     string `json:"did"`
 	Key     string `json:"key"`
 	Name    string `json:"name"`
-	Created time.Time
+	Created *time.Time
 }
 
 func (p PublicKey) MarshalJSON() ([]byte, error) {
 	type Alias PublicKey
 	return json.Marshal(&struct {
-		Created int64 `json:"created"`
+		Created string `json:"created"`
 		*Alias
 	}{
-		Created: p.Created.Unix(),
+		Created: p.Created.Format(time.RFC3339),
 		Alias:   (*Alias)(&p),
 	})
 }
@@ -46,11 +46,12 @@ func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 
 	for rows.Next() {
 		var publicKey PublicKey
-		var createdAt *int64
+		var createdAt string
 		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.Did, &createdAt); err != nil {
 			return nil, err
 		}
-		publicKey.Created = time.Unix(*createdAt, 0)
+		createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
+		publicKey.Created = &createdAtTime
 		keys = append(keys, publicKey)
 	}
 
@@ -72,11 +73,12 @@ func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
 
 	for rows.Next() {
 		var publicKey PublicKey
-		var createdAt *int64
+		var createdAt string
 		if err := rows.Scan(&publicKey.Did, &publicKey.Key, &publicKey.Name, &createdAt); err != nil {
 			return nil, err
 		}
-		publicKey.Created = time.Unix(*createdAt, 0)
+		createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
+		publicKey.Created = &createdAtTime
 		keys = append(keys, publicKey)
 	}
 

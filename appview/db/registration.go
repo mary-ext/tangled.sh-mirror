@@ -44,19 +44,18 @@ func (d *DB) RegistrationsByDid(did string) ([]Registration, error) {
 	}
 
 	for rows.Next() {
-		var createdAt *int64
-		var registeredAt *int64
+		var createdAt *string
+		var registeredAt *string
 		var registration Registration
 		err = rows.Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
 
 		if err != nil {
 			log.Println(err)
 		} else {
-			createdAtTime := time.Unix(*createdAt, 0)
-
+			createdAtTime, _ := time.Parse(time.RFC3339, *createdAt)
 			var registeredAtTime *time.Time
 			if registeredAt != nil {
-				x := time.Unix(*registeredAt, 0)
+				x, _ := time.Parse(time.RFC3339, *registeredAt)
 				registeredAtTime = &x
 			}
 
@@ -71,8 +70,8 @@ func (d *DB) RegistrationsByDid(did string) ([]Registration, error) {
 
 // returns registered status, did of owner, error
 func (d *DB) RegistrationByDomain(domain string) (*Registration, error) {
-	var createdAt *int64
-	var registeredAt *int64
+	var createdAt *string
+	var registeredAt *string
 	var registration Registration
 
 	err := d.db.QueryRow(`
@@ -88,10 +87,10 @@ func (d *DB) RegistrationByDomain(domain string) (*Registration, error) {
 		}
 	}
 
-	createdAtTime := time.Unix(*createdAt, 0)
+	createdAtTime, _ := time.Parse(time.RFC3339, *createdAt)
 	var registeredAtTime *time.Time
 	if registeredAt != nil {
-		x := time.Unix(*registeredAt, 0)
+		x, _ := time.Parse(time.RFC3339, *registeredAt)
 		registeredAtTime = &x
 	}
 
@@ -156,7 +155,7 @@ func (d *DB) GetRegistrationKey(domain string) (string, error) {
 func (d *DB) Register(domain string) error {
 	_, err := d.db.Exec(`
 		update registrations
-		set registered = strftime('%s', 'now')
+		set registered = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 		where domain = ?;
 		`, domain)
 

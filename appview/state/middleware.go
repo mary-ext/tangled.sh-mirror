@@ -34,6 +34,7 @@ func AuthMiddleware(s *State) Middleware {
 			expiry, err := time.Parse(time.RFC3339, expiryStr)
 			if err != nil {
 				log.Println("invalid expiry time", err)
+				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 				return
 			}
 			pdsUrl := session.Values[appview.SessionPds].(string)

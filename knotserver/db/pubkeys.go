@@ -30,7 +30,7 @@ func (d *DB) AddPublicKeyFromRecord(did string, recordIface map[string]interface
 
 func (d *DB) AddPublicKey(pk PublicKey) error {
 	if pk.Created == "" {
-		pk.Created = time.Now().Format("2006-01-02 15:04:05.99999999 -0700 MST m=-0000.000000000")
+		pk.Created = time.Now().Format(time.RFC3339)
 	}
 
 	query := `insert or ignore into public_keys (did, key, created) values (?, ?, ?)`

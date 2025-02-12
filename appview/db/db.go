@@ -21,14 +21,15 @@ func Make(dbPath string) (*DB, error) {
 			domain text not null unique,
 			did text not null,
 			secret text not null,
-			created integer default (strftime('%s', 'now')),
-			registered integer);
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			registered text
+		);
 		create table if not exists public_keys (
 			id integer primary key autoincrement,
 			did text not null,
 			name text not null,
 			key text not null,
-			created integer default (strftime('%s', 'now')),
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, name, key)
 		);
 		create table if not exists repos (
@@ -36,7 +37,7 @@ func Make(dbPath string) (*DB, error) {
 			did text not null,
 			name text not null,
 			knot text not null,
-			created integer default (strftime('%s', 'now')),
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, name, knot)
 		);
 	`)

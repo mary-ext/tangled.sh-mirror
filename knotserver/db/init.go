@@ -25,7 +25,7 @@ func Setup(dbPath string) (*DB, error) {
 			id integer primary key autoincrement,
 			did text not null,
 			key text not null,
-			created timestamp default current_timestamp,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, key),
 			foreign key (did) references known_dids(did) on delete cascade
 		);
@@ -35,7 +35,7 @@ func Setup(dbPath string) (*DB, error) {
 			did text not null,
 			name text not null,
 			description text not null,
-			created timestamp default current_timestamp,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, name)
 		);
 

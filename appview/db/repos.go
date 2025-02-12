@@ -1,10 +1,12 @@
 package db
 
+import "time"
+
 type Repo struct {
 	Did     string
 	Name    string
 	Knot    string
-	Created *int64
+	Created *time.Time
 }
 
 func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
@@ -18,11 +20,12 @@ func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 
 	for rows.Next() {
 		var repo Repo
-		var createdAt *int64
+		var createdAt string
 		if err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt); err != nil {
 			return nil, err
 		}
-		repo.Created = createdAt
+		createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
+		repo.Created = &createdAtTime
 		repos = append(repos, repo)
 	}
 
@@ -37,11 +40,13 @@ func (d *DB) GetRepo(did, name string) (*Repo, error) {
 	var repo Repo
 
 	row := d.db.QueryRow(`select did, name, knot, created from repos where did = ? and name = ?`, did, name)
-	var createdAt *int64
+
+	var createdAt string
 	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt); err != nil {
 		return nil, err
 	}
-	repo.Created = createdAt
+	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
+	repo.Created = &createdAtTime
 
 	return &repo, nil
 }
