@@ -80,6 +80,10 @@ func (e *Enforcer) AddDomain(domain string) error {
 	return err
 }
 
+func (e *Enforcer) GetDomainsForUser(did string) ([]string, error) {
+	return e.E.Enforcer.GetDomainsForUser(did)
+}
+
 func (e *Enforcer) AddOwner(domain, owner string) error {
 	_, err := e.E.AddGroupingPolicy(owner, "server:owner", domain)
 	return err

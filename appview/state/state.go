@@ -490,8 +490,17 @@ func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
+		user := s.auth.GetUser(r)
+		knots, err := s.enforcer.GetDomainsForUser(user.Did)
+
+		if err != nil {
+			log.Println("invalid user?", err)
+			return
+		}
+
 		s.pages.NewRepo(w, pages.NewRepoParams{
-			LoggedInUser: s.auth.GetUser(r),
+			LoggedInUser: user,
+			Knots:        knots,
 		})
 	case http.MethodPost:
 		user := s.auth.GetUser(r)

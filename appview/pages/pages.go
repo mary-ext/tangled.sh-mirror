@@ -132,6 +132,7 @@ func (p *Pages) Knot(w io.Writer, params KnotParams) error {
 
 type NewRepoParams struct {
 	LoggedInUser *auth.User
+	Knots        []string
 }
 
 func (p *Pages) NewRepo(w io.Writer, params NewRepoParams) error {

@@ -6,9 +6,19 @@
     <label for="name">repo name</label>
     <input type="text" id="name" name="name" required />
 
-    <label for="domain">domain</label>
-    <input type="domain" id="domain" name="domain" required />
+    <br>
 
-    <button type="submit">create repo</button>
+    <fieldset>
+      <legend>select a knot:</legend>
+      {{ range .Knots }}
+      <label>
+        <input type="radio" name="domain" value="{{ . }}"> {{ . }}
+      </label><br>
+      <button type="submit">create repo</button>
+      {{ else }}
+      <p>no knots available</p>
+      {{ end }}
+    </fieldset>
+
 </form>
 {{end}}
