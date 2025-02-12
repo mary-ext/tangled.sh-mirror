@@ -48,6 +48,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			OwnerDid:    id.DID.String(),
 			OwnerHandle: id.Handle.String(),
 			Name:        repoName,
+			Description: result.Description,
 		},
 		RepoIndexResponse: result,
 	})
@@ -88,6 +89,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 			OwnerDid:    id.DID.String(),
 			OwnerHandle: id.Handle.String(),
 			Name:        repoName,
+			Description: result.Description,
 		},
 		RepoLogResponse: result,
 	})
@@ -169,6 +171,7 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 			OwnerDid:    id.DID.String(),
 			OwnerHandle: id.Handle.String(),
 			Name:        repoName,
+			Description: result.Description,
 		},
 		RepoTreeResponse: result,
 	})

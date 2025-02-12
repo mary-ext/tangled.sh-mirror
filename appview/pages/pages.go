@@ -68,6 +68,10 @@ func (p *Pages) execute(name string, w io.Writer, params any) error {
 	return p.t[name].ExecuteTemplate(w, "layouts/base", params)
 }
 
+func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
+	return p.t[name].ExecuteTemplate(w, "layouts/repoBase", params)
+}
+
 func (p *Pages) Login(w io.Writer, params LoginParams) error {
 	return p.execute("user/login", w, params)
 }
@@ -132,6 +136,7 @@ type RepoInfo struct {
 	Name        string
 	OwnerDid    string
 	OwnerHandle string
+	Description string
 }
 
 func (r RepoInfo) OwnerWithAt() string {
@@ -154,7 +159,7 @@ type RepoIndexParams struct {
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 
-	return p.execute("repo/index", w, params)
+	return p.executeRepo("repo/index", w, params)
 }
 
 type RepoLogParams struct {
@@ -174,7 +179,7 @@ type RepoCommitParams struct {
 }
 
 func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
-	return p.execute("repo/commit", w, params)
+	return p.executeRepo("repo/commit", w, params)
 }
 
 type RepoTreeParams struct {
@@ -194,7 +199,7 @@ type RepoBranchesParams struct {
 }
 
 func (p *Pages) RepoBranches(w io.Writer, params RepoBranchesParams) error {
-	return p.execute("repo/branches", w, params)
+	return p.executeRepo("repo/branches", w, params)
 }
 
 type RepoTagsParams struct {
@@ -204,5 +209,5 @@ type RepoTagsParams struct {
 }
 
 func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
-	return p.execute("repo/tags", w, params)
+	return p.executeRepo("repo/tags", w, params)
 }

@@ -1,8 +1,4 @@
-{{ define "title" }}
-    branches | {{ .RepoInfo.FullName }}
-{{ end }}
-
-{{ define "content" }}
+{{ define "repoContent" }}
     {{ $name := .RepoInfo.Name }}
     <h3>branches</h3>
     <div class="refs">

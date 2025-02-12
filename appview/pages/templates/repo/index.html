@@ -1,40 +1,35 @@
-{{define "title"}} {{ .RepoInfo.FullName }} {{ end}}
+{{define "repoContent"}}
 
-{{define "content"}}
+<main>
+  {{- if .IsEmpty }}
+  this repo is empty
+  {{ else }}
+  <div class="log">
+    {{ range .Commits }}
+    <div>
+      <div><a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
+      <pre>{{ .Message }}</pre>
+    </div>
+    <div class="commit-info">
+      {{ .Author.Name }} <a href="mailto:{{ .Author.Email }}" class="commit-email">{{ .Author.Email }}</a>
+      <div>{{ .Author.When.Format "Mon, 02 Jan 2006 15:04:05 -0700" }}</div>
+    </div>
+    <hr />
+    {{ end }}
+  </div>
+  {{- if .Readme }}
+  <article class="readme">
+    {{- .Readme -}}
+  </article>
+  {{- end -}}
+  {{- end -}}
 
-<h1>
-{{ .RepoInfo.FullName }}
-</h1>
-    <main>
-{{- if .IsEmpty }}
-this repo is empty
-{{ else }}
-      <div class="log">
-        {{ range .Commits }}
-        <div>
-          <div><a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
-          <pre>{{ .Message }}</pre>
-        </div>
-        <div class="commit-info">
-          {{ .Author.Name }} <a href="mailto:{{ .Author.Email }}" class="commit-email">{{ .Author.Email }}</a>
-          <div>{{ .Author.When.Format "Mon, 02 Jan 2006 15:04:05 -0700" }}</div>
-        </div>
-        <hr />
-        {{ end }}
-      </div>
-{{- if .Readme }}
-      <article class="readme">
-        {{- .Readme -}}
-      </article>
-{{- end -}}
-{{- end -}}
-
-      <div class="clone-url">
-      <strong>clone</strong>
-        <pre>
+  <div class="clone-url">
+    <strong>clone</strong>
+    <pre>
 git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}
-        </pre>
-      </div>
-    </main>
+    </pre>
+  </div>
+</main>
 {{end}}
 

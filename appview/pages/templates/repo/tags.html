@@ -1,9 +1,4 @@
-{{ define "title" }}
-    tags | {{ .RepoInfo.OwnerWithAt }} /
-    {{ .RepoInfo.Name }}
-{{ end }}
-
-{{ define "content" }}
+{{ define "repoContent" }}
     {{ $name := .RepoInfo.Name }}
     <h3>tags</h3>
     <div class="refs">

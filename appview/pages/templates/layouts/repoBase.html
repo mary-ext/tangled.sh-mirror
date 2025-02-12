@@ -1,0 +1,32 @@
+{{define "title"}} {{ .RepoInfo.FullName }} {{ end}}
+
+{{ define "content" }}
+
+<div id="repo-header">
+  <h1>{{ .RepoInfo.FullName }}</h1>
+  {{ if .RepoInfo.Description }}
+  <h3 class="desc">{{ .RepoInfo.Description }}</h3>
+  {{ else }}
+  <em>this repo has no description</em>
+</div>
+
+<div id="repo-links">
+  <nav>
+    <a href="/{{ .RepoInfo.FullName }}">summary</a>&nbsp;·
+    <a href="/{{ .RepoInfo.FullName }}/branches">branches</a>&nbsp;·
+    <a href="/{{ .RepoInfo.FullName }}/tags">tags</a>
+  </nav>
+<div>
+
+{{ end }}
+
+{{ block "repoContent" . }} {{ end }}
+
+{{ end }}
+
+{{ define "layouts/repoBase" }}
+
+{{ template "layouts/base" . }}
+
+{{ end }}
+
