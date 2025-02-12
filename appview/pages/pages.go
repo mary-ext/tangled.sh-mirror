@@ -37,7 +37,7 @@ func NewPages() *Pages {
 
 			if !strings.HasPrefix(path, "templates/layouts/") {
 				// Add the page template on top of the base
-				tmpl, err := template.New(name).ParseFS(files, path, "templates/layouts/*.html")
+				tmpl, err := template.New(name).ParseFS(files, "templates/layouts/*.html", path)
 				if err != nil {
 					return fmt.Errorf("setting up template: %w", err)
 				}
@@ -68,12 +68,16 @@ func (p *Pages) execute(name string, w io.Writer, params any) error {
 	return p.t[name].ExecuteTemplate(w, "layouts/base", params)
 }
 
+func (p *Pages) executePlain(name string, w io.Writer, params any) error {
+	return p.t[name].Execute(w, params)
+}
+
 func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
 	return p.t[name].ExecuteTemplate(w, "layouts/repoBase", params)
 }
 
 func (p *Pages) Login(w io.Writer, params LoginParams) error {
-	return p.execute("user/login", w, params)
+	return p.executePlain("user/login", w, params)
 }
 
 type TimelineParams struct {

@@ -1,14 +1,30 @@
-{{ define "title" }}login{{end}}
+{{ define "user/login" }}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+        src="https://unpkg.com/htmx.org@2.0.4"
+        integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+        crossorigin="anonymous"
+        ></script>
+    <title>login</title>
+  </head>
+  <body>
+    <main class="content">
+      <h1>login</h1>
+      <form method="POST" action="/login">
+        <label for="handle">handle</label>
+        <input type="text" id="handle" name="handle" required />
 
-{{define "content"}}
-<h1>login</h1>
-<form method="POST" action="/login">
-    <label for="handle">handle</label>
-    <input type="text" id="handle" name="handle" required />
+        <label for="app_password">app password</label>
+        <input type="password" id="app_password" name="app_password" required />
 
-    <label for="app_password">app password</label>
-    <input type="password" id="app_password" name="app_password" required />
+        <button type="submit">login</button>
+      </form>
+    </main>
+  </body>
+</html>
 
-    <button type="submit">login</button>
-</form>
-{{end}}
+{{ end }}
