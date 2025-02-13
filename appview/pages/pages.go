@@ -87,7 +87,7 @@ func (p *Pages) executePlain(name string, w io.Writer, params any) error {
 }
 
 func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
-	return p.t[name].ExecuteTemplate(w, "layouts/repoBase", params)
+	return p.t[name].ExecuteTemplate(w, "layouts/repobase", params)
 }
 
 func (p *Pages) Login(w io.Writer, params LoginParams) error {
