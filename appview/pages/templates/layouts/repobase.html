@@ -10,6 +10,8 @@
   <em>this repo has no description</em>
 </div>
 
+{{ with .IsEmpty }}
+{{ else }}
 <div id="repo-links">
   <nav>
     <a href="/{{ .RepoInfo.FullName }}">summary</a>&nbsp;·
@@ -17,6 +19,7 @@
     <a href="/{{ .RepoInfo.FullName }}/tags">tags</a>
   </nav>
 <div>
+{{ end }}
 
 {{ end }}
 
