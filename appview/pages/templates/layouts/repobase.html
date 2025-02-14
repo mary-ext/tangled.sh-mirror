@@ -11,8 +11,6 @@
     {{ end }}
   </div>
 
-  {{ with .IsEmpty }}
-  {{ else }}
   <div id="repo-links">
     <nav>
       <a href="/{{ .RepoInfo.FullName }}">summary</a>&nbsp;·
@@ -23,7 +21,6 @@
       {{ end }}
     </nav>
   <div>
-  {{ end }}
 
   {{ block "repoContent" . }} {{ end }}
 

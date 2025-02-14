@@ -163,6 +163,10 @@ func (e *Enforcer) IsSettingsAllowed(user, domain, repo string) (bool, error) {
 	return e.E.Enforce(user, domain, repo, "repo:settings")
 }
 
+func (e *Enforcer) IsCollaboratorInviteAllowed(user, domain, repo string) (bool, error) {
+	return e.E.Enforce(user, domain, repo, "repo:invite")
+}
+
 // keyMatch2Func is a wrapper for keyMatch2 to make it compatible with Casbin
 func keyMatch2Func(args ...interface{}) (interface{}, error) {
 	name1 := args[0].(string)

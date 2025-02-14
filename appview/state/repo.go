@@ -251,6 +251,8 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println(result)
+
 	user := s.auth.GetUser(r)
 	s.pages.RepoBranches(w, pages.RepoBranchesParams{
 		LoggedInUser: user,
@@ -379,9 +381,24 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(repoCollaborators)
 
+		isCollaboratorInviteAllowed := false
+		if user != nil {
+			ok, err := s.enforcer.IsCollaboratorInviteAllowed(user.Did, f.Knot, f.OwnerSlashRepo())
+			if err == nil && ok {
+				isCollaboratorInviteAllowed = true
+			}
+		}
+
 		s.pages.RepoSettings(w, pages.RepoSettingsParams{
-			LoggedInUser:  user,
-			Collaborators: repoCollaborators,
+			LoggedInUser: user,
+			RepoInfo: pages.RepoInfo{
+				OwnerDid:        f.OwnerDid(),
+				OwnerHandle:     f.OwnerHandle(),
+				Name:            f.RepoName,
+				SettingsAllowed: settingsAllowed(s, user, f),
+			},
+			Collaborators:               repoCollaborators,
+			IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
 		})
 	}
 }

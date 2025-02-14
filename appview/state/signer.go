@@ -118,7 +118,7 @@ func (s *SignedClient) AddCollaborator(ownerDid, repoName, memberDid string) (*h
 	const (
 		Method = "POST"
 	)
-	endpoint := fmt.Sprintf("/{ownerDid}/{repoName}/collaborator/add")
+	endpoint := fmt.Sprintf("/%s/%s/collaborator/add", ownerDid, repoName)
 
 	body, _ := json.Marshal(map[string]interface{}{
 		"did": memberDid,

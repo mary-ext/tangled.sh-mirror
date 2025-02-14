@@ -242,8 +242,10 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 }
 
 type RepoSettingsParams struct {
-	LoggedInUser  *auth.User
-	Collaborators [][]string
+	LoggedInUser                *auth.User
+	RepoInfo                    RepoInfo
+	Collaborators               [][]string
+	IsCollaboratorInviteAllowed bool
 }
 
 func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
