@@ -14,35 +14,34 @@
         <body class="flex items-center justify-center min-h-screen">
             <main class="max-w-64">
                 <h1 class="text-center text-2xl font-semibold">tangled.sh</h1>
-                <form class="w-full" hx-post="/login" hx-swap="none" hx-disabled-elt="this">
-                  <div class="flex flex-col">
-                    <label for="handle">handle</label>
-                    <input 
-                      type="text"
-                      id="handle"
-                      name="handle"
-                      required
-                      class="bg-gray-100 rounded p-1"
-                      />
-                  </div>
+                <form
+                    class="w-full"
+                    hx-post="/login"
+                    hx-swap="none"
+                    hx-disabled-elt="this"
+                >
+                    <div class="flex flex-col">
+                        <label for="handle">handle</label>
+                        <input type="text" id="handle" name="handle" required />
+                    </div>
 
-                  <div class="flex flex-col mt-2">
-                    <label for="app_password">app password</label>
-                    <input
-                      type="password"
-                      id="app_password"
-                      name="app_password"
-                      required
-                      class="bg-gray-100 rounded p-1"
-                      />
-                  </div>
+                    <div class="flex flex-col mt-2">
+                        <label for="app_password">app password</label>
+                        <input
+                            type="password"
+                            id="app_password"
+                            name="app_password"
+                            required
+                        />
+                    </div>
 
-                  <button
-                      class="btn w-full my-2 mt-6"
-                      type="submit"
-                      id="login-button">
-                      <span>login</span>
-                  </button>
+                    <button
+                        class="btn w-full my-2 mt-6"
+                        type="submit"
+                        id="login-button"
+                    >
+                        <span>login</span>
+                    </button>
                 </form>
                 <p id="login-msg" class="error w-full"></p>
             </main>

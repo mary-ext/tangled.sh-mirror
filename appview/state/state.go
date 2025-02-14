@@ -100,7 +100,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		s.pages.HxRedirect(w, "/")
 		return
 	}
 }
