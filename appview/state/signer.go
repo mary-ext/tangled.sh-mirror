@@ -113,3 +113,21 @@ func (s *SignedClient) AddMember(did string) (*http.Response, error) {
 
 	return s.client.Do(req)
 }
+
+func (s *SignedClient) AddCollaborator(ownerDid, repoName, memberDid string) (*http.Response, error) {
+	const (
+		Method = "POST"
+	)
+	endpoint := fmt.Sprintf("/{ownerDid}/{repoName}/collaborator/add")
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"did": memberDid,
+	})
+
+	req, err := s.newRequest(Method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}

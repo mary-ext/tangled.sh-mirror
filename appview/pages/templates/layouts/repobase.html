@@ -2,33 +2,33 @@
 
 {{ define "content" }}
 
-<div id="repo-header">
-  <h1>{{ .RepoInfo.FullName }}</h1>
-  {{ if .RepoInfo.Description }}
-  <h3 class="desc">{{ .RepoInfo.Description }}</h3>
+  <div id="repo-header">
+    <h1>{{ .RepoInfo.FullName }}</h1>
+    {{ if .RepoInfo.Description }}
+      <h3 class="desc">{{ .RepoInfo.Description }}</h3>
+    {{ else }}
+      <em>this repo has no description</em>
+    {{ end }}
+  </div>
+
+  {{ with .IsEmpty }}
   {{ else }}
-  <em>this repo has no description</em>
-</div>
+  <div id="repo-links">
+    <nav>
+      <a href="/{{ .RepoInfo.FullName }}">summary</a>&nbsp;·
+      <a href="/{{ .RepoInfo.FullName }}/branches">branches</a>&nbsp;·
+      <a href="/{{ .RepoInfo.FullName }}/tags">tags</a>
+      {{ if .RepoInfo.SettingsAllowed }}
+        ·&nbsp;<a href="/{{ .RepoInfo.FullName }}/settings">settings</a>
+      {{ end }}
+    </nav>
+  <div>
+  {{ end }}
 
-{{ with .IsEmpty }}
-{{ else }}
-<div id="repo-links">
-  <nav>
-    <a href="/{{ .RepoInfo.FullName }}">summary</a>&nbsp;·
-    <a href="/{{ .RepoInfo.FullName }}/branches">branches</a>&nbsp;·
-    <a href="/{{ .RepoInfo.FullName }}/tags">tags</a>
-  </nav>
-<div>
-{{ end }}
-
-{{ end }}
-
-{{ block "repoContent" . }} {{ end }}
+  {{ block "repoContent" . }} {{ end }}
 
 {{ end }}
 
 {{ define "layouts/repobase" }}
-
-{{ template "layouts/base" . }}
-
+  {{ template "layouts/base" . }}
 {{ end }}

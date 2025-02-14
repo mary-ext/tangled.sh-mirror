@@ -104,6 +104,36 @@ func RoleMiddleware(s *State, group string) Middleware {
 	}
 }
 
+func RepoPermissionMiddleware(s *State, requiredPerm string) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// requires auth also
+			actor := s.auth.GetUser(r)
+			if actor == nil {
+				// we need a logged in user
+				log.Printf("not logged in, redirecting")
+				http.Error(w, "Forbiden", http.StatusUnauthorized)
+				return
+			}
+			f, err := fullyResolvedRepo(r)
+			if err != nil {
+				http.Error(w, "malformed url", http.StatusBadRequest)
+				return
+			}
+
+			ok, err := s.enforcer.E.Enforce(actor.Did, f.Knot, f.OwnerSlashRepo(), requiredPerm)
+			if err != nil || !ok {
+				// we need a logged in user
+				log.Printf("%s does not have perms of a %s in repo %s", actor.Did, requiredPerm, f.OwnerSlashRepo())
+				http.Error(w, "Forbiden", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func StripLeadingAt(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		path := req.URL.Path

@@ -382,6 +382,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 				AddedAt: &addedAt,
 			}},
 	})
+
 	// invalid record
 	if err != nil {
 		log.Printf("failed to create record: %s", err)
@@ -563,11 +564,6 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// invalid record
-	if err != nil {
-		log.Printf("failed to create record: %s", err)
-		return
-	}
 	log.Println("created atproto record: ", resp.Uri)
 
 	return
@@ -611,6 +607,13 @@ func (s *State) UserRouter() http.Handler {
 			r.Get("/info/refs", s.InfoRefs)
 			r.Post("/git-upload-pack", s.UploadPack)
 
+			// settings routes, needs auth
+			r.Group(func(r chi.Router) {
+				r.With(RepoPermissionMiddleware(s, "repo:settings")).Route("/settings", func(r chi.Router) {
+					r.Get("/", s.RepoSettings)
+					r.With(RepoPermissionMiddleware(s, "repo:invite")).Put("/collaborator", s.AddCollaborator)
+				})
+			})
 		})
 	})
 

@@ -515,7 +515,7 @@ func (h *Handle) AddRepoCollaborator(w http.ResponseWriter, r *http.Request) {
 	h.jc.AddDid(data.Did)
 
 	repoName := filepath.Join(ownerDid, repo)
-	if err := h.e.AddRepo(data.Did, ThisServer, repoName); err != nil {
+	if err := h.e.AddCollaborator(data.Did, ThisServer, repoName); err != nil {
 		l.Error("adding repo collaborator", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -527,7 +527,7 @@ func (h *Handle) AddRepoCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {

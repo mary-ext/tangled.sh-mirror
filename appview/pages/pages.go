@@ -152,10 +152,11 @@ func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
 }
 
 type RepoInfo struct {
-	Name        string
-	OwnerDid    string
-	OwnerHandle string
-	Description string
+	Name            string
+	OwnerDid        string
+	OwnerHandle     string
+	Description     string
+	SettingsAllowed bool
 }
 
 func (r RepoInfo) OwnerWithAt() string {
@@ -177,7 +178,6 @@ type RepoIndexParams struct {
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
-
 	return p.executeRepo("repo/index", w, params)
 }
 
@@ -239,6 +239,15 @@ type RepoBlobParams struct {
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	return p.executeRepo("repo/blob", w, params)
+}
+
+type RepoSettingsParams struct {
+	LoggedInUser  *auth.User
+	Collaborators [][]string
+}
+
+func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
+	return p.executeRepo("repo/settings", w, params)
 }
 
 func (p *Pages) Static() http.Handler {

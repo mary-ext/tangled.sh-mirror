@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"database/sql"
+	"fmt"
 	"path"
 	"strings"
 
@@ -95,12 +96,31 @@ func (e *Enforcer) AddMember(domain, member string) error {
 }
 
 func (e *Enforcer) AddRepo(member, domain, repo string) error {
+	// sanity check, repo must be of the form ownerDid/repo
+	if parts := strings.SplitN(repo, "/", 2); !strings.HasPrefix(parts[0], "did:") {
+		return fmt.Errorf("invalid repo: %s", repo)
+	}
+
 	_, err := e.E.AddPolicies([][]string{
+		{member, domain, repo, "repo:settings"},
 		{member, domain, repo, "repo:push"},
 		{member, domain, repo, "repo:owner"},
 		{member, domain, repo, "repo:invite"},
 		{member, domain, repo, "repo:delete"},
 		{"server:owner", domain, repo, "repo:delete"}, // server owner can delete any repo
+	})
+	return err
+}
+
+func (e *Enforcer) AddCollaborator(collaborator, domain, repo string) error {
+	// sanity check, repo must be of the form ownerDid/repo
+	if parts := strings.SplitN(repo, "/", 2); !strings.HasPrefix(parts[0], "did:") {
+		return fmt.Errorf("invalid repo: %s", repo)
+	}
+
+	_, err := e.E.AddPolicies([][]string{
+		{collaborator, domain, repo, "repo:settings"},
+		{collaborator, domain, repo, "repo:push"},
 	})
 	return err
 }
@@ -137,6 +157,10 @@ func (e *Enforcer) IsServerMember(user, domain string) (bool, error) {
 
 func (e *Enforcer) IsPushAllowed(user, domain, repo string) (bool, error) {
 	return e.E.Enforce(user, domain, repo, "repo:push")
+}
+
+func (e *Enforcer) IsSettingsAllowed(user, domain, repo string) (bool, error) {
+	return e.E.Enforce(user, domain, repo, "repo:settings")
 }
 
 // keyMatch2Func is a wrapper for keyMatch2 to make it compatible with Casbin
