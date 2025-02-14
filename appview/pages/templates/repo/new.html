@@ -1,24 +1,45 @@
-{{define "title"}}new repo{{end}}
+{{ define "title" }}new repo{{ end }}
 
-{{define "content"}}
-<h1>new repo</h1>
-<form method="POST" action="/repo/new">
-    <label for="name">repo name</label>
-    <input type="text" id="name" name="name" required />
+{{ define "content" }}
+    <div class="container">
+        <h1>new repo</h1>
+        <form>
+            <label for="name">repo name</label>
+            <input
+                type="text"
+                id="name"
+                name="name"
+                class="px-1 border-2 border-blue-100"
+                required
+            />
 
-    <br>
+            <fieldset class="border-blue-100 border-2">
+                <legend>select a knot:</legend>
+                {{ range .Knots }}
+                    <label>
+                        <input
+                            class="px-1 border-2 border-blue-500"
+                            type="radio"
+                            name="domain"
+                            value="{{ . }}"
+                        />
+                        {{ . }} </label
+                    ><br />
+                {{ else }}
+                    <p>no knots available</p>
+                {{ end }}
+            </fieldset>
 
-    <fieldset>
-      <legend>select a knot:</legend>
-      {{ range .Knots }}
-      <label>
-        <input type="radio" name="domain" value="{{ . }}"> {{ . }}
-      </label><br>
-      <button type="submit">create repo</button>
-      {{ else }}
-      <p>no knots available</p>
-      {{ end }}
-    </fieldset>
+            <button
+                type="submit"
+                hx-post="/repo/new"
+                hx-swap="none"
+                class="my-2 btn"
+            >
+                create repo
+            </button>
+        </form>
+    </div>
 
-</form>
-{{end}}
+    <div id="repo" class="error"></div>
+{{ end }}

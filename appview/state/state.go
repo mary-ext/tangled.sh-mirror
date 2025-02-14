@@ -431,7 +431,7 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		knots, err := s.enforcer.GetDomainsForUser(user.Did)
 
 		if err != nil {
-			log.Println("invalid user?", err)
+			s.pages.Notice(w, "repo", "Invalid user account.")
 			return
 		}
 
@@ -444,40 +444,41 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 
 		domain := r.FormValue("domain")
 		if domain == "" {
-			log.Println("invalid form")
+			s.pages.Notice(w, "repo", "Invalid form submission&mdash;missing knot domain.")
 			return
 		}
 
 		repoName := r.FormValue("name")
 		if repoName == "" {
-			log.Println("invalid form")
+			s.pages.Notice(w, "repo", "Invalid repo name.")
 			return
 		}
 
 		ok, err := s.enforcer.E.Enforce(user.Did, domain, domain, "repo:create")
 		if err != nil || !ok {
-			w.Write([]byte("domain inaccessible to you"))
+			s.pages.Notice(w, "repo", "You do not have permission to create a repo in this knot.")
 			return
 		}
 
 		secret, err := s.db.GetRegistrationKey(domain)
 		if err != nil {
-			log.Printf("no key found for domain %s: %s\n", domain, err)
+			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", domain))
 			return
 		}
 
 		client, err := NewSignedClient(domain, secret)
 		if err != nil {
-			log.Println("failed to create client to ", domain)
+			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
+			return
 		}
 
 		resp, err := client.NewRepo(user.Did, repoName)
 		if err != nil {
-			log.Println("failed to send create repo request", err)
+			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
 			return
 		}
 		if resp.StatusCode != http.StatusNoContent {
-			log.Println("server returned ", resp.StatusCode)
+			s.pages.Notice(w, "repo", fmt.Sprintf("Server returned unexpected status: %d", resp.StatusCode))
 			return
 		}
 
@@ -489,18 +490,19 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		err = s.db.AddRepo(repo)
 		if err != nil {
-			log.Println("failed to add repo to db", err)
+			s.pages.Notice(w, "repo", "Failed to save repository information.")
 			return
 		}
 
 		// acls
 		err = s.enforcer.AddRepo(user.Did, domain, filepath.Join(user.Did, repoName))
 		if err != nil {
-			log.Println("failed to set up acls", err)
+			s.pages.Notice(w, "repo", "Failed to set up repository permissions.")
 			return
 		}
 
-		w.Write([]byte("created!"))
+		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Handle, repoName))
+		return
 	}
 }
 

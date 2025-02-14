@@ -1,8 +1,8 @@
 [build]
-cmd = "go build -o .bin/app ./cmd/appview/main.go"
+cmd = "tailwindcss -i input.css -o ./appview/pages/static/tw.css && go build -o .bin/app ./cmd/appview/main.go"
 bin = ".bin/app"
 root = "."
 
 exclude_regex = [".*_templ.go"]
-include_ext = ["go", "templ", "html"]
+include_ext = ["go", "templ", "html", "css"]
 exclude_dir = ["target", "atrium"]
