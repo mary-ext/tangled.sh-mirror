@@ -67,7 +67,10 @@
       air-watcher = name:
         pkgs.writeShellScriptBin "run"
         ''
-          ${pkgs.air}/bin/air -c /dev/null -build.cmd "cp ${htmx-src} appview/pages/static/htmx.min.js && ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o ./appview/pages/static/tw.css && ${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" -build.bin "./out/${name}.out"
+          ${pkgs.air}/bin/air -c /dev/null \
+          -build.cmd "cp -f ${htmx-src} appview/pages/static/htmx.min.js && ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o ./appview/pages/static/tw.css && ${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" \
+          -build.bin "./out/${name}.out" \
+          -build.include_ext "go,html,css"
         '';
     in {
       watch-appview = {

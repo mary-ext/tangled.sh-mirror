@@ -77,29 +77,25 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case http.MethodPost:
-		handle := r.FormValue("handle")
+		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
 		appPassword := r.FormValue("app_password")
-
-		fmt.Println("handle", handle)
-		fmt.Println("app_password", appPassword)
 
 		resolved, err := s.resolver.ResolveIdent(ctx, handle)
 		if err != nil {
-			log.Printf("resolving identity: %s", err)
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			s.pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
 			return
 		}
 
 		atSession, err := s.auth.CreateInitialSession(ctx, resolved, appPassword)
 		if err != nil {
-			log.Printf("creating initial session: %s", err)
+			s.pages.Notice(w, "login-msg", "Invalid handle or password.")
 			return
 		}
 		sessionish := auth.CreateSessionWrapper{ServerCreateSession_Output: atSession}
 
 		err = s.auth.StoreSession(r, w, &sessionish, resolved.PDSEndpoint())
 		if err != nil {
-			log.Printf("storing session: %s", err)
+			s.pages.Notice(w, "login-msg", "Failed to login, try again later.")
 			return
 		}
 
