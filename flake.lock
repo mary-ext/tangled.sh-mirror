@@ -1,5 +1,17 @@
 {
   "nodes": {
+    "htmx-src": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-nm6avZuEBg67SSyyZUhjpXVNstHHgUxrtBHqJgowU08=",
+        "type": "file",
+        "url": "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
+      }
+    },
     "indigo": {
       "flake": false,
       "locked": {
@@ -33,6 +45,7 @@
     },
     "root": {
       "inputs": {
+        "htmx-src": "htmx-src",
         "indigo": "indigo",
         "nixpkgs": "nixpkgs"
       }

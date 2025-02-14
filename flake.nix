@@ -7,12 +7,17 @@
       url = "github:oppiliappan/indigo";
       flake = false;
     };
+    htmx-src = {
+      url = "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js";
+      flake = false;
+    };
   };
 
   outputs = {
-    self,
-    nixpkgs,
-    indigo,
+      self
+      , nixpkgs
+      , indigo
+      , htmx-src
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -62,7 +67,7 @@
       air-watcher = name:
         pkgs.writeShellScriptBin "run"
         ''
-          ${pkgs.air}/bin/air -c /dev/null -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" -build.bin "./out/${name}.out"
+          ${pkgs.air}/bin/air -c /dev/null -build.cmd "cp ${htmx-src} appview/pages/static/htmx.min.js && ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o ./appview/pages/static/tw.css && ${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" -build.bin "./out/${name}.out"
         '';
     in {
       watch-appview = {
