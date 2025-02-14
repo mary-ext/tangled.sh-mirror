@@ -1,10 +1,5 @@
-<html>
-    <title>404</title>
-    {{ template "layouts/head" . }}
-    <body>
-        {{ template "layouts/nav" . }}
-        <main>
-            <h3>404 &mdash; nothing like that here.</h3>
-        </main>
-    </body>
-</html>
+{{ define "title" }}404 &middot; tangled{{ end }}
+
+{{ define "content" }}
+    <h3>404 &mdash; nothing like that here!</h3>
+{{ end }}

@@ -1,10 +1,5 @@
-<html>
-    <title>500</title>
-    {{ template "layouts/head" . }}
-    <body>
-        {{ template "layouts/nav" . }}
-        <main>
-            <h3>500 &mdash; something broke!</h3>
-        </main>
-    </body>
-</html>
+{{ define "title" }}500 &middot; tangled{{ end }}
+
+{{ define "content" }}
+    <h3>500 &mdash; something broke!</h3>
+{{ end }}

@@ -612,6 +612,10 @@ func (s *State) UserRouter() http.Handler {
 		})
 	})
 
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		s.pages.Error404(w)
+	})
+
 	return r
 }
 
@@ -660,5 +664,8 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Get("/keys/{user}", s.Keys)
 
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		s.pages.Error404(w)
+	})
 	return r
 }

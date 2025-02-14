@@ -248,3 +248,11 @@ func (p *Pages) Static() http.Handler {
 	}
 	return http.StripPrefix("/static/", http.FileServer(http.FS(sub)))
 }
+
+func (p *Pages) Error500(w io.Writer) error {
+	return p.execute("errors/500", w, nil)
+}
+
+func (p *Pages) Error404(w io.Writer) error {
+	return p.execute("errors/404", w, nil)
+}
