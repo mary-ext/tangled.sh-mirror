@@ -2,22 +2,22 @@
     <h3>settings</h3>
     <em>collaborators</em>
     <ol>
-      {{ range .Collaborators }}
-        <li>
-          {{ index . 0 }} - {{ index . 3 }}
-        </li>
-      {{ else }}
-      <p>no members</p>
-      {{ end }}
+        {{ range .Collaborators }}
+            <li>
+                {{ index . 0 }} -
+                {{ index . 3 }}
+            </li>
+        {{ else }}
+            <p>no members</p>
+        {{ end }}
     </ol>
 
     {{ if .IsCollaboratorInviteAllowed }}
-    <h3>add collaborator</h3>
-    <form hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator">
-        <label for="collaborator">did or handle:</label>
-        <input type="text" id="collaborator" name="collaborator" required>
-        <button type="text">add collaborator</button>
-    </form>
+        <h3>add collaborator</h3>
+        <form hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator">
+            <label for="collaborator">did or handle:</label>
+            <input type="text" id="collaborator" name="collaborator" required />
+            <button class="btn my-2" type="text">add collaborator</button>
+        </form>
     {{ end }}
-{{end}}
-
+{{ end }}

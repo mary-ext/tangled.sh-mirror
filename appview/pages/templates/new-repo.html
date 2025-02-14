@@ -1,15 +1,14 @@
-{{define "title"}}new repo{{end}}
+{{ define "title" }}new repo{{ end }}
 
-{{define "content"}}
-<h1>new repo</h1>
-<form method="POST" action="/repo/new">
-  <label for="name">repo name</label>
-  <input type="text" id="name" name="name" required>
+{{ define "content" }}
+    <h1>new repo</h1>
+    <form method="POST" action="/repo/new">
+        <label for="name">repo name</label>
+        <input type="text" id="name" name="name" required />
 
-  <label for="domain">domain</label>
-  <input type="domain" id="domain" name="domain" required>
+        <label for="domain">domain</label>
+        <input type="domain" id="domain" name="domain" required />
 
-  <button type="submit">create repo</button>
-</form>
-{{end}}
-
+        <button class="btn my-2" type="submit">create repo</button>
+    </form>
+{{ end }}

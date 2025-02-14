@@ -14,7 +14,7 @@
       <code>registered on: {{.Registration.Registered}}</code>
       {{ else }}
       <code>pending registration</code>
-      <button hx-post="/knots/{{.Domain}}/init">initialize</button>
+      <button class="btn my-2" hx-post="/knots/{{.Domain}}/init" hx-swap="none">initialize</button>
       {{ end }}
     </p>
 
@@ -34,7 +34,7 @@
     <form hx-put="/knots/{{.Registration.Domain}}/member">
         <label for="member">did or handle:</label>
         <input type="text" id="member" name="member" required>
-        <button type="text">add member</button>
+        <button class="btn my-2" type="text">add member</button>
     </form>
     {{ end }}
 {{end}}

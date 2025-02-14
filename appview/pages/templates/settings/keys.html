@@ -1,33 +1,38 @@
-{{define "title"}}settings{{end}}
+{{ define "title" }}settings{{ end }}
 
-{{define "content"}}
+{{ define "content" }}
     <h1>settings</h1>
 
     <h2>profile</h2>
-    <p><strong>handle:</strong> {{.LoggedInUser.Handle}}</p>
-    <p><strong>did:</strong> {{.LoggedInUser.Did}}</p>
-    <p><strong>pds:</strong> {{.LoggedInUser.Pds}}</p>
+    <p><strong>handle:</strong> {{ .LoggedInUser.Handle }}</p>
+    <p><strong>did:</strong> {{ .LoggedInUser.Did }}</p>
+    <p><strong>pds:</strong> {{ .LoggedInUser.Pds }}</p>
 
     <h2>ssh keys</h2>
     <form hx-put="/settings/keys">
         <label for="name">key name:</label>
-        <input type="text" id="name" name="name" required>
+        <input type="text" id="name" name="name" required />
 
         <label for="key">pub key:</label>
-        <textarea id="key" name="key" placeholder="ssh-rsa AAAAAA..." required></textarea>
+        <textarea
+            id="key"
+            name="key"
+            placeholder="ssh-rsa AAAAAA..."
+            required
+        ></textarea>
 
-        <button type="submit">add key</button>
+        <button class="btn my-2" type="submit">add key</button>
     </form>
 
     <h3>existing keys</h3>
     <ul id="key-list">
-        {{range .PubKeys}}
+        {{ range .PubKeys }}
             <li>
-                <strong>{{.Name}}</strong><br>
-                <code>{{.Key}}</code>
+                <strong>{{ .Name }}</strong><br />
+                <code>{{ .Key }}</code>
             </li>
-        {{else}}
+        {{ else }}
             <p>no ssh keys added yet</p>
-        {{end}}
+        {{ end }}
     </ul>
-{{end}}
+{{ end }}

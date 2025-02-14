@@ -1,45 +1,56 @@
-{{define "title"}}knots{{end}}
+{{ define "title" }}knots{{ end }}
 
-{{define "content"}}
+{{ define "content" }}
     <h1>knots</h1>
 
     <h2>register</h2>
     put in a domain, and use the key while booting up your knotserver
     <form hx-post="/knots/key">
         <label for="domain">domain:</label>
-        <input type="text" id="domain" name="domain" required>
-        <button type="text">generate key</button>
+        <input type="text" id="domain" name="domain" required />
+        <button class="btn my-2" type="text">generate key</button>
     </form>
 
     <h3>my knots</h3>
     <ul id="my-knots">
-        {{range .Registrations}}
-        {{ if .Registered }}
-            <li>
-                <code>domain: <a href="/knots/{{.Domain}}">{{.Domain}}</a></code><br>
-                <code>opened by: {{.ByDid}}</code><br>
-                <code>on: {{.Created}}</code><br>
-                <code>registered on: {{.Registered}}</code>
-            </li>
-        {{ end }}
-        {{else}}
+        {{ range .Registrations }}
+            {{ if .Registered }}
+                <li>
+                    <code
+                        >domain:
+                        <a href="/knots/{{ .Domain }}">{{ .Domain }}</a></code
+                    ><br />
+                    <code>opened by: {{ .ByDid }}</code><br />
+                    <code>on: {{ .Created }}</code><br />
+                    <code>registered on: {{ .Registered }}</code>
+                </li>
+            {{ end }}
+        {{ else }}
             <p>you don't have any knots yet</p>
-        {{end}}
+        {{ end }}
     </ul>
     <h3>pending registrations</h3>
     <ul id="pending-registrations">
-        {{range .Registrations}}
-        {{ if not .Registered }}
-            <li>
-                <code>domain: <a href="/knots/{{.Domain}}">{{.Domain}}</a></code><br>
-                <code>opened by: {{.ByDid}}</code><br>
-                <code>on: {{.Created}}</code><br>
-                <code>pending registration</code>
-                <button hx-post="/knots/{{.Domain}}/init">initialize</button>
-            </li>
-        {{ end }}
-        {{else}}
+        {{ range .Registrations }}
+            {{ if not .Registered }}
+                <li>
+                    <code
+                        >domain:
+                        <a href="/knots/{{ .Domain }}">{{ .Domain }}</a></code
+                    ><br />
+                    <code>opened by: {{ .ByDid }}</code><br />
+                    <code>on: {{ .Created }}</code><br />
+                    <code>pending registration</code>
+                    <button
+                        class="btn my-2"
+                        hx-post="/knots/{{ .Domain }}/init"
+                    >
+                        initialize
+                    </button>
+                </li>
+            {{ end }}
+        {{ else }}
             <p>no registrations yet</p>
-        {{end}}
+        {{ end }}
     </ul>
-{{end}}
+{{ end }}

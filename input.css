@@ -27,17 +27,17 @@
     @layer components {
         .btn {
             @apply relative z-10 inline-flex min-h-[36px] cursor-pointer items-center
-                justify-center border-0 bg-transparent px-3 pb-[0.3rem] text-base
-                text-gray-800 before:absolute before:inset-0 before:-z-10
-                before:block before:rounded before:border before:border-cyan-200
-                before:bg-white before:shadow-[0_4px_3px_0_rgba(20,20,96,0.1),inset_0_-5px_0_0_#ebebf6]
-                before:content-[''] hover:before:border-cyan-600
-                hover:before:bg-cyan-600
-                hover:before:shadow-[0_4px_3px_0_rgba(20,20,96,0.1),inset_0_-5px_0_0_#c2b3ff]
-                focus:outline-none focus-visible:before:outline
-                focus-visible:before:outline-4 focus-visible:before:outline-[#fc440f]
-                active:border-t-4 active:border-transparent active:py-1
-                active:before:shadow-none;
+            justify-center border-0 bg-transparent px-3 pb-[0.3rem] text-base
+            text-gray-900 before:absolute before:inset-0 before:-z-10
+            before:block before:rounded-sm before:border before:border-blue-200
+            before:bg-white before:shadow-[0_4px_3px_0_rgba(20,20,96,0.1),inset_0_-5px_0_0_#e5edff]
+            before:content-[''] hover:before:border-blue-300
+            hover:before:bg-blue-50
+            hover:before:shadow-[0_4px_3px_0_rgba(20,20,96,0.1),inset_0_-5px_0_0_#e5edff]
+            focus:outline-none focus-visible:before:outline
+            focus-visible:before:outline-4 focus-visible:before:outline-blue-500
+            active:border-t-4 active:border-transparent active:py-1
+            active:before:shadow-none;
         }
     }
 
