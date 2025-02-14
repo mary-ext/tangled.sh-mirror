@@ -30,7 +30,7 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		w.Write([]byte("unimplemented"))
+		s.pages.Notice(w, "settings-keys", "Unimplemented.")
 		log.Println("unimplemented")
 		return
 	case http.MethodPut:
@@ -43,11 +43,13 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
 		if err != nil {
 			log.Printf("parsing public key: %s", err)
+			s.pages.Notice(w, "settings-keys", "That doesn't look like a valid public key. Make sure it's a <strong>public</strong> key.")
 			return
 		}
 
 		if err := s.db.AddPublicKey(did, name, key); err != nil {
 			log.Printf("adding public key: %s", err)
+			s.pages.Notice(w, "settings-keys", "Failed to add public key.")
 			return
 		}
 
@@ -66,11 +68,12 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		// invalid record
 		if err != nil {
 			log.Printf("failed to create record: %s", err)
+			s.pages.Notice(w, "settings-keys-bad", "Failed to create record.")
 			return
 		}
 
 		log.Println("created atproto record: ", resp.Uri)
-
+		s.pages.HxLocation(w, "/settings")
 		return
 	}
 }

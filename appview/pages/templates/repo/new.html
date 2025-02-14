@@ -2,42 +2,42 @@
 
 {{ define "content" }}
     <h1>new repo</h1>
-    <form>
-        <label for="name">repo name</label>
-        <input
-            type="text"
-            id="name"
-            name="name"
-            class="px-1 border-2 border-blue-100"
-            required
-        />
+    <form hx-post="/repo/new" class="mt-6 space-y-6" hx-swap="none">
+        <div class="space-y-2">
+            <label for="name" class="block">repo name</label>
+            <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                class="w-full max-w-md"
+            />
+        </div>
 
-        <fieldset class="border-blue-100 border-2">
-            <legend>select a knot:</legend>
-            {{ range .Knots }}
-                <label>
-                    <input
-                        class="px-1 border-2 border-blue-500"
-                        type="radio"
-                        name="domain"
-                        value="{{ . }}"
-                    />
-                    {{ . }} </label
-                ><br />
-            {{ else }}
-                <p>no knots available</p>
-            {{ end }}
+        <fieldset class="space-y-3">
+            <legend class="font-medium">select a knot</legend>
+            <div class="space-y-2">
+                {{ range .Knots }}
+                    <div>
+                        <label class="inline-flex items-center">
+                            <input
+                                type="radio"
+                                name="domain"
+                                value="{{ . }}"
+                                class="mr-2"
+                            />
+                            <span>{{ . }}</span>
+                        </label>
+                    </div>
+                {{ else }}
+                    <p>No knots available</p>
+                {{ end }}
+            </div>
         </fieldset>
 
-        <button
-            type="submit"
-            hx-post="/repo/new"
-            hx-swap="none"
-            class="my-2 btn"
-        >
-            create repo
-        </button>
+        <div class="space-y-2">
+            <button type="submit" class="btn">create repo</button>
+            <div id="repo" class="error"></div>
+        </div>
     </form>
-
-    <div id="repo" class="error"></div>
 {{ end }}
