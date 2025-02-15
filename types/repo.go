@@ -12,6 +12,7 @@ type RepoIndexResponse struct {
 	Readme      template.HTML    `json:"readme,omitempty"`
 	Commits     []*object.Commit `json:"commits,omitempty"`
 	Description string           `json:"description,omitempty"`
+	Files       []NiceTree       `json:"files,omitempty"`
 }
 
 type RepoLogResponse struct {

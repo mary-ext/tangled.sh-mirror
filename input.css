@@ -16,7 +16,7 @@
     }
 
     ::selection {
-        @apply bg-green-400;
+        @apply bg-yellow-400;
         @apply text-black;
         @apply bg-opacity-30;
     }

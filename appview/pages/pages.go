@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/dustin/go-humanize"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/types"
@@ -48,6 +49,7 @@ func funcMap() template.FuncMap {
 			}
 			return pairs, nil
 		},
+		"timeFmt": humanize.Time,
 	}
 }
 

@@ -87,15 +87,20 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(commits) >= 3 {
-		commits = commits[:3]
+	files, err := gr.FileTree("")
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		l.Error("file tree", "error", err.Error())
+		return
 	}
+
 	resp := types.RepoIndexResponse{
 		IsEmpty:     false,
 		Ref:         mainBranch,
 		Commits:     commits,
 		Description: getDescription(path),
 		Readme:      readmeContent,
+		Files:       files,
 	}
 
 	writeJSON(w, resp)

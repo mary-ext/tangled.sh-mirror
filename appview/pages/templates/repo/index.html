@@ -4,18 +4,62 @@
   {{- if .IsEmpty }}
   this repo is empty
   {{ else }}
-  <div class="log">
-    {{ range .Commits }}
-    <div>
-      <div><a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="commit-hash">{{ slice .Hash.String 0 8 }}</a></div>
-      <pre>{{ .Message }}</pre>
+  <div class="flex gap-4">
+    <div id="file-tree" class="w-2/3">
+      {{ $containerstyle := "py-1" }}
+      {{ $linkstyle := "no-underline hover:underline" }}
+
+      {{ range .Files }}
+        {{ if not .IsFile }}
+        <div class="{{ $containerstyle }}">
+          <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}/{{ .Name }}" class="{{ $linkstyle }}">{{ .Name }}/</a>
+        </div>
+        {{ end }}
+      {{ end }}
+
+      {{ range .Files }}
+        {{ if .IsFile }}
+        <div class="{{ $containerstyle }}">
+          <a href="/{{ $.RepoInfo.FullName }}/blob/{{ $.Ref }}/{{ .Name }}" class="{{ $linkstyle }}">{{ .Name }}</a>
+        </div>
+        {{ end }}
+      {{ end }}
     </div>
-    <div class="commit-info">
-      {{ .Author.Name }} <a href="mailto:{{ .Author.Email }}" class="commit-email">{{ .Author.Email }}</a>
-      <div>{{ .Author.When.Format "Mon, 02 Jan 2006 15:04:05 -0700" }}</div>
+    <div id="file-tree" class="flex-1">
+      {{ range .Commits }}
+      <div class=
+      "relative
+       px-4
+       py-4
+       border-l
+       border-black
+       before:content-[''] 
+       before:absolute 
+       before:w-1
+       before:h-1
+       before:bg-black
+       before:rounded-full
+       before:left-[-2.2px]
+       before:top-1/2
+       before:-translate-y-1/2
+       ">
+        <div class="text-base">{{ .Message }}</div>
+
+        <div class="text-xs text-gray-500">
+          <span class="font-mono">
+            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="text-gray-500 no-underline hover:underline">{{ slice .Hash.String 0 8 }}</a>
+          </span>
+          &nbsp;·&nbsp;
+          <span>
+            <a href="mailto:{{ .Author.Email }}" class="text-gray-500 no-underline hover:underline">{{ .Author.Name }}</a>
+          </span>
+          &nbsp;·&nbsp;
+          <span>{{ timeFmt .Author.When }}</span>
+        </div>
+
+      </div>
+      {{ end }}
     </div>
-    <hr />
-    {{ end }}
   </div>
   {{- if .Readme }}
   <article class="readme">

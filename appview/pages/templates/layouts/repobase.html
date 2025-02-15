@@ -1,14 +1,16 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
-
-    <section id="repo-header">
-        <h1>{{ .RepoInfo.FullName }}</h1>
-        {{ if .RepoInfo.Description }}
-            <h3 class="desc">{{ .RepoInfo.Description }}</h3>
-        {{ else }}
-            <em>this repo has no description</em>
-        {{ end }}
+    <section id="repo-header" class="mb-4">
+        <span class="text-xl">{{ .RepoInfo.FullName }}</span>
+        <br/>
+        <span>
+          {{ if .RepoInfo.Description }}
+            {{ .RepoInfo.Description }}
+          {{ else }}
+          <span class="italic">this repo has no description</span>
+          {{ end }}
+        </span>
     </section>
     <section id="repo-links" class="min-h-screen flex flex-col">
       <nav class="w-full mx-auto">
@@ -24,7 +26,7 @@
               hx-boost="true"
             >
               <div
-                  class="px-4 py-2 mr-1 text-black min-w-[80px] text-center text-sm relative group-hover:bg-gray-50
+                  class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200
                          {{ if eq $.Active $key }}{{ $activeTabStyles }}{{ end }}"
                   >
                   {{ $key }}
