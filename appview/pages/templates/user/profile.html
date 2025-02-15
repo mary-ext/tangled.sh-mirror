@@ -1,32 +1,27 @@
 {{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
 
 {{ define "content" }}
-    <h1>
-        <h1>{{ didOrHandle .UserDid .UserHandle }}</h1>
-    </h1>
-    <section>
-        <h2 class="text-xl font-semibold mb-4">repos</h2>
-        <ul id="my-knots" class="space-y-4">
-            {{ range .Repos }}
-                <li class="p-4 bg-gray-50 rounded-lg">
-                    <div class="font-mono">
-                        <div class="mb-2">
-                            name:
-                            <a
-                                href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
-                                class="text-blue-600 hover:text-blue-800"
-                                >{{ .Name }}</a
-                            >
-                        </div>
-                        <div>
-                            knot:
-                            {{ .Knot }}
-                        </div>
-                    </div>
-                </li>
-            {{ else }}
-                <p class="text-gray-600">does not have any repos yet</p>
-            {{ end }}
-        </ul>
-    </section>
+    <h1>{{ didOrHandle .UserDid .UserHandle }}</h1>
+    <div id="my-repos" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {{ range .Repos }}
+            <div
+                id="repo-card"
+                class="border border-black p-4 shadow-sm bg-white"
+            >
+                <div id="repo-card-name" class="font-medium">
+                    <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
+                        >{{ .Name }}</a
+                    >
+                </div>
+                <div
+                    id="repo-knot-name"
+                    class="text-gray-600 text-sm font-mono"
+                >
+                    {{ .Knot }}
+                </div>
+            </div>
+        {{ else }}
+            <p>This user does not have any repos yet.</p>
+        {{ end }}
+    </div>
 {{ end }}

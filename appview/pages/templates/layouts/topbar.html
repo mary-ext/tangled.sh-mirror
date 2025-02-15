@@ -1,42 +1,42 @@
 {{ define "layouts/topbar" }}
     {{ with .LoggedInUser }}
-        <nav class="flex items-center space-x-4 py-10">
+        <nav class="flex items-center justify-center space-x-4 py-10">
             <a
                 href="/"
                 hx-boost="true"
-                class="text-gray-600 hover:text-gray-900"
+                class="text-gray-600 hover:text-gray-900 no-underline"
                 >timeline</a
             >
             <a
                 href="/settings"
                 hx-boost="true"
-                class="text-gray-600 hover:text-gray-900"
+                class="text-gray-600 hover:text-gray-900 no-underline"
                 >settings</a
             >
             <a
                 href="/knots"
                 hx-boost="true"
-                class="text-gray-600 hover:text-gray-900"
+                class="text-gray-600 hover:text-gray-900 no-underline"
                 >knots</a
             >
             <a
                 href="/repo/new"
                 hx-boost="true"
-                class="text-gray-600 hover:text-gray-900"
+                class="text-gray-600 hover:text-gray-900 no-underline"
                 >add repos</a
             >
             {{ if .Handle }}
                 <a
                     href="/@{{ .Handle }}"
                     hx-boost="true"
-                    class="text-gray-600 hover:text-gray-900"
+                    class="text-gray-600 hover:text-gray-900 no-underline"
                     >my profile</a
                 >
             {{ else }}
                 <a
                     href="/{{ .Did }}"
                     hx-boost="true"
-                    class="text-gray-600 hover:text-gray-900"
+                    class="text-gray-600 hover:text-gray-900 no-underline"
                     >my profile</a
                 >
             {{ end }}

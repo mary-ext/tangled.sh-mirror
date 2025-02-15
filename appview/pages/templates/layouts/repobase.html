@@ -1,31 +1,103 @@
-{{define "title"}} {{ .RepoInfo.FullName }} {{ end}}
+{{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
 
-  <div id="repo-header">
-    <h1>{{ .RepoInfo.FullName }}</h1>
-    {{ if .RepoInfo.Description }}
-      <h3 class="desc">{{ .RepoInfo.Description }}</h3>
-    {{ else }}
-      <em>this repo has no description</em>
-    {{ end }}
-  </div>
+    <section id="repo-header">
+        <h1>{{ .RepoInfo.FullName }}</h1>
+        {{ if .RepoInfo.Description }}
+            <h3 class="desc">{{ .RepoInfo.Description }}</h3>
+        {{ else }}
+            <em>this repo has no description</em>
+        {{ end }}
+    </section>
+    <section id="repo-links" class="min-h-screen flex flex-col">
+        <nav class="w-full max-w-3xl mx-auto">
+            <div class="relative">
+                <div class="flex relative">
+                    <a
+                        href="/{{ .RepoInfo.FullName }}"
+                        class="relative -mr-px group no-underline"
+                        hx-boost="true"
+                    >
+                        <div
+                            class="px-4 py-2 bg-white text-black min-w-[80px] text-center text-sm relative z-60 group-hover:bg-gray-50
+                            {{ if eq .Active "index" }}
+                                border-b-white border-b-0 border-gray-300
+                                border-l border-r border-t
+                            {{ else }}
+                                border-gray-300 border translate-y-[2px]
+                            {{ end }}"
+                        >
+                            overview
+                        </div>
+                    </a>
 
-  <div id="repo-links">
-    <nav>
-      <a href="/{{ .RepoInfo.FullName }}">summary</a>&nbsp;·
-      <a href="/{{ .RepoInfo.FullName }}/branches">branches</a>&nbsp;·
-      <a href="/{{ .RepoInfo.FullName }}/tags">tags</a>
-      {{ if .RepoInfo.SettingsAllowed }}
-        ·&nbsp;<a href="/{{ .RepoInfo.FullName }}/settings">settings</a>
-      {{ end }}
-    </nav>
-  <div>
+                    <a
+                        href="/{{ .RepoInfo.FullName }}/issues"
+                        class="relative -mr-px group no-underline"
+                        hx-boost="true"
+                    >
+                        <div
+                            class="px-4 py-2 bg-white text-black min-w-[80px] text-center text-sm  relative z-50 group-hover:bg-gray-50
+                            {{ if eq .Active "issues" }}
+                                border-gray-500 border border-b-0 bg-white
+                            {{ else }}
+                                border-gray-300 border translate-y-[2px]
+                            {{ end }}
+                            "
+                        >
+                            issues
+                        </div>
+                    </a>
 
-  {{ block "repoContent" . }} {{ end }}
+                    <a
+                        href="#"
+                        class="relative -mr-px group no-underline"
+                        hx-boost="true"
+                    >
+                        <div
+                            class="px-4 py-2 bg-white text-black min-w-[80px] text-center text-sm relative z-40 group-hover:bg-gray-50
+                            {{ if eq .Active "pulls" }}
+                                border-gray-500 border border-b-0 bg-white
+                            {{ else }}
+                                border-gray-300 border translate-y-[2px]
+                            {{ end }}
+                            "
+                        >
+                            pull requests
+                        </div>
+                    </a>
 
+                    {{ if .RepoInfo.SettingsAllowed }}
+                        <a
+                            href="/{{ .RepoInfo.FullName }}/settings"
+                            class="relative -mr-px group no-underline"
+                            hx-boost="true"
+                        >
+                            <div
+                                class="px-6 py-2 bg-white text-black min-w-[80px] text-center text-sm relative z-40 group-hover:bg-gray-50
+                                {{ if .Active }}
+                                    border-gray-500 border border-b-0 bg-white
+                                {{ else }}
+                                    border-gray-300 border translate-y-[2px]
+                                {{ end }}
+                                "
+                            >
+                                settings
+                            </div>
+                        </a>
+                    {{ end }}
+                </div>
+            </div>
+        </nav>
+        <section
+            class="bg-white p-6 min-h-[200px] border border-gray-300 relative z-20 w-full max-w-3xl mx-auto"
+        >
+            {{ block "repoContent" . }}{{ end }}
+        </section>
+    </section>
 {{ end }}
 
 {{ define "layouts/repobase" }}
-  {{ template "layouts/base" . }}
+    {{ template "layouts/base" . }}
 {{ end }}

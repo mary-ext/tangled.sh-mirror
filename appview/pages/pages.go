@@ -181,10 +181,12 @@ func (r RepoInfo) FullName() string {
 type RepoIndexParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Active       string
 	types.RepoIndexResponse
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
+	params.Active = "index"
 	return p.executeRepo("repo/index", w, params)
 }
 
