@@ -11,13 +11,18 @@
       url = "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js";
       flake = false;
     };
+    gitignore = {
+      url = "github:hercules-ci/gitignore.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
-      self
-      , nixpkgs
-      , indigo
-      , htmx-src
+    self,
+    nixpkgs,
+    indigo,
+    htmx-src,
+    gitignore,
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -26,6 +31,7 @@
         inherit system;
         overlays = [self.overlays.default];
       });
+    inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: {
       indigo-lexgen = with final;
@@ -33,20 +39,43 @@
           pname = "indigo-lexgen";
           version = "0.1.0";
           src = indigo;
-          subPackage = ["cmd/lexgen"];
+          subPackages = ["cmd/lexgen"];
           vendorHash = "sha256-pGc29fgJFq8LP7n/pY1cv6ExZl88PAeFqIbFEhB3xXs=";
           doCheck = false;
         };
+
+      appview = with final;
+        final.buildGoModule {
+          pname = "appview";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          postConfigureHook = ''
+            cp -f ${htmx-src} appview/pages/static/htmx.min.js
+            ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
+          '';
+          subPackages = ["cmd/appview"];
+          vendorHash = "sha256-QgUPTOgAdKUTg+ztfs194G7pt3/qDtqTMkDRmMECxSo=";
+          env.CGO_ENABLED = 1;
+        };
+      knotserver = with final;
+        final.buildGoModule {
+          pname = "knotserver";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          subPackages = ["cmd/knotserver"];
+          vendorHash = "sha256-QgUPTOgAdKUTg+ztfs194G7pt3/qDtqTMkDRmMECxSo=";
+          env.CGO_ENABLED = 1;
+        };
     };
     packages = forAllSystems (system: {
-      inherit (nixpkgsFor."${system}") indigo-lexgen;
+      inherit (nixpkgsFor."${system}") indigo-lexgen appview knotserver;
     });
-    defaultPackage = forAllSystems (system: nixpkgsFor.${system}.indigo-lexgen);
+    defaultPackage = forAllSystems (system: nixpkgsFor.${system}.appview);
     formatter = forAllSystems (system: nixpkgsFor."${system}".alejandra);
     devShells = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
       staticShell = pkgs.mkShell.override {
-          stdenv = pkgs.pkgsStatic.stdenv;
+        stdenv = pkgs.pkgsStatic.stdenv;
       };
     in {
       default = staticShell {
