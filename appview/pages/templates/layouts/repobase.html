@@ -11,90 +11,33 @@
         {{ end }}
     </section>
     <section id="repo-links" class="min-h-screen flex flex-col">
-        <nav class="w-full max-w-3xl mx-auto">
-            <div class="relative">
-                <div class="flex relative">
-                    <a
-                        href="/{{ .RepoInfo.FullName }}"
-                        class="relative -mr-px group no-underline"
-                        hx-boost="true"
-                    >
-                        <div
-                            class="px-4 py-2 bg-white text-black min-w-[80px] text-center text-sm relative z-60 group-hover:bg-gray-50
-                            {{ if eq .Active "index" }}
-                                border-b-white border-b-0 border-gray-300
-                                border-l border-r border-t
-                            {{ else }}
-                                border-gray-300 border translate-y-[2px]
-                            {{ end }}"
-                        >
-                            overview
-                        </div>
-                    </a>
-
-                    <a
-                        href="/{{ .RepoInfo.FullName }}/issues"
-                        class="relative -mr-px group no-underline"
-                        hx-boost="true"
-                    >
-                        <div
-                            class="px-4 py-2 bg-white text-black min-w-[80px] text-center text-sm  relative z-50 group-hover:bg-gray-50
-                            {{ if eq .Active "issues" }}
-                                border-gray-500 border border-b-0 bg-white
-                            {{ else }}
-                                border-gray-300 border translate-y-[2px]
-                            {{ end }}
-                            "
-                        >
-                            issues
-                        </div>
-                    </a>
-
-                    <a
-                        href="#"
-                        class="relative -mr-px group no-underline"
-                        hx-boost="true"
-                    >
-                        <div
-                            class="px-4 py-2 bg-white text-black min-w-[80px] text-center text-sm relative z-40 group-hover:bg-gray-50
-                            {{ if eq .Active "pulls" }}
-                                border-gray-500 border border-b-0 bg-white
-                            {{ else }}
-                                border-gray-300 border translate-y-[2px]
-                            {{ end }}
-                            "
-                        >
-                            pull requests
-                        </div>
-                    </a>
-
-                    {{ if .RepoInfo.SettingsAllowed }}
-                        <a
-                            href="/{{ .RepoInfo.FullName }}/settings"
-                            class="relative -mr-px group no-underline"
-                            hx-boost="true"
-                        >
-                            <div
-                                class="px-6 py-2 bg-white text-black min-w-[80px] text-center text-sm relative z-40 group-hover:bg-gray-50
-                                {{ if .Active }}
-                                    border-gray-500 border border-b-0 bg-white
-                                {{ else }}
-                                    border-gray-300 border translate-y-[2px]
-                                {{ end }}
-                                "
-                            >
-                                settings
-                            </div>
-                        </a>
-                    {{ end }}
-                </div>
-            </div>
-        </nav>
-        <section
-            class="bg-white p-6 min-h-[200px] border border-gray-300 relative z-20 w-full max-w-3xl mx-auto"
-        >
-            {{ block "repoContent" . }}{{ end }}
-        </section>
+      <nav class="w-full mx-auto">
+        <div class="flex z-60 border-black border-b">
+          {{ $activeTabStyles := "border-black border-l border-r border-t border-b-0 -mb-px bg-white" }}
+          {{ $tabs := assoc "overview" "/"  "issues" "/issues"  "pulls" "/pulls"  "settings" "/settings" }}
+          {{ range $item := $tabs }}
+            {{ $key := index $item 0 }}
+            {{ $value := index $item 1 }}
+            <a
+              href="/{{ $.RepoInfo.FullName }}{{ $value }}"
+              class="relative -mr-px group no-underline"
+              hx-boost="true"
+            >
+              <div
+                  class="px-4 py-2 mr-1 text-black min-w-[80px] text-center text-sm relative group-hover:bg-gray-50
+                         {{ if eq $.Active $key }}{{ $activeTabStyles }}{{ end }}"
+                  >
+                  {{ $key }}
+              </div>
+            </a>
+            {{ end}}
+        </div>
+      </nav>
+      <section
+          class="bg-white p-6 min-h-[200px] border-l border-r border-b border-black relative z-20 w-full mx-auto"
+          >
+          {{ block "repoContent" . }}{{ end }}
+      </section>
     </section>
 {{ end }}
 

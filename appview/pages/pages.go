@@ -38,6 +38,16 @@ func funcMap() template.FuncMap {
 				return did
 			}
 		},
+		"assoc": func(values ...string) ([][]string, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("invalid assoc call, must have an even number of arguments")
+			}
+			pairs := make([][]string, 0)
+			for i := 0; i < len(values); i += 2 {
+				pairs = append(pairs, []string{values[i], values[i+1]})
+			}
+			return pairs, nil
+		},
 	}
 }
 
@@ -186,7 +196,7 @@ type RepoIndexParams struct {
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
-	params.Active = "index"
+	params.Active = "overview"
 	return p.executeRepo("repo/index", w, params)
 }
 
@@ -254,10 +264,12 @@ type RepoSettingsParams struct {
 	LoggedInUser                *auth.User
 	RepoInfo                    RepoInfo
 	Collaborators               [][]string
+	Active                      string
 	IsCollaboratorInviteAllowed bool
 }
 
 func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
+	params.Active = "settings"
 	return p.executeRepo("repo/settings", w, params)
 }
 
