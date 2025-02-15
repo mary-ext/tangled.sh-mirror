@@ -1,17 +1,20 @@
 {{define "title"}}{{ or .UserHandle .UserDid }}{{end}}
 
 {{define "content"}}
-    <h1>{{ or .UserHandle .UserDid }} profile</h1>
+    <h1>{{ didOrHandle .UserDid .UserHandle }}</h1>
 
-    <h3>repos</h3>
-    <ul id="my-knots">
+    <div id="my-repos" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {{range .Repos}}
-        <li>
-          <code>name: <a href="/@{{or $.UserHandle $.UserDid }}/{{.Name}}">{{.Name}}</a></code><br>
-          <code>knot: {{.Knot}}</code><br>
-        </li>
+        <div id="repo-card" class="border border-black p-4 shadow-sm bg-white">
+          <div id="repo-card-name" class="font-medium">
+            <a href="/@{{or $.UserHandle $.UserDid }}/{{.Name}}">{{.Name}}</a>
+          </div>
+          <div id="repo-knot-name" class="text-gray-600 text-sm font-mono">
+            {{.Knot}}
+          </div>
+        </div>
         {{else}}
-            <p>does not have any repos yet</p>
+            <p>This user does not have any repos yet.</p>
         {{end}}
-    </ul>
+    </div>
 {{end}}

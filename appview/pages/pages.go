@@ -31,6 +31,13 @@ func funcMap() template.FuncMap {
 		"add": func(a, b int) int {
 			return a + b
 		},
+		"didOrHandle": func(did, handle string) string {
+			if handle != "" {
+				return fmt.Sprintf("@%s", handle)
+			} else {
+				return did
+			}
+		},
 	}
 }
 
