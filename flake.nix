@@ -45,7 +45,7 @@
         };
 
       appview = with final;
-        final.buildGoModule {
+        final.pkgsStatic.buildGoModule {
           pname = "appview";
           version = "0.1.0";
           src = gitignoreSource ./.;
@@ -56,16 +56,25 @@
           subPackages = ["cmd/appview"];
           vendorHash = "sha256-QgUPTOgAdKUTg+ztfs194G7pt3/qDtqTMkDRmMECxSo=";
           env.CGO_ENABLED = 1;
+          stdenv = pkgsStatic.stdenv;
         };
-      knotserver = with final;
-        final.buildGoModule {
-          pname = "knotserver";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/knotserver"];
-          vendorHash = "sha256-QgUPTOgAdKUTg+ztfs194G7pt3/qDtqTMkDRmMECxSo=";
-          env.CGO_ENABLED = 1;
-        };
+
+        knotserver = with final;
+          final.pkgsStatic.buildGoModule {
+            pname = "knotserver";
+            version = "0.1.0";
+            src = gitignoreSource ./.;
+            subPackages = ["cmd/knotserver"];
+            vendorHash = "sha256-QgUPTOgAdKUTg+ztfs194G7pt3/qDtqTMkDRmMECxSo=";
+            env.CGO_ENABLED = 1;
+            nativeBuildInputs = with pkgsMusl; [ pkg-config ];
+
+            # Add these ldflags for static compilation
+            ldflags = [ "-s" "-w" "-linkmode external" ''-extldflags "-static -L${pkgsStatic.musl}/lib"'' ];
+
+            # Use static stdenv
+            stdenv = pkgMusl.stdenv;
+          };
     };
     packages = forAllSystems (system: {
       inherit (nixpkgsFor."${system}") indigo-lexgen appview knotserver;

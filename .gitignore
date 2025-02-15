@@ -3,4 +3,5 @@ tmp
 *.db
 .bin/
 appview/pages/static/*
+result
 !.gitkeep
