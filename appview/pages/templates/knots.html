@@ -3,54 +3,89 @@
 {{ define "content" }}
     <h1>knots</h1>
 
-    <h2>register</h2>
-    put in a domain, and use the key while booting up your knotserver
-    <form hx-post="/knots/key">
-        <label for="domain">domain:</label>
-        <input type="text" id="domain" name="domain" required />
-        <button class="btn my-2" type="text">generate key</button>
-    </form>
+    <section class="mb-12">
+        <h2 class="text-2xl mb-4">register a knot</h2>
+        <form hx-post="/knots/key" class="flex gap-4 items-end">
+            <div>
+                <label for="domain"
+                    >Generate a key to start your knot with.</label
+                >
+                <input
+                    type="text"
+                    id="domain"
+                    name="domain"
+                    placeholder="knot.example.com"
+                    required
+                />
+            </div>
+            <button class="btn" type="submit">generate key</button>
+        </form>
+    </section>
 
-    <h3>my knots</h3>
-    <ul id="my-knots">
-        {{ range .Registrations }}
-            {{ if .Registered }}
-                <li>
-                    <code
-                        >domain:
-                        <a href="/knots/{{ .Domain }}">{{ .Domain }}</a></code
-                    ><br />
-                    <code>opened by: {{ .ByDid }}</code><br />
-                    <code>on: {{ .Created }}</code><br />
-                    <code>registered on: {{ .Registered }}</code>
-                </li>
+    <section class="mb-12">
+        <h3 class="text-xl font-semibold mb-4">my knots</h3>
+        <ul id="my-knots" class="space-y-6">
+            {{ range .Registrations }}
+                {{ if .Registered }}
+                    <li class="border rounded p-4 flex flex-col gap-2">
+                        <div>
+                            <a href="/knots/{{ .Domain }}" class="font-semibold"
+                                >{{ .Domain }}</a
+                            >
+                        </div>
+                        <div class="text-gray-600">
+                            Owned by
+                            {{ .ByDid }}
+                        </div>
+                        <div class="text-gray-600">
+                            Registered on
+                            {{ .Registered }}
+                        </div>
+                    </li>
+                {{ end }}
+            {{ else }}
+                <p class="text-gray-600">you don't have any knots yet</p>
             {{ end }}
-        {{ else }}
-            <p>you don't have any knots yet</p>
-        {{ end }}
-    </ul>
-    <h3>pending registrations</h3>
-    <ul id="pending-registrations">
-        {{ range .Registrations }}
-            {{ if not .Registered }}
-                <li>
-                    <code
-                        >domain:
-                        <a href="/knots/{{ .Domain }}">{{ .Domain }}</a></code
-                    ><br />
-                    <code>opened by: {{ .ByDid }}</code><br />
-                    <code>on: {{ .Created }}</code><br />
-                    <code>pending registration</code>
-                    <button
-                        class="btn my-2"
-                        hx-post="/knots/{{ .Domain }}/init"
-                    >
-                        initialize
-                    </button>
-                </li>
+        </ul>
+    </section>
+
+    <section>
+        <h3 class="text-xl font-semibold mb-4">pending registrations</h3>
+        <ul id="pending-registrations" class="space-y-6">
+            {{ range .Registrations }}
+                {{ if not .Registered }}
+                    <li class="border rounded p-4 flex flex-col gap-2">
+                        <div>
+                            <a
+                                href="/knots/{{ .Domain }}"
+                                class="text-blue-600 hover:underline"
+                                >{{ .Domain }}</a
+                            >
+                        </div>
+                        <div class="text-gray-600">
+                            Opened by
+                            {{ .ByDid }}
+                        </div>
+                        <div class="text-gray-600">
+                            Created on
+                            {{ .Created }}
+                        </div>
+                        <div class="flex items-center gap-4 mt-2">
+                            <span class="text-amber-600"
+                                >pending registration</span
+                            >
+                            <button
+                                class="btn"
+                                hx-post="/knots/{{ .Domain }}/init"
+                            >
+                                initialize
+                            </button>
+                        </div>
+                    </li>
+                {{ end }}
+            {{ else }}
+                <p class="text-gray-600">no registrations yet</p>
             {{ end }}
-        {{ else }}
-            <p>no registrations yet</p>
-        {{ end }}
-    </ul>
+        </ul>
+    </section>
 {{ end }}

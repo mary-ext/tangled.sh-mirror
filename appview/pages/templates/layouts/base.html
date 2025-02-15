@@ -8,11 +8,11 @@
                 content="width=device-width, initial-scale=1.0"
             />
             <script src="/static/htmx.min.js"></script>
-            <link href="/static/tw.css" rel="stylesheet" />
+            <link href="/static/tw.css" rel="stylesheet" type="text/css" />
             <title>{{ block "title" . }}tangled{{ end }}</title>
         </head>
-        <body class="container">
-            <header class="topbar">
+        <body class="container mx-auto px-10">
+            <header>
                 {{ block "topbar" . }}
                     {{ template "layouts/topbar" . }}
                 {{ end }}

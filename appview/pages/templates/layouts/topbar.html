@@ -1,47 +1,47 @@
 {{ define "layouts/topbar" }}
-<nav class="flex items-center space-x-4">
-  <a
-      href="/"
-      hx-boost="true"
-      class="text-gray-600 hover:text-gray-900"
-      >timeline</a
-    >
-  {{ with .LoggedInUser }}
-      <a
-          href="/settings"
-          hx-boost="true"
-          class="text-gray-600 hover:text-gray-900"
-          >settings</a
-      >
-      <a
-          href="/knots"
-          hx-boost="true"
-          class="text-gray-600 hover:text-gray-900"
-          >knots</a
-      >
-      <a
-          href="/repo/new"
-          hx-boost="true"
-          class="text-gray-600 hover:text-gray-900"
-          >add repos</a
-      >
-      {{ if .Handle }}
-          <a
-              href="/@{{ .Handle }}"
-              hx-boost="true"
-              class="text-gray-600 hover:text-gray-900"
-              >my profile</a
-          >
-      {{ else }}
-          <a
-              href="/{{ .Did }}"
-              hx-boost="true"
-              class="text-gray-600 hover:text-gray-900"
-              >my profile</a
-          >
-      {{ end }}
-  {{ else }}
-      <a href="/login" class="btn my-2">login</a>
-  {{ end }}
-</nav>
+    {{ with .LoggedInUser }}
+        <nav class="flex items-center space-x-4 py-10">
+            <a
+                href="/"
+                hx-boost="true"
+                class="text-gray-600 hover:text-gray-900"
+                >timeline</a
+            >
+            <a
+                href="/settings"
+                hx-boost="true"
+                class="text-gray-600 hover:text-gray-900"
+                >settings</a
+            >
+            <a
+                href="/knots"
+                hx-boost="true"
+                class="text-gray-600 hover:text-gray-900"
+                >knots</a
+            >
+            <a
+                href="/repo/new"
+                hx-boost="true"
+                class="text-gray-600 hover:text-gray-900"
+                >add repos</a
+            >
+            {{ if .Handle }}
+                <a
+                    href="/@{{ .Handle }}"
+                    hx-boost="true"
+                    class="text-gray-600 hover:text-gray-900"
+                    >my profile</a
+                >
+            {{ else }}
+                <a
+                    href="/{{ .Did }}"
+                    hx-boost="true"
+                    class="text-gray-600 hover:text-gray-900"
+                    >my profile</a
+                >
+            {{ end }}
+        </nav>
+    {{ else }}
+        <a href="/login" class="btn my-2">login</a>
+    {{ end }}
 {{ end }}
