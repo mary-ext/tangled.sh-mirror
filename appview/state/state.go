@@ -531,38 +531,87 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
-	subject := r.FormValue("subject")
+	currentUser := s.auth.GetUser(r)
 
+	subject := r.URL.Query().Get("subject")
 	if subject == "" {
 		log.Println("invalid form")
 		return
 	}
 
 	subjectIdent, err := s.resolver.ResolveIdent(r.Context(), subject)
-	currentUser := s.auth.GetUser(r)
-
-	client, _ := s.auth.AuthorizedClient(r)
-	createdAt := time.Now().Format(time.RFC3339)
-	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
-		Collection: tangled.GraphFollowNSID,
-		Repo:       currentUser.Did,
-		Rkey:       s.TID(),
-		Record: &lexutil.LexiconTypeDecoder{
-			Val: &tangled.GraphFollow{
-				Subject:   subjectIdent.DID.String(),
-				CreatedAt: createdAt,
-			}},
-	})
-
-	err = s.db.AddFollow(currentUser.Did, subjectIdent.DID.String())
 	if err != nil {
-		log.Println("failed to follow", err)
+		log.Println("failed to follow, invalid did")
+	}
+
+	if currentUser.Did == subjectIdent.DID.String() {
+		log.Println("cant follow or unfollow yourself")
 		return
 	}
 
-	log.Println("created atproto record: ", resp.Uri)
+	client, _ := s.auth.AuthorizedClient(r)
 
-	return
+	switch r.Method {
+	case http.MethodPost:
+		createdAt := time.Now().Format(time.RFC3339)
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.GraphFollowNSID,
+			Repo:       currentUser.Did,
+			Rkey:       s.TID(),
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.GraphFollow{
+					Subject:   subjectIdent.DID.String(),
+					CreatedAt: createdAt,
+				}},
+		})
+		if err != nil {
+			log.Println("failed to create atproto record", err)
+			return
+		}
+
+		err = s.db.AddFollow(currentUser.Did, subjectIdent.DID.String(), resp.Uri)
+		if err != nil {
+			log.Println("failed to follow", err)
+			return
+		}
+
+		log.Println("created atproto record: ", resp.Uri)
+
+		return
+	case http.MethodDelete:
+		// find the record in the db
+
+		follow, err := s.db.GetFollow(currentUser.Did, subjectIdent.DID.String())
+		if err != nil {
+			log.Println("failed to get follow relationship")
+			return
+		}
+
+		existingRecordUri, _ := syntax.ParseATURI(follow.AtUri)
+
+		resp, err := comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+			Collection: tangled.GraphFollowNSID,
+			Repo:       currentUser.Did,
+			Rkey:       existingRecordUri.RecordKey().String(),
+		})
+
+		log.Println(resp.Commit.Cid)
+
+		if err != nil {
+			log.Println("failed to unfollow")
+			return
+		}
+
+		err = s.db.DeleteFollow(currentUser.Did, subjectIdent.DID.String())
+		if err != nil {
+			log.Println("failed to delete follow from DB")
+			// this is not an issue, the firehose event might have already done this
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 }
 
 func (s *State) Router() http.Handler {
@@ -655,7 +704,10 @@ func (s *State) StandardRouter() http.Handler {
 		// r.Post("/import", s.ImportRepo)
 	})
 
-	r.With(AuthMiddleware(s)).Put("/follow", s.Follow)
+	r.With(AuthMiddleware(s)).Route("/follow", func(r chi.Router) {
+		r.Post("/", s.Follow)
+		r.Delete("/", s.Follow)
+	})
 
 	r.Route("/settings", func(r chi.Router) {
 		r.Use(AuthMiddleware(s))
