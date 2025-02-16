@@ -24,6 +24,7 @@ type JetstreamClient struct {
 
 	db          DB
 	reconnectCh chan struct{}
+	waitForDid  bool
 	mu          sync.RWMutex
 }
 
@@ -41,7 +42,7 @@ func (j *JetstreamClient) UpdateDids(dids []string) {
 	j.reconnectCh <- struct{}{}
 }
 
-func NewJetstreamClient(ident string, collections []string, cfg *client.ClientConfig, db DB) (*JetstreamClient, error) {
+func NewJetstreamClient(ident string, collections []string, cfg *client.ClientConfig, db DB, waitForDid bool) (*JetstreamClient, error) {
 	if cfg == nil {
 		cfg = client.DefaultClientConfig()
 		cfg.WebsocketURL = "wss://jetstream1.us-west.bsky.network/subscribe"
@@ -49,9 +50,13 @@ func NewJetstreamClient(ident string, collections []string, cfg *client.ClientCo
 	}
 
 	return &JetstreamClient{
-		cfg:         cfg,
-		ident:       ident,
-		db:          db,
+		cfg:   cfg,
+		ident: ident,
+		db:    db,
+
+		// This will make the goroutine in StartJetstream wait until
+		// cfg.WantedDids has been populated, typically using UpdateDids.
+		waitForDid:  waitForDid,
 		reconnectCh: make(chan struct{}, 1),
 	}, nil
 }
@@ -82,9 +87,12 @@ func (j *JetstreamClient) StartJetstream(ctx context.Context, processFunc func(c
 
 	go func() {
 		lastTimeUs := j.getLastTimeUs(ctx)
-		for len(j.cfg.WantedDids) == 0 {
-			time.Sleep(time.Second)
+		if j.waitForDid {
+			for len(j.cfg.WantedDids) == 0 {
+				time.Sleep(time.Second)
+			}
 		}
+		logger.Info("done waiting for did")
 		j.connectAndRead(ctx, &lastTimeUs)
 	}()
 

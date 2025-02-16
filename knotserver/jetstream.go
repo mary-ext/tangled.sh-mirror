@@ -108,6 +108,9 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 
 func (h *Handle) processMessages(ctx context.Context, event *models.Event) error {
 	did := event.Did
+	if event.Kind != models.EventKindCommit {
+		return nil
+	}
 
 	raw := json.RawMessage(event.Commit.Record)
 

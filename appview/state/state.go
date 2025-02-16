@@ -59,13 +59,18 @@ func Make() (*State, error) {
 
 	resolver := appview.NewResolver()
 
-	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, db)
+	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, db, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
 	err = jc.StartJetstream(context.Background(), func(ctx context.Context, e *models.Event) error {
+		if e.Kind != models.EventKindCommit {
+			return nil
+		}
+
 		did := e.Did
-		raw := e.Commit.Record
+		fmt.Println("got event", e.Commit.Collection, e.Commit.RKey, e.Commit.Record)
+		raw := json.RawMessage(e.Commit.Record)
 
 		switch e.Commit.Collection {
 		case tangled.GraphFollowNSID:
