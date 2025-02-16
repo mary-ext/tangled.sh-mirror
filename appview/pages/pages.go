@@ -73,6 +73,12 @@ func funcMap() template.FuncMap {
 		"length": func(v []string) int {
 			return len(v)
 		},
+		"splitN": func(s, sep string, n int) []string {
+			return strings.SplitN(s, sep, n)
+		},
+		"unescapeHtml": func(s string) template.HTML {
+			return template.HTML(s)
+		},
 	}
 }
 

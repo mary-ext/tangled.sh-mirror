@@ -51,7 +51,18 @@
        before:top-1/2
        before:-translate-y-1/2
        ">
-        <div class="text-base">{{ .Message }}</div>
+
+        <div id="commit-message">
+          {{ $messageParts := splitN .Message "\n\n" 2 }}
+          <div class="text-base cursor-pointer">
+            {{ index $messageParts 0 }}
+            {{ if gt (len $messageParts) 1 }}
+            <div class="text-sm inline rounded-sm bg-gray-300 text-gray-700 px-1"
+                  hx-on:click="this.nextElementSibling.classList.toggle('hidden')">...</div>
+            <div class="hidden mt-1 text-sm">{{ index $messageParts 1 }}</div>
+            {{ end }}
+          </div>
+        </div>
 
         <div class="text-xs text-gray-500">
           <span class="font-mono">
