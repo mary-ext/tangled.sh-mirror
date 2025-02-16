@@ -52,6 +52,9 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		l.Error("fetching commits", "error", err.Error())
 		return
 	}
+	if len(commits) > 10 {
+		commits = commits[:10]
+	}
 
 	var readmeContent template.HTML
 	for _, readme := range h.c.Repo.Readme {

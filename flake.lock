@@ -48,6 +48,18 @@
         "type": "github"
       }
     },
+    "lucide-src": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-REXBOJhEp5BVrQ1lnIMYTd6+1vHfCtPKmc/dVtykGFg=",
+        "type": "file",
+        "url": "https://unpkg.com/lucide@latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://unpkg.com/lucide@latest"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1738589849,
@@ -68,6 +80,7 @@
         "gitignore": "gitignore",
         "htmx-src": "htmx-src",
         "indigo": "indigo",
+        "lucide-src": "lucide-src",
         "nixpkgs": "nixpkgs"
       }
     }

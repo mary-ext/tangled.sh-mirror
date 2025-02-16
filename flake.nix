@@ -11,6 +11,10 @@
       url = "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js";
       flake = false;
     };
+    lucide-src = {
+        url = "https://unpkg.com/lucide@latest";
+        flake = false;
+    };
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -22,6 +26,7 @@
     nixpkgs,
     indigo,
     htmx-src,
+    lucide-src,
     gitignore,
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
@@ -51,6 +56,7 @@
           src = gitignoreSource ./.;
           postConfigureHook = ''
             cp -f ${htmx-src} appview/pages/static/htmx.min.js
+            cp -f ${lucide-src} appview/pages/static/lucide.min.js
             ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
           '';
           subPackages = ["cmd/appview"];

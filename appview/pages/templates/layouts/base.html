@@ -18,6 +18,10 @@
                 {{ end }}
             </header>
             <main class="content">{{ block "content" . }}{{ end }}</main>
+            <script src="/static/lucide.min.js"></script>
+            <script>
+              lucide.createIcons();
+            </script>
         </body>
     </html>
 {{ end }}
