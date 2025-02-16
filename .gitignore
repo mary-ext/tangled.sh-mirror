@@ -1,6 +1,7 @@
 .direnv/
 tmp
 *.db
+*.db-*
 .bin/
 appview/pages/static/*
 result

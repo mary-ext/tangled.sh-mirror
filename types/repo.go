@@ -65,6 +65,7 @@ type RepoBlobResponse struct {
 	Contents string `json:"contents,omitempty"`
 	Ref      string `json:"ref,omitempty"`
 	Path     string `json:"path,omitempty"`
+	IsBinary bool   `json:"is_binary,omitempty"`
 
 	Lines int `json:"lines,omitempty"`
 }

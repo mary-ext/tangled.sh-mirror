@@ -32,8 +32,9 @@ func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	l := h.l.With("path", path, "handler", "RepoIndex")
+	ref := chi.URLParam(r, "ref")
 
-	gr, err := git.Open(path, "")
+	gr, err := git.Open(path, ref)
 	if err != nil {
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
 			resp := types.RepoIndexResponse{
@@ -84,13 +85,6 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		l.Warn("no readme found")
 	}
 
-	mainBranch, err := gr.FindMainBranch(h.c.Repo.MainBranch)
-	if err != nil {
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		l.Error("finding main branch", "error", err.Error())
-		return
-	}
-
 	files, err := gr.FileTree("")
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
@@ -98,9 +92,19 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if ref == "" {
+		mainBranch, err := gr.FindMainBranch(h.c.Repo.MainBranch)
+		if err != nil {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			l.Error("finding main branch", "error", err.Error())
+			return
+		}
+		ref = mainBranch
+	}
+
 	resp := types.RepoIndexResponse{
 		IsEmpty:     false,
-		Ref:         mainBranch,
+		Ref:         ref,
 		Commits:     commits,
 		Description: getDescription(path),
 		Readme:      readmeContent,
@@ -156,8 +160,14 @@ func (h *Handle) Blob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var isBinaryFile bool = false
 	contents, err := gr.FileContent(treePath)
-	if err != nil {
+	if errors.Is(err, git.ErrBinaryFile) {
+		isBinaryFile = true
+	} else if errors.Is(err, object.ErrFileNotFound) {
+		notFound(w)
+		return
+	} else if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -168,6 +178,7 @@ func (h *Handle) Blob(w http.ResponseWriter, r *http.Request) {
 		Ref:      ref,
 		Contents: string(safe),
 		Path:     treePath,
+		IsBinary: isBinaryFile,
 	}
 
 	h.showFile(resp, w, l)

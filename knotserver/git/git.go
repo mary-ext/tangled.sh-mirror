@@ -14,6 +14,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
+var (
+	ErrBinaryFile = fmt.Errorf("binary file")
+)
+
 type GitRepo struct {
 	r *git.Repository
 	h plumbing.Hash
@@ -148,7 +152,7 @@ func (g *GitRepo) FileContent(path string) (string, error) {
 	if !isbin {
 		return file.Contents()
 	} else {
-		return "Not displaying binary file", nil
+		return "", ErrBinaryFile
 	}
 }
 

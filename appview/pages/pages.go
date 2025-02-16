@@ -8,7 +8,9 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/dustin/go-humanize"
@@ -259,10 +261,18 @@ type RepoBlobParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
 	Active       string
+	File         string
+	PathElems    []string
 	types.RepoBlobResponse
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
+	path := filepath.Dir(params.Path)
+	file := filepath.Base(params.Path)
+
+	params.PathElems = strings.Split(path, string(os.PathSeparator))
+	params.Path = path
+	params.File = file
 	params.Active = "overview"
 	return p.executeRepo("repo/blob", w, params)
 }
