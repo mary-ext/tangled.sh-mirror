@@ -24,6 +24,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s", f.Knot, f.OwnerDid(), f.RepoName))
 	if err != nil {
+		s.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
