@@ -61,23 +61,12 @@ func NewJetstreamClient(ident string, collections []string, cfg *client.ClientCo
 	}, nil
 }
 
+// StartJetstream starts the jetstream client and processes events using the provided processFunc.
+// The caller is responsible for saving the last time_us to the database (just use your db.SaveLastTimeUs).
 func (j *JetstreamClient) StartJetstream(ctx context.Context, processFunc func(context.Context, *models.Event) error) error {
 	logger := log.FromContext(ctx)
 
-	pf := func(ctx context.Context, e *models.Event) error {
-		err := processFunc(ctx, e)
-		if err != nil {
-			return err
-		}
-
-		if err := j.db.SaveLastTimeUs(e.TimeUS); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	sched := sequential.NewScheduler(j.ident, logger, pf)
+	sched := sequential.NewScheduler(j.ident, logger, processFunc)
 
 	client, err := client.NewClient(j.cfg, log.New("jetstream"), sched)
 	if err != nil {

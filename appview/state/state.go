@@ -83,6 +83,7 @@ func Make() (*State, error) {
 			if err != nil {
 				return fmt.Errorf("failed to add follow to db: %w", err)
 			}
+			return db.SaveLastTimeUs(e.TimeUS)
 		}
 
 		return nil
