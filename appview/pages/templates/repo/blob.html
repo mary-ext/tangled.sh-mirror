@@ -2,7 +2,7 @@
 {{ $lines := split .Contents }}
 {{ $tot_lines := len $lines }}
 {{ $tot_chars := len (printf "%d" $tot_lines) }}
-{{ $code_number_style := "code-line-num text-gray-400 mr-2 px-1 sticky left-0 bg-white border-r border-black text-right" }}
+{{ $code_number_style := "text-gray-400 left-0 bg-white text-right mr-2 select-none" }}
 <pre class="font-mono text-sm overflow-auto relative text-ellipsis"><code>{{ range $idx, $line := $lines }}<span class="flex">
   <span class="{{ $code_number_style }}" style="min-width: {{$tot_chars}}ch;">{{ add $idx 1 }}</span>
   <span class="whitespace-pre">{{ $line }}</span></span>{{ else }}<em class="text-gray-400">this file is empty</em>{{ end }}</code></pre>
