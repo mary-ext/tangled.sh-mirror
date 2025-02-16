@@ -9,12 +9,12 @@ type Follow struct {
 	UserDid    string
 	SubjectDid string
 	FollowedAt *time.Time
-	AtUri      string
+	RKey       string
 }
 
-func (d *DB) AddFollow(userDid, subjectDid, atUri string) error {
-	query := `insert into follows (user_did, subject_did, at_uri) values (?, ?, ?)`
-	_, err := d.db.Exec(query, userDid, subjectDid, atUri)
+func (d *DB) AddFollow(userDid, subjectDid, rkey string) error {
+	query := `insert into follows (user_did, subject_did, rkey) values (?, ?, ?)`
+	_, err := d.db.Exec(query, userDid, subjectDid, rkey)
 	return err
 }
 
@@ -25,7 +25,7 @@ func (d *DB) GetFollow(userDid, subjectDid string) (*Follow, error) {
 
 	var follow Follow
 	var followedAt string
-	err := row.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.AtUri)
+	err := row.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.RKey)
 	if err != nil {
 		return nil, err
 	}

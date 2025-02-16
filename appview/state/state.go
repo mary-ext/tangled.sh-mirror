@@ -1,9 +1,11 @@
 package state
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,12 +16,14 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/bluesky-social/jetstream/pkg/models"
 	"github.com/go-chi/chi/v5"
 	tangled "github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/appview/pages"
+	"github.com/sotangled/tangled/jetstream"
 	"github.com/sotangled/tangled/rbac"
 )
 
@@ -30,6 +34,7 @@ type State struct {
 	tidClock *syntax.TIDClock
 	pages    *pages.Pages
 	resolver *appview.Resolver
+	jc       *jetstream.JetstreamClient
 }
 
 func Make() (*State, error) {
@@ -54,9 +59,41 @@ func Make() (*State, error) {
 
 	resolver := appview.NewResolver()
 
+	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
+	}
+	err = jc.StartJetstream(context.Background(), func(ctx context.Context, e *models.Event) error {
+		did := e.Did
+		raw := e.Commit.Record
+
+		switch e.Commit.Collection {
+		case tangled.GraphFollowNSID:
+			record := tangled.GraphFollow{}
+			err := json.Unmarshal(raw, &record)
+			if err != nil {
+				return err
+			}
+			err = db.AddFollow(did, record.Subject, e.Commit.RKey)
+			if err != nil {
+				return fmt.Errorf("failed to add follow to db: %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
+	}
+
 	state := &State{
 		db,
-		auth, enforcer, clock, pgs, resolver,
+		auth,
+		enforcer,
+		clock,
+		pgs,
+		resolver,
+		jc,
 	}
 
 	return state, nil
@@ -554,10 +591,11 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		createdAt := time.Now().Format(time.RFC3339)
+		rkey := s.TID()
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.GraphFollowNSID,
 			Repo:       currentUser.Did,
-			Rkey:       s.TID(),
+			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.GraphFollow{
 					Subject:   subjectIdent.DID.String(),
@@ -569,7 +607,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.db.AddFollow(currentUser.Did, subjectIdent.DID.String(), resp.Uri)
+		err = s.db.AddFollow(currentUser.Did, subjectIdent.DID.String(), rkey)
 		if err != nil {
 			log.Println("failed to follow", err)
 			return
@@ -587,12 +625,10 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		existingRecordUri, _ := syntax.ParseATURI(follow.AtUri)
-
 		resp, err := comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 			Collection: tangled.GraphFollowNSID,
 			Repo:       currentUser.Did,
-			Rkey:       existingRecordUri.RecordKey().String(),
+			Rkey:       follow.RKey,
 		})
 
 		log.Println(resp.Commit.Cid)

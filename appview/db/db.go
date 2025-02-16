@@ -48,6 +48,10 @@ func Make(dbPath string) (*DB, error) {
 			primary key (user_did, subject_did),
 			check (user_did <> subject_did)
 		);
+		create table if not exists _jetstream (
+			id integer primary key autoincrement,
+			last_time_us integer not null
+		);
 	`)
 	if err != nil {
 		return nil, err
