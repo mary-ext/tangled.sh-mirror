@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -170,11 +172,24 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(result)
-
 	user := s.auth.GetUser(r)
+
+	var breadcrumbs [][]string
+	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/%s/tree/%s", f.OwnerDid(), f.RepoName, ref)})
+	if treePath != "" {
+		for idx, elem := range strings.Split(treePath, "/") {
+			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
+		}
+	}
+
+	baseTreeLink := path.Join(f.OwnerDid(), f.RepoName, "tree", ref, treePath)
+	baseBlobLink := path.Join(f.OwnerDid(), f.RepoName, "blob", ref, treePath)
+
 	s.pages.RepoTree(w, pages.RepoTreeParams{
 		LoggedInUser: user,
+		BreadCrumbs:  breadcrumbs,
+		BaseTreeLink: baseTreeLink,
+		BaseBlobLink: baseBlobLink,
 		RepoInfo: pages.RepoInfo{
 			OwnerDid:        f.OwnerDid(),
 			OwnerHandle:     f.OwnerHandle(),
@@ -296,6 +311,14 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var breadcrumbs [][]string
+	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/%s/tree/%s", f.OwnerDid(), f.RepoName, ref)})
+	if filePath != "" {
+		for idx, elem := range strings.Split(filePath, "/") {
+			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
+		}
+	}
+
 	user := s.auth.GetUser(r)
 	s.pages.RepoBlob(w, pages.RepoBlobParams{
 		LoggedInUser: user,
@@ -306,6 +329,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 			SettingsAllowed: settingsAllowed(s, user, f),
 		},
 		RepoBlobResponse: result,
+		BreadCrumbs:      breadcrumbs,
 	})
 	return
 }
@@ -449,6 +473,8 @@ func settingsAllowed(s *State, u *auth.User, f *FullyResolvedRepo) bool {
 		ok, err := s.enforcer.IsSettingsAllowed(u.Did, f.Knot, f.OwnerSlashRepo())
 		if err == nil && ok {
 			settingsAllowed = true
+		} else {
+			log.Println(err, ok)
 		}
 	}
 

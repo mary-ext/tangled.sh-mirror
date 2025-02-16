@@ -535,9 +535,10 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// acls
-		p, _ := securejoin.SecureJoin(domain, repoName)
+		p, _ := securejoin.SecureJoin(user.Did, repoName)
 		err = s.enforcer.AddRepo(user.Did, domain, p)
 		if err != nil {
+			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to set up repository permissions.")
 			return
 		}

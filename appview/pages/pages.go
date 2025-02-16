@@ -8,9 +8,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/dustin/go-humanize"
@@ -34,6 +32,20 @@ func funcMap() template.FuncMap {
 		"add": func(a, b int) int {
 			return a + b
 		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
+		"cond": func(cond interface{}, a, b string) string {
+			if cond == nil {
+				return b
+			}
+
+			if boolean, ok := cond.(bool); boolean && ok {
+				return a
+			}
+
+			return b
+		},
 		"didOrHandle": func(did, handle string) string {
 			if handle != "" {
 				return fmt.Sprintf("@%s", handle)
@@ -50,6 +62,12 @@ func funcMap() template.FuncMap {
 				pairs = append(pairs, []string{values[i], values[i+1]})
 			}
 			return pairs, nil
+		},
+		"append": func(s []string, values ...string) []string {
+			for _, v := range values {
+				s = append(s, v)
+			}
+			return s
 		},
 		"timeFmt": humanize.Time,
 		"length": func(v []string) int {
@@ -195,6 +213,20 @@ func (r RepoInfo) FullName() string {
 	return path.Join(r.OwnerWithAt(), r.Name)
 }
 
+func (r RepoInfo) GetTabs() [][]string {
+	tabs := [][]string{
+		{"overview", "/"},
+		{"issues", "/issues"},
+		{"pulls", "/pulls"},
+	}
+
+	if r.SettingsAllowed {
+		tabs = append(tabs, []string{"settings", "/settings"})
+	}
+
+	return tabs
+}
+
 type RepoIndexParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
@@ -230,10 +262,15 @@ func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
 type RepoTreeParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Active       string
+	BreadCrumbs  [][]string
+	BaseTreeLink string
+	BaseBlobLink string
 	types.RepoTreeResponse
 }
 
 func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
+	params.Active = "overview"
 	return p.execute("repo/tree", w, params)
 }
 
@@ -261,18 +298,11 @@ type RepoBlobParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
 	Active       string
-	File         string
-	PathElems    []string
+	BreadCrumbs  [][]string
 	types.RepoBlobResponse
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
-	path := filepath.Dir(params.Path)
-	file := filepath.Base(params.Path)
-
-	params.PathElems = strings.Split(path, string(os.PathSeparator))
-	params.Path = path
-	params.File = file
 	params.Active = "overview"
 	return p.executeRepo("repo/blob", w, params)
 }

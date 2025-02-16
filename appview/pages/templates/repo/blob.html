@@ -3,10 +3,15 @@
 {{ $tot_lines := len $lines }}
 {{ $tot_chars := len (printf "%d" $tot_lines) }}
 {{ $code_number_style := "text-gray-400 left-0 bg-white text-right mr-2 select-none" }}
-<div class="pb-2 text-lg">
-{{ range .PathElems }}
-    <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}/{{ . }}" class="text-bold text-gray-500">{{ . }}</a> /
-{{ end }}<span class="">{{ .File }}</span>
+{{ $linkstyle := "no-underline hover:underline" }}
+<div class="pb-2 text-base">
+  {{ range $idx, $value := .BreadCrumbs }}
+    {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
+      <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
+    {{ else }}
+      <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a>
+    {{ end }}
+  {{ end }}
 </div>
 
 

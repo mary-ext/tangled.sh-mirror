@@ -16,7 +16,7 @@
       <nav class="w-full mx-auto">
         <div class="flex z-60 border-black border-b">
           {{ $activeTabStyles := "border-black border-l border-r border-t border-b-0 -mb-px bg-white" }}
-          {{ $tabs := assoc "overview" "/"  "issues" "/issues"  "pulls" "/pulls"  "settings" "/settings" }}
+          {{ $tabs := .RepoInfo.GetTabs }}
           {{ range $item := $tabs }}
             {{ $key := index $item 0 }}
             {{ $value := index $item 1 }}

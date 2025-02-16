@@ -1,48 +1,38 @@
-{{define "title"}} {{ .RepoInfo.FullName }} {{end}}
+{{define "repoContent"}}
+<main>
+  <div class="tree">
+    {{ $containerstyle := "py-1" }}
+    {{ $linkstyle := "no-underline hover:underline" }}
 
-{{define "content"}}
+    <div class="pb-2 text-base">
+      {{ range .BreadCrumbs }}
+        <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
+      {{ end }}
+    </div>
 
-<h1>
-{{ .RepoInfo.FullName }}
-</h1>
-    <main>
-      <div class="tree">
-
-        {{ if .Parent }}
-        <div></div>
-        <div></div>
-        <div><a href="/{{ .RepoInfo.FullName }}/tree/{{ .Ref }}/{{ .DotDot }}">..</a></div>
-        {{ end }}
-
-        {{ range .Files }}
-        {{ if not .IsFile }}
-        <div class="mode">{{ .Mode }}</div>
-        <div class="size">{{ .Size }}</div>
-        <div>
-          {{ if $.Parent }}
-          <a href="/{{ .RepoInfo.FullName }}/tree/{{ $.Ref }}/{{ $.Parent }}/{{ .Name }}">{{ .Name }}/</a>
-          {{ else }}
-          <a href="/{{ .RepoInfo.FullName }}/tree/{{ $.Ref }}/{{ .Name }}">{{ .Name }}/</a>
-          {{ end }}
+    {{ range .Files }}
+    {{ if not .IsFile }}
+    <div class="{{ $containerstyle }}">
+      <a href="/{{ $.BaseTreeLink }}/{{ .Name }}" class="{{ $linkstyle }}">
+        <div class="flex items-center gap-2">
+          <i class="w-3 h-3 fill-current" data-lucide="folder"></i>{{ .Name }}/
         </div>
-        <hr />
-        {{ end }}
-        {{ end }}
+      </a>
+    </div>
+    {{ end }}
+    {{ end }}
 
-        {{ range .Files }}
-        {{ if .IsFile }}
-        <div class="mode">{{ .Mode }}</div>
-        <div class="size">{{ .Size }}</div>
-        <div>
-          {{ if $.Parent }}
-          <a href="/{{ $.RepoInfo.FullName }}/blob/{{ $.Ref }}/{{ $.Parent }}/{{ .Name }}">{{ .Name }}</a>
-          {{ else }}
-          <a href="/{{ $.RepoInfo.FullName }}/blob/{{ $.Ref }}/{{ .Name }}">{{ .Name }}</a>
-          {{ end }}
+    {{ range .Files }}
+    {{ if .IsFile }}
+        <div class="{{ $containerstyle }}">
+          <a href="/{{ $.BaseBlobLink }}/{{ .Name }}" class="{{ $linkstyle }}">
+            <div class="flex items-center gap-2">
+              <i class="w-3 h-3" data-lucide="file"></i>{{ .Name }}
+            </div>
+          </a>
         </div>
-        <hr />
-        {{ end }}
-        {{ end }}
-      </div>
-    </main>
-  {{end}}
+    {{ end }}
+    {{ end }}
+  </div>
+</main>
+{{end}}
