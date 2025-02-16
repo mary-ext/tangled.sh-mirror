@@ -50,6 +50,9 @@ func funcMap() template.FuncMap {
 			return pairs, nil
 		},
 		"timeFmt": humanize.Time,
+		"length": func(v []string) int {
+			return len(v)
+		},
 	}
 }
 
@@ -255,10 +258,12 @@ func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 type RepoBlobParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Active       string
 	types.RepoBlobResponse
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
+	params.Active = "overview"
 	return p.executeRepo("repo/blob", w, params)
 }
 
