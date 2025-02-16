@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/sotangled/tangled/appview"
 )
 
@@ -79,7 +79,7 @@ func main() {
 	didOrHandle := components[0]
 	did := resolveToDid(didOrHandle)
 	repoName := components[1]
-	qualifiedRepoName := filepath.Join(did, repoName)
+	qualifiedRepoName, _ := securejoin.SecureJoin(did, repoName)
 
 	validCommands := map[string]bool{
 		"git-receive-pack":   true,
@@ -100,8 +100,7 @@ func main() {
 		}
 	}
 
-	fullPath := filepath.Join(*baseDirFlag, qualifiedRepoName)
-	fullPath = filepath.Clean(fullPath)
+	fullPath, _ := securejoin.SecureJoin(*baseDirFlag, qualifiedRepoName)
 
 	logEvent("Processing command", map[string]interface{}{
 		"user":     *incomingUser,

@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -29,7 +30,7 @@ func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	l := h.l.With("path", path, "handler", "RepoIndex")
 
 	gr, err := git.Open(path, "")
@@ -116,7 +117,7 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With("handler", "RepoTree", "ref", ref, "treePath", treePath)
 
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		notFound(w)
@@ -148,7 +149,7 @@ func (h *Handle) Blob(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With("handler", "FileContent", "ref", ref, "treePath", treePath)
 
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		notFound(w)
@@ -192,7 +193,7 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 	setContentDisposition(w, filename)
 	setGZipMIME(w)
 
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		notFound(w)
@@ -222,7 +223,7 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 
 	l := h.l.With("handler", "Log", "ref", ref, "path", path)
 
@@ -288,7 +289,7 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 
 	l := h.l.With("handler", "Diff", "ref", ref)
 
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
 	if err != nil {
 		notFound(w)
@@ -312,7 +313,7 @@ func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Tags(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	l := h.l.With("handler", "Refs")
 
 	gr, err := git.Open(path, "")
@@ -353,7 +354,7 @@ func (h *Handle) Tags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) Branches(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join(h.c.Repo.ScanPath, didPath(r))
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	l := h.l.With("handler", "Branches")
 
 	gr, err := git.Open(path, "")
@@ -445,7 +446,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	name := data.Name
 
 	relativeRepoPath := filepath.Join(did, name)
-	repoPath := filepath.Join(h.c.Repo.ScanPath, relativeRepoPath)
+	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
 	err := git.InitBare(repoPath)
 	if err != nil {
 		l.Error("initializing bare repo", "error", err.Error())
@@ -522,7 +523,7 @@ func (h *Handle) AddRepoCollaborator(w http.ResponseWriter, r *http.Request) {
 	}
 	h.jc.AddDid(data.Did)
 
-	repoName := filepath.Join(ownerDid, repo)
+	repoName, _ := securejoin.SecureJoin(ownerDid, repo)
 	if err := h.e.AddCollaborator(data.Did, ThisServer, repoName); err != nil {
 		l.Error("adding repo collaborator", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)

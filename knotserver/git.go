@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/knotserver/git/service"
 )
@@ -13,7 +14,7 @@ import (
 func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
-	repo := filepath.Join(d.c.Repo.ScanPath, did, name)
+	repo, _ := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
 
 	w.Header().Set("content-type", "application/x-git-upload-pack-advertisement")
 	w.WriteHeader(http.StatusOK)
@@ -33,7 +34,7 @@ func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
-	repo := filepath.Join(d.c.Repo.ScanPath, did, name)
+	repo, _ := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
 
 	w.Header().Set("content-type", "application/x-git-upload-pack-result")
 	w.Header().Set("Connection", "Keep-Alive")

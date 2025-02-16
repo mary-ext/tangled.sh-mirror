@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -16,7 +17,7 @@ func sanitize(content []byte) []byte {
 func didPath(r *http.Request) string {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
-	path := filepath.Join(did, name)
+	path, _ := securejoin.SecureJoin(did, name)
 	filepath.Clean(path)
 	return path
 }

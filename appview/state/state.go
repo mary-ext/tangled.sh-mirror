@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/bluesky-social/jetstream/pkg/models"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	tangled "github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview"
@@ -529,7 +529,8 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// acls
-		err = s.enforcer.AddRepo(user.Did, domain, filepath.Join(user.Did, repoName))
+		p, _ := securejoin.SecureJoin(domain, repoName)
+		err = s.enforcer.AddRepo(user.Did, domain, p)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to set up repository permissions.")
 			return

@@ -6,9 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"path/filepath"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/pages"
@@ -419,7 +419,8 @@ func (f *FullyResolvedRepo) OwnerHandle() string {
 }
 
 func (f *FullyResolvedRepo) OwnerSlashRepo() string {
-	return filepath.Join(f.OwnerDid(), f.RepoName)
+	p, _ := securejoin.SecureJoin(f.OwnerDid(), f.RepoName)
+	return p
 }
 
 func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {

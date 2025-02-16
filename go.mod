@@ -10,6 +10,7 @@ require (
 	github.com/bluesky-social/indigo v0.0.0-20250123072624-9e3b84fdbb20
 	github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1
 	github.com/casbin/casbin/v2 v2.103.0
+	github.com/cyphar/filepath-securejoin v0.3.3
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-chi/chi/v5 v5.2.0
@@ -36,7 +37,6 @@ require (
 	github.com/casbin/govaluate v1.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.4.0 // indirect
-	github.com/cyphar/filepath-securejoin v0.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
