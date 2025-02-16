@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/sotangled/tangled/api/tangled"
+	"github.com/sotangled/tangled/jetstream"
 	"github.com/sotangled/tangled/knotserver"
 	"github.com/sotangled/tangled/knotserver/config"
 	"github.com/sotangled/tangled/knotserver/db"
@@ -40,7 +42,15 @@ func main() {
 		return
 	}
 
-	mux, err := knotserver.Setup(ctx, c, db, e, l)
+	jc, err := jetstream.NewJetstreamClient("knotserver", []string{
+		tangled.PublicKeyNSID,
+		tangled.KnotMemberNSID,
+	}, nil, db)
+	if err != nil {
+		l.Error("failed to setup jetstream", "error", err)
+	}
+
+	mux, err := knotserver.Setup(ctx, c, db, e, jc, l)
 	if err != nil {
 		l.Error("failed to setup server", "error", err)
 		return

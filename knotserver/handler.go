@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sotangled/tangled/jetstream"
 	"github.com/sotangled/tangled/knotserver/config"
 	"github.com/sotangled/tangled/knotserver/db"
 	"github.com/sotangled/tangled/rbac"
@@ -19,7 +20,7 @@ const (
 type Handle struct {
 	c  *config.Config
 	db *db.DB
-	jc *JetstreamClient
+	jc *jetstream.JetstreamClient
 	e  *rbac.Enforcer
 	l  *slog.Logger
 
@@ -29,7 +30,7 @@ type Handle struct {
 	knotInitialized bool
 }
 
-func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l *slog.Logger) (http.Handler, error) {
+func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	h := Handle{
@@ -37,6 +38,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l
 		db:   db,
 		e:    e,
 		l:    l,
+		jc:   jc,
 		init: make(chan struct{}),
 	}
 
@@ -45,7 +47,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l
 		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
 	}
 
-	err = h.StartJetstream(ctx)
+	err = h.jc.StartJetstream(ctx, h.processMessages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}

@@ -8,117 +8,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
-	"time"
 
-	"github.com/bluesky-social/jetstream/pkg/client"
-	"github.com/bluesky-social/jetstream/pkg/client/schedulers/sequential"
 	"github.com/bluesky-social/jetstream/pkg/models"
 	"github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/knotserver/db"
 	"github.com/sotangled/tangled/log"
 )
-
-type JetstreamClient struct {
-	cfg         *client.ClientConfig
-	client      *client.Client
-	reconnectCh chan struct{}
-	mu          sync.RWMutex
-}
-
-func (h *Handle) StartJetstream(ctx context.Context) error {
-	l := h.l
-	ctx = log.IntoContext(ctx, l)
-	collections := []string{tangled.PublicKeyNSID, tangled.KnotMemberNSID}
-	dids := []string{}
-
-	cfg := client.DefaultClientConfig()
-	cfg.WebsocketURL = "wss://jetstream1.us-west.bsky.network/subscribe"
-	cfg.WantedCollections = collections
-	cfg.WantedDids = dids
-
-	sched := sequential.NewScheduler("knotserver", l, h.processMessages)
-
-	client, err := client.NewClient(cfg, l, sched)
-	if err != nil {
-		l.Error("failed to create jetstream client", "error", err)
-	}
-
-	jc := &JetstreamClient{
-		cfg:         cfg,
-		client:      client,
-		reconnectCh: make(chan struct{}, 1),
-	}
-
-	h.jc = jc
-
-	go func() {
-		lastTimeUs := h.getLastTimeUs(ctx)
-		for len(h.jc.cfg.WantedDids) == 0 {
-			time.Sleep(time.Second)
-		}
-		h.connectAndRead(ctx, &lastTimeUs)
-	}()
-	return nil
-}
-
-func (h *Handle) connectAndRead(ctx context.Context, cursor *int64) {
-	l := log.FromContext(ctx)
-	for {
-		select {
-		case <-h.jc.reconnectCh:
-			l.Info("(re)connecting jetstream client")
-			h.jc.client.Scheduler.Shutdown()
-			if err := h.jc.client.ConnectAndRead(ctx, cursor); err != nil {
-				l.Error("error reading jetstream", "error", err)
-			}
-		default:
-			if err := h.jc.client.ConnectAndRead(ctx, cursor); err != nil {
-				l.Error("error reading jetstream", "error", err)
-			}
-		}
-	}
-}
-
-func (j *JetstreamClient) AddDid(did string) {
-	j.mu.Lock()
-	j.cfg.WantedDids = append(j.cfg.WantedDids, did)
-	j.mu.Unlock()
-	j.reconnectCh <- struct{}{}
-}
-
-func (j *JetstreamClient) UpdateDids(dids []string) {
-	j.mu.Lock()
-	j.cfg.WantedDids = dids
-	j.mu.Unlock()
-	j.reconnectCh <- struct{}{}
-}
-
-func (h *Handle) getLastTimeUs(ctx context.Context) int64 {
-	l := log.FromContext(ctx)
-	lastTimeUs, err := h.db.GetLastTimeUs()
-	if err != nil {
-		l.Warn("couldn't get last time us, starting from now", "error", err)
-		lastTimeUs = time.Now().UnixMicro()
-		err = h.db.SaveLastTimeUs(lastTimeUs)
-		if err != nil {
-			l.Error("failed to save last time us")
-		}
-	}
-
-	// If last time is older than a week, start from now
-	if time.Now().UnixMicro()-lastTimeUs > 7*24*60*60*1000*1000 {
-		lastTimeUs = time.Now().UnixMicro()
-		l.Warn("last time us is older than a week. discarding that and starting from now")
-		err = h.db.SaveLastTimeUs(lastTimeUs)
-		if err != nil {
-			l.Error("failed to save last time us")
-		}
-	}
-
-	l.Info("found last time_us", "time_us", lastTimeUs)
-	return lastTimeUs
-}
 
 func (h *Handle) processPublicKey(ctx context.Context, did string, record tangled.PublicKey) error {
 	l := log.FromContext(ctx)
