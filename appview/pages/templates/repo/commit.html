@@ -8,44 +8,44 @@
 {{ $diff := .Diff.Diff }}
 
 <section class="commit">
-  <pre>{{- $commit.Message -}}</pre>
-  <div class="commit-info">
-  {{ $commit.Author.Name }} <a href="mailto:{{ $commit.Author.Email }}" class="commit-email">{{ $commit.Author.Email}}</a>
-  <div>{{ $commit.Author.When.Format "Mon, 02 Jan 2006 15:04:05 -0700" }}</div>
-  </div>
-
-  <div>
-  <strong>commit</strong>
-  <p><a href="/{{ $repo }}/commit/{{ $commit.This }}" class="commit-hash">
-    {{ slice $commit.This 0 8 }}
-  </a>
-  </p>
-  </div>
-
-  {{ if $commit.Parent }}
-  <div>
-  <strong>parent</strong>
-  <p><a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="commit-hash">
-    {{ slice $commit.Parent 0 8 }}
-  </a></p>
-  </div>
-
-  {{ end }}
-  <div class="diff-stat">
+  <div id="commit-message">
+    {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
     <div>
-    {{ $stat.FilesChanged }} files changed,
-    {{ $stat.Insertions }} insertions(+),
-    {{ $stat.Deletions }} deletions(-)
-    </div>
-    <div>
-      <br>
-      <strong>jump to</strong>
-      {{ range $diff }}
-      <ul>
-      <li><a href="#{{ .Name.New }}">{{ .Name.New }}</a></li>
-      </ul>
+      {{ index $messageParts 0 }}
+      {{ if gt (len $messageParts) 1 }}
+      <p class="mt-1 cursor-text pb-2">{{ nl2br (unwrapText (index $messageParts 1)) }}</p>
       {{ end }}
     </div>
+  </div>
+
+  <p class="text-sm text-gray-500">
+    <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">
+      {{ $commit.Author.Name }}
+    </a>
+    &nbsp;·&nbsp;
+    {{ timeFmt $commit.Author.When }}
+    &nbsp;·&nbsp;
+    <span class="font-mono">{{ $stat.FilesChanged }}</span> files <span class="font-mono">(+{{ $stat.Insertions }}, -{{ $stat.Deletions }})</span>
+    &nbsp;·&nbsp;
+    <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500">
+      {{ slice $commit.This 0 8 }}
+    </a>
+    {{ if $commit.Parent }}
+      &lt;--
+      <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500">
+        {{ slice $commit.Parent 0 8 }}
+      </a>
+    {{ end }}
+  </p>
+
+  <div class="diff-stat">
+    <br>
+    <strong>jump to</strong>
+    {{ range $diff }}
+    <ul>
+      <li><a href="#{{ .Name.New }}">{{ .Name.New }}</a></li>
+    </ul>
+    {{ end }}
   </div>
 </section>
 <section>
@@ -75,7 +75,7 @@
     {{ if .IsBinary }}
     <p>Not showing binary file.</p>
     {{ else }}
-      <pre>
+      <pre class="overflow-auto">
       {{- range .TextFragments -}}
       <p>{{- .Header -}}</p>
       {{- range .Lines -}}

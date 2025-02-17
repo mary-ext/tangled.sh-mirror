@@ -74,8 +74,8 @@ func funcMap() template.FuncMap {
 		"splitN": func(s, sep string, n int) []string {
 			return strings.SplitN(s, sep, n)
 		},
-		"unescapeHtml": func(s string) template.HTML {
-			return template.HTML(s)
+		"escapeHtml": func(s string) string {
+			return template.HTMLEscapeString(s)
 		},
 		"nl2br": func(text string) template.HTML {
 			return template.HTML(strings.Replace(template.HTMLEscapeString(text), "\n", "<br>", -1))
@@ -269,10 +269,12 @@ func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
 type RepoCommitParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Active       string
 	types.RepoCommitResponse
 }
 
 func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
+	params.Active = "overview"
 	return p.executeRepo("repo/commit", w, params)
 }
 

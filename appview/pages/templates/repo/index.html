@@ -101,7 +101,7 @@
           <div class="text-base cursor-pointer">
             <div>
               <div class="flex items-center gap-1">
-                <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="inline no-underline hover:underline hover:text-sky-400">{{ index $messageParts 0 }}</a>
+                <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="inline no-underline hover:underline">{{ index $messageParts 0 }}</a>
                 {{ if gt (len $messageParts) 1 }}
                 <button class="text-sm inline rounded-sm bg-gray-300 text-gray-700 px-1 w-fit hover:bg-gray-400"
                       hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')">&hellip;</button>

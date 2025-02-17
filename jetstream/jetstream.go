@@ -29,6 +29,9 @@ type JetstreamClient struct {
 }
 
 func (j *JetstreamClient) AddDid(did string) {
+	if did == "" {
+		return
+	}
 	j.mu.Lock()
 	j.cfg.WantedDids = append(j.cfg.WantedDids, did)
 	j.mu.Unlock()
@@ -37,7 +40,11 @@ func (j *JetstreamClient) AddDid(did string) {
 
 func (j *JetstreamClient) UpdateDids(dids []string) {
 	j.mu.Lock()
-	j.cfg.WantedDids = dids
+	for _, did := range dids {
+		if did != "" {
+		}
+		j.cfg.WantedDids = append(j.cfg.WantedDids, did)
+	}
 	j.mu.Unlock()
 	j.reconnectCh <- struct{}{}
 }

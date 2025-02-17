@@ -2,8 +2,11 @@
 
 {{ define "content" }}
     <section id="repo-header" class="mb-4">
-        <span class="text-xl">{{ .RepoInfo.FullName }}</span>
-        <br/>
+        <p class="text-xl">
+          <a href="/{{ .RepoInfo.OwnerWithAt }}" class="no-underline hover:underline">{{ .RepoInfo.OwnerWithAt }}</a>
+          /
+          <a href="/{{ .RepoInfo.FullName }}" class="no-underline hover:underline">{{ .RepoInfo.Name }}</a>
+        </p>
         <span>
           {{ if .RepoInfo.Description }}
             {{ .RepoInfo.Description }}
