@@ -57,7 +57,7 @@
             pname = "appview";
             version = "0.1.0";
             src = gitignoreSource ./.;
-            postConfigureHook = ''
+            preBuild = ''
               cp -f ${htmx-src} appview/pages/static/htmx.min.js
               cp -f ${lucide-src} appview/pages/static/lucide.min.js
               ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css

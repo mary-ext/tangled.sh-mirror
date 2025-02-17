@@ -64,9 +64,7 @@ func funcMap() template.FuncMap {
 			return pairs, nil
 		},
 		"append": func(s []string, values ...string) []string {
-			for _, v := range values {
-				s = append(s, v)
-			}
+			s = append(s, values...)
 			return s
 		},
 		"timeFmt": humanize.Time,
