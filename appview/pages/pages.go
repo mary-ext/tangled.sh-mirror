@@ -79,6 +79,19 @@ func funcMap() template.FuncMap {
 		"unescapeHtml": func(s string) template.HTML {
 			return template.HTML(s)
 		},
+		"nl2br": func(text string) template.HTML {
+			return template.HTML(strings.Replace(template.HTMLEscapeString(text), "\n", "<br>", -1))
+		},
+		"unwrapText": func(text string) string {
+			paragraphs := strings.Split(text, "\n\n")
+
+			for i, p := range paragraphs {
+				lines := strings.Split(p, "\n")
+				paragraphs[i] = strings.Join(lines, " ")
+			}
+
+			return strings.Join(paragraphs, "\n\n")
+		},
 	}
 }
 
