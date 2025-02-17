@@ -14,7 +14,7 @@ type Repo struct {
 
 type Server struct {
 	ListenAddr         string `env:"LISTEN_ADDR, default=0.0.0.0:5555"`
-	InternalListenAddr string `env:"INTERNAL_LISTEN_ADDR, default=0.0.0.0:5444"`
+	InternalListenAddr string `env:"INTERNAL_LISTEN_ADDR, default=127.0.0.1:5444"`
 	Secret             string `env:"SECRET, required"`
 	DBPath             string `env:"DB_PATH, default=knotserver.db"`
 	Hostname           string `env:"HOSTNAME, required"`

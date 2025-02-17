@@ -26,7 +26,7 @@ import (
 )
 
 func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This is a knot, part of the wider Tangle network: https://tangled.sh"))
+	w.Write([]byte("This is a knot server. More info at https://tangled.sh"))
 }
 
 func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
