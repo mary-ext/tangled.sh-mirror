@@ -48,6 +48,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	commits, err := gr.Commits()
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
@@ -56,6 +57,45 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(commits) > 10 {
 		commits = commits[:10]
+	}
+
+	branches, err := gr.Branches()
+	if err != nil {
+		l.Error("getting branches", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	bs := []types.Branch{}
+	for _, branch := range branches {
+		b := types.Branch{}
+		b.Hash = branch.Hash().String()
+		b.Name = branch.Name().Short()
+		bs = append(bs, b)
+	}
+
+	tags, err := gr.Tags()
+	if err != nil {
+		// Non-fatal, we *should* have at least one branch to show.
+		l.Warn("getting tags", "error", err.Error())
+	}
+
+	rtags := []*types.TagReference{}
+	for _, tag := range tags {
+		tr := types.TagReference{
+			Tag: tag.TagObject(),
+		}
+
+		tr.Reference = types.Reference{
+			Name: tag.Name(),
+			Hash: tag.Hash().String(),
+		}
+
+		if tag.Message() != "" {
+			tr.Message = tag.Message()
+		}
+
+		rtags = append(rtags, &tr)
 	}
 
 	var readmeContent template.HTML
@@ -109,6 +149,8 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		Description: getDescription(path),
 		Readme:      readmeContent,
 		Files:       files,
+		Branches:    bs,
+		Tags:        rtags,
 	}
 
 	writeJSON(w, resp)

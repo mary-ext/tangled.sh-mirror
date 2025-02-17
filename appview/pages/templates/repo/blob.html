@@ -9,7 +9,7 @@
     {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
       <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
     {{ else }}
-      <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a>
+      <span class="text-bold text-gray-500">{{ index . 0 }}</span>
     {{ end }}
   {{ end }}
 </div>

@@ -13,6 +13,8 @@ type RepoIndexResponse struct {
 	Commits     []*object.Commit `json:"commits,omitempty"`
 	Description string           `json:"description,omitempty"`
 	Files       []NiceTree       `json:"files,omitempty"`
+	Branches    []Branch         `json:"branches,omitempty"`
+	Tags        []*TagReference  `json:"tags,omitempty"`
 }
 
 type RepoLogResponse struct {

@@ -8,32 +8,28 @@
                     {{ $containerstyle := "py-1" }}
                     {{ $linkstyle := "no-underline hover:underline" }}
 
-
                     <div class="flex justify-end">
                         <select
-                            hx-get="/{{ .RepoInfo.FullName }}/tree/"
-                            hx-on::config-request = "event.detail.path += this.value"
-                            hx-trigger="change"
-                            hx-target="#repo-content"
-                            hx-select="#repo-content"
-                            hx-push-url="true"
+                            onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + this.value"
                             class="p-1 border border-gray-500 bg-white"
                         >
-                            <optgroup label="branches" class="font-semibold">
+                            <optgroup label="branches" class="uppercase bold text-sm">
                                 {{ range .Branches }}
                                     <option
                                         value="{{ .Reference.Name }}"
                                         class="py-1"
+                                        {{if eq .Reference.Name $.Ref}}selected{{end}}
                                     >
                                         {{ .Reference.Name }}
                                     </option>
                                 {{ end }}
                             </optgroup>
-                            <optgroup label="tags" class="font-semibold">
+                            <optgroup label="tags" class="uppercase bold text-sm">
                                 {{ range .Tags }}
                                     <option
                                         value="{{ .Reference.Name }}"
                                         class="py-1"
+                                        {{if eq .Reference.Name $.Ref}}selected{{end}}
                                     >
                                         {{ .Reference.Name }}
                                     </option>
