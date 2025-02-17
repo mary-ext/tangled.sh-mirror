@@ -39,9 +39,9 @@ type RepoTreeResponse struct {
 }
 
 type TagReference struct {
-	Ref     Reference   `json:"ref,omitempty"`
-	Tag     *object.Tag `json:"tag,omitempty"`
-	Message string      `json:"message,omitempty"`
+	Reference `json:"ref,omitempty"`
+	Tag       *object.Tag `json:"tag,omitempty"`
+	Message   string      `json:"message,omitempty"`
 }
 
 type Reference struct {

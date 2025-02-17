@@ -342,11 +342,12 @@ func (h *Handle) Tags(w http.ResponseWriter, r *http.Request) {
 	rtags := []*types.TagReference{}
 	for _, tag := range tags {
 		tr := types.TagReference{
-			Ref: types.Reference{
-				Name: tag.Name(),
-				Hash: tag.Hash().String(),
-			},
 			Tag: tag.TagObject(),
+		}
+
+		tr.Reference = types.Reference{
+			Name: tag.Name(),
+			Hash: tag.Hash().String(),
 		}
 
 		if tag.Message() != "" {

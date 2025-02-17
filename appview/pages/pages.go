@@ -237,6 +237,8 @@ type RepoIndexParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
 	Active       string
+	Branches     []types.Branch
+	Tags         []*types.TagReference
 	types.RepoIndexResponse
 }
 

@@ -18,13 +18,20 @@ import (
 )
 
 func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
+	ref := chi.URLParam(r, "ref")
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to fully resolve repo", err)
 		return
 	}
+	var reqUrl string
+	if ref != "" {
+		reqUrl = fmt.Sprintf("http://%s/%s/%s/tree/%s", f.Knot, f.OwnerDid(), f.RepoName, ref)
+	} else {
+		reqUrl = fmt.Sprintf("http://%s/%s/%s", f.Knot, f.OwnerDid(), f.RepoName)
+	}
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s", f.Knot, f.OwnerDid(), f.RepoName))
+	resp, err := http.Get(reqUrl)
 	if err != nil {
 		s.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
@@ -45,6 +52,46 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	branchesResp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/branches", f.Knot, f.OwnerDid(), f.RepoName))
+	if err != nil {
+		log.Println("failed to reach knotserver for branches", err)
+		return
+	}
+	defer branchesResp.Body.Close()
+
+	tagsResp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/tags", f.Knot, f.OwnerDid(), f.RepoName))
+	if err != nil {
+		log.Println("failed to reach knotserver for tags", err)
+		return
+	}
+	defer tagsResp.Body.Close()
+
+	branchesBody, err := io.ReadAll(branchesResp.Body)
+	if err != nil {
+		log.Println("failed to read branches response", err)
+		return
+	}
+
+	tagsBody, err := io.ReadAll(tagsResp.Body)
+	if err != nil {
+		log.Println("failed to read tags response", err)
+		return
+	}
+
+	var branchesResult types.RepoBranchesResponse
+	err = json.Unmarshal(branchesBody, &branchesResult)
+	if err != nil {
+		log.Println("failed to parse branches response", err)
+		return
+	}
+
+	var tagsResult types.RepoTagsResponse
+	err = json.Unmarshal(tagsBody, &tagsResult)
+	if err != nil {
+		log.Println("failed to parse tags response", err)
+		return
+	}
+
 	log.Println(resp.Status, result)
 
 	user := s.auth.GetUser(r)
@@ -57,6 +104,8 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			SettingsAllowed: settingsAllowed(s, user, f),
 		},
 		RepoIndexResponse: result,
+		Branches:          branchesResult.Branches,
+		Tags:              tagsResult.Tags,
 	})
 
 	return

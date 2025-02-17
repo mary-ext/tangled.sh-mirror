@@ -685,6 +685,7 @@ func (s *State) UserRouter() http.Handler {
 			r.Get("/", s.RepoIndex)
 			r.Get("/log/{ref}", s.RepoLog)
 			r.Route("/tree/{ref}", func(r chi.Router) {
+				r.Get("/", s.RepoIndex)
 				r.Get("/*", s.RepoTree)
 			})
 			r.Get("/commit/{ref}", s.RepoCommit)
