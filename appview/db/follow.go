@@ -13,7 +13,7 @@ type Follow struct {
 }
 
 func (d *DB) AddFollow(userDid, subjectDid, rkey string) error {
-	query := `insert into follows (user_did, subject_did, rkey) values (?, ?, ?)`
+	query := `insert or ignore into follows (user_did, subject_did, rkey) values (?, ?, ?)`
 	_, err := d.db.Exec(query, userDid, subjectDid, rkey)
 	return err
 }

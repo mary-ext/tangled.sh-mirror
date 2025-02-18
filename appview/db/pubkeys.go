@@ -6,7 +6,7 @@ import (
 )
 
 func (d *DB) AddPublicKey(did, name, key string) error {
-	query := `insert into public_keys (did, name, key) values (?, ?, ?)`
+	query := `insert or ignore into public_keys (did, name, key) values (?, ?, ?)`
 	_, err := d.db.Exec(query, did, name, key)
 	return err
 }

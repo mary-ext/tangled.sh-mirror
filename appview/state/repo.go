@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -407,11 +408,10 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		// for now, this is just pubkeys
 		user := s.auth.GetUser(r)
-		repoCollaborators, err := s.enforcer.E.GetImplicitUsersForResourceByDomain(f.OwnerSlashRepo(), f.Knot)
+		repoCollaborators, err := f.Collaborators(r.Context(), s)
 		if err != nil {
 			log.Println("failed to get collaborators", err)
 		}
-		log.Println(repoCollaborators)
 
 		isCollaboratorInviteAllowed := false
 		if user != nil {
@@ -452,6 +452,45 @@ func (f *FullyResolvedRepo) OwnerHandle() string {
 func (f *FullyResolvedRepo) OwnerSlashRepo() string {
 	p, _ := securejoin.SecureJoin(f.OwnerDid(), f.RepoName)
 	return p
+}
+
+func (f *FullyResolvedRepo) Collaborators(ctx context.Context, s *State) ([]pages.Collaborator, error) {
+	repoCollaborators, err := s.enforcer.E.GetImplicitUsersForResourceByDomain(f.OwnerSlashRepo(), f.Knot)
+	if err != nil {
+		return nil, err
+	}
+
+	var collaborators []pages.Collaborator
+	for _, item := range repoCollaborators {
+		// currently only two roles: owner and member
+		var role string
+		if item[3] == "repo:owner" {
+			role = "owner"
+		} else if item[3] == "repo:collaborator" {
+			role = "collaborator"
+		} else {
+			continue
+		}
+
+		did := item[0]
+
+		var handle string
+		id, err := s.resolver.ResolveIdent(ctx, did)
+		if err != nil {
+			handle = ""
+		} else {
+			handle = string(id.Handle)
+		}
+
+		c := pages.Collaborator{
+			Did:    did,
+			Handle: handle,
+			Role:   role,
+		}
+		collaborators = append(collaborators, c)
+	}
+
+	return collaborators, nil
 }
 
 func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {

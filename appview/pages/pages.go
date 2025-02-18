@@ -326,10 +326,16 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	return p.executeRepo("repo/blob", w, params)
 }
 
+type Collaborator struct {
+	Did    string
+	Handle string
+	Role   string
+}
+
 type RepoSettingsParams struct {
 	LoggedInUser                *auth.User
 	RepoInfo                    RepoInfo
-	Collaborators               [][]string
+	Collaborators               []Collaborator
 	Active                      string
 	IsCollaboratorInviteAllowed bool
 }

@@ -119,6 +119,7 @@ func (e *Enforcer) AddCollaborator(collaborator, domain, repo string) error {
 	}
 
 	_, err := e.E.AddPolicies([][]string{
+		{collaborator, domain, repo, "repo:collaborator"},
 		{collaborator, domain, repo, "repo:settings"},
 		{collaborator, domain, repo, "repo:push"},
 	})
