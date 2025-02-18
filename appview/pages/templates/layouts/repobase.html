@@ -39,10 +39,10 @@
         </div>
       </nav>
       <section
-          class="bg-white p-6 min-h-[200px] border-l border-r border-b border-black relative z-20 w-full mx-auto"
-          >
+          class="bg-white p-6 min-h-[200px] border-l border-r border-b border-black relative z-20 w-full mx-auto">
           {{ block "repoContent" . }}{{ end }}
       </section>
+      {{ block "repoAfter" . }} {{ end }}
     </section>
 {{ end }}
 
