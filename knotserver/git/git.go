@@ -7,12 +7,28 @@ import (
 	"io/fs"
 	"path"
 	"sort"
+	"sync"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+var (
+	commitCache *ristretto.Cache
+	cacheMu     sync.RWMutex
+)
+
+func init() {
+	cache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,
+		MaxCost:     1 << 30,
+		BufferItems: 64,
+	})
+	commitCache = cache
+}
 
 var (
 	ErrBinaryFile = fmt.Errorf("binary file")
@@ -277,6 +293,38 @@ func (g *GitRepo) WriteTar(w io.Writer, prefix string) error {
 	}
 
 	return nil
+}
+
+func (g *GitRepo) LastCommitTime(filePath string) (*object.Commit, error) {
+	cacheMu.RLock()
+	if commit, exists := commitCache.Get(filePath); exists {
+		cacheMu.RUnlock()
+		return commit.(*object.Commit), nil
+	}
+	cacheMu.RUnlock()
+
+	commitIter, err := g.r.Log(&git.LogOptions{
+		From: g.h,
+		PathFilter: func(s string) bool {
+			return s == filePath
+		},
+		Order: git.LogOrderCommitterTime,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get commit log for %s: %w", filePath, err)
+	}
+
+	commit, err := commitIter.Next()
+	if err != nil {
+		return nil, fmt.Errorf("no commit found for %s", filePath)
+	}
+
+	cacheMu.Lock()
+	commitCache.Set(filePath, commit, 1)
+	cacheMu.Unlock()
+
+	return commit, nil
 }
 
 func newInfoWrapper(

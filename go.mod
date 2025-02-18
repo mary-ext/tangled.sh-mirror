@@ -11,6 +11,7 @@ require (
 	github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1
 	github.com/casbin/casbin/v2 v2.103.0
 	github.com/cyphar/filepath-securejoin v0.3.3
+	github.com/dgraph-io/ristretto v0.2.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-chi/chi/v5 v5.2.0
@@ -81,6 +82,7 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.1-0.20221221234430-40501e09de1f // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
