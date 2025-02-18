@@ -1,8 +1,16 @@
 package db
 
 func (d *DB) SaveLastTimeUs(lastTimeUs int64) error {
-	_, err := d.db.Exec(`update _jetstream set last_time_us = ?`, lastTimeUs)
+	_, err := d.db.Exec(`insert into _jetstream (last_time_us) values (?)`, lastTimeUs)
 	return err
+}
+
+func (d *DB) UpdateLastTimeUs(lastTimeUs int64) error {
+	_, err := d.db.Exec(`update _jetstream set last_time_us = ? where rowid = 1`, lastTimeUs)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *DB) GetLastTimeUs() (int64, error) {

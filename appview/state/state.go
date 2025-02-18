@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ func Make() (*State, error) {
 
 	resolver := appview.NewResolver()
 
-	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, db, false)
+	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, slog.Default(), db, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
@@ -83,7 +84,7 @@ func Make() (*State, error) {
 			if err != nil {
 				return fmt.Errorf("failed to add follow to db: %w", err)
 			}
-			return db.SaveLastTimeUs(e.TimeUS)
+			return db.UpdateLastTimeUs(e.TimeUS)
 		}
 
 		return nil
@@ -125,6 +126,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 		resolved, err := s.resolver.ResolveIdent(ctx, handle)
 		if err != nil {
+			log.Println("failed to resolve handle:", err)
 			s.pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
 			return
 		}

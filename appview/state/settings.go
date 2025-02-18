@@ -68,7 +68,7 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		// invalid record
 		if err != nil {
 			log.Printf("failed to create record: %s", err)
-			s.pages.Notice(w, "settings-keys-bad", "Failed to create record.")
+			s.pages.Notice(w, "settings-keys", "Failed to create record.")
 			return
 		}
 

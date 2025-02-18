@@ -3,6 +3,7 @@ package jetstream
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -15,17 +16,21 @@ import (
 type DB interface {
 	GetLastTimeUs() (int64, error)
 	SaveLastTimeUs(int64) error
+	UpdateLastTimeUs(int64) error
 }
 
 type JetstreamClient struct {
 	cfg    *client.ClientConfig
 	client *client.Client
 	ident  string
+	l      *slog.Logger
 
-	db          DB
-	reconnectCh chan struct{}
-	waitForDid  bool
-	mu          sync.RWMutex
+	db         DB
+	waitForDid bool
+	mu         sync.RWMutex
+
+	cancel   context.CancelFunc
+	cancelMu sync.Mutex
 }
 
 func (j *JetstreamClient) AddDid(did string) {
@@ -35,21 +40,25 @@ func (j *JetstreamClient) AddDid(did string) {
 	j.mu.Lock()
 	j.cfg.WantedDids = append(j.cfg.WantedDids, did)
 	j.mu.Unlock()
-	j.reconnectCh <- struct{}{}
 }
 
 func (j *JetstreamClient) UpdateDids(dids []string) {
 	j.mu.Lock()
 	for _, did := range dids {
 		if did != "" {
+			j.cfg.WantedDids = append(j.cfg.WantedDids, did)
 		}
-		j.cfg.WantedDids = append(j.cfg.WantedDids, did)
 	}
 	j.mu.Unlock()
-	j.reconnectCh <- struct{}{}
+
+	j.cancelMu.Lock()
+	if j.cancel != nil {
+		j.cancel()
+	}
+	j.cancelMu.Unlock()
 }
 
-func NewJetstreamClient(ident string, collections []string, cfg *client.ClientConfig, db DB, waitForDid bool) (*JetstreamClient, error) {
+func NewJetstreamClient(ident string, collections []string, cfg *client.ClientConfig, logger *slog.Logger, db DB, waitForDid bool) (*JetstreamClient, error) {
 	if cfg == nil {
 		cfg = client.DefaultClientConfig()
 		cfg.WebsocketURL = "wss://jetstream1.us-west.bsky.network/subscribe"
@@ -60,18 +69,18 @@ func NewJetstreamClient(ident string, collections []string, cfg *client.ClientCo
 		cfg:   cfg,
 		ident: ident,
 		db:    db,
+		l:     logger,
 
 		// This will make the goroutine in StartJetstream wait until
 		// cfg.WantedDids has been populated, typically using UpdateDids.
-		waitForDid:  waitForDid,
-		reconnectCh: make(chan struct{}, 1),
+		waitForDid: waitForDid,
 	}, nil
 }
 
 // StartJetstream starts the jetstream client and processes events using the provided processFunc.
 // The caller is responsible for saving the last time_us to the database (just use your db.SaveLastTimeUs).
 func (j *JetstreamClient) StartJetstream(ctx context.Context, processFunc func(context.Context, *models.Event) error) error {
-	logger := log.FromContext(ctx)
+	logger := j.l
 
 	sched := sequential.NewScheduler(j.ident, logger, processFunc)
 
@@ -82,38 +91,44 @@ func (j *JetstreamClient) StartJetstream(ctx context.Context, processFunc func(c
 	j.client = client
 
 	go func() {
-		lastTimeUs := j.getLastTimeUs(ctx)
 		if j.waitForDid {
 			for len(j.cfg.WantedDids) == 0 {
 				time.Sleep(time.Second)
 			}
 		}
 		logger.Info("done waiting for did")
-		j.connectAndRead(ctx, &lastTimeUs)
+		j.connectAndRead(ctx)
 	}()
 
 	return nil
 }
 
-func (j *JetstreamClient) connectAndRead(ctx context.Context, cursor *int64) {
+func (j *JetstreamClient) connectAndRead(ctx context.Context) {
 	l := log.FromContext(ctx)
 	for {
+		cursor := j.getLastTimeUs(ctx)
+
+		connCtx, cancel := context.WithCancel(ctx)
+		j.cancelMu.Lock()
+		j.cancel = cancel
+		j.cancelMu.Unlock()
+
+		if err := j.client.ConnectAndRead(connCtx, cursor); err != nil {
+			l.Error("error reading jetstream", "error", err)
+		}
+
 		select {
-		case <-j.reconnectCh:
-			l.Info("(re)connecting jetstream client")
-			j.client.Scheduler.Shutdown()
-			if err := j.client.ConnectAndRead(ctx, cursor); err != nil {
-				l.Error("error reading jetstream", "error", err)
-			}
-		default:
-			if err := j.client.ConnectAndRead(ctx, cursor); err != nil {
-				l.Error("error reading jetstream", "error", err)
-			}
+		case <-ctx.Done():
+			l.Info("context done, stopping jetstream")
+			return
+		case <-connCtx.Done():
+			l.Info("connection context done, reconnecting")
+			continue
 		}
 	}
 }
 
-func (j *JetstreamClient) getLastTimeUs(ctx context.Context) int64 {
+func (j *JetstreamClient) getLastTimeUs(ctx context.Context) *int64 {
 	l := log.FromContext(ctx)
 	lastTimeUs, err := j.db.GetLastTimeUs()
 	if err != nil {
@@ -121,7 +136,7 @@ func (j *JetstreamClient) getLastTimeUs(ctx context.Context) int64 {
 		lastTimeUs = time.Now().UnixMicro()
 		err = j.db.SaveLastTimeUs(lastTimeUs)
 		if err != nil {
-			l.Error("failed to save last time us")
+			l.Error("failed to save last time us", "error", err)
 		}
 	}
 
@@ -129,12 +144,12 @@ func (j *JetstreamClient) getLastTimeUs(ctx context.Context) int64 {
 	if time.Now().UnixMicro()-lastTimeUs > 7*24*60*60*1000*1000 {
 		lastTimeUs = time.Now().UnixMicro()
 		l.Warn("last time us is older than a week. discarding that and starting from now")
-		err = j.db.SaveLastTimeUs(lastTimeUs)
+		err = j.db.UpdateLastTimeUs(lastTimeUs)
 		if err != nil {
-			l.Error("failed to save last time us")
+			l.Error("failed to save last time us", "error", err)
 		}
 	}
 
 	l.Info("found last time_us", "time_us", lastTimeUs)
-	return lastTimeUs
+	return &lastTimeUs
 }

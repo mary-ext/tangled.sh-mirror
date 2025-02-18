@@ -154,7 +154,7 @@ func ResolveIdent(s *State) Middleware {
 			id, err := s.resolver.ResolveIdent(req.Context(), didOrHandle)
 			if err != nil {
 				// invalid did or handle
-				log.Println("failed to resolve did/handle")
+				log.Println("failed to resolve did/handle:", err)
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
