@@ -2,11 +2,14 @@ package git
 
 import (
 	"archive/tar"
+	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
+	"os/exec"
 	"path"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,8 +38,9 @@ var (
 )
 
 type GitRepo struct {
-	r *git.Repository
-	h plumbing.Hash
+	path string
+	r    *git.Repository
+	h    plumbing.Hash
 }
 
 type TagList struct {
@@ -102,7 +106,7 @@ func (self *TagList) Less(i, j int) bool {
 
 func Open(path string, ref string) (*GitRepo, error) {
 	var err error
-	g := GitRepo{}
+	g := GitRepo{path: path}
 	g.r, err = git.PlainOpen(path)
 	if err != nil {
 		return nil, fmt.Errorf("opening %s: %w", path, err)
@@ -295,33 +299,38 @@ func (g *GitRepo) WriteTar(w io.Writer, prefix string) error {
 	return nil
 }
 
-func (g *GitRepo) LastCommitTime(filePath string) (*object.Commit, error) {
+func (g *GitRepo) LastCommitForPath(path string) (*object.Commit, error) {
 	cacheMu.RLock()
-	if commit, exists := commitCache.Get(filePath); exists {
+	if commit, found := commitCache.Get(path); found {
 		cacheMu.RUnlock()
 		return commit.(*object.Commit), nil
 	}
 	cacheMu.RUnlock()
 
-	commitIter, err := g.r.Log(&git.LogOptions{
-		From: g.h,
-		PathFilter: func(s string) bool {
-			return s == filePath
-		},
-		Order: git.LogOrderCommitterTime,
-	})
+	cmd := exec.Command("git", "-C", g.path, "log", "-1", "--format=%H", "--", path)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit log for %s: %w", filePath, err)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to get commit hash: %w", err)
 	}
 
-	commit, err := commitIter.Next()
+	commitHash := strings.TrimSpace(out.String())
+	if commitHash == "" {
+		return nil, fmt.Errorf("no commits found for path: %s", path)
+	}
+
+	hash := plumbing.NewHash(commitHash)
+
+	commit, err := g.r.CommitObject(hash)
 	if err != nil {
-		return nil, fmt.Errorf("no commit found for %s", filePath)
+		return nil, err
 	}
 
 	cacheMu.Lock()
-	commitCache.Set(filePath, commit, 1)
+	commitCache.Set(path, commit, 1)
 	cacheMu.Unlock()
 
 	return commit, nil

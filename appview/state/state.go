@@ -519,9 +519,15 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
 			return
 		}
-		if resp.StatusCode != http.StatusNoContent {
-			s.pages.Notice(w, "repo", fmt.Sprintf("Server returned unexpected status: %d", resp.StatusCode))
+
+		switch resp.StatusCode {
+		case http.StatusConflict:
+			s.pages.Notice(w, "repo", "A repository with that name already exists.")
 			return
+		case http.StatusInternalServerError:
+			s.pages.Notice(w, "repo", "Failed to create repository on knot. Try again later.")
+		case http.StatusNoContent:
+			// continue
 		}
 
 		// add to local db

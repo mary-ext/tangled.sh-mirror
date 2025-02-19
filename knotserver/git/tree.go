@@ -20,7 +20,7 @@ func (g *GitRepo) FileTree(path string) ([]types.NiceTree, error) {
 	}
 
 	if path == "" {
-		files = g.makeNiceTree(tree)
+		files = g.makeNiceTree(tree, "")
 	} else {
 		o, err := tree.FindEntry(path)
 		if err != nil {
@@ -33,22 +33,29 @@ func (g *GitRepo) FileTree(path string) ([]types.NiceTree, error) {
 				return nil, err
 			}
 
-			files = g.makeNiceTree(subtree)
+			files = g.makeNiceTree(subtree, path)
 		}
 	}
 
 	return files, nil
 }
 
-func (g *GitRepo) makeNiceTree(t *object.Tree) []types.NiceTree {
+func (g *GitRepo) makeNiceTree(t *object.Tree, parent string) []types.NiceTree {
 	nts := []types.NiceTree{}
 
 	for _, e := range t.Entries {
 		mode, _ := e.Mode.ToOSFileMode()
 		sz, _ := t.Size(e.Name)
 
-		lastCommit, err := g.LastCommitTime(e.Name)
+		var fpath string
+		if parent != "" {
+			fpath = fmt.Sprintf("%s/%s", parent, e.Name)
+		} else {
+			fpath = e.Name
+		}
+		lastCommit, err := g.LastCommitForPath(fpath)
 		if err != nil {
+			fmt.Println("error getting last commit time:", err)
 			continue
 		}
 

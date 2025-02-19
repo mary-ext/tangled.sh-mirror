@@ -17,6 +17,7 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/russross/blackfriday/v2"
@@ -504,8 +505,13 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	err := git.InitBare(repoPath)
 	if err != nil {
 		l.Error("initializing bare repo", "error", err.Error())
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
+		if errors.Is(err, gogit.ErrRepositoryAlreadyExists) {
+			writeError(w, "That repo already exists!", http.StatusConflict)
+			return
+		} else {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// add perms for this user to access the repo
