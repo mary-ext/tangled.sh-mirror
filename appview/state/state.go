@@ -150,6 +150,11 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
+	s.auth.ClearSession(r, w)
+	s.pages.HxRedirect(w, "/")
+}
+
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	s.pages.Timeline(w, pages.TimelineParams{
@@ -728,6 +733,8 @@ func (s *State) StandardRouter() http.Handler {
 	r.Handle("/static/*", s.pages.Static())
 
 	r.Get("/", s.Timeline)
+
+	r.Get("/logout", s.Logout)
 
 	r.Get("/login", s.Login)
 	r.Post("/login", s.Login)

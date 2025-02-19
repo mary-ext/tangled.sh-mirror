@@ -1,6 +1,8 @@
 {{ define "layouts/topbar" }}
     {{ with .LoggedInUser }}
-        <nav class="flex items-center justify-center space-x-4 mb-4 py-2 border-b border-l border-r border-black">
+        <nav
+            class="flex items-center justify-center space-x-4 mb-4 py-2 border-b border-l border-r border-black"
+        >
             <a
                 href="/"
                 hx-boost="true"
@@ -40,6 +42,7 @@
                     >my profile</a
                 >
             {{ end }}
+            <button hx-get="/logout" class="btn">logout</a>
         </nav>
     {{ else }}
         <a href="/login" class="btn my-2 no-underline">login</a>

@@ -127,6 +127,12 @@ func (s *CreateSessionWrapper) GetStatus() *string {
 	return s.Status
 }
 
+func (a *Auth) ClearSession(r *http.Request, w http.ResponseWriter) error {
+	clientSession, _ := a.Store.Get(r, appview.SessionName)
+	clientSession.Options.MaxAge = -1
+	return clientSession.Save(r, w)
+}
+
 func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish Sessionish, pdsEndpoint string) error {
 	clientSession, _ := a.Store.Get(r, appview.SessionName)
 	clientSession.Values[appview.SessionHandle] = atSessionish.GetHandle()
