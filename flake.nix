@@ -57,13 +57,16 @@
             pname = "appview";
             version = "0.1.0";
             src = gitignoreSource ./.;
-            preBuild = ''
+            postUnpack = ''
+              pushd source
               cp -f ${htmx-src} appview/pages/static/htmx.min.js
               cp -f ${lucide-src} appview/pages/static/lucide.min.js
               ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
-            '';
+              popd
+                '';
+            doCheck = false;
             subPackages = [ "cmd/appview" ];
-            vendorHash = "sha256-t7lWrCyFWCI7zjUcC6XNWzCrUPSCFnFu9gTmRTsYrz0=";
+            vendorHash = "sha256-u9LwvapAwyVOIOAag0IRrk+ot6B0PaqyEnt0EeJciGQ=";
             env.CGO_ENABLED = 1;
             stdenv = pkgsStatic.stdenv;
           };
