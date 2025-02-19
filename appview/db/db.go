@@ -49,6 +49,12 @@ func Make(dbPath string) (*DB, error) {
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, name, knot)
 		);
+		create table if not exists collaborators (
+			id integer primary key autoincrement,
+			did text not null,
+			repo integer not null,
+			foreign key (repo) references repos(id) on delete cascade
+		);
 		create table if not exists follows (
 			user_did text not null,
 			subject_did text not null,

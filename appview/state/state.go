@@ -580,11 +580,17 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
 	}
 
+	collaboratingRepos, err := s.db.CollaboratingIn(ident.DID.String())
+	if err != nil {
+		log.Printf("getting collaborating repos for %s: %s", ident.DID.String(), err)
+	}
+
 	s.pages.ProfilePage(w, pages.ProfilePageParams{
-		LoggedInUser: s.auth.GetUser(r),
-		UserDid:      ident.DID.String(),
-		UserHandle:   ident.Handle.String(),
-		Repos:        repos,
+		LoggedInUser:       s.auth.GetUser(r),
+		UserDid:            ident.DID.String(),
+		UserHandle:         ident.Handle.String(),
+		Repos:              repos,
+		CollaboratingRepos: collaboratingRepos,
 	})
 }
 

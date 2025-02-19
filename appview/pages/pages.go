@@ -29,6 +29,9 @@ func funcMap() template.FuncMap {
 		"split": func(s string) []string {
 			return strings.Split(s, "\n")
 		},
+		"splitOn": func(s, sep string) []string {
+			return strings.Split(s, sep)
+		},
 		"add": func(a, b int) int {
 			return a + b
 		},
@@ -89,6 +92,9 @@ func funcMap() template.FuncMap {
 			}
 
 			return strings.Join(paragraphs, "\n\n")
+		},
+		"sequence": func(n int) []struct{} {
+			return make([]struct{}, n)
 		},
 	}
 }
@@ -200,10 +206,11 @@ func (p *Pages) NewRepo(w io.Writer, params NewRepoParams) error {
 }
 
 type ProfilePageParams struct {
-	LoggedInUser *auth.User
-	UserDid      string
-	UserHandle   string
-	Repos        []db.Repo
+	LoggedInUser       *auth.User
+	UserDid            string
+	UserHandle         string
+	Repos              []db.Repo
+	CollaboratingRepos []db.Repo
 }
 
 func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {

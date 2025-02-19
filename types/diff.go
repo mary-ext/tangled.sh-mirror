@@ -6,8 +6,8 @@ import (
 )
 
 type TextFragment struct {
-	Header string         `json:"header"`
-	Lines  []gitdiff.Line `json:"lines"`
+	Comment string         `json:"comment"`
+	Lines   []gitdiff.Line `json:"lines"`
 }
 
 type Diff struct {

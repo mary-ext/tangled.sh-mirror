@@ -102,18 +102,19 @@
           {{ else }}
             <pre class="overflow-auto">
             {{- range .TextFragments -}}
-              <div class="bg-gray-100 text-gray-500">{{ nl2br .Header }}</div>
+              <div class="bg-gray-100 text-gray-500 select-none">{{ .Comment }}</div>
+
               {{- range .Lines -}}
                   {{- if eq .Op.String "+" -}}
-                  <div class="bg-green-100 text-green-700">{{ .String }}</div>
+                  <div class="bg-green-100 text-green-700"><span class="select-none">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
                   {{- if eq .Op.String "-" -}}
-                  <div class="bg-red-100 text-red-700">{{ .String }}</div>
+                  <div class="bg-red-100 text-red-700"><span class="select-none">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
                   {{- if eq .Op.String " " -}}
-                  <div class="text-gray-500">{{ .String }}</div>
+                  <div class="text-gray-500"><span class="select-none">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
               {{- end -}}

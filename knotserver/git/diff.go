@@ -66,8 +66,8 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 
 		for _, tf := range d.TextFragments {
 			ndiff.TextFragments = append(ndiff.TextFragments, types.TextFragment{
-				Header: tf.Header(),
-				Lines:  tf.Lines,
+				Comment: tf.Comment,
+				Lines:   tf.Lines,
 			})
 			for _, l := range tf.Lines {
 				switch l.Op {

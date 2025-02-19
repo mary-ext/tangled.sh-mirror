@@ -393,6 +393,12 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = s.db.AddCollaborator(collaboratorIdent.DID.String(), f.OwnerDid(), f.RepoName, f.Knot)
+	if err != nil {
+		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		return
+	}
+
 	w.Write([]byte(fmt.Sprint("added collaborator: ", collaboratorIdent.Handle.String())))
 
 }

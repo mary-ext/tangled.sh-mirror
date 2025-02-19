@@ -2,7 +2,8 @@
 
 {{ define "content" }}
     <h1>{{ didOrHandle .UserDid .UserHandle }}</h1>
-    <div id="my-repos" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <p class="text-xs font-bold py-2">REPOS</p>
+    <div id="repos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {{ range .Repos }}
             <div
                 id="repo-card"
@@ -22,6 +23,29 @@
             </div>
         {{ else }}
             <p>This user does not have any repos yet.</p>
+        {{ end }}
+    </div>
+    <p class="text-xs font-bold py-2">COLLABORATING ON</p>
+    <div id="collaborating" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {{ range .CollaboratingRepos }}
+            <div
+                id="repo-card"
+                class="border border-black p-4 shadow-sm bg-white"
+            >
+                <div id="repo-card-name" class="font-medium">
+                    <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}">
+                      @{{ or $.UserHandle $.UserDid }}/{{ .Name }}
+                    </a>
+                </div>
+                <div
+                    id="repo-knot-name"
+                    class="text-gray-600 text-sm font-mono"
+                >
+                    {{ .Knot }}
+                </div>
+            </div>
+        {{ else }}
+            <p>This user is not collaborating.</p>
         {{ end }}
     </div>
 {{ end }}
