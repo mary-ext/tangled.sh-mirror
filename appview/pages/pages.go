@@ -71,6 +71,7 @@ func funcMap() template.FuncMap {
 			return s
 		},
 		"timeFmt": humanize.Time,
+		"byteFmt": humanize.Bytes,
 		"length": func(v []string) int {
 			return len(v)
 		},
@@ -293,6 +294,27 @@ type RepoTreeParams struct {
 	BaseTreeLink string
 	BaseBlobLink string
 	types.RepoTreeResponse
+}
+
+type RepoTreeStats struct {
+	NumFolders uint64
+	NumFiles   uint64
+}
+
+func (r RepoTreeParams) TreeStats() RepoTreeStats {
+	numFolders, numFiles := 0, 0
+	for _, f := range r.Files {
+		if !f.IsFile {
+			numFolders += 1
+		} else if f.IsFile {
+			numFiles += 1
+		}
+	}
+
+	return RepoTreeStats{
+		NumFolders: uint64(numFolders),
+		NumFiles:   uint64(numFiles),
+	}
 }
 
 func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {

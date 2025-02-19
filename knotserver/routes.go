@@ -215,13 +215,16 @@ func (h *Handle) Blob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	safe := string(sanitize([]byte(contents)))
+	bytes := []byte(contents)
+	safe := string(sanitize(bytes))
+	sizeHint := len(bytes)
 
 	resp := types.RepoBlobResponse{
 		Ref:      ref,
 		Contents: string(safe),
 		Path:     treePath,
 		IsBinary: isBinaryFile,
+		SizeHint: uint64(sizeHint),
 	}
 
 	h.showFile(resp, w, l)

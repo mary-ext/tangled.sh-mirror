@@ -5,13 +5,24 @@
 {{ $code_number_style := "text-gray-400 left-0 bg-white text-right mr-2 select-none" }}
 {{ $linkstyle := "no-underline hover:underline" }}
 <div class="pb-2 text-base">
-  {{ range $idx, $value := .BreadCrumbs }}
-    {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
+  <div class="flex justify-between">
+    <div id="breadcrumbs">
+      {{ range $idx, $value := .BreadCrumbs }}
+      {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
       <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
-    {{ else }}
+      {{ else }}
       <span class="text-bold text-gray-500">{{ index . 0 }}</span>
-    {{ end }}
-  {{ end }}
+      {{ end }}
+      {{ end }}
+    </div>
+    <div id="file-info">
+      <span class="text-gray-500 text-xs">
+        {{ .Lines }} lines
+        &nbsp;·&nbsp;
+        {{ byteFmt .SizeHint }}
+      </span>
+    </div>
+  </div>
 </div>
 
 

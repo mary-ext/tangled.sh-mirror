@@ -5,9 +5,32 @@
     {{ $linkstyle := "no-underline hover:underline" }}
 
     <div class="pb-2 text-base">
-      {{ range .BreadCrumbs }}
-        <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
-      {{ end }}
+      <div class="flex justify-between">
+        <div id="breadcrumbs">
+          {{ range .BreadCrumbs }}
+          <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
+          {{ end }}
+        </div>
+        <div id="dir-info">
+          <span class="text-gray-500 text-xs">
+            {{ $stats := .TreeStats }}
+
+            {{ if eq $stats.NumFolders 1 }}
+              {{ $stats.NumFolders }} folder
+              &nbsp;·&nbsp;
+            {{ else if gt $stats.NumFolders 1 }}
+              {{ $stats.NumFolders }} folders
+              &nbsp;·&nbsp;
+            {{ end }}
+
+            {{ if eq $stats.NumFiles 1 }}
+              {{ $stats.NumFiles }} file
+            {{ else if gt $stats.NumFiles 1 }}
+              {{ $stats.NumFiles }} files
+            {{ end }}
+          </span>
+        </div>
+      </div>
     </div>
 
     {{ range .Files }}
@@ -19,8 +42,8 @@
                     <i class="w-3 h-3 fill-current" data-lucide="folder"></i>{{ .Name }}
                 </div>
             </a>
+            <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.Author.When }}</time>
         </div>
-        <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.Author.When }}</time>
     </div>
     {{ end }}
     {{ end }}
@@ -28,14 +51,12 @@
     {{ range .Files }}
     {{ if .IsFile }}
     <div class="{{ $containerstyle }}">
-        
         <div class="flex justify-between items-center">
             <a href="/{{ $.BaseBlobLink }}/{{ .Name }}" class="{{ $linkstyle }}">
                 <div class="flex items-center gap-2">
                     <i class="w-3 h-3" data-lucide="file"></i>{{ .Name }}
                 </div>
             </a>
-            
             <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.Author.When }}</time>
         </div>
     </div>
