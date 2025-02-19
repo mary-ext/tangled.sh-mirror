@@ -16,6 +16,15 @@ func Make(dbPath string) (*DB, error) {
 		return nil, err
 	}
 	_, err = db.Exec(`
+		pragma journal_mode = WAL;
+		pragma synchronous = normal;
+		pragma foreign_keys = on;
+		pragma temp_store = memory;
+		pragma mmap_size = 30000000000;
+		pragma page_size = 32768;
+		pragma auto_vacuum = incremental;
+		pragma busy_timeout = 5000;
+
 		create table if not exists registrations (
 			id integer primary key autoincrement,
 			domain text not null unique,

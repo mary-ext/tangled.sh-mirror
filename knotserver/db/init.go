@@ -17,6 +17,15 @@ func Setup(dbPath string) (*DB, error) {
 	}
 
 	_, err = db.Exec(`
+		pragma journal_mode = WAL;
+		pragma synchronous = normal;
+		pragma foreign_keys = on;
+		pragma temp_store = memory;
+		pragma mmap_size = 30000000000;
+		pragma page_size = 32768;
+		pragma auto_vacuum = incremental;
+		pragma busy_timeout = 5000;
+
 		create table if not exists known_dids (
 			did text primary key
 		);
@@ -28,15 +37,6 @@ func Setup(dbPath string) (*DB, error) {
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, key),
 			foreign key (did) references known_dids(did) on delete cascade
-		);
-
-		create table if not exists repos (
-			id integer primary key autoincrement,
-			did text not null,
-			name text not null,
-			description text not null,
-			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-			unique(did, name)
 		);
 
 		create table if not exists _jetstream (
