@@ -61,7 +61,9 @@
   {{ $this := $commit.This }}
   {{ $parent := $commit.Parent }}
 
-  {{ range $diff }}
+  {{ $last := sub (len $diff) 1 }}
+  {{ range $idx, $hunk := $diff }}
+  {{ with $hunk }}
   <section class="mt-4 border border-black w-full mx-auto">
     <div id="file-{{ .Name.New }}">
       <div id="diff-file">
@@ -91,7 +93,20 @@
               </div>
 
               <div id="right-side-items" class="p-2">
-                <a href="#file-{{ .Name.New }}" class="no-underline hover:underline">to top of file</a>
+                <a href="#file-{{ .Name.New }}" class="no-underline hover:underline">top of file</a>
+
+                {{ if gt $idx 0 }}
+                  &nbsp;·&nbsp;
+                  {{ $prev := index $diff (sub $idx 1) }}
+                  <a href="#file-{{ $prev.Name.New }}" class="no-underline hover:underline">prev</a>
+                {{ end }}
+
+
+                {{ if lt $idx $last }}
+                  &nbsp;·&nbsp;
+                  {{ $next := index $diff (add $idx 1) }}
+                  <a href="#file-{{ $next.Name.New }}" class="no-underline hover:underline">next</a>
+                {{ end }}
               </div>
 
             </div>
@@ -127,6 +142,7 @@
       </div>
     </div>
   </section>
+  {{ end }}
   {{ end }}
 
 {{end}}
