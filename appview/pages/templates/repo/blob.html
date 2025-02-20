@@ -1,35 +1,50 @@
 {{ define "repoContent" }}
-{{ $lines := split .Contents }}
-{{ $tot_lines := len $lines }}
-{{ $tot_chars := len (printf "%d" $tot_lines) }}
-{{ $code_number_style := "text-gray-400 left-0 bg-white text-right mr-2 select-none" }}
-{{ $linkstyle := "no-underline hover:underline" }}
-<div class="pb-2 text-base">
-  <div class="flex justify-between">
-    <div id="breadcrumbs">
-      {{ range $idx, $value := .BreadCrumbs }}
-      {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
-      <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
-      {{ else }}
-      <span class="text-bold text-gray-500">{{ index . 0 }}</span>
-      {{ end }}
-      {{ end }}
+    {{ $lines := split .Contents }}
+    {{ $tot_lines := len $lines }}
+    {{ $tot_chars := len (printf "%d" $tot_lines) }}
+    {{ $code_number_style := "text-gray-400 left-0 bg-white text-right mr-6 select-none" }}
+    {{ $linkstyle := "no-underline hover:underline" }}
+    <div class="pb-2 text-base">
+        <div class="flex justify-between">
+            <div id="breadcrumbs">
+                {{ range $idx, $value := .BreadCrumbs }}
+                    {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
+                        <a
+                            href="{{ index . 1 }}"
+                            class="text-bold text-gray-500 {{ $linkstyle }}"
+                            >{{ index . 0 }}</a
+                        >
+                        /
+                    {{ else }}
+                        <span class="text-bold text-gray-500"
+                            >{{ index . 0 }}</span
+                        >
+                    {{ end }}
+                {{ end }}
+            </div>
+            <div id="file-info">
+                {{ .Lines }} lines
+                <span class="select-none px-2 [&:before]:content-['·']"></span>
+                {{ byteFmt .SizeHint }}
+            </div>
+        </div>
     </div>
-    <div id="file-info">
-        {{ .Lines }} lines
-        <span class="select-none px-2 [&:before]:content-['·']"></span>
-        {{ byteFmt .SizeHint }}
-    </div>
-  </div>
-</div>
-
-{{ if eq .Lines 0 }}
-<p class="text-center text-gray-400">This file is empty.</p>
-{{ else }}
-
-{{ if .IsBinary }}<p class="text-center text-gray-400">This is a binary file and will not be displayed.</p>{{ else }}
-<pre class="font-mono text-sm overflow-auto relative text-ellipsis"><code>{{ range $idx, $line := $lines }}<span class="flex">
-  <span class="{{ $code_number_style }}" style="min-width: {{$tot_chars}}ch;">{{ add $idx 1 }}</span>
-  <span class="whitespace-pre">{{ escapeHtml $line }}</span></span>{{ else }}<em class="text-gray-400">this file is empty</em>{{ end }}</code></pre>{{ end}}
-{{ end }}
+    {{ if .IsBinary }}
+        <p class="text-center text-gray-400">
+            This is a binary file and will not be displayed.
+        </p>
+    {{ else }}
+        <div class="overflow-auto relative text-ellipsis">
+            {{ range $idx, $line := $lines }}
+                <div class="flex">
+                    <span
+                        class="{{ $code_number_style }}"
+                        style="min-width: {{ $tot_chars }}ch;"
+                        >{{ add $idx 1 }}</span
+                    >
+                    <div class="whitespace-pre">{{ $line | escapeHtml }}</div>
+                </div>
+            {{ end }}
+        </div>
+    {{ end }}
 {{ end }}

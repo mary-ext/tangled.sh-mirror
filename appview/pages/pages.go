@@ -1,16 +1,22 @@
 package pages
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
+	"html"
 	"html/template"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strings"
 
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/dustin/go-humanize"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
@@ -78,8 +84,14 @@ func funcMap() template.FuncMap {
 		"splitN": func(s, sep string, n int) []string {
 			return strings.SplitN(s, sep, n)
 		},
-		"escapeHtml": func(s string) string {
-			return template.HTMLEscapeString(s)
+		"escapeHtml": func(s string) template.HTML {
+			if s == "" {
+				return template.HTML("<br>")
+			}
+			return template.HTML(s)
+		},
+		"unescapeHtml": func(s string) string {
+			return html.UnescapeString(s)
 		},
 		"nl2br": func(text string) template.HTML {
 			return template.HTML(strings.Replace(template.HTMLEscapeString(text), "\n", "<br>", -1))
@@ -351,6 +363,35 @@ type RepoBlobParams struct {
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
+	if params.Lines < 5000 {
+		c := params.Contents
+		style := styles.Get("xcode")
+		formatter := chromahtml.New(
+			chromahtml.InlineCode(true),
+			chromahtml.WithLineNumbers(true),
+			chromahtml.WithLinkableLineNumbers(true, "L"),
+			chromahtml.Standalone(false),
+		)
+
+		lexer := lexers.Get(filepath.Base(params.Path))
+		if lexer == nil {
+			lexer = lexers.Fallback
+		}
+
+		iterator, err := lexer.Tokenise(nil, c)
+		if err != nil {
+			return fmt.Errorf("chroma tokenize: %w", err)
+		}
+
+		var code bytes.Buffer
+		err = formatter.Format(&code, style, iterator)
+		if err != nil {
+			return fmt.Errorf("chroma format: %w", err)
+		}
+
+		params.Contents = code.String()
+	}
+
 	params.Active = "overview"
 	return p.executeRepo("repo/blob", w, params)
 }
