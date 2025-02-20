@@ -480,20 +480,25 @@ func (f *FullyResolvedRepo) Collaborators(ctx context.Context, s *State) ([]page
 
 		did := item[0]
 
-		var handle string
-		id, err := s.resolver.ResolveIdent(ctx, did)
-		if err != nil {
-			handle = ""
-		} else {
-			handle = string(id.Handle)
-		}
-
 		c := pages.Collaborator{
 			Did:    did,
-			Handle: handle,
+			Handle: "",
 			Role:   role,
 		}
 		collaborators = append(collaborators, c)
+	}
+
+	// populate all collborators with handles
+	identsToResolve := make([]string, len(collaborators))
+	for i, collab := range collaborators {
+		identsToResolve[i] = collab.Did
+	}
+
+	resolvedIdents := s.resolver.ResolveIdents(ctx, identsToResolve)
+	for i, resolved := range resolvedIdents {
+		if resolved != nil {
+			collaborators[i].Handle = resolved.Handle.String()
+		}
 	}
 
 	return collaborators, nil

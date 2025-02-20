@@ -2,6 +2,7 @@ package appview
 
 import (
 	"context"
+	"sync"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -24,4 +25,35 @@ func (r *Resolver) ResolveIdent(ctx context.Context, arg string) (*identity.Iden
 	}
 
 	return r.directory.Lookup(ctx, *id)
+}
+
+func (r *Resolver) ResolveIdents(ctx context.Context, idents []string) []*identity.Identity {
+	results := make([]*identity.Identity, len(idents))
+	var wg sync.WaitGroup
+
+	// Create a channel to handle context cancellation
+	done := make(chan struct{})
+	defer close(done)
+
+	// Start a goroutine for each identifier
+	for idx, ident := range idents {
+		wg.Add(1)
+		go func(index int, id string) {
+			defer wg.Done()
+
+			select {
+			case <-ctx.Done():
+				results[index] = nil
+			case <-done:
+				results[index] = nil
+			default:
+				// Resolve the identifier - if error, identity will be nil
+				identity, _ := r.ResolveIdent(ctx, id)
+				results[index] = identity
+			}
+		}(idx, ident)
+	}
+
+	wg.Wait()
+	return results
 }

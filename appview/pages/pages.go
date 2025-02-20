@@ -366,7 +366,7 @@ type RepoBlobParams struct {
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	if params.Lines < 5000 {
 		c := params.Contents
-		style := styles.Get("xcode")
+		style := styles.Get("bw")
 		formatter := chromahtml.New(
 			chromahtml.InlineCode(true),
 			chromahtml.WithLineNumbers(true),

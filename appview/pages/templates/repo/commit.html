@@ -108,7 +108,7 @@
           {{ else }}
             <pre class="overflow-auto">
             {{- range .TextFragments -}}
-              <div class="bg-gray-100 text-gray-500 select-none">{{ .Comment }}</div>
+              <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
 
               {{- range .Lines -}}
                   {{- if eq .Op.String "+" -}}
