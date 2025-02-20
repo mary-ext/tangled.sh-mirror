@@ -174,6 +174,7 @@ func (p *Pages) Login(w io.Writer, params LoginParams) error {
 
 type TimelineParams struct {
 	LoggedInUser *auth.User
+	Timeline     []db.TimelineEvent
 }
 
 func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {

@@ -157,9 +157,18 @@ func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
+
+	timeline, err := s.db.MakeTimeline()
+	if err != nil {
+		log.Println(err)
+		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
+	}
+
 	s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
+		Timeline:     timeline,
 	})
+
 	return
 }
 

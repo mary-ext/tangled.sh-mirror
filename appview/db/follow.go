@@ -46,3 +46,37 @@ func (d *DB) DeleteFollow(userDid, subjectDid string) error {
 	_, err := d.db.Exec(`delete from follows where user_did = ? and subject_did = ?`, userDid, subjectDid)
 	return err
 }
+
+func (d *DB) GetAllFollows() ([]Follow, error) {
+	var follows []Follow
+
+	rows, err := d.db.Query(`select user_did, subject_did, followed_at, at_uri from follows`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var follow Follow
+		var followedAt string
+		if err := rows.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.RKey); err != nil {
+			return nil, err
+		}
+
+		followedAtTime, err := time.Parse(time.RFC3339, followedAt)
+		if err != nil {
+			log.Println("unable to determine followed at time")
+			follow.FollowedAt = nil
+		} else {
+			follow.FollowedAt = &followedAtTime
+		}
+
+		follows = append(follows, follow)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return follows, nil
+}

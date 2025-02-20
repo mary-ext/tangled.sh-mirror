@@ -1,5 +1,38 @@
-{{define "title"}}timeline{{end}}
+{{ define "title" }}timeline{{ end }}
 
-{{define "content"}}
-    <h1>timeline</h1>
-{{end}}
+{{ define "content" }}
+    <h1>Timeline</h1>
+
+    {{ range .Timeline }}
+        {{ if .Repo }}
+            <div class="border border-black p-4 m-2 bg-white w-1/2">
+                <div class="flex items-center">
+                    <div class="text-sm text-gray-600">
+                        {{ .Repo.Did }} created
+                    </div>
+                    <div class="px-3">{{ .Repo.Name }}</div>
+                </div>
+
+                <time class="text-sm text-gray-700"
+                    >{{ .Repo.Created | timeFmt }}</time
+                >
+            </div>
+        {{ else if .Follow }}
+            <div class="border border-black p-4 m-2 bg-white w-1/2">
+                <div class="flex items-center">
+                    <div class="text-sm text-gray-600">
+                        {{ .Follow.UserDid }} followed
+                    </div>
+                    <div class="text-sm text-gray-800">
+                        {{ .Follow.SubjectDid }}
+                    </div>
+                </div>
+
+                <time class="text-sm text-gray-700"
+                    >{{ .Follow.FollowedAt | timeFmt }}</time
+                >
+            </div>
+        {{ end }}
+    {{ end }}
+
+{{ end }}

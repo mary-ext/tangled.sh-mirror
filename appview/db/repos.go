@@ -13,6 +13,30 @@ type Repo struct {
 	Rkey    string
 }
 
+func (d *DB) GetAllRepos() ([]Repo, error) {
+	var repos []Repo
+
+	rows, err := d.db.Query(`select did, name, knot, created from repos`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		repo, err := scanRepo(rows)
+		if err != nil {
+			return nil, err
+		}
+		repos = append(repos, *repo)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return repos, nil
+}
+
 func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 	var repos []Repo
 
