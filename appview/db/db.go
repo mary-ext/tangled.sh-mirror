@@ -46,8 +46,9 @@ func Make(dbPath string) (*DB, error) {
 			did text not null,
 			name text not null,
 			knot text not null,
+			rkey text not null,
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-			unique(did, name, knot)
+			unique(did, name, knot, rkey)
 		);
 		create table if not exists collaborators (
 			id integer primary key autoincrement,

@@ -10,6 +10,7 @@ type Repo struct {
 	Name    string
 	Knot    string
 	Created *time.Time
+	Rkey    string
 }
 
 func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
@@ -52,12 +53,12 @@ func (d *DB) GetRepo(did, name string) (*Repo, error) {
 }
 
 func (d *DB) AddRepo(repo *Repo) error {
-	_, err := d.db.Exec(`insert into repos (did, name, knot) values (?, ?, ?)`, repo.Did, repo.Name, repo.Knot)
+	_, err := d.db.Exec(`insert into repos (did, name, knot, rkey) values (?, ?, ?, ?)`, repo.Did, repo.Name, repo.Knot, repo.Rkey)
 	return err
 }
 
-func (d *DB) RemoveRepo(did, name, knot string) error {
-	_, err := d.db.Exec(`delete from repos where did = ? and name = ? and knot = ?`, did, name, knot)
+func (d *DB) RemoveRepo(did, name, rkey string) error {
+	_, err := d.db.Exec(`delete from repos where did = ? and name = ? and rkey = ?`, did, name, rkey)
 	return err
 }
 

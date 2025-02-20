@@ -535,14 +535,39 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			// continue
 		}
 
-		// add to local db
+		rkey := s.TID()
 		repo := &db.Repo{
 			Did:  user.Did,
 			Name: repoName,
 			Knot: domain,
+			Rkey: rkey,
 		}
+
+		xrpcClient, _ := s.auth.AuthorizedClient(r)
+
+		addedAt := time.Now().Format(time.RFC3339)
+		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoNSID,
+			Repo:       user.Did,
+			Rkey:       rkey,
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.Repo{
+					Knot:    repo.Knot,
+					Name:    repoName,
+					AddedAt: &addedAt,
+					Owner:   user.Did,
+				}},
+		})
+		if err != nil {
+			log.Printf("failed to create record: %s", err)
+			s.pages.Notice(w, "repo", "Failed to announce repository creation.")
+			return
+		}
+		log.Println("created repo record: ", atresp.Uri)
+
 		err = s.db.AddRepo(repo)
 		if err != nil {
+			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to save repository information.")
 			return
 		}

@@ -17,6 +17,7 @@ func main() {
 		shtangled.PublicKey{},
 		shtangled.KnotMember{},
 		shtangled.GraphFollow{},
+		shtangled.Repo{},
 	); err != nil {
 		panic(err)
 	}
