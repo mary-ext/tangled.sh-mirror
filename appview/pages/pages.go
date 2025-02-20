@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alecthomas/chroma/v2"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
@@ -364,9 +365,13 @@ type RepoBlobParams struct {
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
+	style := styles.Get("bw")
+	b := style.Builder()
+	b.Add(chroma.LiteralString, "noitalic")
+	style, _ = b.Build()
+
 	if params.Lines < 5000 {
 		c := params.Contents
-		style := styles.Get("bw")
 		formatter := chromahtml.New(
 			chromahtml.InlineCode(true),
 			chromahtml.WithLineNumbers(true),

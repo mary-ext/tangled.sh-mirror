@@ -13,7 +13,7 @@
             onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + this.value"
             class="p-1 border border-gray-500 bg-white"
             >
-            <optgroup label="branches" class="uppercase bold text-sm">
+            <optgroup label="branches" class="bold text-sm">
               {{ range .Branches }}
               <option
                   value="{{ .Reference.Name }}"
@@ -24,7 +24,7 @@
               </option>
               {{ end }}
             </optgroup>
-          <optgroup label="tags" class="uppercase bold text-sm">
+          <optgroup label="tags" class="bold text-sm">
             {{ range .Tags }}
             <option
                 value="{{ .Reference.Name }}"
@@ -33,6 +33,8 @@
                 >
                 {{ .Reference.Name }}
             </option>
+            {{ else }}
+            <option class="py-1" disabled>no tags found</option>
             {{ end }}
           </optgroup>
         </select>

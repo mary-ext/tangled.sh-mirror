@@ -53,8 +53,6 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(resp.Status, result)
-
 	user := s.auth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser: user,
@@ -274,8 +272,6 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to parse response:", err)
 		return
 	}
-
-	log.Println(result)
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoBranches(w, pages.RepoBranchesParams{

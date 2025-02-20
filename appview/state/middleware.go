@@ -150,7 +150,6 @@ func ResolveIdent(s *State) Middleware {
 			start := time.Now()
 			didOrHandle := chi.URLParam(req, "user")
 
-			log.Println(didOrHandle)
 			id, err := s.resolver.ResolveIdent(req.Context(), didOrHandle)
 			if err != nil {
 				// invalid did or handle

@@ -65,10 +65,7 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 		ndiff.IsDelete = d.IsDelete
 
 		for _, tf := range d.TextFragments {
-			ndiff.TextFragments = append(ndiff.TextFragments, types.TextFragment{
-				Header: tf.Header(),
-				Lines:  tf.Lines,
-			})
+			ndiff.TextFragments = append(ndiff.TextFragments, *tf)
 			for _, l := range tf.Lines {
 				switch l.Op {
 				case gitdiff.OpAdd:

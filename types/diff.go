@@ -15,10 +15,10 @@ type Diff struct {
 		Old string `json:"old"`
 		New string `json:"new"`
 	} `json:"name"`
-	TextFragments []TextFragment `json:"text_fragments"`
-	IsBinary      bool           `json:"is_binary"`
-	IsNew         bool           `json:"is_new"`
-	IsDelete      bool           `json:"is_delete"`
+	TextFragments []gitdiff.TextFragment `json:"text_fragments"`
+	IsBinary      bool                   `json:"is_binary"`
+	IsNew         bool                   `json:"is_new"`
+	IsDelete      bool                   `json:"is_delete"`
 }
 
 // A nicer git diff representation.

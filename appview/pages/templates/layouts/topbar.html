@@ -1,50 +1,28 @@
 {{ define "layouts/topbar" }}
-    {{ with .LoggedInUser }}
-        <nav
-            class="flex items-center justify-center space-x-4 mb-4 py-2 border-b border-l border-r border-black"
-        >
-            <a
-                href="/"
-                hx-boost="true"
-                class="text-gray-600 hover:text-gray-900 no-underline"
-                >timeline</a
-            >
-            <a
-                href="/settings"
-                hx-boost="true"
-                class="text-gray-600 hover:text-gray-900 no-underline"
-                >settings</a
-            >
-            <a
-                href="/knots"
-                hx-boost="true"
-                class="text-gray-600 hover:text-gray-900 no-underline"
-                >knots</a
-            >
-            <a
-                href="/repo/new"
-                hx-boost="true"
-                class="text-gray-600 hover:text-gray-900 no-underline"
-                >add repos</a
-            >
-            {{ if .Handle }}
-                <a
-                    href="/@{{ .Handle }}"
-                    hx-boost="true"
-                    class="text-gray-600 hover:text-gray-900 no-underline"
-                    >my profile</a
-                >
-            {{ else }}
-                <a
-                    href="/{{ .Did }}"
-                    hx-boost="true"
-                    class="text-gray-600 hover:text-gray-900 no-underline"
-                    >my profile</a
-                >
-            {{ end }}
-            <button hx-get="/logout" class="btn">logout</a>
-        </nav>
-    {{ else }}
-        <a href="/login" class="btn my-2 no-underline">login</a>
-    {{ end }}
+  {{ $linkstyle := "text-gray-400 hover:text-gray-900 no-underline" }}
+  <nav class="flex justify-between px-6 space-x-4 mb-4 py-2 border-b border-black">
+    <div id="left-items">
+      <a href="/" hx-boost="true" class="{{ $linkstyle }} flex gap-2">
+        <i class="w-6 h-6" data-lucide="tangent"></i>
+        tangled.sh
+      </a>
+    </div>
+    <div id="right-items" class="flex gap-2">
+      {{ with .LoggedInUser }}
+        <a href="/repo/new" hx-boost="true" class="{{ $linkstyle }}">
+          <i class="w-6 h-6" data-lucide="plus"></i>
+        </a>
+        <a href="/{{ didOrHandle .Did .Handle }}" hx-boost="true" class="{{ $linkstyle }}">
+          {{ didOrHandle .Did .Handle }} 
+        </a>
+        <a href="/logout"class="{{ $linkstyle }}">
+          (logout)
+        </a>
+      {{ else }}
+        <a href="/login" hx-boost="true" class="{{ $linkstyle }}">
+          login
+        </a>
+      {{ end }}
+    </div>
+  </nav>
 {{ end }}
