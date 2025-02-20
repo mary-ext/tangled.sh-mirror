@@ -19,25 +19,18 @@
   </div>
 
   <p class="text-sm text-gray-500">
-    <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">
-      {{ $commit.Author.Name }}
-    </a>
-    &nbsp;·&nbsp;
+    <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">{{ $commit.Author.Name }}</a>
+    <span class="px-1 select-none before:content-['\00B7']"></span>
     {{ timeFmt $commit.Author.When }}
-    &nbsp;·&nbsp;
+    <span class="px-1 select-none before:content-['\00B7']"></span>
     <span class="font-mono">{{ $stat.FilesChanged }}</span> files <span class="font-mono">(+{{ $stat.Insertions }}, -{{ $stat.Deletions }})</span>
-    &nbsp;·&nbsp;
-    <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500">
-      {{ slice $commit.This 0 8 }}
-    </a>
+    <span class="px-1 select-none before:content-['\00B7']"></span>
+    <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.This 0 8 }}</a>
     {{ if $commit.Parent }}
-      &lt;--
-      <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500">
-        {{ slice $commit.Parent 0 8 }}
-      </a>
+    <span class="select-none">&LeftArrow;</span>
+      <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.Parent 0 8 }}</a>
     {{ end }}
   </p>
-
   <div class="diff-stat">
     <br>
     <strong>jump to</strong>
@@ -94,16 +87,14 @@
 
               <div id="right-side-items" class="p-2">
                 <a href="#file-{{ .Name.New }}" class="no-underline hover:underline">top of file</a>
-
                 {{ if gt $idx 0 }}
-                  &nbsp;·&nbsp;
+                  <span class="px-1 select-none before:content-['\00B7']"></span>
                   {{ $prev := index $diff (sub $idx 1) }}
                   <a href="#file-{{ $prev.Name.New }}" class="no-underline hover:underline">prev</a>
                 {{ end }}
 
-
                 {{ if lt $idx $last }}
-                  &nbsp;·&nbsp;
+                  <span class="px-1 select-none before:content-['\00B7']"></span>
                   {{ $next := index $diff (add $idx 1) }}
                   <a href="#file-{{ $next.Name.New }}" class="no-underline hover:underline">next</a>
                 {{ end }}

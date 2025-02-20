@@ -127,19 +127,19 @@
                 href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
                 class="text-gray-500 no-underline hover:underline"
                 >{{ slice .Hash.String 0 8 }}</a
-              >
-          </span>
-              &nbsp;·&nbsp;
-              <span>
-                <a
+                >
+            </span>
+            <span class="mx-2 before:content-['·'] before:select-none"></span>
+                <span>
+                  <a
                     href="mailto:{{ .Author.Email }}"
                     class="text-gray-500 no-underline hover:underline"
                     >{{ .Author.Name }}</a
-                  >
-              </span>
-              &nbsp;·&nbsp;
-              <span>{{ timeFmt .Author.When }}</span>
-        </div>
+                    >
+                </span>
+                <div class="inline-block px-1 select-none after:content-['·']"></div>
+                <span>{{ timeFmt .Author.When }}</span>
+          </div>
       </div>
       {{ end }}
     </div>

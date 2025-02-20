@@ -17,10 +17,10 @@
 
             {{ if eq $stats.NumFolders 1 }}
               {{ $stats.NumFolders }} folder
-              &nbsp;·&nbsp;
+              <span class="px-1 select-none">·</span>
             {{ else if gt $stats.NumFolders 1 }}
               {{ $stats.NumFolders }} folders
-              &nbsp;·&nbsp;
+              <span class="px-1 select-none">·</span>
             {{ end }}
 
             {{ if eq $stats.NumFiles 1 }}
