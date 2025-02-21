@@ -65,24 +65,16 @@
             <div id="diff-file-header" class="border-b cursor-pointer bg-white border-black flex justify-between">
               <div id="left-side-items" class="p-2">
                 {{ if .IsNew }}
-                <span class="diff-type p-1 text-sm bg-green-100 rounded text-green-700 select-none">A</span>
+                <span class="diff-type p-1 mr-1 font-mono text-sm bg-green-100 rounded text-green-700 select-none">A</span>
                 {{ end }}
                 {{ if .IsDelete }}
-                <span class="diff-type p-1 text-sm bg-red-100 rounded text-red-700 select-none">D</span>
+                <span class="diff-type p-1 mr-1 font-mono text-sm bg-red-100 rounded text-red-700 select-none">D</span>
                 {{ end }}
                 {{ if not (or .IsNew .IsDelete) }}
-                <span class="diff-type p-1 bg-gray-100 text-sm rounded text-gray-700 select-none">M</span>
+                <span class="diff-type p-1 mr-1 font-mono bg-gray-100 text-sm rounded text-gray-700 select-none">M</span>
                 {{ end }}
 
-                {{ if .Name.Old }}
-                  <a href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}" class="no-underline hover:underline">{{ .Name.Old }}</a>
-                  {{ if .Name.New }}
-                    &#8594;
-                    <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}" class="no-underline hover:underline">{{ .Name.New }}</a>
-                  {{ end }}
-                {{ else }}
-                  <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}" class="no-underline hover:underline">{{ .Name.New }}</a>
-                {{- end -}}
+                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}" class="no-underline hover:underline">{{ .Name.New }}</a>
               </div>
 
               {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 rounded" }}
@@ -110,15 +102,15 @@
               <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
               {{- range .Lines -}}
                   {{- if eq .Op.String "+" -}}
-                  <div class="bg-green-100 text-green-700"><span class="select-none">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                  <div class="bg-green-100 text-green-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
                   {{- if eq .Op.String "-" -}}
-                  <div class="bg-red-100 text-red-700"><span class="select-none">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                  <div class="bg-red-100 text-red-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
                   {{- if eq .Op.String " " -}}
-                  <div class="text-gray-500"><span class="select-none">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                  <div class="text-gray-500 px"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
               {{- end -}}
