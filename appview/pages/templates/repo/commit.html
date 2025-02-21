@@ -65,13 +65,13 @@
             <div id="diff-file-header" class="border-b cursor-pointer bg-white border-black flex justify-between">
               <div id="left-side-items" class="p-2">
                 {{ if .IsNew }}
-                <span class="diff-type">A</span>
+                <span class="diff-type p-1 text-sm bg-green-100 rounded text-green-700 select-none">A</span>
                 {{ end }}
                 {{ if .IsDelete }}
-                <span class="diff-type">D</span>
+                <span class="diff-type p-1 text-sm bg-red-100 rounded text-red-700 select-none">D</span>
                 {{ end }}
                 {{ if not (or .IsNew .IsDelete) }}
-                <span class="diff-type">M</span>
+                <span class="diff-type p-1 bg-gray-100 text-sm rounded text-gray-700 select-none">M</span>
                 {{ end }}
 
                 {{ if .Name.Old }}
@@ -85,18 +85,17 @@
                 {{- end -}}
               </div>
 
-              <div id="right-side-items" class="p-2">
-                <a href="#file-{{ .Name.New }}" class="no-underline hover:underline">top of file</a>
+              {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 rounded" }}
+              <div id="right-side-items" class="p-2 flex items-center">
+                <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-up-from-line"></i></a>
                 {{ if gt $idx 0 }}
-                  <span class="px-1 select-none before:content-['\00B7']"></span>
                   {{ $prev := index $diff (sub $idx 1) }}
-                  <a href="#file-{{ $prev.Name.New }}" class="no-underline hover:underline">prev</a>
+                  <a title="previous file" href="#file-{{ $prev.Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-up"></i></a>
                 {{ end }}
 
                 {{ if lt $idx $last }}
-                  <span class="px-1 select-none before:content-['\00B7']"></span>
                   {{ $next := index $diff (add $idx 1) }}
-                  <a href="#file-{{ $next.Name.New }}" class="no-underline hover:underline">next</a>
+                  <a title="next file" href="#file-{{ $next.Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-down"></i></a>
                 {{ end }}
               </div>
 

@@ -6,6 +6,7 @@
   "languages": {
     "HTML": {
       "prettier": {
+        "format_on_save": false,
         "allowed": true,
         "parser": "go-template",
         "plugins": ["prettier-plugin-go-template"]
