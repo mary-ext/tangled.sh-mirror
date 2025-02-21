@@ -31,11 +31,9 @@ func (r *Resolver) ResolveIdents(ctx context.Context, idents []string) []*identi
 	results := make([]*identity.Identity, len(idents))
 	var wg sync.WaitGroup
 
-	// Create a channel to handle context cancellation
 	done := make(chan struct{})
 	defer close(done)
 
-	// Start a goroutine for each identifier
 	for idx, ident := range idents {
 		wg.Add(1)
 		go func(index int, id string) {
@@ -47,7 +45,6 @@ func (r *Resolver) ResolveIdents(ctx context.Context, idents []string) []*identi
 			case <-done:
 				results[index] = nil
 			default:
-				// Resolve the identifier - if error, identity will be nil
 				identity, _ := r.ResolveIdent(ctx, id)
 				results[index] = identity
 			}

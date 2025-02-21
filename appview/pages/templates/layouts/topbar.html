@@ -1,14 +1,15 @@
 {{ define "layouts/topbar" }}
   {{ $linkstyle := "text-gray-400 hover:text-gray-900 no-underline" }}
-  <nav class="flex justify-between px-6 space-x-4 mb-4 py-2 border-b border-black">
-    <div id="left-items">
-      <a href="/" hx-boost="true" class="{{ $linkstyle }} flex gap-2">
-        <i class="w-6 h-6" data-lucide="tangent"></i>
-        tangled.sh
-      </a>
-    </div>
-    <div id="right-items" class="flex gap-2">
-      {{ with .LoggedInUser }}
+  <nav class="space-x-4 mb-4 py-2 border-b border-black">
+    <div class="container flex justify-between p-0">
+      <div id="left-items">
+        <a href="/" hx-boost="true" class="{{ $linkstyle }} flex gap-2">
+          <i class="w-6 h-6" data-lucide="tangent"></i>
+          tangled.sh
+        </a>
+      </div>
+      <div id="right-items" class="flex gap-2">
+        {{ with .LoggedInUser }}
         <a href="/repo/new" hx-boost="true" class="{{ $linkstyle }}">
           <i class="w-6 h-6" data-lucide="plus"></i>
         </a>
@@ -18,11 +19,12 @@
         <a href="/logout"class="{{ $linkstyle }}">
           (logout)
         </a>
-      {{ else }}
+        {{ else }}
         <a href="/login" hx-boost="true" class="{{ $linkstyle }}">
           login
         </a>
-      {{ end }}
+        {{ end }}
+      </div>
     </div>
   </nav>
 {{ end }}
