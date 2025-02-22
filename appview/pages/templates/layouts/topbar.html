@@ -13,14 +13,19 @@
         <a href="/repo/new" hx-boost="true" class="{{ $linkstyle }}">
           <i class="w-6 h-6" data-lucide="plus"></i>
         </a>
-        <a href="/{{ didOrHandle .Did .Handle }}" hx-boost="true" class="{{ $linkstyle }}">
-          {{ didOrHandle .Did .Handle }} 
-        </a>
-        <a href="/logout"class="{{ $linkstyle }}">
-          (logout)
-        </a>
+        <details class="relative inline-block text-left">
+          <summary class="{{ $linkstyle }} cursor-pointer list-none">
+            {{ didOrHandle .Did .Handle }}
+          </summary>
+          <div class="absolute flex flex-col right-0 mt-4 p-2 w-48 bg-white border border-black z-50">
+            <a href="/{{ didOrHandle .Did .Handle }}"class="{{ $linkstyle }}">profile</a>
+            <a href="/knots"class="{{ $linkstyle }}">knots</a>
+            <a href="/settings"class="{{ $linkstyle }}">settings</a>
+            <a href="/logout" class="text-red-400 hover:text-red-700 no-underline">logout</a>
+          </div>
+        </details>
         {{ else }}
-        <a href="/login" hx-boost="true" class="{{ $linkstyle }}">
+        <a href="/login" class="{{ $linkstyle }}">
           login
         </a>
         {{ end }}

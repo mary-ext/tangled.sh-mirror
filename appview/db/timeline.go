@@ -1,6 +1,7 @@
 package db
 
 import (
+	"log"
 	"sort"
 	"time"
 )
@@ -8,7 +9,7 @@ import (
 type TimelineEvent struct {
 	*Repo
 	*Follow
-	EventAt *time.Time
+	EventAt time.Time
 }
 
 func (d *DB) MakeTimeline() ([]TimelineEvent, error) {
@@ -25,6 +26,7 @@ func (d *DB) MakeTimeline() ([]TimelineEvent, error) {
 	}
 
 	for _, repo := range repos {
+		log.Println(repo.Created)
 		events = append(events, TimelineEvent{
 			Repo:    &repo,
 			Follow:  nil,
@@ -41,7 +43,7 @@ func (d *DB) MakeTimeline() ([]TimelineEvent, error) {
 	}
 
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].EventAt.After(*events[j].EventAt)
+		return events[i].EventAt.After(events[j].EventAt)
 	})
 
 	return events, nil

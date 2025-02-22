@@ -8,7 +8,7 @@ import (
 type Follow struct {
 	UserDid    string
 	SubjectDid string
-	FollowedAt *time.Time
+	FollowedAt time.Time
 	RKey       string
 }
 
@@ -33,9 +33,9 @@ func (d *DB) GetFollow(userDid, subjectDid string) (*Follow, error) {
 	followedAtTime, err := time.Parse(time.RFC3339, followedAt)
 	if err != nil {
 		log.Println("unable to determine followed at time")
-		follow.FollowedAt = nil
+		follow.FollowedAt = time.Now()
 	} else {
-		follow.FollowedAt = &followedAtTime
+		follow.FollowedAt = followedAtTime
 	}
 
 	return &follow, nil
@@ -110,9 +110,9 @@ func (d *DB) GetAllFollows() ([]Follow, error) {
 		followedAtTime, err := time.Parse(time.RFC3339, followedAt)
 		if err != nil {
 			log.Println("unable to determine followed at time")
-			follow.FollowedAt = nil
+			follow.FollowedAt = time.Now()
 		} else {
-			follow.FollowedAt = &followedAtTime
+			follow.FollowedAt = followedAtTime
 		}
 
 		follows = append(follows, follow)

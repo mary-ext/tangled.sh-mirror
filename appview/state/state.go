@@ -165,9 +165,31 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
 	}
 
+	var didsToResolve []string
+	for _, ev := range timeline {
+		if ev.Repo != nil {
+			didsToResolve = append(didsToResolve, ev.Repo.Did)
+		}
+		if ev.Follow != nil {
+			didsToResolve = append(didsToResolve, ev.Follow.UserDid)
+			didsToResolve = append(didsToResolve, ev.Follow.SubjectDid)
+		}
+	}
+
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
 	s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
 		Timeline:     timeline,
+		DidHandleMap: didHandleMap,
 	})
 
 	return

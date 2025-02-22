@@ -10,13 +10,13 @@ type Repo struct {
 	Name    string
 	Knot    string
 	Rkey    string
-	Created *time.Time
+	Created time.Time
 }
 
 func (d *DB) GetAllRepos() ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select * from repos`)
+	rows, err := d.db.Query(`select did, name, knot, rkey, created from repos`)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func (d *DB) GetAllRepos() ([]Repo, error) {
 
 	for rows.Next() {
 		var repo Repo
-		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, repo.Created)
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -41,7 +41,7 @@ func (d *DB) GetAllRepos() ([]Repo, error) {
 func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select did, name, knot, created from repos where did = ?`, did)
+	rows, err := d.db.Query(`select did, name, knot, rkey, created from repos where did = ?`, did)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 
 	for rows.Next() {
 		var repo Repo
-		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, repo.Created)
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +73,7 @@ func (d *DB) GetRepo(did, name string) (*Repo, error) {
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
-	repo.Created = &createdAtTime
+	repo.Created = createdAtTime
 
 	return &repo, nil
 }
@@ -107,7 +107,7 @@ func (d *DB) CollaboratingIn(collaborator string) ([]Repo, error) {
 
 	for rows.Next() {
 		var repo Repo
-		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, repo.Created)
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -129,10 +129,9 @@ func scanRepo(rows *sql.Rows, did, name, knot, rkey *string, created *time.Time)
 
 	createdAtTime, err := time.Parse(time.RFC3339, createdAt)
 	if err != nil {
-		now := time.Now()
-		created = &now
+		*created = time.Now()
 	} else {
-		created = &createdAtTime
+		*created = createdAtTime
 	}
 
 	return nil
