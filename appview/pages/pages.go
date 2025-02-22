@@ -226,6 +226,13 @@ type ProfilePageParams struct {
 	UserHandle         string
 	Repos              []db.Repo
 	CollaboratingRepos []db.Repo
+	ProfileStats       ProfileStats
+	FollowStatus       db.FollowStatus
+}
+
+type ProfileStats struct {
+	Followers int
+	Following int
 }
 
 func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {

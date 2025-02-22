@@ -9,25 +9,26 @@ type Repo struct {
 	Did     string
 	Name    string
 	Knot    string
-	Created *time.Time
 	Rkey    string
+	Created *time.Time
 }
 
 func (d *DB) GetAllRepos() ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select did, name, knot, created from repos`)
+	rows, err := d.db.Query(`select * from repos`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		repo, err := scanRepo(rows)
+		var repo Repo
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, repo.Created)
 		if err != nil {
 			return nil, err
 		}
-		repos = append(repos, *repo)
+		repos = append(repos, repo)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -47,11 +48,12 @@ func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		repo, err := scanRepo(rows)
+		var repo Repo
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, repo.Created)
 		if err != nil {
 			return nil, err
 		}
-		repos = append(repos, *repo)
+		repos = append(repos, repo)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -97,18 +99,19 @@ func (d *DB) AddCollaborator(collaborator, repoOwnerDid, repoName, repoKnot stri
 func (d *DB) CollaboratingIn(collaborator string) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select r.* from repos r join collaborators c on r.id = c.repo where c.did = ?;`, collaborator)
+	rows, err := d.db.Query(`select r.did, r.name, r.knot, r.rkey, r.created from repos r join collaborators c on r.id = c.repo where c.did = ?;`, collaborator)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		repo, err := scanRepo(rows)
+		var repo Repo
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, repo.Created)
 		if err != nil {
 			return nil, err
 		}
-		repos = append(repos, *repo)
+		repos = append(repos, repo)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -118,20 +121,19 @@ func (d *DB) CollaboratingIn(collaborator string) ([]Repo, error) {
 	return repos, nil
 }
 
-func scanRepo(rows *sql.Rows) (*Repo, error) {
-	var repo Repo
+func scanRepo(rows *sql.Rows, did, name, knot, rkey *string, created *time.Time) error {
 	var createdAt string
-	if err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt); err != nil {
-		return nil, err
+	if err := rows.Scan(did, name, knot, rkey, &createdAt); err != nil {
+		return err
 	}
 
 	createdAtTime, err := time.Parse(time.RFC3339, createdAt)
 	if err != nil {
 		now := time.Now()
-		repo.Created = &now
+		created = &now
+	} else {
+		created = &createdAtTime
 	}
 
-	repo.Created = &createdAtTime
-
-	return &repo, nil
+	return nil
 }

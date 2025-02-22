@@ -1,7 +1,31 @@
 {{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
 
 {{ define "content" }}
-    <h1>{{ didOrHandle .UserDid .UserHandle }}</h1>
+    <div class="flex ">
+      <h1 class="pb-1">
+        {{ didOrHandle .UserDid .UserHandle }}
+      </h1>
+      {{ if ne .FollowStatus.String "IsSelf" }}
+        <button id="followBtn"
+            class="btn mt-2"
+            {{ if eq .FollowStatus.String "IsNotFollowing" }}
+              hx-post="/follow?subject={{.UserDid}}"
+            {{ else }}
+              hx-delete="/follow?subject={{.UserDid}}"
+            {{ end }}
+            hx-trigger="click"
+            hx-target="#followBtn"
+            hx-swap="outerHTML"
+            >
+          {{ if eq .FollowStatus.String "IsNotFollowing" }}Follow{{ else }}Unfollow{{ end }}
+        </button>
+      {{ end }}
+    </div>
+    <div class="text-sm mb-4">
+      <span>{{ .ProfileStats.Followers }} followers</span>
+      <div class="inline-block px-1 select-none after:content-['·']"></div>
+      <span>following {{ .ProfileStats.Following }}</span>
+    </div>
     <p class="text-xs font-bold py-2">REPOS</p>
     <div id="repos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {{ range .Repos }}
@@ -33,8 +57,8 @@
                 class="border border-black p-4 shadow-sm bg-white"
             >
                 <div id="repo-card-name" class="font-medium">
-                    <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}">
-                      @{{ or $.UserHandle $.UserDid }}/{{ .Name }}
+                    <a href="/{{ .Did }}/{{ .Name }}">
+                      @{{ .Did }}/{{ .Name }}
                     </a>
                 </div>
                 <div

@@ -78,6 +78,7 @@ func Make() (*State, error) {
 			record := tangled.GraphFollow{}
 			err := json.Unmarshal(raw, &record)
 			if err != nil {
+				log.Println("invalid record")
 				return err
 			}
 			err = db.AddFollow(did, record.Subject, e.Commit.RKey)
@@ -619,12 +620,28 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting collaborating repos for %s: %s", ident.DID.String(), err)
 	}
 
+	followers, following, err := s.db.GetFollowerFollowing(ident.DID.String())
+	if err != nil {
+		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
+	}
+
+	loggedInUser := s.auth.GetUser(r)
+	followStatus := db.IsNotFollowing
+	if loggedInUser != nil {
+		followStatus = s.db.GetFollowStatus(loggedInUser.Did, ident.DID.String())
+	}
+
 	s.pages.ProfilePage(w, pages.ProfilePageParams{
-		LoggedInUser:       s.auth.GetUser(r),
+		LoggedInUser:       loggedInUser,
 		UserDid:            ident.DID.String(),
 		UserHandle:         ident.Handle.String(),
 		Repos:              repos,
 		CollaboratingRepos: collaboratingRepos,
+		ProfileStats: pages.ProfileStats{
+			Followers: followers,
+			Following: following,
+		},
+		FollowStatus: db.FollowStatus(followStatus),
 	})
 }
 
@@ -676,23 +693,31 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("created atproto record: ", resp.Uri)
 
+		w.Write([]byte(fmt.Sprintf(`
+			<button id="followBtn"
+				class="btn mt-2"
+				hx-delete="/follow?subject=%s"
+				hx-trigger="click"
+				hx-target="#followBtn"
+				hx-swap="outerHTML">
+				Unfollow
+			</button>
+		`, subjectIdent.DID.String())))
+
 		return
 	case http.MethodDelete:
 		// find the record in the db
-
 		follow, err := s.db.GetFollow(currentUser.Did, subjectIdent.DID.String())
 		if err != nil {
 			log.Println("failed to get follow relationship")
 			return
 		}
 
-		resp, err := comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+		_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 			Collection: tangled.GraphFollowNSID,
 			Repo:       currentUser.Did,
 			Rkey:       follow.RKey,
 		})
-
-		log.Println(resp.Commit.Cid)
 
 		if err != nil {
 			log.Println("failed to unfollow")
@@ -705,7 +730,16 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			// this is not an issue, the firehose event might have already done this
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte(fmt.Sprintf(`
+			<button id="followBtn"
+				class="btn mt-2"
+				hx-post="/follow?subject=%s"
+				hx-trigger="click"
+				hx-target="#followBtn"
+				hx-swap="outerHTML">
+				Follow
+			</button>
+		`, subjectIdent.DID.String())))
 		return
 	}
 
