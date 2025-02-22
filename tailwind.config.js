@@ -15,7 +15,8 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif", "ui-sans-serif"],
+        sans: ["iA Writer Quattro S", "Inter", "system-ui", "sans-serif", "ui-sans-serif"],
+        mono: ["iA Writer Mono S", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
       },
     },
   },

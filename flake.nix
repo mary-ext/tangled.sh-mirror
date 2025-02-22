@@ -15,6 +15,10 @@
       url = "https://unpkg.com/lucide@latest";
       flake = false;
     };
+    ia-fonts-src = {
+      url = "github:iaolo/iA-Fonts";
+      flake = false;
+    };
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -28,6 +32,7 @@
     htmx-src,
     lucide-src,
     gitignore,
+    ia-fonts-src,
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -63,7 +68,7 @@
           '';
           doCheck = false;
           subPackages = ["cmd/appview"];
-          vendorHash = "sha256-u9LwvapAwyVOIOAag0IRrk+ot6B0PaqyEnt0EeJciGQ=";
+          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
           env.CGO_ENABLED = 1;
           stdenv = pkgsStatic.stdenv;
         };
@@ -73,7 +78,7 @@
           version = "0.1.0";
           src = gitignoreSource ./.;
           subPackages = ["cmd/knotserver"];
-          vendorHash = "sha256-t7lWrCyFWCI7zjUcC6XNWzCrUPSCFnFu9gTmRTsYrz0=";
+          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
           env.CGO_ENABLED = 1;
         };
       repoguard = with final;
@@ -82,7 +87,7 @@
           version = "0.1.0";
           src = gitignoreSource ./.;
           subPackages = ["cmd/repoguard"];
-          vendorHash = "sha256-t7lWrCyFWCI7zjUcC6XNWzCrUPSCFnFu9gTmRTsYrz0=";
+          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
           env.CGO_ENABLED = 0;
         };
       keyfetch = with final;
@@ -91,7 +96,7 @@
           version = "0.1.0";
           src = gitignoreSource ./.;
           subPackages = ["cmd/keyfetch"];
-          vendorHash = "sha256-t7lWrCyFWCI7zjUcC6XNWzCrUPSCFnFu9gTmRTsYrz0=";
+          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
           env.CGO_ENABLED = 0;
         };
     };
@@ -117,6 +122,12 @@
           pkgs.websocat
           pkgs.tailwindcss
         ];
+        shellHook = ''
+            cp -f ${htmx-src} appview/pages/static/htmx.min.js
+            cp -f ${lucide-src} appview/pages/static/lucide.min.js
+            cp -f ${ia-fonts-src}/"iA Writer Quattro"/Static/*.ttf appview/pages/static/fonts/
+            cp -f ${ia-fonts-src}/"iA Writer Mono"/Static/*.ttf appview/pages/static/fonts/
+        '';
       };
     });
     apps = forAllSystems (system: let

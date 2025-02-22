@@ -32,6 +32,22 @@
         "url": "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
       }
     },
+    "ia-fonts-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1686932517,
+        "narHash": "sha256-2T165nFfCzO65/PIHauJA//S+zug5nUwPcg8NUEydfc=",
+        "owner": "iaolo",
+        "repo": "iA-Fonts",
+        "rev": "f32c04c3058a75d7ce28919ce70fe8800817491b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "iaolo",
+        "repo": "iA-Fonts",
+        "type": "github"
+      }
+    },
     "indigo": {
       "flake": false,
       "locked": {
@@ -79,6 +95,7 @@
       "inputs": {
         "gitignore": "gitignore",
         "htmx-src": "htmx-src",
+        "ia-fonts-src": "ia-fonts-src",
         "indigo": "indigo",
         "lucide-src": "lucide-src",
         "nixpkgs": "nixpkgs"

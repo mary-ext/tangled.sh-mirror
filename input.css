@@ -3,6 +3,65 @@
 @tailwind utilities;
 @layer base {
     @font-face {
+      font-family: 'iA Writer Quattro S';
+      src: url('/static/fonts/iAWriterQuattroS-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+      font-feature-settings: "calt" 1, "kern" 1;
+    }
+    @font-face {
+      font-family: 'iA Writer Quattro S';
+      src: url('/static/fonts/iAWriterQuattroS-Bold.ttf') format('truetype');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'iA Writer Quattro S';
+      src: url('/static/fonts/iAWriterQuattroS-Italic.ttf') format('truetype');
+      font-weight: normal;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'iA Writer Quattro S';
+      src: url('/static/fonts/iAWriterQuattroS-BoldItalic.ttf') format('truetype');
+      font-weight: bold;
+      font-style: italic;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'iA Writer Mono S';
+      src: url('/static/fonts/iAWriterMonoS-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'iA Writer Mono S';
+      src: url('/static/fonts/iAWriterMonoS-Bold.ttf') format('truetype');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'iA Writer Mono S';
+      src: url('/static/fonts/iAWriterMonoS-Italic.ttf') format('truetype');
+      font-weight: normal;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'iA Writer Mono S';
+      src: url('/static/fonts/iAWriterMonoS-BoldItalic.ttf') format('truetype');
+      font-weight: bold;
+      font-style: italic;
+      font-display: swap;
+    }
+
+    @font-face {
         font-family: "Inter";
         font-style: normal;
         font-weight: 400;
@@ -20,6 +79,12 @@
         @apply text-black;
         @apply bg-opacity-30;
     }
+
+    html {
+      letter-spacing: -0.01em;
+      word-spacing: -0.07em;
+    }
+
     a {
         @apply underline text-black hover:text-gray-800;
     }

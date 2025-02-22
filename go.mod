@@ -6,6 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/Blank-Xu/sql-adapter v1.1.1
+	github.com/alecthomas/chroma/v2 v2.15.0
 	github.com/bluekeyes/go-gitdiff v0.8.0
 	github.com/bluesky-social/indigo v0.0.0-20250123072624-9e3b84fdbb20
 	github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1
@@ -30,7 +31,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
-	github.com/alecthomas/chroma/v2 v2.15.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
