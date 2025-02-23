@@ -11,14 +11,19 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
+	"github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/appview/pages"
 	"github.com/sotangled/tangled/types"
+
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
 func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
@@ -564,13 +569,44 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	issue, err := s.db.GetIssue(f.RepoAt, issueIdInt)
+	if err != nil {
+		log.Println("failed to get issue", err)
+		s.pages.Notice(w, "issues", "Failed to close issue. Try again later.")
+		return
+	}
+
+	// TODO: make this more granular
 	if user.Did == f.OwnerDid() {
+
+		closed := tangled.RepoIssueStateClosed
+
+		client, _ := s.auth.AuthorizedClient(r)
+		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoIssueStateNSID,
+			Repo:       issue.OwnerDid,
+			Rkey:       s.TID(),
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.RepoIssueState{
+					Issue: issue.IssueAt,
+					State: &closed,
+				},
+			},
+		})
+
+		if err != nil {
+			log.Println("failed to update issue state", err)
+			s.pages.Notice(w, "issues", "Failed to close issue. Try again later.")
+			return
+		}
+
 		err := s.db.CloseIssue(f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to close issue", err)
 			s.pages.Notice(w, "issues", "Failed to close issue. Try again later.")
 			return
 		}
+
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueIdInt))
 		return
 	} else {
@@ -637,8 +673,6 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		commentId := rand.IntN(1000000)
-		fmt.Println(commentId)
-		fmt.Println("comment id", commentId)
 
 		err := s.db.NewComment(&db.Comment{
 			OwnerDid:  user.Did,
@@ -646,6 +680,38 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 			Issue:     issueIdInt,
 			CommentId: commentId,
 			Body:      body,
+		})
+		if err != nil {
+			log.Println("failed to create comment", err)
+			s.pages.Notice(w, "issue-comment", "Failed to create comment.")
+			return
+		}
+
+		createdAt := time.Now().Format(time.RFC3339)
+		commentIdInt64 := int64(commentId)
+		ownerDid := user.Did
+		issueAt, err := s.db.GetIssueAt(f.RepoAt, issueIdInt)
+		if err != nil {
+			log.Println("failed to get issue at", err)
+			s.pages.Notice(w, "issue-comment", "Failed to create comment.")
+			return
+		}
+
+		client, _ := s.auth.AuthorizedClient(r)
+		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoIssueCommentNSID,
+			Repo:       user.Did,
+			Rkey:       s.TID(),
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.RepoIssueComment{
+					Repo:      &f.RepoAt,
+					Issue:     issueAt,
+					CommentId: &commentIdInt64,
+					Owner:     &ownerDid,
+					Body:      &body,
+					CreatedAt: &createdAt,
+				},
+			},
 		})
 		if err != nil {
 			log.Println("failed to create comment", err)
@@ -711,11 +777,11 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 		body := r.FormValue("body")
 
 		if title == "" || body == "" {
-			s.pages.Notice(w, "issue", "Title and body are required")
+			s.pages.Notice(w, "issues", "Title and body are required")
 			return
 		}
 
-		issueId, err := s.db.NewIssue(&db.Issue{
+		err = s.db.NewIssue(&db.Issue{
 			RepoAt:   f.RepoAt,
 			Title:    title,
 			Body:     body,
@@ -723,7 +789,42 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			log.Println("failed to create issue", err)
-			s.pages.Notice(w, "issue", "Failed to create issue.")
+			s.pages.Notice(w, "issues", "Failed to create issue.")
+			return
+		}
+
+		issueId, err := s.db.GetIssueId(f.RepoAt)
+		if err != nil {
+			log.Println("failed to get issue id", err)
+			s.pages.Notice(w, "issues", "Failed to create issue.")
+			return
+		}
+
+		client, _ := s.auth.AuthorizedClient(r)
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoIssueNSID,
+			Repo:       user.Did,
+			Rkey:       s.TID(),
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.RepoIssue{
+					Repo:    f.RepoAt,
+					Title:   title,
+					Body:    &body,
+					Owner:   user.Did,
+					IssueId: int64(issueId),
+				},
+			},
+		})
+		if err != nil {
+			log.Println("failed to create issue", err)
+			s.pages.Notice(w, "issues", "Failed to create issue.")
+			return
+		}
+
+		err = s.db.SetIssueAt(f.RepoAt, issueId, resp.Uri)
+		if err != nil {
+			log.Println("failed to set issue at", err)
+			s.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}
 

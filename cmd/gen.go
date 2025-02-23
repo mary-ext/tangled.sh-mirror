@@ -18,6 +18,9 @@ func main() {
 		shtangled.KnotMember{},
 		shtangled.GraphFollow{},
 		shtangled.Repo{},
+		shtangled.RepoIssue{},
+		shtangled.RepoIssueState{},
+		shtangled.RepoIssueComment{},
 	); err != nil {
 		panic(err)
 	}

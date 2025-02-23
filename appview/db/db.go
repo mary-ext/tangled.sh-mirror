@@ -73,7 +73,9 @@ func Make(dbPath string) (*DB, error) {
 			issue_id integer not null unique,
 			title text not null,
 			body text not null,
+			open integer not null default 1,
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			issue_at text,
 			unique(repo_at, issue_id),
 			foreign key (repo_at) references repos(at_uri) on delete cascade
 		);
@@ -83,6 +85,7 @@ func Make(dbPath string) (*DB, error) {
 			issue_id integer not null,
 			repo_at text not null,
 			comment_id integer not null,
+			comment_at text not null,
 			body text not null,
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(issue_id, comment_id),
