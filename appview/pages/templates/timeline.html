@@ -4,36 +4,44 @@
     <h1>Timeline</h1>
 
     {{ range .Timeline }}
+      <div class="relative
+                 px-4
+                 py-2
+                 border-l
+                 border-black
+                 before:content-['']
+                 before:absolute
+                 before:w-1
+                 before:h-1
+                 before:bg-black
+                 before:rounded-full
+                 before:left-[-2.2px]
+                 before:top-1/2
+                 before:-translate-y-1/2
+                 ">
         {{ if .Repo }}
-            <div class="border border-black p-4 m-2 bg-white w-1/2">
-                <div class="flex items-center">
-                    <div class="text-sm text-gray-600">
-                        {{ .Repo.Did }} created
-                    </div>
-                    div>
-                    <div class="px-3">{{ .Repo.Name }}</div>
-                </div>
-
-                <time class="text-sm text-gray-700"
-                    >{{ .Repo.Created | timeFmt }}</time
-                >
-            </div>
+          {{ $userHandle :=  index $.DidHandleMap .Repo.Did }}
+          <div class="flex items-center">
+            <p class="text-gray-600">
+            <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
+            created
+            <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
+            <time class="text-gray-700">{{ .Repo.Created | timeFmt }}</time>
+            </p>
+          </div>
         {{ else if .Follow }}
-            <div class="border border-black p-4 m-2 bg-white w-1/2">
-                <div class="flex items-center">
-                    <div class="text-sm text-gray-600">
-                        {{ .Follow.UserDid }} followed
-                    </div>
-                    <div class="text-sm text-gray-800">
-                        {{ .Follow.SubjectDid }}
-                    </div>
-                </div>
-
-                <time class="text-sm text-gray-700"
-                    >{{ .Follow.FollowedAt | timeFmt }}</time
-                >
-            </div>
+          {{ $userHandle :=  index $.DidHandleMap .Follow.UserDid }}
+          {{ $subjectHandle :=  index $.DidHandleMap .Follow.SubjectDid }}
+          <div class="flex items-center">
+            <p class="text-gray-600">
+            <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
+            followed
+            <a href="/{{ $subjectHandle }}" class="no-underline hover:underline">{{ $subjectHandle }}</a>
+            <time class="text-gray-700">{{ .Follow.FollowedAt | timeFmt }}</time>
+            </p>
+          </div>
         {{ end }}
+      </div>
     {{ end }}
 
 {{ end }}
