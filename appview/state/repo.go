@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand/v2"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/appview/auth"
+	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/appview/pages"
 	"github.com/sotangled/tangled/types"
 )
@@ -441,6 +444,7 @@ type FullyResolvedRepo struct {
 	Knot     string
 	OwnerId  identity.Identity
 	RepoName string
+	RepoAt   string
 }
 
 func (f *FullyResolvedRepo) OwnerDid() string {
@@ -500,6 +504,234 @@ func (f *FullyResolvedRepo) Collaborators(ctx context.Context, s *State) ([]page
 	return collaborators, nil
 }
 
+func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issueId := chi.URLParam(r, "issue")
+	issueIdInt, err := strconv.Atoi(issueId)
+	if err != nil {
+		http.Error(w, "bad issue id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	issue, comments, err := s.db.GetIssueWithComments(f.RepoAt, issueIdInt)
+	if err != nil {
+		log.Println("failed to get issue and comments", err)
+		s.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+		return
+	}
+
+	issueOwnerIdent, err := s.resolver.ResolveIdent(r.Context(), issue.OwnerDid)
+	if err != nil {
+		log.Println("failed to resolve issue owner", err)
+	}
+
+	s.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
+		LoggedInUser: user,
+		RepoInfo: pages.RepoInfo{
+			OwnerDid:        f.OwnerDid(),
+			OwnerHandle:     f.OwnerHandle(),
+			Name:            f.RepoName,
+			SettingsAllowed: settingsAllowed(s, user, f),
+		},
+		Issue:    *issue,
+		Comments: comments,
+
+		IssueOwnerHandle: issueOwnerIdent.Handle.String(),
+	})
+
+}
+
+func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issueId := chi.URLParam(r, "issue")
+	issueIdInt, err := strconv.Atoi(issueId)
+	if err != nil {
+		http.Error(w, "bad issue id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	if user.Did == f.OwnerDid() {
+		err := s.db.CloseIssue(f.RepoAt, issueIdInt)
+		if err != nil {
+			log.Println("failed to close issue", err)
+			s.pages.Notice(w, "issues", "Failed to close issue. Try again later.")
+			return
+		}
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueIdInt))
+		return
+	} else {
+		log.Println("user is not the owner of the repo")
+		http.Error(w, "for biden", http.StatusUnauthorized)
+		return
+	}
+}
+
+func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issueId := chi.URLParam(r, "issue")
+	issueIdInt, err := strconv.Atoi(issueId)
+	if err != nil {
+		http.Error(w, "bad issue id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	if user.Did == f.OwnerDid() {
+		err := s.db.ReopenIssue(f.RepoAt, issueIdInt)
+		if err != nil {
+			log.Println("failed to reopen issue", err)
+			s.pages.Notice(w, "issues", "Failed to reopen issue. Try again later.")
+			return
+		}
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueIdInt))
+		return
+	} else {
+		log.Println("user is not the owner of the repo")
+		http.Error(w, "forbidden", http.StatusUnauthorized)
+		return
+	}
+}
+
+func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issueId := chi.URLParam(r, "issue")
+	issueIdInt, err := strconv.Atoi(issueId)
+	if err != nil {
+		http.Error(w, "bad issue id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPost:
+		body := r.FormValue("body")
+		if body == "" {
+			s.pages.Notice(w, "issue", "Body is required")
+			return
+		}
+
+		commentId := rand.IntN(1000000)
+		fmt.Println(commentId)
+		fmt.Println("comment id", commentId)
+
+		err := s.db.NewComment(&db.Comment{
+			OwnerDid:  user.Did,
+			RepoAt:    f.RepoAt,
+			Issue:     issueIdInt,
+			CommentId: commentId,
+			Body:      body,
+		})
+		if err != nil {
+			log.Println("failed to create comment", err)
+			s.pages.Notice(w, "issue-comment", "Failed to create comment.")
+			return
+		}
+
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d#comment-%d", f.OwnerSlashRepo(), issueIdInt, commentId))
+		return
+	}
+}
+
+func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issues, err := s.db.GetIssues(f.RepoAt)
+	if err != nil {
+		log.Println("failed to get issues", err)
+		s.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
+		return
+	}
+
+	s.pages.RepoIssues(w, pages.RepoIssuesParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo: pages.RepoInfo{
+			OwnerDid:        f.OwnerDid(),
+			OwnerHandle:     f.OwnerHandle(),
+			Name:            f.RepoName,
+			SettingsAllowed: settingsAllowed(s, user, f),
+		},
+		Issues: issues,
+	})
+	return
+}
+
+func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		s.pages.RepoNewIssue(w, pages.RepoNewIssueParams{
+			LoggedInUser: user,
+			RepoInfo: pages.RepoInfo{
+				Name:            f.RepoName,
+				OwnerDid:        f.OwnerDid(),
+				OwnerHandle:     f.OwnerHandle(),
+				SettingsAllowed: settingsAllowed(s, user, f),
+			},
+		})
+	case http.MethodPost:
+		title := r.FormValue("title")
+		body := r.FormValue("body")
+
+		if title == "" || body == "" {
+			s.pages.Notice(w, "issue", "Title and body are required")
+			return
+		}
+
+		issueId, err := s.db.NewIssue(&db.Issue{
+			RepoAt:   f.RepoAt,
+			Title:    title,
+			Body:     body,
+			OwnerDid: user.Did,
+		})
+		if err != nil {
+			log.Println("failed to create issue", err)
+			s.pages.Notice(w, "issue", "Failed to create issue.")
+			return
+		}
+
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueId))
+		return
+	}
+}
+
 func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	repoName := chi.URLParam(r, "repo")
 	knot, ok := r.Context().Value("knot").(string)
@@ -513,10 +745,17 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
+	repoAt, ok := r.Context().Value("repoAt").(string)
+	if !ok {
+		log.Println("malformed middleware")
+		return nil, fmt.Errorf("malformed middleware")
+	}
+
 	return &FullyResolvedRepo{
 		Knot:     knot,
 		OwnerId:  id,
 		RepoName: repoName,
+		RepoAt:   repoAt,
 	}, nil
 }
 

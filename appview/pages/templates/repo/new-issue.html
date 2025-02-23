@@ -1,0 +1,30 @@
+{{ define "title" }}new issue | {{ .RepoInfo.FullName }}{{ end }}
+
+{{ define "repoContent" }}
+    <form
+        hx-post="/{{ .RepoInfo.FullName }}/issues/new"
+        class="mt-6 space-y-6"
+        hx-swap="none"
+    >
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="title">title</label>
+                <input type="text" name="title" id="title" class="w-full" />
+            </div>
+            <div>
+                <label for="body">body</label>
+                <textarea
+                    name="body"
+                    id="body"
+                    rows="6"
+                    class="w-full resize-y"
+                    placeholder="Describe your issue."
+                ></textarea>
+            </div>
+            <div>
+                <button type="submit" class="btn">create</button>
+            </div>
+        </div>
+        <div id="issues" class="error"></div>
+    </form>
+{{ end }}

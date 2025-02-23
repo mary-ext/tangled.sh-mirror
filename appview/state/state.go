@@ -70,7 +70,6 @@ func Make() (*State, error) {
 		}
 
 		did := e.Did
-		fmt.Println("got event", e.Commit.Collection, e.Commit.RKey, e.Commit.Record)
 		raw := json.RawMessage(e.Commit.Record)
 
 		switch e.Commit.Collection {
@@ -597,6 +596,8 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("created repo record: ", atresp.Uri)
 
+		repo.AtUri = atresp.Uri
+
 		err = s.db.AddRepo(repo)
 		if err != nil {
 			log.Println(err)
@@ -801,6 +802,16 @@ func (s *State) UserRouter() http.Handler {
 			r.Get("/branches", s.RepoBranches)
 			r.Get("/tags", s.RepoTags)
 			r.Get("/blob/{ref}/*", s.RepoBlob)
+
+			r.Route("/issues", func(r chi.Router) {
+				r.Get("/", s.RepoIssues)
+				r.Get("/{issue}", s.RepoSingleIssue)
+				r.Get("/new", s.NewIssue)
+				r.Post("/new", s.NewIssue)
+				r.Post("/{issue}/comment", s.IssueComment)
+				r.Post("/{issue}/close", s.CloseIssue)
+				r.Post("/{issue}/reopen", s.ReopenIssue)
+			})
 
 			// These routes get proxied to the knot
 			r.Get("/info/refs", s.InfoRefs)

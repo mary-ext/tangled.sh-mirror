@@ -283,6 +283,9 @@ type RepoIndexParams struct {
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 	params.Active = "overview"
+	if params.IsEmpty {
+		return p.executeRepo("repo/empty", w, params)
+	}
 	return p.executeRepo("repo/index", w, params)
 }
 
@@ -427,6 +430,50 @@ type RepoSettingsParams struct {
 func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 	params.Active = "settings"
 	return p.executeRepo("repo/settings", w, params)
+}
+
+type RepoIssuesParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Active       string
+	Issues       []db.Issue
+}
+
+func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {
+	params.Active = "issues"
+	return p.executeRepo("repo/issues", w, params)
+}
+
+type RepoSingleIssueParams struct {
+	LoggedInUser     *auth.User
+	RepoInfo         RepoInfo
+	Active           string
+	Issue            db.Issue
+	Comments         []db.Comment
+	IssueOwnerHandle string
+
+	State string
+}
+
+func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error {
+	params.Active = "issues"
+	if params.Issue.Open {
+		params.State = "open"
+	} else {
+		params.State = "closed"
+	}
+	return p.execute("repo/issue", w, params)
+}
+
+type RepoNewIssueParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Active       string
+}
+
+func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
+	params.Active = "issues"
+	return p.executeRepo("repo/new-issue", w, params)
 }
 
 func (p *Pages) Static() http.Handler {

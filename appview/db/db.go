@@ -47,6 +47,7 @@ func Make(dbPath string) (*DB, error) {
 			name text not null,
 			knot text not null,
 			rkey text not null,
+			at_uri text not null unique,
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, name, knot, rkey)
 		);
@@ -59,15 +60,44 @@ func Make(dbPath string) (*DB, error) {
 		create table if not exists follows (
 			user_did text not null,
 			subject_did text not null,
+			at_uri text not null unique,
 			rkey text not null,
 			followed_at text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			primary key (user_did, subject_did),
 			check (user_did <> subject_did)
 		);
+		create table if not exists issues (
+			id integer primary key autoincrement,
+			owner_did text not null,
+			repo_at text not null,
+			issue_id integer not null unique,
+			title text not null,
+			body text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			unique(repo_at, issue_id),
+			foreign key (repo_at) references repos(at_uri) on delete cascade
+		);
+		create table if not exists comments (
+			id integer primary key autoincrement,
+			owner_did text not null,
+			issue_id integer not null,
+			repo_at text not null,
+			comment_id integer not null,
+			body text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			unique(issue_id, comment_id),
+			foreign key (issue_id) references issues(issue_id) on delete cascade
+		);
 		create table if not exists _jetstream (
 			id integer primary key autoincrement,
 			last_time_us integer not null
 		);
+
+		create table if not exists repo_issue_seqs (
+			repo_at text primary key,
+			next_issue_id integer not null default 1
+		);
+
 	`)
 	if err != nil {
 		return nil, err

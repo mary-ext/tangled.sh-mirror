@@ -187,6 +187,7 @@ func ResolveRepoKnot(s *State) Middleware {
 			}
 
 			ctx := context.WithValue(req.Context(), "knot", repo.Knot)
+			ctx = context.WithValue(ctx, "repoAt", repo.AtUri)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	}

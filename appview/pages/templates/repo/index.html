@@ -1,95 +1,103 @@
 {{ define "repoContent" }}
-<main>
-  {{- if .IsEmpty }}
-  this repo is empty
-  {{ else }}
-  <div class="flex gap-4">
-    <div id="file-tree" class="w-3/5">
-      {{ $containerstyle := "py-1" }}
-      {{ $linkstyle := "no-underline hover:underline" }}
+    <main>
+        <div class="flex gap-4">
+            <div id="file-tree" class="w-3/5">
+                {{ $containerstyle := "py-1" }}
+                {{ $linkstyle := "no-underline hover:underline" }}
 
-      <div class="flex justify-end">
-        <select
-            onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + this.value"
-            class="p-1 border border-gray-500 bg-white"
-            >
-            <optgroup label="branches" class="bold text-sm">
-              {{ range .Branches }}
-              <option
-                  value="{{ .Reference.Name }}"
-                  class="py-1"
-                  {{if eq .Reference.Name $.Ref}}selected{{end}}
-                  >
-                  {{ .Reference.Name }}
-              </option>
-              {{ end }}
-            </optgroup>
-          <optgroup label="tags" class="bold text-sm">
-            {{ range .Tags }}
-            <option
-                value="{{ .Reference.Name }}"
-                class="py-1"
-                {{if eq .Reference.Name $.Ref}}selected{{end}}
-                >
-                {{ .Reference.Name }}
-            </option>
-            {{ else }}
-            <option class="py-1" disabled>no tags found</option>
-            {{ end }}
-          </optgroup>
-        </select>
-      </div>
 
-      {{ range .Files }}
-      {{ if not .IsFile }}
-      <div class="{{ $containerstyle }}">
-          <div class="flex justify-between items-center">
-              <a
-                  href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}/{{ .Name }}"
-                  class="{{ $linkstyle }}"
-              >
-                  <div class="flex items-center gap-2">
-                      <i
-                          class="w-3 h-3 fill-current"
-                          data-lucide="folder"
-                      ></i
-                      >{{ .Name }}
-                  </div>
-              </a>
-              
-              <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.Author.When }}</time>
-          </div>
-      </div>
-      {{ end }}
-      {{ end }}
+                <div class="flex justify-end">
+                    <select
+                        onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + this.value"
+                        class="p-1 border border-gray-500 bg-white"
+                    >
+                        <optgroup label="branches" class="bold text-sm">
+                            {{ range .Branches }}
+                                <option
+                                    value="{{ .Reference.Name }}"
+                                    class="py-1"
+                                    {{ if eq .Reference.Name $.Ref }}
+                                        selected
+                                    {{ end }}
+                                >
+                                    {{ .Reference.Name }}
+                                </option>
+                            {{ end }}
+                        </optgroup>
+                        <optgroup label="tags" class="bold text-sm">
+                            {{ range .Tags }}
+                                <option
+                                    value="{{ .Reference.Name }}"
+                                    class="py-1"
+                                    {{ if eq .Reference.Name $.Ref }}
+                                        selected
+                                    {{ end }}
+                                >
+                                    {{ .Reference.Name }}
+                                </option>
+                            {{ else }}
+                                <option class="py-1" disabled>
+                                    no tags found
+                                </option>
+                            {{ end }}
+                        </optgroup>
+                    </select>
+                </div>
 
-      {{ range .Files }}
-      {{ if .IsFile }}
-      <div class="{{ $containerstyle }}">
-        <div class="flex justify-between items-center">
-          <a
-              href="/{{ $.RepoInfo.FullName }}/blob/{{ $.Ref }}/{{ .Name }}"
-              class="{{ $linkstyle }}"
-              >
-              <div class="flex items-center gap-2">
-                <i
-                    class="w-3 h-3"
-                    data-lucide="file"
-                    ></i
-                  >{{ .Name }}
-              </div>
-          </a>
+                {{ range .Files }}
+                    {{ if not .IsFile }}
+                        <div class="{{ $containerstyle }}">
+                            <div class="flex justify-between items-center">
+                                <a
+                                    href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}/{{ .Name }}"
+                                    class="{{ $linkstyle }}"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <i
+                                            class="w-3 h-3 fill-current"
+                                            data-lucide="folder"
+                                        ></i
+                                        >{{ .Name }}
+                                    </div>
+                                </a>
 
-          <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.Author.When }}</time>
-        </div>
-      </div>
-      {{ end }}
-      {{ end }}
-    </div>
-    <div id="commit-log" class="flex-1">
-      {{ range .Commits }}
-      <div
-          class="relative
+                                <time class="text-xs text-gray-500"
+                                    >{{ timeFmt .LastCommit.Author.When }}</time
+                                >
+                            </div>
+                        </div>
+                    {{ end }}
+                {{ end }}
+
+                {{ range .Files }}
+                    {{ if .IsFile }}
+                        <div class="{{ $containerstyle }}">
+                            <div class="flex justify-between items-center">
+                                <a
+                                    href="/{{ $.RepoInfo.FullName }}/blob/{{ $.Ref }}/{{ .Name }}"
+                                    class="{{ $linkstyle }}"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <i
+                                            class="w-3 h-3"
+                                            data-lucide="file"
+                                        ></i
+                                        >{{ .Name }}
+                                    </div>
+                                </a>
+
+                                <time class="text-xs text-gray-500"
+                                    >{{ timeFmt .LastCommit.Author.When }}</time
+                                >
+                            </div>
+                        </div>
+                    {{ end }}
+                {{ end }}
+            </div>
+            <div id="commit-log" class="flex-1">
+                {{ range .Commits }}
+                    <div
+                        class="relative
                  px-4
                  py-4
                  border-l
@@ -103,68 +111,86 @@
                  before:left-[-2.2px]
                  before:top-1/2
                  before:-translate-y-1/2
-                 ">
-
-        <div id="commit-message">
-          {{ $messageParts := splitN .Message "\n\n" 2 }}
-          <div class="text-base cursor-pointer">
-            <div>
-              <div>
-                <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}" class="inline no-underline hover:underline">{{ index $messageParts 0 }}</a>
-                {{ if gt (len $messageParts) 1 }}
-
-                <button class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded"
-                        hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')">
-                  <i class="w-3 h-3" data-lucide="ellipsis"></i>
-                </button>
-                {{ end }}
-              </div>
-              {{ if gt (len $messageParts) 1 }}
-              <p class="hidden mt-1 text-sm cursor-text pb-2">{{ nl2br (unwrapText (index $messageParts 1)) }}</p>
-              {{ end }}
-            </div>
-          </div>
-        </div>
-
-        <div class="text-xs text-gray-500">
-          <span class="font-mono">
-            <a
-                href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
-                class="text-gray-500 no-underline hover:underline"
-                >{{ slice .Hash.String 0 8 }}</a
-                >
-            </span>
-            <span class="mx-2 before:content-['·'] before:select-none"></span>
-                <span>
-                  <a
-                    href="mailto:{{ .Author.Email }}"
-                    class="text-gray-500 no-underline hover:underline"
-                    >{{ .Author.Name }}</a
+                 "
                     >
-                </span>
-                <div class="inline-block px-1 select-none after:content-['·']"></div>
-                <span>{{ timeFmt .Author.When }}</span>
-          </div>
-      </div>
-      {{ end }}
-    </div>
-  </div>
-  {{- end -}}
+                        <div id="commit-message">
+                            {{ $messageParts := splitN .Message "\n\n" 2 }}
+                            <div class="text-base cursor-pointer">
+                                <div>
+                                    <div>
+                                        <a
+                                            href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
+                                            class="inline no-underline hover:underline"
+                                            >{{ index $messageParts 0 }}</a
+                                        >
+                                        {{ if gt (len $messageParts) 1 }}
 
-</main>
+                                            <button
+                                                class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded"
+                                                hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')"
+                                            >
+                                                <i
+                                                    class="w-3 h-3"
+                                                    data-lucide="ellipsis"
+                                                ></i>
+                                            </button>
+                                        {{ end }}
+                                    </div>
+                                    {{ if gt (len $messageParts) 1 }}
+                                        <p
+                                            class="hidden mt-1 text-sm cursor-text pb-2"
+                                        >
+                                            {{ nl2br (unwrapText (index $messageParts 1)) }}
+                                        </p>
+                                    {{ end }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-xs text-gray-500">
+                            <span class="font-mono">
+                                <a
+                                    href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
+                                    class="text-gray-500 no-underline hover:underline"
+                                    >{{ slice .Hash.String 0 8 }}</a
+                                >
+                            </span>
+                            <span
+                                class="mx-2 before:content-['·'] before:select-none"
+                            ></span>
+                            <span>
+                                <a
+                                    href="mailto:{{ .Author.Email }}"
+                                    class="text-gray-500 no-underline hover:underline"
+                                    >{{ .Author.Name }}</a
+                                >
+                            </span>
+                            <div
+                                class="inline-block px-1 select-none after:content-['·']"
+                            ></div>
+                            <span>{{ timeFmt .Author.When }}</span>
+                        </div>
+                    </div>
+                {{ end }}
+            </div>
+        </div>
+    </main>
 {{ end }}
 
 {{ define "repoAfter" }}
-{{- if .Readme }}
-<section class="mt-4 p-6 border border-black w-full mx-auto">
-  <article class="readme">
-    {{- .Readme -}}
-  </article>
-</section>
-{{- end -}}
+    {{- if .Readme }}
+        <section class="mt-4 p-6 border border-black w-full mx-auto">
+            <article class="readme">
+                {{- .Readme -}}
+            </article>
+        </section>
+    {{- end -}}
 
-<section class="mt-4 p-6 border border-black w-full mx-auto">
-  <strong>clone</strong>
-  <pre> git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }} </pre>
-</section>
+
+    <section class="mt-4 p-6 border border-black w-full mx-auto">
+        <strong>clone</strong>
+        <pre>
+ git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }} </pre
+        >
+    </section>
 {{ end }}

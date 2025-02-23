@@ -1,0 +1,107 @@
+{{ define "title" }}
+    {{ .Issue.Title }} &middot;
+    {{ .RepoInfo.FullName }}
+{{ end }}
+
+{{ define "repoContent" }}
+    <div class="flex items-center justify-between">
+        <h1>
+            {{ .Issue.Title }}
+            <span class="text-gray-400">#{{ .Issue.IssueId }}</span>
+        </h1>
+
+        <time class="text-sm">{{ .Issue.Created | timeFmt }}</time>
+    </div>
+
+    {{ $bgColor := "bg-gray-800" }}
+    {{ $icon := "ban" }}
+    {{ if eq .State "open" }}
+        {{ $bgColor = "bg-green-600" }}
+        {{ $icon = "circle-dot" }}
+    {{ end }}
+
+
+    <section class="m-2">
+        <div class="flex items-center gap-2">
+            <div
+                id="state"
+                class="inline-flex items-center px-3 py-1 {{ $bgColor }}"
+            >
+                <i
+                    data-lucide="{{ $icon }}"
+                    class="w-4 h-4 mr-1.5 text-white"
+                ></i>
+                <span class="text-white">{{ .State }}</span>
+            </div>
+            <span class="text-gray-400 text-sm">
+                opened by
+                {{ didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
+            </span>
+        </div>
+
+        {{ if .Issue.Body }}
+            <article id="body" class="mt-8">
+                {{ .Issue.Body | escapeHtml }}
+            </article>
+        {{ end }}
+    </section>
+
+    <section id="comments" class="mt-8 space-y-4">
+        {{ range .Comments }}
+            <div
+                id="comment-{{ .CommentId }}"
+                class="border border-gray-200 p-4"
+            >
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-gray-400 text-sm">
+                        {{ .OwnerDid }}
+                    </span>
+                    <span class="text-gray-500 text-sm">
+                        {{ .Created | timeFmt }}
+                    </span>
+                </div>
+                <div class="">
+                    {{ nl2br .Body }}
+                </div>
+            </div>
+        {{ end }}
+    </section>
+
+    {{ if .LoggedInUser }}
+        <form
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+            class="mt-8"
+        >
+            <textarea
+                name="body"
+                class="w-full p-2 border border-gray-200"
+                placeholder="Add to the discussion..."
+            ></textarea>
+            <button type="submit" class="btn mt-2">comment</button>
+            <div id="issue-comment"></div>
+        </form>
+    {{ end }}
+
+    {{ if eq .LoggedInUser.Did .Issue.OwnerDid }}
+        {{ $action := "close" }}
+        {{ $icon := "circle-x" }}
+        {{ $hoverColor := "red" }}
+        {{ if eq .State "closed" }}
+            {{ $action = "reopen" }}
+            {{ $icon = "circle-dot" }}
+            {{ $hoverColor = "green" }}
+        {{ end }}
+        <form
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/{{ $action }}"
+            class="mt-8"
+        >
+            <button type="submit" class="btn hover:bg-{{ $hoverColor }}-300">
+                <i
+                    data-lucide="{{ $icon }}"
+                    class="w-4 h-4 mr-2 text-{{ $hoverColor }}-400"
+                ></i>
+                <span class="text-black">{{ $action }}</span>
+            </button>
+        </form>
+    {{ end }}
+{{ end }}

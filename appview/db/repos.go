@@ -11,6 +11,7 @@ type Repo struct {
 	Knot    string
 	Rkey    string
 	Created time.Time
+	AtUri   string
 }
 
 func (d *DB) GetAllRepos() ([]Repo, error) {
@@ -66,10 +67,10 @@ func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 func (d *DB) GetRepo(did, name string) (*Repo, error) {
 	var repo Repo
 
-	row := d.db.QueryRow(`select did, name, knot, created from repos where did = ? and name = ?`, did, name)
+	row := d.db.QueryRow(`select did, name, knot, created, at_uri from repos where did = ? and name = ?`, did, name)
 
 	var createdAt string
-	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt); err != nil {
+	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri); err != nil {
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
@@ -79,7 +80,7 @@ func (d *DB) GetRepo(did, name string) (*Repo, error) {
 }
 
 func (d *DB) AddRepo(repo *Repo) error {
-	_, err := d.db.Exec(`insert into repos (did, name, knot, rkey) values (?, ?, ?, ?)`, repo.Did, repo.Name, repo.Knot, repo.Rkey)
+	_, err := d.db.Exec(`insert into repos (did, name, knot, rkey, at_uri) values (?, ?, ?, ?, ?)`, repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri)
 	return err
 }
 
