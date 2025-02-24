@@ -35,7 +35,8 @@
             </div>
             <span class="text-gray-400 text-sm">
                 opened by
-                {{ didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
+                {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
+                <a href="/{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
             </span>
         </div>
 
@@ -53,8 +54,9 @@
                 class="border border-gray-200 p-4"
             >
                 <div class="flex items-center gap-2 mb-2">
+                    {{ $owner := index $.DidHandleMap .OwnerDid }}
                     <span class="text-gray-400 text-sm">
-                        {{ index $.DidHandleMap .OwnerDid }}
+                      <a href="{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
                     </span>
                     <span class="text-gray-500 text-sm">
                         {{ .Created | timeFmt }}

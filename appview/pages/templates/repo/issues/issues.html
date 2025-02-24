@@ -39,7 +39,8 @@
                     <span>#{{ .IssueId }}</span>
                     <span class="before:content-['·']">
                         opened by
-                        {{ index $.DidHandleMap .OwnerDid }}
+                        {{ $owner := index $.DidHandleMap .OwnerDid }}
+                        <a href="{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
                     </span>
                 </div>
             </div>
