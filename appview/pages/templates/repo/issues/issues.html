@@ -39,7 +39,7 @@
                     <span>#{{ .IssueId }}</span>
                     <span class="before:content-['·']">
                         opened by
-                        {{ .OwnerDid }}
+                        {{ index $.DidHandleMap .OwnerDid }}
                     </span>
                 </div>
             </div>

@@ -545,6 +545,20 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to resolve issue owner", err)
 	}
 
+	identsToResolve := make([]string, len(comments))
+	for i, comment := range comments {
+		identsToResolve[i] = comment.OwnerDid
+	}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
 	s.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
 		LoggedInUser: user,
 		RepoInfo: pages.RepoInfo{
@@ -557,6 +571,7 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		Comments: comments,
 
 		IssueOwnerHandle: issueOwnerIdent.Handle.String(),
+		DidHandleMap:     didHandleMap,
 	})
 
 }
@@ -747,6 +762,20 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	identsToResolve := make([]string, len(issues))
+	for i, issue := range issues {
+		identsToResolve[i] = issue.OwnerDid
+	}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
 	s.pages.RepoIssues(w, pages.RepoIssuesParams{
 		LoggedInUser: s.auth.GetUser(r),
 		RepoInfo: pages.RepoInfo{
@@ -755,7 +784,8 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 			Name:            f.RepoName,
 			SettingsAllowed: settingsAllowed(s, user, f),
 		},
-		Issues: issues,
+		Issues:       issues,
+		DidHandleMap: didHandleMap,
 	})
 	return
 }

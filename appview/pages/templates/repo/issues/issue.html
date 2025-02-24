@@ -54,7 +54,7 @@
             >
                 <div class="flex items-center gap-2 mb-2">
                     <span class="text-gray-400 text-sm">
-                        {{ .OwnerDid }}
+                        {{ index $.DidHandleMap .OwnerDid }}
                     </span>
                     <span class="text-gray-500 text-sm">
                         {{ .Created | timeFmt }}

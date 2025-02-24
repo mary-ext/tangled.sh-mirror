@@ -439,6 +439,7 @@ type RepoIssuesParams struct {
 	RepoInfo     RepoInfo
 	Active       string
 	Issues       []db.Issue
+	DidHandleMap map[string]string
 }
 
 func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {
@@ -453,6 +454,7 @@ type RepoSingleIssueParams struct {
 	Issue            db.Issue
 	Comments         []db.Comment
 	IssueOwnerHandle string
+	DidHandleMap     map[string]string
 
 	State string
 }
