@@ -29,7 +29,7 @@ func (h *Handle) processPublicKey(ctx context.Context, did string, record tangle
 	return nil
 }
 
-func (h *Handle) processKnotMember(ctx context.Context, did string, record tangled.KnotMember, eventTime int64) error {
+func (h *Handle) processKnotMember(ctx context.Context, did string, record tangled.KnotMember) error {
 	l := log.FromContext(ctx)
 
 	if record.Domain != h.c.Server.Hostname {
@@ -58,12 +58,6 @@ func (h *Handle) processKnotMember(ctx context.Context, did string, record tangl
 		return fmt.Errorf("failed to fetch and add keys: %w", err)
 	}
 
-	lastTimeUs := eventTime + 1
-	fmt.Println("lastTimeUs", lastTimeUs)
-	if err := h.db.UpdateLastTimeUs(lastTimeUs); err != nil {
-		return fmt.Errorf("failed to save last time us: %w", err)
-	}
-	h.jc.UpdateDids([]string{did})
 	return nil
 }
 
@@ -116,6 +110,17 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		return nil
 	}
 
+	var err error
+	defer func() {
+		eventTime := event.TimeUS
+		lastTimeUs := eventTime + 1
+		fmt.Println("lastTimeUs", lastTimeUs)
+		if err := h.db.UpdateLastTimeUs(lastTimeUs); err != nil {
+			err = fmt.Errorf("(deferred) failed to save last time us: %w", err)
+		}
+		h.jc.UpdateDids([]string{did})
+	}()
+
 	raw := json.RawMessage(event.Commit.Record)
 
 	switch event.Commit.Collection {
@@ -133,10 +138,10 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		if err := json.Unmarshal(raw, &record); err != nil {
 			return fmt.Errorf("failed to unmarshal record: %w", err)
 		}
-		if err := h.processKnotMember(ctx, did, record, event.TimeUS); err != nil {
+		if err := h.processKnotMember(ctx, did, record); err != nil {
 			return fmt.Errorf("failed to process knot member: %w", err)
 		}
 	}
 
-	return nil
+	return err
 }

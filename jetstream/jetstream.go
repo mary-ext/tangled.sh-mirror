@@ -141,9 +141,9 @@ func (j *JetstreamClient) getLastTimeUs(ctx context.Context) *int64 {
 	}
 
 	// If last time is older than a week, start from now
-	if time.Now().UnixMicro()-lastTimeUs > 7*24*60*60*1000*1000 {
+	if time.Now().UnixMicro()-lastTimeUs > 2*24*60*60*1000*1000 {
 		lastTimeUs = time.Now().UnixMicro()
-		l.Warn("last time us is older than a week. discarding that and starting from now")
+		l.Warn("last time us is older than 2 days; discarding that and starting from now")
 		err = j.db.UpdateLastTimeUs(lastTimeUs)
 		if err != nil {
 			l.Error("failed to save last time us", "error", err)
