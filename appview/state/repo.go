@@ -83,8 +83,16 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	page := 1
+	if r.URL.Query().Get("page") != "" {
+		page, err = strconv.Atoi(r.URL.Query().Get("page"))
+		if err != nil {
+			page = 1
+		}
+	}
+
 	ref := chi.URLParam(r, "ref")
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/log/%s", f.Knot, f.OwnerDid(), f.RepoName, ref))
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/log/%s?page=%d&per_page=30", f.Knot, f.OwnerDid(), f.RepoName, ref, page))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
