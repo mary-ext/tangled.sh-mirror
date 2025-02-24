@@ -572,7 +572,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 	issue, err := s.db.GetIssue(f.RepoAt, issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue", err)
-		s.pages.Notice(w, "issues", "Failed to close issue. Try again later.")
+		s.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
 		return
 	}
 
@@ -596,14 +596,14 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			log.Println("failed to update issue state", err)
-			s.pages.Notice(w, "issues", "Failed to close issue. Try again later.")
+			s.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
 			return
 		}
 
 		err := s.db.CloseIssue(f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to close issue", err)
-			s.pages.Notice(w, "issues", "Failed to close issue. Try again later.")
+			s.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
 			return
 		}
 
@@ -636,7 +636,7 @@ func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		err := s.db.ReopenIssue(f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to reopen issue", err)
-			s.pages.Notice(w, "issues", "Failed to reopen issue. Try again later.")
+			s.pages.Notice(w, "issue-action", "Failed to reopen issue. Try again later.")
 			return
 		}
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueIdInt))

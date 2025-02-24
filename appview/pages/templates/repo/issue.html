@@ -93,6 +93,7 @@
         {{ end }}
         <form
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/{{ $action }}"
+            hx-swap="none"
             class="mt-8"
         >
             <button type="submit" class="btn hover:bg-{{ $hoverColor }}-300">
@@ -102,6 +103,7 @@
                 ></i>
                 <span class="text-black">{{ $action }}</span>
             </button>
+            <div id="issue-action" class="error"></div>
         </form>
     {{ end }}
 {{ end }}

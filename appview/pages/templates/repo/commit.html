@@ -11,26 +11,32 @@
   <div id="commit-message">
     {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
     <div>
-      {{ index $messageParts 0 }}
+      <p class="pb-2">{{ index $messageParts 0 }}</p>
       {{ if gt (len $messageParts) 1 }}
-      <p class="mt-1 cursor-text pb-2">{{ nl2br (unwrapText (index $messageParts 1)) }}</p>
+      <p class="mt-1 cursor-text pb-2 text-sm">{{ nl2br (unwrapText (index $messageParts 1)) }}</p>
       {{ end }}
     </div>
   </div>
 
-  <p class="text-sm text-gray-500">
-    <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">{{ $commit.Author.Name }}</a>
-    <span class="px-1 select-none before:content-['\00B7']"></span>
-    {{ timeFmt $commit.Author.When }}
-    <span class="px-1 select-none before:content-['\00B7']"></span>
-    <span class="font-mono">{{ $stat.FilesChanged }}</span> files <span class="font-mono">(+{{ $stat.Insertions }}, -{{ $stat.Deletions }})</span>
-    <span class="px-1 select-none before:content-['\00B7']"></span>
-    <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.This 0 8 }}</a>
-    {{ if $commit.Parent }}
-    <span class="select-none">&LeftArrow;</span>
-      <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.Parent 0 8 }}</a>
-    {{ end }}
-  </p>
+  <div class="flex items-center">
+      <p class="text-sm text-gray-500">
+          <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">{{ $commit.Author.Name }}</a>
+          <span class="px-1 select-none before:content-['\00B7']"></span>
+          {{ timeFmt $commit.Author.When }}
+          <span class="px-1 select-none before:content-['\00B7']"></span>
+          <span class="font-mono">{{ $stat.FilesChanged }}</span> files <span class="font-mono">(+{{ $stat.Insertions }}, -{{ $stat.Deletions }})</span>
+          <span class="px-1 select-none before:content-['\00B7']"></span>
+      </p>
+
+      <p class="flex items-center text-sm text-gray-500">
+          <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.This 0 8 }}</a>
+          {{ if $commit.Parent }}
+          <i class="w-3 h-3 mx-1" data-lucide="arrow-left"></i>
+          <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.Parent 0 8 }}</a>
+          {{ end }}
+      </p>
+  </div>
+  
   <div class="diff-stat">
     <br>
     <strong>jump to</strong>

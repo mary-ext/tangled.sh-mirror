@@ -95,7 +95,7 @@ func (d *DB) GetIssueOwnerDid(repoAt string, issueId int) (string, error) {
 func (d *DB) GetIssues(repoAt string) ([]Issue, error) {
 	var issues []Issue
 
-	rows, err := d.db.Query(`select owner_did, issue_id, created, title, body, open from issues where repo_at = ?`, repoAt)
+	rows, err := d.db.Query(`select owner_did, issue_id, created, title, body, open from issues where repo_at = ? order by created desc`, repoAt)
 	if err != nil {
 		return nil, err
 	}
