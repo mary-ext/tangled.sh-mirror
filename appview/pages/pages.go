@@ -293,9 +293,11 @@ type RepoLogParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
 	types.RepoLogResponse
+	Active string
 }
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
+	params.Active = "overview"
 	return p.execute("repo/log", w, params)
 }
 

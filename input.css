@@ -3,62 +3,67 @@
 @tailwind utilities;
 @layer base {
     @font-face {
-      font-family: 'iA Writer Quattro S';
-      src: url('/static/fonts/iAWriterQuattroS-Regular.ttf') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-      font-feature-settings: "calt" 1, "kern" 1;
+        font-family: "iA Writer Quattro S";
+        src: url("/static/fonts/iAWriterQuattroS-Regular.ttf")
+            format("truetype");
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+        font-feature-settings:
+            "calt" 1,
+            "kern" 1;
     }
     @font-face {
-      font-family: 'iA Writer Quattro S';
-      src: url('/static/fonts/iAWriterQuattroS-Bold.ttf') format('truetype');
-      font-weight: bold;
-      font-style: normal;
-      font-display: swap;
+        font-family: "iA Writer Quattro S";
+        src: url("/static/fonts/iAWriterQuattroS-Bold.ttf") format("truetype");
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
     }
     @font-face {
-      font-family: 'iA Writer Quattro S';
-      src: url('/static/fonts/iAWriterQuattroS-Italic.ttf') format('truetype');
-      font-weight: normal;
-      font-style: italic;
-      font-display: swap;
+        font-family: "iA Writer Quattro S";
+        src: url("/static/fonts/iAWriterQuattroS-Italic.ttf") format("truetype");
+        font-weight: normal;
+        font-style: italic;
+        font-display: swap;
     }
     @font-face {
-      font-family: 'iA Writer Quattro S';
-      src: url('/static/fonts/iAWriterQuattroS-BoldItalic.ttf') format('truetype');
-      font-weight: bold;
-      font-style: italic;
-      font-display: swap;
+        font-family: "iA Writer Quattro S";
+        src: url("/static/fonts/iAWriterQuattroS-BoldItalic.ttf")
+            format("truetype");
+        font-weight: bold;
+        font-style: italic;
+        font-display: swap;
     }
 
     @font-face {
-      font-family: 'iA Writer Mono S';
-      src: url('/static/fonts/iAWriterMonoS-Regular.ttf') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
+        font-family: "iA Writer Mono S";
+        src: url("/static/fonts/iAWriterMonoS-Regular.ttf") format("truetype");
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
     }
     @font-face {
-      font-family: 'iA Writer Mono S';
-      src: url('/static/fonts/iAWriterMonoS-Bold.ttf') format('truetype');
-      font-weight: bold;
-      font-style: normal;
-      font-display: swap;
+        font-family: "iA Writer Mono S";
+        src: url("/static/fonts/iAWriterMonoS-Bold.ttf") format("truetype");
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
     }
     @font-face {
-      font-family: 'iA Writer Mono S';
-      src: url('/static/fonts/iAWriterMonoS-Italic.ttf') format('truetype');
-      font-weight: normal;
-      font-style: italic;
-      font-display: swap;
+        font-family: "iA Writer Mono S";
+        src: url("/static/fonts/iAWriterMonoS-Italic.ttf") format("truetype");
+        font-weight: normal;
+        font-style: italic;
+        font-display: swap;
     }
     @font-face {
-      font-family: 'iA Writer Mono S';
-      src: url('/static/fonts/iAWriterMonoS-BoldItalic.ttf') format('truetype');
-      font-weight: bold;
-      font-style: italic;
-      font-display: swap;
+        font-family: "iA Writer Mono S";
+        src: url("/static/fonts/iAWriterMonoS-BoldItalic.ttf")
+            format("truetype");
+        font-weight: bold;
+        font-style: italic;
+        font-display: swap;
     }
 
     @font-face {
@@ -81,8 +86,8 @@
     }
 
     html {
-      letter-spacing: -0.01em;
-      word-spacing: -0.07em;
+        letter-spacing: -0.01em;
+        word-spacing: -0.07em;
     }
 
     a {
@@ -106,22 +111,22 @@
             @apply relative z-10 inline-flex min-h-[30px] cursor-pointer items-center
             justify-center bg-transparent px-2 pb-[0.2rem] text-base
             text-gray-900 before:absolute before:inset-0 before:-z-10
-            before:block before:rounded-sm before:border before:border-blue-200
-            before:bg-white before:shadow-[0_2px_2px_0_rgba(20,20,96,0.1),inset_0_-2px_0_0_#e5edff]
-            before:content-[''] hover:before:border-blue-300
-            hover:before:bg-blue-50
-            hover:before:shadow-[0_2px_2px_0_rgba(20,20,96,0.1),inset_0_-2px_0_0_#e5edff]
+            before:block before:rounded-sm before:border before:border-gray-200
+            before:bg-white before:shadow-[0_2px_2px_0_rgba(20,20,96,0.1),inset_0_-2px_0_0_#f5f5f5]
+            before:content-[''] hover:before:border-gray-300
+            hover:before:bg-gray-50
+            hover:before:shadow-[0_2px_2px_0_rgba(20,20,96,0.1),inset_0_-2px_0_0_#f5f5f5]
             focus:outline-none focus-visible:before:outline
-            focus-visible:before:outline-4 focus-visible:before:outline-blue-500
+            focus-visible:before:outline-4 focus-visible:before:outline-gray-500
             active:before:shadow-[inset_0_2px_2px_0_rgba(20,20,96,0.1)];
         }
     }
     @layer utilities {
         .error {
-            @apply py-1 border-black text-black;
+            @apply py-1 text-red-400;
         }
         .success {
-            @apply py-1 border-black text-black;
+            @apply py-1 text-black;
         }
     }
 }

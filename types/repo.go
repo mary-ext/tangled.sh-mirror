@@ -7,14 +7,15 @@ import (
 )
 
 type RepoIndexResponse struct {
-	IsEmpty     bool             `json:"is_empty"`
-	Ref         string           `json:"ref,omitempty"`
-	Readme      template.HTML    `json:"readme,omitempty"`
-	Commits     []*object.Commit `json:"commits,omitempty"`
-	Description string           `json:"description,omitempty"`
-	Files       []NiceTree       `json:"files,omitempty"`
-	Branches    []Branch         `json:"branches,omitempty"`
-	Tags        []*TagReference  `json:"tags,omitempty"`
+	IsEmpty      bool             `json:"is_empty"`
+	Ref          string           `json:"ref,omitempty"`
+	Readme       template.HTML    `json:"readme,omitempty"`
+	Commits      []*object.Commit `json:"commits,omitempty"`
+	Description  string           `json:"description,omitempty"`
+	Files        []NiceTree       `json:"files,omitempty"`
+	Branches     []Branch         `json:"branches,omitempty"`
+	Tags         []*TagReference  `json:"tags,omitempty"`
+	TotalCommits int              `json:"total_commits,omitempty"`
 }
 
 type RepoLogResponse struct {

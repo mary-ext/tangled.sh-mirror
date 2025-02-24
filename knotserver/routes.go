@@ -51,6 +51,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	commits, err := gr.Commits()
+	total := len(commits)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		l.Error("fetching commits", "error", err.Error())
@@ -144,14 +145,15 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := types.RepoIndexResponse{
-		IsEmpty:     false,
-		Ref:         ref,
-		Commits:     commits,
-		Description: getDescription(path),
-		Readme:      readmeContent,
-		Files:       files,
-		Branches:    bs,
-		Tags:        rtags,
+		IsEmpty:      false,
+		Ref:          ref,
+		Commits:      commits,
+		Description:  getDescription(path),
+		Readme:       readmeContent,
+		Files:        files,
+		Branches:     bs,
+		Tags:         rtags,
+		TotalCommits: total,
 	}
 
 	writeJSON(w, resp)

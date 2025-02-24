@@ -1,6 +1,6 @@
 {{ define "layouts/topbar" }}
   {{ $linkstyle := "text-gray-400 hover:text-gray-900 no-underline" }}
-  <nav class="space-x-4 mb-4 py-2 border-b border-black">
+  <nav class="space-x-4 mb-4 py-2 border-b border-gray-200">
     <div class="container flex justify-between p-0">
       <div id="left-items">
         <a href="/" hx-boost="true" class="{{ $linkstyle }} flex gap-2">
@@ -17,7 +17,7 @@
           <summary class="{{ $linkstyle }} cursor-pointer list-none">
             {{ didOrHandle .Did .Handle }}
           </summary>
-          <div class="absolute flex flex-col right-0 mt-4 p-2 w-48 bg-white border border-black z-50">
+          <div class="absolute flex flex-col right-0 mt-4 p-2 w-48 bg-white border border-gray-200 z-50">
             <a href="/{{ didOrHandle .Did .Handle }}"class="{{ $linkstyle }}">profile</a>
             <a href="/knots"class="{{ $linkstyle }}">knots</a>
             <a href="/settings"class="{{ $linkstyle }}">settings</a>

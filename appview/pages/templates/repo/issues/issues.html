@@ -1,8 +1,8 @@
-{{ define "title" }}issues | {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}Issues &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
     <div class="flex justify-between items-center">
-        <h1 class="m-0">issues</h1>
+        <h1 class="m-0">Issues</h1>
         <div class="error" id="issues"></div>
         <a
             href="/{{ .RepoInfo.FullName }}/issues/new"
@@ -15,7 +15,7 @@
 
     <section id="issues" class="mt-8 space-y-4">
         {{ range .Issues }}
-            <div class="border border-gray-200 p-4">
+            <div class="border border-gray-200 p-4 mx-4 hover:bg-gray-50">
                 <time class="float-right text-sm">
                     {{ .Created | timeFmt }}
                 </time>

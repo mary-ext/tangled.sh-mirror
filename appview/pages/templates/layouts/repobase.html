@@ -3,46 +3,57 @@
 {{ define "content" }}
     <section id="repo-header" class="mb-4">
         <p class="text-xl">
-          <a href="/{{ .RepoInfo.OwnerWithAt }}" class="no-underline hover:underline">{{ .RepoInfo.OwnerWithAt }}</a>
-          /
-          <a href="/{{ .RepoInfo.FullName }}" class="no-underline hover:underline">{{ .RepoInfo.Name }}</a>
+            <a
+                href="/{{ .RepoInfo.OwnerWithAt }}"
+                class="no-underline hover:underline"
+                >{{ .RepoInfo.OwnerWithAt }}</a
+            >
+            /
+            <a
+                href="/{{ .RepoInfo.FullName }}"
+                class="no-underline hover:underline"
+                >{{ .RepoInfo.Name }}</a
+            >
         </p>
         <span>
-          {{ if .RepoInfo.Description }}
-            {{ .RepoInfo.Description }}
-          {{ else }}
-          <span class="italic">this repo has no description</span>
-          {{ end }}
+            {{ if .RepoInfo.Description }}
+                {{ .RepoInfo.Description }}
+            {{ else }}
+                <span class="italic">this repo has no description</span>
+            {{ end }}
         </span>
     </section>
     <section id="repo-links" class="min-h-screen flex flex-col">
-      <nav class="w-full mx-auto">
-        <div class="flex z-60 border-black border-b">
-          {{ $activeTabStyles := "border-black border-l border-r border-t border-b-0 -mb-px bg-white" }}
-          {{ $tabs := .RepoInfo.GetTabs }}
-          {{ range $item := $tabs }}
-            {{ $key := index $item 0 }}
-            {{ $value := index $item 1 }}
-            <a
-              href="/{{ $.RepoInfo.FullName }}{{ $value }}"
-              class="relative -mr-px group no-underline"
-              hx-boost="true"
-            >
-              <div
-                  class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200
-                         {{ if eq $.Active $key }}{{ $activeTabStyles }}{{ end }}"
-                  >
-                  {{ $key }}
-              </div>
-            </a>
-            {{ end}}
-        </div>
-      </nav>
-      <section
-          class="bg-white p-6 min-h-[200px] border-l border-r border-b border-black relative z-20 w-full mx-auto">
-          {{ block "repoContent" . }}{{ end }}
-      </section>
-      {{ block "repoAfter" . }} {{ end }}
+        <nav class="w-full mx-auto">
+            <div class="flex z-60 border-gray-200 border-b">
+                {{ $activeTabStyles := "border-gray-200 border-l border-r border-t border-b-0 -mb-px bg-white" }}
+                {{ $tabs := .RepoInfo.GetTabs }}
+                {{ range $item := $tabs }}
+                    {{ $key := index $item 0 }}
+                    {{ $value := index $item 1 }}
+                    <a
+                        href="/{{ $.RepoInfo.FullName }}{{ $value }}"
+                        class="relative -mr-px group no-underline"
+                        hx-boost="true"
+                    >
+                        <div
+                            class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200
+                         {{ if eq $.Active $key }}
+                                {{ $activeTabStyles }}
+                            {{ end }}"
+                        >
+                            {{ $key }}
+                        </div>
+                    </a>
+                {{ end }}
+            </div>
+        </nav>
+        <section
+            class="bg-white p-6 min-h-[200px] border-l border-r border-b border-gray-200 relative z-20 w-full mx-auto"
+        >
+            {{ block "repoContent" . }}{{ end }}
+        </section>
+        {{ block "repoAfter" . }}{{ end }}
     </section>
 {{ end }}
 

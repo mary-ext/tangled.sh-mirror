@@ -83,8 +83,16 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	page := 1
+	if r.URL.Query().Get("page") != "" {
+		page, err = strconv.Atoi(r.URL.Query().Get("page"))
+		if err != nil {
+			page = 1
+		}
+	}
+
 	ref := chi.URLParam(r, "ref")
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/log/%s", f.Knot, f.OwnerDid(), f.RepoName, ref))
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/log/%s?page=%d&per_page=30", f.Knot, f.OwnerDid(), f.RepoName, ref, page))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -92,12 +100,12 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		log.Printf("error reading response body: %v", err)
 		return
 	}
 
-	var result types.RepoLogResponse
-	err = json.Unmarshal(body, &result)
+	var repolog types.RepoLogResponse
+	err = json.Unmarshal(body, &repolog)
 	if err != nil {
 		log.Println("failed to parse json response", err)
 		return
@@ -112,7 +120,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 			Name:            f.RepoName,
 			SettingsAllowed: settingsAllowed(s, user, f),
 		},
-		RepoLogResponse: result,
+		RepoLogResponse: repolog,
 	})
 	return
 }

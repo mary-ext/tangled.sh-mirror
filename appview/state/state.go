@@ -793,7 +793,7 @@ func (s *State) UserRouter() http.Handler {
 		r.Get("/", s.ProfilePage)
 		r.With(ResolveRepoKnot(s)).Route("/{repo}", func(r chi.Router) {
 			r.Get("/", s.RepoIndex)
-			r.Get("/log/{ref}", s.RepoLog)
+			r.Get("/commits/{ref}", s.RepoLog)
 			r.Route("/tree/{ref}", func(r chi.Router) {
 				r.Get("/", s.RepoIndex)
 				r.Get("/*", s.RepoTree)

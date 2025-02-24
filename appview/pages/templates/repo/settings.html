@@ -1,19 +1,23 @@
+{{ define "title" }}Settings &middot; {{ .RepoInfo.FullName }}{{ end }}
 {{ define "repoContent" }}
     <header class="font-bold text-sm mb-4">COLLABORATORS</header>
 
     <div id="collaborator-list" class="flex flex-col gap-2 mb-2">
-      {{ range .Collaborators }}
-      <div id="collaborator" class="mb-2">
-        <a href="/{{ didOrHandle .Did .Handle }}" class="no-underline hover:underline text-black">
-          {{ didOrHandle .Did .Handle }}
-        </a>
-        <div>
-          <span class="text-sm text-gray-500">
-            {{ .Role }}
-          </span>
-        </div>
-      </div>
-      {{ end }}
+        {{ range .Collaborators }}
+            <div id="collaborator" class="mb-2">
+                <a
+                    href="/{{ didOrHandle .Did .Handle }}"
+                    class="no-underline hover:underline text-black"
+                >
+                    {{ didOrHandle .Did .Handle }}
+                </a>
+                <div>
+                    <span class="text-sm text-gray-500">
+                        {{ .Role }}
+                    </span>
+                </div>
+            </div>
+        {{ end }}
     </div>
 
     {{ if .IsCollaboratorInviteAllowed }}
