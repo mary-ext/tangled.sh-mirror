@@ -115,6 +115,8 @@ func (j *JetstreamClient) connectAndRead(ctx context.Context) {
 
 		if err := j.client.ConnectAndRead(connCtx, cursor); err != nil {
 			l.Error("error reading jetstream", "error", err)
+			cancel()
+			continue
 		}
 
 		select {
