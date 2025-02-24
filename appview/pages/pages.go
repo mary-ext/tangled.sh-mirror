@@ -441,7 +441,7 @@ type RepoIssuesParams struct {
 
 func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {
 	params.Active = "issues"
-	return p.executeRepo("repo/issues", w, params)
+	return p.executeRepo("repo/issues/issues", w, params)
 }
 
 type RepoSingleIssueParams struct {
@@ -462,7 +462,7 @@ func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error
 	} else {
 		params.State = "closed"
 	}
-	return p.execute("repo/issue", w, params)
+	return p.execute("repo/issues/issue", w, params)
 }
 
 type RepoNewIssueParams struct {
@@ -473,7 +473,7 @@ type RepoNewIssueParams struct {
 
 func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 	params.Active = "issues"
-	return p.executeRepo("repo/new-issue", w, params)
+	return p.executeRepo("repo/issues/new", w, params)
 }
 
 func (p *Pages) Static() http.Handler {
