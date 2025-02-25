@@ -1,8 +1,7 @@
-{{ define "title" }}Issues &middot; {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}issues &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
     <div class="flex justify-between items-center">
-        <h1 class="m-0">Issues</h1>
         <div class="error" id="issues"></div>
         <a
             href="/{{ .RepoInfo.FullName }}/issues/new"
@@ -40,7 +39,11 @@
                     <span class="before:content-['·']">
                         opened by
                         {{ $owner := index $.DidHandleMap .OwnerDid }}
-                        <a href="{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
+                        <a
+                            href="{{ $owner }}"
+                            class="no-underline hover:underline"
+                            >{{ $owner }}</a
+                        >
                     </span>
                 </div>
             </div>

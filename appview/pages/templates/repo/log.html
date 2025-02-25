@@ -1,8 +1,7 @@
-{{ define "title" }}Commits &middot; {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}commits &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
 
-    <h1>Commits</h1>
     <main>
         <div id="commit-log" class="flex-1">
             {{ range .Commits }}

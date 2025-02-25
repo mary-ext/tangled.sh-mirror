@@ -1,3 +1,5 @@
+{{ define "title" }}{{ .Path }} at {{ .Ref }} &middot; {{ .RepoInfo.FullName }}{{ end }}
+
 {{ define "repoContent" }}
     {{ $lines := split .Contents }}
     {{ $tot_lines := len $lines }}

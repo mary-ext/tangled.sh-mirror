@@ -21,7 +21,7 @@
     {{ end }}
 
 
-    <section class="m-2">
+    <section>
         <div class="flex items-center gap-2">
             <div
                 id="state"
@@ -36,31 +36,48 @@
             <span class="text-gray-400 text-sm">
                 opened by
                 {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
-                <a href="/{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
+                <a href="/{{ $owner }}" class="no-underline hover:underline"
+                    >{{ $owner }}</a
+                >
             </span>
         </div>
 
         {{ if .Issue.Body }}
-            <article id="body" class="mt-8">
+            <article id="body" class="mt-8 border border-gray-300 px-4 py-6">
                 {{ .Issue.Body | escapeHtml }}
             </article>
         {{ end }}
     </section>
 
-    <section id="comments" class="mt-8 space-y-4">
-        {{ range .Comments }}
+    <hr class="my-10" />
+
+    <section id="comments" class="mt-8 space-y-4 relative">
+        {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
-                class="border border-gray-200 p-4"
+                class="border border-gray-200 p-4 relative"
             >
+                {{ if ne $index 0 }}
+                    <div
+                        class="absolute left-8 -top-4 w-px h-4 bg-gray-200"
+                    ></div>
+                {{ end }}
                 <div class="flex items-center gap-2 mb-2">
                     {{ $owner := index $.DidHandleMap .OwnerDid }}
                     <span class="text-gray-400 text-sm">
-                      <a href="{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
+                        <a
+                            href="{{ $owner }}"
+                            class="no-underline hover:underline"
+                            >{{ $owner }}</a
+                        >
                     </span>
-                    <span class="text-gray-500 text-sm">
+                    <a
+                        href="#{{ .CommentId }}"
+                        class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline"
+                        id="{{ .CommentId }}"
+                    >
                         {{ .Created | timeFmt }}
-                    </span>
+                    </a>
                 </div>
                 <div class="">
                     {{ nl2br .Body }}

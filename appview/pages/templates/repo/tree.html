@@ -1,3 +1,5 @@
+{{ define "title"}}{{ range .BreadCrumbs }}{{ index . 0}}/{{ end }} at {{ .Ref }} &middot; {{ .RepoInfo.FullName }}{{ end }}
+
 {{define "repoContent"}}
 <main>
   <div class="tree">
