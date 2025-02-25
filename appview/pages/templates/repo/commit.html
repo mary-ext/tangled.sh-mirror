@@ -39,15 +39,18 @@
   
   <div class="diff-stat">
     <br>
-    <strong>jump to</strong>
+    <strong class="text-sm uppercase">Affected files</strong>
     {{ range $diff }}
     <ul>
+      {{ if .Name.New }}
       <li><a href="#file-{{ .Name.New }}">{{ .Name.New }}</a></li>
+      {{ else }}
+      <li><a href="#file-{{ .Name.Old }}">{{ .Name.Old }}</a></li>
+      {{ end }}
     </ul>
-    {{ end }}
   </div>
 </section>
-
+{{end}}
 {{end}}
 
 {{ define "repoAfter" }}
@@ -80,7 +83,11 @@
                 <span class="diff-type p-1 mr-1 font-mono bg-gray-100 text-sm rounded text-gray-700 select-none">M</span>
                 {{ end }}
 
-                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}" class="no-underline hover:underline">{{ .Name.New }}</a>
+                {{ $name := .Name.New}}
+                {{ if .IsDelete }}
+                {{ $name = .Name.Old }}
+                {{ end }}
+                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}" class="no-underline hover:underline">{{ $name }}</a>
               </div>
 
               {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 rounded" }}
@@ -99,30 +106,35 @@
 
             </div>
           </summary>
+          
+          
+        {{ if .IsDelete }}
+            <p class="text-center p-4 text-gray-400">This file as been deleted.</p>
+        {{ else }}
+            {{ if .IsBinary }}
+                <p class="text-center p-4 text-gray-400">Not showing binary file.</p>
+            {{ else }}
+                <pre class="overflow-auto">
+                {{- range .TextFragments -}}
+                <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
+                {{- range .Lines -}}
+                    {{- if eq .Op.String "+" -}}
+                    <div class="bg-green-100 text-green-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    {{- end -}}
 
-          {{ if .IsBinary }}
-            <p>Not showing binary file.</p>
-          {{ else }}
-            <pre class="overflow-auto">
-            {{- range .TextFragments -}}
-              <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
-              {{- range .Lines -}}
-                  {{- if eq .Op.String "+" -}}
-                  <div class="bg-green-100 text-green-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                  {{- end -}}
+                    {{- if eq .Op.String "-" -}}
+                    <div class="bg-red-100 text-red-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    {{- end -}}
 
-                  {{- if eq .Op.String "-" -}}
-                  <div class="bg-red-100 text-red-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                  {{- end -}}
+                    {{- if eq .Op.String " " -}}
+                    <div class="text-gray-500 px"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    {{- end -}}
 
-                  {{- if eq .Op.String " " -}}
-                  <div class="text-gray-500 px"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                  {{- end -}}
-
-              {{- end -}}
+                {{- end -}}
+                {{- end -}}
+                </pre>
             {{- end -}}
-            </pre>
-          {{- end -}}
+        {{- end -}}
 
         </details>
 

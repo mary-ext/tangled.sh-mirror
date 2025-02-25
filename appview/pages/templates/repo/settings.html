@@ -1,6 +1,6 @@
 {{ define "title" }}settings &middot; {{ .RepoInfo.FullName }}{{ end }}
 {{ define "repoContent" }}
-    <header class="font-bold text-sm mb-4">COLLABORATORS</header>
+    <header class="font-bold text-sm mb-4 uppercase">Collaborators</header>
 
     <div id="collaborator-list" class="flex flex-col gap-2 mb-2">
         {{ range .Collaborators }}
