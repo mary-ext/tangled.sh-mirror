@@ -11,15 +11,15 @@
             <link href="/static/tw.css" rel="stylesheet" type="text/css" />
             <title>{{ block "title" . }}tangled{{ end }}</title>
         </head>
-        <body class="bg-slate-100 min-h-screen flex flex-col justify-between">
-          <div class="container mx-auto px-1 pt-4">
+        <body class="bg-slate-100">
+          <div class="container mx-auto px-1 pt-4  min-h-screen flex flex-col">
             <header>
               {{ block "topbar" . }}
               {{ template "layouts/topbar" . }}
               {{ end }}
             </header>
-            <main class="content">{{ block "content" . }}{{ end }}</main>
-            <footer class="mt-16 ">
+            <main class="content grow">{{ block "content" . }}{{ end }}</main>
+            <footer class="mt-16">
                 {{ block "footer" . }}
                     {{ template "layouts/footer" . }}
                 {{ end }}
