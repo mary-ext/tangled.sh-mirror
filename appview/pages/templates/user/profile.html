@@ -31,7 +31,7 @@
         {{ range .Repos }}
             <div
                 id="repo-card"
-                class="border border-black p-4 shadow-sm bg-white"
+                class="p-4 drop-shadow-sm rounded bg-white"
             >
                 <div id="repo-card-name" class="font-medium">
                     <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
@@ -54,7 +54,7 @@
         {{ range .CollaboratingRepos }}
             <div
                 id="repo-card"
-                class="border border-black p-4 shadow-sm bg-white"
+                class="p-4 drop-shadow-sm rounded bg-white"
             >
                 <div id="repo-card-name" class="font-medium">
                     <a href="/{{ .Did }}/{{ .Name }}">

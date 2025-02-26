@@ -67,7 +67,7 @@
   {{ $last := sub (len $diff) 1 }}
   {{ range $idx, $hunk := $diff }}
   {{ with $hunk }}
-  <section class="mt-6 border border-gray-200 w-full mx-auto rounded bg-white">
+  <section class="mt-6 border border-gray-200 w-full mx-auto rounded bg-white drop-shadow-sm">
     <div id="file-{{ .Name.New }}">
       <div id="diff-file">
         <details open>
@@ -108,37 +108,39 @@
             </div>
           </summary>
 
-          {{ if .IsDelete }}
-          <p class="text-center text-gray-400 p-4">
-              This file has been deleted in this commit.
-          </p>
-          {{ else }}
-          {{ if .IsBinary }}
+          <div class="transition-all duration-700 ease-in-out">
+            {{ if .IsDelete }}
             <p class="text-center text-gray-400 p-4">
-                This is a binary file and will not be displayed.
+            This file has been deleted in this commit.
             </p>
-          {{ else }}
+            {{ else }}
+            {{ if .IsBinary }}
+            <p class="text-center text-gray-400 p-4">
+            This is a binary file and will not be displayed.
+            </p>
+            {{ else }}
             <pre class="overflow-auto">
-            {{- range .TextFragments -}}
-              <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
-              {{- range .Lines -}}
-                  {{- if eq .Op.String "+" -}}
-                  <div class="bg-green-100 text-green-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                  {{- end -}}
+              {{- range .TextFragments -}}
+                <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
+                {{- range .Lines -}}
+                    {{- if eq .Op.String "+" -}}
+                    <div class="bg-green-100 text-green-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    {{- end -}}
 
-                  {{- if eq .Op.String "-" -}}
-                  <div class="bg-red-100 text-red-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                  {{- end -}}
+                    {{- if eq .Op.String "-" -}}
+                    <div class="bg-red-100 text-red-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    {{- end -}}
 
-                  {{- if eq .Op.String " " -}}
-                  <div class="bg-white text-gray-500 px"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                  {{- end -}}
+                    {{- if eq .Op.String " " -}}
+                    <div class="bg-white text-gray-500 px"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    {{- end -}}
 
+                {{- end -}}
               {{- end -}}
-            {{- end -}}
             </pre>
-          {{- end -}}
-          {{ end }}
+            {{- end -}}
+            {{ end }}
+          </div>
 
         </details>
 

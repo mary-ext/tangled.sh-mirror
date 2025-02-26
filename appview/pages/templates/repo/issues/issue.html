@@ -25,7 +25,7 @@
         <div class="flex items-center gap-2">
             <div
                 id="state"
-                class="inline-flex items-center px-3 py-1 {{ $bgColor }}"
+                class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}"
             >
                 <i
                     data-lucide="{{ $icon }}"
@@ -55,7 +55,7 @@
         {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
-                class="rounded-sm bg-white p-4 relative"
+                class="rounded bg-white p-4 relative"
             >
                 {{ if eq $index 0 }}
                     <div
@@ -70,7 +70,7 @@
                     {{ $owner := index $.DidHandleMap .OwnerDid }}
                     <span class="text-gray-400 text-sm">
                         <a
-                            href="{{ $owner }}"
+                            href="/{{ $owner }}"
                             class="no-underline hover:underline"
                             >{{ $owner }}</a
                         >
@@ -97,7 +97,7 @@
         >
             <textarea
                 name="body"
-                class="w-full p-2 border border-gray-200"
+                class="w-full p-2 rounded border border-gray-200"
                 placeholder="Add to the discussion..."
             ></textarea>
             <button type="submit" class="btn mt-2">comment</button>
