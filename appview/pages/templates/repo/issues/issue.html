@@ -43,23 +43,27 @@
         </div>
 
         {{ if .Issue.Body }}
-            <article id="body" class="mt-8 border border-gray-300 px-4 py-6">
+            <article id="body" class="mt-8">
                 {{ .Issue.Body | escapeHtml }}
             </article>
         {{ end }}
     </section>
+{{ end }}
 
-    <hr class="my-10" />
-
+{{ define "repoAfter" }}
     <section id="comments" class="mt-8 space-y-4 relative">
         {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
-                class="border border-gray-200 p-4 relative"
+                class="rounded-sm bg-white p-4 relative"
             >
-                {{ if ne $index 0 }}
+                {{ if eq $index 0 }}
                     <div
-                        class="absolute left-8 -top-4 w-px h-4 bg-gray-200"
+                        class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
+                    ></div>
+                {{ else }}
+                    <div
+                        class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
                     ></div>
                 {{ end }}
                 <div class="flex items-center gap-2 mb-2">

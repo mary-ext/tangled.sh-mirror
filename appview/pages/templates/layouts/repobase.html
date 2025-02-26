@@ -8,7 +8,7 @@
                 class="no-underline hover:underline"
                 >{{ .RepoInfo.OwnerWithAt }}</a
             >
-            /
+            <span class="select-none">/</span>
             <a
                 href="/{{ .RepoInfo.FullName }}"
                 class="no-underline hover:underline"
@@ -33,11 +33,11 @@
                     {{ $value := index $item 1 }}
                     <a
                         href="/{{ $.RepoInfo.FullName }}{{ $value }}"
-                        class="relative -mr-px group no-underline"
+                        class="relative -mr-px group no-underline hover:no-underline"
                         hx-boost="true"
                     >
                         <div
-                            class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200 rounded-t 
+                            class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200 rounded-t
                          {{ if eq $.Active $key }}
                                 {{ $activeTabStyles }}
                             {{ end }}"
