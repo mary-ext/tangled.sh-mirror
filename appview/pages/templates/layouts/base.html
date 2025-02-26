@@ -11,24 +11,24 @@
             <link href="/static/tw.css" rel="stylesheet" type="text/css" />
             <title>{{ block "title" . }}tangled{{ end }}</title>
         </head>
-        <body class="min-h-screen flex flex-col justify-between">
+        <body class="bg-slate-100 min-h-screen flex flex-col justify-between">
+          <div class="container mx-auto px-1 pt-4">
             <header>
-                {{ block "topbar" . }}
-                    {{ template "layouts/topbar" . }}
-                {{ end }}
+              {{ block "topbar" . }}
+              {{ template "layouts/topbar" . }}
+              {{ end }}
             </header>
-            <div class="container mx-auto px-1 flex-grow">
-                <main class="content">{{ block "content" . }}{{ end }}</main>
-                <script src="/static/lucide.min.js"></script>
-                <script>
-                    lucide.createIcons();
-                </script>
-            </div>
+            <main class="content">{{ block "content" . }}{{ end }}</main>
             <footer class="mt-16 ">
                 {{ block "footer" . }}
                     {{ template "layouts/footer" . }}
                 {{ end }}
             </footer>
+            <script src="/static/lucide.min.js"></script>
+            <script>
+              lucide.createIcons();
+            </script>
+          </div>
         </body>
     </html>
 {{ end }}

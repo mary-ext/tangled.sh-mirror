@@ -1,7 +1,11 @@
 {{ define "title" }}commits &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
+    <h1>Commits</h1>
+    <h1>Commits</h1>
+{{ end }}
 
+{{ define "repoAfter" }}
     <main>
         <div id="commit-log" class="flex-1">
             {{ range .Commits }}
@@ -11,7 +15,7 @@
                         data-lucide="git-commit-horizontal"
                     ></i>
                     <div
-                        class="relative w-full px-4 py-4 mt-5 mx-3 hover:bg-gray-50 border border-gray-200"
+                        class="relative w-full px-4 py-4 mt-5 hover:bg-gray-50 border border-gray-200 bg-white"
                     >
                         <div id="commit-message">
                             {{ $messageParts := splitN .Message "\n\n" 2 }}

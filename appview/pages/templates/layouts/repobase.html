@@ -1,7 +1,7 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
-    <section id="repo-header" class="mb-4">
+    <section id="repo-header" class="mb-4 p-2">
         <p class="text-xl">
             <a
                 href="/{{ .RepoInfo.OwnerWithAt }}"
@@ -24,9 +24,9 @@
         </span>
     </section>
     <section id="repo-links" class="min-h-screen flex flex-col">
-        <nav class="w-full mx-auto">
-            <div class="flex z-60 border-gray-200 border-b">
-                {{ $activeTabStyles := "border-gray-200 border-l border-r border-t border-b-0 -mb-px bg-white" }}
+        <nav class="w-full mx-auto ml-4">
+            <div class="flex z-60">
+                {{ $activeTabStyles := "-mb-px bg-white" }}
                 {{ $tabs := .RepoInfo.GetTabs }}
                 {{ range $item := $tabs }}
                     {{ $key := index $item 0 }}
@@ -37,7 +37,7 @@
                         hx-boost="true"
                     >
                         <div
-                            class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200
+                            class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200 rounded-t 
                          {{ if eq $.Active $key }}
                                 {{ $activeTabStyles }}
                             {{ end }}"
@@ -49,7 +49,7 @@
             </div>
         </nav>
         <section
-            class="bg-white p-6 min-h-[200px] border-l border-r border-b border-gray-200 relative z-20 w-full mx-auto"
+            class="bg-white p-6 min-h-[200px] rounded relative z-20 w-full mx-auto"
         >
             {{ block "repoContent" . }}{{ end }}
         </section>

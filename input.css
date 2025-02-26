@@ -91,7 +91,7 @@
     }
 
     a {
-        @apply underline text-black hover:text-gray-800;
+        @apply no-underline text-black hover:underline hover:text-gray-800;
     }
 
     @layer base {

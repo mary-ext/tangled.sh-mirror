@@ -67,12 +67,12 @@
   {{ $last := sub (len $diff) 1 }}
   {{ range $idx, $hunk := $diff }}
   {{ with $hunk }}
-  <section class="mt-4 border border-gray-200 w-full mx-auto">
+  <section class="mt-6 border border-gray-200 w-full mx-auto rounded bg-white">
     <div id="file-{{ .Name.New }}">
       <div id="diff-file">
         <details open>
           <summary class="list-none cursor-pointer sticky top-0">
-            <div id="diff-file-header" class="border-b cursor-pointer bg-white border-gray-200 flex justify-between">
+            <div id="diff-file-header" class="rounded cursor-pointer bg-white flex justify-between">
               <div id="left-side-items" class="p-2">
                 {{ if .IsNew }}
                 <span class="diff-type p-1 mr-1 font-mono text-sm bg-green-100 rounded text-green-700 select-none">A</span>
@@ -123,15 +123,15 @@
               <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
               {{- range .Lines -}}
                   {{- if eq .Op.String "+" -}}
-                  <div class="bg-green-100 text-green-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                  <div class="bg-green-100 text-green-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
                   {{- if eq .Op.String "-" -}}
-                  <div class="bg-red-100 text-red-700 p-1"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                  <div class="bg-red-100 text-red-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
                   {{- if eq .Op.String " " -}}
-                  <div class="text-gray-500 px"><span class="select-none mr-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                  <div class="bg-white text-gray-500 px"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                   {{- end -}}
 
               {{- end -}}
