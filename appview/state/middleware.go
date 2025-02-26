@@ -147,7 +147,6 @@ func StripLeadingAt(next http.Handler) http.Handler {
 func ResolveIdent(s *State) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			start := time.Now()
 			didOrHandle := chi.URLParam(req, "user")
 
 			id, err := s.resolver.ResolveIdent(req.Context(), didOrHandle)
@@ -160,8 +159,6 @@ func ResolveIdent(s *State) Middleware {
 
 			ctx := context.WithValue(req.Context(), "resolvedId", *id)
 
-			elapsed := time.Since(start)
-			log.Println("Execution time:", elapsed)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	}

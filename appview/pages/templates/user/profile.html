@@ -1,7 +1,7 @@
 {{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
 
 {{ define "content" }}
-    <div class="flex ">
+    <div class="flex">
       <h1 class="pb-1">
         {{ didOrHandle .UserDid .UserHandle }}
       </h1>
@@ -26,7 +26,7 @@
       <div class="inline-block px-1 select-none after:content-['·']"></div>
       <span>{{ .ProfileStats.Following }} following</span>
     </div>
-    <p class="text-xs font-bold py-2">REPOS</p>
+    <p class="text-sm font-bold py-2">REPOS</p>
     <div id="repos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {{ range .Repos }}
             <div
@@ -49,7 +49,7 @@
             <p>This user does not have any repos yet.</p>
         {{ end }}
     </div>
-    <p class="text-xs font-bold py-2">COLLABORATING ON</p>
+    <p class="text-sm font-bold py-2">COLLABORATING ON</p>
     <div id="collaborating" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {{ range .CollaboratingRepos }}
             <div

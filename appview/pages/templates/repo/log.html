@@ -41,7 +41,9 @@
     <main>
         <div id="commit-log" class="flex-1 relative">
             <div class="absolute left-8 top-0 bottom-0 w-px bg-gray-300"></div>
-            {{ range .Commits }}
+            {{ $end := length .Commits }}
+            {{ $commits := subslice .Commits 1 $end }}
+            {{ range $commits }}
                 <div class="flex flex-row justify-between items-center">
                     <div
                         class="relative w-full px-4 py-4 mt-5 hover:bg-gray-50 rounded-sm bg-white"
@@ -112,7 +114,7 @@
         <div class="flex justify-end mt-4 gap-2">
             {{ if gt .Page 1 }}
                 <a
-                    class="btn flex items-center gap-2 no-underline"
+                    class="btn flex items-center gap-2 no-underline hover:no-underline"
                     hx-boost="true"
                     onclick="window.location.href = window.location.pathname + '?page={{ sub .Page 1 }}'"
                 >
@@ -125,7 +127,7 @@
 
             {{ if eq $commits_len 30 }}
                 <a
-                    class="btn flex items-center gap-2 no-underline"
+                    class="btn flex items-center gap-2 no-underline hover:no-underline"
                     hx-boost="true"
                     onclick="window.location.href = window.location.pathname + '?page={{ add .Page 1 }}'"
                 >
