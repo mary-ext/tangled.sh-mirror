@@ -1,47 +1,38 @@
-{{ define "title" }}Timeline{{ end }}
+{{ define "title" }}timeline{{ end }}
 
 {{ define "content" }}
-    <h1>Timeline</h1>
+<div class="p-6">
+  <p class="text-xl font-bold">Timeline</p>
+</div>
 
-    {{ range .Timeline }}
-      <div class="relative
-                 px-4
-                 py-2
-                 border-l
-                 border-black
-                 before:content-['']
-                 before:absolute
-                 before:w-1
-                 before:h-1
-                 before:bg-black
-                 before:rounded-full
-                 before:left-[-2.2px]
-                 before:top-1/2
-                 before:-translate-y-1/2
-                 ">
-        {{ if .Repo }}
-          {{ $userHandle :=  index $.DidHandleMap .Repo.Did }}
-          <div class="flex items-center">
-            <p class="text-gray-600">
-            <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
-            created
-            <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
-            <time class="text-gray-700">{{ .Repo.Created | timeFmt }}</time>
-            </p>
-          </div>
-        {{ else if .Follow }}
-          {{ $userHandle :=  index $.DidHandleMap .Follow.UserDid }}
-          {{ $subjectHandle :=  index $.DidHandleMap .Follow.SubjectDid }}
-          <div class="flex items-center">
-            <p class="text-gray-600">
-            <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
-            followed
-            <a href="/{{ $subjectHandle }}" class="no-underline hover:underline">{{ $subjectHandle }}</a>
-            <time class="text-gray-700">{{ .Follow.FollowedAt | timeFmt }}</time>
-            </p>
-          </div>
-        {{ end }}
-      </div>
+<div class="flex flex-col gap-3 relative">
+  <div class="absolute left-8 top-0 bottom-0 w-px bg-gray-300"></div>
+  {{ range .Timeline }}
+  <div class="px-6 py-2 bg-white rounded drop-shadow-sm w-fit">
+    {{ if .Repo }}
+    {{ $userHandle :=  index $.DidHandleMap .Repo.Did }}
+    <div class="flex items-center">
+      <p class="text-gray-600">
+      <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
+      created
+      <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
+      <time class="text-gray-700">{{ .Repo.Created | timeFmt }}</time>
+      </p>
+    </div>
+    {{ else if .Follow }}
+    {{ $userHandle :=  index $.DidHandleMap .Follow.UserDid }}
+    {{ $subjectHandle :=  index $.DidHandleMap .Follow.SubjectDid }}
+    <div class="flex items-center">
+      <p class="text-gray-600">
+      <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
+      followed
+      <a href="/{{ $subjectHandle }}" class="no-underline hover:underline">{{ $subjectHandle }}</a>
+      <time class="text-gray-700">{{ .Follow.FollowedAt | timeFmt }}</time>
+      </p>
+    </div>
     {{ end }}
+  </div>
+  {{ end }}
+</div>
 
 {{ end }}

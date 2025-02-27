@@ -4,14 +4,10 @@
 {{ end }}
 
 {{ define "repoContent" }}
-    <div class="flex items-center justify-between">
-        <h1>
-            {{ .Issue.Title }}
-            <span class="text-gray-400">#{{ .Issue.IssueId }}</span>
-        </h1>
-
-        <time class="text-sm">{{ .Issue.Created | timeFmt }}</time>
-    </div>
+    <h1>
+      {{ .Issue.Title }}
+      <span class="text-gray-400">#{{ .Issue.IssueId }}</span>
+    </h1>
 
     {{ $bgColor := "bg-gray-800" }}
     {{ $icon := "ban" }}
@@ -39,6 +35,8 @@
                 <a href="/{{ $owner }}" class="no-underline hover:underline"
                     >{{ $owner }}</a
                 >
+                <span class="px-1 select-none before:content-['\00B7']"></span>
+                <time>{{ .Issue.Created | timeFmt }}</time>
             </span>
         </div>
 
@@ -66,15 +64,16 @@
                         class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
                     ></div>
                 {{ end }}
-                <div class="flex items-center gap-2 mb-2">
+                <div class="flex items-center gap-2 mb-2 text-gray-400">
                     {{ $owner := index $.DidHandleMap .OwnerDid }}
-                    <span class="text-gray-400 text-sm">
+                    <span class="text-sm">
                         <a
                             href="/{{ $owner }}"
                             class="no-underline hover:underline"
                             >{{ $owner }}</a
                         >
                     </span>
+                    <span class="px-1 select-none before:content-['\00B7']"></span>
                     <a
                         href="#{{ .CommentId }}"
                         class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline"

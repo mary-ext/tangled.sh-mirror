@@ -1,75 +1,76 @@
 {{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
 
 {{ define "content" }}
-    <div class="flex">
-      <h1 class="pb-1">
-        {{ didOrHandle .UserDid .UserHandle }}
-      </h1>
-      {{ if ne .FollowStatus.String "IsSelf" }}
-        <button id="followBtn"
+
+  <div class="flex">
+    <h1 class="pb-1 px-6">
+      {{ didOrHandle .UserDid .UserHandle }}
+    </h1>
+    {{ if ne .FollowStatus.String "IsSelf" }}
+    <button id="followBtn"
             class="btn mt-2"
             {{ if eq .FollowStatus.String "IsNotFollowing" }}
-              hx-post="/follow?subject={{.UserDid}}"
+            hx-post="/follow?subject={{.UserDid}}"
             {{ else }}
-              hx-delete="/follow?subject={{.UserDid}}"
+            hx-delete="/follow?subject={{.UserDid}}"
             {{ end }}
             hx-trigger="click"
             hx-target="#followBtn"
             hx-swap="outerHTML"
             >
-          {{ if eq .FollowStatus.String "IsNotFollowing" }}Follow{{ else }}Unfollow{{ end }}
-        </button>
+            {{ if eq .FollowStatus.String "IsNotFollowing" }}Follow{{ else }}Unfollow{{ end }}
+    </button>
       {{ end }}
-    </div>
-    <div class="text-sm mb-4">
-      <span>{{ .ProfileStats.Followers }} followers</span>
-      <div class="inline-block px-1 select-none after:content-['·']"></div>
-      <span>{{ .ProfileStats.Following }} following</span>
-    </div>
-    <p class="text-sm font-bold py-2">REPOS</p>
-    <div id="repos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {{ range .Repos }}
+  </div>
+  <div class="text-sm mb-4 px-6">
+    <span>{{ .ProfileStats.Followers }} followers</span>
+    <div class="inline-block px-1 select-none after:content-['·']"></div>
+    <span>{{ .ProfileStats.Following }} following</span>
+  </div>
+  <p class="text-sm font-bold py-2 px-6">REPOS</p>
+  <div id="repos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    {{ range .Repos }}
+    <div
+        id="repo-card"
+        class="py-4 px-6 drop-shadow-sm rounded bg-white"
+        >
+        <div id="repo-card-name" class="font-medium">
+          <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
+            >{{ .Name }}</a
+          >
+        </div>
             <div
-                id="repo-card"
-                class="p-4 drop-shadow-sm rounded bg-white"
-            >
-                <div id="repo-card-name" class="font-medium">
-                    <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
-                        >{{ .Name }}</a
-                    >
-                </div>
-                <div
-                    id="repo-knot-name"
-                    class="text-gray-600 text-sm font-mono"
+                id="repo-knot-name"
+                class="text-gray-600 text-sm font-mono"
                 >
-                    {{ .Knot }}
-                </div>
+                {{ .Knot }}
             </div>
-        {{ else }}
-            <p>This user does not have any repos yet.</p>
-        {{ end }}
     </div>
-    <p class="text-sm font-bold py-2">COLLABORATING ON</p>
-    <div id="collaborating" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {{ range .CollaboratingRepos }}
-            <div
-                id="repo-card"
-                class="p-4 drop-shadow-sm rounded bg-white"
+      {{ else }}
+      <p class="px-6">This user does not have any repos yet.</p>
+      {{ end }}
+  </div>
+  <p class="text-sm font-bold py-2 px-6">COLLABORATING ON</p>
+  <div id="collaborating" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    {{ range .CollaboratingRepos }}
+    <div
+        id="repo-card"
+        class="py-4 px-6 drop-shadow-sm rounded bg-white"
+        >
+        <div id="repo-card-name" class="font-medium">
+          <a href="/{{ .Did }}/{{ .Name }}">
+            @{{ .Did }}/{{ .Name }}
+          </a>
+        </div>
+        <div
+            id="repo-knot-name"
+            class="text-gray-600 text-sm font-mono"
             >
-                <div id="repo-card-name" class="font-medium">
-                    <a href="/{{ .Did }}/{{ .Name }}">
-                      @{{ .Did }}/{{ .Name }}
-                    </a>
-                </div>
-                <div
-                    id="repo-knot-name"
-                    class="text-gray-600 text-sm font-mono"
-                >
-                    {{ .Knot }}
-                </div>
-            </div>
-        {{ else }}
-            <p>This user is not collaborating.</p>
-        {{ end }}
+            {{ .Knot }}
+        </div>
     </div>
+    {{ else }}
+    <p class="px-6">This user is not collaborating.</p>
+    {{ end }}
+  </div>
 {{ end }}

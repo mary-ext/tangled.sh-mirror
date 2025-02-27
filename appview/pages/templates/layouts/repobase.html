@@ -1,7 +1,7 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
-    <section id="repo-header" class="mb-4 p-2">
+    <section id="repo-header" class="mb-4 py-2 px-6">
         <p class="text-lg">
             <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
             <span class="select-none">/</span>
