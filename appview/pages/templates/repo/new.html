@@ -1,43 +1,49 @@
 {{ define "title" }}new repo{{ end }}
 
 {{ define "content" }}
-    <h1>new repo</h1>
-    <form hx-post="/repo/new" class="mt-6 space-y-6" hx-swap="none">
-        <div class="space-y-2">
-            <label for="name" class="block">repo name</label>
+<div class="p-6">
+  <p class="text-xl font-bold">Create a new repository</p>
+</div>
+<div class="p-6 bg-white drop-shadow-sm rounded">
+  <form hx-post="/repo/new" class="space-y-12" hx-swap="none">
+    <div class="space-y-2">
+      <label for="name" class="block uppercase font-bold text-sm">Repository name</label>
+      <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          class="w-full max-w-md"
+          />
+      <p class="text-sm text-gray-500">All repositories are publicly visible.</p>
+    </div>
+
+    <fieldset class="space-y-3">
+      <legend class="uppercase font-bold text-sm">Select a knot</legend>
+      <div class="space-y-2">
+        {{ range .Knots }}
+        <div>
+          <label class="inline-flex items-center">
             <input
-                type="text"
-                id="name"
-                name="name"
-                required
-                class="w-full max-w-md"
-            />
+                type="radio"
+                name="domain"
+                value="{{ . }}"
+                class="mr-2"
+                />
+            <span>{{ . }}</span>
+          </label>
         </div>
+        {{ else }}
+        <p>No knots available.</p>
+        {{ end }}
+      </div>
+      <p class="text-sm text-gray-500">A knot hosts repository data. <a href="/knots" class="underline">Learn how to register your own knot.</a></p>
+    </fieldset>
 
-        <fieldset class="space-y-3">
-            <legend class="font-medium">select a knot</legend>
-            <div class="space-y-2">
-                {{ range .Knots }}
-                    <div>
-                        <label class="inline-flex items-center">
-                            <input
-                                type="radio"
-                                name="domain"
-                                value="{{ . }}"
-                                class="mr-2"
-                            />
-                            <span>{{ . }}</span>
-                        </label>
-                    </div>
-                {{ else }}
-                    <p>No knots available</p>
-                {{ end }}
-            </div>
-        </fieldset>
-
-        <div class="space-y-2">
-            <button type="submit" class="btn">create repo</button>
-            <div id="repo" class="error"></div>
-        </div>
-    </form>
+    <div class="space-y-2">
+      <button type="submit" class="btn">create repo</button>
+      <div id="repo" class="error"></div>
+    </div>
+  </form>
+</div>
 {{ end }}
