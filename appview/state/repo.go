@@ -61,6 +61,19 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tagMap := make(map[string][]string)
+	for _, tag := range result.Tags {
+		hash := tag.Hash
+		tagMap[hash] = append(tagMap[hash], tag.Name)
+	}
+
+	for _, branch := range result.Branches {
+		hash := branch.Hash
+		tagMap[hash] = append(tagMap[hash], branch.Name)
+	}
+
+	log.Println(tagMap)
+
 	user := s.auth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser: user,
@@ -70,6 +83,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			Name:            f.RepoName,
 			SettingsAllowed: settingsAllowed(s, user, f),
 		},
+		TagMap:            tagMap,
 		RepoIndexResponse: result,
 	})
 

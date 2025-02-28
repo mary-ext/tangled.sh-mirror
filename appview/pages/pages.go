@@ -194,6 +194,7 @@ type RepoIndexParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
 	Active       string
+	TagMap       map[string][]string
 	types.RepoIndexResponse
 }
 
