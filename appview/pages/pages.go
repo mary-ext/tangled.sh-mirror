@@ -396,6 +396,17 @@ func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 	return p.executeRepo("repo/issues/new", w, params)
 }
 
+type RepoPullsParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Active       string
+}
+
+func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
+	params.Active = "pulls"
+	return p.executeRepo("repo/pulls/pulls", w, params)
+}
+
 func (p *Pages) Static() http.Handler {
 	sub, err := fs.Sub(files, "static")
 	if err != nil {

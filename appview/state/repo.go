@@ -873,6 +873,28 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		s.pages.RepoPulls(w, pages.RepoPullsParams{
+			LoggedInUser: user,
+			RepoInfo: pages.RepoInfo{
+				Name:            f.RepoName,
+				OwnerDid:        f.OwnerDid(),
+				OwnerHandle:     f.OwnerHandle(),
+				SettingsAllowed: settingsAllowed(s, user, f),
+			},
+		})
+	}
+}
+
 func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	repoName := chi.URLParam(r, "repo")
 	knot, ok := r.Context().Value("knot").(string)

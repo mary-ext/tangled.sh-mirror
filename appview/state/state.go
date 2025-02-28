@@ -813,6 +813,10 @@ func (s *State) UserRouter() http.Handler {
 				r.Post("/{issue}/reopen", s.ReopenIssue)
 			})
 
+			r.Route("/pulls", func(r chi.Router) {
+				r.Get("/", s.RepoPulls)
+			})
+
 			// These routes get proxied to the knot
 			r.Get("/info/refs", s.InfoRefs)
 			r.Post("/git-upload-pack", s.UploadPack)
