@@ -72,8 +72,6 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		tagMap[hash] = append(tagMap[hash], branch.Name)
 	}
 
-	log.Println(tagMap)
-
 	user := s.auth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser: user,

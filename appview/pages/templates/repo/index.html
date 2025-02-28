@@ -140,13 +140,6 @@
                                       ></i>
                                   </button>
                               {{ end }}
-
-                              {{ $tagsForCommit := index $.TagMap .Hash.String }}
-                              {{ range $tagsForCommit }}
-                                <span class="text-xs rounded-full bg-black text-white px-2 mx-1 inline-flex items-center">
-                                  {{ . }}
-                                </span>
-                              {{ end }}
                           </div>
                           {{ if gt (len $messageParts) 1 }}
                               <p
@@ -181,6 +174,15 @@
                       class="inline-block px-1 select-none after:content-['·']"
                   ></div>
                   <span>{{ timeFmt .Author.When }}</span>
+                  <div
+                      class="inline-block px-1 select-none after:content-['·']"
+                  ></div>
+                  {{ $tagsForCommit := index $.TagMap .Hash.String }}
+                  {{ range $tagsForCommit }}
+                    <span class="text-xs rounded-full bg-gray-700 text-white px-2 mx-1/2 inline-flex items-center">
+                      {{ . }}
+                    </span>
+                  {{ end }}
               </div>
           </div>
     {{ end }}
