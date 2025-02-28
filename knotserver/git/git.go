@@ -300,8 +300,9 @@ func (g *GitRepo) WriteTar(w io.Writer, prefix string) error {
 }
 
 func (g *GitRepo) LastCommitForPath(path string) (*object.Commit, error) {
+	cacheKey := fmt.Sprintf("%s:%s", g.h.String(), path)
 	cacheMu.RLock()
-	if commit, found := commitCache.Get(path); found {
+	if commit, found := commitCache.Get(cacheKey); found {
 		cacheMu.RUnlock()
 		return commit.(*object.Commit), nil
 	}
@@ -330,7 +331,7 @@ func (g *GitRepo) LastCommitForPath(path string) (*object.Commit, error) {
 	}
 
 	cacheMu.Lock()
-	commitCache.Set(path, commit, 1)
+	commitCache.Set(cacheKey, commit, 1)
 	cacheMu.Unlock()
 
 	return commit, nil
