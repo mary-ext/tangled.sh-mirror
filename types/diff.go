@@ -19,6 +19,8 @@ type Diff struct {
 	IsBinary      bool                   `json:"is_binary"`
 	IsNew         bool                   `json:"is_new"`
 	IsDelete      bool                   `json:"is_delete"`
+	IsCopy        bool                   `json:"is_copy"`
+	IsRename      bool                   `json:"is_rename"`
 }
 
 // A nicer git diff representation.

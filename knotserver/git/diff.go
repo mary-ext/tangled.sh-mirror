@@ -63,6 +63,8 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 		ndiff.IsBinary = d.IsBinary
 		ndiff.IsNew = d.IsNew
 		ndiff.IsDelete = d.IsDelete
+		ndiff.IsCopy = d.IsCopy
+		ndiff.IsRename = d.IsRename
 
 		for _, tf := range d.TextFragments {
 			ndiff.TextFragments = append(ndiff.TextFragments, *tf)

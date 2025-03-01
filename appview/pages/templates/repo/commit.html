@@ -24,7 +24,7 @@
           <span class="px-1 select-none before:content-['\00B7']"></span>
           {{ timeFmt $commit.Author.When }}
           <span class="px-1 select-none before:content-['\00B7']"></span>
-          <span class="font-mono">{{ $stat.FilesChanged }}</span> files <span class="font-mono">(+{{ $stat.Insertions }}, -{{ $stat.Deletions }})</span>
+          <span>{{ $stat.FilesChanged }}</span> files <span class="font-mono">(+{{ $stat.Insertions }}, -{{ $stat.Deletions }})</span>
           <span class="px-1 select-none before:content-['\00B7']"></span>
       </p>
 
@@ -73,27 +73,35 @@
         <details open>
           <summary class="list-none cursor-pointer sticky top-0">
             <div id="diff-file-header" class="rounded cursor-pointer bg-white flex justify-between">
-              <div id="left-side-items" class="p-2">
+              <div id="left-side-items" class="p-2 flex gap-2 items-center">
+                {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
+
                 {{ if .IsNew }}
-                <span class="diff-type p-1 mr-1 font-mono text-sm bg-green-100 rounded text-green-700 select-none">A</span>
-                {{ end }}
-                {{ if .IsDelete }}
-                <span class="diff-type p-1 mr-1 font-mono text-sm bg-red-100 rounded text-red-700 select-none">D</span>
-                {{ end }}
-                {{ if not (or .IsNew .IsDelete) }}
-                <span class="diff-type p-1 mr-1 font-mono bg-gray-100 text-sm rounded text-gray-700 select-none">M</span>
+                <span class="bg-green-100 text-green-700 {{ $markerstyle }}">ADDED</span>
+                {{ else if .IsDelete }}
+                <span class="bg-red-100 text-red-700 {{ $markerstyle }}">DELETED</span>
+                {{ else if .IsCopy }}
+                <span class="bg-gray-100 text-gray-700 {{ $markerstyle }}">COPIED</span>
+                {{ else if .IsRename }}
+                <span class="bg-gray-100 text-gray-700 {{ $markerstyle }}">RENAMED</span>
+                {{ else }}
+                <span class="bg-gray-100 text-gray-700 {{ $markerstyle }}">MODIFIED</span>
                 {{ end }}
 
                 {{ if .IsDelete }}
-                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}" class="no-underline hover:underline">{{ .Name.Old }}</a>
+                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}">{{ .Name.Old }}</a>
+                {{ else if (or .IsCopy .IsRename) }}
+                <a href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}">{{ .Name.Old }}</a>
+                <i class="w-4 h-4" data-lucide="arrow-right"></i>
+                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}">{{ .Name.New }}</a>
                 {{ else }}
-                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}" class="no-underline hover:underline">{{ .Name.New }}</a>
+                <a href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}">{{ .Name.New }}</a>
                 {{ end }}
               </div>
 
               {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 rounded" }}
               <div id="right-side-items" class="p-2 flex items-center">
-                <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-up-from-line"></i></a>
+                <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-up-to-line"></i></a>
                 {{ if gt $idx 0 }}
                   {{ $prev := index $diff (sub $idx 1) }}
                   <a title="previous file" href="#file-{{ $prev.Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-up"></i></a>
