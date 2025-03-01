@@ -1,53 +1,40 @@
 {{ define "layouts/topbar" }}
-    {{ $linkstyle := "text-black hover:text-gray-600 no-underline" }}
-    <nav
-        class="space-x-4 mb-4 px-6 py-2 rounded bg-white drop-shadow-sm"
-    >
+    <nav class="space-x-4 mb-4 px-6 py-2 rounded bg-white drop-shadow-sm">
         <div class="container flex justify-between p-0">
             <div id="left-items">
-                <a href="/" hx-boost="true" class="{{ $linkstyle }} flex gap-2">
+                <a href="/" hx-boost="true" class="flex gap-2">
                     <i class="w-6 h-6" data-lucide="tangent"></i>
                     tangled.sh
                 </a>
             </div>
             <div id="right-items" class="flex gap-2">
                 {{ with .LoggedInUser }}
-                    <a
-                        href="/repo/new"
-                        hx-boost="true"
-                        class="{{ $linkstyle }}"
-                    >
+                    <a href="/repo/new"hx-boost="true">
                         <i class="w-6 h-6" data-lucide="plus"></i>
                     </a>
-                    <details class="relative inline-block text-left">
-                        <summary
-                            class="{{ $linkstyle }} cursor-pointer list-none"
-                        >
-                            {{ didOrHandle .Did .Handle }}
-                        </summary>
-                        <div
-                            class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white border border-gray-200 z-999"
-                        >
-                            <a
-                                href="/{{ didOrHandle .Did .Handle }}"
-                                class="{{ $linkstyle }}"
-                                >profile</a
-                            >
-                            <a href="/knots" class="{{ $linkstyle }}">knots</a>
-                            <a href="/settings" class="{{ $linkstyle }}"
-                                >settings</a
-                            >
-                            <a
-                                href="/logout"
-                                class="text-red-400 hover:text-red-700 no-underline"
-                                >logout</a
-                            >
-                        </div>
-                    </details>
+                    {{ block "dropDown" . }} {{ end }}
                 {{ else }}
-                    <a href="/login" class="{{ $linkstyle }}"> login </a>
+                    <a href="/login">login</a>
                 {{ end }}
             </div>
         </div>
     </nav>
+{{ end }}
+
+{{ define "dropDown" }}
+<details class="relative inline-block text-left">
+    <summary
+        class="cursor-pointer list-none"
+    >
+        {{ didOrHandle .Did .Handle }}
+    </summary>
+    <div
+        class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white border border-gray-200"
+    >
+        <a href="/{{ didOrHandle .Did .Handle }}">profile</a>
+        <a href="/knots">knots</a>
+        <a href="/settings">settings</a>
+        <a href="/logout" class="text-red-400 hover:text-red-700">logout</a>
+    </div>
+</details>
 {{ end }}
