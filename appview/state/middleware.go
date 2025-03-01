@@ -54,7 +54,8 @@ func AuthMiddleware(s *State) Middleware {
 				}
 				atSession, err := comatproto.ServerRefreshSession(r.Context(), &client)
 				if err != nil {
-					log.Println(err)
+					log.Println("failed to refresh session", err)
+					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 					return
 				}
 
