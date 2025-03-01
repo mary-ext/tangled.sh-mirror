@@ -29,10 +29,13 @@
                         hx-boost="true"
                     >
                         <div
-                            class="px-4 py-2 mr-1 text-black min-w-[80px] text-center relative group-hover:bg-gray-200 rounded-t
-                         {{ if eq $.Active $key }}
+                            class="px-4 py-1 mr-1 text-black min-w-[80px] text-center relative rounded-t
+                             {{ if eq $.Active $key }}
                                 {{ $activeTabStyles }}
-                            {{ end }}"
+                             {{ else }}
+                                group-hover:bg-gray-200
+                             {{ end }}
+                             "
                         >
                             {{ $key }}
                         </div>

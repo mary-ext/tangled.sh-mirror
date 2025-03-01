@@ -58,8 +58,8 @@
         class="py-4 px-6 drop-shadow-sm rounded bg-white"
         >
         <div id="repo-card-name" class="font-medium">
-          <a href="/{{ .Did }}/{{ .Name }}">
-            @{{ .Did }}/{{ .Name }}
+          <a href="/{{ index $.DidHandleMap .Did }}/{{ .Name }}">
+            {{ index $.DidHandleMap .Did }}/{{ .Name }}
           </a>
         </div>
         <div

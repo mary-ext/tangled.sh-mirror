@@ -642,6 +642,19 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("getting collaborating repos for %s: %s", ident.DID.String(), err)
 	}
+	var didsToResolve []string
+	for _, r := range collaboratingRepos {
+		didsToResolve = append(didsToResolve, r.Did)
+	}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
 
 	followers, following, err := s.db.GetFollowerFollowing(ident.DID.String())
 	if err != nil {
@@ -665,6 +678,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 			Following: following,
 		},
 		FollowStatus: db.FollowStatus(followStatus),
+		DidHandleMap: didHandleMap,
 	})
 }
 

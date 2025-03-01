@@ -219,8 +219,6 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 	baseTreeLink := path.Join(f.OwnerDid(), f.RepoName, "tree", ref, treePath)
 	baseBlobLink := path.Join(f.OwnerDid(), f.RepoName, "blob", ref, treePath)
 
-	log.Println(result)
-
 	s.pages.RepoTree(w, pages.RepoTreeParams{
 		LoggedInUser: user,
 		BreadCrumbs:  breadcrumbs,
