@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -16,7 +15,6 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
-	"github.com/bluesky-social/jetstream/pkg/models"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	tangled "github.com/sotangled/tangled/api/tangled"
@@ -64,31 +62,7 @@ func Make() (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(context.Background(), func(ctx context.Context, e *models.Event) error {
-		if e.Kind != models.EventKindCommit {
-			return nil
-		}
-
-		did := e.Did
-		raw := json.RawMessage(e.Commit.Record)
-
-		switch e.Commit.Collection {
-		case tangled.GraphFollowNSID:
-			record := tangled.GraphFollow{}
-			err := json.Unmarshal(raw, &record)
-			if err != nil {
-				log.Println("invalid record")
-				return err
-			}
-			err = db.AddFollow(did, record.Subject, e.Commit.RKey)
-			if err != nil {
-				return fmt.Errorf("failed to add follow to db: %w", err)
-			}
-			return db.UpdateLastTimeUs(e.TimeUS)
-		}
-
-		return nil
-	})
+	err = jc.StartJetstream(context.Background(), jetstreamIngester(db))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}

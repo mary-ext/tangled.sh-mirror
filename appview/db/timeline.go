@@ -1,7 +1,6 @@
 package db
 
 import (
-	"log"
 	"sort"
 	"time"
 )
@@ -26,7 +25,6 @@ func (d *DB) MakeTimeline() ([]TimelineEvent, error) {
 	}
 
 	for _, repo := range repos {
-		log.Println(repo.Created)
 		events = append(events, TimelineEvent{
 			Repo:    &repo,
 			Follow:  nil,

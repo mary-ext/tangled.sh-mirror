@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"log"
 	"net/http"
 	"time"
 )
@@ -15,7 +14,6 @@ func (h *Handle) VerifySignature(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		signature := r.Header.Get("X-Signature")
-		log.Println(signature)
 		if signature == "" || !h.verifyHMAC(signature, r) {
 			writeError(w, "signature verification failed", http.StatusForbidden)
 			return
