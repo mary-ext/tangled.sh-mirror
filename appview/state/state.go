@@ -34,20 +34,21 @@ type State struct {
 	pages    *pages.Pages
 	resolver *appview.Resolver
 	jc       *jetstream.JetstreamClient
+	config   *appview.Config
 }
 
-func Make() (*State, error) {
-	db, err := db.Make(appview.SqliteDbPath)
+func Make(config *appview.Config) (*State, error) {
+	db, err := db.Make(config.DbPath)
 	if err != nil {
 		return nil, err
 	}
 
-	auth, err := auth.Make()
+	auth, err := auth.Make(config.CookieSecret)
 	if err != nil {
 		return nil, err
 	}
 
-	enforcer, err := rbac.NewEnforcer(appview.SqliteDbPath)
+	enforcer, err := rbac.NewEnforcer(config.DbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +76,7 @@ func Make() (*State, error) {
 		pgs,
 		resolver,
 		jc,
+		config,
 	}
 
 	return state, nil

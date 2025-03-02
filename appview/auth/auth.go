@@ -27,8 +27,8 @@ type AtSessionRefresh struct {
 	PDSEndpoint string
 }
 
-func Make() (*Auth, error) {
-	store := sessions.NewCookieStore([]byte(appview.SessionCookieSecret))
+func Make(secret string) (*Auth, error) {
+	store := sessions.NewCookieStore([]byte(secret))
 	return &Auth{store}, nil
 }
 

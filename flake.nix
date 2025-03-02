@@ -43,7 +43,18 @@
       });
     inherit (gitignore.lib) gitignoreSource;
   in {
-    overlays.default = final: prev: {
+    overlays.default = final: prev: let
+      goModHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
+      buildCmdPackage = name:
+        final.buildGoModule {
+          pname = name;
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          subPackages = ["cmd/${name}"];
+          vendorHash = goModHash;
+          env.CGO_ENABLED = 0;
+        };
+    in {
       indigo-lexgen = with final;
         final.buildGoModule {
           pname = "indigo-lexgen";
@@ -68,37 +79,22 @@
           '';
           doCheck = false;
           subPackages = ["cmd/appview"];
-          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
+          vendorHash = goModHash;
           env.CGO_ENABLED = 1;
           stdenv = pkgsStatic.stdenv;
         };
+
       knotserver = with final;
         final.pkgsStatic.buildGoModule {
           pname = "knotserver";
           version = "0.1.0";
           src = gitignoreSource ./.;
           subPackages = ["cmd/knotserver"];
-          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
+          vendorHash = goModHash;
           env.CGO_ENABLED = 1;
         };
-      repoguard = with final;
-        final.pkgsStatic.buildGoModule {
-          pname = "repoguard";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/repoguard"];
-          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
-          env.CGO_ENABLED = 0;
-        };
-      keyfetch = with final;
-        final.pkgsStatic.buildGoModule {
-          pname = "keyfetch";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/keyfetch"];
-          vendorHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
-          env.CGO_ENABLED = 0;
-        };
+      repoguard = buildCmdPackage "repoguard";
+      keyfetch = buildCmdPackage "keyfetch";
     };
     packages = forAllSystems (system: {
       inherit (nixpkgsFor."${system}") indigo-lexgen appview knotserver repoguard keyfetch;
@@ -123,10 +119,10 @@
           pkgs.tailwindcss
         ];
         shellHook = ''
-            cp -f ${htmx-src} appview/pages/static/htmx.min.js
-            cp -f ${lucide-src} appview/pages/static/lucide.min.js
-            cp -f ${ia-fonts-src}/"iA Writer Quattro"/Static/*.ttf appview/pages/static/fonts/
-            cp -f ${ia-fonts-src}/"iA Writer Mono"/Static/*.ttf appview/pages/static/fonts/
+          cp -f ${htmx-src} appview/pages/static/htmx.min.js
+          cp -f ${lucide-src} appview/pages/static/lucide.min.js
+          cp -f ${ia-fonts-src}/"iA Writer Quattro"/Static/*.ttf appview/pages/static/fonts/
+          cp -f ${ia-fonts-src}/"iA Writer Mono"/Static/*.ttf appview/pages/static/fonts/
         '';
       };
     });
@@ -150,5 +146,54 @@
         program = ''${air-watcher "knotserver"}/bin/run'';
       };
     });
+
+    nixosModules.default = {
+      config,
+      pkgs,
+      lib,
+      ...
+    }:
+      with lib; {
+        options = {
+          services.tangled-appview = {
+            enable = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Enable tangled appview";
+            };
+            port = mkOption {
+              type = types.int;
+              default = 3000;
+              description = "Port to run the appview on";
+            };
+            cookie_secret = mkOption {
+              type = types.str;
+              default = "00000000000000000000000000000000";
+              description = "Cookie secret";
+            };
+          };
+        };
+
+        config = mkIf config.services.tangled-appview.enable {
+          nixpkgs.overlays = [self.overlays.default];
+          systemd.services.tangled-appview = {
+            description = "tangled appview service";
+            wantedBy = ["multi-user.target"];
+
+            serviceConfig = {
+              ListenStream = "0.0.0.0:${toString config.services.tangled-appview.port}";
+              ExecStart = "${pkgs.tangled-appview}/bin/tangled-appview";
+              Restart = "always";
+            };
+
+            environment = {
+              TANGLED_PORT = "${toString config.services.tangled-appview.port}";
+              TANGLED_HOST = "localhost";
+              TANGLED_DB_PATH = "appview.db";
+              TANGLED_COOKIE_SECRET = config.services.tangled-appview.cookie_secret;
+            };
+          };
+        };
+      };
   };
 }
