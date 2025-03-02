@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -27,8 +26,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	addr := fmt.Sprintf("%s:%s", c.Hostname, c.Port)
-
-	log.Println("starting server on", addr)
-	log.Println(http.ListenAndServe(addr, state.Router()))
+	log.Println("starting server on", c.ListenAddr)
+	log.Println(http.ListenAndServe(c.ListenAddr, state.Router()))
 }

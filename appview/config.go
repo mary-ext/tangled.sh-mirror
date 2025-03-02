@@ -8,9 +8,8 @@ import (
 
 type Config struct {
 	CookieSecret string `env:"TANGLED_COOKIE_SECRET, default=00000000000000000000000000000000"`
-	Hostname     string `env:"TANGLED_HOSTNAME, default=0.0.0.0"`
-	Port         string `env:"TANGLED_PORT, default=3000"`
 	DbPath       string `env:"TANGLED_DB_PATH, default=appview.db"`
+	ListenAddr   string `env:"TANGLED_LISTEN_ADDR, default=0.0.0.0:3000"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {

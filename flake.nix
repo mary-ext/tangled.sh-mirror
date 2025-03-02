@@ -187,8 +187,6 @@
             };
 
             environment = {
-              TANGLED_PORT = "${toString config.services.tangled-appview.port}";
-              TANGLED_HOST = "localhost";
               TANGLED_DB_PATH = "appview.db";
               TANGLED_COOKIE_SECRET = config.services.tangled-appview.cookie_secret;
             };
