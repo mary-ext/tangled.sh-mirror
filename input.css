@@ -128,6 +128,9 @@
         textarea {
             @apply bg-white border border-black rounded-sm focus:ring-black p-2;
         }
+        details summary::-webkit-details-marker {
+          display: none;
+        }
     }
 
     @layer components {
