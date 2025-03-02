@@ -192,7 +192,7 @@
 
 {{ define "repoAfter" }}
     {{- if .Readme }}
-        <section class="mt-4 p-6 rounded bg-white w-full mx-auto">
+        <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto">
             <article class="readme">
                 {{- .Readme -}}
             </article>
@@ -200,7 +200,7 @@
     {{- end -}}
 
 
-    <section class="mt-4 p-6 rounded bg-white w-full mx-auto">
+    <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto">
         <strong>clone</strong>
         <pre>
  git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }} </pre
