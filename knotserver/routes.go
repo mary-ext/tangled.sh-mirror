@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -37,6 +38,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	gr, err := git.Open(path, ref)
 	if err != nil {
+		log.Println(err)
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
 			resp := types.RepoIndexResponse{
 				IsEmpty: true,
@@ -135,7 +137,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ref == "" {
-		mainBranch, err := gr.FindMainBranch(h.c.Repo.MainBranch)
+		mainBranch, err := gr.FindMainBranch()
 		if err != nil {
 			writeError(w, err.Error(), http.StatusInternalServerError)
 			l.Error("finding main branch", "error", err.Error())
@@ -493,8 +495,9 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "NewRepo")
 
 	data := struct {
-		Did  string `json:"did"`
-		Name string `json:"name"`
+		Did           string `json:"did"`
+		Name          string `json:"name"`
+		DefaultBranch string `json:"default_branch,omitempty"`
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -502,12 +505,17 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if data.DefaultBranch == "" {
+		data.DefaultBranch = "main"
+	}
+
 	did := data.Did
 	name := data.Name
+	defaultBranch := data.DefaultBranch
 
 	relativeRepoPath := filepath.Join(did, name)
 	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
-	err := git.InitBare(repoPath)
+	err := git.InitBare(repoPath, defaultBranch)
 	if err != nil {
 		l.Error("initializing bare repo", "error", err.Error())
 		if errors.Is(err, gogit.ErrRepositoryAlreadyExists) {

@@ -225,19 +225,12 @@ func (g *GitRepo) Branches() ([]*plumbing.Reference, error) {
 	return branches, nil
 }
 
-func (g *GitRepo) FindMainBranch(branches []string) (string, error) {
-	branches = append(branches, []string{
-		"main",
-		"master",
-		"trunk",
-	}...)
-	for _, b := range branches {
-		_, err := g.r.ResolveRevision(plumbing.Revision(b))
-		if err == nil {
-			return b, nil
-		}
+func (g *GitRepo) FindMainBranch() (string, error) {
+	ref, err := g.r.Head()
+	if err != nil {
+		return "", fmt.Errorf("unable to find main branch: %w", err)
 	}
-	return "", fmt.Errorf("unable to find main branch")
+	return string(ref.Name()), err
 }
 
 // WriteTar writes itself from a tree into a binary tar file format.

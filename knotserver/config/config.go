@@ -9,7 +9,7 @@ import (
 type Repo struct {
 	ScanPath   string   `env:"SCAN_PATH, default=/home/git"`
 	Readme     []string `env:"README"`
-	MainBranch []string `env:"MAIN_BRANCH"`
+	MainBranch string   `env:"MAIN_BRANCH, default=main"`
 }
 
 type Server struct {
