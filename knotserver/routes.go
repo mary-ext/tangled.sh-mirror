@@ -505,8 +505,9 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("branch", data.DefaultBranch)
 	if data.DefaultBranch == "" {
-		data.DefaultBranch = "main"
+		data.DefaultBranch = h.c.Repo.MainBranch
 	}
 
 	did := data.Did

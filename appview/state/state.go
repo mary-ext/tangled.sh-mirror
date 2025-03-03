@@ -508,6 +508,11 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		defaultBranch := r.FormValue("branch")
+		if defaultBranch == "" {
+			defaultBranch = "main"
+		}
+
 		ok, err := s.enforcer.E.Enforce(user.Did, domain, domain, "repo:create")
 		if err != nil || !ok {
 			s.pages.Notice(w, "repo", "You do not have permission to create a repo in this knot.")
@@ -526,7 +531,7 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp, err := client.NewRepo(user.Did, repoName)
+		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
 			return

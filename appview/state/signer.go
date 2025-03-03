@@ -77,16 +77,19 @@ func (s *SignedClient) Init(did string) (*http.Response, error) {
 	return s.client.Do(req)
 }
 
-func (s *SignedClient) NewRepo(did, repoName string) (*http.Response, error) {
+func (s *SignedClient) NewRepo(did, repoName, defaultBranch string) (*http.Response, error) {
 	const (
 		Method   = "PUT"
 		Endpoint = "/repo/new"
 	)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"did":  did,
-		"name": repoName,
+		"did":            did,
+		"name":           repoName,
+		"default_branch": defaultBranch,
 	})
+
+	fmt.Println(body)
 
 	req, err := s.newRequest(Method, Endpoint, body)
 	if err != nil {
