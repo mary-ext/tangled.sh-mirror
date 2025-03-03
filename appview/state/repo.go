@@ -50,14 +50,14 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		log.Printf("Error reading response body: %v", err)
 		return
 	}
 
 	var result types.RepoIndexResponse
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		log.Fatalf("Error unmarshalling response body: %v", err)
+		log.Printf("Error unmarshalling response body: %v", err)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		log.Printf("Error reading response body: %v", err)
 		return
 	}
 
@@ -195,7 +195,7 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		log.Printf("Error reading response body: %v", err)
 		return
 	}
 
@@ -250,7 +250,7 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		log.Printf("Error reading response body: %v", err)
 		return
 	}
 
@@ -290,7 +290,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		log.Printf("Error reading response body: %v", err)
 		return
 	}
 
@@ -332,7 +332,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		log.Printf("Error reading response body: %v", err)
 		return
 	}
 
