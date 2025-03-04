@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 )
 
@@ -34,7 +33,7 @@ type SignedClient struct {
 	client *http.Client
 }
 
-func NewSignedClient(domain, secret string) (*SignedClient, error) {
+func NewSignedClient(domain, secret string, dev bool) (*SignedClient, error) {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 		Transport: SignerTransport{
@@ -43,7 +42,7 @@ func NewSignedClient(domain, secret string) (*SignedClient, error) {
 	}
 
 	uri := "https"
-	if os.Getenv("TANGLED_DEV") == "true" {
+	if dev {
 		uri = "http"
 	}
 	url, err := url.Parse(fmt.Sprintf("%s://%s", uri, domain))

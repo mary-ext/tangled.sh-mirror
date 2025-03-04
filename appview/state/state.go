@@ -256,7 +256,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := NewSignedClient(domain, secret)
+	client, err := NewSignedClient(domain, secret, s.config.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", domain)
 	}
@@ -450,7 +450,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(domain, secret)
+	ksClient, err := NewSignedClient(domain, secret, s.config.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", domain)
 		return
@@ -526,7 +526,7 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client, err := NewSignedClient(domain, secret)
+		client, err := NewSignedClient(domain, secret, s.config.Dev)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return

@@ -395,7 +395,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret)
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", f.Knot)
 		return
