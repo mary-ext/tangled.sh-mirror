@@ -415,7 +415,17 @@ func (p *Pages) Static() http.Handler {
 	if err != nil {
 		log.Fatalf("no static dir found? that's crazy: %v", err)
 	}
-	return http.StripPrefix("/static/", http.FileServer(http.FS(sub)))
+	// Custom handler to apply Cache-Control headers for font files
+	return Cache(http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
+}
+
+func Cache(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/static/fonts") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		h.ServeHTTP(w, r)
+	})
 }
 
 func (p *Pages) Error500(w io.Writer) error {
