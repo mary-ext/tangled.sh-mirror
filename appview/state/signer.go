@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -41,7 +42,11 @@ func NewSignedClient(domain, secret string) (*SignedClient, error) {
 		},
 	}
 
-	url, err := url.Parse(fmt.Sprintf("https://%s", domain))
+	uri := "https"
+	if os.Getenv("TANGLED_DEV") == "true" {
+		uri = "http"
+	}
+	url, err := url.Parse(fmt.Sprintf("%s://%s", uri, domain))
 	if err != nil {
 		return nil, err
 	}
