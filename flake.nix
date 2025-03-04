@@ -120,6 +120,7 @@
           pkgs.litecli
           pkgs.websocat
           pkgs.tailwindcss
+          pkgs.nixos-shell
         ];
         shellHook = ''
           cp -f ${htmx-src} appview/pages/static/htmx.min.js
@@ -150,7 +151,7 @@
       };
     });
 
-    nixosModules.default = {
+    nixosModules.appview = {
       config,
       pkgs,
       lib,
@@ -196,5 +197,161 @@
           };
         };
       };
+
+    nixosModules.knotserver = {
+      config,
+      pkgs,
+      lib,
+      ...
+    }:
+      with lib; {
+        options = {
+          services.tangled-knotserver = {
+            enable = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Enable a tangled knotserver";
+            };
+
+            appviewEndpoint = mkOption {
+              type = types.str;
+              default = "https://tangled.sh";
+              description = "Appview endpoint";
+            };
+
+            gitUser = mkOption {
+              type = types.str;
+              default = "git";
+              description = "User that hosts git repos and performs git operations";
+            };
+
+            repo = {
+              scanPath = mkOption {
+                type = types.path;
+                default = "/home/git";
+                description = "Path where repositories are scanned from";
+              };
+
+              mainBranch = mkOption {
+                type = types.str;
+                default = "main";
+                description = "Default branch name for repositories";
+              };
+            };
+
+            server = {
+              listenAddr = mkOption {
+                type = types.str;
+                default = "0.0.0.0:5555";
+                description = "Address to listen on";
+              };
+
+              internalListenAddr = mkOption {
+                type = types.str;
+                default = "127.0.0.1:5444";
+                description = "Internal address for inter-service communication";
+              };
+
+              secret = mkOption {
+                type = types.str;
+                example = "super-secret-key";
+                description = "Secret key provided by appview (required)";
+              };
+
+              dbPath = mkOption {
+                type = types.path;
+                default = "knotserver.db";
+                description = "Path to the database file";
+              };
+
+              hostname = mkOption {
+                type = types.str;
+                example = "knot.tangled.sh";
+                description = "Hostname for the server (required)";
+              };
+
+              dev = mkOption {
+                type = types.bool;
+                default = false;
+                description = "Enable development mode (disables signature verification)";
+              };
+            };
+          };
+        };
+
+        config = mkIf config.services.tangled-knotserver.enable {
+          nixpkgs.overlays = [self.overlays.default];
+
+          environment.systemPackages = with pkgs; [git];
+
+          users.users.git = {
+            isSystemUser = true;
+            home = "/home/git";
+            createHome = true;
+            shell = "${pkgs.shadow}/bin/nologin";
+            uid = 1000;
+            group = "git";
+            extraGroups = ["sudo"];
+          };
+
+          users.groups.git = {};
+
+          services.openssh = {
+            enable = true;
+            extraConfig = ''
+              Match User git
+              AuthorizedKeysCommand ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard
+              AuthorizedKeysCommandUser nobody
+            '';
+          };
+
+          systemd.services.knotserver = {
+            description = "knotserver service";
+            after = ["network.target" "sshd.service"];
+            wantedBy = ["multi-user.target"];
+            serviceConfig = {
+              User = "git";
+              WorkingDirectory = "/home/git";
+              Environment = [
+                "KNOT_REPO_SCAN_PATH=${config.services.tangled-knotserver.repo.scanPath}"
+                "APPVIEW_ENDPOINT=${config.services.tangled-knotserver.appviewEndpoint}"
+                "KNOT_SERVER_INTERNAL_LISTEN_ADDR=${config.services.tangled-knotserver.server.internalListenAddr}"
+                "KNOT_SERVER_LISTEN_ADDR=${config.services.tangled-knotserver.server.listenAddr}"
+                "KNOT_SERVER_SECRET=${config.services.tangled-knotserver.server.secret}"
+                "KNOT_SERVER_HOSTNAME=${config.services.tangled-knotserver.server.hostname}"
+              ];
+              ExecStart = "${pkgs.knotserver}/bin/knotserver";
+              Restart = "always";
+            };
+          };
+
+          networking.firewall.allowedTCPPorts = [22];
+        };
+      };
+
+    nixosConfigurations.knotVM = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        self.nixosModules.knotserver
+        ({
+          config,
+          pkgs,
+          ...
+        }: {
+          virtualisation.memorySize = 2048;
+          virtualisation.cores = 2;
+          services.getty.autologinUser = "root";
+          environment.systemPackages = with pkgs; [curl vim git];
+          services.tangled-knotserver = {
+            enable = true;
+            server = {
+              secret = "21c9c8b2a405bcfb14694481e32bab09d842c2f4cc0437906b68015d32f15b97";
+              hostname = "localhost:6000";
+              listenAddr = "0.0.0.0:6000";
+            };
+          };
+        })
+      ];
+    };
   };
 }
