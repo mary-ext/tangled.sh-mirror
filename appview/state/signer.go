@@ -41,7 +41,7 @@ func NewSignedClient(domain, secret string) (*SignedClient, error) {
 		},
 	}
 
-	url, err := url.Parse(fmt.Sprintf("http://%s", domain))
+	url, err := url.Parse(fmt.Sprintf("https://%s", domain))
 	if err != nil {
 		return nil, err
 	}

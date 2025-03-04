@@ -15,7 +15,7 @@ func (s *State) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	repo := chi.URLParam(r, "repo")
 
 	// TODO: make this https for production!
-	targetURL := fmt.Sprintf("http://%s/%s/%s/info/refs?%s", knot, user.DID, repo, r.URL.RawQuery)
+	targetURL := fmt.Sprintf("https://%s/%s/%s/info/refs?%s", knot, user.DID, repo, r.URL.RawQuery)
 	resp, err := http.Get(targetURL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -48,7 +48,7 @@ func (s *State) UploadPack(w http.ResponseWriter, r *http.Request) {
 	knot := r.Context().Value("knot").(string)
 	repo := chi.URLParam(r, "repo")
 	// TODO: make this https for production!
-	targetURL := fmt.Sprintf("http://%s/%s/%s/git-upload-pack?%s", knot, user.DID, repo, r.URL.RawQuery)
+	targetURL := fmt.Sprintf("https://%s/%s/%s/git-upload-pack?%s", knot, user.DID, repo, r.URL.RawQuery)
 	client := &http.Client{}
 
 	// Create new request
