@@ -5,15 +5,15 @@ import (
 	"time"
 )
 
-func (d *DB) AddPublicKey(did, name, key string) error {
+func AddPublicKey(e Execer, did, name, key string) error {
 	query := `insert or ignore into public_keys (did, name, key) values (?, ?, ?)`
-	_, err := d.db.Exec(query, did, name, key)
+	_, err := e.Exec(query, did, name, key)
 	return err
 }
 
-func (d *DB) RemovePublicKey(did string) error {
+func RemovePublicKey(e Execer, did string) error {
 	query := `delete from public_keys where did = ?`
-	_, err := d.db.Exec(query, did)
+	_, err := e.Exec(query, did)
 	return err
 }
 
@@ -35,10 +35,10 @@ func (p PublicKey) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
+func GetAllPublicKeys(e Execer) ([]PublicKey, error) {
 	var keys []PublicKey
 
-	rows, err := d.db.Query(`select key, name, did, created from public_keys`)
+	rows, err := e.Query(`select key, name, did, created from public_keys`)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +62,10 @@ func (d *DB) GetAllPublicKeys() ([]PublicKey, error) {
 	return keys, nil
 }
 
-func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
+func GetPublicKeys(e Execer, did string) ([]PublicKey, error) {
 	var keys []PublicKey
 
-	rows, err := d.db.Query(`select did, key, name, created from public_keys where did = ?`, did)
+	rows, err := e.Query(`select did, key, name, created from public_keys where did = ?`, did)
 	if err != nil {
 		return nil, err
 	}

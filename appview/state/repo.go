@@ -389,7 +389,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: create an atproto record for this
 
-	secret, err := s.db.GetRegistrationKey(f.Knot)
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
 		return
@@ -412,15 +412,43 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx")
+		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		return
+	}
+	defer func() {
+		tx.Rollback()
+		err = s.enforcer.E.LoadPolicy()
+		if err != nil {
+			log.Println("failed to rollback policies")
+		}
+	}()
+
 	err = s.enforcer.AddCollaborator(collaboratorIdent.DID.String(), f.Knot, f.OwnerSlashRepo())
 	if err != nil {
 		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
 		return
 	}
 
-	err = s.db.AddCollaborator(collaboratorIdent.DID.String(), f.OwnerDid(), f.RepoName, f.Knot)
+	err = db.AddCollaborator(s.db, collaboratorIdent.DID.String(), f.OwnerDid(), f.RepoName, f.Knot)
 	if err != nil {
 		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Println("failed to commit changes", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = s.enforcer.E.SavePolicy()
+	if err != nil {
+		log.Println("failed to update ACLs", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -546,7 +574,7 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, comments, err := s.db.GetIssueWithComments(f.RepoAt, issueIdInt)
+	issue, comments, err := db.GetIssueWithComments(s.db, f.RepoAt, issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue and comments", err)
 		s.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
@@ -605,7 +633,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := s.db.GetIssue(f.RepoAt, issueIdInt)
+	issue, err := db.GetIssue(s.db, f.RepoAt, issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue", err)
 		s.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
@@ -645,7 +673,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err := s.db.CloseIssue(f.RepoAt, issueIdInt)
+		err := db.CloseIssue(s.db, f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to close issue", err)
 			s.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
@@ -678,7 +706,7 @@ func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Did == f.OwnerDid() {
-		err := s.db.ReopenIssue(f.RepoAt, issueIdInt)
+		err := db.ReopenIssue(s.db, f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to reopen issue", err)
 			s.pages.Notice(w, "issue-action", "Failed to reopen issue. Try again later.")
@@ -719,7 +747,7 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 
 		commentId := rand.IntN(1000000)
 
-		err := s.db.NewComment(&db.Comment{
+		err := db.NewComment(s.db, &db.Comment{
 			OwnerDid:  user.Did,
 			RepoAt:    f.RepoAt,
 			Issue:     issueIdInt,
@@ -735,7 +763,7 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 		createdAt := time.Now().Format(time.RFC3339)
 		commentIdInt64 := int64(commentId)
 		ownerDid := user.Did
-		issueAt, err := s.db.GetIssueAt(f.RepoAt, issueIdInt)
+		issueAt, err := db.GetIssueAt(s.db, f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to get issue at", err)
 			s.pages.Notice(w, "issue-comment", "Failed to create comment.")
@@ -777,7 +805,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issues, err := s.db.GetIssues(f.RepoAt)
+	issues, err := db.GetIssues(s.db, f.RepoAt)
 	if err != nil {
 		log.Println("failed to get issues", err)
 		s.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
@@ -841,7 +869,13 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.db.NewIssue(&db.Issue{
+		tx, err := s.db.BeginTx(r.Context(), nil)
+		if err != nil {
+			s.pages.Notice(w, "issues", "Failed to create issue, try again later")
+			return
+		}
+
+		err = db.NewIssue(tx, &db.Issue{
 			RepoAt:   f.RepoAt,
 			Title:    title,
 			Body:     body,
@@ -853,7 +887,7 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		issueId, err := s.db.GetIssueId(f.RepoAt)
+		issueId, err := db.GetIssueId(s.db, f.RepoAt)
 		if err != nil {
 			log.Println("failed to get issue id", err)
 			s.pages.Notice(w, "issues", "Failed to create issue.")
@@ -881,7 +915,7 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.db.SetIssueAt(f.RepoAt, issueId, resp.Uri)
+		err = db.SetIssueAt(s.db, f.RepoAt, issueId, resp.Uri)
 		if err != nil {
 			log.Println("failed to set issue at", err)
 			s.pages.Notice(w, "issues", "Failed to create issue.")

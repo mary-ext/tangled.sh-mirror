@@ -11,15 +11,15 @@ type TimelineEvent struct {
 	EventAt time.Time
 }
 
-func (d *DB) MakeTimeline() ([]TimelineEvent, error) {
+func MakeTimeline(e Execer) ([]TimelineEvent, error) {
 	var events []TimelineEvent
 
-	repos, err := d.GetAllRepos()
+	repos, err := GetAllRepos(e)
 	if err != nil {
 		return nil, err
 	}
 
-	follows, err := d.GetAllFollows()
+	follows, err := GetAllFollows(e)
 	if err != nil {
 		return nil, err
 	}

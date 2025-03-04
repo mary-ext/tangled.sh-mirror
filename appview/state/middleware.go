@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/appview"
 	"github.com/sotangled/tangled/appview/auth"
+	"github.com/sotangled/tangled/appview/db"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -176,7 +177,7 @@ func ResolveRepoKnot(s *State) Middleware {
 				return
 			}
 
-			repo, err := s.db.GetRepo(id.DID.String(), repoName)
+			repo, err := db.GetRepo(s.db, id.DID.String(), repoName)
 			if err != nil {
 				// invalid did or handle
 				log.Println("failed to resolve repo")

@@ -10,13 +10,14 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/gliderlabs/ssh"
 	"github.com/sotangled/tangled/api/tangled"
+	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/appview/pages"
 )
 
 func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 	// for now, this is just pubkeys
 	user := s.auth.GetUser(r)
-	pubKeys, err := s.db.GetPublicKeys(user.Did)
+	pubKeys, err := db.GetPublicKeys(s.db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}
@@ -47,7 +48,7 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.db.AddPublicKey(did, name, key); err != nil {
+		if err := db.AddPublicKey(s.db, did, name, key); err != nil {
 			log.Printf("adding public key: %s", err)
 			s.pages.Notice(w, "settings-keys", "Failed to add public key.")
 			return

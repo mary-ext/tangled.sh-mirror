@@ -9,6 +9,7 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	tangled "github.com/sotangled/tangled/api/tangled"
+	"github.com/sotangled/tangled/appview/db"
 )
 
 func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +52,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.db.AddFollow(currentUser.Did, subjectIdent.DID.String(), rkey)
+		err = db.AddFollow(s.db, currentUser.Did, subjectIdent.DID.String(), rkey)
 		if err != nil {
 			log.Println("failed to follow", err)
 			return
@@ -73,7 +74,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	case http.MethodDelete:
 		// find the record in the db
-		follow, err := s.db.GetFollow(currentUser.Did, subjectIdent.DID.String())
+		follow, err := db.GetFollow(s.db, currentUser.Did, subjectIdent.DID.String())
 		if err != nil {
 			log.Println("failed to get follow relationship")
 			return
@@ -90,7 +91,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.db.DeleteFollow(currentUser.Did, subjectIdent.DID.String())
+		err = db.DeleteFollow(s.db, currentUser.Did, subjectIdent.DID.String())
 		if err != nil {
 			log.Println("failed to delete follow from DB")
 			// this is not an issue, the firehose event might have already done this

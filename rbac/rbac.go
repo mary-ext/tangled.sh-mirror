@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	sqladapter "github.com/Blank-Xu/sql-adapter"
+	adapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
 )
@@ -31,7 +31,7 @@ m = r.act == p.act && r.dom == p.dom && keyMatch2(r.obj, p.obj) && g(r.sub, p.su
 )
 
 type Enforcer struct {
-	E *casbin.SyncedEnforcer
+	E *casbin.Enforcer
 }
 
 func keyMatch2(key1 string, key2 string) bool {
@@ -50,17 +50,18 @@ func NewEnforcer(path string) (*Enforcer, error) {
 		return nil, err
 	}
 
-	a, err := sqladapter.NewAdapter(db, "sqlite3", "acl")
+	a, err := adapter.NewAdapter(db, "sqlite3", "acl")
 	if err != nil {
 		return nil, err
 	}
 
-	e, err := casbin.NewSyncedEnforcer(m, a)
+	e, err := casbin.NewEnforcer(m, a)
 	if err != nil {
 		return nil, err
 	}
 
-	e.EnableAutoSave(true)
+	e.EnableAutoSave(false)
+
 	e.AddFunction("keyMatch2", keyMatch2Func)
 
 	return &Enforcer{e}, nil
@@ -82,7 +83,7 @@ func (e *Enforcer) AddDomain(domain string) error {
 }
 
 func (e *Enforcer) GetDomainsForUser(did string) ([]string, error) {
-	return e.E.Enforcer.GetDomainsForUser(did)
+	return e.E.GetDomainsForUser(did)
 }
 
 func (e *Enforcer) AddOwner(domain, owner string) error {
@@ -131,7 +132,7 @@ func (e *Enforcer) GetUserByRole(role, domain string) ([]string, error) {
 
 	// this includes roles too, casbin does not differentiate.
 	// the filtering criteria is to remove strings not starting with `did:`
-	members, err := e.E.Enforcer.GetImplicitUsersForRole(role, domain)
+	members, err := e.E.GetImplicitUsersForRole(role, domain)
 	for _, m := range members {
 		if strings.HasPrefix(m, "did:") {
 			membersWithoutRoles = append(membersWithoutRoles, m)

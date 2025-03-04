@@ -26,14 +26,10 @@ type Comment struct {
 	Created   *time.Time
 }
 
-func (d *DB) NewIssue(issue *Issue) error {
-	tx, err := d.db.Begin()
-	if err != nil {
-		return err
-	}
+func NewIssue(tx *sql.Tx, issue *Issue) error {
 	defer tx.Rollback()
 
-	_, err = tx.Exec(`
+	_, err := tx.Exec(`
 		insert or ignore into repo_issue_seqs (repo_at, next_issue_id)
 		values (?, 1)
 		`, issue.RepoAt)
@@ -69,33 +65,33 @@ func (d *DB) NewIssue(issue *Issue) error {
 	return nil
 }
 
-func (d *DB) SetIssueAt(repoAt string, issueId int, issueAt string) error {
-	_, err := d.db.Exec(`update issues set issue_at = ? where repo_at = ? and issue_id = ?`, issueAt, repoAt, issueId)
+func SetIssueAt(e Execer, repoAt string, issueId int, issueAt string) error {
+	_, err := e.Exec(`update issues set issue_at = ? where repo_at = ? and issue_id = ?`, issueAt, repoAt, issueId)
 	return err
 }
 
-func (d *DB) GetIssueAt(repoAt string, issueId int) (string, error) {
+func GetIssueAt(e Execer, repoAt string, issueId int) (string, error) {
 	var issueAt string
-	err := d.db.QueryRow(`select issue_at from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&issueAt)
+	err := e.QueryRow(`select issue_at from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&issueAt)
 	return issueAt, err
 }
 
-func (d *DB) GetIssueId(repoAt string) (int, error) {
+func GetIssueId(e Execer, repoAt string) (int, error) {
 	var issueId int
-	err := d.db.QueryRow(`select next_issue_id from repo_issue_seqs where repo_at = ?`, repoAt).Scan(&issueId)
+	err := e.QueryRow(`select next_issue_id from repo_issue_seqs where repo_at = ?`, repoAt).Scan(&issueId)
 	return issueId - 1, err
 }
 
-func (d *DB) GetIssueOwnerDid(repoAt string, issueId int) (string, error) {
+func GetIssueOwnerDid(e Execer, repoAt string, issueId int) (string, error) {
 	var ownerDid string
-	err := d.db.QueryRow(`select owner_did from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&ownerDid)
+	err := e.QueryRow(`select owner_did from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&ownerDid)
 	return ownerDid, err
 }
 
-func (d *DB) GetIssues(repoAt string) ([]Issue, error) {
+func GetIssues(e Execer, repoAt string) ([]Issue, error) {
 	var issues []Issue
 
-	rows, err := d.db.Query(`select owner_did, issue_id, created, title, body, open from issues where repo_at = ? order by created desc`, repoAt)
+	rows, err := e.Query(`select owner_did, issue_id, created, title, body, open from issues where repo_at = ? order by created desc`, repoAt)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +121,9 @@ func (d *DB) GetIssues(repoAt string) ([]Issue, error) {
 	return issues, nil
 }
 
-func (d *DB) GetIssue(repoAt string, issueId int) (*Issue, error) {
+func GetIssue(e Execer, repoAt string, issueId int) (*Issue, error) {
 	query := `select owner_did, created, title, body, open from issues where repo_at = ? and issue_id = ?`
-	row := d.db.QueryRow(query, repoAt, issueId)
+	row := e.QueryRow(query, repoAt, issueId)
 
 	var issue Issue
 	var createdAt string
@@ -145,9 +141,9 @@ func (d *DB) GetIssue(repoAt string, issueId int) (*Issue, error) {
 	return &issue, nil
 }
 
-func (d *DB) GetIssueWithComments(repoAt string, issueId int) (*Issue, []Comment, error) {
+func GetIssueWithComments(e Execer, repoAt string, issueId int) (*Issue, []Comment, error) {
 	query := `select owner_did, issue_id, created, title, body, open from issues where repo_at = ? and issue_id = ?`
-	row := d.db.QueryRow(query, repoAt, issueId)
+	row := e.QueryRow(query, repoAt, issueId)
 
 	var issue Issue
 	var createdAt string
@@ -162,7 +158,7 @@ func (d *DB) GetIssueWithComments(repoAt string, issueId int) (*Issue, []Comment
 	}
 	issue.Created = &createdTime
 
-	comments, err := d.GetComments(repoAt, issueId)
+	comments, err := GetComments(e, repoAt, issueId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -170,9 +166,9 @@ func (d *DB) GetIssueWithComments(repoAt string, issueId int) (*Issue, []Comment
 	return &issue, comments, nil
 }
 
-func (d *DB) NewComment(comment *Comment) error {
+func NewComment(e Execer, comment *Comment) error {
 	query := `insert into comments (owner_did, repo_at, comment_at, issue_id, comment_id, body) values (?, ?, ?, ?, ?, ?)`
-	_, err := d.db.Exec(
+	_, err := e.Exec(
 		query,
 		comment.OwnerDid,
 		comment.RepoAt,
@@ -184,10 +180,10 @@ func (d *DB) NewComment(comment *Comment) error {
 	return err
 }
 
-func (d *DB) GetComments(repoAt string, issueId int) ([]Comment, error) {
+func GetComments(e Execer, repoAt string, issueId int) ([]Comment, error) {
 	var comments []Comment
 
-	rows, err := d.db.Query(`select owner_did, issue_id, comment_id, comment_at, body, created from comments where repo_at = ? and issue_id = ? order by created asc`, repoAt, issueId)
+	rows, err := e.Query(`select owner_did, issue_id, comment_id, comment_at, body, created from comments where repo_at = ? and issue_id = ? order by created asc`, repoAt, issueId)
 	if err == sql.ErrNoRows {
 		return []Comment{}, nil
 	}
@@ -220,12 +216,12 @@ func (d *DB) GetComments(repoAt string, issueId int) ([]Comment, error) {
 	return comments, nil
 }
 
-func (d *DB) CloseIssue(repoAt string, issueId int) error {
-	_, err := d.db.Exec(`update issues set open = 0 where repo_at = ? and issue_id = ?`, repoAt, issueId)
+func CloseIssue(e Execer, repoAt string, issueId int) error {
+	_, err := e.Exec(`update issues set open = 0 where repo_at = ? and issue_id = ?`, repoAt, issueId)
 	return err
 }
 
-func (d *DB) ReopenIssue(repoAt string, issueId int) error {
-	_, err := d.db.Exec(`update issues set open = 1 where repo_at = ? and issue_id = ?`, repoAt, issueId)
+func ReopenIssue(e Execer, repoAt string, issueId int) error {
+	_, err := e.Exec(`update issues set open = 1 where repo_at = ? and issue_id = ?`, repoAt, issueId)
 	return err
 }

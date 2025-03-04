@@ -13,13 +13,13 @@ import (
 
 type Ingester func(ctx context.Context, e *models.Event) error
 
-func jetstreamIngester(db *db.DB) Ingester {
+func jetstreamIngester(d db.DbWrapper) Ingester {
 	return func(ctx context.Context, e *models.Event) error {
 		var err error
 		defer func() {
 			eventTime := e.TimeUS
 			lastTimeUs := eventTime + 1
-			if err := db.UpdateLastTimeUs(lastTimeUs); err != nil {
+			if err := d.UpdateLastTimeUs(lastTimeUs); err != nil {
 				err = fmt.Errorf("(deferred) failed to save last time us: %w", err)
 			}
 		}()
@@ -39,7 +39,7 @@ func jetstreamIngester(db *db.DB) Ingester {
 				log.Println("invalid record")
 				return err
 			}
-			err = db.AddFollow(did, record.Subject, e.Commit.RKey)
+			err = db.AddFollow(d, did, record.Subject, e.Commit.RKey)
 			if err != nil {
 				return fmt.Errorf("failed to add follow to db: %w", err)
 			}

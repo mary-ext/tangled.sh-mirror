@@ -14,10 +14,10 @@ type Repo struct {
 	AtUri   string
 }
 
-func (d *DB) GetAllRepos() ([]Repo, error) {
+func GetAllRepos(e Execer) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select did, name, knot, rkey, created from repos`)
+	rows, err := e.Query(`select did, name, knot, rkey, created from repos`)
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +39,10 @@ func (d *DB) GetAllRepos() ([]Repo, error) {
 	return repos, nil
 }
 
-func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
+func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select did, name, knot, rkey, created from repos where did = ?`, did)
+	rows, err := e.Query(`select did, name, knot, rkey, created from repos where did = ?`, did)
 	if err != nil {
 		return nil, err
 	}
@@ -64,10 +64,10 @@ func (d *DB) GetAllReposByDid(did string) ([]Repo, error) {
 	return repos, nil
 }
 
-func (d *DB) GetRepo(did, name string) (*Repo, error) {
+func GetRepo(e Execer, did, name string) (*Repo, error) {
 	var repo Repo
 
-	row := d.db.QueryRow(`select did, name, knot, created, at_uri from repos where did = ? and name = ?`, did, name)
+	row := e.QueryRow(`select did, name, knot, created, at_uri from repos where did = ? and name = ?`, did, name)
 
 	var createdAt string
 	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri); err != nil {
@@ -79,28 +79,28 @@ func (d *DB) GetRepo(did, name string) (*Repo, error) {
 	return &repo, nil
 }
 
-func (d *DB) AddRepo(repo *Repo) error {
-	_, err := d.db.Exec(`insert into repos (did, name, knot, rkey, at_uri) values (?, ?, ?, ?, ?)`, repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri)
+func AddRepo(e Execer, repo *Repo) error {
+	_, err := e.Exec(`insert into repos (did, name, knot, rkey, at_uri) values (?, ?, ?, ?, ?)`, repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri)
 	return err
 }
 
-func (d *DB) RemoveRepo(did, name, rkey string) error {
-	_, err := d.db.Exec(`delete from repos where did = ? and name = ? and rkey = ?`, did, name, rkey)
+func RemoveRepo(e Execer, did, name, rkey string) error {
+	_, err := e.Exec(`delete from repos where did = ? and name = ? and rkey = ?`, did, name, rkey)
 	return err
 }
 
-func (d *DB) AddCollaborator(collaborator, repoOwnerDid, repoName, repoKnot string) error {
-	_, err := d.db.Exec(
+func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot string) error {
+	_, err := e.Exec(
 		`insert into collaborators (did, repo)
 		values (?, (select id from repos where did = ? and name = ? and knot = ?));`,
 		collaborator, repoOwnerDid, repoName, repoKnot)
 	return err
 }
 
-func (d *DB) CollaboratingIn(collaborator string) ([]Repo, error) {
+func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := d.db.Query(`select r.did, r.name, r.knot, r.rkey, r.created from repos r join collaborators c on r.id = c.repo where c.did = ?;`, collaborator)
+	rows, err := e.Query(`select r.did, r.name, r.knot, r.rkey, r.created from repos r join collaborators c on r.id = c.repo where c.did = ?;`, collaborator)
 	if err != nil {
 		return nil, err
 	}

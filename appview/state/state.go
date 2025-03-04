@@ -39,7 +39,7 @@ type State struct {
 }
 
 func Make(config *appview.Config) (*State, error) {
-	db, err := db.Make(config.DbPath)
+	d, err := db.Make(config.DbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -60,17 +60,18 @@ func Make(config *appview.Config) (*State, error) {
 
 	resolver := appview.NewResolver()
 
-	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, slog.Default(), db, false)
+	wrapper := db.DbWrapper{d}
+	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, slog.Default(), wrapper, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(context.Background(), jetstreamIngester(db))
+	err = jc.StartJetstream(context.Background(), jetstreamIngester(wrapper))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
 
 	state := &State{
-		db,
+		d,
 		auth,
 		enforcer,
 		clock,
@@ -135,7 +136,7 @@ func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 
-	timeline, err := s.db.MakeTimeline()
+	timeline, err := db.MakeTimeline(s.db)
 	if err != nil {
 		log.Println(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
@@ -195,7 +196,7 @@ func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		key, err := s.db.GenerateRegistrationKey(domain, did)
+		key, err := db.GenerateRegistrationKey(s.db, domain, did)
 
 		if err != nil {
 			log.Println(err)
@@ -222,7 +223,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pubKeys, err := s.db.GetPublicKeys(id.DID.String())
+	pubKeys, err := db.GetPublicKeys(s.db, id.DID.String())
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -250,7 +251,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("checking ", domain)
 
-	secret, err := s.db.GetRegistrationKey(domain)
+	secret, err := db.GetRegistrationKey(s.db, domain)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
@@ -295,8 +296,22 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		tx.Rollback()
+		err = s.enforcer.E.LoadPolicy()
+		if err != nil {
+			log.Println("failed to rollback policies")
+		}
+	}()
+
 	// mark as registered
-	err = s.db.Register(domain)
+	err = db.Register(tx, domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -304,7 +319,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set permissions for this did as owner
-	reg, err := s.db.RegistrationByDomain(domain)
+	reg, err := db.RegistrationByDomain(tx, domain)
 	if err != nil {
 		log.Println("failed to register domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -327,6 +342,20 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		log.Println("failed to commit changes", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = s.enforcer.E.SavePolicy()
+	if err != nil {
+		log.Println("failed to update ACLs", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Write([]byte("check success"))
 }
 
@@ -338,7 +367,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := s.auth.GetUser(r)
-	reg, err := s.db.RegistrationByDomain(domain)
+	reg, err := db.RegistrationByDomain(s.db, domain)
 	if err != nil {
 		w.Write([]byte("failed to pull up registration info"))
 		return
@@ -370,7 +399,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
 	// for now, this is just pubkeys
 	user := s.auth.GetUser(r)
-	registrations, err := s.db.RegistrationsByDid(user.Did)
+	registrations, err := db.RegistrationsByDid(s.db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}
@@ -444,7 +473,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("created atproto record: ", resp.Uri)
 
-	secret, err := s.db.GetRegistrationKey(domain)
+	secret, err := db.GetRegistrationKey(s.db, domain)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", domain, err)
 		return
@@ -520,7 +549,13 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		secret, err := s.db.GetRegistrationKey(domain)
+		existingRepo, err := db.GetRepo(s.db, user.Did, repoName)
+		if err == nil && existingRepo != nil {
+			s.pages.Notice(w, "repo", fmt.Sprintf("A repo by this name already exists on %s", existingRepo.Knot))
+			return
+		}
+
+		secret, err := db.GetRegistrationKey(s.db, domain)
 		if err != nil {
 			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", domain))
 			return
@@ -530,22 +565,6 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return
-		}
-
-		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)
-		if err != nil {
-			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
-			return
-		}
-
-		switch resp.StatusCode {
-		case http.StatusConflict:
-			s.pages.Notice(w, "repo", "A repository with that name already exists.")
-			return
-		case http.StatusInternalServerError:
-			s.pages.Notice(w, "repo", "Failed to create repository on knot. Try again later.")
-		case http.StatusNoContent:
-			// continue
 		}
 
 		rkey := s.TID()
@@ -578,9 +597,38 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("created repo record: ", atresp.Uri)
 
-		repo.AtUri = atresp.Uri
+		tx, err := s.db.BeginTx(r.Context(), nil)
+		if err != nil {
+			log.Println(err)
+			s.pages.Notice(w, "repo", "Failed to save repository information.")
+			return
+		}
+		defer func() {
+			tx.Rollback()
+			err = s.enforcer.E.LoadPolicy()
+			if err != nil {
+				log.Println("failed to rollback policies")
+			}
+		}()
 
-		err = s.db.AddRepo(repo)
+		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)
+		if err != nil {
+			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
+			return
+		}
+
+		switch resp.StatusCode {
+		case http.StatusConflict:
+			s.pages.Notice(w, "repo", "A repository with that name already exists.")
+			return
+		case http.StatusInternalServerError:
+			s.pages.Notice(w, "repo", "Failed to create repository on knot. Try again later.")
+		case http.StatusNoContent:
+			// continue
+		}
+
+		repo.AtUri = atresp.Uri
+		err = db.AddRepo(tx, repo)
 		if err != nil {
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to save repository information.")
@@ -593,6 +641,20 @@ func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to set up repository permissions.")
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.Println("failed to commit changes", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = s.enforcer.E.SavePolicy()
+		if err != nil {
+			log.Println("failed to update ACLs", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -615,12 +677,12 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repos, err := s.db.GetAllReposByDid(ident.DID.String())
+	repos, err := db.GetAllReposByDid(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
 	}
 
-	collaboratingRepos, err := s.db.CollaboratingIn(ident.DID.String())
+	collaboratingRepos, err := db.CollaboratingIn(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting collaborating repos for %s: %s", ident.DID.String(), err)
 	}
@@ -638,7 +700,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	followers, following, err := s.db.GetFollowerFollowing(ident.DID.String())
+	followers, following, err := db.GetFollowerFollowing(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
 	}
@@ -646,7 +708,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 	loggedInUser := s.auth.GetUser(r)
 	followStatus := db.IsNotFollowing
 	if loggedInUser != nil {
-		followStatus = s.db.GetFollowStatus(loggedInUser.Did, ident.DID.String())
+		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
 	}
 
 	profileAvatarUri, err := GetAvatarUri(ident.DID.String())
@@ -818,6 +880,7 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
+			r.Use(AuthMiddleware(s))
 			r.Get("/", s.AddRepo)
 			r.Post("/", s.AddRepo)
 		})
