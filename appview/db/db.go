@@ -81,7 +81,7 @@ func Make(dbPath string) (*DB, error) {
 			id integer primary key autoincrement,
 			owner_did text not null,
 			repo_at text not null,
-			issue_id integer not null unique,
+			issue_id integer not null,
 			title text not null,
 			body text not null,
 			open integer not null default 1,
@@ -100,7 +100,7 @@ func Make(dbPath string) (*DB, error) {
 			body text not null,
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(issue_id, comment_id),
-			foreign key (issue_id) references issues(issue_id) on delete cascade
+			foreign key (repo_at, issue_id) references issues(repo_at, issue_id) on delete cascade
 		);
 		create table if not exists _jetstream (
 			id integer primary key autoincrement,
