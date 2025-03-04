@@ -103,5 +103,8 @@ func funcMap() template.FuncMap {
 			}
 			return v.Slice(start, end).Interface()
 		},
+		"markdown": func(text string) template.HTML {
+			return template.HTML(renderMarkdown(text))
+		},
 	}
 }

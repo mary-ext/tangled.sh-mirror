@@ -42,7 +42,7 @@
 
         {{ if .Issue.Body }}
             <article id="body" class="mt-8">
-                {{ .Issue.Body | escapeHtml }}
+                {{ .Issue.Body | markdown }}
             </article>
         {{ end }}
     </section>
@@ -83,7 +83,7 @@
                     </a>
                 </div>
                 <div class="">
-                    {{ nl2br .Body }}
+                    {{ .Body | markdown }}
                 </div>
             </div>
         {{ end }}
