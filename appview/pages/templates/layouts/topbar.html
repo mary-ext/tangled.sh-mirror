@@ -3,12 +3,12 @@
         <div class="container flex justify-between p-0">
             <div id="left-items">
                 <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic">
-                    tangled
+                  tangled<sub>alpha</sub>
                 </a>
             </div>
             <div id="right-items" class="flex gap-2">
                 {{ with .LoggedInUser }}
-                    <a href="/repo/new"hx-boost="true">
+                    <a href="/repo/new" hx-boost="true">
                         <i class="w-6 h-6" data-lucide="plus"></i>
                     </a>
                     {{ block "dropDown" . }} {{ end }}

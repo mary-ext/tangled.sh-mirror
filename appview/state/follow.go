@@ -61,7 +61,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 
 		w.Write([]byte(fmt.Sprintf(`
 			<button id="followBtn"
-				class="btn mt-2"
+				class="btn mt-2 w-full"
 				hx-delete="/follow?subject=%s"
 				hx-trigger="click"
 				hx-target="#followBtn"
@@ -98,7 +98,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 
 		w.Write([]byte(fmt.Sprintf(`
 			<button id="followBtn"
-				class="btn mt-2"
+				class="btn mt-2 w-full"
 				hx-post="/follow?subject=%s"
 				hx-trigger="click"
 				hx-target="#followBtn"

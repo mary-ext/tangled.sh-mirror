@@ -146,6 +146,7 @@ type ProfilePageParams struct {
 	ProfileStats       ProfileStats
 	FollowStatus       db.FollowStatus
 	DidHandleMap       map[string]string
+	AvatarUri          string
 }
 
 type ProfileStats struct {

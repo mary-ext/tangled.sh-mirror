@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -611,8 +612,17 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	collaborators, err := f.Collaborators(r.Context(), s)
+	if err != nil {
+		log.Println("failed to fetch repo collaborators: %w", err)
+	}
+	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
+		return user.Did == collab.Did
+	})
+	isIssueOwner := user.Did == issue.OwnerDid
+
 	// TODO: make this more granular
-	if user.Did == f.OwnerDid() {
+	if isIssueOwner || isCollaborator {
 
 		closed := tangled.RepoIssueStateClosed
 
@@ -645,7 +655,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueIdInt))
 		return
 	} else {
-		log.Println("user is not the owner of the repo")
+		log.Println("user is not permitted to close issue")
 		http.Error(w, "for biden", http.StatusUnauthorized)
 		return
 	}
