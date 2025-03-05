@@ -22,6 +22,7 @@ func main() {
 	endpoint := flag.String("internal-api", "http://localhost:5444", "Internal API endpoint")
 	repoguardPath := flag.String("repoguard-path", "/home/git/repoguard", "Path to the repoguard binary")
 	gitDir := flag.String("git-dir", "/home/git", "Path to the git directory")
+	logPath := flag.String("log-path", "/home/git/log", "Path to log file")
 	flag.Parse()
 
 	resp, err := http.Get(*endpoint + "/keys")
@@ -41,5 +42,5 @@ func main() {
 		log.Fatalf("error unmarshalling response body: %v", err)
 	}
 
-	fmt.Print(formatKeyData(*repoguardPath, *gitDir, data))
+	fmt.Print(formatKeyData(*repoguardPath, *gitDir, *logPath, data))
 }
