@@ -297,13 +297,11 @@
           environment.systemPackages = with pkgs; [ git ];
 
           users.users.git = {
-            isSystemUser = true;
+            isNormalUser = true;
             home = "/home/git";
             createHome = true;
-            shell = "${pkgs.shadow}/bin/nologin";
             uid = 1000;
             group = "git";
-            extraGroups = ["sudo"];
           };
 
           users.groups.git = {};
@@ -321,7 +319,7 @@
               mode = "0555";
               text = ''
                   #!${pkgs.stdenv.shell}
-                  ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /home/git/repoguard.log
+                  ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /tmp/repoguard.log
               '';
           };
 
