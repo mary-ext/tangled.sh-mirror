@@ -92,8 +92,20 @@
           pname = "knotserver";
           version = "0.1.0";
           src = gitignoreSource ./.;
+          nativeBuildInputs = [ final.makeWrapper ];
           subPackages = ["cmd/knotserver"];
           vendorHash = goModHash;
+          installPhase = ''
+              runHook preInstall
+
+              mkdir -p $out/bin
+              cp $GOPATH/bin/knotserver $out/bin/knotserver
+
+              wrapProgram $out/bin/knotserver \
+              --prefix PATH : ${pkgs.git}/bin
+
+              runHook postInstall
+          '';
           env.CGO_ENABLED = 1;
         };
       repoguard = buildCmdPackage "repoguard";
@@ -282,9 +294,7 @@
         config = mkIf config.services.tangled-knotserver.enable {
           nixpkgs.overlays = [self.overlays.default];
 
-          environment.systemPackages = with pkgs; [
-              git
-          ];
+          environment.systemPackages = with pkgs; [ git ];
 
           users.users.git = {
             isSystemUser = true;
@@ -302,9 +312,17 @@
             enable = true;
             extraConfig = ''
               Match User git
-              AuthorizedKeysCommand ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /home/git/repoguard.log
-              AuthorizedKeysCommandUser nobody
+                  AuthorizedKeysCommand /etc/ssh/keyfetch_wrapper
+                  AuthorizedKeysCommandUser nobody
             '';
+          };
+
+          environment.etc."ssh/keyfetch_wrapper" = {
+              mode = "0555";
+              text = ''
+                  #!${pkgs.stdenv.shell}
+                  ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /home/git/repoguard.log
+              '';
           };
 
           systemd.services.knotserver = {
