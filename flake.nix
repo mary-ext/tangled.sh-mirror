@@ -44,7 +44,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-ywhhGrv8KNqy9tCMCnA1PU/RQ/+0Xyitej1L48TcFvI=";
+      goModHash = "sha256-tBhwRT3qnTHoAyasYIDwr9+3V+c7VLPY2LJ6A25l1gA=";
       buildCmdPackage = name:
         final.buildGoModule {
           pname = name;
@@ -282,7 +282,9 @@
         config = mkIf config.services.tangled-knotserver.enable {
           nixpkgs.overlays = [self.overlays.default];
 
-          environment.systemPackages = with pkgs; [git];
+          environment.systemPackages = with pkgs; [
+              git
+          ];
 
           users.users.git = {
             isSystemUser = true;
@@ -300,7 +302,7 @@
             enable = true;
             extraConfig = ''
               Match User git
-              AuthorizedKeysCommand ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard
+              AuthorizedKeysCommand ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /home/git/repoguard.log
               AuthorizedKeysCommandUser nobody
             '';
           };

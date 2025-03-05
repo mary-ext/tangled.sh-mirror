@@ -40,14 +40,14 @@ func MakeTimeline(e Execer) ([]TimelineEvent, error) {
 		})
 	}
 
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].EventAt.After(events[j].EventAt)
+	})
+
 	// Limit the slice to 100 events
 	if len(events) > 50 {
 		events = events[:50]
 	}
-
-	sort.Slice(events, func(i, j int) bool {
-		return events[i].EventAt.After(events[j].EventAt)
-	})
 
 	return events, nil
 }
