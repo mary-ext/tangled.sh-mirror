@@ -815,11 +815,15 @@ func (s *State) UserRouter() http.Handler {
 			r.Route("/issues", func(r chi.Router) {
 				r.Get("/", s.RepoIssues)
 				r.Get("/{issue}", s.RepoSingleIssue)
-				r.Get("/new", s.NewIssue)
-				r.Post("/new", s.NewIssue)
-				r.Post("/{issue}/comment", s.IssueComment)
-				r.Post("/{issue}/close", s.CloseIssue)
-				r.Post("/{issue}/reopen", s.ReopenIssue)
+
+				r.Group(func(r chi.Router) {
+					r.Use(AuthMiddleware(s))
+					r.Get("/new", s.NewIssue)
+					r.Post("/new", s.NewIssue)
+					r.Post("/{issue}/comment", s.IssueComment)
+					r.Post("/{issue}/close", s.CloseIssue)
+					r.Post("/{issue}/reopen", s.ReopenIssue)
+				})
 			})
 
 			r.Route("/pulls", func(r chi.Router) {
