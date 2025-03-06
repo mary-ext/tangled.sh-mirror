@@ -508,7 +508,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 }
 
-func (s *State) AddRepo(w http.ResponseWriter, r *http.Request) {
+func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		user := s.auth.GetUser(r)
@@ -885,8 +885,8 @@ func (s *State) StandardRouter() http.Handler {
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
 			r.Use(AuthMiddleware(s))
-			r.Get("/", s.AddRepo)
-			r.Post("/", s.AddRepo)
+			r.Get("/", s.NewRepo)
+			r.Post("/", s.NewRepo)
 		})
 		// r.Post("/import", s.ImportRepo)
 	})

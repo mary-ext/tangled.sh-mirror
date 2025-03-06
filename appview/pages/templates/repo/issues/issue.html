@@ -41,7 +41,7 @@
         </div>
 
         {{ if .Issue.Body }}
-            <article id="body" class="mt-8">
+            <article id="body" class="mt-8 prose">
                 {{ .Issue.Body | markdown }}
             </article>
         {{ end }}
@@ -82,7 +82,7 @@
                         {{ .Created | timeFmt }}
                     </a>
                 </div>
-                <div class="">
+                <div class="prose">
                     {{ .Body | markdown }}
                 </div>
             </div>

@@ -130,7 +130,7 @@ func GenerateRegistrationKey(e Execer, domain, did string) (string, error) {
 	_, err = e.Exec(`
 		insert into registrations (domain, did, secret)
 		values (?, ?, ?)
-		on conflict(domain) do update set did = excluded.did, secret = excluded.secret
+		on conflict(domain) do update set did = excluded.did, secret = excluded.secret, created = excluded.created
 		`, domain, did, secret)
 
 	if err != nil {
