@@ -215,11 +215,13 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
 			htmlString = renderMarkdown(params.Readme)
+			params.Raw = false
+			params.HTMLReadme = template.HTML(bluemonday.UGCPolicy().Sanitize(htmlString))
 		default:
 			htmlString = string(params.Readme)
 			params.Raw = true
+			params.HTMLReadme = template.HTML(bluemonday.NewPolicy().Sanitize(htmlString))
 		}
-		params.HTMLReadme = template.HTML(bluemonday.NewPolicy().Sanitize(htmlString))
 	}
 
 	return p.executeRepo("repo/index", w, params)
