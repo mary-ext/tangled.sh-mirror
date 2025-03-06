@@ -17,6 +17,7 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/types"
@@ -198,6 +199,8 @@ type RepoIndexParams struct {
 	Active       string
 	TagMap       map[string][]string
 	types.RepoIndexResponse
+	HTMLReadme template.HTML
+	Raw        bool
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
@@ -205,6 +208,20 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 	if params.IsEmpty {
 		return p.executeRepo("repo/empty", w, params)
 	}
+
+	if params.ReadmeFileName != "" {
+		var htmlString string
+		ext := filepath.Ext(params.ReadmeFileName)
+		switch ext {
+		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
+			htmlString = renderMarkdown(params.Readme)
+		default:
+			htmlString = string(params.Readme)
+			params.Raw = true
+		}
+		params.HTMLReadme = template.HTML(bluemonday.NewPolicy().Sanitize(htmlString))
+	}
+
 	return p.executeRepo("repo/index", w, params)
 }
 

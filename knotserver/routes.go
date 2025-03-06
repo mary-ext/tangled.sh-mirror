@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -21,7 +20,6 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/russross/blackfriday/v2"
 	"github.com/sotangled/tangled/knotserver/db"
 	"github.com/sotangled/tangled/knotserver/git"
 	"github.com/sotangled/tangled/types"
@@ -102,31 +100,14 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		rtags = append(rtags, &tr)
 	}
 
-	var readmeContent template.HTML
+	var readmeContent string
+	var readmeFile string
 	for _, readme := range h.c.Repo.Readme {
-		ext := filepath.Ext(readme)
 		content, _ := gr.FileContent(readme)
 		if len(content) > 0 {
-			switch ext {
-			case ".md", ".mkd", ".markdown":
-				unsafe := blackfriday.Run(
-					[]byte(content),
-					blackfriday.WithExtensions(blackfriday.CommonExtensions),
-				)
-				html := sanitize(unsafe)
-				readmeContent = template.HTML(html)
-			default:
-				safe := sanitize([]byte(content))
-				readmeContent = template.HTML(
-					fmt.Sprintf(`<pre>%s</pre>`, safe),
-				)
-			}
-			break
+			readmeContent = string(content)
+			readmeFile = readme
 		}
-	}
-
-	if readmeContent == "" {
-		l.Warn("no readme found")
 	}
 
 	files, err := gr.FileTree("")
@@ -147,15 +128,16 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := types.RepoIndexResponse{
-		IsEmpty:      false,
-		Ref:          ref,
-		Commits:      commits,
-		Description:  getDescription(path),
-		Readme:       readmeContent,
-		Files:        files,
-		Branches:     bs,
-		Tags:         rtags,
-		TotalCommits: total,
+		IsEmpty:        false,
+		Ref:            ref,
+		Commits:        commits,
+		Description:    getDescription(path),
+		Readme:         readmeContent,
+		ReadmeFileName: readmeFile,
+		Files:          files,
+		Branches:       bs,
+		Tags:           rtags,
+		TotalCommits:   total,
 	}
 
 	writeJSON(w, resp)

@@ -114,7 +114,7 @@
 {{ end }}
 
 
-{{ define "commitLog" }} 
+{{ define "commitLog" }}
 <div id="commit-log" class="hidden md:block md:col-span-1">
     {{ range .Commits }}
           <div class="relative px-2 pb-8">
@@ -191,10 +191,14 @@
 
 
 {{ define "repoAfter" }}
-    {{- if .Readme }}
-        <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto prose">
-            <article class="readme">
-                {{- .Readme -}}
+    {{- if .HTMLReadme }}
+        <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto {{ if not .Raw }} prose {{ end }}">
+            <article class="{{ if .Raw }}whitespace-pre{{end}}">
+                {{ if .Raw }}
+                    <pre>{{ .HTMLReadme }}</pre>
+                {{ else }}
+                    {{ .HTMLReadme }}
+                {{ end }}
             </article>
         </section>
     {{- end -}}
