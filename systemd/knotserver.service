@@ -1,0 +1,17 @@
+[Unit]
+Description=tangled knot server
+After=network.target
+
+
+[Service]
+ExecStart=/usr/local/bin/knotserver
+Restart=always
+User=git
+WorkingDirectory=/home/git
+EnvironmentFile=/home/git/.knot.env
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
