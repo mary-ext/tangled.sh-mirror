@@ -21,7 +21,13 @@ type Middleware func(http.Handler) http.Handler
 func AuthMiddleware(s *State) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, _ := s.auth.Store.Get(r, appview.SessionName)
+			session, err := s.auth.GetSession(r)
+			if session.IsNew || err != nil {
+				log.Printf("not logged in, redirecting")
+				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				return
+			}
+
 			authorized, ok := session.Values[appview.SessionAuthenticated].(bool)
 			if !ok || !authorized {
 				log.Printf("not logged in, redirecting")
@@ -38,9 +44,15 @@ func AuthMiddleware(s *State) Middleware {
 				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 				return
 			}
-			pdsUrl := session.Values[appview.SessionPds].(string)
-			did := session.Values[appview.SessionDid].(string)
-			refreshJwt := session.Values[appview.SessionRefreshJwt].(string)
+			pdsUrl, ok1 := session.Values[appview.SessionPds].(string)
+			did, ok2 := session.Values[appview.SessionDid].(string)
+			refreshJwt, ok3 := session.Values[appview.SessionRefreshJwt].(string)
+
+			if !ok1 || !ok2 || !ok3 {
+				log.Println("invalid expiry time", err)
+				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				return
+			}
 
 			if time.Now().After(expiry) {
 				log.Println("token expired, refreshing ...")

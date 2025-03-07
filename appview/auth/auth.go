@@ -140,14 +140,13 @@ func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish
 	clientSession.Values[appview.SessionPds] = pdsEndpoint
 	clientSession.Values[appview.SessionAccessJwt] = atSessionish.GetAccessJwt()
 	clientSession.Values[appview.SessionRefreshJwt] = atSessionish.GetRefreshJwt()
-	clientSession.Values[appview.SessionExpiry] = time.Now().Add(time.Minute * 15).Format(time.RFC3339)
+	clientSession.Values[appview.SessionExpiry] = time.Now().Add(time.Second * 5).Format(time.RFC3339)
 	clientSession.Values[appview.SessionAuthenticated] = true
 	return clientSession.Save(r, w)
 }
 
 func (a *Auth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
 	clientSession, err := a.Store.Get(r, "appview-session")
-
 	if err != nil || clientSession.IsNew {
 		return nil, err
 	}

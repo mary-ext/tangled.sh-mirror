@@ -836,6 +836,7 @@ func (s *State) UserRouter() http.Handler {
 
 			// settings routes, needs auth
 			r.Group(func(r chi.Router) {
+				r.Use(AuthMiddleware(s))
 				r.With(RepoPermissionMiddleware(s, "repo:settings")).Route("/settings", func(r chi.Router) {
 					r.Get("/", s.RepoSettings)
 					r.With(RepoPermissionMiddleware(s, "repo:invite")).Put("/collaborator", s.AddCollaborator)
@@ -858,7 +859,7 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Get("/", s.Timeline)
 
-	r.Get("/logout", s.Logout)
+	r.With(AuthMiddleware(s)).Get("/logout", s.Logout)
 
 	r.Route("/login", func(r chi.Router) {
 		r.Get("/", s.Login)
