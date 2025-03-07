@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sotangled/tangled/knotserver/db"
 	"github.com/sotangled/tangled/rbac"
 )
@@ -59,6 +60,7 @@ func Internal(ctx context.Context, db *db.DB, e *rbac.Enforcer) http.Handler {
 
 	r.Get("/push-allowed", h.PushAllowed)
 	r.Get("/keys", h.InternalKeys)
+	r.Mount("/debug", middleware.Profiler())
 
 	return r
 }

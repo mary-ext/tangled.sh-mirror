@@ -11,6 +11,8 @@ import (
 	"github.com/sotangled/tangled/knotserver/db"
 	"github.com/sotangled/tangled/log"
 	"github.com/sotangled/tangled/rbac"
+
+	_ "net/http/pprof"
 )
 
 func main() {
