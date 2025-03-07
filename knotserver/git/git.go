@@ -26,9 +26,10 @@ var (
 
 func init() {
 	cache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,
-		MaxCost:     1 << 30,
-		BufferItems: 64,
+		NumCounters:            1e7,
+		MaxCost:                1 << 30,
+		BufferItems:            64,
+		TtlTickerDurationInSec: 120,
 	})
 	commitCache = cache
 }
