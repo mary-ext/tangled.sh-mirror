@@ -7,3 +7,18 @@
         </p>
     </main>
 {{ end }}
+
+{{ define "repoAfter" }}
+    <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto">
+        <strong>push</strong>
+        <pre>
+ git remote add origin git@tangled.sh:{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }} </pre
+        >
+        <strong>clone</strong>
+        <pre>
+ git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}
+ git clone git@tangled.sh:{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}
+ </pre
+        >
+    </section>
+{{ end }}
