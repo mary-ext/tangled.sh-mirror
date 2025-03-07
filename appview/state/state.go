@@ -97,6 +97,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("rendering login page: %s", err)
 		}
+
 		return
 	case http.MethodPost:
 		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
@@ -123,6 +124,41 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
+
+		did := resolved.DID.String()
+		defaultKnot := "knot1.tangled.sh"
+
+		go func() {
+			log.Printf("adding %s to default knot", did)
+			err = s.enforcer.AddMember(defaultKnot, did)
+			if err != nil {
+				log.Println("failed to add user to knot1.tangled.sh: ", err)
+				return
+			}
+			err = s.enforcer.E.SavePolicy()
+			if err != nil {
+				log.Println("failed to add user to knot1.tangled.sh: ", err)
+				return
+			}
+
+			secret, err := db.GetRegistrationKey(s.db, defaultKnot)
+			if err != nil {
+				log.Println("failed to get registration key for knot1.tangled.sh")
+				return
+			}
+			signedClient, err := NewSignedClient(defaultKnot, secret, s.config.Dev)
+			resp, err := signedClient.AddMember(did)
+			if err != nil {
+				log.Println("failed to add user to knot1.tangled.sh: ", err)
+				return
+			}
+
+			if resp.StatusCode != http.StatusNoContent {
+				log.Println("failed to add user to knot1.tangled.sh: ", resp.StatusCode)
+				return
+			}
+		}()
+
 		s.pages.HxRedirect(w, "/")
 		return
 	}
@@ -513,7 +549,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		user := s.auth.GetUser(r)
 		knots, err := s.enforcer.GetDomainsForUser(user.Did)
-
 		if err != nil {
 			s.pages.Notice(w, "repo", "Invalid user account.")
 			return
@@ -523,6 +558,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			LoggedInUser: user,
 			Knots:        knots,
 		})
+
 	case http.MethodPost:
 		user := s.auth.GetUser(r)
 
