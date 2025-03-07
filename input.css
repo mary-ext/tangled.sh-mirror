@@ -123,10 +123,10 @@
             @apply block text-sm text-black;
         }
         input {
-            @apply bg-white border border-black rounded-sm focus:ring-black p-2;
+            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-2;
         }
         textarea {
-            @apply bg-white border border-black rounded-sm focus:ring-black p-2;
+            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-2;
         }
         details summary::-webkit-details-marker {
           display: none;

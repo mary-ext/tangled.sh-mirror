@@ -93,7 +93,7 @@ func funcMap() template.FuncMap {
 		"sequence": func(n int) []struct{} {
 			return make([]struct{}, n)
 		},
-		"subslice": func(slice interface{}, start, end int) interface{} {
+		"subslice": func(slice any, start, end int) any {
 			v := reflect.ValueOf(slice)
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 				return nil

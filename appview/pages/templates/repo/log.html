@@ -5,12 +5,14 @@
         {{ $commit := index .Commits 0 }}
         {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
         <div>
+          <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}">
             <p class="pb-5">{{ index $messageParts 0 }}</p>
             {{ if gt (len $messageParts) 1 }}
-                <p class="mt-1 text-sm cursor-text pb-5">
-                    {{ nl2br (unwrapText (index $messageParts 1)) }}
-                </p>
+              <p class="mt-1 text-sm cursor-text pb-5">
+              {{ nl2br (unwrapText (index $messageParts 1)) }}
+              </p>
             {{ end }}
+          </a>
         </div>
 
         <div class="text-sm text-gray-500">

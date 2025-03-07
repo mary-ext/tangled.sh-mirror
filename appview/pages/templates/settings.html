@@ -1,0 +1,72 @@
+{{ define "title" }}settings{{ end }}
+
+{{ define "content" }}
+  <div class="p-6">
+    <p class="text-xl font-bold">Settings</p>
+  </div>
+  <div class="flex flex-col">
+    {{ block "profile" . }} {{ end }}
+    {{ block "keys" . }} {{ end }}
+    {{ block "knots" . }} {{ end }}
+  </div>
+{{ end }}
+
+{{ define "profile" }}
+<header class="text-sm font-bold py-2 px-6 uppercase">profile</header>
+<section class="rounded bg-white drop-shadow-sm px-6 py-4 mb-6 w-fit">
+  <dl class="grid grid-cols-[auto_1fr] gap-x-4">
+    {{ if .LoggedInUser.Handle }}
+    <dt class="font-bold">handle</dt>
+    <dd>@{{ .LoggedInUser.Handle }}</dd>
+    {{ end }}
+    <dt class="font-bold">did</dt>
+    <dd>{{ .LoggedInUser.Did }}</dd>
+    <dt class="font-bold">pds</dt>
+    <dd>{{ .LoggedInUser.Pds }}</dd>
+  </dl>
+</section>
+{{ end }}
+
+{{ define "keys" }}
+<header class="text-sm font-bold py-2 px-6 uppercase">ssh keys</header>
+<section class="rounded bg-white drop-shadow-sm px-6 py-4 mb-6 w-fit">
+  <div id="key-list" class="flex flex-col gap-6 mb-8">
+    {{ range .PubKeys }}
+    <div>
+      <div class="inline-flex items-center gap-4">
+        <i class="w-3 h-3" data-lucide="key"></i>
+        <p class="font-bold">{{ .Name }} </p>
+        <p class="text-sm text-gray-500">added {{ .Created | timeFmt }}</p>
+      </div>
+      <code class="block text-sm break-all text-gray-500">{{ .Key }}</code>
+    </div>
+    {{ end }}
+  </div>
+  <hr class="mb-4" />
+  <p class="mb-2">add an ssh key</p>
+  <form
+      hx-put="/settings/keys"
+      hx-swap="none"
+      class="max-w-2xl mb-8 space-y-4"
+      >
+      <input
+          type="text"
+          id="name"
+          name="name"
+          placeholder="key name"
+          required
+          class="w-full"/>
+
+      <input
+          id="key"
+          name="key"
+          placeholder="ssh-rsa AAAAAA..."
+          required
+          class="w-full"/>
+
+      <button class="btn w-full" type="submit">add key</button>
+
+      <div id="settings-keys" class="error"></div>
+  </form>
+</section>
+{{ end }}

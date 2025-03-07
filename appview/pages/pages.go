@@ -106,7 +106,7 @@ type SettingsParams struct {
 }
 
 func (p *Pages) Settings(w io.Writer, params SettingsParams) error {
-	return p.execute("settings/keys", w, params)
+	return p.execute("settings", w, params)
 }
 
 type KnotsParams struct {
