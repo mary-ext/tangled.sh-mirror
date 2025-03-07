@@ -36,6 +36,8 @@ type State struct {
 	resolver *appview.Resolver
 	jc       *jetstream.JetstreamClient
 	config   *appview.Config
+
+	sessionCancelFuncs map[string]context.CancelFunc
 }
 
 func Make(config *appview.Config) (*State, error) {
@@ -70,6 +72,8 @@ func Make(config *appview.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
 
+	sessionCancelFuncs := make(map[string]context.CancelFunc)
+
 	state := &State{
 		d,
 		auth,
@@ -79,6 +83,7 @@ func Make(config *appview.Config) (*State, error) {
 		resolver,
 		jc,
 		config,
+		sessionCancelFuncs,
 	}
 
 	return state, nil
@@ -123,12 +128,28 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
+
+		sessionCtx, cancel := context.WithCancel(context.Background())
+		s.sessionCancelFuncs[sessionish.GetDid()] = cancel
+		expiry := auth.ExpiryDuration
+
+		go s.StartTokenRefresher(sessionCtx, expiry, r, w, &sessionish, resolved.PDSEndpoint())
+
 		s.pages.HxRedirect(w, "/")
 		return
 	}
 }
 
 func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
+	session, err := s.auth.GetSession(r)
+	did := session.Values[appview.SessionDid].(string)
+	if err == nil {
+		if cancel, exists := s.sessionCancelFuncs[did]; exists {
+			cancel()
+			delete(s.sessionCancelFuncs, did)
+		}
+	}
+
 	s.auth.ClearSession(r, w)
 	http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 }
@@ -512,8 +533,13 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		user := s.auth.GetUser(r)
-		knots, err := s.enforcer.GetDomainsForUser(user.Did)
+		err := s.enforcer.AddMember("knot1.tangled.sh", user.Did)
+		if err != nil {
+			log.Println("failed to add user to knot1.tangled.sh: ", err)
+			s.pages.Notice(w, "repo", "Failed to add user to knot1.tangled.sh. You should be able to use your own knot however.")
+		}
 
+		knots, err := s.enforcer.GetDomainsForUser(user.Did)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Invalid user account.")
 			return

@@ -13,6 +13,8 @@ import (
 	"github.com/sotangled/tangled/appview"
 )
 
+const ExpiryDuration = 15 * time.Minute
+
 type Auth struct {
 	Store *sessions.CookieStore
 }
@@ -59,6 +61,38 @@ type Sessionish interface {
 	GetHandle() string
 	GetRefreshJwt() string
 	GetStatus() *string
+}
+
+type ClientSessionish struct {
+	sessions.Session
+}
+
+func (c *ClientSessionish) GetAccessJwt() string {
+	return c.Values[appview.SessionAccessJwt].(string)
+}
+
+func (c *ClientSessionish) GetActive() *bool {
+	return c.Values[appview.SessionAuthenticated].(*bool)
+}
+
+func (c *ClientSessionish) GetDid() string {
+	return c.Values[appview.SessionDid].(string)
+}
+
+func (c *ClientSessionish) GetDidDoc() *interface{} {
+	return nil
+}
+
+func (c *ClientSessionish) GetHandle() string {
+	return c.Values[appview.SessionHandle].(string)
+}
+
+func (c *ClientSessionish) GetRefreshJwt() string {
+	return c.Values[appview.SessionRefreshJwt].(string)
+}
+
+func (c *ClientSessionish) GetStatus() *string {
+	return nil
 }
 
 // Create a wrapper type for ServerRefreshSession_Output
@@ -140,9 +174,33 @@ func (a *Auth) StoreSession(r *http.Request, w http.ResponseWriter, atSessionish
 	clientSession.Values[appview.SessionPds] = pdsEndpoint
 	clientSession.Values[appview.SessionAccessJwt] = atSessionish.GetAccessJwt()
 	clientSession.Values[appview.SessionRefreshJwt] = atSessionish.GetRefreshJwt()
-	clientSession.Values[appview.SessionExpiry] = time.Now().Add(time.Minute * 15).Format(time.RFC3339)
+	clientSession.Values[appview.SessionExpiry] = time.Now().Add(ExpiryDuration).Format(time.RFC3339)
 	clientSession.Values[appview.SessionAuthenticated] = true
 	return clientSession.Save(r, w)
+}
+
+func (a *Auth) RefreshSession(ctx context.Context, r *http.Request, w http.ResponseWriter, atSessionish Sessionish, pdsEndpoint string) error {
+	client := xrpc.Client{
+		Host: pdsEndpoint,
+		Auth: &xrpc.AuthInfo{
+			Did:        atSessionish.GetDid(),
+			AccessJwt:  atSessionish.GetRefreshJwt(),
+			RefreshJwt: atSessionish.GetRefreshJwt(),
+		},
+	}
+
+	atSession, err := comatproto.ServerRefreshSession(ctx, &client)
+	if err != nil {
+		return fmt.Errorf("failed to refresh session: %w", err)
+	}
+
+	newAtSessionish := &RefreshSessionWrapper{atSession}
+	err = a.StoreSession(r, w, newAtSessionish, pdsEndpoint)
+	if err != nil {
+		return fmt.Errorf("failed to store refreshed session: %w", err)
+	}
+
+	return nil
 }
 
 func (a *Auth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
