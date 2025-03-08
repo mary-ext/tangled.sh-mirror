@@ -1,0 +1,17 @@
+{{ define "fragments/follow" }}
+  <button id="followBtn"
+    class="btn mt-2 w-full"
+
+    {{ if eq .FollowStatus.String "IsNotFollowing" }}
+    hx-post="/follow?subject={{.UserDid}}"
+    {{ else }}
+    hx-delete="/follow?subject={{.UserDid}}"
+    {{ end }}
+
+    hx-trigger="click"
+    hx-target="#followBtn"
+    hx-swap="outerHTML"
+    >
+    {{ if eq .FollowStatus.String "IsNotFollowing" }}Follow{{ else }}Unfollow{{ end }}
+  </button>
+{{ end }}

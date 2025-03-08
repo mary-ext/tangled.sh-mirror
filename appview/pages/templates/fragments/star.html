@@ -1,0 +1,36 @@
+{{ define "fragments/star" }}
+  <button id="starBtn"
+    class="btn text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+
+    {{ if .IsStarred }}
+    hx-delete="/star?subject={{.RepoAt}}&countHint={{.Stats.StarCount}}"
+    {{ else }}
+    hx-post="/star?subject={{.RepoAt}}&countHint={{.Stats.StarCount}}"
+    {{ end }}
+
+    hx-trigger="click"
+    hx-target="#starBtn"
+    hx-swap="outerHTML"
+    hx-disabled-elt="#starBtn"
+    >
+    <div class="flex gap-2 items-center">
+      {{ if .IsStarred }}
+      <span class="w-3 h-3 fill-current" data-lucide="star"></span>
+      {{ else }}
+      <span class="w-3 h-3" data-lucide="star"></span>
+      {{ end }}
+      <span>
+        {{ .Stats.StarCount }}
+      </span>
+      <span id="starSpinner" class="hidden">
+        loading
+      </span>
+    </div>
+  </button>
+  <script>
+    document.body.addEventListener('htmx:afterRequest', function (evt) {
+      lucide.createIcons();
+    });
+  </script>
+{{ end }}
+

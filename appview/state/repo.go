@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/api/tangled"
@@ -75,13 +76,8 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
-		LoggedInUser: user,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		LoggedInUser:      user,
+		RepoInfo:          f.RepoInfo(s, user),
 		TagMap:            tagMap,
 		RepoIndexResponse: result,
 	})
@@ -126,13 +122,8 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoLog(w, pages.RepoLogParams{
-		LoggedInUser: user,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		LoggedInUser:    user,
+		RepoInfo:        f.RepoInfo(s, user),
 		RepoLogResponse: repolog,
 	})
 	return
@@ -167,13 +158,8 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoCommit(w, pages.RepoCommitParams{
-		LoggedInUser: user,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		LoggedInUser:       user,
+		RepoInfo:           f.RepoInfo(s, user),
 		RepoCommitResponse: result,
 	})
 	return
@@ -221,16 +207,11 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 	baseBlobLink := path.Join(f.OwnerDid(), f.RepoName, "blob", ref, treePath)
 
 	s.pages.RepoTree(w, pages.RepoTreeParams{
-		LoggedInUser: user,
-		BreadCrumbs:  breadcrumbs,
-		BaseTreeLink: baseTreeLink,
-		BaseBlobLink: baseBlobLink,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		LoggedInUser:     user,
+		BreadCrumbs:      breadcrumbs,
+		BaseTreeLink:     baseTreeLink,
+		BaseBlobLink:     baseBlobLink,
+		RepoInfo:         f.RepoInfo(s, user),
 		RepoTreeResponse: result,
 	})
 	return
@@ -264,13 +245,8 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoTags(w, pages.RepoTagsParams{
-		LoggedInUser: user,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		LoggedInUser:     user,
+		RepoInfo:         f.RepoInfo(s, user),
 		RepoTagsResponse: result,
 	})
 	return
@@ -304,13 +280,8 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoBranches(w, pages.RepoBranchesParams{
-		LoggedInUser: user,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		LoggedInUser:         user,
+		RepoInfo:             f.RepoInfo(s, user),
 		RepoBranchesResponse: result,
 	})
 	return
@@ -354,13 +325,8 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoBlob(w, pages.RepoBlobParams{
-		LoggedInUser: user,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		LoggedInUser:     user,
+		RepoInfo:         f.RepoInfo(s, user),
 		RepoBlobResponse: result,
 		BreadCrumbs:      breadcrumbs,
 	})
@@ -481,13 +447,8 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.pages.RepoSettings(w, pages.RepoSettingsParams{
-			LoggedInUser: user,
-			RepoInfo: pages.RepoInfo{
-				OwnerDid:        f.OwnerDid(),
-				OwnerHandle:     f.OwnerHandle(),
-				Name:            f.RepoName,
-				SettingsAllowed: settingsAllowed(s, user, f),
-			},
+			LoggedInUser:                user,
+			RepoInfo:                    f.RepoInfo(s, user),
 			Collaborators:               repoCollaborators,
 			IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
 		})
@@ -498,7 +459,7 @@ type FullyResolvedRepo struct {
 	Knot     string
 	OwnerId  identity.Identity
 	RepoName string
-	RepoAt   string
+	RepoAt   syntax.ATURI
 }
 
 func (f *FullyResolvedRepo) OwnerDid() string {
@@ -558,6 +519,35 @@ func (f *FullyResolvedRepo) Collaborators(ctx context.Context, s *State) ([]page
 	return collaborators, nil
 }
 
+func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
+	isStarred := false
+	if u != nil {
+		isStarred = db.GetStarStatus(s.db, u.Did, syntax.ATURI(f.RepoAt))
+	}
+
+	starCount, err := db.GetStarCount(s.db, f.RepoAt)
+	if err != nil {
+		log.Println("failed to get star count for ", f.RepoAt)
+	}
+	issueCount, err := db.GetIssueCount(s.db, f.RepoAt)
+	if err != nil {
+		log.Println("failed to get issue count for ", f.RepoAt)
+	}
+
+	return pages.RepoInfo{
+		OwnerDid:        f.OwnerDid(),
+		OwnerHandle:     f.OwnerHandle(),
+		Name:            f.RepoName,
+		RepoAt:          f.RepoAt,
+		SettingsAllowed: settingsAllowed(s, u, f),
+		IsStarred:       isStarred,
+		Stats: db.RepoStats{
+			StarCount:  starCount,
+			IssueCount: issueCount,
+		},
+	}
+}
+
 func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
@@ -602,14 +592,9 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
 		LoggedInUser: user,
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
-		Issue:    *issue,
-		Comments: comments,
+		RepoInfo:     f.RepoInfo(s, user),
+		Issue:        *issue,
+		Comments:     comments,
 
 		IssueOwnerHandle: issueOwnerIdent.Handle.String(),
 		DidHandleMap:     didHandleMap,
@@ -770,6 +755,7 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		atUri := f.RepoAt.String()
 		client, _ := s.auth.AuthorizedClient(r)
 		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueCommentNSID,
@@ -777,7 +763,7 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 			Rkey:       s.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssueComment{
-					Repo:      &f.RepoAt,
+					Repo:      &atUri,
 					Issue:     issueAt,
 					CommentId: &commentIdInt64,
 					Owner:     &ownerDid,
@@ -828,12 +814,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.RepoIssues(w, pages.RepoIssuesParams{
 		LoggedInUser: s.auth.GetUser(r),
-		RepoInfo: pages.RepoInfo{
-			OwnerDid:        f.OwnerDid(),
-			OwnerHandle:     f.OwnerHandle(),
-			Name:            f.RepoName,
-			SettingsAllowed: settingsAllowed(s, user, f),
-		},
+		RepoInfo:     f.RepoInfo(s, user),
 		Issues:       issues,
 		DidHandleMap: didHandleMap,
 	})
@@ -853,12 +834,7 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		s.pages.RepoNewIssue(w, pages.RepoNewIssueParams{
 			LoggedInUser: user,
-			RepoInfo: pages.RepoInfo{
-				Name:            f.RepoName,
-				OwnerDid:        f.OwnerDid(),
-				OwnerHandle:     f.OwnerHandle(),
-				SettingsAllowed: settingsAllowed(s, user, f),
-			},
+			RepoInfo:     f.RepoInfo(s, user),
 		})
 	case http.MethodPost:
 		title := r.FormValue("title")
@@ -895,13 +871,14 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 		}
 
 		client, _ := s.auth.AuthorizedClient(r)
+		atUri := f.RepoAt.String()
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,
 			Rkey:       s.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssue{
-					Repo:    f.RepoAt,
+					Repo:    atUri,
 					Title:   title,
 					Body:    &body,
 					Owner:   user.Did,
@@ -939,12 +916,7 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		s.pages.RepoPulls(w, pages.RepoPullsParams{
 			LoggedInUser: user,
-			RepoInfo: pages.RepoInfo{
-				Name:            f.RepoName,
-				OwnerDid:        f.OwnerDid(),
-				OwnerHandle:     f.OwnerHandle(),
-				SettingsAllowed: settingsAllowed(s, user, f),
-			},
+			RepoInfo:     f.RepoInfo(s, user),
 		})
 	}
 }
@@ -968,11 +940,17 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
+	parsedRepoAt, err := syntax.ParseATURI(repoAt)
+	if err != nil {
+		log.Println("malformed repo at-uri")
+		return nil, fmt.Errorf("malformed middleware")
+	}
+
 	return &FullyResolvedRepo{
 		Knot:     knot,
 		OwnerId:  id,
 		RepoName: repoName,
-		RepoAt:   repoAt,
+		RepoAt:   parsedRepoAt,
 	}, nil
 }
 

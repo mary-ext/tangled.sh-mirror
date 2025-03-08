@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/jetstream/pkg/models"
 	tangled "github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview/db"
@@ -40,6 +41,25 @@ func jetstreamIngester(d db.DbWrapper) Ingester {
 				return err
 			}
 			err = db.AddFollow(d, did, record.Subject, e.Commit.RKey)
+			if err != nil {
+				return fmt.Errorf("failed to add follow to db: %w", err)
+			}
+		case tangled.FeedStarNSID:
+			record := tangled.FeedStar{}
+			err := json.Unmarshal(raw, &record)
+			if err != nil {
+				log.Println("invalid record")
+				return err
+			}
+
+			subjectUri, err := syntax.ParseATURI(record.Subject)
+
+			if err != nil {
+				log.Println("invalid record")
+				return err
+			}
+
+			err = db.AddStar(d, did, subjectUri, e.Commit.RKey)
 			if err != nil {
 				return fmt.Errorf("failed to add follow to db: %w", err)
 			}

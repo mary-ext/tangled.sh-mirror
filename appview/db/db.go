@@ -112,6 +112,16 @@ func Make(dbPath string) (*DB, error) {
 			next_issue_id integer not null default 1
 		);
 
+		create table if not exists stars (
+			id integer primary key autoincrement,
+			starred_by_did text not null,
+			repo_at text not null,
+			rkey text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			foreign key (repo_at) references repos(at_uri) on delete cascade,
+			unique(starred_by_did, repo_at)
+		);
+
 	`)
 	if err != nil {
 		return nil, err

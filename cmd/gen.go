@@ -14,13 +14,14 @@ func main() {
 	if err := genCfg.WriteMapEncodersToFile(
 		"api/tangled/cbor_gen.go",
 		"tangled",
-		shtangled.PublicKey{},
-		shtangled.KnotMember{},
+		shtangled.FeedStar{},
 		shtangled.GraphFollow{},
-		shtangled.Repo{},
-		shtangled.RepoIssue{},
-		shtangled.RepoIssueState{},
+		shtangled.KnotMember{},
+		shtangled.PublicKey{},
 		shtangled.RepoIssueComment{},
+		shtangled.RepoIssueState{},
+		shtangled.RepoIssue{},
+		shtangled.Repo{},
 	); err != nil {
 		panic(err)
 	}

@@ -3,10 +3,12 @@ package db
 import (
 	"database/sql"
 	"time"
+
+	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
 type Issue struct {
-	RepoAt   string
+	RepoAt   syntax.ATURI
 	OwnerDid string
 	IssueId  int
 	IssueAt  string
@@ -18,7 +20,7 @@ type Issue struct {
 
 type Comment struct {
 	OwnerDid  string
-	RepoAt    string
+	RepoAt    syntax.ATURI
 	CommentAt string
 	Issue     int
 	CommentId int
@@ -65,30 +67,30 @@ func NewIssue(tx *sql.Tx, issue *Issue) error {
 	return nil
 }
 
-func SetIssueAt(e Execer, repoAt string, issueId int, issueAt string) error {
+func SetIssueAt(e Execer, repoAt syntax.ATURI, issueId int, issueAt string) error {
 	_, err := e.Exec(`update issues set issue_at = ? where repo_at = ? and issue_id = ?`, issueAt, repoAt, issueId)
 	return err
 }
 
-func GetIssueAt(e Execer, repoAt string, issueId int) (string, error) {
+func GetIssueAt(e Execer, repoAt syntax.ATURI, issueId int) (string, error) {
 	var issueAt string
 	err := e.QueryRow(`select issue_at from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&issueAt)
 	return issueAt, err
 }
 
-func GetIssueId(e Execer, repoAt string) (int, error) {
+func GetIssueId(e Execer, repoAt syntax.ATURI) (int, error) {
 	var issueId int
 	err := e.QueryRow(`select next_issue_id from repo_issue_seqs where repo_at = ?`, repoAt).Scan(&issueId)
 	return issueId - 1, err
 }
 
-func GetIssueOwnerDid(e Execer, repoAt string, issueId int) (string, error) {
+func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error) {
 	var ownerDid string
 	err := e.QueryRow(`select owner_did from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&ownerDid)
 	return ownerDid, err
 }
 
-func GetIssues(e Execer, repoAt string) ([]Issue, error) {
+func GetIssues(e Execer, repoAt syntax.ATURI) ([]Issue, error) {
 	var issues []Issue
 
 	rows, err := e.Query(`select owner_did, issue_id, created, title, body, open from issues where repo_at = ? order by created desc`, repoAt)
@@ -121,7 +123,7 @@ func GetIssues(e Execer, repoAt string) ([]Issue, error) {
 	return issues, nil
 }
 
-func GetIssue(e Execer, repoAt string, issueId int) (*Issue, error) {
+func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 	query := `select owner_did, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
@@ -141,7 +143,7 @@ func GetIssue(e Execer, repoAt string, issueId int) (*Issue, error) {
 	return &issue, nil
 }
 
-func GetIssueWithComments(e Execer, repoAt string, issueId int) (*Issue, []Comment, error) {
+func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, []Comment, error) {
 	query := `select owner_did, issue_id, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
@@ -180,7 +182,7 @@ func NewComment(e Execer, comment *Comment) error {
 	return err
 }
 
-func GetComments(e Execer, repoAt string, issueId int) ([]Comment, error) {
+func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) {
 	var comments []Comment
 
 	rows, err := e.Query(`select owner_did, issue_id, comment_id, comment_at, body, created from comments where repo_at = ? and issue_id = ? order by created asc`, repoAt, issueId)
@@ -216,12 +218,35 @@ func GetComments(e Execer, repoAt string, issueId int) ([]Comment, error) {
 	return comments, nil
 }
 
-func CloseIssue(e Execer, repoAt string, issueId int) error {
+func CloseIssue(e Execer, repoAt syntax.ATURI, issueId int) error {
 	_, err := e.Exec(`update issues set open = 0 where repo_at = ? and issue_id = ?`, repoAt, issueId)
 	return err
 }
 
-func ReopenIssue(e Execer, repoAt string, issueId int) error {
+func ReopenIssue(e Execer, repoAt syntax.ATURI, issueId int) error {
 	_, err := e.Exec(`update issues set open = 1 where repo_at = ? and issue_id = ?`, repoAt, issueId)
 	return err
+}
+
+type IssueCount struct {
+	Open   int
+	Closed int
+}
+
+func GetIssueCount(e Execer, repoAt syntax.ATURI) (IssueCount, error) {
+	row := e.QueryRow(`
+		select
+			count(case when open = 1 then 1 end) as open_count,
+			count(case when open = 0 then 1 end) as closed_count
+		from issues
+		where repo_at = ?`,
+		repoAt,
+	)
+
+	var count IssueCount
+	if err := row.Scan(&count.Open, &count.Closed); err != nil {
+		return IssueCount{0, 0}, err
+	}
+
+	return count, nil
 }

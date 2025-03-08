@@ -14,10 +14,17 @@ type Repo struct {
 	AtUri   string
 }
 
-func GetAllRepos(e Execer) ([]Repo, error) {
+func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := e.Query(`select did, name, knot, rkey, created from repos`)
+	rows, err := e.Query(
+		`select did, name, knot, rkey, created 
+		from repos
+		order by created desc
+		limit ?
+		`,
+		limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +86,21 @@ func GetRepo(e Execer, did, name string) (*Repo, error) {
 	return &repo, nil
 }
 
+func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
+	var repo Repo
+
+	row := e.QueryRow(`select did, name, knot, created, at_uri from repos where at_uri = ?`, atUri)
+
+	var createdAt string
+	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri); err != nil {
+		return nil, err
+	}
+	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
+	repo.Created = createdAtTime
+
+	return &repo, nil
+}
+
 func AddRepo(e Execer, repo *Repo) error {
 	_, err := e.Exec(`insert into repos (did, name, knot, rkey, at_uri) values (?, ?, ?, ?, ?)`, repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri)
 	return err
@@ -120,6 +142,11 @@ func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 	}
 
 	return repos, nil
+}
+
+type RepoStats struct {
+	StarCount  int
+	IssueCount IssueCount
 }
 
 func scanRepo(rows *sql.Rows, did, name, knot, rkey *string, created *time.Time) error {
