@@ -2,27 +2,32 @@
 
 {{ define "content" }}
     <section id="repo-header" class="mb-4 py-2 px-6">
+      <div class="flex gap-3">
         <p class="text-lg">
-            <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
-            <span class="select-none">/</span>
-            <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
+          <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
+          <span class="select-none">/</span>
+          <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
         </p>
-        <span>
-            {{ if .RepoInfo.Description }}
-                {{ .RepoInfo.Description }}
-            {{ else }}
-                <span class="italic">this repo has no description</span>
-            {{ end }}
-        </span>
+        {{ template "fragments/star" .RepoInfo }}
+      </div>
+      <span>
+          {{ if .RepoInfo.Description }}
+              {{ .RepoInfo.Description }}
+          {{ else }}
+              <span class="italic">this repo has no description</span>
+          {{ end }}
+      </span>
     </section>
     <section id="repo-links" class="min-h-screen flex flex-col drop-shadow-sm">
         <nav class="w-full mx-auto ml-4">
             <div class="flex z-60">
                 {{ $activeTabStyles := "-mb-px bg-white" }}
                 {{ $tabs := .RepoInfo.GetTabs }}
+                {{ $tabmeta := .RepoInfo.TabMetadata }}
                 {{ range $item := $tabs }}
                     {{ $key := index $item 0 }}
                     {{ $value := index $item 1 }}
+                    {{ $meta := index $tabmeta $key }}
                     <a
                         href="/{{ $.RepoInfo.FullName }}{{ $value }}"
                         class="relative -mr-px group no-underline hover:no-underline"
@@ -37,7 +42,10 @@
                              {{ end }}
                              "
                         >
-                            {{ $key }}
+                            {{ $key }} 
+                            {{ if not (isNil $meta) }}
+                            <span class="bg-gray-200 rounded py-1/2 px-1 text-sm font-mono">{{  $meta }}</span>
+                            {{ end }}
                         </div>
                     </a>
                 {{ end }}

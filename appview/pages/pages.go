@@ -17,6 +17,7 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
@@ -43,11 +44,26 @@ func NewPages() *Pages {
 			name := strings.TrimPrefix(path, "templates/")
 			name = strings.TrimSuffix(name, ".html")
 
-			if !strings.HasPrefix(path, "templates/layouts/") {
+			// add fragments as templates
+			if strings.HasPrefix(path, "templates/fragments/") {
+				tmpl, err := template.New(name).
+					Funcs(funcMap()).
+					ParseFS(files, path)
+				if err != nil {
+					return fmt.Errorf("setting up fragment: %w", err)
+				}
+
+				templates[name] = tmpl
+				log.Printf("loaded fragment: %s", name)
+			}
+
+			// layouts and fragments are applied first
+			if !strings.HasPrefix(path, "templates/layouts/") &&
+				!strings.HasPrefix(path, "templates/fragments/") {
 				// Add the page template on top of the base
 				tmpl, err := template.New(name).
 					Funcs(funcMap()).
-					ParseFS(files, "templates/layouts/*.html", path)
+					ParseFS(files, "templates/layouts/*.html", "templates/fragments/*.html", path)
 				if err != nil {
 					return fmt.Errorf("setting up template: %w", err)
 				}
@@ -159,13 +175,35 @@ func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
 	return p.execute("user/profile", w, params)
 }
 
+type FollowFragmentParams struct {
+	UserDid      string
+	FollowStatus db.FollowStatus
+}
+
+func (p *Pages) FollowFragment(w io.Writer, params FollowFragmentParams) error {
+	return p.executePlain("fragments/follow", w, params)
+}
+
+type StarFragmentParams struct {
+	IsStarred bool
+	RepoAt    syntax.ATURI
+	Stats     db.RepoStats
+}
+
+func (p *Pages) StarFragment(w io.Writer, params StarFragmentParams) error {
+	return p.executePlain("fragments/star", w, params)
+}
+
 type RepoInfo struct {
 	Name            string
 	OwnerDid        string
 	OwnerHandle     string
 	Description     string
 	Knot            string
+	RepoAt          syntax.ATURI
 	SettingsAllowed bool
+	IsStarred       bool
+	Stats           db.RepoStats
 }
 
 func (r RepoInfo) OwnerWithAt() string {
@@ -192,6 +230,23 @@ func (r RepoInfo) GetTabs() [][]string {
 	}
 
 	return tabs
+}
+
+// each tab on a repo could have some metadata:
+//
+// issues -> number of open issues etc.
+// settings -> a warning icon to setup branch protection? idk
+//
+// we gather these bits of info here, because go templates
+// are difficult to program in
+func (r RepoInfo) TabMetadata() map[string]any {
+	meta := make(map[string]any)
+
+	meta["issues"] = r.Stats.IssueCount.Open
+
+	// more stuff?
+
+	return meta
 }
 
 type RepoIndexParams struct {

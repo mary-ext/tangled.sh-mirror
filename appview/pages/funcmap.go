@@ -106,5 +106,12 @@ func funcMap() template.FuncMap {
 		"markdown": func(text string) template.HTML {
 			return template.HTML(renderMarkdown(text))
 		},
+		"isNil": func(t any) bool {
+			// returns false for other "zero" values
+			return t == nil
+		},
+		"not": func(t bool) bool {
+			return !t
+		},
 	}
 }

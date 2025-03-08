@@ -184,8 +184,10 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 			didsToResolve = append(didsToResolve, ev.Repo.Did)
 		}
 		if ev.Follow != nil {
-			didsToResolve = append(didsToResolve, ev.Follow.UserDid)
-			didsToResolve = append(didsToResolve, ev.Follow.SubjectDid)
+			didsToResolve = append(didsToResolve, ev.Follow.UserDid, ev.Follow.SubjectDid)
+		}
+		if ev.Star != nil {
+			didsToResolve = append(didsToResolve, ev.Star.StarredByDid, ev.Star.Repo.Did)
 		}
 	}
 
@@ -931,6 +933,11 @@ func (s *State) StandardRouter() http.Handler {
 	r.With(AuthMiddleware(s)).Route("/follow", func(r chi.Router) {
 		r.Post("/", s.Follow)
 		r.Delete("/", s.Follow)
+	})
+
+	r.With(AuthMiddleware(s)).Route("/star", func(r chi.Router) {
+		r.Post("/", s.Star)
+		r.Delete("/", s.Star)
 	})
 
 	r.Route("/settings", func(r chi.Router) {

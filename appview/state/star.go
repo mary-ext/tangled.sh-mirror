@@ -6,13 +6,14 @@ import (
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	tangled "github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/appview/pages"
 )
 
-func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
+func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.auth.GetUser(r)
 
 	subject := r.URL.Query().Get("subject")
@@ -21,13 +22,9 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subjectIdent, err := s.resolver.ResolveIdent(r.Context(), subject)
+	subjectUri, err := syntax.ParseATURI(subject)
 	if err != nil {
-		log.Println("failed to follow, invalid did")
-	}
-
-	if currentUser.Did == subjectIdent.DID.String() {
-		log.Println("cant follow or unfollow yourself")
+		log.Println("invalid form")
 		return
 	}
 
@@ -38,12 +35,12 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 		createdAt := time.Now().Format(time.RFC3339)
 		rkey := s.TID()
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
-			Collection: tangled.GraphFollowNSID,
+			Collection: tangled.FeedStarNSID,
 			Repo:       currentUser.Did,
 			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.GraphFollow{
-					Subject:   subjectIdent.DID.String(),
+				Val: &tangled.FeedStar{
+					Subject:   subjectUri.String(),
 					CreatedAt: createdAt,
 				}},
 		})
@@ -52,48 +49,64 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.AddFollow(s.db, currentUser.Did, subjectIdent.DID.String(), rkey)
+		err = db.AddStar(s.db, currentUser.Did, subjectUri, rkey)
 		if err != nil {
-			log.Println("failed to follow", err)
+			log.Println("failed to star", err)
 			return
+		}
+
+		starCount, err := db.GetStarCount(s.db, subjectUri)
+		if err != nil {
+			log.Println("failed to get star count for ", subjectUri)
 		}
 
 		log.Println("created atproto record: ", resp.Uri)
 
-		s.pages.FollowFragment(w, pages.FollowFragmentParams{
-			UserDid:      subjectIdent.DID.String(),
-			FollowStatus: db.IsFollowing,
+		s.pages.StarFragment(w, pages.StarFragmentParams{
+			IsStarred: true,
+			RepoAt:    subjectUri,
+			Stats: db.RepoStats{
+				StarCount: starCount,
+			},
 		})
 
 		return
 	case http.MethodDelete:
 		// find the record in the db
-		follow, err := db.GetFollow(s.db, currentUser.Did, subjectIdent.DID.String())
+		star, err := db.GetStar(s.db, currentUser.Did, subjectUri)
 		if err != nil {
-			log.Println("failed to get follow relationship")
+			log.Println("failed to get star relationship")
 			return
 		}
 
 		_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
-			Collection: tangled.GraphFollowNSID,
+			Collection: tangled.FeedStarNSID,
 			Repo:       currentUser.Did,
-			Rkey:       follow.Rkey,
+			Rkey:       star.Rkey,
 		})
 
 		if err != nil {
-			log.Println("failed to unfollow")
+			log.Println("failed to unstar")
 			return
 		}
 
-		err = db.DeleteFollow(s.db, currentUser.Did, subjectIdent.DID.String())
+		err = db.DeleteStar(s.db, currentUser.Did, subjectUri)
 		if err != nil {
-			log.Println("failed to delete follow from DB")
+			log.Println("failed to delete star from DB")
 			// this is not an issue, the firehose event might have already done this
 		}
 
-		s.pages.FollowFragment(w, pages.FollowFragmentParams{
-			UserDid:      subjectIdent.DID.String(),
-			FollowStatus: db.IsNotFollowing,
+		starCount, err := db.GetStarCount(s.db, subjectUri)
+		if err != nil {
+			log.Println("failed to get star count for ", subjectUri)
+		}
+
+		s.pages.StarFragment(w, pages.StarFragmentParams{
+			IsStarred: false,
+			RepoAt:    subjectUri,
+			Stats: db.RepoStats{
+				StarCount: starCount,
+			},
 		})
 
 		return

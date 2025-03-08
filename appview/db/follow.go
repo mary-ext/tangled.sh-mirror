@@ -9,7 +9,7 @@ type Follow struct {
 	UserDid    string
 	SubjectDid string
 	FollowedAt time.Time
-	RKey       string
+	Rkey       string
 }
 
 func AddFollow(e Execer, userDid, subjectDid, rkey string) error {
@@ -25,7 +25,7 @@ func GetFollow(e Execer, userDid, subjectDid string) (*Follow, error) {
 
 	var follow Follow
 	var followedAt string
-	err := row.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.RKey)
+	err := row.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.Rkey)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func GetFollow(e Execer, userDid, subjectDid string) (*Follow, error) {
 	return &follow, nil
 }
 
-// Get a follow record
+// Remove a follow
 func DeleteFollow(e Execer, userDid, subjectDid string) error {
 	_, err := e.Exec(`delete from follows where user_did = ? and subject_did = ?`, userDid, subjectDid)
 	return err
@@ -91,10 +91,15 @@ func GetFollowStatus(e Execer, userDid, subjectDid string) FollowStatus {
 	}
 }
 
-func GetAllFollows(e Execer) ([]Follow, error) {
+func GetAllFollows(e Execer, limit int) ([]Follow, error) {
 	var follows []Follow
 
-	rows, err := e.Query(`select user_did, subject_did, followed_at, rkey from follows`)
+	rows, err := e.Query(`
+		select user_did, subject_did, followed_at, rkey
+		from follows
+		order by followed_at desc
+		limit ?`, limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +108,7 @@ func GetAllFollows(e Execer) ([]Follow, error) {
 	for rows.Next() {
 		var follow Follow
 		var followedAt string
-		if err := rows.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.RKey); err != nil {
+		if err := rows.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.Rkey); err != nil {
 			return nil, err
 		}
 
