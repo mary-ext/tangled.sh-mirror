@@ -110,8 +110,5 @@ func funcMap() template.FuncMap {
 			// returns false for other "zero" values
 			return t == nil
 		},
-		"not": func(t bool) bool {
-			return !t
-		},
 	}
 }
