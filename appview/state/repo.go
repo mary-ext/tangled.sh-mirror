@@ -74,12 +74,19 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := s.auth.GetUser(r)
+
+	knot := f.Knot
+	if knot == "knot1.tangled.sh" {
+		knot = "tangled.sh"
+	}
+
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser: user,
 		RepoInfo: pages.RepoInfo{
 			OwnerDid:        f.OwnerDid(),
 			OwnerHandle:     f.OwnerHandle(),
 			Name:            f.RepoName,
+			Knot:            knot,
 			SettingsAllowed: settingsAllowed(s, user, f),
 		},
 		TagMap:            tagMap,

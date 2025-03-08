@@ -164,6 +164,7 @@ type RepoInfo struct {
 	OwnerDid        string
 	OwnerHandle     string
 	Description     string
+	Knot            string
 	SettingsAllowed bool
 }
 

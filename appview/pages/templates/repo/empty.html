@@ -9,16 +9,24 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-    <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto">
-        <strong>push</strong>
-        <pre>
- git remote add origin git@tangled.sh:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }} </pre
-        >
-        <strong>clone</strong>
-        <pre>
- git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}
- git clone git@tangled.sh:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}
- </pre
-        >
-    </section>
+<section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto">
+    <strong>push</strong>
+    <div class="py-2">
+        <code>git remote add origin git@{{.RepoInfo.Knot}}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code>
+    </div>
+    <strong>clone</strong>
+    
+
+    <div class="flex flex-col gap-2">
+        <div class="pt-2 flex flex-row gap-2">
+            <span class="bg-gray-100 p-1 mr-1 font-mono text-sm rounded select-none">HTTP</span>
+            <code>git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}</code>
+        </div>
+        <div class="pt-2 flex flex-row gap-2">
+            <span class="bg-gray-100 p-1 mr-1 font-mono text-sm rounded select-none">SSH</span><code>git clone git@{{.RepoInfo.Knot}}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code>
+        </div>
+    </div>
+    <p class="py-2 text-gray-500">Note that for self-hosted knots, clone URLs may be different based on your setup.</p>
+</section>
+
 {{ end }}
