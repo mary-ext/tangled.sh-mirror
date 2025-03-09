@@ -44,7 +44,7 @@
                     <i class="w-3 h-3 fill-current" data-lucide="folder"></i>{{ .Name }}
                 </div>
             </a>
-            <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.Author.When }}</time>
+            <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.When }}</time>
         </div>
     </div>
     {{ end }}
@@ -59,7 +59,7 @@
                     <i class="w-3 h-3" data-lucide="file"></i>{{ .Name }}
                 </div>
             </a>
-            <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.Author.When }}</time>
+            <time class="text-xs text-gray-500">{{ timeFmt .LastCommit.When }}</time>
         </div>
     </div>
     {{ end }}
