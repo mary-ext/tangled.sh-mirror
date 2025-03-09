@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -122,9 +123,63 @@ func Make(dbPath string) (*DB, error) {
 			unique(starred_by_did, repo_at)
 		);
 
+		create table if not exists migrations (
+			id integer primary key autoincrement,
+			name text unique
+		)
 	`)
 	if err != nil {
 		return nil, err
 	}
+
+	// run migrations
+	runMigration(db, "add-description-to-repos", func(tx *sql.Tx) error {
+		tx.Exec(`
+			alter table repos add column description text check (length(description) <= 200);
+		`)
+		return nil
+	})
+
 	return &DB{db}, nil
+}
+
+type migrationFn = func(*sql.Tx) error
+
+func runMigration(d *sql.DB, name string, migrationFn migrationFn) error {
+	tx, err := d.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var exists bool
+	err = tx.QueryRow("select exists (select 1 from migrations where name = ?)", name).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		// run migration
+		err = migrationFn(tx)
+		if err != nil {
+			log.Printf("Failed to run migration %s: %v", name, err)
+			return err
+		}
+
+		// mark migration as complete
+		_, err = tx.Exec("insert into migrations (name) values (?)", name)
+		if err != nil {
+			log.Printf("Failed to mark migration %s as complete: %v", name, err)
+			return err
+		}
+
+		// commit the transaction
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	} else {
+		log.Printf("skipped migration %s, already applied", name)
+	}
+
+	return nil
 }
