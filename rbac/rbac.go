@@ -165,6 +165,20 @@ func (e *Enforcer) IsSettingsAllowed(user, domain, repo string) (bool, error) {
 	return e.E.Enforce(user, domain, repo, "repo:settings")
 }
 
+// given a repo, what permissions does this user have? repo:owner? repo:invite? etc.
+func (e *Enforcer) GetPermissionsInRepo(user, domain, repo string) []string {
+	var permissions []string
+	res := e.E.GetPermissionsForUserInDomain(user, domain)
+	for _, p := range res {
+		// get only permissions for this resource/repo
+		if p[2] == repo {
+			permissions = append(permissions, p[3])
+		}
+	}
+
+	return permissions
+}
+
 func (e *Enforcer) IsCollaboratorInviteAllowed(user, domain, repo string) (bool, error) {
 	return e.E.Enforce(user, domain, repo, "repo:invite")
 }

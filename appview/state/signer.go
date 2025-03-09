@@ -69,7 +69,7 @@ func (s *SignedClient) Init(did string) (*http.Response, error) {
 		Endpoint = "/init"
 	)
 
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"did": did,
 	})
 
@@ -87,13 +87,30 @@ func (s *SignedClient) NewRepo(did, repoName, defaultBranch string) (*http.Respo
 		Endpoint = "/repo/new"
 	)
 
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"did":            did,
 		"name":           repoName,
 		"default_branch": defaultBranch,
 	})
 
-	fmt.Println(body)
+	req, err := s.newRequest(Method, Endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}
+
+func (s *SignedClient) RemoveRepo(did, repoName string) (*http.Response, error) {
+	const (
+		Method   = "DELETE"
+		Endpoint = "/repo"
+	)
+
+	body, _ := json.Marshal(map[string]any{
+		"did":  did,
+		"name": repoName,
+	})
 
 	req, err := s.newRequest(Method, Endpoint, body)
 	if err != nil {
@@ -109,7 +126,7 @@ func (s *SignedClient) AddMember(did string) (*http.Response, error) {
 		Endpoint = "/member/add"
 	)
 
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"did": did,
 	})
 
@@ -127,7 +144,7 @@ func (s *SignedClient) AddCollaborator(ownerDid, repoName, memberDid string) (*h
 	)
 	endpoint := fmt.Sprintf("/%s/%s/collaborator/add", ownerDid, repoName)
 
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"did": memberDid,
 	})
 

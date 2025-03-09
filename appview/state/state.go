@@ -581,6 +581,8 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			defaultBranch = "main"
 		}
 
+		description := r.FormValue("description")
+
 		ok, err := s.enforcer.E.Enforce(user.Did, domain, domain, "repo:create")
 		if err != nil || !ok {
 			s.pages.Notice(w, "repo", "You do not have permission to create a repo in this knot.")
@@ -607,10 +609,11 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		rkey := s.TID()
 		repo := &db.Repo{
-			Did:  user.Did,
-			Name: repoName,
-			Knot: domain,
-			Rkey: rkey,
+			Did:         user.Did,
+			Name:        repoName,
+			Knot:        domain,
+			Rkey:        rkey,
+			Description: description,
 		}
 
 		xrpcClient, _ := s.auth.AuthorizedClient(r)
@@ -647,6 +650,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Println("failed to rollback policies")
 			}
+			client.RemoveRepo(user.Did, repoName)
 		}()
 
 		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)
@@ -875,6 +879,12 @@ func (s *State) UserRouter() http.Handler {
 			// settings routes, needs auth
 			r.Group(func(r chi.Router) {
 				r.Use(AuthMiddleware(s))
+				// repo description can only be edited by owner
+				r.With(RepoPermissionMiddleware(s, "repo:owner")).Route("/description", func(r chi.Router) {
+					r.Put("/", s.RepoDescription)
+					r.Get("/", s.RepoDescription)
+					r.Get("/edit", s.RepoDescriptionEdit)
+				})
 				r.With(RepoPermissionMiddleware(s, "repo:settings")).Route("/settings", func(r chi.Router) {
 					r.Get("/", s.RepoSettings)
 					r.With(RepoPermissionMiddleware(s, "repo:invite")).Put("/collaborator", s.AddCollaborator)

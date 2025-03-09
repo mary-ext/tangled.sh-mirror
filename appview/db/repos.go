@@ -6,19 +6,20 @@ import (
 )
 
 type Repo struct {
-	Did     string
-	Name    string
-	Knot    string
-	Rkey    string
-	Created time.Time
-	AtUri   string
+	Did         string
+	Name        string
+	Knot        string
+	Rkey        string
+	Created     time.Time
+	AtUri       string
+	Description string
 }
 
 func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
-		`select did, name, knot, rkey, created 
+		`select did, name, knot, rkey, description, created 
 		from repos
 		order by created desc
 		limit ?
@@ -32,7 +33,9 @@ func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 
 	for rows.Next() {
 		var repo Repo
-		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Created)
+		err := scanRepo(
+			rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Description, &repo.Created,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -49,7 +52,7 @@ func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := e.Query(`select did, name, knot, rkey, created from repos where did = ?`, did)
+	rows, err := e.Query(`select did, name, knot, rkey, description, created from repos where did = ?`, did)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +60,7 @@ func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 
 	for rows.Next() {
 		var repo Repo
-		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Created)
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Description, &repo.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -73,36 +76,55 @@ func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 
 func GetRepo(e Execer, did, name string) (*Repo, error) {
 	var repo Repo
+	var nullableDescription sql.NullString
 
-	row := e.QueryRow(`select did, name, knot, created, at_uri from repos where did = ? and name = ?`, did, name)
+	row := e.QueryRow(`select did, name, knot, created, at_uri, description from repos where did = ? and name = ?`, did, name)
 
 	var createdAt string
-	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri); err != nil {
+	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &nullableDescription); err != nil {
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
 	repo.Created = createdAtTime
+
+	if nullableDescription.Valid {
+		repo.Description = nullableDescription.String
+	} else {
+		repo.Description = ""
+	}
 
 	return &repo, nil
 }
 
 func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
 	var repo Repo
+	var nullableDescription sql.NullString
 
-	row := e.QueryRow(`select did, name, knot, created, at_uri from repos where at_uri = ?`, atUri)
+	row := e.QueryRow(`select did, name, knot, created, at_uri, description from repos where at_uri = ?`, atUri)
 
 	var createdAt string
-	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri); err != nil {
+	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &nullableDescription); err != nil {
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
 	repo.Created = createdAtTime
 
+	if nullableDescription.Valid {
+		repo.Description = nullableDescription.String
+	} else {
+		repo.Description = ""
+	}
+
 	return &repo, nil
 }
 
 func AddRepo(e Execer, repo *Repo) error {
-	_, err := e.Exec(`insert into repos (did, name, knot, rkey, at_uri) values (?, ?, ?, ?, ?)`, repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri)
+	_, err := e.Exec(
+		`insert into repos 
+		(did, name, knot, rkey, at_uri, description)
+		values (?, ?, ?, ?, ?, ?)`,
+		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri, repo.Description,
+	)
 	return err
 }
 
@@ -119,6 +141,12 @@ func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot st
 	return err
 }
 
+func UpdateDescription(e Execer, repoAt, newDescription string) error {
+	_, err := e.Exec(
+		`update repos set description = ? where at_uri = ?`, newDescription, repoAt)
+	return err
+}
+
 func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 	var repos []Repo
 
@@ -130,7 +158,7 @@ func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 
 	for rows.Next() {
 		var repo Repo
-		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Created)
+		err := scanRepo(rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Description, &repo.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -149,10 +177,17 @@ type RepoStats struct {
 	IssueCount IssueCount
 }
 
-func scanRepo(rows *sql.Rows, did, name, knot, rkey *string, created *time.Time) error {
+func scanRepo(rows *sql.Rows, did, name, knot, rkey, description *string, created *time.Time) error {
 	var createdAt string
-	if err := rows.Scan(did, name, knot, rkey, &createdAt); err != nil {
+	var nullableDescription sql.NullString
+	if err := rows.Scan(did, name, knot, rkey, &nullableDescription, &createdAt); err != nil {
 		return err
+	}
+
+	if nullableDescription.Valid {
+		*description = nullableDescription.String
+	} else {
+		*description = ""
 	}
 
 	createdAtTime, err := time.Parse(time.RFC3339, createdAt)

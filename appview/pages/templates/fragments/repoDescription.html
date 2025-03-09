@@ -1,0 +1,15 @@
+{{ define "fragments/repoDescription" }}
+<span id="repo-description" hx-target="this" hx-swap="outerHTML">
+    {{ if .RepoInfo.Description }}
+        {{ .RepoInfo.Description }}
+    {{ else }}
+        <span class="italic">this repo has no description</span>
+    {{ end }}
+
+    {{ if .RepoInfo.Roles.IsOwner }}
+    <button class="btn" hx-get="/{{ .RepoInfo.FullName }}/description/edit">
+      edit
+    </button>
+    {{ end }}
+</span>
+{{ end }}

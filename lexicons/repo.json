@@ -26,6 +26,12 @@
           "addedAt": {
             "type": "string",
             "format": "datetime"
+          },
+          "description": {
+            "type": "string",
+            "format": "datetime",
+            "minLength": 1,
+            "maxLength": 140
           }
         }
       }

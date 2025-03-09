@@ -1,0 +1,9 @@
+{{ define "fragments/editRepoDescription" }}
+<form hx-put="/{{ .RepoInfo.FullName }}/description" hx-target="this" hx-swap="outerHTML">
+    <input type="text" name="description" value="{{ .RepoInfo.Description }}" class="input">
+    <button type="submit" class="btn">save</button>
+    <button type="button" class="btn" hx-get="/{{ .RepoInfo.FullName }}/description" >
+        cancel
+    </button>
+</form>
+{{ end }}

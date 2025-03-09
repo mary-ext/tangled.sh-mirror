@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/alecthomas/chroma/v2"
@@ -194,16 +195,40 @@ func (p *Pages) StarFragment(w io.Writer, params StarFragmentParams) error {
 	return p.executePlain("fragments/star", w, params)
 }
 
+type RepoDescriptionParams struct {
+	RepoInfo RepoInfo
+}
+
+func (p *Pages) EditRepoDescriptionFragment(w io.Writer, params RepoDescriptionParams) error {
+	return p.executePlain("fragments/editRepoDescription", w, params)
+}
+
+func (p *Pages) RepoDescriptionFragment(w io.Writer, params RepoDescriptionParams) error {
+	return p.executePlain("fragments/repoDescription", w, params)
+}
+
 type RepoInfo struct {
-	Name            string
-	OwnerDid        string
-	OwnerHandle     string
-	Description     string
-	Knot            string
-	RepoAt          syntax.ATURI
-	SettingsAllowed bool
-	IsStarred       bool
-	Stats           db.RepoStats
+	Name        string
+	OwnerDid    string
+	OwnerHandle string
+	Description string
+	Knot        string
+	RepoAt      syntax.ATURI
+	IsStarred   bool
+	Stats       db.RepoStats
+	Roles       RolesInRepo
+}
+
+type RolesInRepo struct {
+	Roles []string
+}
+
+func (r RolesInRepo) SettingsAllowed() bool {
+	return slices.Contains(r.Roles, "repo:settings")
+}
+
+func (r RolesInRepo) IsOwner() bool {
+	return slices.Contains(r.Roles, "repo:owner")
 }
 
 func (r RepoInfo) OwnerWithAt() string {
@@ -225,7 +250,7 @@ func (r RepoInfo) GetTabs() [][]string {
 		{"pulls", "/pulls"},
 	}
 
-	if r.SettingsAllowed {
+	if r.Roles.SettingsAllowed() {
 		tabs = append(tabs, []string{"settings", "/settings"})
 	}
 

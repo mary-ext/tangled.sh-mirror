@@ -19,6 +19,7 @@ func init() {
 type Repo struct {
 	LexiconTypeID string  `json:"$type,const=sh.tangled.repo" cborgen:"$type,const=sh.tangled.repo"`
 	AddedAt       *string `json:"addedAt,omitempty" cborgen:"addedAt,omitempty"`
+	Description   *string `json:"description,omitempty" cborgen:"description,omitempty"`
 	// knot: knot where the repo was created
 	Knot string `json:"knot" cborgen:"knot"`
 	// name: name of the repo

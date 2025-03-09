@@ -17,13 +17,21 @@
           />
       <p class="text-sm text-gray-500">All repositories are publicly visible.</p>
 
-      <label for="name" class="block uppercase font-bold text-sm">Default branch</label>
+      <label for="branch" class="block uppercase font-bold text-sm">Default branch</label>
       <input
           type="text"
           id="branch"
           name="branch"
           value="main"
           required
+          class="w-full max-w-md"
+          />
+
+      <label for="description" class="block uppercase font-bold text-sm">Description</label>
+      <input
+          type="text"
+          id="description"
+          name="description"
           class="w-full max-w-md"
           />
     </div>

@@ -10,13 +10,7 @@
         </p>
         {{ template "fragments/star" .RepoInfo }}
       </div>
-      <span>
-          {{ if .RepoInfo.Description }}
-              {{ .RepoInfo.Description }}
-          {{ else }}
-              <span class="italic">this repo has no description</span>
-          {{ end }}
-      </span>
+      {{ template "fragments/repoDescription" . }}
     </section>
     <section id="repo-links" class="min-h-screen flex flex-col drop-shadow-sm">
         <nav class="w-full mx-auto ml-4">

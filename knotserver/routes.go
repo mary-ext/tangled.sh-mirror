@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -514,6 +515,40 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	err = h.e.AddRepo(did, ThisServer, relativeRepoPath)
 	if err != nil {
 		l.Error("adding repo permissions", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handle) RemoveRepo(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "RemoveRepo")
+
+	data := struct {
+		Did  string `json:"did"`
+		Name string `json:"name"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.Did
+	name := data.Name
+
+	if did == "" || name == "" {
+		l.Error("invalid request body, empty did or name")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	relativeRepoPath := filepath.Join(did, name)
+	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
+	err := os.RemoveAll(repoPath)
+	if err != nil {
+		l.Error("removing repo", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

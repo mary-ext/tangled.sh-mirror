@@ -130,6 +130,100 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (s *State) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	user := s.auth.GetUser(r)
+	s.pages.EditRepoDescriptionFragment(w, pages.RepoDescriptionParams{
+		RepoInfo: f.RepoInfo(s, user),
+	})
+	return
+}
+
+func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	repoAt := f.RepoAt
+	rkey := repoAt.RecordKey().String()
+	if rkey == "" {
+		log.Println("invalid aturi for repo", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	user := s.auth.GetUser(r)
+
+	switch r.Method {
+	case http.MethodGet:
+		s.pages.RepoDescriptionFragment(w, pages.RepoDescriptionParams{
+			RepoInfo: f.RepoInfo(s, user),
+		})
+		return
+	case http.MethodPut:
+		user := s.auth.GetUser(r)
+		newDescription := r.FormValue("description")
+		client, _ := s.auth.AuthorizedClient(r)
+
+		// optimistic update
+		err = db.UpdateDescription(s.db, string(repoAt), newDescription)
+		if err != nil {
+			log.Println("failed to perferom update-description query", err)
+			s.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
+			return
+		}
+
+		// this is a bit of a pain because the golang atproto impl does not allow nil SwapRecord field
+		//
+		// SwapRecord is optional and should happen automagically, but given that it does not, we have to perform two requests
+		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, user.Did, rkey)
+		if err != nil {
+			// failed to get record
+			s.pages.Notice(w, "repo-notice", "Failed to update description, no record found on PDS.")
+			return
+		}
+		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoNSID,
+			Repo:       user.Did,
+			Rkey:       rkey,
+			SwapRecord: ex.Cid,
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.Repo{
+					Knot:        f.Knot,
+					Name:        f.RepoName,
+					Owner:       user.Did,
+					AddedAt:     &f.AddedAt,
+					Description: &newDescription,
+				},
+			},
+		})
+
+		if err != nil {
+			log.Println("failed to perferom update-description query", err)
+			// failed to get record
+			s.pages.Notice(w, "repo-notice", "Failed to update description, unable to save to PDS.")
+			return
+		}
+
+		newRepoInfo := f.RepoInfo(s, user)
+		newRepoInfo.Description = newDescription
+
+		s.pages.RepoDescriptionFragment(w, pages.RepoDescriptionParams{
+			RepoInfo: newRepoInfo,
+		})
+		return
+	}
+}
+
 func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
@@ -457,10 +551,12 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 type FullyResolvedRepo struct {
-	Knot     string
-	OwnerId  identity.Identity
-	RepoName string
-	RepoAt   syntax.ATURI
+	Knot        string
+	OwnerId     identity.Identity
+	RepoName    string
+	RepoAt      syntax.ATURI
+	Description string
+	AddedAt     string
 }
 
 func (f *FullyResolvedRepo) OwnerDid() string {
@@ -541,13 +637,14 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 	}
 
 	return pages.RepoInfo{
-		OwnerDid:        f.OwnerDid(),
-		OwnerHandle:     f.OwnerHandle(),
-		Name:            f.RepoName,
-		RepoAt:          f.RepoAt,
-		SettingsAllowed: settingsAllowed(s, u, f),
-		IsStarred:       isStarred,
-		Knot:            knot,
+		OwnerDid:    f.OwnerDid(),
+		OwnerHandle: f.OwnerHandle(),
+		Name:        f.RepoName,
+		RepoAt:      f.RepoAt,
+		Description: f.Description,
+		IsStarred:   isStarred,
+		Knot:        knot,
+		Roles:       rolesInRepo(s, u, f),
 		Stats: db.RepoStats{
 			StarCount:  starCount,
 			IssueCount: issueCount,
@@ -953,24 +1050,26 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
+	// pass through values from the middleware
+	description, ok := r.Context().Value("repoDescription").(string)
+	addedAt, ok := r.Context().Value("repoAddedAt").(string)
+
 	return &FullyResolvedRepo{
-		Knot:     knot,
-		OwnerId:  id,
-		RepoName: repoName,
-		RepoAt:   parsedRepoAt,
+		Knot:        knot,
+		OwnerId:     id,
+		RepoName:    repoName,
+		RepoAt:      parsedRepoAt,
+		Description: description,
+		AddedAt:     addedAt,
 	}, nil
 }
 
-func settingsAllowed(s *State, u *auth.User, f *FullyResolvedRepo) bool {
-	settingsAllowed := false
+func rolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) pages.RolesInRepo {
 	if u != nil {
-		ok, err := s.enforcer.IsSettingsAllowed(u.Did, f.Knot, f.OwnerSlashRepo())
-		if err == nil && ok {
-			settingsAllowed = true
-		} else {
-			log.Println(err, ok)
-		}
+		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.OwnerSlashRepo())
+		log.Println(r)
+		return pages.RolesInRepo{r}
+	} else {
+		return pages.RolesInRepo{}
 	}
-
-	return settingsAllowed
 }
