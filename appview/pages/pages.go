@@ -459,6 +459,8 @@ type RepoIssuesParams struct {
 	Active       string
 	Issues       []db.Issue
 	DidHandleMap map[string]string
+
+	FilteringByOpen bool
 }
 
 func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {

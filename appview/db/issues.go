@@ -96,8 +96,12 @@ func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error
 	return ownerDid, err
 }
 
-func GetIssues(e Execer, repoAt syntax.ATURI) ([]Issue, error) {
+func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool) ([]Issue, error) {
 	var issues []Issue
+	openValue := 0
+	if isOpen {
+		openValue = 1
+	}
 
 	rows, err := e.Query(
 		`select
@@ -113,12 +117,12 @@ func GetIssues(e Execer, repoAt syntax.ATURI) ([]Issue, error) {
 		left join
 			comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
 		where 
-		    i.repo_at = ?
+		    i.repo_at = ? and i.open = ?
 		group by
 			i.id, i.owner_did, i.issue_id, i.created, i.title, i.body, i.open
 		order by
 			i.created desc`,
-		repoAt)
+		repoAt, openValue)
 	if err != nil {
 		return nil, err
 	}

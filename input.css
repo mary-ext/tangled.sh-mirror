@@ -96,12 +96,6 @@
             "calt" 1,
             "kern" 1;
     }
-    h1 {
-        @apply text-2xl;
-        @apply font-sans;
-        @apply text-black;
-        @apply py-4;
-    }
 
     ::selection {
         @apply bg-yellow-400;

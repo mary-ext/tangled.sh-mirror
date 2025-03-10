@@ -2,15 +2,22 @@
 
 {{ define "repoContent" }}
     <div class="flex justify-between items-center">
-        <div class="error" id="issues"></div>
+        <p>
+        filtering
+        <select class="font-bold border border-gray-200 rounded" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
+          <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>open</option>
+          <option value="closed" {{ if not .FilteringByOpen }}selected{{ end }}>closed</option>
+        </select>
+        issues
+        </p>
         <a
             href="/{{ .RepoInfo.FullName }}/issues/new"
-            class="btn flex items-center gap-2 no-underline"
-        >
-            <i data-lucide="square-plus" class="w-5 h-5"></i>
+            class="btn text-sm flex items-center gap-2 no-underline hover:no-underline">
+            <i data-lucide="plus" class="w-5 h-5"></i>
             <span>new issue</span>
         </a>
     </div>
+    <div class="error" id="issues"></div>
 {{ end }}
 
 {{ define "repoAfter" }}

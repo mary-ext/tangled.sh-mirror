@@ -887,6 +887,18 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	state := params.Get("state")
+	isOpen := true
+	switch state {
+	case "open":
+		isOpen = true
+	case "closed":
+		isOpen = false
+	default:
+		isOpen = true
+	}
+
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
@@ -894,7 +906,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issues, err := db.GetIssues(s.db, f.RepoAt)
+	issues, err := db.GetIssues(s.db, f.RepoAt, isOpen)
 	if err != nil {
 		log.Println("failed to get issues", err)
 		s.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
@@ -916,10 +928,11 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.RepoIssues(w, pages.RepoIssuesParams{
-		LoggedInUser: s.auth.GetUser(r),
-		RepoInfo:     f.RepoInfo(s, user),
-		Issues:       issues,
-		DidHandleMap: didHandleMap,
+		LoggedInUser:    s.auth.GetUser(r),
+		RepoInfo:        f.RepoInfo(s, user),
+		Issues:          issues,
+		DidHandleMap:    didHandleMap,
+		FilteringByOpen: isOpen,
 	})
 	return
 }
