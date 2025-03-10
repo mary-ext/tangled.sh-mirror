@@ -554,6 +554,104 @@ func (h *Handle) RemoveRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+
+}
+func (h *Handle) Merge(w http.ResponseWriter, r *http.Request) {
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+
+	var data struct {
+		Patch  string `json:"patch"`
+		Branch string `json:"branch"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		h.l.Error("git: failed to unmarshal json patch", "handler", "Merge", "error", err)
+		return
+	}
+
+	patch := data.Patch
+	branch := data.Branch
+	gr, err := git.Open(path, branch)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	if err := gr.Merge([]byte(patch), branch); err != nil {
+		var mergeErr *git.MergeError
+		if errors.As(err, &mergeErr) {
+			conflictDetails := make([]map[string]interface{}, len(mergeErr.Conflicts))
+			for i, conflict := range mergeErr.Conflicts {
+				conflictDetails[i] = map[string]interface{}{
+					"filename": conflict.Filename,
+					"reason":   conflict.Reason,
+				}
+			}
+			response := map[string]interface{}{
+				"message":   mergeErr.Message,
+				"conflicts": conflictDetails,
+			}
+			writeConflict(w, response)
+			h.l.Error("git: merge conflict", "handler", "Merge", "error", mergeErr)
+		} else {
+			writeError(w, err.Error(), http.StatusBadRequest)
+			h.l.Error("git: failed to merge", "handler", "Merge", "error", err.Error())
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handle) MergeCheck(w http.ResponseWriter, r *http.Request) {
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+
+	var data struct {
+		Patch  string `json:"patch"`
+		Branch string `json:"branch"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		h.l.Error("git: failed to unmarshal json patch", "handler", "MergeCheck", "error", err)
+		return
+	}
+
+	patch := data.Patch
+	branch := data.Branch
+	gr, err := git.Open(path, branch)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	err = gr.MergeCheck([]byte(patch), branch)
+	if err == nil {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	var mergeErr *git.MergeError
+	if errors.As(err, &mergeErr) {
+		conflictDetails := make([]map[string]interface{}, len(mergeErr.Conflicts))
+		for i, conflict := range mergeErr.Conflicts {
+			conflictDetails[i] = map[string]interface{}{
+				"filename": conflict.Filename,
+				"reason":   conflict.Reason,
+			}
+		}
+		response := map[string]interface{}{
+			"message":   mergeErr.Message,
+			"conflicts": conflictDetails,
+		}
+		writeConflict(w, response)
+		h.l.Error("git: merge conflict", "handler", "MergeCheck", "error", mergeErr.Error())
+		return
+	}
+
+	writeError(w, err.Error(), http.StatusInternalServerError)
+	h.l.Error("git: failed to check merge", "handler", "MergeCheck", "error", err.Error())
 }
 
 func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {

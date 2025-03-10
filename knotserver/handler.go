@@ -75,6 +75,11 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 			r.Get("/info/refs", h.InfoRefs)
 			r.Post("/git-upload-pack", h.UploadPack)
 
+			r.Route("/merge", func(r chi.Router) {
+				r.Post("/", h.Merge)
+				r.Post("/check", h.MergeCheck)
+			})
+
 			r.Route("/tree/{ref}", func(r chi.Router) {
 				r.Get("/", h.RepoIndex)
 				r.Get("/*", h.RepoTree)
