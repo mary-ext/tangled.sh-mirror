@@ -92,27 +92,44 @@
           pname = "knotserver";
           version = "0.1.0";
           src = gitignoreSource ./.;
-          nativeBuildInputs = [ final.makeWrapper ];
+          nativeBuildInputs = [final.makeWrapper];
           subPackages = ["cmd/knotserver"];
           vendorHash = goModHash;
           installPhase = ''
-              runHook preInstall
+            runHook preInstall
 
-              mkdir -p $out/bin
-              cp $GOPATH/bin/knotserver $out/bin/knotserver
+            mkdir -p $out/bin
+            cp $GOPATH/bin/knotserver $out/bin/knotserver
 
-              wrapProgram $out/bin/knotserver \
-              --prefix PATH : ${pkgs.git}/bin
+            wrapProgram $out/bin/knotserver \
+            --prefix PATH : ${pkgs.git}/bin
 
-              runHook postInstall
+            runHook postInstall
           '';
+          env.CGO_ENABLED = 1;
+        };
+      knotserver-unwrapped = with final;
+        final.pkgsStatic.buildGoModule {
+          pname = "knotserver";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          subPackages = ["cmd/knotserver"];
+          vendorHash = goModHash;
           env.CGO_ENABLED = 1;
         };
       repoguard = buildCmdPackage "repoguard";
       keyfetch = buildCmdPackage "keyfetch";
     };
     packages = forAllSystems (system: {
-      inherit (nixpkgsFor."${system}") indigo-lexgen appview knotserver repoguard keyfetch;
+      inherit
+        (nixpkgsFor."${system}")
+        indigo-lexgen
+        appview
+        knotserver
+        knotserver-unwrapped
+        repoguard
+        keyfetch
+        ;
     });
     defaultPackage = forAllSystems (system: nixpkgsFor.${system}.appview);
     formatter = forAllSystems (system: nixpkgsFor."${system}".alejandra);
@@ -294,7 +311,7 @@
         config = mkIf config.services.tangled-knotserver.enable {
           nixpkgs.overlays = [self.overlays.default];
 
-          environment.systemPackages = with pkgs; [ git ];
+          environment.systemPackages = with pkgs; [git];
 
           users.users.git = {
             isNormalUser = true;
@@ -316,11 +333,11 @@
           };
 
           environment.etc."ssh/keyfetch_wrapper" = {
-              mode = "0555";
-              text = ''
-                  #!${pkgs.stdenv.shell}
-                  ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /tmp/repoguard.log
-              '';
+            mode = "0555";
+            text = ''
+              #!${pkgs.stdenv.shell}
+              ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /tmp/repoguard.log
+            '';
           };
 
           systemd.services.knotserver = {

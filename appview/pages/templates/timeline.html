@@ -46,7 +46,7 @@
           <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
           created
           <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
-          <time class="text-gray-700">{{ .Repo.Created | timeFmt }}</time>
+          <time class="text-gray-700 text-xs">{{ .Repo.Created | timeFmt }}</time>
           </p>
         </div>
       {{ else if .Follow }}
@@ -57,7 +57,7 @@
           <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle }}</a>
           followed
           <a href="/{{ $subjectHandle }}" class="no-underline hover:underline">{{ $subjectHandle }}</a>
-          <time class="text-gray-700">{{ .Follow.FollowedAt | timeFmt }}</time>
+          <time class="text-gray-700 text-xs">{{ .Follow.FollowedAt | timeFmt }}</time>
           </p>
         </div>
       {{ else if .Star }}
@@ -68,7 +68,7 @@
           <a href="/{{ $starrerHandle }}" class="no-underline hover:underline">{{ $starrerHandle }}</a>
           starred
           <a href="/{{ $repoOwnerHandle }}/{{ .Star.Repo.Name }}" class="no-underline hover:underline">{{ $repoOwnerHandle }}/{{ .Star.Repo.Name }}</a>
-          <time class="text-gray-700">{{ .Star.Created | timeFmt }}</time>
+          <time class="text-gray-700 text-xs">{{ .Star.Created | timeFmt }}</time>
           </p>
         </div>
       {{ end }}

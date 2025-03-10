@@ -175,10 +175,12 @@
                   ></div>
                   <span>{{ timeFmt .Author.When }}</span>
                   {{ $tagsForCommit := index $.TagMap .Hash.String }}
-                  {{ range $tagsForCommit }}
+                  {{ if gt (len $tagsForCommit) 0 }}
                     <div
                         class="inline-block px-1 select-none after:content-['·']"
                     ></div>
+                  {{ end }}
+                  {{ range $tagsForCommit }}
                     <span class="text-xs rounded bg-gray-100 font-mono px-2 mx-1/2 inline-flex items-center">
                       {{ . }}
                     </span>

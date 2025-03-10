@@ -1,6 +1,6 @@
 {{ define "fragments/star" }}
   <button id="starBtn"
-    class="btn text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+    class="text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 
     {{ if .IsStarred }}
     hx-delete="/star?subject={{.RepoAt}}&countHint={{.Stats.StarCount}}"

@@ -1,12 +1,12 @@
 {{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
 
 {{ define "content" }}
-<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-  <div class="lg:col-span-1">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+  <div class="md:col-span-1">
     {{ block "profileCard" . }} {{ end }}
   </div>
 
-  <div class="lg:col-span-3">
+  <div class="md:col-span-3">
     {{ block "ownRepos" . }} {{ end }}
     {{ block "collaboratingRepos" . }} {{ end }}
   </div>
@@ -17,7 +17,7 @@
 <div class="bg-white px-6 py-4 rounded drop-shadow-sm max-h-fit">
   <div class="flex justify-center items-center">
     {{ if .AvatarUri }}
-    <img class="w-1/2 lg:w-full rounded-full p-2" src="{{ .AvatarUri }}" />
+    <img class="w-1/2 rounded-full p-2" src="{{ .AvatarUri }}" />
     {{ end }}
   </div>
   <p class="text-xl font-bold text-center">

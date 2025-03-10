@@ -16,6 +16,12 @@ type Issue struct {
 	Title    string
 	Body     string
 	Open     bool
+	Metadata *IssueMetadata
+}
+
+type IssueMetadata struct {
+	CommentCount int
+	// labels, assignee etc.
 }
 
 type Comment struct {
@@ -93,7 +99,26 @@ func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error
 func GetIssues(e Execer, repoAt syntax.ATURI) ([]Issue, error) {
 	var issues []Issue
 
-	rows, err := e.Query(`select owner_did, issue_id, created, title, body, open from issues where repo_at = ? order by created desc`, repoAt)
+	rows, err := e.Query(
+		`select
+			i.owner_did,
+			i.issue_id,
+			i.created,
+			i.title,
+			i.body,
+			i.open,
+			count(c.id)
+		from
+		    issues i
+		left join
+			comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
+		where 
+		    i.repo_at = ?
+		group by
+			i.id, i.owner_did, i.issue_id, i.created, i.title, i.body, i.open
+		order by
+			i.created desc`,
+		repoAt)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +127,8 @@ func GetIssues(e Execer, repoAt syntax.ATURI) ([]Issue, error) {
 	for rows.Next() {
 		var issue Issue
 		var createdAt string
-		err := rows.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open)
+		var metadata IssueMetadata
+		err := rows.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
 		if err != nil {
 			return nil, err
 		}
@@ -112,6 +138,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI) ([]Issue, error) {
 			return nil, err
 		}
 		issue.Created = &createdTime
+		issue.Metadata = &metadata
 
 		issues = append(issues, issue)
 	}

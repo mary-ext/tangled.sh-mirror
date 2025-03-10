@@ -11,42 +11,56 @@
             <span>new issue</span>
         </a>
     </div>
+{{ end }}
 
-    <section id="issues" class="mt-8 space-y-4">
-        {{ range .Issues }}
-            <div class="border border-gray-200 p-4 mx-4 hover:bg-gray-50">
-                <time class="float-right text-sm">
-                    {{ .Created | timeFmt }}
-                </time>
-                <div class="flex items-center gap-2 py-2">
-                    {{ if .Open }}
-                        <i
-                            data-lucide="circle-dot"
-                            class="w-4 h-4 text-green-600"
-                        ></i>
-                    {{ else }}
-                        <i data-lucide="ban" class="w-4 h-4 text-red-600"></i>
-                    {{ end }}
-                    <a
-                        href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}"
-                        class="no-underline hover:underline"
-                    >
-                        {{ .Title }}
-                    </a>
-                </div>
-                <div class="text-sm flex gap-2 text-gray-400">
-                    <span>#{{ .IssueId }}</span>
-                    <span class="before:content-['·']">
-                        opened by
-                        {{ $owner := index $.DidHandleMap .OwnerDid }}
-                        <a
-                            href="/{{ $owner }}"
-                            class="no-underline hover:underline"
-                            >{{ $owner }}</a
-                        >
-                    </span>
-                </div>
-            </div>
+{{ define "repoAfter" }}
+<div class="flex flex-col gap-2 mt-8">
+  {{ range .Issues }}
+  <div class="rounded drop-shadow-sm bg-white px-6 py-4">
+    <div class="pb-2">
+      <a
+          href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}"
+          class="no-underline hover:underline"
+          >
+          {{ .Title }}
+          <span class="text-gray-400">#{{ .IssueId }}</span>
+      </a>
+    </div>
+    <p class="text-sm text-gray-400">
+      {{ $bgColor := "bg-gray-800" }}
+      {{ $icon := "ban" }}
+      {{ $state := "closed" }}
+      {{ if .Open }}
+          {{ $bgColor = "bg-green-600" }}
+          {{ $icon = "circle-dot" }}
+          {{ $state = "open" }}
+      {{ end }}
+
+      <span class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm">
+          <i data-lucide="{{ $icon }}" class="w-3 h-3 mr-1.5 text-white"></i>
+          <span class="text-white">{{ $state }}</span>
+      </span>
+
+      <span>
+        {{ $owner := index $.DidHandleMap .OwnerDid }}
+        <a href="/{{ $owner }}">{{ $owner }}</a>
+      </span>
+
+      <span class="before:content-['·']">
+        <time>
+          {{ .Created | timeFmt }}
+        </time>
+      </span>
+
+      <span class="before:content-['·']">
+        {{ $s := "s" }}
+        {{ if eq .Metadata.CommentCount 1 }}
+        {{ $s = "" }}
         {{ end }}
-    </section>
+        <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-400">{{ .Metadata.CommentCount }} comment{{$s}}</a>
+      </span>
+    </p>
+  </div>
+  {{ end }}
+</div>
 {{ end }}

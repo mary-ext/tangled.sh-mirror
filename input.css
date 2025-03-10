@@ -109,12 +109,12 @@
         @apply bg-opacity-30;
     }
 
-    html {
-        letter-spacing: -0.01em;
-        word-spacing: -0.07em;
-    }
-
     @layer base {
+        html {
+          letter-spacing: -0.01em;
+          word-spacing: -0.07em;
+          font-size: 14px;
+        }
         a {
           @apply no-underline text-black hover:underline hover:text-gray-800;
         }

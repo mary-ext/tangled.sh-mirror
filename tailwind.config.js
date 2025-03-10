@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const colors = require('tailwindcss/colors')
+
 module.exports = {
 	content: ["./appview/pages/templates/**/*.html"],
 	theme: {
@@ -6,11 +8,11 @@ module.exports = {
 			padding: "2rem",
 			center: true,
 			screens: {
-				sm: "540px",
-				md: "650px",
-				lg: "900px",
-				xl: "1100px",
-				"2xl": "1300px"
+				sm: "500px",
+				md: "600px",
+				lg: "800px",
+				xl: "1000px",
+				"2xl": "1200px"
 			},
 		},
 		extend: {
@@ -22,7 +24,11 @@ module.exports = {
 				DEFAULT: {
 					css: {
 						maxWidth: 'none',
-					}
+						pre: {
+							backgroundColor: colors.gray[100],
+							color: colors.black,
+						},
+					},
 				},
 			},
 		},
