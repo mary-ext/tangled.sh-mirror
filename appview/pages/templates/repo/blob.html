@@ -38,13 +38,15 @@
     {{ else }}
         <div class="overflow-auto relative text-ellipsis">
             {{ range $idx, $line := $lines }}
+                {{ $linenr := add $idx 1 }}
                 <div class="flex">
-                    <span
-                        class="{{ $code_number_style }}"
-                        style="min-width: {{ $tot_chars }}ch;"
-                        >{{ add $idx 1 }}</span
-                    >
-                    <div class="whitespace-pre">{{ $line | escapeHtml }}</div>
+                  <a href="#L{{ $linenr }}" id="L{{ $linenr }}" class="no-underline peer">
+                    <span class="{{ $code_number_style }}"
+                        style="min-width: {{ $tot_chars }}ch;" >
+                        {{ $linenr }}
+                    </span>
+                  </a>
+                  <div class="whitespace-pre peer-target:bg-yellow-200">{{ $line | escapeHtml }}</div>
                 </div>
             {{ end }}
         </div>

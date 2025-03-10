@@ -16,17 +16,11 @@
         {{ $icon = "circle-dot" }}
     {{ end }}
 
-
     <section>
-        <div class="flex items-center gap-2">
-            <div
-                id="state"
-                class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}"
-            >
-                <i
-                    data-lucide="{{ $icon }}"
-                    class="w-4 h-4 mr-1.5 text-white"
-                ></i>
+        <div class="inline-flex items-center gap-2">
+            <div id="state"
+                class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }} text-sm">
+                <i data-lucide="{{ $icon }}" class="w-4 h-4 mr-1.5 text-white" ></i>
                 <span class="text-white">{{ .State }}</span>
             </div>
             <span class="text-gray-400 text-sm">
