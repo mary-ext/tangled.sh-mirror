@@ -22,6 +22,9 @@ func main() {
 		shtangled.RepoIssueState{},
 		shtangled.RepoIssue{},
 		shtangled.Repo{},
+		shtangled.RepoPullPatch{},
+		shtangled.RepoPullState{},
+		shtangled.RepoPullComment{},
 	); err != nil {
 		panic(err)
 	}
