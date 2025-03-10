@@ -44,7 +44,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-tBhwRT3qnTHoAyasYIDwr9+3V+c7VLPY2LJ6A25l1gA=";
+      goModHash = "sha256-k+WeNx9jZ5YGgskCJYiU2mwyz25E0bhFgSg2GDWZXFw=";
       buildCmdPackage = name:
         final.buildGoModule {
           pname = name;

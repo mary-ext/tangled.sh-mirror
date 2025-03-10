@@ -7,7 +7,7 @@
     {{ end }}
 
     {{ if .RepoInfo.Roles.IsOwner }}
-    <button class="bg-gray-100 rounded p-1 mr-1 hover:bg-gray-200 font-mono text-sm" hx-get="/{{ .RepoInfo.FullName }}/description/edit">
+    <button class="bg-gray-200 uppercase rounded p-1 ml-1 hover:bg-gray-400 font-mono text-sm" hx-get="/{{ .RepoInfo.FullName }}/description/edit">
       edit
     </button>
     {{ end }}

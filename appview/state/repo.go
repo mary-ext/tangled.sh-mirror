@@ -75,7 +75,6 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := s.auth.GetUser(r)
-
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:      user,
 		RepoInfo:          f.RepoInfo(s, user),
@@ -1067,7 +1066,6 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 func rolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) pages.RolesInRepo {
 	if u != nil {
 		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.OwnerSlashRepo())
-		log.Println(r)
 		return pages.RolesInRepo{r}
 	} else {
 		return pages.RolesInRepo{}

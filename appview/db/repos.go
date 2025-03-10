@@ -150,7 +150,7 @@ func UpdateDescription(e Execer, repoAt, newDescription string) error {
 func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 	var repos []Repo
 
-	rows, err := e.Query(`select r.did, r.name, r.knot, r.rkey, r.created from repos r join collaborators c on r.id = c.repo where c.did = ?;`, collaborator)
+	rows, err := e.Query(`select r.did, r.name, r.knot, r.rkey, r.description, r.created from repos r join collaborators c on r.id = c.repo where c.did = ?;`, collaborator)
 	if err != nil {
 		return nil, err
 	}

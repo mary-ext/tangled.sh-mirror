@@ -21,7 +21,6 @@ require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/microcosm-cc/bluemonday v1.0.27
-	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/whyrusleeping/cbor-gen v0.2.1-0.20241030202151-b7a6831be65e
 	github.com/yuin/goldmark v1.4.13

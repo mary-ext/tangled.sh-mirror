@@ -48,12 +48,14 @@
           >{{ .Name }}</a
         >
       </div>
-          <div
-              id="repo-knot-name"
-              class="text-gray-600 text-sm font-mono"
-              >
-              {{ .Knot }}
-          </div>
+      {{ if .Description }}
+      <div class="text-gray-600 text-sm">
+          {{ .Description }}
+      </div>
+      {{ end }}
+      <div class="text-gray-600 text-sm font-mono">
+          {{ .Knot }}
+      </div>
   </div>
     {{ else }}
     <p class="px-6">This user does not have any repos yet.</p>
@@ -74,10 +76,12 @@
           {{ index $.DidHandleMap .Did }}/{{ .Name }}
         </a>
       </div>
-      <div
-          id="repo-knot-name"
-          class="text-gray-600 text-sm font-mono"
-          >
+      {{ if .Description }}
+      <div class="text-gray-600 text-sm">
+          {{ .Description }}
+      </div>
+      {{ end }}
+      <div class="text-gray-600 text-sm font-mono">
           {{ .Knot }}
       </div>
   </div>
