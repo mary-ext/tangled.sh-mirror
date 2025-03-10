@@ -650,7 +650,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Println("failed to rollback policies")
 			}
-			client.RemoveRepo(user.Did, repoName)
 		}()
 
 		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)

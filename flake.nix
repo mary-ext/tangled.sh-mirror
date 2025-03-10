@@ -363,7 +363,7 @@
           services.tangled-knotserver = {
             enable = true;
             server = {
-              secret = "61120605bf85e8b036c922221ae0d740efb1e93a1ebe5cd71e4aca552d7d8a86";
+              secret = "ad7b32ded52fbe96e09f469a288084ee01cd12c971da87a1cbb87ef67081bd87";
               hostname = "localhost:6000";
               listenAddr = "0.0.0.0:6000";
             };
