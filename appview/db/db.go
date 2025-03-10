@@ -177,6 +177,8 @@ func runMigration(d *sql.DB, name string, migrationFn migrationFn) error {
 		if err := tx.Commit(); err != nil {
 			return err
 		}
+
+		log.Printf("migration %s applied successfully", name)
 	} else {
 		log.Printf("skipped migration %s, already applied", name)
 	}
