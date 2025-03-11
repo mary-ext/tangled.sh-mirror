@@ -881,6 +881,17 @@ func (s *State) UserRouter() http.Handler {
 
 			r.Route("/pulls", func(r chi.Router) {
 				r.Get("/", s.RepoPulls)
+				r.Get("/{pull}", s.RepoSinglePull)
+
+				r.Group(func(r chi.Router) {
+					r.Use(AuthMiddleware(s))
+					r.Get("/new", s.NewPull)
+					r.Post("/new", s.NewPull)
+					// r.Post("/{pull}/comment", s.PullComment)
+					// r.Post("/{pull}/close", s.ClosePull)
+					// r.Post("/{pull}/reopen", s.ReopenPull)
+					// r.Post("/{pull}/merge", s.MergePull)
+				})
 			})
 
 			// These routes get proxied to the knot
