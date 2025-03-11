@@ -5,7 +5,7 @@ package tangled
 // schema: sh.tangled.repo.pull.comment
 
 import (
-	//"github.com/bluesky-social/indigo/lex/util"
+	"github.com/bluesky-social/indigo/lex/util"
 )
 
 const (
@@ -13,7 +13,7 @@ const (
 )
 
 func init() {
-	//util.RegisterType("sh.tangled.repo.pull.comment", &RepoPullComment{})
+	util.RegisterType("sh.tangled.repo.pull.comment", &RepoPullComment{})
 } //
 // RECORDTYPE: RepoPullComment
 type RepoPullComment struct {
