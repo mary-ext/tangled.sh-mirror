@@ -2,27 +2,28 @@
 
 package tangled
 
-// schema: sh.tangled.repo.pull.patch
+// schema: sh.tangled.repo.pull
 
 import (
 	"github.com/bluesky-social/indigo/lex/util"
 )
 
 const (
-	RepoPullPatchNSID = "sh.tangled.repo.pull.patch"
+	RepoPullNSID = "sh.tangled.repo.pull"
 )
 
 func init() {
-	util.RegisterType("sh.tangled.repo.pull.patch", &RepoPullPatch{})
+	util.RegisterType("sh.tangled.repo.pull", &RepoPull{})
 } //
-// RECORDTYPE: RepoPullPatch
-type RepoPullPatch struct {
-	LexiconTypeID string  `json:"$type,const=sh.tangled.repo.pull.patch" cborgen:"$type,const=sh.tangled.repo.pull.patch"`
+// RECORDTYPE: RepoPull
+type RepoPull struct {
+	LexiconTypeID string  `json:"$type,const=sh.tangled.repo.pull" cborgen:"$type,const=sh.tangled.repo.pull"`
 	Body          *string `json:"body,omitempty" cborgen:"body,omitempty"`
 	CreatedAt     *string `json:"createdAt,omitempty" cborgen:"createdAt,omitempty"`
 	Patch         string  `json:"patch" cborgen:"patch"`
 	PullId        int64   `json:"pullId" cborgen:"pullId"`
 	SourceRepo    *string `json:"sourceRepo,omitempty" cborgen:"sourceRepo,omitempty"`
+	TargetBranch  string  `json:"targetBranch" cborgen:"targetBranch"`
 	TargetRepo    string  `json:"targetRepo" cborgen:"targetRepo"`
 	Title         string  `json:"title" cborgen:"title"`
 }

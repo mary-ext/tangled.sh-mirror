@@ -2,8 +2,8 @@
 
 package tangled
 
-// schema: sh.tangled.repo.pull.state.closed
+// schema: sh.tangled.repo.issue.state.closed
 
 const ()
 
-const RepoPullStateClosed = "sh.tangled.repo.pull.state.closed"
+const RepoIssueStateClosed = "sh.tangled.repo.issue.state.closed"

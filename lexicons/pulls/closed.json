@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "sh.tangled.repo.pull.state.closed",
+  "id": "sh.tangled.repo.pull.status.closed",
   "needsCbor": true,
   "needsType": true,
   "defs": {
