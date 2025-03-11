@@ -577,20 +577,20 @@ func (h *Handle) Merge(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
-
 	if err := gr.Merge([]byte(patch), branch); err != nil {
-		var mergeErr *git.MergeError
+		var mergeErr *git.ErrMerge
 		if errors.As(err, &mergeErr) {
-			conflictDetails := make([]map[string]interface{}, len(mergeErr.Conflicts))
+			conflicts := make([]types.ConflictInfo, len(mergeErr.Conflicts))
 			for i, conflict := range mergeErr.Conflicts {
-				conflictDetails[i] = map[string]interface{}{
-					"filename": conflict.Filename,
-					"reason":   conflict.Reason,
+				conflicts[i] = types.ConflictInfo{
+					Filename: conflict.Filename,
+					Reason:   conflict.Reason,
 				}
 			}
-			response := map[string]interface{}{
-				"message":   mergeErr.Message,
-				"conflicts": conflictDetails,
+			response := types.MergeCheckResponse{
+				IsConflicted: true,
+				Conflicts:    conflicts,
+				Message:      mergeErr.Message,
 			}
 			writeConflict(w, response)
 			h.l.Error("git: merge conflict", "handler", "Merge", "error", mergeErr)
@@ -632,24 +632,24 @@ func (h *Handle) MergeCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var mergeErr *git.MergeError
+	var mergeErr *git.ErrMerge
 	if errors.As(err, &mergeErr) {
-		conflictDetails := make([]map[string]interface{}, len(mergeErr.Conflicts))
+		conflicts := make([]types.ConflictInfo, len(mergeErr.Conflicts))
 		for i, conflict := range mergeErr.Conflicts {
-			conflictDetails[i] = map[string]interface{}{
-				"filename": conflict.Filename,
-				"reason":   conflict.Reason,
+			conflicts[i] = types.ConflictInfo{
+				Filename: conflict.Filename,
+				Reason:   conflict.Reason,
 			}
 		}
-		response := map[string]interface{}{
-			"message":   mergeErr.Message,
-			"conflicts": conflictDetails,
+		response := types.MergeCheckResponse{
+			IsConflicted: true,
+			Conflicts:    conflicts,
+			Message:      mergeErr.Message,
 		}
 		writeConflict(w, response)
 		h.l.Error("git: merge conflict", "handler", "MergeCheck", "error", mergeErr.Error())
 		return
 	}
-
 	writeError(w, err.Error(), http.StatusInternalServerError)
 	h.l.Error("git: failed to check merge", "handler", "MergeCheck", "error", err.Error())
 }
