@@ -4,7 +4,7 @@
     <div class="flex justify-between items-center">
         <p>
         filtering
-        <select class="font-bold border border-gray-200 rounded" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
+        <select class="border px-1 bg-white border-gray-200" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
           <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>open</option>
           <option value="closed" {{ if not .FilteringByOpen }}selected{{ end }}>closed</option>
         </select>
@@ -30,10 +30,10 @@
           class="no-underline hover:underline"
           >
           {{ .Title }}
-          <span class="text-gray-400">#{{ .IssueId }}</span>
+          <span class="text-gray-500">#{{ .IssueId }}</span>
       </a>
     </div>
-    <p class="text-sm text-gray-400">
+    <p class="text-sm text-gray-500">
       {{ $bgColor := "bg-gray-800" }}
       {{ $icon := "ban" }}
       {{ $state := "closed" }}
@@ -64,7 +64,7 @@
         {{ if eq .Metadata.CommentCount 1 }}
         {{ $s = "" }}
         {{ end }}
-        <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-400">{{ .Metadata.CommentCount }} comment{{$s}}</a>
+        <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-500">{{ .Metadata.CommentCount }} comment{{$s}}</a>
       </span>
     </p>
   </div>

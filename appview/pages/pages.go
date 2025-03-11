@@ -523,7 +523,12 @@ func (p *Pages) Static() http.Handler {
 
 func Cache(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		if strings.HasSuffix(r.URL.Path, ".css") {
+			// on day for css files
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+		} else {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
 		h.ServeHTTP(w, r)
 	})
 }

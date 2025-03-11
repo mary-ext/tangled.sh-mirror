@@ -4,10 +4,12 @@
 {{ end }}
 
 {{ define "repoContent" }}
-    <h1>
+    <header>
+      <p class="text-2xl font-bold">
       {{ .Issue.Title }}
-      <span class="text-gray-400">#{{ .Issue.IssueId }}</span>
-    </h1>
+      <span class="text-gray-500">#{{ .Issue.IssueId }}</span>
+      </p>
+    </header>
 
     {{ $bgColor := "bg-gray-800" }}
     {{ $icon := "ban" }}
@@ -23,7 +25,7 @@
                 <i data-lucide="{{ $icon }}" class="w-4 h-4 mr-1.5 text-white" ></i>
                 <span class="text-white">{{ .State }}</span>
             </div>
-            <span class="text-gray-400 text-sm">
+            <span class="text-gray-500 text-sm">
                 opened by
                 {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
                 <a href="/{{ $owner }}" class="no-underline hover:underline"
@@ -35,7 +37,7 @@
         </div>
 
         {{ if .Issue.Body }}
-            <article id="body" class="mt-8 prose">
+            <article id="body" class="mt-4 prose">
                 {{ .Issue.Body | markdown }}
             </article>
         {{ end }}
@@ -47,7 +49,7 @@
         {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
-                class="rounded bg-white p-4 relative"
+                class="rounded bg-white px-6 py-4 relative"
             >
                 {{ if eq $index 0 }}
                     <div
@@ -58,7 +60,7 @@
                         class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
                     ></div>
                 {{ end }}
-                <div class="flex items-center gap-2 mb-2 text-gray-400">
+                <div class="flex items-center gap-2 mb-2 text-gray-500">
                     {{ $owner := index $.DidHandleMap .OwnerDid }}
                     <span class="text-sm">
                         <a
@@ -67,7 +69,8 @@
                             >{{ $owner }}</a
                         >
                     </span>
-                    <span class="px-1 select-none before:content-['\00B7']"></span>
+
+                    <span class="before:content-['·']"></span>
                     <a
                         href="#{{ .CommentId }}"
                         class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline"
