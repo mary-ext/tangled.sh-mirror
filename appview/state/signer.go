@@ -174,3 +174,22 @@ func (s *SignedClient) Merge(patch []byte, ownerDid, targetRepo, branch string) 
 
 	return s.client.Do(req)
 }
+
+func (s *SignedClient) MergeCheck(patch []byte, ownerDid, targetRepo, branch string) (*http.Response, error) {
+	const (
+		Method = "POST"
+	)
+	endpoint := fmt.Sprintf("/%s/%s/merge/check", ownerDid, targetRepo)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"patch":  string(patch),
+		"branch": branch,
+	})
+
+	req, err := s.newRequest(Method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}
