@@ -12,7 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-type MergeError struct {
+type ErrMerge struct {
 	Message     string
 	Conflicts   []ConflictInfo
 	HasConflict bool
@@ -24,7 +24,7 @@ type ConflictInfo struct {
 	Reason   string
 }
 
-func (e MergeError) Error() string {
+func (e ErrMerge) Error() string {
 	if e.HasConflict {
 		return fmt.Sprintf("merge failed due to conflicts: %s (%d conflicts)", e.Message, len(e.Conflicts))
 	}
@@ -90,7 +90,7 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool) error {
 	if err := cmd.Run(); err != nil {
 		if checkOnly {
 			conflicts := parseGitApplyErrors(stderr.String())
-			return &MergeError{
+			return &ErrMerge{
 				Message:     "patch cannot be applied cleanly",
 				Conflicts:   conflicts,
 				HasConflict: len(conflicts) > 0,
@@ -106,7 +106,7 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool) error {
 func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 	patchFile, err := g.createTempFileWithPatch(patchData)
 	if err != nil {
-		return &MergeError{
+		return &ErrMerge{
 			Message:    err.Error(),
 			OtherError: err,
 		}
@@ -115,7 +115,7 @@ func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 
 	tmpDir, err := g.cloneRepository(targetBranch)
 	if err != nil {
-		return &MergeError{
+		return &ErrMerge{
 			Message:    err.Error(),
 			OtherError: err,
 		}
@@ -128,7 +128,7 @@ func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
 	patchFile, err := g.createTempFileWithPatch(patchData)
 	if err != nil {
-		return &MergeError{
+		return &ErrMerge{
 			Message:    err.Error(),
 			OtherError: err,
 		}
@@ -137,7 +137,7 @@ func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
 
 	tmpDir, err := g.cloneRepository(targetBranch)
 	if err != nil {
-		return &MergeError{
+		return &ErrMerge{
 			Message:    err.Error(),
 			OtherError: err,
 		}
@@ -150,7 +150,7 @@ func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
 
 	pushCmd := exec.Command("git", "-C", tmpDir, "push")
 	if err := pushCmd.Run(); err != nil {
-		return &MergeError{
+		return &ErrMerge{
 			Message:    "failed to push changes to bare repository",
 			OtherError: err,
 		}
