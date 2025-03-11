@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "sh.tangled.repo.pull.state",
+  "id": "sh.tangled.repo.pull.status",
   "needsCbor": true,
   "needsType": true,
   "defs": {
@@ -15,15 +15,15 @@
             "type": "string",
             "format": "at-uri"
           },
-          "state": {
+          "status": {
             "type": "string",
-            "description": "state of the pull request",
+            "description": "status of the pull request",
             "knownValues": [
-              "sh.tangled.repo.pull.state.open",
-              "sh.tangled.repo.pull.state.closed",
-              "sh.tangled.repo.pull.state.merged"
+              "sh.tangled.repo.pull.status.open",
+              "sh.tangled.repo.pull.status.closed",
+              "sh.tangled.repo.pull.status.merged"
             ],
-            "default": "sh.tangled.repo.pull.state.open"
+            "default": "sh.tangled.repo.pull.status.open"
           }
         }
       }

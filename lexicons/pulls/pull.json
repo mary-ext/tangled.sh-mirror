@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "sh.tangled.repo.pull.patch",
+  "id": "sh.tangled.repo.pull",
   "needsCbor": true,
   "needsType": true,
   "defs": {
@@ -9,11 +9,14 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["targetRepo", "pullId", "title", "patch"],
+        "required": ["targetRepo", "targetBranch", "pullId", "title", "patch"],
         "properties": {
           "targetRepo": {
             "type": "string",
             "format": "at-uri"
+          },
+          "targetBranch": {
+            "type": "string"
           },
           "sourceRepo": {
             "type": "string",

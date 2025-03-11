@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "sh.tangled.repo.pull.state.merged",
+  "id": "sh.tangled.repo.pull.status.merged",
   "needsCbor": true,
   "needsType": true,
   "defs": {

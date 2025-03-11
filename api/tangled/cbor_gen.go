@@ -2059,14 +2059,14 @@ func (t *Repo) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *RepoPullPatch) MarshalCBOR(w io.Writer) error {
+func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 8
+	fieldCount := 9
 
 	if t.Body == nil {
 		fieldCount--
@@ -2128,10 +2128,10 @@ func (t *RepoPullPatch) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.repo.pull.patch"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.repo.pull"))); err != nil {
 		return err
 	}
-	if _, err := cw.WriteString(string("sh.tangled.repo.pull.patch")); err != nil {
+	if _, err := cw.WriteString(string("sh.tangled.repo.pull")); err != nil {
 		return err
 	}
 
@@ -2289,11 +2289,34 @@ func (t *RepoPullPatch) MarshalCBOR(w io.Writer) error {
 	if _, err := cw.WriteString(string(t.TargetRepo)); err != nil {
 		return err
 	}
+
+	// t.TargetBranch (string) (string)
+	if len("targetBranch") > 1000000 {
+		return xerrors.Errorf("Value in field \"targetBranch\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("targetBranch"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("targetBranch")); err != nil {
+		return err
+	}
+
+	if len(t.TargetBranch) > 1000000 {
+		return xerrors.Errorf("Value in field t.TargetBranch was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.TargetBranch))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.TargetBranch)); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (t *RepoPullPatch) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = RepoPullPatch{}
+func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = RepoPull{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -2312,12 +2335,12 @@ func (t *RepoPullPatch) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("RepoPullPatch: map struct too large (%d)", extra)
+		return fmt.Errorf("RepoPull: map struct too large (%d)", extra)
 	}
 
 	n := extra
 
-	nameBuf := make([]byte, 10)
+	nameBuf := make([]byte, 12)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -2466,6 +2489,17 @@ func (t *RepoPullPatch) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.TargetRepo = string(sval)
 			}
+			// t.TargetBranch (string) (string)
+		case "targetBranch":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.TargetBranch = string(sval)
+			}
 
 		default:
 			// Field doesn't exist on this type, so ignore it
@@ -2477,7 +2511,7 @@ func (t *RepoPullPatch) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *RepoPullState) MarshalCBOR(w io.Writer) error {
+func (t *RepoPullStatus) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -2486,7 +2520,7 @@ func (t *RepoPullState) MarshalCBOR(w io.Writer) error {
 	cw := cbg.NewCborWriter(w)
 	fieldCount := 3
 
-	if t.State == nil {
+	if t.Status == nil {
 		fieldCount--
 	}
 
@@ -2529,40 +2563,40 @@ func (t *RepoPullState) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.repo.pull.state"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.repo.pull.status"))); err != nil {
 		return err
 	}
-	if _, err := cw.WriteString(string("sh.tangled.repo.pull.state")); err != nil {
+	if _, err := cw.WriteString(string("sh.tangled.repo.pull.status")); err != nil {
 		return err
 	}
 
-	// t.State (string) (string)
-	if t.State != nil {
+	// t.Status (string) (string)
+	if t.Status != nil {
 
-		if len("state") > 1000000 {
-			return xerrors.Errorf("Value in field \"state\" was too long")
+		if len("status") > 1000000 {
+			return xerrors.Errorf("Value in field \"status\" was too long")
 		}
 
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("state"))); err != nil {
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("status"))); err != nil {
 			return err
 		}
-		if _, err := cw.WriteString(string("state")); err != nil {
+		if _, err := cw.WriteString(string("status")); err != nil {
 			return err
 		}
 
-		if t.State == nil {
+		if t.Status == nil {
 			if _, err := cw.Write(cbg.CborNull); err != nil {
 				return err
 			}
 		} else {
-			if len(*t.State) > 1000000 {
-				return xerrors.Errorf("Value in field t.State was too long")
+			if len(*t.Status) > 1000000 {
+				return xerrors.Errorf("Value in field t.Status was too long")
 			}
 
-			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.State))); err != nil {
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Status))); err != nil {
 				return err
 			}
-			if _, err := cw.WriteString(string(*t.State)); err != nil {
+			if _, err := cw.WriteString(string(*t.Status)); err != nil {
 				return err
 			}
 		}
@@ -2570,8 +2604,8 @@ func (t *RepoPullState) MarshalCBOR(w io.Writer) error {
 	return nil
 }
 
-func (t *RepoPullState) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = RepoPullState{}
+func (t *RepoPullStatus) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = RepoPullStatus{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -2590,12 +2624,12 @@ func (t *RepoPullState) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("RepoPullState: map struct too large (%d)", extra)
+		return fmt.Errorf("RepoPullStatus: map struct too large (%d)", extra)
 	}
 
 	n := extra
 
-	nameBuf := make([]byte, 5)
+	nameBuf := make([]byte, 6)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -2633,8 +2667,8 @@ func (t *RepoPullState) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.LexiconTypeID = string(sval)
 			}
-			// t.State (string) (string)
-		case "state":
+			// t.Status (string) (string)
+		case "status":
 
 			{
 				b, err := cr.ReadByte()
@@ -2651,7 +2685,7 @@ func (t *RepoPullState) UnmarshalCBOR(r io.Reader) (err error) {
 						return err
 					}
 
-					t.State = (*string)(&sval)
+					t.Status = (*string)(&sval)
 				}
 			}
 
