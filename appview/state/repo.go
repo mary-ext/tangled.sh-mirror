@@ -234,6 +234,200 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// MergeCheck gets called async, every time the patch diff is updated in a pull.
+func (s *State) MergeCheck(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		return
+	}
+
+	patch := r.FormValue("patch")
+	targetBranch := r.FormValue("targetBranch")
+
+	if patch == "" || targetBranch == "" {
+		s.pages.Notice(w, "pull", "Patch and target branch are required.")
+		return
+	}
+
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
+		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		return
+	}
+
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create signed client for %s", f.Knot)
+		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		return
+	}
+
+	resp, err := ksClient.MergeCheck([]byte(patch), user.Did, f.RepoName, targetBranch)
+	if err != nil {
+		log.Println("failed to check mergeability", err)
+		s.pages.Notice(w, "pull", "Unable to check for mergeability. Try again later.")
+		return
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("failed to read knotserver response body")
+		s.pages.Notice(w, "pull", "Unable to check for mergeability. Try again later.")
+		return
+	}
+
+	var mergeCheckResponse types.MergeCheckResponse
+	err = json.Unmarshal(respBody, &mergeCheckResponse)
+	if err != nil {
+		log.Println("failed to unmarshal merge check response", err)
+		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		return
+	}
+
+	// TODO: this has to return a html fragment
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(mergeCheckResponse)
+}
+
+func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		s.pages.RepoNewPull(w, pages.RepoNewPullParams{
+			LoggedInUser: user,
+			RepoInfo:     f.RepoInfo(s, user),
+		})
+	case http.MethodPost:
+		title := r.FormValue("title")
+		body := r.FormValue("body")
+		targetBranch := r.FormValue("targetBranch")
+		patch := r.FormValue("patch")
+
+		if title == "" || body == "" || patch == "" {
+			s.pages.Notice(w, "pull", "Title, body and patch diff are required.")
+			return
+		}
+
+		tx, err := s.db.BeginTx(r.Context(), nil)
+		if err != nil {
+			log.Println("failed to start tx")
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
+
+		defer func() {
+			tx.Rollback()
+			err = s.enforcer.E.LoadPolicy()
+			if err != nil {
+				log.Println("failed to rollback policies")
+			}
+		}()
+
+		err = db.NewPull(tx, &db.Pull{
+			Title:        title,
+			Body:         body,
+			TargetBranch: targetBranch,
+			Patch:        patch,
+			OwnerDid:     user.Did,
+			RepoAt:       f.RepoAt,
+		})
+		if err != nil {
+			log.Println("failed to create pull request", err)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
+		client, _ := s.auth.AuthorizedClient(r)
+		pullId, err := db.GetPullId(s.db, f.RepoAt)
+		if err != nil {
+			log.Println("failed to get pull id", err)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
+
+		atResp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoPullNSID,
+			Repo:       user.Did,
+			Rkey:       s.TID(),
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.RepoPull{
+					Title:        title,
+					PullId:       int64(pullId),
+					TargetRepo:   string(f.RepoAt),
+					TargetBranch: targetBranch,
+					Patch:        patch,
+				},
+			},
+		})
+
+		err = db.SetPullAt(s.db, f.RepoAt, pullId, atResp.Uri)
+		if err != nil {
+			log.Println("failed to get pull id", err)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
+
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
+		return
+	}
+}
+
+func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	prId := chi.URLParam(r, "pull")
+	prIdInt, err := strconv.Atoi(prId)
+	if err != nil {
+		http.Error(w, "bad pr id", http.StatusBadRequest)
+		log.Println("failed to parse pr id", err)
+		return
+	}
+
+	pr, comments, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
+	if err != nil {
+		log.Println("failed to get pr and comments", err)
+		s.pages.Notice(w, "pull", "Failed to load pull request. Try again later.")
+		return
+	}
+
+	identsToResolve := make([]string, len(comments))
+	for i, comment := range comments {
+		identsToResolve[i] = comment.OwnerDid
+	}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
+	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(s, user),
+		Pull:         *pr,
+		Comments:     comments,
+
+		DidHandleMap: didHandleMap,
+	})
+}
+
 func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
@@ -1071,13 +1265,34 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch r.Method {
-	case http.MethodGet:
-		s.pages.RepoPulls(w, pages.RepoPullsParams{
-			LoggedInUser: user,
-			RepoInfo:     f.RepoInfo(s, user),
-		})
+	pulls, err := db.GetPulls(s.db, f.RepoAt)
+	if err != nil {
+		log.Println("failed to get pulls", err)
+		s.pages.Notice(w, "pulls", "Failed to load pulls. Try again later.")
+		return
 	}
+
+	identsToResolve := make([]string, len(pulls))
+	for i, pull := range pulls {
+		identsToResolve[i] = pull.OwnerDid
+	}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
+	s.pages.RepoPulls(w, pages.RepoPullsParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo:     f.RepoInfo(s, user),
+		Pulls:        pulls,
+		DidHandleMap: didHandleMap,
+	})
+	return
 }
 
 func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {

@@ -506,15 +506,42 @@ func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 	return p.executeRepo("repo/issues/new", w, params)
 }
 
-type RepoPullsParams struct {
+type RepoNewPullParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
 	Active       string
 }
 
+func (p *Pages) RepoNewPull(w io.Writer, params RepoNewPullParams) error {
+	params.Active = "pulls"
+	return p.executeRepo("repo/pulls/new", w, params)
+}
+
+type RepoPullsParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Pulls        []db.Pull
+	Active       string
+	DidHandleMap map[string]string
+}
+
 func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
 	params.Active = "pulls"
 	return p.executeRepo("repo/pulls/pulls", w, params)
+}
+
+type RepoSinglePullParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	DidHandleMap map[string]string
+	Pull         db.Pull
+	Comments     []db.PullComment
+	Active       string
+}
+
+func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
+	params.Active = "pulls"
+	return p.executeRepo("repo/pulls/pull", w, params)
 }
 
 func (p *Pages) Static() http.Handler {
