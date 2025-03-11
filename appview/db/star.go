@@ -10,9 +10,11 @@ import (
 type Star struct {
 	StarredByDid string
 	RepoAt       syntax.ATURI
-	Repo         *Repo
 	Created      time.Time
 	Rkey         string
+
+	// optionally, populate this when querying for reverse mappings
+	Repo *Repo
 }
 
 func (star *Star) ResolveRepo(e Execer) error {

@@ -44,17 +44,22 @@
       class="py-4 px-6 drop-shadow-sm rounded bg-white"
       >
       <div id="repo-card-name" class="font-medium">
-        <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
-          >{{ .Name }}</a
-        >
+        <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}">{{ .Name }}</a>
       </div>
       {{ if .Description }}
       <div class="text-gray-600 text-sm">
           {{ .Description }}
       </div>
       {{ end }}
-      <div class="text-gray-600 text-sm font-mono">
+      <div class="text-gray-600 text-sm font-mono inline-flex gap-4">
           {{ .Knot }}
+
+          {{ if .RepoStats.StarCount }}
+          <div class="flex gap-1 items-center text-sm">
+            <span class="w-2 h-2 fill-current" data-lucide="star"></span>
+            <span>{{ .RepoStats.StarCount }}</span>
+          </div>
+          {{ end }}
       </div>
   </div>
     {{ else }}
@@ -81,8 +86,15 @@
           {{ .Description }}
       </div>
       {{ end }}
-      <div class="text-gray-600 text-sm font-mono">
+      <div class="text-gray-600 text-sm font-mono inline-flex gap-4">
           {{ .Knot }}
+
+          {{ if .RepoStats.StarCount }}
+          <div class="flex gap-1 items-center text-sm">
+            <span class="w-2 h-2 fill-current" data-lucide="star"></span>
+            <span>{{ .RepoStats.StarCount }}</span>
+          </div>
+          {{ end }}
       </div>
   </div>
   {{ else }}
