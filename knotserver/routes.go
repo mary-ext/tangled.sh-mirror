@@ -628,7 +628,10 @@ func (h *Handle) MergeCheck(w http.ResponseWriter, r *http.Request) {
 
 	err = gr.MergeCheck([]byte(patch), branch)
 	if err == nil {
-		w.WriteHeader(http.StatusOK)
+		response := types.MergeCheckResponse{
+			IsConflicted: false,
+		}
+		writeJSON(w, response)
 		return
 	}
 

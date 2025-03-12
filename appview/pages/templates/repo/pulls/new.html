@@ -10,6 +10,11 @@
             <div>
                 <label for="title">title</label>
                 <input type="text" name="title" id="title" class="w-full" />
+
+                <label for="targetBranch">target branch</label>
+                <p class="text-gray-500">
+                    The branch you want to make your change against.
+                </p>
                 <input type="text" name="targetBranch" id="targetBranch" />
             </div>
             <div>
@@ -21,13 +26,17 @@
                     class="w-full resize-y"
                     placeholder="Describe your change. Markdown is supported."
                 ></textarea>
-                <textarea
-                    name="patch"
-                    id="patch"
-                    rows="10"
-                    class="w-full resize-y font-mono"
-                    placeholder="Paste your git-format-patch output here."
-                ></textarea>
+
+                <div class="mt-4">
+                    <label for="patch">paste your patch here</label>
+                    <textarea
+                        name="patch"
+                        id="patch"
+                        rows="10"
+                        class="w-full resize-y font-mono"
+                        placeholder="Paste your git-format-patch output here."
+                    ></textarea>
+                </div>
             </div>
             <div>
                 <button type="submit" class="btn">create</button>

@@ -404,6 +404,11 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pullOwnerIdent, err := s.resolver.ResolveIdent(r.Context(), pr.OwnerDid)
+	if err != nil {
+		log.Println("failed to resolve pull owner", err)
+	}
+
 	identsToResolve := make([]string, len(comments))
 	for i, comment := range comments {
 		identsToResolve[i] = comment.OwnerDid
@@ -418,13 +423,42 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
-		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(s, user),
-		Pull:         *pr,
-		Comments:     comments,
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("failed to get registration key for %s", f.Knot)
+		s.pages.Notice(w, "pull", "Failed to load pull request. Try again later.")
+		return
+	}
 
-		DidHandleMap: didHandleMap,
+	var mergeCheckResponse types.MergeCheckResponse
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	if err == nil {
+		resp, err := ksClient.MergeCheck([]byte(pr.Patch), pr.OwnerDid, f.RepoName, pr.TargetBranch)
+		if err != nil {
+			log.Println("failed to check for mergeability:", err)
+		} else {
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Println("failed to read merge check response body")
+			} else {
+				err = json.Unmarshal(respBody, &mergeCheckResponse)
+				if err != nil {
+					log.Println("failed to unmarshal merge check response", err)
+				}
+			}
+		}
+	} else {
+		log.Printf("failed to setup signed client for %s; ignoring...", f.Knot)
+	}
+
+	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
+		LoggedInUser:    user,
+		RepoInfo:        f.RepoInfo(s, user),
+		Pull:            *pr,
+		Comments:        comments,
+		PullOwnerHandle: pullOwnerIdent.Handle.String(),
+		DidHandleMap:    didHandleMap,
+		MergeCheck:      mergeCheckResponse,
 	})
 }
 
