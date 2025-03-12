@@ -531,15 +531,26 @@ func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
 }
 
 type RepoSinglePullParams struct {
-	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
-	DidHandleMap map[string]string
-	Pull         db.Pull
-	Comments     []db.PullComment
-	Active       string
+	LoggedInUser    *auth.User
+	RepoInfo        RepoInfo
+	DidHandleMap    map[string]string
+	Pull            db.Pull
+	State           string
+	PullOwnerHandle string
+	Comments        []db.PullComment
+	Active          string
+	MergeCheck      types.MergeCheckResponse
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
+	switch params.Pull.Open {
+	case 0:
+		params.State = "close"
+	case 1:
+		params.State = "open"
+	case 2:
+		params.State = "merged"
+	}
 	params.Active = "pulls"
 	return p.executeRepo("repo/pulls/pull", w, params)
 }
