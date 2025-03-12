@@ -15,7 +15,16 @@
                 <p class="text-gray-500">
                     The branch you want to make your change against.
                 </p>
-                <input type="text" name="targetBranch" id="targetBranch" />
+                <select class="p-1 border border-gray-200 bg-white">
+                  <option disabled selected>Select a branch</option>
+                  {{ range .Branches }}
+                  <option
+                      value="{{ .Reference.Name }}"
+                      class="py-1">
+                      {{ .Reference.Name }}
+                  </option>
+                  {{ end }}
+                </select>
             </div>
             <div>
                 <label for="body">body</label>

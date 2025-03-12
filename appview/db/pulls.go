@@ -83,16 +83,10 @@ func GetPullAt(e Execer, repoAt syntax.ATURI, pullId int) (string, error) {
 	return pullAt, err
 }
 
-func GetPullId(e Execer, repoAt syntax.ATURI) (int, error) {
+func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
 	var pullId int
 	err := e.QueryRow(`select next_pull_id from repo_pull_seqs where repo_at = ?`, repoAt).Scan(&pullId)
 	return pullId - 1, err
-}
-
-func GetPullOwnerDid(e Execer, repoAt syntax.ATURI, pullId int) (string, error) {
-	var ownerDid string
-	err := e.QueryRow(`select owner_did from pulls where repo_at = ? and pull_id = ?`, repoAt, pullId).Scan(&ownerDid)
-	return ownerDid, err
 }
 
 func GetPulls(e Execer, repoAt syntax.ATURI) ([]Pull, error) {
