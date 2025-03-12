@@ -41,11 +41,11 @@ func NewSignedClient(domain, secret string, dev bool) (*SignedClient, error) {
 		},
 	}
 
-	uri := "https"
+	scheme := "https"
 	if dev {
-		uri = "http"
+		scheme = "http"
 	}
-	url, err := url.Parse(fmt.Sprintf("%s://%s", uri, domain))
+	url, err := url.Parse(fmt.Sprintf("%s://%s", scheme, domain))
 	if err != nil {
 		return nil, err
 	}
@@ -192,4 +192,68 @@ func (s *SignedClient) MergeCheck(patch []byte, ownerDid, targetRepo, branch str
 	}
 
 	return s.client.Do(req)
+}
+
+type UnsignedClient struct {
+	Url    *url.URL
+	client *http.Client
+}
+
+func NewUnsignedClient(domain string, dev bool) (*UnsignedClient, error) {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	scheme := "https"
+	if dev {
+		scheme = "http"
+	}
+	url, err := url.Parse(fmt.Sprintf("%s://%s", scheme, domain))
+	if err != nil {
+		return nil, err
+	}
+
+	unsignedClient := &UnsignedClient{
+		client: client,
+		Url:    url,
+	}
+
+	return unsignedClient, nil
+}
+
+func (us *UnsignedClient) newRequest(method, endpoint string, body []byte) (*http.Request, error) {
+	return http.NewRequest(method, us.Url.JoinPath(endpoint).String(), bytes.NewReader(body))
+}
+
+func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+
+	endpoint := fmt.Sprintf("/%s/%s/tree/%s", ownerDid, repoName, ref)
+	if ref == "" {
+		endpoint = fmt.Sprintf("/%s/%s", ownerDid, repoName)
+	}
+
+	req, err := us.newRequest(Method, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
+}
+
+func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+
+	endpoint := fmt.Sprintf("/%s/%s/branches", ownerDid, repoName)
+
+	req, err := us.newRequest(Method, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
 }

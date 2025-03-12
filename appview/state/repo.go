@@ -35,19 +35,15 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to fully resolve repo", err)
 		return
 	}
-	protocol := "http"
-	if !s.config.Dev {
-		protocol = "https"
+
+	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", f.Knot)
+		s.pages.Error503(w)
+		return
 	}
 
-	var reqUrl string
-	if ref != "" {
-		reqUrl = fmt.Sprintf("%s://%s/%s/%s/tree/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref)
-	} else {
-		reqUrl = fmt.Sprintf("%s://%s/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName)
-	}
-
-	resp, err := http.Get(reqUrl)
+	resp, err := us.Index(f.OwnerDid(), f.RepoName, ref)
 	if err != nil {
 		s.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
@@ -303,9 +299,36 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+		if err != nil {
+			log.Printf("failed to create unsigned client for %s", f.Knot)
+			s.pages.Error503(w)
+			return
+		}
+
+		resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+		if err != nil {
+			log.Println("failed to reach knotserver", err)
+			return
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Error reading response body: %v", err)
+			return
+		}
+
+		var result types.RepoBranchesResponse
+		err = json.Unmarshal(body, &result)
+		if err != nil {
+			log.Println("failed to parse response:", err)
+			return
+		}
+
 		s.pages.RepoNewPull(w, pages.RepoNewPullParams{
 			LoggedInUser: user,
 			RepoInfo:     f.RepoInfo(s, user),
+			Branches:     result.Branches,
 		})
 	case http.MethodPost:
 		title := r.FormValue("title")
@@ -347,7 +370,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		client, _ := s.auth.AuthorizedClient(r)
-		pullId, err := db.GetPullId(s.db, f.RepoAt)
+		pullId, err := db.NextPullId(s.db, f.RepoAt)
 		if err != nil {
 			log.Println("failed to get pull id", err)
 			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
@@ -604,7 +627,13 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/branches", f.Knot, f.OwnerDid(), f.RepoName))
+	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Println("failed to create unsigned client", err)
+		return
+	}
+
+	resp, err := us.Branches(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
