@@ -233,6 +233,11 @@ func ReopenPull(e Execer, repoAt syntax.ATURI, pullId int) error {
 	return err
 }
 
+func MergePull(e Execer, repoAt syntax.ATURI, pullId int) error {
+	_, err := e.Exec(`update pulls set open = 2 where repo_at = ? and pull_id = ?`, repoAt, pullId)
+	return err
+}
+
 type PullCount struct {
 	Open   int
 	Closed int
