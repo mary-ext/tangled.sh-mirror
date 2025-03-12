@@ -572,8 +572,20 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		repoName := r.FormValue("name")
 		if repoName == "" {
-			s.pages.Notice(w, "repo", "Invalid repo name.")
+			s.pages.Notice(w, "repo", "Repository name cannot be empty.")
 			return
+		}
+
+		// Check for valid repository name (GitHub-like rules)
+		// No spaces, only alphanumeric characters, dashes, and underscores
+		for _, char := range repoName {
+			if !((char >= 'a' && char <= 'z') ||
+				(char >= 'A' && char <= 'Z') ||
+				(char >= '0' && char <= '9') ||
+				char == '-' || char == '_' || char == '.') {
+				s.pages.Notice(w, "repo", "Repository name can only contain alphanumeric characters, periods, hyphens, and underscores.")
+				return
+			}
 		}
 
 		defaultBranch := r.FormValue("branch")
