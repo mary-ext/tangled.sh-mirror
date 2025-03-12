@@ -509,6 +509,7 @@ func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 type RepoNewPullParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Branches     []types.Branch
 	Active       string
 }
 
