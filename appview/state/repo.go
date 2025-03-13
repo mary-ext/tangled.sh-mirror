@@ -253,18 +253,73 @@ func (s *State) EditPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.EditPatch(s.db, f.RepoAt, prIdInt, patch)
+	// Get pull information before updating to get the atproto record URI
+	pull, _, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
+	if err != nil {
+		log.Println("failed to get pull information", err)
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	// Start a transaction for database operations
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start transaction", err)
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	// Set up deferred rollback that will be overridden by commit if successful
+	defer tx.Rollback()
+
+	// Update patch in the database within transaction
+	err = db.EditPatch(tx, f.RepoAt, prIdInt, patch)
 	if err != nil {
 		log.Println("failed to update patch", err)
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
 		return
 	}
 
-	// Get target branch after patch update
-	pull, _, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
+	// Update the atproto record
+	client, _ := s.auth.AuthorizedClient(r)
+	pullAt := pull.PullAt
+
+	// Get the existing record first
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoPullNSID, user.Did, pullAt.RecordKey().String())
 	if err != nil {
-		log.Println("failed to get pull information", err)
-		s.pages.Notice(w, "pull-success", "Patch updated successfully.")
+		log.Println("failed to get existing pull record", err)
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	// Update the record
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoPullNSID,
+		Repo:       user.Did,
+		Rkey:       pullAt.RecordKey().String(),
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.RepoPull{
+				Title:        pull.Title,
+				PullId:       int64(pull.PullId),
+				TargetRepo:   string(f.RepoAt),
+				TargetBranch: pull.TargetBranch,
+				Patch:        patch,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Println("failed to update pull record in atproto", err)
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	// Commit the transaction now that both operations have succeeded
+	err = tx.Commit()
+	if err != nil {
+		log.Println("failed to commit transaction", err)
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
 		return
 	}
 
