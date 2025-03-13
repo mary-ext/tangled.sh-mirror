@@ -140,6 +140,29 @@ func Make(dbPath string) (*DB, error) {
 		return nil
 	})
 
+	runMigration(db, "add-rkey-to-pubkeys", func(tx *sql.Tx) error {
+		// add unconstrained column
+		_, err := tx.Exec(`
+			alter table public_keys
+			add column rkey text;
+		`)
+		if err != nil {
+			return err
+		}
+
+		// backfill
+		_, err = tx.Exec(`
+			update public_keys
+			set rkey = ''
+			where rkey is null;
+		`)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	return &DB{db}, nil
 }
 

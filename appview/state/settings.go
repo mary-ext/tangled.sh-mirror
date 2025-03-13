@@ -48,7 +48,17 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := db.AddPublicKey(s.db, did, name, key); err != nil {
+		rkey := s.TID()
+
+		tx, err := s.db.Begin()
+		if err != nil {
+			log.Printf("failed to start tx; adding public key: %s", err)
+			s.pages.Notice(w, "settings-keys", "Unable to add public key at this moment, try again later.")
+			return
+		}
+		defer tx.Rollback()
+
+		if err := db.AddPublicKey(tx, did, name, key, rkey); err != nil {
 			log.Printf("adding public key: %s", err)
 			s.pages.Notice(w, "settings-keys", "Failed to add public key.")
 			return
@@ -58,7 +68,7 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.PublicKeyNSID,
 			Repo:       did,
-			Rkey:       s.TID(),
+			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.PublicKey{
 					Created: time.Now().Format(time.RFC3339),
@@ -74,6 +84,54 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Println("created atproto record: ", resp.Uri)
+
+		err = tx.Commit()
+		if err != nil {
+			log.Printf("failed to commit tx; adding public key: %s", err)
+			s.pages.Notice(w, "settings-keys", "Unable to add public key at this moment, try again later.")
+			return
+		}
+
+		s.pages.HxLocation(w, "/settings")
+		return
+
+	case http.MethodDelete:
+		did := s.auth.GetDid(r)
+		q := r.URL.Query()
+
+		name := q.Get("name")
+		rkey := q.Get("rkey")
+		key := q.Get("key")
+
+		log.Println(name)
+		log.Println(rkey)
+		log.Println(key)
+
+		client, _ := s.auth.AuthorizedClient(r)
+
+		if err := db.RemovePublicKey(s.db, did, name, key); err != nil {
+			log.Printf("removing public key: %s", err)
+			s.pages.Notice(w, "settings-keys", "Failed to remove public key.")
+			return
+		}
+
+		if rkey != "" {
+			// remove from pds too
+			_, err := comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+				Collection: tangled.PublicKeyNSID,
+				Repo:       did,
+				Rkey:       rkey,
+			})
+
+			// invalid record
+			if err != nil {
+				log.Printf("failed to delete record from PDS: %s", err)
+				s.pages.Notice(w, "settings-keys", "Failed to remove key from PDS.")
+				return
+			}
+		}
+		log.Println("deleted successfully")
+
 		s.pages.HxLocation(w, "/settings")
 		return
 	}
