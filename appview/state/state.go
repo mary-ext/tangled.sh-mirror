@@ -965,6 +965,7 @@ func (s *State) StandardRouter() http.Handler {
 		r.Use(AuthMiddleware(s))
 		r.Get("/", s.Settings)
 		r.Put("/keys", s.SettingsKeys)
+		r.Delete("/keys", s.SettingsKeys)
 	})
 
 	r.Get("/keys/{user}", s.Keys)
