@@ -16,8 +16,11 @@
                 <h1 class="text-center text-2xl font-semibold italic">
                     tangled
                 </h1>
+                <h2 class="text-center text-xl italic">
+                    tightly-knit social coding.
+                </h2>
                 <form
-                    class="w-full"
+                    class="w-full mt-4"
                     hx-post="/login"
                     hx-swap="none"
                     hx-disabled-elt="this"
@@ -25,6 +28,11 @@
                     <div class="flex flex-col">
                         <label for="handle">handle</label>
                         <input type="text" id="handle" name="handle" required />
+                        <span class="text-xs text-gray-500 mt-1">
+                            You need to use your
+                            <a href="https://bsky.app">Bluesky</a> handle to log
+                            in.
+                        </span>
                     </div>
 
                     <div class="flex flex-col mt-2">
@@ -35,6 +43,14 @@
                             name="app_password"
                             required
                         />
+                        <span class="text-xs text-gray-500 mt-1">
+                            Generate an app password
+                            <a
+                                href="https://bsky.app/settings/app-passwords"
+                                target="_blank"
+                                >here</a
+                            >.
+                        </span>
                     </div>
 
                     <button
@@ -46,7 +62,10 @@
                     </button>
                 </form>
                 <p class="text-sm text-gray-500">
-                    Join our IRC channel: <a href="https://web.libera.chat/#tangled"><code>#tangled</code> on Libera Chat</a>.
+                    Join our IRC channel:
+                    <a href="https://web.libera.chat/#tangled"
+                        ><code>#tangled</code> on Libera Chat</a
+                    >.
                 </p>
                 <p id="login-msg" class="error w-full"></p>
             </main>
