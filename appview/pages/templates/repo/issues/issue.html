@@ -1,14 +1,14 @@
 {{ define "title" }}
-    {{ .Issue.Title }} &middot;
+    {{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot;
     {{ .RepoInfo.FullName }}
 {{ end }}
 
 {{ define "repoContent" }}
-    <header>
-      <p class="text-2xl">
+    <header class="pb-4">
+      <h1 class="text-2xl">
       {{ .Issue.Title }}
       <span class="text-gray-500">#{{ .Issue.IssueId }}</span>
-      </p>
+      </h1>
     </header>
 
     {{ $bgColor := "bg-gray-800" }}

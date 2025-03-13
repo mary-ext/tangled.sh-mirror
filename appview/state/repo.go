@@ -230,49 +230,72 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// MergeCheck gets called async, every time the patch diff is updated in a pull.
-func (s *State) MergeCheck(w http.ResponseWriter, r *http.Request) {
+func (s *State) EditPatch(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
-		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	prId := chi.URLParam(r, "pull")
+	prIdInt, err := strconv.Atoi(prId)
+	if err != nil {
+		http.Error(w, "bad pr id", http.StatusBadRequest)
+		log.Println("failed to parse pr id", err)
 		return
 	}
 
 	patch := r.FormValue("patch")
-	targetBranch := r.FormValue("targetBranch")
-
-	if patch == "" || targetBranch == "" {
-		s.pages.Notice(w, "pull", "Patch and target branch are required.")
+	if patch == "" {
+		s.pages.Notice(w, "pull-error", "Patch is required.")
 		return
 	}
 
+	err = db.EditPatch(s.db, f.RepoAt, prIdInt, patch)
+	if err != nil {
+		log.Println("failed to update patch", err)
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	// Get target branch after patch update
+	pull, _, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
+	if err != nil {
+		log.Println("failed to get pull information", err)
+		s.pages.Notice(w, "pull-success", "Patch updated successfully.")
+		return
+	}
+
+	targetBranch := pull.TargetBranch
+
+	// Perform merge check
 	secret, err := db.GetRegistrationKey(s.db, f.Knot)
 	if err != nil {
 		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
-		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		s.pages.Notice(w, "pull-success", "Patch updated successfully, but couldn't check mergeability.")
 		return
 	}
 
 	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
 	if err != nil {
 		log.Printf("failed to create signed client for %s", f.Knot)
-		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		s.pages.Notice(w, "pull-success", "Patch updated successfully, but couldn't check mergeability.")
 		return
 	}
 
 	resp, err := ksClient.MergeCheck([]byte(patch), user.Did, f.RepoName, targetBranch)
 	if err != nil {
 		log.Println("failed to check mergeability", err)
-		s.pages.Notice(w, "pull", "Unable to check for mergeability. Try again later.")
+		s.pages.Notice(w, "pull-success", "Patch updated successfully, but couldn't check mergeability.")
 		return
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("failed to read knotserver response body")
-		s.pages.Notice(w, "pull", "Unable to check for mergeability. Try again later.")
+		s.pages.Notice(w, "pull-success", "Patch updated successfully, but couldn't check mergeability.")
 		return
 	}
 
@@ -280,13 +303,12 @@ func (s *State) MergeCheck(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(respBody, &mergeCheckResponse)
 	if err != nil {
 		log.Println("failed to unmarshal merge check response", err)
-		s.pages.Notice(w, "pull", "Failed to check mergeability. Try again later.")
+		s.pages.Notice(w, "pull-success", "Patch updated successfully, but couldn't check mergeability.")
 		return
 	}
 
-	// TODO: this has to return a html fragment
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(mergeCheckResponse)
+	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, prIdInt))
+	return
 }
 
 func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
