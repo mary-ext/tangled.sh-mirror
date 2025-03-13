@@ -1,7 +1,97 @@
 {{ define "title" }}pulls &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
-    <p class="text-gray-400">
-        Support for pull requests is actively being worked on. Stay tuned!
-    </p>
+    <div class="flex justify-between items-center">
+        <p>
+            filtering
+            <select
+                class="border px-1 bg-white border-gray-200"
+                onchange="window.location.href = '/{{ .RepoInfo.FullName }}/pulls?state=' + this.value"
+            >
+                <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>
+                    open
+                </option>
+                <option
+                    value="closed"
+                    {{ if eq .FilteringState "closed" }}selected{{ end }}
+                >
+                    closed
+                </option>
+                <option
+                    value="merged"
+                    {{ if eq .FilteringState "merged" }}selected{{ end }}
+                >
+                    merged
+                </option>
+            </select>
+            pull requests
+        </p>
+        <a
+            href="/{{ .RepoInfo.FullName }}/pulls/new"
+            class="btn text-sm flex items-center gap-2 no-underline hover:no-underline"
+        >
+            <i data-lucide="git-pull-request" class="w-5 h-5"></i>
+            <span>new pull request</span>
+        </a>
+    </div>
+    <div class="error" id="pulls"></div>
+{{ end }}
+
+{{ define "repoAfter" }}
+    <div class="flex flex-col gap-2 mt-8">
+        {{ range .Pulls }}
+            <div class="rounded drop-shadow-sm bg-white px-6 py-4">
+                <div class="pb-2">
+                    <a
+                        href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}"
+                        class="no-underline hover:underline"
+                    >
+                        {{ .Title }}
+                        <span class="text-gray-500">#{{ .PullId }}</span>
+                    </a>
+                </div>
+                <p class="text-sm text-gray-500">
+                    {{ $bgColor := "bg-gray-800" }}
+                    {{ $icon := "ban" }}
+                    {{ $state := "closed" }}
+
+                    {{ if eq .Open 1 }}
+                        {{ $bgColor = "bg-green-600" }}
+                        {{ $icon = "git-pull-request" }}
+                        {{ $state = "open" }}
+                    {{ else if eq .Open 2 }}
+                        {{ $bgColor = "bg-purple-600" }}
+                        {{ $icon = "git-merge" }}
+                        {{ $state = "merged" }}
+                    {{ end }}
+
+
+                    <span
+                        class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm"
+                    >
+                        <i
+                            data-lucide="{{ $icon }}"
+                            class="w-3 h-3 mr-1.5 text-white"
+                        ></i>
+                        <span class="text-white">{{ $state }}</span>
+                    </span>
+
+                    <span>
+                        {{ $owner := index $.DidHandleMap .OwnerDid }}
+                        <a href="/{{ $owner }}">{{ $owner }}</a>
+                    </span>
+
+                    <span class="before:content-['·']">
+                        <time>
+                            {{ .Created | timeFmt }}
+                        </time>
+                    </span>
+
+                    <span class="before:content-['·']">
+                        targeting branch <code>{{ .TargetBranch }}</code>
+                    </span>
+                </p>
+            </div>
+        {{ end }}
+    </div>
 {{ end }}
