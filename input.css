@@ -105,9 +105,9 @@
 
     @layer base {
         html {
-          letter-spacing: -0.01em;
-          word-spacing: -0.07em;
-          font-size: 14px;
+            letter-spacing: -0.01em;
+            word-spacing: -0.07em;
+            font-size: 14px;
         }
         a {
             @apply no-underline text-black hover:underline hover:text-gray-800;
@@ -147,7 +147,7 @@
             @apply py-1 text-red-400;
         }
         .success {
-            @apply py-1 text-black;
+            @apply py-1 text-green-400;
         }
     }
 }

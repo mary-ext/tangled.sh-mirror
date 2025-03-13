@@ -254,3 +254,8 @@ func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
 
 	return count, nil
 }
+
+func EditPatch(e Execer, repoAt syntax.ATURI, pullId int, patch string) error {
+	_, err := e.Exec(`update pulls set patch = ? where repo_at = ? and pull_id = ?`, patch, repoAt, pullId)
+	return err
+}
