@@ -35,11 +35,16 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to fully resolve repo", err)
 		return
 	}
+	protocol := "http"
+	if !s.config.Dev {
+		protocol = "https"
+	}
+
 	var reqUrl string
 	if ref != "" {
-		reqUrl = fmt.Sprintf("http://%s/%s/%s/tree/%s", f.Knot, f.OwnerDid(), f.RepoName, ref)
+		reqUrl = fmt.Sprintf("%s://%s/%s/%s/tree/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref)
 	} else {
-		reqUrl = fmt.Sprintf("http://%s/%s/%s", f.Knot, f.OwnerDid(), f.RepoName)
+		reqUrl = fmt.Sprintf("%s://%s/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName)
 	}
 
 	resp, err := http.Get(reqUrl)
@@ -101,7 +106,13 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ref := chi.URLParam(r, "ref")
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/log/%s?page=%d&per_page=30", f.Knot, f.OwnerDid(), f.RepoName, ref, page))
+
+	protocol := "http"
+	if !s.config.Dev {
+		protocol = "https"
+	}
+
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/log/%s?page=%d&per_page=30", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, page))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -229,9 +240,12 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to fully resolve repo", err)
 		return
 	}
-
 	ref := chi.URLParam(r, "ref")
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/commit/%s", f.Knot, f.OwnerDid(), f.RepoName, ref))
+	protocol := "http"
+	if !s.config.Dev {
+		protocol = "https"
+	}
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/commit/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -268,7 +282,11 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 	treePath := chi.URLParam(r, "*")
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/tree/%s/%s", f.Knot, f.OwnerDid(), f.RepoName, ref, treePath))
+	protocol := "http"
+	if !s.config.Dev {
+		protocol = "https"
+	}
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tree/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, treePath))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -318,7 +336,12 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/tags", f.Knot, f.OwnerDid(), f.RepoName))
+	protocol := "http"
+	if !s.config.Dev {
+		protocol = "https"
+	}
+
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tags", protocol, f.Knot, f.OwnerDid(), f.RepoName))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -390,7 +413,11 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 	filePath := chi.URLParam(r, "*")
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s/%s/blob/%s/%s", f.Knot, f.OwnerDid(), f.RepoName, ref, filePath))
+	protocol := "http"
+	if !s.config.Dev {
+		protocol = "https"
+	}
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
