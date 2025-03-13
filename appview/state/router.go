@@ -64,6 +64,7 @@ func (s *State) UserRouter() http.Handler {
 					r.Use(AuthMiddleware(s))
 					r.Get("/new", s.NewPull)
 					r.Post("/new", s.NewPull)
+					r.Patch("/{pull}/patch", s.EditPatch)
 					// r.Post("/{pull}/comment", s.PullComment)
 					// r.Post("/{pull}/close", s.ClosePull)
 					// r.Post("/{pull}/reopen", s.ReopenPull)
