@@ -101,7 +101,9 @@
         </form>
     {{ end }}
 
-    {{ if eq .LoggedInUser.Did .Issue.OwnerDid }}
+    {{ $isIssueAuthor := eq .LoggedInUser.Did .Issue.OwnerDid }}
+    {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
+    {{ if or $isIssueAuthor $isRepoCollaborator }}
         {{ $action := "close" }}
         {{ $icon := "circle-x" }}
         {{ $hoverColor := "red" }}
