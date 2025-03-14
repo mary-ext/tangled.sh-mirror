@@ -10,9 +10,9 @@ import (
 type PullState int
 
 const (
-	PullOpen PullState = iota
+	PullClosed PullState = iota
+	PullOpen
 	PullMerged
-	PullClosed
 )
 
 func (p PullState) String() string {
@@ -87,11 +87,12 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 	}
 
 	pull.PullId = nextId
+	pull.State = PullOpen
 
 	_, err = tx.Exec(`
-		insert into pulls (repo_at, owner_did, pull_id, title, target_branch, body, patch, rkey)
-		values (?, ?, ?, ?, ?, ?, ?, ?)
-	`, pull.RepoAt, pull.OwnerDid, pull.PullId, pull.Title, pull.TargetBranch, pull.Body, pull.Patch, pull.Rkey)
+		insert into pulls (repo_at, owner_did, pull_id, title, target_branch, body, patch, rkey, state)
+		values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, pull.RepoAt, pull.OwnerDid, pull.PullId, pull.Title, pull.TargetBranch, pull.Body, pull.Patch, pull.Rkey, pull.State)
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 			pull_at,
 			body,
 			patch,
-			rkey 
+			rkey
 		from
 			pulls
 		where

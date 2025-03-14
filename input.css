@@ -139,7 +139,9 @@
             hover:before:shadow-[0_2px_2px_0_rgba(20,20,96,0.1),inset_0_-2px_0_0_#f5f5f5]
             focus:outline-none focus-visible:before:outline
             focus-visible:before:outline-4 focus-visible:before:outline-gray-500
-            active:before:shadow-[inset_0_2px_2px_0_rgba(20,20,96,0.1)];
+            active:before:shadow-[inset_0_2px_2px_0_rgba(20,20,96,0.1)]
+            disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:before:border-gray-200
+            disabled:hover:before:bg-white disabled:hover:before:shadow-none;
         }
     }
     @layer utilities {

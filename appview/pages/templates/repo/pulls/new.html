@@ -8,15 +8,15 @@
     >
         <div class="flex flex-col gap-4">
             <div>
-                <label for="title">title</label>
+                <label for="title">write a title</label>
                 <input type="text" name="title" id="title" class="w-full" />
 
-                <label for="targetBranch">target branch</label>
+                <label for="targetBranch">select a target branch</label>
                 <p class="text-gray-500">
                     The branch you want to make your change against.
                 </p>
                 <select name="targetBranch" class="p-1 border border-gray-200 bg-white">
-                  <option disabled selected>Select a branch</option>
+                  <option disabled selected>select a branch</option>
                   {{ range .Branches }}
                   <option
                       value="{{ .Reference.Name }}"
@@ -27,7 +27,7 @@
                 </select>
             </div>
             <div>
-                <label for="body">body</label>
+                <label for="body">add a description</label>
                 <textarea
                     name="body"
                     id="body"
