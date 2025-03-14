@@ -114,7 +114,7 @@ func Make(dbPath string) (*DB, error) {
 			pull_at text,
 			rkey text not null,
 			target_branch text not null,
-			open integer not null default 1,
+			state integer not null default 0 check (state in (0, 1, 2)), -- open, merged, closed
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(repo_at, pull_id),
 			foreign key (repo_at) references repos(at_uri) on delete cascade

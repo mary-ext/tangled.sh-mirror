@@ -14,10 +14,11 @@
 
     {{ $bgColor := "bg-gray-800" }}
     {{ $icon := "ban" }}
-    {{ if eq .State "open" }}
+
+    {{ if .Pull.State.IsOpen }}
         {{ $bgColor = "bg-green-600" }}
         {{ $icon = "circle-dot" }}
-    {{ else if eq .State "merged" }}
+    {{ else if .Pull.State.IsMerged }}
         {{ $bgColor = "bg-purple-600" }}
         {{ $icon = "git-merge" }}
     {{ end }}
@@ -33,7 +34,7 @@
                     data-lucide="{{ $icon }}"
                     class="w-4 h-4 mr-1.5 text-white"
                 ></i>
-                <span class="text-white">{{ .State }}</span>
+                <span class="text-white">{{ .Pull.State.String }}</span>
             </div>
             <span class="text-gray-400 text-sm">
                 opened by
@@ -41,8 +42,10 @@
                 <a href="/{{ $owner }}" class="no-underline hover:underline"
                     >{{ $owner }}</a
                 >
-                <span class="px-1 select-none before:content-['\00B7']"></span>
+                <span class="select-none before:content-['\00B7']"></span>
                 <time>{{ .Pull.Created | timeFmt }}</time>
+                <span class="select-none before:content-['\00B7']"></span>
+                <time>targeting branch {{ .Pull.TargetBranch }}</time>
             </span>
         </div>
 
@@ -257,7 +260,7 @@
         {{ $action := "close" }}
         {{ $icon := "circle-x" }}
         {{ $hoverColor := "red" }}
-        {{ if eq .State "closed" }}
+        {{ if .Pull.State.IsClosed }}
             {{ $action = "reopen" }}
             {{ $icon = "circle-dot" }}
             {{ $hoverColor = "green" }}
@@ -265,8 +268,7 @@
         <form
             hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/{{ $action }}"
             hx-swap="none"
-            class="mt-8"
-        >
+            class="mt-8">
             <button type="submit" class="btn hover:bg-{{ $hoverColor }}-300">
                 <i
                     data-lucide="{{ $icon }}"

@@ -413,7 +413,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		targetBranch := r.FormValue("targetBranch")
 		patch := r.FormValue("patch")
 
-		if title == "" || body == "" || patch == "" {
+		if title == "" || body == "" || patch == "" || targetBranch == "" {
 			s.pages.Notice(w, "pull", "Title, body and patch diff are required.")
 			return
 		}
@@ -990,6 +990,10 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 	if err != nil {
 		log.Println("failed to get issue count for ", f.RepoAt)
 	}
+	pullCount, err := db.GetPullCount(s.db, f.RepoAt)
+	if err != nil {
+		log.Println("failed to get issue count for ", f.RepoAt)
+	}
 
 	knot := f.Knot
 	if knot == "knot1.tangled.sh" {
@@ -1008,6 +1012,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 		Stats: db.RepoStats{
 			StarCount:  starCount,
 			IssueCount: issueCount,
+			PullCount:  pullCount,
 		},
 	}
 }
@@ -1383,13 +1388,23 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
+	params := r.URL.Query()
+
+	state := db.PullOpen
+	switch params.Get("state") {
+	case "closed":
+		state = db.PullClosed
+	case "merged":
+		state = db.PullMerged
+	}
+
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
 	}
 
-	pulls, err := db.GetPulls(s.db, f.RepoAt)
+	pulls, err := db.GetPulls(s.db, f.RepoAt, state)
 	if err != nil {
 		log.Println("failed to get pulls", err)
 		s.pages.Notice(w, "pulls", "Failed to load pulls. Try again later.")
@@ -1415,6 +1430,7 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:     f.RepoInfo(s, user),
 		Pulls:        pulls,
 		DidHandleMap: didHandleMap,
+		FilteringBy:  state,
 	})
 	return
 }

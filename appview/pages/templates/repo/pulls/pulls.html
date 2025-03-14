@@ -8,20 +8,14 @@
                 class="border px-1 bg-white border-gray-200"
                 onchange="window.location.href = '/{{ .RepoInfo.FullName }}/pulls?state=' + this.value"
             >
-                <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>
+                <option value="open" {{ if .FilteringBy.IsOpen }}selected{{ end }}>
                     open
                 </option>
-                <option
-                    value="closed"
-                    {{ if eq .FilteringState "closed" }}selected{{ end }}
-                >
-                    closed
-                </option>
-                <option
-                    value="merged"
-                    {{ if eq .FilteringState "merged" }}selected{{ end }}
-                >
+                <option value="merged" {{ if .FilteringBy.IsMerged }}selected{{ end }}>
                     merged
+                </option>
+                <option value="closed" {{ if .FilteringBy.IsClosed }}selected{{ end }}>
+                    closed
                 </option>
             </select>
             pull requests
@@ -42,10 +36,7 @@
         {{ range .Pulls }}
             <div class="rounded drop-shadow-sm bg-white px-6 py-4">
                 <div class="pb-2">
-                    <a
-                        href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}"
-                        class="no-underline hover:underline"
-                    >
+                    <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}">
                         {{ .Title }}
                         <span class="text-gray-500">#{{ .PullId }}</span>
                     </a>
@@ -53,16 +44,13 @@
                 <p class="text-sm text-gray-500">
                     {{ $bgColor := "bg-gray-800" }}
                     {{ $icon := "ban" }}
-                    {{ $state := "closed" }}
 
-                    {{ if eq .Open 1 }}
+                    {{ if .State.IsOpen }}
                         {{ $bgColor = "bg-green-600" }}
                         {{ $icon = "git-pull-request" }}
-                        {{ $state = "open" }}
-                    {{ else if eq .Open 2 }}
+                    {{ else if .State.IsMerged }}
                         {{ $bgColor = "bg-purple-600" }}
                         {{ $icon = "git-merge" }}
-                        {{ $state = "merged" }}
                     {{ end }}
 
 
@@ -73,7 +61,7 @@
                             data-lucide="{{ $icon }}"
                             class="w-3 h-3 mr-1.5 text-white"
                         ></i>
-                        <span class="text-white">{{ $state }}</span>
+                        <span class="text-white">{{ .State.String }}</span>
                     </span>
 
                     <span>
