@@ -272,6 +272,7 @@ func (r RepoInfo) TabMetadata() map[string]any {
 	meta := make(map[string]any)
 
 	meta["issues"] = r.Stats.IssueCount.Open
+	meta["pulls"] = r.Stats.PullCount.Open
 
 	// more stuff?
 
@@ -524,6 +525,7 @@ type RepoPullsParams struct {
 	Pulls        []db.Pull
 	Active       string
 	DidHandleMap map[string]string
+	FilteringBy  db.PullState
 }
 
 func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
@@ -536,7 +538,6 @@ type RepoSinglePullParams struct {
 	RepoInfo        RepoInfo
 	DidHandleMap    map[string]string
 	Pull            db.Pull
-	State           string
 	PullOwnerHandle string
 	Comments        []db.PullComment
 	Active          string
@@ -544,14 +545,6 @@ type RepoSinglePullParams struct {
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
-	switch params.Pull.Open {
-	case 0:
-		params.State = "close"
-	case 1:
-		params.State = "open"
-	case 2:
-		params.State = "merged"
-	}
 	params.Active = "pulls"
 	return p.executeRepo("repo/pulls/pull", w, params)
 }

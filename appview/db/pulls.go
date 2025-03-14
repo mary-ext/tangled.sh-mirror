@@ -7,6 +7,37 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
+type PullState int
+
+const (
+	PullOpen PullState = iota
+	PullMerged
+	PullClosed
+)
+
+func (p PullState) String() string {
+	switch p {
+	case PullOpen:
+		return "open"
+	case PullMerged:
+		return "merged"
+	case PullClosed:
+		return "closed"
+	default:
+		return "closed"
+	}
+}
+
+func (p PullState) IsOpen() bool {
+	return p == PullOpen
+}
+func (p PullState) IsMerged() bool {
+	return p == PullMerged
+}
+func (p PullState) IsClosed() bool {
+	return p == PullClosed
+}
+
 type Pull struct {
 	ID           int
 	OwnerDid     string
@@ -17,7 +48,7 @@ type Pull struct {
 	PullId       int
 	Title        string
 	Body         string
-	Open         int
+	State        PullState
 	Created      time.Time
 	Rkey         string
 }
@@ -89,10 +120,27 @@ func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
 	return pullId - 1, err
 }
 
-func GetPulls(e Execer, repoAt syntax.ATURI) ([]Pull, error) {
+func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 	var pulls []Pull
 
-	rows, err := e.Query(`select owner_did, pull_id, created, title, open, target_branch, pull_at, body, patch, rkey from pulls where repo_at = ? order by created desc`, repoAt)
+	rows, err := e.Query(`
+		select
+			owner_did,
+			pull_id,
+			created,
+			title,
+			state,
+			target_branch,
+			pull_at,
+			body,
+			patch,
+			rkey 
+		from
+			pulls
+		where
+			repo_at = ? and state = ?
+		order by
+			created desc`, repoAt, state)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +149,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI) ([]Pull, error) {
 	for rows.Next() {
 		var pull Pull
 		var createdAt string
-		err := rows.Scan(&pull.OwnerDid, &pull.PullId, &createdAt, &pull.Title, &pull.Open, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
+		err := rows.Scan(&pull.OwnerDid, &pull.PullId, &createdAt, &pull.Title, &pull.State, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
 		if err != nil {
 			return nil, err
 		}
@@ -123,12 +171,12 @@ func GetPulls(e Execer, repoAt syntax.ATURI) ([]Pull, error) {
 }
 
 func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
-	query := `select owner_did, created, title, open, target_branch, pull_at, body, patch, rkey from pulls where repo_at = ? and pull_id = ?`
+	query := `select owner_did, created, title, state, target_branch, pull_at, body, patch, rkey from pulls where repo_at = ? and pull_id = ?`
 	row := e.QueryRow(query, repoAt, pullId)
 
 	var pull Pull
 	var createdAt string
-	err := row.Scan(&pull.OwnerDid, &createdAt, &pull.Title, &pull.Open, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
+	err := row.Scan(&pull.OwnerDid, &createdAt, &pull.Title, &pull.State, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
 	if err != nil {
 		return nil, err
 	}
@@ -143,12 +191,12 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 }
 
 func GetPullWithComments(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, []PullComment, error) {
-	query := `select owner_did, pull_id, created, title, open, target_branch, pull_at, body, patch, rkey from pulls where repo_at = ? and pull_id = ?`
+	query := `select owner_did, pull_id, created, title, state, target_branch, pull_at, body, patch, rkey from pulls where repo_at = ? and pull_id = ?`
 	row := e.QueryRow(query, repoAt, pullId)
 
 	var pull Pull
 	var createdAt string
-	err := row.Scan(&pull.OwnerDid, &pull.PullId, &createdAt, &pull.Title, &pull.Open, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
+	err := row.Scan(&pull.OwnerDid, &pull.PullId, &createdAt, &pull.Title, &pull.State, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -217,39 +265,46 @@ func GetPullComments(e Execer, repoAt syntax.ATURI, pullId int) ([]PullComment, 
 	return comments, nil
 }
 
+func SetPullState(e Execer, repoAt syntax.ATURI, pullId int, pullState PullState) error {
+	_, err := e.Exec(`update pulls set state = ? where repo_at = ? and pull_id = ?`, pullState, repoAt, pullId)
+	return err
+}
+
 func ClosePull(e Execer, repoAt syntax.ATURI, pullId int) error {
-	_, err := e.Exec(`update pulls set open = 0 where repo_at = ? and pull_id = ?`, repoAt, pullId)
+	err := SetPullState(e, repoAt, pullId, PullClosed)
 	return err
 }
 
 func ReopenPull(e Execer, repoAt syntax.ATURI, pullId int) error {
-	_, err := e.Exec(`update pulls set open = 1 where repo_at = ? and pull_id = ?`, repoAt, pullId)
+	err := SetPullState(e, repoAt, pullId, PullOpen)
 	return err
 }
 
 func MergePull(e Execer, repoAt syntax.ATURI, pullId int) error {
-	_, err := e.Exec(`update pulls set open = 2 where repo_at = ? and pull_id = ?`, repoAt, pullId)
+	err := SetPullState(e, repoAt, pullId, PullMerged)
 	return err
 }
 
 type PullCount struct {
 	Open   int
+	Merged int
 	Closed int
 }
 
 func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
 	row := e.QueryRow(`
 		select
-			count(case when open = 1 then 1 end) as open_count,
-			count(case when open = 0 then 1 end) as closed_count
+			count(case when state = 0 then 1 end) as open_count,
+			count(case when state = 1 then 1 end) as merged_count,
+			count(case when state = 2 then 1 end) as closed_count
 		from pulls
 		where repo_at = ?`,
 		repoAt,
 	)
 
 	var count PullCount
-	if err := row.Scan(&count.Open, &count.Closed); err != nil {
-		return PullCount{0, 0}, err
+	if err := row.Scan(&count.Open, &count.Merged, &count.Closed); err != nil {
+		return PullCount{0, 0, 0}, err
 	}
 
 	return count, nil

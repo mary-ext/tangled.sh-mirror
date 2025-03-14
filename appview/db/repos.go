@@ -246,6 +246,7 @@ func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 type RepoStats struct {
 	StarCount  int
 	IssueCount IssueCount
+	PullCount  PullCount
 }
 
 func scanRepo(rows *sql.Rows, did, name, knot, rkey, description *string, created *time.Time) error {
