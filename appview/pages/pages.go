@@ -231,6 +231,10 @@ func (r RolesInRepo) IsOwner() bool {
 	return slices.Contains(r.Roles, "repo:owner")
 }
 
+func (r RolesInRepo) IsCollaborator() bool {
+	return slices.Contains(r.Roles, "repo:collaborator")
+}
+
 func (r RepoInfo) OwnerWithAt() string {
 	if r.OwnerHandle != "" {
 		return fmt.Sprintf("@%s", r.OwnerHandle)
@@ -441,10 +445,11 @@ type Collaborator struct {
 }
 
 type RepoSettingsParams struct {
-	LoggedInUser                *auth.User
-	RepoInfo                    RepoInfo
-	Collaborators               []Collaborator
-	Active                      string
+	LoggedInUser  *auth.User
+	RepoInfo      RepoInfo
+	Collaborators []Collaborator
+	Active        string
+	// TODO: use repoinfo.roles
 	IsCollaboratorInviteAllowed bool
 }
 
