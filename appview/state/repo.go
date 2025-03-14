@@ -523,32 +523,36 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	secret, err := db.GetRegistrationKey(s.db, f.Knot)
-	if err != nil {
-		log.Printf("failed to get registration key for %s", f.Knot)
-		s.pages.Notice(w, "pull", "Failed to load pull request. Try again later.")
-		return
-	}
-
 	var mergeCheckResponse types.MergeCheckResponse
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
-	if err == nil {
-		resp, err := ksClient.MergeCheck([]byte(pr.Patch), pr.OwnerDid, f.RepoName, pr.TargetBranch)
+
+	// Only perform merge check if the pull request is not already merged
+	if pr.State != db.PullMerged {
+		secret, err := db.GetRegistrationKey(s.db, f.Knot)
 		if err != nil {
-			log.Println("failed to check for mergeability:", err)
-		} else {
-			respBody, err := io.ReadAll(resp.Body)
+			log.Printf("failed to get registration key for %s", f.Knot)
+			s.pages.Notice(w, "pull", "Failed to load pull request. Try again later.")
+			return
+		}
+
+		ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+		if err == nil {
+			resp, err := ksClient.MergeCheck([]byte(pr.Patch), pr.OwnerDid, f.RepoName, pr.TargetBranch)
 			if err != nil {
-				log.Println("failed to read merge check response body")
+				log.Println("failed to check for mergeability:", err)
 			} else {
-				err = json.Unmarshal(respBody, &mergeCheckResponse)
+				respBody, err := io.ReadAll(resp.Body)
 				if err != nil {
-					log.Println("failed to unmarshal merge check response", err)
+					log.Println("failed to read merge check response body")
+				} else {
+					err = json.Unmarshal(respBody, &mergeCheckResponse)
+					if err != nil {
+						log.Println("failed to unmarshal merge check response", err)
+					}
 				}
 			}
+		} else {
+			log.Printf("failed to setup signed client for %s; ignoring...", f.Knot)
 		}
-	} else {
-		log.Printf("failed to setup signed client for %s; ignoring...", f.Knot)
 	}
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
@@ -1432,6 +1436,243 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		DidHandleMap: didHandleMap,
 		FilteringBy:  state,
 	})
+	return
+}
+
+func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to resolve repo:", err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	// Get the pull request ID from the request URL
+	pullId := chi.URLParam(r, "pull")
+	pullIdInt, err := strconv.Atoi(pullId)
+	if err != nil {
+		log.Println("failed to parse pull ID:", err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	// Get the patch data from the request body
+	patch := r.FormValue("patch")
+	branch := r.FormValue("targetBranch")
+
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("no registration key found for domain %s: %s\n", f.Knot, err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	// Merge the pull request
+	resp, err := ksClient.Merge([]byte(patch), user.Did, f.RepoName, branch)
+	if err != nil {
+		log.Printf("failed to merge pull request: %s", err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		err := db.MergePull(s.db, f.RepoAt, pullIdInt)
+		if err != nil {
+			log.Printf("failed to update pull request status in database: %s", err)
+			s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+			return
+		}
+		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pullIdInt))
+	} else {
+		log.Printf("knotserver returned non-OK status code for merge: %d", resp.StatusCode)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+	}
+}
+
+func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	pullId := chi.URLParam(r, "pull")
+	pullIdInt, err := strconv.Atoi(pullId)
+	if err != nil {
+		http.Error(w, "bad pull id", http.StatusBadRequest)
+		log.Println("failed to parse pull id", err)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPost:
+		body := r.FormValue("body")
+		if body == "" {
+			s.pages.Notice(w, "pull", "Comment body is required")
+			return
+		}
+
+		// Start a transaction
+		tx, err := s.db.BeginTx(r.Context(), nil)
+		if err != nil {
+			log.Println("failed to start transaction", err)
+			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
+			return
+		}
+		defer tx.Rollback() // Will be ignored if we commit
+
+		commentId := rand.IntN(1000000)
+		createdAt := time.Now().Format(time.RFC3339)
+		commentIdInt64 := int64(commentId)
+		ownerDid := user.Did
+
+		pullAt, err := db.GetPullAt(s.db, f.RepoAt, pullIdInt)
+		if err != nil {
+			log.Println("failed to get pull at", err)
+			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
+			return
+		}
+
+		atUri := f.RepoAt.String()
+		client, _ := s.auth.AuthorizedClient(r)
+		atResp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoPullCommentNSID,
+			Repo:       user.Did,
+			Rkey:       s.TID(),
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.RepoPullComment{
+					Repo:      &atUri,
+					Pull:      pullAt,
+					CommentId: &commentIdInt64,
+					Owner:     &ownerDid,
+					Body:      &body,
+					CreatedAt: &createdAt,
+				},
+			},
+		})
+		if err != nil {
+			log.Println("failed to create pull comment", err)
+			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
+			return
+		}
+
+		// Create the pull comment in the database with the commentAt field
+		err = db.NewPullComment(tx, &db.PullComment{
+			OwnerDid:  user.Did,
+			RepoAt:    f.RepoAt.String(),
+			CommentId: commentId,
+			PullId:    pullIdInt,
+			Body:      body,
+			CommentAt: atResp.Uri,
+		})
+		if err != nil {
+			log.Println("failed to create pull comment", err)
+			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
+			return
+		}
+
+		// Commit the transaction
+		if err = tx.Commit(); err != nil {
+			log.Println("failed to commit transaction", err)
+			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
+			return
+		}
+
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", f.OwnerSlashRepo(), pullIdInt, commentId))
+		return
+	}
+}
+
+func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("malformed middleware")
+		return
+	}
+
+	pullId := chi.URLParam(r, "pull")
+	pullIdInt, err := strconv.Atoi(pullId)
+	if err != nil {
+		log.Println("malformed middleware")
+		return
+	}
+
+	// Start a transaction
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start transaction", err)
+		s.pages.Notice(w, "pull-close", "Failed to close pull.")
+		return
+	}
+
+	// Close the pull in the database
+	err = db.ClosePull(tx, f.RepoAt, pullIdInt)
+	if err != nil {
+		log.Println("failed to close pull", err)
+		s.pages.Notice(w, "pull-close", "Failed to close pull.")
+		return
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		log.Println("failed to commit transaction", err)
+		s.pages.Notice(w, "pull-close", "Failed to close pull.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullIdInt))
+	return
+}
+
+func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to resolve repo", err)
+		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
+		return
+	}
+
+	// Start a transaction
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start transaction", err)
+		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
+		return
+	}
+
+	pullId := chi.URLParam(r, "pull")
+	pullIdInt, err := strconv.Atoi(pullId)
+	if err != nil {
+		log.Println("failed to parse pull id", err)
+		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
+		return
+	}
+
+	// Reopen the pull in the database
+	err = db.ReopenPull(tx, f.RepoAt, pullIdInt)
+	if err != nil {
+		log.Println("failed to reopen pull", err)
+		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
+		return
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		log.Println("failed to commit transaction", err)
+		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullIdInt))
 	return
 }
 

@@ -271,8 +271,13 @@ func (r RepoInfo) GetTabs() [][]string {
 func (r RepoInfo) TabMetadata() map[string]any {
 	meta := make(map[string]any)
 
-	meta["issues"] = r.Stats.IssueCount.Open
-	meta["pulls"] = r.Stats.PullCount.Open
+	if r.Stats.PullCount.Open > 0 {
+		meta["pulls"] = r.Stats.PullCount.Open
+	}
+
+	if r.Stats.IssueCount.Open > 0 {
+		meta["issues"] = r.Stats.IssueCount.Open
+	}
 
 	// more stuff?
 
