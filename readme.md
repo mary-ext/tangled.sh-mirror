@@ -39,13 +39,13 @@ go build -o keyfetch ./cmd/keyfetch
 go build -o repoguard ./cmd/repoguard
 ```
 
-Next, move the `keyfetch` binary to a location owned by `root` -- `/keyfetch` is
-a good choice:
+Next, move the `keyfetch` binary to a location owned by `root` --
+`/usr/local/libexec/tangled-keyfetch` is a good choice:
 
 ```
-sudo mv keyfetch /keyfetch
-sudo chown root:root /keyfetch
-sudo chmod 755 /keyfetch
+sudo mv keyfetch /usr/local/libexec/tangled-keyfetch
+sudo chown root:root /usr/local/libexec/tangled-keyfetch
+sudo chmod 755 /usr/local/libexec/tangled-keyfetch
 ```
 
 This is necessary because SSH `AuthorizedKeysCommand` requires [really specific
@@ -54,7 +54,7 @@ permissions](https://stackoverflow.com/a/27638306). Let's set that up:
 ```
 sudo tee /etc/ssh/sshd_config.d/authorized_keys_command.conf <<EOF
 Match User git
-  AuthorizedKeysCommand /keyfetch
+  AuthorizedKeysCommand /usr/local/libexec/tangled-keyfetch
   AuthorizedKeysCommandUser nobody
 EOF
 ```
