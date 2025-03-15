@@ -30,7 +30,7 @@ func (s *State) UserRouter() http.Handler {
 
 	r.With(ResolveIdent(s)).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.ProfilePage)
-		r.With(ResolveRepoKnot(s)).Route("/{repo}", func(r chi.Router) {
+		r.With(ResolveRepo(s)).Route("/{repo}", func(r chi.Router) {
 			r.Get("/", s.RepoIndex)
 			r.Get("/commits/{ref}", s.RepoLog)
 			r.Route("/tree/{ref}", func(r chi.Router) {
@@ -58,17 +58,29 @@ func (s *State) UserRouter() http.Handler {
 
 			r.Route("/pulls", func(r chi.Router) {
 				r.Get("/", s.RepoPulls)
-				r.Get("/{pull}", s.RepoSinglePull)
+				r.With(AuthMiddleware(s)).Route("/new", func(r chi.Router) {
+					r.Get("/", s.NewPull)
+					r.Post("/", s.NewPull)
+				})
 
-				r.Group(func(r chi.Router) {
-					r.Use(AuthMiddleware(s))
-					r.Get("/new", s.NewPull)
-					r.Post("/new", s.NewPull)
-					r.Patch("/{pull}/patch", s.EditPatch)
-					r.Post("/{pull}/comment", s.PullComment)
-					r.Post("/{pull}/close", s.ClosePull)
-					r.Post("/{pull}/reopen", s.ReopenPull)
-					r.Post("/{pull}/merge", s.MergePull)
+				r.Route("/{pull}", func(r chi.Router) {
+					r.Use(ResolvePull(s))
+					r.Get("/", s.RepoSinglePull)
+
+					// authorized requests below this point
+					r.Group(func(r chi.Router) {
+						r.Use(AuthMiddleware(s))
+						r.Patch("/patch", s.EditPatch)
+						r.Post("/comment", s.PullComment)
+						r.Post("/close", s.ClosePull)
+						r.Post("/reopen", s.ReopenPull)
+						// collaborators only
+						r.Group(func(r chi.Router) {
+							r.Use(RepoPermissionMiddleware(s, "repo:collaborator"))
+							r.Post("/merge", s.MergePull)
+							// maybe lock, etc.
+						})
+					})
 				})
 			})
 
@@ -123,7 +135,7 @@ func (s *State) StandardRouter() http.Handler {
 			r.Post("/init", s.InitKnotServer)
 			r.Get("/", s.KnotServerInfo)
 			r.Route("/member", func(r chi.Router) {
-				r.Use(RoleMiddleware(s, "server:owner"))
+				r.Use(KnotOwner(s))
 				r.Get("/", s.ListMembers)
 				r.Put("/", s.AddMember)
 				r.Delete("/", s.RemoveMember)

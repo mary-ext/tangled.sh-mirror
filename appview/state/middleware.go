@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -88,7 +89,7 @@ func AuthMiddleware(s *State) Middleware {
 	}
 }
 
-func RoleMiddleware(s *State, group string) Middleware {
+func knotRoleMiddleware(s *State, group string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// requires auth also
@@ -116,6 +117,10 @@ func RoleMiddleware(s *State, group string) Middleware {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func KnotOwner(s *State) Middleware {
+	return knotRoleMiddleware(s, "server:owner")
 }
 
 func RepoPermissionMiddleware(s *State, requiredPerm string) Middleware {
@@ -178,7 +183,7 @@ func ResolveIdent(s *State) Middleware {
 	}
 }
 
-func ResolveRepoKnot(s *State) Middleware {
+func ResolveRepo(s *State) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			repoName := chi.URLParam(req, "repo")
@@ -202,6 +207,39 @@ func ResolveRepoKnot(s *State) Middleware {
 			ctx = context.WithValue(ctx, "repoDescription", repo.Description)
 			ctx = context.WithValue(ctx, "repoAddedAt", repo.Created.Format(time.RFC3339))
 			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	}
+}
+
+// middleware that is tacked on top of /{user}/{repo}/pulls/{pull}
+func ResolvePull(s *State) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f, err := fullyResolvedRepo(r)
+			if err != nil {
+				log.Println("failed to fully resolve repo", err)
+				http.Error(w, "invalid repo url", http.StatusNotFound)
+				return
+			}
+
+			prId := chi.URLParam(r, "pull")
+			prIdInt, err := strconv.Atoi(prId)
+			if err != nil {
+				http.Error(w, "bad pr id", http.StatusBadRequest)
+				log.Println("failed to parse pr id", err)
+				return
+			}
+
+			pr, comments, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
+			if err != nil {
+				log.Println("failed to get pull and comments", err)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), "pull", pr)
+			ctx = context.WithValue(ctx, "pull_comments", comments)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

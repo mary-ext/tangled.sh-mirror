@@ -35,9 +35,9 @@
                 ></i>
                 <span class="text-white">{{ .Pull.State.String }}</span>
             </div>
-            <span class="text-gray-400 text-sm">
+            <span class="text-gray-500 text-sm">
                 opened by
-                {{ $owner := didOrHandle .Pull.OwnerDid .PullOwnerHandle }}
+                {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
                 <a href="/{{ $owner }}" class="no-underline hover:underline"
                     >{{ $owner }}</a
                 >
@@ -80,9 +80,7 @@
                         id="patch"
                         name="patch"
                         class="font-mono w-full h-full p-4 rounded-b border border-gray-200 text-sm hidden"
-                    >
-{{- .Pull.Patch -}}</textarea
-                    >
+                    >{{- .Pull.Patch -}}</textarea>
 
                     <div class="flex gap-2 justify-end mt-2">
                         <button
@@ -153,228 +151,26 @@
 {{ end }}
 
 {{ define "repoAfter" }}
+    {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
+    {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
+
     <section id="comments" class="mt-8 space-y-4 relative">
-        {{ range $index, $comment := .Comments }}
-            <div
-                id="comment-{{ .CommentId }}"
-                class="rounded bg-white p-4 relative"
-            >
-                {{ if eq $index 0 }}
-                    <div
-                        class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
-                    ></div>
-                {{ else }}
-                    <div
-                        class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
-                    ></div>
-                {{ end }}
-                <div class="flex items-center gap-2 mb-2 text-gray-400">
-                    {{ $owner := index $.DidHandleMap .OwnerDid }}
-                    <span class="text-sm">
-                        <a
-                            href="/{{ $owner }}"
-                            class="no-underline hover:underline"
-                            >{{ $owner }}</a
-                        >
-                    </span>
-                    <span
-                        class="px-1 select-none before:content-['\00B7']"
-                    ></span>
-                    <a
-                        href="#{{ .CommentId }}"
-                        class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline"
-                        id="{{ .CommentId }}"
-                    >
-                        {{ .Created | timeFmt }}
-                    </a>
-                </div>
-                <div class="prose">
-                    {{ .Body | markdown }}
-                </div>
-            </div>
-        {{ end }}
+      {{ block "comments" . }} {{ end }}
 
-        {{ if .Pull.State.IsMerged }}
-            <div
-                id="merge-status-card"
-                class="rounded relative bg-purple-50 border border-purple-200 p-4"
-            >
-                {{ if gt (len .Comments) 0 }}
-                    <div
-                        class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
-                    ></div>
-                {{ else }}
-                    <div
-                        class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
-                    ></div>
-                {{ end }}
-
-
-                <div class="flex items-center gap-2 text-purple-500">
-                    <i data-lucide="git-merge" class="w-4 h-4"></i>
-                    <span class="font-medium"
-                        >Pull request successfully merged</span
-                    >
-                </div>
-
-                <div class="mt-2 text-sm text-gray-700">
-                    <p>
-                        This pull request has been merged into the base branch.
-                    </p>
-                </div>
-            </div>
-        {{ else if .MergeCheck }}
-            <div
-                id="merge-status-card"
-                class="rounded relative {{ if .MergeCheck.IsConflicted }}
-                    bg-red-50 border border-red-200
-                {{ else }}
-                    bg-green-50 border border-green-200
-                {{ end }} p-4"
-            >
-                {{ if gt (len .Comments) 0 }}
-                    <div
-                        class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
-                    ></div>
-                {{ else }}
-                    <div
-                        class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
-                    ></div>
-                {{ end }}
-
-
-                <div
-                    class="flex items-center gap-2 {{ if .MergeCheck.IsConflicted }}
-                        text-red-500
-                    {{ else }}
-                        text-green-500
-                    {{ end }}"
-                >
-                    {{ if .MergeCheck.IsConflicted }}
-                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                        <span class="font-medium"
-                            >merge conflicts detected</span
-                        >
-                    {{ else }}
-                        <i data-lucide="check-circle" class="w-4 h-4"></i>
-                        <span class="font-medium">ready to merge</span>
-                    {{ end }}
-                </div>
-
-                {{ if .MergeCheck.IsConflicted }}
-                    <div class="mt-2">
-                        <ul class="text-sm space-y-1">
-                            {{ range .MergeCheck.Conflicts }}
-                                <li class="flex items-center">
-                                    <i
-                                        data-lucide="file-warning"
-                                        class="w-3 h-3 mr-1.5 text-red-500"
-                                    ></i>
-                                    <span class="font-mono"
-                                        >{{ slice .Filename 0 (sub (len .Filename) 2) }}</span
-                                    >
-                                </li>
-                            {{ end }}
-                        </ul>
-                    </div>
-                    <div class="mt-3 text-sm text-gray-700">
-                        <p>
-                            Please resolve these conflicts locally and update
-                            the patch to continue with the merge.
-                        </p>
-                    </div>
-                {{ else }}
-                    <div class="mt-2 text-sm text-gray-700">
-                        <p>
-                            No conflicts detected with the base branch. This
-                            pull request can be merged safely.
-                        </p>
-                    </div>
-                    {{ if and .LoggedInUser (eq .LoggedInUser.Did .RepoInfo.OwnerDid) }}
-                        <div class="mt-4 flex items-center gap-2">
-                            <form
-                                hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
-                                hx-swap="none"
-                            >
-                                <input
-                                    type="hidden"
-                                    name="targetBranch"
-                                    value="{{ .Pull.TargetBranch }}"
-                                />
-                                <input
-                                    type="hidden"
-                                    name="patch"
-                                    value="{{ .Pull.Patch }}"
-                                />
-                                <button
-                                    type="submit"
-                                    class="btn flex items-center gap-2"
-                                    {{ if or .Pull.State.IsClosed .MergeCheck.IsConflicted }}
-                                        disabled
-                                    {{ end }}
-                                >
-                                    <i
-                                        data-lucide="git-merge"
-                                        class="w-4 h-4 text-purple-500"
-                                    ></i>
-                                    <span>merge</span>
-                                </button>
-                            </form>
-
-                            {{ if or (eq .LoggedInUser.Did .Pull.OwnerDid) (eq .LoggedInUser.Did .RepoInfo.OwnerDid) }}
-                                {{ $action := "close" }}
-                                {{ $icon := "circle-x" }}
-                                {{ $hoverColor := "red" }}
-                                {{ if .Pull.State.IsClosed }}
-                                    {{ $action = "reopen" }}
-                                    {{ $icon = "circle-dot" }}
-                                    {{ $hoverColor = "green" }}
-                                {{ end }}
-                                <form
-                                    hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/{{ $action }}"
-                                    hx-swap="none"
-                                >
-                                    <button
-                                        type="submit"
-                                        class="btn flex items-center gap-2"
-                                    >
-                                        <i
-                                            data-lucide="{{ $icon }}"
-                                            class="w-4 h-4 text-{{ $hoverColor }}-400"
-                                        ></i>
-                                        <span>{{ $action }}</span>
-                                    </button>
-                                </form>
-                                <div id="pull-merge-error" class="error"></div>
-                                <div
-                                    id="pull-merge-success"
-                                    class="success"
-                                ></div>
-                            {{ end }}
-                        </div>
-                    {{ end }}
-                {{ end }}
-            </div>
-        {{ end }}
+      {{ if .Pull.State.IsMerged }}
+        {{ block "alreadyMergedCard" . }} {{ end }}
+      {{ else if .MergeCheck }}
+         {{ if .MergeCheck.IsConflicted }}
+           {{ block "isConflictedCard" . }} {{ end }}
+         {{ else }}
+           {{ block "noConflictsCard" . }} {{ end }}
+         {{ end }}
+      {{ end }}
     </section>
 
-    {{ if .LoggedInUser }}
-        <form
-            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/comment"
-            class="mt-8"
-            hx-swap="none"
-        >
-            <textarea
-                name="body"
-                class="w-full p-2 rounded border border-gray-200"
-                placeholder="Add to the discussion..."
-            ></textarea>
-            <button type="submit" class="btn mt-2">comment</button>
-            <div id="pull-comment"></div>
-        </form>
-    {{ end }}
+    {{ block "newComment" . }} {{ end }}
 
-    {{ if and (or (eq .LoggedInUser.Did .Pull.OwnerDid) (eq .LoggedInUser.Did .RepoInfo.OwnerDid)) (not .MergeCheck) (not .Pull.State.IsMerged) }}
+    {{ if and (or $isPullAuthor $isRepoCollaborator) (not .Pull.State.IsMerged) }}
         {{ $action := "close" }}
         {{ $icon := "circle-x" }}
         {{ $hoverColor := "red" }}
@@ -383,22 +179,187 @@
             {{ $icon = "circle-dot" }}
             {{ $hoverColor = "green" }}
         {{ end }}
-        <form
-            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/{{ $action }}"
-            hx-swap="none"
-            class="mt-8"
-        >
-            <button type="submit" class="btn text-sm flex items-center gap-2">
-                <i
-                    data-lucide="{{ $icon }}"
-                    class="w-4 h-4 mr-2 text-{{ $hoverColor }}-400"
-                ></i>
-                <span class="text-black">{{ $action }}</span>
-            </button>
-        </form>
+        <button
+          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/{{ $action }}"
+          hx-swap="none"
+          class="btn mt-8 text-sm flex items-center gap-2">
+            <i data-lucide="{{ $icon }}" class="w-4 h-4 mr-2 text-{{ $hoverColor }}-400"></i>
+            <span class="text-black">{{ $action }}</span>
+        </button>
     {{ end }}
-
 
     <div id="pull-close"></div>
     <div id="pull-reopen"></div>
+{{ end }}
+
+{{ define "comments" }}
+  {{ range $index, $comment := .Comments }}
+      <div
+          id="comment-{{ .CommentId }}"
+          class="rounded bg-white p-4 relative drop-shadow-sm"
+      >
+          {{ if eq $index 0 }}
+              <div
+                  class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
+              ></div>
+          {{ else }}
+              <div
+                  class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
+              ></div>
+          {{ end }}
+          <div class="flex items-center gap-2 mb-2 text-gray-400">
+              {{ $owner := index $.DidHandleMap .OwnerDid }}
+              <span class="text-sm">
+                  <a
+                      href="/{{ $owner }}"
+                      class="no-underline hover:underline"
+                      >{{ $owner }}</a
+                  >
+              </span>
+              <span
+                  class="px-1 select-none before:content-['\00B7']"
+              ></span>
+              <a
+                  href="#{{ .CommentId }}"
+                  class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline"
+                  id="{{ .CommentId }}"
+              >
+                  {{ .Created | timeFmt }}
+              </a>
+          </div>
+          <div class="prose">
+              {{ .Body | markdown }}
+          </div>
+      </div>
+  {{ end }}
+{{ end }}
+
+{{ define "newComment" }}
+  {{ if .LoggedInUser }}
+  <form
+      hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/comment"
+      class="mt-8"
+      hx-swap="none">
+      <textarea
+          name="body"
+          class="w-full p-2 rounded border border-gray-200"
+          placeholder="Add to the discussion..."
+      ></textarea>
+      <button type="submit" class="btn mt-2">comment</button>
+      <div id="pull-comment"></div>
+  </form>
+  {{ else }}
+  <div class="bg-white rounded drop-shadow-sm px-6 py-4 mt-8">
+    <a href="/login" class="underline">login</a> to join the discussion
+  </div>
+  {{ end }}
+{{ end }}
+
+{{ define "alreadyMergedCard" }}
+  <div
+      id="merge-status-card"
+      class="rounded relative bg-purple-50 border border-purple-200 p-4">
+      {{ if gt (len .Comments) 0 }}
+          <div
+              class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
+          ></div>
+      {{ else }}
+          <div
+              class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
+          ></div>
+      {{ end }}
+
+
+      <div class="flex items-center gap-2 text-purple-500">
+          <i data-lucide="git-merge" class="w-4 h-4"></i>
+          <span class="font-medium"
+              >Pull request successfully merged</span
+          >
+      </div>
+
+      <div class="mt-2 text-sm text-gray-700">
+          <p>This pull request has been merged into the base branch.</p>
+      </div>
+  </div>
+{{ end }}
+
+{{ define "isConflictedCard" }}
+  <div
+      id="merge-status-card"
+      class="rounded relative border bg-red-50 border-red-200 p-4">
+      {{ if gt (len .Comments) 0 }}
+          <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300"></div>
+      {{ else }}
+          <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300"></div>
+      {{ end }}
+
+      <div class="flex items-center gap-2 text-red-500">
+        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        <span class="font-medium">merge conflicts detected</span>
+      </div>
+
+      <div class="mt-2">
+          <ul class="text-sm space-y-1">
+              {{ range .MergeCheck.Conflicts }}
+                  <li class="flex items-center">
+                      <i
+                          data-lucide="file-warning"
+                          class="w-3 h-3 mr-1.5 text-red-500"
+                      ></i>
+                      <span class="font-mono"
+                          >{{ slice .Filename 0 (sub (len .Filename) 2) }}</span
+                      >
+                  </li>
+              {{ end }}
+          </ul>
+      </div>
+      <div class="mt-3 text-sm text-gray-700">
+          <p>
+              Please resolve these conflicts locally and update
+              the patch to continue with the merge.
+          </p>
+      </div>
+  </div>
+{{ end }}
+
+
+{{ define "noConflictsCard" }}
+  {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
+  <div
+      id="merge-status-card"
+      class="rounded relative border bg-green-50 border-green-200 p-4">
+      {{ if gt (len .Comments) 0 }}
+          <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300"></div>
+      {{ else }}
+          <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300"></div>
+      {{ end }}
+
+      <div class="flex items-center gap-2 text-green-500">
+        <i data-lucide="check-circle" class="w-4 h-4"></i>
+        <span class="font-medium">ready to merge</span>
+      </div>
+
+      <div class="mt-2 text-sm text-gray-700">
+        No conflicts detected with the base branch. This
+        pull request can be merged safely.
+      </div>
+
+      <div class="mt-4 flex items-center gap-2">
+        {{ if $isRepoCollaborator }}
+          <button
+              class="btn flex items-center gap-2"
+              hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
+              hx-swap="none"
+              {{ if or .Pull.State.IsClosed .MergeCheck.IsConflicted }}
+                  disabled
+              {{ end }}>
+              <i data-lucide="git-merge" class="w-4 h-4 text-purple-500"></i>
+              <span>merge</span>
+          </button>
+        {{ end }}
+
+        <div id="pull-merge-error" class="error"></div>
+        <div id="pull-merge-success" class="success"></div>
+      </div>
+  </div>
 {{ end }}
