@@ -232,20 +232,6 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) EditPatch(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
-	if err != nil {
-		log.Println("failed to get repo and knot", err)
-		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
-		return
-	}
-
-	prId := chi.URLParam(r, "pull")
-	prIdInt, err := strconv.Atoi(prId)
-	if err != nil {
-		http.Error(w, "bad pr id", http.StatusBadRequest)
-		log.Println("failed to parse pr id", err)
-		return
-	}
 
 	patch := r.FormValue("patch")
 	if patch == "" {
@@ -253,10 +239,22 @@ func (s *State) EditPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get pull information before updating to get the atproto record URI
-	pull, _, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	if pull.OwnerDid != user.Did {
+		log.Println("failed to edit pull information")
+		s.pages.Notice(w, "pull-error", "Unauthorized")
+		return
+	}
+
+	f, err := fullyResolvedRepo(r)
 	if err != nil {
-		log.Println("failed to get pull information", err)
+		log.Println("failed to get repo and knot", err)
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
 		return
 	}
@@ -273,7 +271,7 @@ func (s *State) EditPatch(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	// Update patch in the database within transaction
-	err = db.EditPatch(tx, f.RepoAt, prIdInt, patch)
+	err = db.EditPatch(tx, f.RepoAt, pull.PullId, patch)
 	if err != nil {
 		log.Println("failed to update patch", err)
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -362,7 +360,7 @@ func (s *State) EditPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, prIdInt))
+	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pull.PullId))
 	return
 }
 
@@ -489,30 +487,20 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prId := chi.URLParam(r, "pull")
-	prIdInt, err := strconv.Atoi(prId)
-	if err != nil {
-		http.Error(w, "bad pr id", http.StatusBadRequest)
-		log.Println("failed to parse pr id", err)
+	pull, ok1 := r.Context().Value("pull").(*db.Pull)
+	comments, ok2 := r.Context().Value("pull_comments").([]db.PullComment)
+	if !ok1 || !ok2 {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
 		return
-	}
-
-	pr, comments, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
-	if err != nil {
-		log.Println("failed to get pr and comments", err)
-		s.pages.Notice(w, "pull", "Failed to load pull request. Try again later.")
-		return
-	}
-
-	pullOwnerIdent, err := s.resolver.ResolveIdent(r.Context(), pr.OwnerDid)
-	if err != nil {
-		log.Println("failed to resolve pull owner", err)
 	}
 
 	identsToResolve := make([]string, len(comments))
 	for i, comment := range comments {
 		identsToResolve[i] = comment.OwnerDid
 	}
+	identsToResolve = append(identsToResolve, pull.OwnerDid)
+
 	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
@@ -526,7 +514,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	var mergeCheckResponse types.MergeCheckResponse
 
 	// Only perform merge check if the pull request is not already merged
-	if pr.State != db.PullMerged {
+	if pull.State != db.PullMerged {
 		secret, err := db.GetRegistrationKey(s.db, f.Knot)
 		if err != nil {
 			log.Printf("failed to get registration key for %s", f.Knot)
@@ -536,7 +524,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 
 		ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
 		if err == nil {
-			resp, err := ksClient.MergeCheck([]byte(pr.Patch), pr.OwnerDid, f.RepoName, pr.TargetBranch)
+			resp, err := ksClient.MergeCheck([]byte(pull.Patch), pull.OwnerDid, f.RepoName, pull.TargetBranch)
 			if err != nil {
 				log.Println("failed to check for mergeability:", err)
 			} else {
@@ -556,13 +544,12 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
-		LoggedInUser:    user,
-		RepoInfo:        f.RepoInfo(s, user),
-		Pull:            *pr,
-		Comments:        comments,
-		PullOwnerHandle: pullOwnerIdent.Handle.String(),
-		DidHandleMap:    didHandleMap,
-		MergeCheck:      mergeCheckResponse,
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(s, user),
+		Pull:         *pull,
+		Comments:     comments,
+		DidHandleMap: didHandleMap,
+		MergeCheck:   mergeCheckResponse,
 	})
 }
 
@@ -1012,7 +999,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 		Description: f.Description,
 		IsStarred:   isStarred,
 		Knot:        knot,
-		Roles:       rolesInRepo(s, u, f),
+		Roles:       RolesInRepo(s, u, f),
 		Stats: db.RepoStats{
 			StarCount:  starCount,
 			IssueCount: issueCount,
@@ -1464,18 +1451,12 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the pull request ID from the request URL
-	pullId := chi.URLParam(r, "pull")
-	pullIdInt, err := strconv.Atoi(pullId)
-	if err != nil {
-		log.Println("failed to parse pull ID:", err)
-		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
 		return
 	}
-
-	// Get the patch data from the request body
-	patch := r.FormValue("patch")
-	branch := r.FormValue("targetBranch")
 
 	secret, err := db.GetRegistrationKey(s.db, f.Knot)
 	if err != nil {
@@ -1492,7 +1473,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Merge the pull request
-	resp, err := ksClient.Merge([]byte(patch), user.Did, f.RepoName, branch)
+	resp, err := ksClient.Merge([]byte(pull.Patch), user.Did, f.RepoName, pull.TargetBranch)
 	if err != nil {
 		log.Printf("failed to merge pull request: %s", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
@@ -1500,13 +1481,13 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		err := db.MergePull(s.db, f.RepoAt, pullIdInt)
+		err := db.MergePull(s.db, f.RepoAt, pull.PullId)
 		if err != nil {
 			log.Printf("failed to update pull request status in database: %s", err)
 			s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
 			return
 		}
-		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pullIdInt))
+		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pull.PullId))
 	} else {
 		log.Printf("knotserver returned non-OK status code for merge: %d", resp.StatusCode)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
@@ -1609,16 +1590,29 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("malformed middleware")
 		return
 	}
 
-	pullId := chi.URLParam(r, "pull")
-	pullIdInt, err := strconv.Atoi(pullId)
-	if err != nil {
-		log.Println("malformed middleware")
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	// auth filter: only owner or collaborators can close
+	roles := RolesInRepo(s, user, f)
+	isCollaborator := roles.IsCollaborator()
+	isPullAuthor := user.Did == pull.OwnerDid
+	isCloseAllowed := isCollaborator || isPullAuthor
+	if !isCloseAllowed {
+		log.Println("failed to close pull")
+		s.pages.Notice(w, "pull-close", "You are unauthorized to close this pull.")
 		return
 	}
 
@@ -1631,7 +1625,7 @@ func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Close the pull in the database
-	err = db.ClosePull(tx, f.RepoAt, pullIdInt)
+	err = db.ClosePull(tx, f.RepoAt, pull.PullId)
 	if err != nil {
 		log.Println("failed to close pull", err)
 		s.pages.Notice(w, "pull-close", "Failed to close pull.")
@@ -1645,15 +1639,35 @@ func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullIdInt))
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
 	return
 }
 
 func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to resolve repo", err)
 		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
+		return
+	}
+
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	// auth filter: only owner or collaborators can close
+	roles := RolesInRepo(s, user, f)
+	isCollaborator := roles.IsCollaborator()
+	isPullAuthor := user.Did == pull.OwnerDid
+	isCloseAllowed := isCollaborator || isPullAuthor
+	if !isCloseAllowed {
+		log.Println("failed to close pull")
+		s.pages.Notice(w, "pull-close", "You are unauthorized to close this pull.")
 		return
 	}
 
@@ -1665,16 +1679,8 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pullId := chi.URLParam(r, "pull")
-	pullIdInt, err := strconv.Atoi(pullId)
-	if err != nil {
-		log.Println("failed to parse pull id", err)
-		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
-		return
-	}
-
 	// Reopen the pull in the database
-	err = db.ReopenPull(tx, f.RepoAt, pullIdInt)
+	err = db.ReopenPull(tx, f.RepoAt, pull.PullId)
 	if err != nil {
 		log.Println("failed to reopen pull", err)
 		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
@@ -1688,7 +1694,7 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullIdInt))
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
 	return
 }
 
@@ -1731,7 +1737,7 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	}, nil
 }
 
-func rolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) pages.RolesInRepo {
+func RolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) pages.RolesInRepo {
 	if u != nil {
 		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.OwnerSlashRepo())
 		return pages.RolesInRepo{r}
