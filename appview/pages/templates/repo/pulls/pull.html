@@ -152,7 +152,7 @@
 
 {{ define "repoAfter" }}
     {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
-    {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
+    {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
 
     <section id="comments" class="mt-8 space-y-4 relative">
       {{ block "comments" . }} {{ end }}
@@ -161,16 +161,16 @@
         {{ block "alreadyMergedCard" . }} {{ end }}
       {{ else if .MergeCheck }}
          {{ if .MergeCheck.IsConflicted }}
-           {{ block "isConflictedCard" . }} {{ end }}
+           {{ block "isConflictedCard" $ }} {{ end }}
          {{ else }}
-           {{ block "noConflictsCard" . }} {{ end }}
+           {{ block "noConflictsCard" $ }} {{ end }}
          {{ end }}
       {{ end }}
     </section>
 
     {{ block "newComment" . }} {{ end }}
 
-    {{ if and (or $isPullAuthor $isRepoCollaborator) (not .Pull.State.IsMerged) }}
+    {{ if and (or $isPullAuthor $isPushAllowed) (not .Pull.State.IsMerged) }}
         {{ $action := "close" }}
         {{ $icon := "circle-x" }}
         {{ $hoverColor := "red" }}
@@ -324,7 +324,7 @@
 
 
 {{ define "noConflictsCard" }}
-  {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
+  {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
   <div
       id="merge-status-card"
       class="rounded relative border bg-green-50 border-green-200 p-4">
@@ -345,7 +345,7 @@
       </div>
 
       <div class="mt-4 flex items-center gap-2">
-        {{ if $isRepoCollaborator }}
+        {{ if $isPushAllowed }}
           <button
               class="btn flex items-center gap-2"
               hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"

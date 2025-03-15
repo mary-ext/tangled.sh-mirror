@@ -76,7 +76,7 @@ func (s *State) UserRouter() http.Handler {
 						r.Post("/reopen", s.ReopenPull)
 						// collaborators only
 						r.Group(func(r chi.Router) {
-							r.Use(RepoPermissionMiddleware(s, "repo:collaborator"))
+							r.Use(RepoPermissionMiddleware(s, "repo:push"))
 							r.Post("/merge", s.MergePull)
 							// maybe lock, etc.
 						})
