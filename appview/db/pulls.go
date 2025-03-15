@@ -295,11 +295,14 @@ type PullCount struct {
 func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
 	row := e.QueryRow(`
 		select
-			count(case when state = 0 then 1 end) as open_count,
-			count(case when state = 1 then 1 end) as merged_count,
-			count(case when state = 2 then 1 end) as closed_count
+			count(case when state = ? then 1 end) as open_count,
+			count(case when state = ? then 1 end) as merged_count,
+			count(case when state = ? then 1 end) as closed_count
 		from pulls
 		where repo_at = ?`,
+		PullOpen,
+		PullMerged,
+		PullClosed,
 		repoAt,
 	)
 
