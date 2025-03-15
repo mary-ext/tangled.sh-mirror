@@ -235,6 +235,10 @@ func (r RolesInRepo) IsCollaborator() bool {
 	return slices.Contains(r.Roles, "repo:collaborator")
 }
 
+func (r RolesInRepo) IsPushAllowed() bool {
+	return slices.Contains(r.Roles, "repo:push")
+}
+
 func (r RepoInfo) OwnerWithAt() string {
 	if r.OwnerHandle != "" {
 		return fmt.Sprintf("@%s", r.OwnerHandle)
