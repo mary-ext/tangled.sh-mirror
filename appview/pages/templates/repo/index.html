@@ -13,7 +13,7 @@
 {{ define "branchSelector" }}
 <div class="flex justify-between pb-5">
     <select
-        onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + this.value"
+        onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
         class="p-1 border border-gray-200 bg-white"
     >
         <optgroup label="branches" class="bold text-sm">

@@ -3,10 +3,13 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/sotangled/tangled/types"
 )
 
 type PullState int
@@ -100,6 +103,47 @@ type PullComment struct {
 func (p *Pull) LatestPatch() string {
 	latestSubmission := p.Submissions[len(p.Submissions)-1]
 	return latestSubmission.Patch
+}
+
+func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
+	patch := s.Patch
+
+	diffs, _, err := gitdiff.Parse(strings.NewReader(patch))
+	if err != nil {
+		log.Println(err)
+	}
+
+	nd := types.NiceDiff{}
+	nd.Commit.Parent = targetBranch
+
+	for _, d := range diffs {
+		ndiff := types.Diff{}
+		ndiff.Name.New = d.NewName
+		ndiff.Name.Old = d.OldName
+		ndiff.IsBinary = d.IsBinary
+		ndiff.IsNew = d.IsNew
+		ndiff.IsDelete = d.IsDelete
+		ndiff.IsCopy = d.IsCopy
+		ndiff.IsRename = d.IsRename
+
+		for _, tf := range d.TextFragments {
+			ndiff.TextFragments = append(ndiff.TextFragments, *tf)
+			for _, l := range tf.Lines {
+				switch l.Op {
+				case gitdiff.OpAdd:
+					nd.Stat.Insertions += 1
+				case gitdiff.OpDelete:
+					nd.Stat.Deletions += 1
+				}
+			}
+		}
+
+		nd.Diff = append(nd.Diff, ndiff)
+	}
+
+	nd.Stat.FilesChanged = len(diffs)
+
+	return nd
 }
 
 func NewPull(tx *sql.Tx, pull *Pull) error {
