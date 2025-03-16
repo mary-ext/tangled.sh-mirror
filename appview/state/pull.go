@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/sotangled/tangled/api/tangled"
@@ -300,6 +301,12 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Validate patch format
+		if !isPatchValid(patch) {
+			s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
+			return
+		}
+
 		tx, err := s.db.BeginTx(r.Context(), nil)
 		if err != nil {
 			log.Println("failed to start tx")
@@ -392,6 +399,12 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Validate patch format
+		if !isPatchValid(patch) {
+			s.pages.Notice(w, "resubmit-error", "Invalid patch format. Please provide a valid diff.")
+			return
+		}
+
 		tx, err := s.db.BeginTx(r.Context(), nil)
 		if err != nil {
 			log.Println("failed to start tx")
@@ -478,7 +491,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Merge the pull request
-	resp, err := ksClient.Merge([]byte(pull.LatestPatch()), user.Did, f.RepoName, pull.TargetBranch)
+	resp, err := ksClient.Merge([]byte(pull.LatestPatch()), user.Did, f.RepoName, pull.TargetBranch, pull.Title, pull.Body, "", "")
 	if err != nil {
 		log.Printf("failed to merge pull request: %s", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
@@ -606,4 +619,27 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
 	return
+}
+
+// Very basic validation to check if it looks like a diff/patch
+// A valid patch usually starts with diff or --- lines
+func isPatchValid(patch string) bool {
+	// Basic validation to check if it looks like a diff/patch
+	// A valid patch usually starts with diff or --- lines
+	if len(patch) == 0 {
+		return false
+	}
+
+	lines := strings.Split(patch, "\n")
+	if len(lines) < 2 {
+		return false
+	}
+
+	// Check for common patch format markers
+	firstLine := strings.TrimSpace(lines[0])
+	return strings.HasPrefix(firstLine, "diff ") ||
+		strings.HasPrefix(firstLine, "--- ") ||
+		strings.HasPrefix(firstLine, "Index: ") ||
+		strings.HasPrefix(firstLine, "+++ ") ||
+		strings.HasPrefix(firstLine, "@@ ")
 }

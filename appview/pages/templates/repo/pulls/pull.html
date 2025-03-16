@@ -69,7 +69,7 @@
     {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
     {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
 
-    {{ if $isPullAuthor }}
+    {{ if and $isPullAuthor (not .Pull.State.IsMerged) }}
     <section id="update-card" class="mt-8 space-y-4 relative">
       {{ block "resubmitCard" . }} {{ end }}
     </section>
@@ -86,24 +86,6 @@
          {{ end }}
       {{ end }}
     </section>
-
-    {{ if and (or $isPullAuthor $isPushAllowed) (not .Pull.State.IsMerged) }}
-        {{ $action := "close" }}
-        {{ $icon := "circle-x" }}
-        {{ $hoverColor := "red" }}
-        {{ if .Pull.State.IsClosed }}
-            {{ $action = "reopen" }}
-            {{ $icon = "circle-dot" }}
-            {{ $hoverColor = "green" }}
-        {{ end }}
-        <button
-          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/{{ $action }}"
-          hx-swap="none"
-          class="btn mt-8 text-sm flex items-center gap-2">
-            <i data-lucide="{{ $icon }}" class="w-4 h-4 mr-2 text-{{ $hoverColor }}-400"></i>
-            <span class="text-black">{{ $action }}</span>
-        </button>
-    {{ end }}
 
     <div id="pull-close"></div>
     <div id="pull-reopen"></div>
@@ -202,21 +184,11 @@
   <div
       id="merge-status-card"
       class="rounded relative bg-purple-50 border border-purple-200 p-4">
-      {{ if gt (len .Comments) 0 }}
-          <div
-              class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
-          ></div>
-      {{ else }}
-          <div
-              class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
-          ></div>
-      {{ end }}
-
 
       <div class="flex items-center gap-2 text-purple-500">
           <i data-lucide="git-merge" class="w-4 h-4"></i>
           <span class="font-medium"
-              >Pull request successfully merged</span
+              >pull request successfully merged</span
           >
       </div>
 
@@ -263,6 +235,7 @@
 
 {{ define "noConflictsCard" }}
   {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
+  {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
   <div
       id="merge-status-card"
       class="rounded relative border bg-green-50 border-green-200 p-4">
@@ -291,6 +264,24 @@
           </button>
         {{ end }}
 
+        {{ if and (or $isPullAuthor $isPushAllowed) (not .Pull.State.IsMerged) }}
+          {{ $action := "close" }}
+          {{ $icon := "circle-x" }}
+          {{ $hoverColor := "red" }}
+          {{ if .Pull.State.IsClosed }}
+              {{ $action = "reopen" }}
+              {{ $icon = "circle-dot" }}
+              {{ $hoverColor = "green" }}
+          {{ end }}
+          <button
+            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/{{ $action }}"
+            hx-swap="none"
+            class="btn mt-4 flex items-center gap-2">
+              <i data-lucide="{{ $icon }}" class="w-4 h-4 text-{{ $hoverColor }}-400"></i>
+              <span class="text-black">{{ $action }}</span>
+          </button>
+        {{ end }}
+
         <div id="pull-merge-error" class="error"></div>
         <div id="pull-merge-success" class="success"></div>
       </div>
@@ -304,21 +295,21 @@
 
       <div class="flex items-center gap-2 text-amber-500">
         <i data-lucide="edit" class="w-4 h-4"></i>
-        <span class="font-medium">Resubmit your patch</span>
+        <span class="font-medium">resubmit your patch</span>
       </div>
 
       <div class="mt-2 text-sm text-gray-700">
-        You can update this patch to address reviews if any. 
-        This begins a new round of reviews,
-        you can still view your previous submissions and reviews.
+        You can update this patch to address any reviews. 
+        This will begin a new round of reviews,
+        but you'll still be able to view your previous submissions and feedback.
       </div>
 
-      <div class="mt-4 flex items-center gap-2">
-        <form hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit" class="w-full">
+      <div class="mt-4 flex flex-col">
+        <form hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit" class="w-full" hx-swap="none">
           <textarea
             name="patch"
-            class="w-full p-2 rounded border border-gray-200"
-            placeholder="Enter new patch"
+            class="w-full p-2 mb-2 rounded border border-gray-200"
+            placeholder="Paste your updated patch here."
             ></textarea>
           <button
               type="submit"

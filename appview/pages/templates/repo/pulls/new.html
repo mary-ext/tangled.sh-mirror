@@ -15,15 +15,16 @@
                 <p class="text-gray-500">
                     The branch you want to make your change against.
                 </p>
-                <select name="targetBranch" class="p-1 border border-gray-200 bg-white">
-                  <option disabled selected>select a branch</option>
-                  {{ range .Branches }}
-                  <option
-                      value="{{ .Reference.Name }}"
-                      class="py-1">
-                      {{ .Reference.Name }}
-                  </option>
-                  {{ end }}
+                <select
+                    name="targetBranch"
+                    class="p-1 border border-gray-200 bg-white"
+                >
+                    <option disabled selected>select a branch</option>
+                    {{ range .Branches }}
+                        <option value="{{ .Reference.Name }}" class="py-1">
+                            {{ .Reference.Name }}
+                        </option>
+                    {{ end }}
                 </select>
             </div>
             <div>
@@ -44,7 +45,12 @@
                         rows="10"
                         class="w-full resize-y font-mono"
                         placeholder="Paste your git-format-patch output here."
+                        hx-post="/pulls/validate"
+                        hx-trigger="input changed delay:500ms"
+                        hx-target="#patch-validation"
+                        hx-include="[name='patch']"
                     ></textarea>
+                    <div id="pull-validate"></div>
                 </div>
             </div>
             <div>
