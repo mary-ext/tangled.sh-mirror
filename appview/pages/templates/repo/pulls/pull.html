@@ -42,7 +42,11 @@
                 <span class="select-none before:content-['\00B7']"></span>
                 <time>{{ .Pull.Created | timeFmt }}</time>
                 <span class="select-none before:content-['\00B7']"></span>
-                <time>targeting branch {{ .Pull.TargetBranch }}</time>
+                <span>targeting branch 
+                  <span class="text-xs rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
+                    {{ .Pull.TargetBranch }}
+                  </span>
+                </span>
             </span>
         </div>
 
@@ -56,8 +60,10 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-    <section id="submissions">
-      {{ block "submissions" . }} {{ end }}
+    <section id="submissions" class="mt-4">
+      <div class="flex flex-col gap-4">
+        {{ block "submissions" . }} {{ end }}
+      </div>
     </section>
 
     {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
@@ -107,20 +113,54 @@
   {{ $lastIdx := sub (len .Pull.Submissions) 1 }}
   {{ range $idx, $item := .Pull.Submissions }}
     {{ with $item }}
+    {{ $oneIndexedRound := add .RoundNumber 1 }}
     <details {{ if eq $idx $lastIdx }}open{{ end }}>
-      <summary>round #{{ .RoundNumber }}, {{ .Created | timeFmt }}, received {{ len .Comments }} comments</summary>
-      <div>
-        <h2>patch submitted by {{index $.DidHandleMap $.Pull.OwnerDid}}</h2>
-        <pre><code>{{- .Patch -}}</code></pre>
+      <summary id="round-#{{ $oneIndexedRound }}" class="list-none cursor-pointer text-sm">
+        <div class="flex gap-2 items-center">
+          <div class="rounded bg-white drop-shadow-sm p-3">
+            #{{ $oneIndexedRound }}
+          </div>
+          <div class="rounded drop-shadow-sm bg-white p-3 text-gray-500">
+            <span>
+              {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
+              submitted by <a href="/{{ $owner }}">{{ $owner }}</a>
+              <span class="before:content-['·']"></span>
+              <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/patch">view patch</a>
+              <span class="select-none before:content-['\00B7']"></span>
+              <time>{{ .Created | timeFmt }}</time>
+              <span class="select-none before:content-['·']"></span>
+              {{ $s := "s" }}
+              {{ if eq (len .Comments) 1 }}
+                {{ $s = "" }}
+              {{ end }}
+              {{ len .Comments }} comment{{$s}}
+            </span>
+          </div>
+        </div>
+      </summary>
+      <div class="pl-12 flex flex-col gap-2 mt-2 relative">
+        <!--div class="bg-white rounded drop-shadow-sm p-4">
+          <pre class="overflow-auto"><code>{{- .Patch -}}</code></pre>
+        </div-->
 
         {{ range .Comments }}
-          <div id="comment-{{.ID}}">
-            {{ index $.DidHandleMap .OwnerDid }} commented {{ .Created | timeFmt }}: {{ .Body }}
+          <div id="comment-{{.ID}}" class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-fit">
+            <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+            <div class="text-sm text-gray-500">
+              {{ $owner := index $.DidHandleMap .OwnerDid }} 
+              <a href="/{{$owner}}">{{$owner}}</a>
+              <span class="before:content-['·']"></span>
+              <time>{{ .Created | timeFmt }}</time>
+            </div>
+            <div class="prose">
+              {{ .Body }}
+            </div>
           </div>
         {{ end }}
         {{ block "newComment" (list $ .ID) }} {{ end }}
       </div>
     </details>
+    <hr />
     {{ end }}
   {{ end }}
 {{ end }}
@@ -131,22 +171,28 @@
 
   {{ with $rootObj }}
     {{ if .LoggedInUser }}
-    <form
-        hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/comment"
-        class="mt-8"
-        hx-swap="none">
+    <div class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-full md:w-96">
+      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+      <div class="text-sm text-gray-500">
+        {{ index .DidHandleMap .LoggedInUser.Did }} 
+      </div>
+      <form
+          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/comment"
+          hx-swap="none">
         <input type="hidden" name="submissionId" value="{{ $submissionId }}">
         <textarea
             name="body"
-            class="w-full p-2 rounded border border-gray-200"
-            placeholder="Add to the discussion..."
-        ></textarea>
-        <button type="submit" class="btn mt-2">comment</button>
+            class="w-full border-0 h-8 focus:outline-none focus:ring-0 px-0 py-1"
+            placeholder="Add to the discussion..." /></textarea>
+        <div class="flex justify-end">
+          <button type="submit" class="btn text-sm mt-2">comment</button>
+        </div>
         <div id="pull-comment"></div>
-    </form>
-    {{ else }}
-    <div class="bg-white rounded drop-shadow-sm px-6 py-4 mt-8">
-      <a href="/login" class="underline">login</a> to join the discussion
+      </form>
+      {{ else }}
+      <div class="bg-white rounded drop-shadow-sm px-6 py-4 mt-8">
+        <a href="/login" class="underline">login</a> to join the discussion
+      </div>
     </div>
     {{ end }}
   {{ end }}
@@ -231,10 +277,10 @@
         pull request can be merged safely.
       </div>
 
-      <div class="mt-4 flex items-center gap-2">
+      <div class="flex items-center gap-2">
         {{ if $isPushAllowed }}
           <button
-              class="btn flex items-center gap-2"
+              class="btn mt-4 flex items-center gap-2"
               hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
               hx-swap="none"
               {{ if or .Pull.State.IsClosed .MergeCheck.IsConflicted }}
