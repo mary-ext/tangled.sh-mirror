@@ -313,6 +313,16 @@
 
           environment.systemPackages = with pkgs; [git];
 
+          system.activationScripts.gitConfig = ''
+              mkdir -p /home/git/.config/git
+              cat > /home/git/.config/git/config << EOF
+              [user]
+                  name = Git User
+                  email = git@example.com
+              EOF
+              chown -R git:git /home/git/.config
+          '';
+
           users.users.git = {
             isNormalUser = true;
             home = "/home/git";
@@ -380,7 +390,7 @@
           services.tangled-knotserver = {
             enable = true;
             server = {
-              secret = "ad7b32ded52fbe96e09f469a288084ee01cd12c971da87a1cbb87ef67081bd87";
+              secret = "6995e040e80e2d593b5e5e9ca611a70140b9ef8044add0a28b48b1ee34aa3e85";
               hostname = "localhost:6000";
               listenAddr = "0.0.0.0:6000";
             };

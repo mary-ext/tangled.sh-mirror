@@ -93,7 +93,10 @@
 
 {{ define "submissions" }}
   {{ $lastIdx := sub (len .Pull.Submissions) 1 }}
+  {{ $targetBranch := .Pull.TargetBranch }}
+  {{ $repoName := .RepoInfo.FullName }}
   {{ range $idx, $item := .Pull.Submissions }}
+    {{ $diff := $item.AsNiceDiff $targetBranch }}
     {{ with $item }}
     {{ $oneIndexedRound := add .RoundNumber 1 }}
     <details {{ if eq $idx $lastIdx }}open{{ end }}>
@@ -106,8 +109,6 @@
             <span>
               {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
               submitted by <a href="/{{ $owner }}">{{ $owner }}</a>
-              <span class="before:content-['·']"></span>
-              <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/patch">view patch</a>
               <span class="select-none before:content-['\00B7']"></span>
               <time>{{ .Created | timeFmt }}</time>
               <span class="select-none before:content-['·']"></span>
@@ -121,9 +122,9 @@
         </div>
       </summary>
       <div class="pl-12 flex flex-col gap-2 mt-2 relative">
-        <!--div class="bg-white rounded drop-shadow-sm p-4">
-          <pre class="overflow-auto"><code>{{- .Patch -}}</code></pre>
-        </div-->
+        <div>
+          {{ template "fragments/diff" (list $repoName $diff) }}
+        </div>
 
         {{ range .Comments }}
           <div id="comment-{{.ID}}" class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-fit">
