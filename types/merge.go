@@ -11,3 +11,12 @@ type MergeCheckResponse struct {
 	Message      string         `json:"message"`
 	Error        string         `json:"error"`
 }
+
+type MergeRequest struct {
+	Patch         string `json:"patch"`
+	AuthorName    string `json:"authorName,omitempty"`
+	AuthorEmail   string `json:"authorEmail,omitempty"`
+	CommitBody    string `json:"commitBody,omitempty"`
+	CommitMessage string `json:"commitMessage,omitempty"`
+	Branch        string `json:"branch"`
+}
