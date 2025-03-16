@@ -543,14 +543,13 @@ func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
 }
 
 type RepoSinglePullParams struct {
-	LoggedInUser    *auth.User
-	RepoInfo        RepoInfo
-	DidHandleMap    map[string]string
-	Pull            db.Pull
-	PullOwnerHandle string
-	Comments        []db.PullComment
-	Active          string
-	MergeCheck      types.MergeCheckResponse
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Active       string
+	DidHandleMap map[string]string
+
+	Pull       db.Pull
+	MergeCheck types.MergeCheckResponse
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
