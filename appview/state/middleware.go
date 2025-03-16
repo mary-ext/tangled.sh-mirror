@@ -21,17 +21,27 @@ type Middleware func(http.Handler) http.Handler
 func AuthMiddleware(s *State) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			redirectFunc := func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			}
+			if r.Header.Get("HX-Request") == "true" {
+				redirectFunc = func(w http.ResponseWriter, _ *http.Request) {
+					w.Header().Set("HX-Redirect", "/login")
+					w.WriteHeader(http.StatusOK)
+				}
+			}
+
 			session, err := s.auth.GetSession(r)
 			if session.IsNew || err != nil {
 				log.Printf("not logged in, redirecting")
-				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				redirectFunc(w, r)
 				return
 			}
 
 			authorized, ok := session.Values[appview.SessionAuthenticated].(bool)
 			if !ok || !authorized {
 				log.Printf("not logged in, redirecting")
-				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				redirectFunc(w, r)
 				return
 			}
 
@@ -41,7 +51,7 @@ func AuthMiddleware(s *State) Middleware {
 			expiry, err := time.Parse(time.RFC3339, expiryStr)
 			if err != nil {
 				log.Println("invalid expiry time", err)
-				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				redirectFunc(w, r)
 				return
 			}
 			pdsUrl, ok1 := session.Values[appview.SessionPds].(string)
@@ -50,7 +60,7 @@ func AuthMiddleware(s *State) Middleware {
 
 			if !ok1 || !ok2 || !ok3 {
 				log.Println("invalid expiry time", err)
-				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+				redirectFunc(w, r)
 				return
 			}
 
@@ -68,7 +78,7 @@ func AuthMiddleware(s *State) Middleware {
 				atSession, err := comatproto.ServerRefreshSession(r.Context(), &client)
 				if err != nil {
 					log.Println("failed to refresh session", err)
-					http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+					redirectFunc(w, r)
 					return
 				}
 
