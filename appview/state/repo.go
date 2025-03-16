@@ -772,7 +772,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		client, _ := s.auth.AuthorizedClient(r)
 		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueStateNSID,
-			Repo:       issue.OwnerDid,
+			Repo:       user.Did,
 			Rkey:       s.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssueState{
