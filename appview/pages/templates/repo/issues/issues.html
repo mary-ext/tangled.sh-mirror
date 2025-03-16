@@ -5,8 +5,8 @@
         <p>
         filtering
         <select class="border px-1 bg-white border-gray-200" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
-          <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>open</option>
-          <option value="closed" {{ if not .FilteringByOpen }}selected{{ end }}>closed</option>
+          <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>open({{ .RepoInfo.Stats.IssueCount.Open }})</option>
+          <option value="closed" {{ if not .FilteringByOpen }}selected{{ end }}>closed({{ .RepoInfo.Stats.IssueCount.Closed }})</option>
         </select>
         issues
         </p>
@@ -21,7 +21,7 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-<div class="flex flex-col gap-2 mt-8">
+<div class="flex flex-col gap-2 mt-2">
   {{ range .Issues }}
   <div class="rounded drop-shadow-sm bg-white px-6 py-4">
     <div class="pb-2">
