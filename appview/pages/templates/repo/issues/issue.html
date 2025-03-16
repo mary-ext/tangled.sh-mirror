@@ -99,9 +99,13 @@
             <button type="submit" class="btn mt-2">comment</button>
             <div id="issue-comment"></div>
         </form>
+    {{ else }}
+    <div class="w-full rounded p-6 drop-shadow-sm bg-white">
+      <a href="/login" class="underline">login</a> to join the discussion
+    </div>
     {{ end }}
 
-    {{ $isIssueAuthor := eq .LoggedInUser.Did .Issue.OwnerDid }}
+    {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.OwnerDid) }}
     {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
     {{ if or $isIssueAuthor $isRepoCollaborator }}
         {{ $action := "close" }}

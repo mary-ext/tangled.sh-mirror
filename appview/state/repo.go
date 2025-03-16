@@ -820,7 +820,23 @@ func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Did == f.OwnerDid() {
+	issue, err := db.GetIssue(s.db, f.RepoAt, issueIdInt)
+	if err != nil {
+		log.Println("failed to get issue", err)
+		s.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
+		return
+	}
+
+	collaborators, err := f.Collaborators(r.Context(), s)
+	if err != nil {
+		log.Println("failed to fetch repo collaborators: %w", err)
+	}
+	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
+		return user.Did == collab.Did
+	})
+	isIssueOwner := user.Did == issue.OwnerDid
+
+	if isCollaborator || isIssueOwner {
 		err := db.ReopenIssue(s.db, f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to reopen issue", err)
