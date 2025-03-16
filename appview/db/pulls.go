@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -39,29 +41,65 @@ func (p PullState) IsClosed() bool {
 }
 
 type Pull struct {
-	ID           int
-	OwnerDid     string
-	RepoAt       syntax.ATURI
-	PullAt       syntax.ATURI
-	TargetBranch string
-	Patch        string
-	PullId       int
+	// ids
+	ID     int
+	PullId int
+
+	// at ids
+	RepoAt   syntax.ATURI
+	OwnerDid string
+	Rkey     string
+	PullAt   syntax.ATURI
+
+	// content
 	Title        string
 	Body         string
+	TargetBranch string
 	State        PullState
-	Created      time.Time
-	Rkey         string
+	Submissions  []*PullSubmission
+
+	// meta
+	Created time.Time
+}
+
+type PullSubmission struct {
+	// ids
+	ID     int
+	PullId int
+
+	// at ids
+	RepoAt syntax.ATURI
+
+	// content
+	RoundNumber int
+	Patch       string
+	Comments    []PullComment
+
+	// meta
+	Created time.Time
 }
 
 type PullComment struct {
-	ID        int
-	OwnerDid  string
-	PullId    int
+	// ids
+	ID           int
+	PullId       int
+	SubmissionId int
+
+	// at ids
 	RepoAt    string
-	CommentId int
+	OwnerDid  string
 	CommentAt string
-	Body      string
-	Created   time.Time
+
+	// content
+	Body string
+
+	// meta
+	Created time.Time
+}
+
+func (p *Pull) LatestPatch() string {
+	latestSubmission := p.Submissions[len(p.Submissions)-1]
+	return latestSubmission.Patch
 }
 
 func NewPull(tx *sql.Tx, pull *Pull) error {
@@ -90,9 +128,17 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 	pull.State = PullOpen
 
 	_, err = tx.Exec(`
-		insert into pulls (repo_at, owner_did, pull_id, title, target_branch, body, patch, rkey, state)
-		values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, pull.RepoAt, pull.OwnerDid, pull.PullId, pull.Title, pull.TargetBranch, pull.Body, pull.Patch, pull.Rkey, pull.State)
+		insert into pulls (repo_at, owner_did, pull_id, title, target_branch, body, rkey, state)
+		values (?, ?, ?, ?, ?, ?, ?, ?)
+	`, pull.RepoAt, pull.OwnerDid, pull.PullId, pull.Title, pull.TargetBranch, pull.Body, pull.Rkey, pull.State)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		insert into pull_submissions (pull_id, repo_at, round_number, patch)
+		values (?, ?, ?, ?)
+	`, pull.PullId, pull.RepoAt, 0, pull.Submissions[0].Patch)
 	if err != nil {
 		return err
 	}
@@ -134,7 +180,6 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 			target_branch,
 			pull_at,
 			body,
-			patch,
 			rkey
 		from
 			pulls
@@ -150,7 +195,17 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 	for rows.Next() {
 		var pull Pull
 		var createdAt string
-		err := rows.Scan(&pull.OwnerDid, &pull.PullId, &createdAt, &pull.Title, &pull.State, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
+		err := rows.Scan(
+			&pull.OwnerDid,
+			&pull.PullId,
+			&createdAt,
+			&pull.Title,
+			&pull.State,
+			&pull.TargetBranch,
+			&pull.PullAt,
+			&pull.Body,
+			&pull.Rkey,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -172,12 +227,39 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 }
 
 func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
-	query := `select owner_did, created, title, state, target_branch, pull_at, body, patch, rkey from pulls where repo_at = ? and pull_id = ?`
+	query := `
+		select
+			owner_did,
+			pull_id,
+			created,
+			title,
+			state,
+			target_branch,
+			pull_at,
+			repo_at,
+			body,
+			rkey
+		from
+			pulls
+		where 
+			repo_at = ? and pull_id = ?
+		`
 	row := e.QueryRow(query, repoAt, pullId)
 
 	var pull Pull
 	var createdAt string
-	err := row.Scan(&pull.OwnerDid, &createdAt, &pull.Title, &pull.State, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
+	err := row.Scan(
+		&pull.OwnerDid,
+		&pull.PullId,
+		&createdAt,
+		&pull.Title,
+		&pull.State,
+		&pull.TargetBranch,
+		&pull.PullAt,
+		&pull.RepoAt,
+		&pull.Body,
+		&pull.Rkey,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -187,83 +269,143 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		return nil, err
 	}
 	pull.Created = createdTime
+
+	submissionsQuery := `
+		select
+			id, pull_id, repo_at, round_number, patch, created
+		from 
+			pull_submissions
+		where
+			repo_at = ? and pull_id = ?
+	`
+	submissionsRows, err := e.Query(submissionsQuery, repoAt, pullId)
+	if err != nil {
+		return nil, err
+	}
+	defer submissionsRows.Close()
+
+	submissionsMap := make(map[int]*PullSubmission)
+
+	for submissionsRows.Next() {
+		var submission PullSubmission
+		var submissionCreatedStr string
+		err := submissionsRows.Scan(
+			&submission.ID,
+			&submission.PullId,
+			&submission.RepoAt,
+			&submission.RoundNumber,
+			&submission.Patch,
+			&submissionCreatedStr,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		submissionCreatedTime, err := time.Parse(time.RFC3339, submissionCreatedStr)
+		if err != nil {
+			return nil, err
+		}
+		submission.Created = submissionCreatedTime
+
+		submissionsMap[submission.ID] = &submission
+	}
+	if err = submissionsRows.Close(); err != nil {
+		return nil, err
+	}
+	if len(submissionsMap) == 0 {
+		return &pull, nil
+	}
+
+	var args []any
+	for k := range submissionsMap {
+		args = append(args, k)
+	}
+	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(submissionsMap)), ", ")
+	commentsQuery := fmt.Sprintf(`
+		select 
+			id,
+			pull_id,
+			submission_id,
+			repo_at,
+			owner_did,
+			comment_at,
+			body,
+			created
+		from
+			pull_comments
+		where
+			submission_id IN (%s)
+		order by 
+			created asc
+		`, inClause)
+	commentsRows, err := e.Query(commentsQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer commentsRows.Close()
+
+	for commentsRows.Next() {
+		var comment PullComment
+		var commentCreatedStr string
+		err := commentsRows.Scan(
+			&comment.ID,
+			&comment.PullId,
+			&comment.SubmissionId,
+			&comment.RepoAt,
+			&comment.OwnerDid,
+			&comment.CommentAt,
+			&comment.Body,
+			&commentCreatedStr,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		commentCreatedTime, err := time.Parse(time.RFC3339, commentCreatedStr)
+		if err != nil {
+			return nil, err
+		}
+		comment.Created = commentCreatedTime
+
+		// Add the comment to its submission
+		if submission, ok := submissionsMap[comment.SubmissionId]; ok {
+			submission.Comments = append(submission.Comments, comment)
+		}
+
+	}
+	if err = commentsRows.Err(); err != nil {
+		return nil, err
+	}
+
+	pull.Submissions = make([]*PullSubmission, len(submissionsMap))
+	for _, submission := range submissionsMap {
+		pull.Submissions[submission.RoundNumber] = submission
+	}
 
 	return &pull, nil
 }
 
-func GetPullWithComments(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, []PullComment, error) {
-	query := `select owner_did, pull_id, created, title, state, target_branch, pull_at, body, patch, rkey from pulls where repo_at = ? and pull_id = ?`
-	row := e.QueryRow(query, repoAt, pullId)
-
-	var pull Pull
-	var createdAt string
-	err := row.Scan(&pull.OwnerDid, &pull.PullId, &createdAt, &pull.Title, &pull.State, &pull.TargetBranch, &pull.PullAt, &pull.Body, &pull.Patch, &pull.Rkey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	createdTime, err := time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		return nil, nil, err
-	}
-	pull.Created = createdTime
-
-	comments, err := GetPullComments(e, repoAt, pullId)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &pull, comments, nil
-}
-
-func NewPullComment(e Execer, comment *PullComment) error {
-	query := `insert into pull_comments (owner_did, repo_at, comment_at, pull_id, comment_id, body) values (?, ?, ?, ?, ?, ?)`
-	_, err := e.Exec(
+func NewPullComment(e Execer, comment *PullComment) (int64, error) {
+	query := `insert into pull_comments (owner_did, repo_at, submission_id, comment_at, pull_id, body) values (?, ?, ?, ?, ?, ?)`
+	res, err := e.Exec(
 		query,
 		comment.OwnerDid,
 		comment.RepoAt,
+		comment.SubmissionId,
 		comment.CommentAt,
 		comment.PullId,
-		comment.CommentId,
 		comment.Body,
 	)
-	return err
-}
-
-func GetPullComments(e Execer, repoAt syntax.ATURI, pullId int) ([]PullComment, error) {
-	var comments []PullComment
-
-	rows, err := e.Query(`select owner_did, pull_id, comment_id, comment_at, body, created from pull_comments where repo_at = ? and pull_id = ? order by created asc`, repoAt, pullId)
-	if err == sql.ErrNoRows {
-		return []PullComment{}, nil
-	}
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var comment PullComment
-		var createdAt string
-		err := rows.Scan(&comment.OwnerDid, &comment.PullId, &comment.CommentId, &comment.CommentAt, &comment.Body, &createdAt)
-		if err != nil {
-			return nil, err
-		}
-
-		createdAtTime, err := time.Parse(time.RFC3339, createdAt)
-		if err != nil {
-			return nil, err
-		}
-		comment.Created = createdAtTime
-
-		comments = append(comments, comment)
+		return 0, err
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
+	i, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
 	}
 
-	return comments, nil
+	return i, nil
 }
 
 func SetPullState(e Execer, repoAt syntax.ATURI, pullId int, pullState PullState) error {
@@ -283,6 +425,16 @@ func ReopenPull(e Execer, repoAt syntax.ATURI, pullId int) error {
 
 func MergePull(e Execer, repoAt syntax.ATURI, pullId int) error {
 	err := SetPullState(e, repoAt, pullId, PullMerged)
+	return err
+}
+
+func ResubmitPull(e Execer, pull *Pull, newPatch string) error {
+	newRoundNumber := len(pull.Submissions)
+	_, err := e.Exec(`
+		insert into pull_submissions (pull_id, repo_at, round_number, patch)
+		values (?, ?, ?, ?)
+	`, pull.PullId, pull.RepoAt, newRoundNumber, newPatch)
+
 	return err
 }
 
@@ -312,9 +464,4 @@ func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
 	}
 
 	return count, nil
-}
-
-func EditPatch(e Execer, repoAt syntax.ATURI, pullId int, patch string) error {
-	_, err := e.Exec(`update pulls set patch = ? where repo_at = ? and pull_id = ?`, patch, repoAt, pullId)
-	return err
 }

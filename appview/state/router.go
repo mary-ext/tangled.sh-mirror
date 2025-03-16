@@ -70,7 +70,7 @@ func (s *State) UserRouter() http.Handler {
 					// authorized requests below this point
 					r.Group(func(r chi.Router) {
 						r.Use(AuthMiddleware(s))
-						r.Patch("/patch", s.EditPatch)
+						r.Post("/resubmit", s.ResubmitPull)
 						r.Post("/comment", s.PullComment)
 						r.Post("/close", s.ClosePull)
 						r.Post("/reopen", s.ReopenPull)

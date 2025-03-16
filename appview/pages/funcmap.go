@@ -58,7 +58,7 @@ func funcMap() template.FuncMap {
 		},
 		"timeFmt": humanize.Time,
 		"byteFmt": humanize.Bytes,
-		"length": func(slice interface{}) int {
+		"length": func(slice any) int {
 			v := reflect.ValueOf(slice)
 			if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
 				return v.Len()
@@ -109,6 +109,9 @@ func funcMap() template.FuncMap {
 		"isNil": func(t any) bool {
 			// returns false for other "zero" values
 			return t == nil
+		},
+		"list": func(args ...any) []any {
+			return args
 		},
 	}
 }
