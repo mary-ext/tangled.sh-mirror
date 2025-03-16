@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/sotangled/tangled/types"
 )
 
 type SignerTransport struct {
@@ -156,16 +158,25 @@ func (s *SignedClient) AddCollaborator(ownerDid, repoName, memberDid string) (*h
 	return s.client.Do(req)
 }
 
-func (s *SignedClient) Merge(patch []byte, ownerDid, targetRepo, branch string) (*http.Response, error) {
+func (s *SignedClient) Merge(
+	patch []byte,
+	ownerDid, targetRepo, branch, commitMessage, commitBody, authorName, authorEmail string,
+) (*http.Response, error) {
 	const (
 		Method = "POST"
 	)
 	endpoint := fmt.Sprintf("/%s/%s/merge", ownerDid, targetRepo)
+	
+	mr := types.MergeRequest{
+		Branch: branch,
+		CommitMessage: commitMessage,
+		CommitBody: commitBody,
+		AuthorName: authorName,
+		AuthorEmail: authorEmail,
+		Patch: string(patch),
+	}
 
-	body, _ := json.Marshal(map[string]interface{}{
-		"patch":  string(patch),
-		"branch": branch,
-	})
+	body, _ := json.Marshal(mr)
 
 	req, err := s.newRequest(Method, endpoint, body)
 	if err != nil {

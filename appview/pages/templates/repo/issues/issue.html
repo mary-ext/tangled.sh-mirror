@@ -1,7 +1,4 @@
-{{ define "title" }}
-    {{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot;
-    {{ .RepoInfo.FullName }}
-{{ end }}
+{{ define "title" }}{{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot;{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
     <header class="pb-4">
