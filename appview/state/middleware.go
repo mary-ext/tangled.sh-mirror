@@ -240,14 +240,13 @@ func ResolvePull(s *State) Middleware {
 				return
 			}
 
-			pr, comments, err := db.GetPullWithComments(s.db, f.RepoAt, prIdInt)
+			pr, err := db.GetPull(s.db, f.RepoAt, prIdInt)
 			if err != nil {
 				log.Println("failed to get pull and comments", err)
 				return
 			}
 
 			ctx := context.WithValue(r.Context(), "pull", pr)
-			ctx = context.WithValue(ctx, "pull_comments", comments)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

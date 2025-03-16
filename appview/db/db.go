@@ -104,33 +104,73 @@ func Make(dbPath string) (*DB, error) {
 			foreign key (repo_at, issue_id) references issues(repo_at, issue_id) on delete cascade
 		);
 		create table if not exists pulls (
+			-- identifiers
 			id integer primary key autoincrement,
-			owner_did text not null,
-			repo_at text not null,
 			pull_id integer not null,
+			
+			-- at identifiers
+			repo_at text not null,
+			owner_did text not null,
+			rkey text not null,
+			pull_at text,
+
+			-- content
 			title text not null,
 			body text not null,
-			patch text,
-			pull_at text,
-			rkey text not null,
 			target_branch text not null,
 			state integer not null default 0 check (state in (0, 1, 2)), -- open, merged, closed
+
+			-- meta
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
 			unique(repo_at, pull_id),
 			foreign key (repo_at) references repos(at_uri) on delete cascade
 		);
-		create table if not exists pull_comments (
+
+		-- every pull must have atleast 1 submission: the initial submission
+		create table if not exists pull_submissions (
+			-- identifiers
 			id integer primary key autoincrement,
-			owner_did text not null,
 			pull_id integer not null,
+
+			-- at identifiers
 			repo_at text not null,
-			comment_id integer not null,
-			comment_at text not null,
-			body text not null,
+
+			-- content, these are immutable, and require a resubmission to update
+			round_number integer not null default 0,
+			patch text,
+
+			-- meta
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-			unique(pull_id, comment_id),
+
+			-- constraints
+			unique(repo_at, pull_id, round_number),
 			foreign key (repo_at, pull_id) references pulls(repo_at, pull_id) on delete cascade
 		);
+
+		create table if not exists pull_comments (
+			-- identifiers
+			id integer primary key autoincrement,
+			pull_id integer not null,
+			submission_id integer not null,
+
+			-- at identifiers
+			repo_at text not null,
+			owner_did text not null,
+			comment_at text not null,
+
+			-- content
+			body text not null,
+
+			-- meta
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
+			foreign key (repo_at, pull_id) references pulls(repo_at, pull_id) on delete cascade,
+			foreign key (submission_id) references pull_submissions(id) on delete cascade
+		);
+
 		create table if not exists _jetstream (
 			id integer primary key autoincrement,
 			last_time_us integer not null
