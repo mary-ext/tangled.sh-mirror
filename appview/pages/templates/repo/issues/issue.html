@@ -45,6 +45,7 @@
 {{ end }}
 
 {{ define "repoAfter" }}
+    {{ if gt (len .Comments) 0 }}
     <section id="comments" class="mt-8 space-y-4 relative">
         {{ range $index, $comment := .Comments }}
             <div
@@ -52,13 +53,9 @@
                 class="rounded bg-white px-6 py-4 relative"
             >
                 {{ if eq $index 0 }}
-                    <div
-                        class="absolute left-8 -top-8 w-px h-8 bg-gray-300"
-                    ></div>
+                    <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300" ></div>
                 {{ else }}
-                    <div
-                        class="absolute left-8 -top-4 w-px h-4 bg-gray-300"
-                    ></div>
+                    <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300" ></div>
                 {{ end }}
                 <div class="flex items-center gap-2 mb-2 text-gray-500">
                     {{ $owner := index $.DidHandleMap .OwnerDid }}
@@ -85,25 +82,9 @@
             </div>
         {{ end }}
     </section>
-
-    {{ if .LoggedInUser }}
-        <form
-            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
-            class="mt-8"
-        >
-            <textarea
-                name="body"
-                class="w-full p-2 rounded border border-gray-200"
-                placeholder="Add to the discussion..."
-            ></textarea>
-            <button type="submit" class="btn mt-2">comment</button>
-            <div id="issue-comment"></div>
-        </form>
-    {{ else }}
-    <div class="w-full rounded p-6 drop-shadow-sm bg-white">
-      <a href="/login" class="underline">login</a> to join the discussion
-    </div>
     {{ end }}
+
+    {{ block "newComment" . }} {{ end }}
 
     {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.OwnerDid) }}
     {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
@@ -131,4 +112,29 @@
             <div id="issue-action" class="error"></div>
         </form>
     {{ end }}
+{{ end }}
+
+{{ define "newComment" }}
+  {{ if .LoggedInUser }}
+    <div class="bg-white rounded drop-shadow-sm py-4 px-6 relative w-full flex flex-col gap-2 mt-8">
+      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300" ></div>
+      <div class="text-sm text-gray-500">
+        {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
+      </div>
+      <form hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment">
+          <textarea
+              name="body"
+              class="w-full p-2 rounded border border-gray-200"
+              placeholder="Add to the discussion..."
+          ></textarea>
+          <button type="submit" class="btn mt-2">comment</button>
+          <div id="issue-comment"></div>
+      </form>
+    </div>
+  {{ else }}
+    <div class="bg-white rounded drop-shadow-sm px-6 py-4 mt-8">
+      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300" ></div>
+      <a href="/login" class="underline">login</a> to join the discussion
+    </div>
+  {{ end }}
 {{ end }}
