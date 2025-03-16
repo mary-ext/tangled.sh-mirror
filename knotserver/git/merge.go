@@ -24,6 +24,14 @@ type ConflictInfo struct {
 	Reason   string
 }
 
+// MergeOptions specifies the configuration for a merge operation
+type MergeOptions struct {
+	CommitMessage string
+	CommitBody    string
+	AuthorName    string
+	AuthorEmail   string
+}
+
 func (e ErrMerge) Error() string {
 	if e.HasConflict {
 		return fmt.Sprintf("merge failed due to conflicts: %s (%d conflicts)", e.Message, len(e.Conflicts))
@@ -74,7 +82,7 @@ func (g *GitRepo) cloneRepository(targetBranch string) (string, error) {
 	return tmpDir, nil
 }
 
-func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool) error {
+func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool, opts *MergeOptions) error {
 	var stderr bytes.Buffer
 	var cmd *exec.Cmd
 
@@ -82,7 +90,48 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool) error {
 		cmd = exec.Command("git", "-C", tmpDir, "apply", "--check", "-v", patchFile)
 	} else {
 		exec.Command("git", "-C", tmpDir, "config", "advice.mergeConflict", "false").Run()
-		cmd = exec.Command("git", "-C", tmpDir, "am", patchFile)
+
+		if opts != nil {
+			applyCmd := exec.Command("git", "-C", tmpDir, "apply", patchFile)
+			applyCmd.Stderr = &stderr
+			if err := applyCmd.Run(); err != nil {
+				return fmt.Errorf("patch application failed: %s", stderr.String())
+			}
+
+			stageCmd := exec.Command("git", "-C", tmpDir, "add", ".")
+			if err := stageCmd.Run(); err != nil {
+				return fmt.Errorf("failed to stage changes: %w", err)
+			}
+
+			commitArgs := []string{"-C", tmpDir, "commit"}
+
+			// Set author if provided
+			authorName := opts.AuthorName
+			authorEmail := opts.AuthorEmail
+
+			if authorEmail == "" {
+				authorEmail = "noreply@tangled.sh"
+			}
+
+			if authorName == "" {
+				authorName = "Tangled"
+			}
+
+			if authorName != "" {
+				commitArgs = append(commitArgs, "--author", fmt.Sprintf("%s <%s>", authorName, authorEmail))
+			}
+
+			commitArgs = append(commitArgs, "-m", opts.CommitMessage)
+
+			if opts.CommitBody != "" {
+				commitArgs = append(commitArgs, "-m", opts.CommitBody)
+			}
+
+			cmd = exec.Command("git", commitArgs...)
+		} else {
+			// If no commit message specified, use git-am which automatically creates a commit
+			cmd = exec.Command("git", "-C", tmpDir, "am", patchFile)
+		}
 	}
 
 	cmd.Stderr = &stderr
@@ -122,10 +171,14 @@ func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	return g.applyPatch(tmpDir, patchFile, true)
+	return g.applyPatch(tmpDir, patchFile, true, nil)
 }
 
 func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
+	return g.MergeWithOptions(patchData, targetBranch, nil)
+}
+
+func (g *GitRepo) MergeWithOptions(patchData []byte, targetBranch string, opts *MergeOptions) error {
 	patchFile, err := g.createTempFileWithPatch(patchData)
 	if err != nil {
 		return &ErrMerge{
@@ -144,7 +197,7 @@ func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	if err := g.applyPatch(tmpDir, patchFile, false); err != nil {
+	if err := g.applyPatch(tmpDir, patchFile, false, opts); err != nil {
 		return err
 	}
 

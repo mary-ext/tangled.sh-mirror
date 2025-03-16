@@ -559,15 +559,19 @@ func (h *Handle) RemoveRepo(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) Merge(w http.ResponseWriter, r *http.Request) {
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 
-	var data struct {
-		Patch  string `json:"patch"`
-		Branch string `json:"branch"`
-	}
+	data := types.MergeRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		writeError(w, err.Error(), http.StatusBadRequest)
 		h.l.Error("git: failed to unmarshal json patch", "handler", "Merge", "error", err)
 		return
+	}
+
+	mo := &git.MergeOptions{
+		AuthorName:    data.AuthorName,
+		AuthorEmail:   data.AuthorEmail,
+		CommitBody:    data.CommitBody,
+		CommitMessage: data.CommitMessage,
 	}
 
 	patch := data.Patch
@@ -577,7 +581,7 @@ func (h *Handle) Merge(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
-	if err := gr.Merge([]byte(patch), branch); err != nil {
+	if err := gr.MergeWithOptions([]byte(patch), branch, mo); err != nil {
 		var mergeErr *git.ErrMerge
 		if errors.As(err, &mergeErr) {
 			conflicts := make([]types.ConflictInfo, len(mergeErr.Conflicts))
