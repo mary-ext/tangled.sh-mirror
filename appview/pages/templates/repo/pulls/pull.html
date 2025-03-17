@@ -152,29 +152,30 @@
 
   {{ with $rootObj }}
     {{ if .LoggedInUser }}
-    <div class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-full md:w-96">
-      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-      <div class="text-sm text-gray-500">
-        {{ index .DidHandleMap .LoggedInUser.Did }} 
-      </div>
-      <form
-          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/comment"
-          hx-swap="none">
-        <input type="hidden" name="submissionId" value="{{ $submissionId }}">
-        <textarea
-            name="body"
-            class="w-full border-0 h-8 focus:outline-none focus:ring-0 px-0 py-1"
-            placeholder="Add to the discussion..." /></textarea>
-        <div class="flex justify-end">
-          <button type="submit" class="btn text-sm mt-2">comment</button>
+      <div class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-full md:w-96">
+        <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+        <div class="text-sm text-gray-500">
+          {{ index .DidHandleMap .LoggedInUser.Did }} 
         </div>
-        <div id="pull-comment"></div>
-      </form>
+        <form
+            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/comment"
+            hx-swap="none">
+          <input type="hidden" name="submissionId" value="{{ $submissionId }}">
+          <textarea
+              name="body"
+              class="w-full border-0 h-8 focus:outline-none focus:ring-0 px-0 py-1"
+              placeholder="Add to the discussion..." /></textarea>
+          <div class="flex justify-end">
+            <button type="submit" class="btn text-sm mt-2">comment</button>
+          </div>
+          <div id="pull-comment"></div>
+        </form>
+      </div>
       {{ else }}
-      <div class="bg-white rounded drop-shadow-sm px-6 py-4 mt-8">
+      <div class="bg-white rounded drop-shadow-sm px-6 py-4 text-sm w-fit">
+        <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
         <a href="/login" class="underline">login</a> to join the discussion
       </div>
-    </div>
     {{ end }}
   {{ end }}
 {{ end }}
