@@ -12,7 +12,7 @@
       flake = false;
     };
     lucide-src = {
-      url = "https://unpkg.com/lucide@latest";
+      url = "https://unpkg.com/lucide@0.482.0";
       flake = false;
     };
     ia-fonts-src = {
