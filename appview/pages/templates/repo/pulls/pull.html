@@ -51,7 +51,7 @@
         </div>
 
         {{ if .Pull.Body }}
-            <article id="body" class="mt-8 prose">
+            <article id="body" class="mt-2 prose">
                 {{ .Pull.Body | markdown }}
             </article>
         {{ end }}
@@ -117,15 +117,13 @@
                 {{ $s = "" }}
               {{ end }}
               {{ len .Comments }} comment{{$s}}
+              <span class="before:content-['·']"></span>
+              <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">view patch</a>
             </span>
           </div>
         </div>
       </summary>
       <div class="pl-12 flex flex-col gap-2 mt-2 relative">
-        <div>
-          {{ template "fragments/diff" (list $repoName $diff) }}
-        </div>
-
         {{ range .Comments }}
           <div id="comment-{{.ID}}" class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-fit">
             <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>

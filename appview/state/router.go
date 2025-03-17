@@ -66,7 +66,7 @@ func (s *State) UserRouter() http.Handler {
 				r.Route("/{pull}", func(r chi.Router) {
 					r.Use(ResolvePull(s))
 					r.Get("/", s.RepoSinglePull)
-					r.Get("/patch", s.RepoSinglePull)
+					r.Get("/round/{round}", s.RepoPullPatch)
 
 					// authorized requests below this point
 					r.Group(func(r chi.Router) {

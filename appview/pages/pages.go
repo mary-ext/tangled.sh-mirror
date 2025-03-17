@@ -557,6 +557,21 @@ func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
 	return p.executeRepo("repo/pulls/pull", w, params)
 }
 
+type RepoPullPatchParams struct {
+	LoggedInUser *auth.User
+	DidHandleMap map[string]string
+	RepoInfo     RepoInfo
+	Pull         *db.Pull
+	Diff         types.NiceDiff
+	Round        int
+	Submission   *db.PullSubmission
+}
+
+// this name is a mouthful
+func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error {
+	return p.execute("repo/pulls/patch", w, params)
+}
+
 func (p *Pages) Static() http.Handler {
 	sub, err := fs.Sub(files, "static")
 	if err != nil {

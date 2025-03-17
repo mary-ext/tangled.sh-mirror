@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview/db"
 	"github.com/sotangled/tangled/appview/pages"
@@ -100,6 +101,52 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		Pull:         *pull,
 		MergeCheck:   mergeCheckResponse,
 	})
+}
+
+func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	roundId := chi.URLParam(r, "round")
+	roundIdInt, err := strconv.Atoi(roundId)
+	if err != nil || roundIdInt >= len(pull.Submissions) {
+		http.Error(w, "bad round id", http.StatusBadRequest)
+		log.Println("failed to parse round id", err)
+		return
+	}
+
+	identsToResolve := []string{pull.OwnerDid}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
+	s.pages.RepoPullPatchPage(w, pages.RepoPullPatchParams{
+		LoggedInUser: user,
+		DidHandleMap: didHandleMap,
+		RepoInfo:     f.RepoInfo(s, user),
+		Pull:         pull,
+		Round:        roundIdInt,
+		Submission:   pull.Submissions[roundIdInt],
+		Diff:         pull.Submissions[roundIdInt].AsNiceDiff(pull.TargetBranch),
+	})
+
 }
 
 func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
