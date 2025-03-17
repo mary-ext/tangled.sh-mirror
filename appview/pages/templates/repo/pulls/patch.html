@@ -11,8 +11,10 @@
           <div class="flex gap-3 items-center mb-3">
               <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2 font-medium">
                 <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                back
               </a>
-              <h2 class="text-lg">round <span class="font-medium">#{{ $oneIndexedRound }}</span></h2>
+              <span class="select-none before:content-['\00B7']"></span>
+              round #{{ $oneIndexedRound }}
           </div>
           <div class="border-t border-gray-200 my-2"></div>
           <h1 class="text-2xl mt-3">
