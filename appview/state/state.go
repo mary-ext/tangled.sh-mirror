@@ -764,7 +764,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
 	}
 
-	profileAvatarUri, err := GetAvatarUri(ident.DID.String())
+	profileAvatarUri, err := GetAvatarUri(ident.DID.String(), ident.PDSEndpoint())
 	if err != nil {
 		log.Println("failed to fetch bsky avatar", err)
 	}
@@ -785,8 +785,8 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func GetAvatarUri(did string) (string, error) {
-	recordURL := fmt.Sprintf("https://bsky.social/xrpc/com.atproto.repo.getRecord?repo=%s&collection=app.bsky.actor.profile&rkey=self", did)
+func GetAvatarUri(did string, pds string) (string, error) {
+	recordURL := fmt.Sprintf("%s/xrpc/com.atproto.repo.getRecord?repo=%s&collection=app.bsky.actor.profile&rkey=self", pds, did)
 
 	recordResp, err := http.Get(recordURL)
 	if err != nil {
@@ -827,5 +827,5 @@ func GetAvatarUri(did string) (string, error) {
 		return "", fmt.Errorf("no link found for handle %s", did)
 	}
 
-	return fmt.Sprintf("https://cdn.bsky.app/img/feed_thumbnail/plain/%s/%s", did, link), nil
+	return fmt.Sprintf("%s/xrpc/com.atproto.sync.getBlob?did=%s&cid=%s", pds, did, link), nil
 }
