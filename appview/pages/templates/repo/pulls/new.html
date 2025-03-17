@@ -1,6 +1,18 @@
 {{ define "title" }}new pull | {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
+    <section class="prose">
+    <p>
+        This is v1 of the pull request flow. Paste your patch in the form below.
+        Here are the steps to get you started:
+        <ul class="list-decimal pl-10 space-y-2 text-gray-700">
+            <li class="leading-relaxed">Clone this repository.</li>
+            <li class="leading-relaxed">Make your changes in your local repository.</li>
+            <li class="leading-relaxed">Grab the diff using <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-800 font-mono text-sm">git diff</code>.</li>
+            <li class="leading-relaxed">Paste the diff output in the form below.</li>
+        </ul>
+    </p>
+    </section> 
     <form
         hx-post="/{{ .RepoInfo.FullName }}/pulls/new"
         class="mt-6 space-y-6"
@@ -17,7 +29,7 @@
                 </p>
                 <select
                     name="targetBranch"
-                    class="p-1 border border-gray-200 bg-white"
+                    class="p-1 mb-2 border border-gray-200 bg-white"
                 >
                     <option disabled selected>select a branch</option>
                     {{ range .Branches }}
@@ -26,8 +38,6 @@
                         </option>
                     {{ end }}
                 </select>
-            </div>
-            <div>
                 <label for="body">add a description</label>
                 <textarea
                     name="body"
@@ -44,13 +54,8 @@
                         id="patch"
                         rows="10"
                         class="w-full resize-y font-mono"
-                        placeholder="Paste your git-format-patch output here."
-                        hx-post="/pulls/validate"
-                        hx-trigger="input changed delay:500ms"
-                        hx-target="#patch-validation"
-                        hx-include="[name='patch']"
+                        placeholder="Paste your git diff output here."
                     ></textarea>
-                    <div id="pull-validate"></div>
                 </div>
             </div>
             <div>
