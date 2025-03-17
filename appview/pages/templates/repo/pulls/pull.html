@@ -100,46 +100,46 @@
     {{ with $item }}
     {{ $oneIndexedRound := add .RoundNumber 1 }}
     <details {{ if eq $idx $lastIdx }}open{{ end }}>
-      <summary id="round-#{{ $oneIndexedRound }}" class="list-none cursor-pointer text-sm">
-        <div class="flex gap-2 items-center">
-          <div class="rounded bg-white drop-shadow-sm p-3">
-            #{{ $oneIndexedRound }}
+        <summary id="round-#{{ $oneIndexedRound }}" class="list-none cursor-pointer text-sm">
+          <div class="flex gap-2 items-center">
+            <div class="rounded bg-white drop-shadow-sm p-3">
+              #{{ $oneIndexedRound }}
+            </div>
+            <div class="rounded drop-shadow-sm bg-white p-3 text-gray-500">
+              <span>
+                {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
+                submitted by <a href="/{{ $owner }}">{{ $owner }}</a>
+                <span class="select-none before:content-['\00B7']"></span>
+                <a href="#round-#{{ $oneIndexedRound }}"><time>{{ .Created | timeFmt }}</time></a>
+                <span class="select-none before:content-['·']"></span>
+                {{ $s := "s" }}
+                {{ if eq (len .Comments) 1 }}
+                  {{ $s = "" }}
+                {{ end }}
+                {{ len .Comments }} comment{{$s}}
+                <span class="before:content-['·']"></span>
+                <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">view patch</a>
+              </span>
+            </div>
           </div>
-          <div class="rounded drop-shadow-sm bg-white p-3 text-gray-500">
-            <span>
-              {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
-              submitted by <a href="/{{ $owner }}">{{ $owner }}</a>
-              <span class="select-none before:content-['\00B7']"></span>
-              <time>{{ .Created | timeFmt }}</time>
-              <span class="select-none before:content-['·']"></span>
-              {{ $s := "s" }}
-              {{ if eq (len .Comments) 1 }}
-                {{ $s = "" }}
-              {{ end }}
-              {{ len .Comments }} comment{{$s}}
-              <span class="before:content-['·']"></span>
-              <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">view patch</a>
-            </span>
-          </div>
+        </summary>
+        <div class="pl-12 flex flex-col gap-2 mt-2 relative">
+          {{ range .Comments }}
+            <div id="comment-{{.ID}}" class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-fit">
+              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+              <div class="text-sm text-gray-500">
+                {{ $owner := index $.DidHandleMap .OwnerDid }} 
+                <a href="/{{$owner}}">{{$owner}}</a>
+                <span class="before:content-['·']"></span>
+                <a href="#comment-{{.ID}}"><time>{{ .Created | timeFmt }}</time></a>
+              </div>
+              <div class="prose">
+                {{ .Body }}
+              </div>
+            </div>
+          {{ end }}
+          {{ block "newComment" (list $ .ID) }} {{ end }}
         </div>
-      </summary>
-      <div class="pl-12 flex flex-col gap-2 mt-2 relative">
-        {{ range .Comments }}
-          <div id="comment-{{.ID}}" class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-fit">
-            <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-            <div class="text-sm text-gray-500">
-              {{ $owner := index $.DidHandleMap .OwnerDid }} 
-              <a href="/{{$owner}}">{{$owner}}</a>
-              <span class="before:content-['·']"></span>
-              <time>{{ .Created | timeFmt }}</time>
-            </div>
-            <div class="prose">
-              {{ .Body }}
-            </div>
-          </div>
-        {{ end }}
-        {{ block "newComment" (list $ .ID) }} {{ end }}
-      </div>
     </details>
     <hr />
     {{ end }}
