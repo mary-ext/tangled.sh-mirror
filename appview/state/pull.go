@@ -508,7 +508,6 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to resolve repo:", err)
@@ -538,7 +537,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Merge the pull request
-	resp, err := ksClient.Merge([]byte(pull.LatestPatch()), user.Did, f.RepoName, pull.TargetBranch, pull.Title, pull.Body, "", "")
+	resp, err := ksClient.Merge([]byte(pull.LatestPatch()), f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.Title, pull.Body, "", "")
 	if err != nil {
 		log.Printf("failed to merge pull request: %s", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
