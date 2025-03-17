@@ -7,7 +7,7 @@
 <div class="p-6 bg-white drop-shadow-sm rounded">
   <form hx-post="/repo/new" class="space-y-12" hx-swap="none">
     <div class="space-y-2">
-      <label for="name" class="block uppercase font-bold text-sm">Repository name</label>
+      <label for="name" class="-mb-1">Repository name</label>
       <input
           type="text"
           id="name"
@@ -17,7 +17,7 @@
           />
       <p class="text-sm text-gray-500">All repositories are publicly visible.</p>
 
-      <label for="branch" class="block uppercase font-bold text-sm">Default branch</label>
+      <label for="branch">Default branch</label>
       <input
           type="text"
           id="branch"
@@ -27,7 +27,7 @@
           class="w-full max-w-md"
           />
 
-      <label for="description" class="block uppercase font-bold text-sm">Description</label>
+      <label for="description">Description</label>
       <input
           type="text"
           id="description"
@@ -37,23 +37,24 @@
     </div>
 
     <fieldset class="space-y-3">
-      <legend class="uppercase font-bold text-sm">Select a knot</legend>
+      <legend>Select a knot</legend>
       <div class="space-y-2">
+        <div class="flex flex-col">
         {{ range .Knots }}
-        <div>
-          <label class="inline-flex items-center">
+          <div class="flex items-center">
             <input
                 type="radio"
                 name="domain"
                 value="{{ . }}"
                 class="mr-2"
+                id="domain-{{ . }}"
                 />
             <span>{{ . }}</span>
-          </label>
-        </div>
+          </div>
         {{ else }}
         <p>No knots available.</p>
         {{ end }}
+        </div>
       </div>
       <p class="text-sm text-gray-500">A knot hosts repository data. <a href="/knots" class="underline">Learn how to register your own knot.</a></p>
     </fieldset>
