@@ -1,0 +1,90 @@
+{{ define "title" }}
+    viewing patch of {{ .Pull.Title }} &middot; pull #{{ .Pull.PullId }} &middot; {{ .RepoInfo.FullName }}
+{{ end }}
+
+{{ define "content" }}
+  {{ $oneIndexedRound := add .Round 1 }}
+  {{ $stat := .Diff.Stat }}
+    <div class="flex gap-2 items-center text-gray-500 mb-2 px-6">
+        <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          back
+        </a>
+        <span class="select-none before:content-['·']"></span>
+        viewing round 
+        <span class="text-black">#{{ $oneIndexedRound }}</span>
+    </div>
+    <div class="rounded drop-shadow-sm bg-white py-4 px-6">
+      <header class="pb-4">
+          <h1 class="text-2xl">
+              {{ .Pull.Title }}
+              <span class="text-gray-500">#{{ .Pull.PullId }}</span>
+          </h1>
+      </header>
+
+      {{ $bgColor := "bg-gray-800" }}
+      {{ $icon := "ban" }}
+
+      {{ if .Pull.State.IsOpen }}
+          {{ $bgColor = "bg-green-600" }}
+          {{ $icon = "git-pull-request" }}
+      {{ else if .Pull.State.IsMerged }}
+          {{ $bgColor = "bg-purple-600" }}
+          {{ $icon = "git-merge" }}
+      {{ end }}
+
+      <section>
+          <div class="flex items-center gap-2">
+              <div
+                  id="state"
+                  class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}"
+              >
+                  <i
+                      data-lucide="{{ $icon }}"
+                      class="w-4 h-4 mr-1.5 text-white"
+                  ></i>
+                  <span class="text-white">{{ .Pull.State.String }}</span>
+              </div>
+              <span class="text-gray-500 text-sm">
+                  opened by
+                  {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
+                  <a href="/{{ $owner }}" class="no-underline hover:underline"
+                      >{{ $owner }}</a
+                  >
+                  <span class="select-none before:content-['\00B7']"></span>
+                  <time>{{ .Pull.Created | timeFmt }}</time>
+                  <span class="select-none before:content-['\00B7']"></span>
+                  <span>targeting branch 
+                    <span class="text-xs rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
+                      {{ .Pull.TargetBranch }}
+                    </span>
+                  </span>
+              </span>
+          </div>
+
+          {{ if .Pull.Body }}
+              <article id="body" class="mt-2 prose">
+                  {{ .Pull.Body | markdown }}
+              </article>
+          {{ end }}
+      </section>
+
+      <div id="diff-stat">
+        <br>
+        <strong class="text-sm uppercase mb-4">Changed files</strong>
+        {{ range .Diff.Diff }}
+        <ul>
+          {{ if .IsDelete }}
+          <li><a href="#file-{{ .Name.Old }}">{{ .Name.Old }}</a></li>
+          {{ else }}
+          <li><a href="#file-{{ .Name.New }}">{{ .Name.New }}</a></li>
+          {{ end }}
+        </ul>
+        {{ end }}
+      </div>
+  </div>
+  <section>
+    {{ template "fragments/diff" (list .RepoInfo.FullName .Diff) }}
+  </section>
+{{ end }}
+
