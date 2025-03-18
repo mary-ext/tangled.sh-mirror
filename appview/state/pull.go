@@ -94,6 +94,8 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log.Println(mergeCheckResponse)
+
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(s, user),

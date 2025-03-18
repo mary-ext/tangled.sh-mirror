@@ -66,27 +66,6 @@
       </div>
     </section>
 
-    {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
-    {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
-
-    {{ if and $isPullAuthor (not .Pull.State.IsMerged) }}
-    <section id="update-card" class="mt-8 space-y-4 relative">
-      {{ block "resubmitCard" . }} {{ end }}
-    </section>
-    {{ end }}
-
-    <section id="merge-card" class="mt-8 space-y-4 relative">
-      {{ if .Pull.State.IsMerged }}
-        {{ block "alreadyMergedCard" . }} {{ end }}
-      {{ else if .MergeCheck }}
-         {{ if .MergeCheck.IsConflicted }}
-           {{ block "isConflictedCard" $ }} {{ end }}
-         {{ else }}
-           {{ block "noConflictsCard" $ }} {{ end }}
-         {{ end }}
-      {{ end }}
-    </section>
-
     <div id="pull-close"></div>
     <div id="pull-reopen"></div>
 {{ end }}
@@ -100,7 +79,7 @@
     {{ with $item }}
     {{ $oneIndexedRound := add .RoundNumber 1 }}
     <details {{ if eq $idx $lastIdx }}open{{ end }}>
-        <summary id="round-#{{ $oneIndexedRound }}" class="list-none cursor-pointer text-sm">
+        <summary id="round-#{{ $oneIndexedRound }}" class="list-none cursor-pointer">
           <div class="flex gap-2 items-center">
             <div class="rounded bg-white drop-shadow-sm p-3">
               #{{ $oneIndexedRound }}
@@ -110,7 +89,7 @@
                 {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
                 submitted by <a href="/{{ $owner }}">{{ $owner }}</a>
                 <span class="select-none before:content-['\00B7']"></span>
-                <a href="#round-#{{ $oneIndexedRound }}"><time>{{ .Created | timeFmt }}</time></a>
+                <a class="text-gray-500 hover:text-gray-500" href="#round-#{{ $oneIndexedRound }}"><time>{{ .Created | timeFmt }}</time></a>
                 <span class="select-none before:content-['·']"></span>
                 {{ $s := "s" }}
                 {{ if eq (len .Comments) 1 }}
@@ -138,11 +117,116 @@
               </div>
             </div>
           {{ end }}
-          {{ block "newComment" (list $ .ID) }} {{ end }}
+
+          {{ block "mergeStatus" $ }} {{ end }}
+
+          {{ if $.LoggedInUser }}
+            {{ block "actions" (list $ .ID) }} {{ end }}
+          {{ else }}
+            <div class="bg-white rounded drop-shadow-sm px-6 py-4 w-fit">
+              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+              <a href="/login" class="underline">login</a> to join the discussion
+            </div>
+          {{ end }}
         </div>
     </details>
-    <hr />
     {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "mergeStatus" }}
+  {{ if .Pull.State.IsMerged }}
+  <div class="bg-purple-50 border border-purple-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+    <div class="flex items-center gap-2 text-purple-500">
+      <i data-lucide="git-merge" class="w-4 h-4"></i>
+      <span class="font-medium">pull request successfully merged</span
+      >
+    </div>
+  </div>
+  {{ else if and .MergeCheck .MergeCheck.IsConflicted }}
+    <div class="bg-red-50 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+      <div class="flex items-center gap-2 text-red-500">
+        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        <span class="font-medium">merge conflicts detected</span>
+        <ul class="text-sm space-y-1">
+          {{ range .MergeCheck.Conflicts }}
+            {{ if .Filename }}
+            <li class="flex items-center">
+              <i
+                  data-lucide="file-warning"
+                  class="w-3 h-3 mr-1.5 text-red-500"
+                  ></i>
+              <span class="font-mono">{{ slice .Filename 0 (sub (len .Filename) 2) }}</span>
+            </li>
+            {{ end }}
+          {{ end }}
+        </ul>
+      </div>
+    </div>
+  {{ else if .MergeCheck }}
+  <div class="bg-green-50 border border-green-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+    <div class="flex items-center gap-2 text-green-500">
+      <i data-lucide="check-circle" class="w-4 h-4"></i>
+      <span class="font-medium">no conflicts, ready to merge</span>
+    </div>
+  </div>
+  {{ end }}
+{{ end }}
+
+{{ define "actions" }}
+  {{ $rootObj := index . 0 }}
+  {{ $submissionId := index . 1 }}
+
+  {{ with $rootObj }}
+    {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
+    {{ $isMerged := .Pull.State.IsMerged }}
+    {{ $isClosed := .Pull.State.IsClosed }}
+    {{ $isOpen := .Pull.State.IsOpen }}
+    {{ $isConflicted := and .MergeCheck .MergeCheck.IsConflicted }}
+    {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
+    <div class="relative w-fit">
+      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+      <div class="flex flex-wrap gap-2">
+          <button href="#" class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
+              <i data-lucide="message-square-plus" class="w-4 h-4"></i>
+              <span>comment</span>
+          </button>
+          {{ if and $isPushAllowed $isOpen }}
+            {{ $disabled := "" }}
+            {{ if $isConflicted }}
+              {{ $disabled = "disabled" }}
+            {{ end }}
+            <button href="#" class="btn p-2 flex items-center gap-2 no-underline hover:no-underline" {{ $disabled }}>
+                <i data-lucide="git-merge" class="w-4 h-4"></i>
+                <span>merge</span>
+            </button>
+          {{ end }}
+
+          {{ if and $isPullAuthor $isOpen }}
+          <button href="#" class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <span>resubmit</span>
+          </button>
+          {{ end }}
+
+          {{ if and $isPullAuthor $isPushAllowed $isOpen }}
+          <button href="#" class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
+              <i data-lucide="ban" class="w-4 h-4"></i>
+              <span>close</span>
+          </button>
+          {{ end }}
+
+          {{ if and $isPullAuthor $isPushAllowed $isClosed }}
+          <button href="#" class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
+              <i data-lucide="circle-dot" class="w-4 h-4"></i>
+              <span>reopen</span>
+          </button>
+          {{ end }}
+      </div>
+    </div>
   {{ end }}
 {{ end }}
 
