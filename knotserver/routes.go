@@ -183,6 +183,7 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) Blob(w http.ResponseWriter, r *http.Request) {
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	l := h.l.With("handler", "FileContent", "ref", ref, "treePath", treePath)
 
@@ -333,6 +334,7 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) Diff(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	l := h.l.With("handler", "Diff", "ref", ref)
 
@@ -491,7 +493,6 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("branch", data.DefaultBranch)
 	if data.DefaultBranch == "" {
 		data.DefaultBranch = h.c.Repo.MainBranch
 	}
