@@ -55,15 +55,14 @@
           env.CGO_ENABLED = 0;
         };
     in {
-      indigo-lexgen = with final;
-        final.buildGoModule {
-          pname = "indigo-lexgen";
-          version = "0.1.0";
-          src = indigo;
-          subPackages = ["cmd/lexgen"];
-          vendorHash = "sha256-pGc29fgJFq8LP7n/pY1cv6ExZl88PAeFqIbFEhB3xXs=";
-          doCheck = false;
-        };
+      indigo-lexgen = final.buildGoModule {
+        pname = "indigo-lexgen";
+        version = "0.1.0";
+        src = indigo;
+        subPackages = ["cmd/lexgen"];
+        vendorHash = "sha256-pGc29fgJFq8LP7n/pY1cv6ExZl88PAeFqIbFEhB3xXs=";
+        doCheck = false;
+      };
 
       appview = with final;
         final.pkgsStatic.buildGoModule {
@@ -108,15 +107,14 @@
           '';
           env.CGO_ENABLED = 1;
         };
-      knotserver-unwrapped = with final;
-        final.pkgsStatic.buildGoModule {
-          pname = "knotserver";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/knotserver"];
-          vendorHash = goModHash;
-          env.CGO_ENABLED = 1;
-        };
+      knotserver-unwrapped = final.pkgsStatic.buildGoModule {
+        pname = "knotserver";
+        version = "0.1.0";
+        src = gitignoreSource ./.;
+        subPackages = ["cmd/knotserver"];
+        vendorHash = goModHash;
+        env.CGO_ENABLED = 1;
+      };
       repoguard = buildCmdPackage "repoguard";
       keyfetch = buildCmdPackage "keyfetch";
     };
@@ -208,14 +206,13 @@
         };
 
         config = mkIf config.services.tangled-appview.enable {
-          nixpkgs.overlays = [self.overlays.default];
           systemd.services.tangled-appview = {
             description = "tangled appview service";
             wantedBy = ["multi-user.target"];
 
             serviceConfig = {
               ListenStream = "0.0.0.0:${toString config.services.tangled-appview.port}";
-              ExecStart = "${pkgs.tangled-appview}/bin/tangled-appview";
+              ExecStart = "${self.packages.${pkgs.system}.appview}/bin/appview";
               Restart = "always";
             };
 
@@ -309,18 +306,16 @@
         };
 
         config = mkIf config.services.tangled-knotserver.enable {
-          nixpkgs.overlays = [self.overlays.default];
-
           environment.systemPackages = with pkgs; [git];
 
           system.activationScripts.gitConfig = ''
-              mkdir -p /home/git/.config/git
-              cat > /home/git/.config/git/config << EOF
-              [user]
-                  name = Git User
-                  email = git@example.com
-              EOF
-              chown -R git:git /home/git/.config
+            mkdir -p /home/git/.config/git
+            cat > /home/git/.config/git/config << EOF
+            [user]
+                name = Git User
+                email = git@example.com
+            EOF
+            chown -R git:git /home/git/.config
           '';
 
           users.users.git = {
@@ -346,7 +341,9 @@
             mode = "0555";
             text = ''
               #!${pkgs.stdenv.shell}
-              ${pkgs.keyfetch}/bin/keyfetch -repoguard-path ${pkgs.repoguard}/bin/repoguard -log-path /tmp/repoguard.log
+              ${self.packages.${pkgs.system}.keyfetch}/bin/keyfetch \
+                -repoguard-path ${self.packages.${pkgs.system}.repoguard}/bin/repoguard \
+                -log-path /tmp/repoguard.log
             '';
           };
 
@@ -365,7 +362,7 @@
                 "KNOT_SERVER_SECRET=${config.services.tangled-knotserver.server.secret}"
                 "KNOT_SERVER_HOSTNAME=${config.services.tangled-knotserver.server.hostname}"
               ];
-              ExecStart = "${pkgs.knotserver}/bin/knotserver";
+              ExecStart = "${self.packages.${pkgs.system}.knotserver}/bin/knotserver";
               Restart = "always";
             };
           };
