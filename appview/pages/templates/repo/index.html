@@ -46,7 +46,7 @@
         </optgroup>
     </select>
     <a
-        href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref }}"
+        href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}"
         class="ml-2 no-underline flex items-center gap-2 text-sm uppercase font-bold"
     >
         <i class="w-4 h-4" data-lucide="logs"></i>
@@ -66,7 +66,7 @@
             <div class="{{ $containerstyle }}">
                 <div class="flex justify-between items-center">
                     <a
-                        href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}/{{ .Name }}"
+                        href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref | urlquery }}/{{ .Name }}"
                         class="{{ $linkstyle }}"
                     >
                         <div class="flex items-center gap-2">
@@ -91,7 +91,7 @@
             <div class="{{ $containerstyle }}">
                 <div class="flex justify-between items-center">
                     <a
-                        href="/{{ $.RepoInfo.FullName }}/blob/{{ $.Ref }}/{{ .Name }}"
+                        href="/{{ $.RepoInfo.FullName }}/blob/{{ $.Ref | urlquery }}/{{ .Name }}"
                         class="{{ $linkstyle }}"
                     >
                         <div class="flex items-center gap-2">
