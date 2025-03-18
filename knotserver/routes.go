@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -34,6 +35,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	l := h.l.With("path", path, "handler", "RepoIndex")
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	gr, err := git.Open(path, ref)
 	if err != nil {
@@ -148,6 +150,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	l := h.l.With("handler", "RepoTree", "ref", ref, "treePath", treePath)
 

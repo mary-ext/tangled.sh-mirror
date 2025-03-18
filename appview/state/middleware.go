@@ -165,9 +165,9 @@ func RepoPermissionMiddleware(s *State, requiredPerm string) Middleware {
 
 func StripLeadingAt(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		path := req.URL.Path
+		path := req.URL.EscapedPath()
 		if strings.HasPrefix(path, "/@") {
-			req.URL.Path = "/" + strings.TrimPrefix(path, "/@")
+			req.URL.RawPath = "/" + strings.TrimPrefix(path, "/@")
 		}
 		next.ServeHTTP(w, req)
 	})
