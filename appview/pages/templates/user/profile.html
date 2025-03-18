@@ -21,7 +21,7 @@
             {{ end }}
         </div>
         <p class="text-xl font-bold text-center">
-            {{ didOrHandle .UserDid .UserHandle }}
+            {{ truncateAt30 (didOrHandle .UserDid .UserHandle) }}
         </p>
         <div class="text-sm text-center">
             <span>{{ .ProfileStats.Followers }} followers</span>
