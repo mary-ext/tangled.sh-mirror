@@ -15,6 +15,12 @@ func funcMap() template.FuncMap {
 		"split": func(s string) []string {
 			return strings.Split(s, "\n")
 		},
+		"truncateAt30": func(s string) string {
+			if len(s) <= 30 {
+				return s
+			}
+			return s[:30] + "…"
+		},
 		"splitOn": func(s, sep string) []string {
 			return strings.Split(s, sep)
 		},
