@@ -12,7 +12,7 @@
       flake = false;
     };
     lucide-src = {
-      url = "https://unpkg.com/lucide@0.482.0";
+      url = "https://github.com/lucide-icons/lucide/releases/download/0.483.0/lucide-icons-0.483.0.zip";
       flake = false;
     };
     ia-fonts-src = {
@@ -71,9 +71,9 @@
           src = gitignoreSource ./.;
           postUnpack = ''
             pushd source
+            mkdir -p appview/pages/static/{fonts,icons}
             cp -f ${htmx-src} appview/pages/static/htmx.min.js
-            cp -f ${lucide-src} appview/pages/static/lucide.min.js
-            mkdir -p appview/pages/static/fonts
+            cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
             cp -f ${ia-fonts-src}/"iA Writer Quattro"/Static/*.ttf appview/pages/static/fonts/
             cp -f ${ia-fonts-src}/"iA Writer Mono"/Static/*.ttf appview/pages/static/fonts/
             ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
@@ -150,9 +150,9 @@
           pkgs.nixos-shell
         ];
         shellHook = ''
+          mkdir -p appview/pages/static/{fonts,icons}
           cp -f ${htmx-src} appview/pages/static/htmx.min.js
-          cp -f ${lucide-src} appview/pages/static/lucide.min.js
-          mkdir -p appview/pages/static/fonts/
+          cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
           cp -f ${ia-fonts-src}/"iA Writer Quattro"/Static/*.ttf appview/pages/static/fonts/
           cp -f ${ia-fonts-src}/"iA Writer Mono"/Static/*.ttf appview/pages/static/fonts/
         '';

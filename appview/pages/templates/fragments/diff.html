@@ -40,7 +40,7 @@
                 <a {{if $parent}}href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}"{{end}}>
                   {{ .Name.Old }}
                 </a>
-                <i class="w-4 h-4" data-lucide="arrow-right"></i>
+                {{ i "arrow-right" "w-4 h-4" }}
                 <a {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
                   {{ .Name.New }}
                 </a>
@@ -53,15 +53,15 @@
 
               {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 rounded" }}
               <div id="right-side-items" class="p-2 flex items-center">
-                <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-up-to-line"></i></a>
+                <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up-to-line" "w-4 h-4" }}</a>
                 {{ if gt $idx 0 }}
                   {{ $prev := index $diff (sub $idx 1) }}
-                  <a title="previous file" href="#file-{{ $prev.Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-up"></i></a>
+                  <a title="previous file" href="#file-{{ $prev.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up" "w-4 h-4" }}</a>
                 {{ end }}
 
                 {{ if lt $idx $last }}
                   {{ $next := index $diff (add $idx 1) }}
-                  <a title="next file" href="#file-{{ $next.Name.New }}" class="{{ $iconstyle }}"><i class="w-4 h-4" data-lucide="arrow-down"></i></a>
+                  <a title="next file" href="#file-{{ $next.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-down" "w-4 h-4" }}</a>
                 {{ end }}
               </div>
 

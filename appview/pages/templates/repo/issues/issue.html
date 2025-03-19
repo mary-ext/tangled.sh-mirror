@@ -19,7 +19,7 @@
         <div class="inline-flex items-center gap-2">
             <div id="state"
                 class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }} text-sm">
-                <i data-lucide="{{ $icon }}" class="w-4 h-4 mr-1.5 text-white" ></i>
+                {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
                 <span class="text-white">{{ .State }}</span>
             </div>
             <span class="text-gray-500 text-sm">
@@ -100,10 +100,7 @@
             class="mt-8"
         >
             <button type="submit" class="btn hover:bg-{{ $hoverColor }}-300">
-                <i
-                    data-lucide="{{ $icon }}"
-                    class="w-4 h-4 mr-2 text-{{ $hoverColor }}-400"
-                ></i>
+                {{ i $icon "w-4 h-4 mr-2" }}
                 <span class="text-black">{{ $action }}</span>
             </button>
             <div id="issue-action" class="error"></div>

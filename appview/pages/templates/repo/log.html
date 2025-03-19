@@ -75,10 +75,7 @@
                                                 class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded"
                                                 hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')"
                                             >
-                                                <i
-                                                    class="w-3 h-3"
-                                                    data-lucide="ellipsis"
-                                                ></i>
+                                            {{ i "ellipsis" "w-3 h-3" }}
                                             </button>
                                         {{ end }}
                                     </div>
@@ -138,7 +135,7 @@
                     hx-boost="true"
                     onclick="window.location.href = window.location.pathname + '?page={{ sub .Page 1 }}'"
                 >
-                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    {{ i "chevron-left" "w-4 h-4" }}
                     previous
                 </a>
             {{ else }}
@@ -152,7 +149,7 @@
                     onclick="window.location.href = window.location.pathname + '?page={{ add .Page 1 }}'"
                 >
                     next
-                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    {{ i "chevron-right" "w-4 h-4" }}
                 </a>
             {{ end }}
         </div>

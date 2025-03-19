@@ -1,11 +1,11 @@
 {{ define "fragments/editRepoDescription" }}
-<form hx-put="/{{ .RepoInfo.FullName }}/description" hx-target="this" hx-swap="outerHTML">
-    <input type="text" name="description" value="{{ .RepoInfo.Description }}">
-    <button type="submit" class="bg-green-100 text-green-700 rounded p-1 mr-1 hover:bg-green-200 font-mono uppercase text-sm">
-      save
+<form hx-put="/{{ .RepoInfo.FullName }}/description" hx-target="this" hx-swap="outerHTML" class="flex flex-wrap gap-2">
+    <input type="text" class="p-1" name="description" value="{{ .RepoInfo.Description }}">
+    <button type="submit" class="btn p-2 flex items-center gap-2 no-underline text-sm">
+      save {{ i "check" "w-3 h-3" }}
     </button>
-    <button type="button" class="bg-red-100 text-red-700 rounded p-1 hover:bg-red-200  font-mono uppercase text-sm" hx-get="/{{ .RepoInfo.FullName }}/description" >
-      cancel
+    <button type="button" class="btn p-2 flex items-center gap-2 no-underline text-sm" hx-get="/{{ .RepoInfo.FullName }}/description" >
+      cancel {{ i "x" "w-3 h-3" }}
     </button>
 </form>
 {{ end }}

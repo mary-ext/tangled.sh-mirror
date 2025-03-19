@@ -25,8 +25,8 @@ import (
 	"github.com/sotangled/tangled/types"
 )
 
-//go:embed templates/* static/*
-var files embed.FS
+//go:embed templates/* static
+var Files embed.FS
 
 type Pages struct {
 	t map[string]*template.Template
@@ -36,7 +36,7 @@ func NewPages() *Pages {
 	templates := make(map[string]*template.Template)
 
 	// Walk through embedded templates directory and parse all .html files
-	err := fs.WalkDir(files, "templates", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(Files, "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -49,7 +49,7 @@ func NewPages() *Pages {
 			if strings.HasPrefix(path, "templates/fragments/") {
 				tmpl, err := template.New(name).
 					Funcs(funcMap()).
-					ParseFS(files, path)
+					ParseFS(Files, path)
 				if err != nil {
 					return fmt.Errorf("setting up fragment: %w", err)
 				}
@@ -64,7 +64,7 @@ func NewPages() *Pages {
 				// Add the page template on top of the base
 				tmpl, err := template.New(name).
 					Funcs(funcMap()).
-					ParseFS(files, "templates/layouts/*.html", "templates/fragments/*.html", path)
+					ParseFS(Files, "templates/layouts/*.html", "templates/fragments/*.html", path)
 				if err != nil {
 					return fmt.Errorf("setting up template: %w", err)
 				}
@@ -577,7 +577,7 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 }
 
 func (p *Pages) Static() http.Handler {
-	sub, err := fs.Sub(files, "static")
+	sub, err := fs.Sub(Files, "static")
 	if err != nil {
 		log.Fatalf("no static dir found? that's crazy: %v", err)
 	}
