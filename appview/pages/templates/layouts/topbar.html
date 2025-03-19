@@ -9,7 +9,7 @@
             <div id="right-items" class="flex gap-2">
                 {{ with .LoggedInUser }}
                     <a href="/repo/new" hx-boost="true">
-                        <i class="w-6 h-6" data-lucide="plus"></i>
+                      {{ i "plus" "w-6 h-6" }}
                     </a>
                     {{ block "dropDown" . }} {{ end }}
                 {{ else }}

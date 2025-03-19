@@ -37,7 +37,7 @@
       <p class="flex items-center text-sm text-gray-500">
           <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.This 0 8 }}</a>
           {{ if $commit.Parent }}
-          <i class="w-3 h-3 mx-1" data-lucide="arrow-left"></i>
+          {{ i "arrow-left" "w-3 h-3 mx-1" }}
           <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.Parent 0 8 }}</a>
           {{ end }}
       </p>

@@ -49,7 +49,7 @@
         href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}"
         class="ml-2 no-underline flex items-center gap-2 text-sm uppercase font-bold"
     >
-        <i class="w-4 h-4" data-lucide="logs"></i>
+        {{ i "logs" "w-4 h-4" }}
         {{ .TotalCommits }}
         {{ if eq .TotalCommits 1 }}commit{{ else }}commits{{ end }}
     </a>
@@ -70,11 +70,8 @@
                         class="{{ $linkstyle }}"
                     >
                         <div class="flex items-center gap-2">
-                            <i
-                                class="w-3 h-3 fill-current"
-                                data-lucide="folder"
-                            ></i
-                            >{{ .Name }}
+                          {{ i "folder" "w-3 h-3 fill-current" }}
+                          {{ .Name }}
                         </div>
                     </a>
 
@@ -95,11 +92,7 @@
                         class="{{ $linkstyle }}"
                     >
                         <div class="flex items-center gap-2">
-                            <i
-                                class="w-3 h-3"
-                                data-lucide="file"
-                            ></i
-                            >{{ .Name }}
+                          {{ i "file" "w-3 h-3" }}{{ .Name }}
                         </div>
                     </a>
 
@@ -134,10 +127,7 @@
                                       class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded"
                                       hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')"
                                   >
-                                      <i
-                                          class="w-3 h-3"
-                                          data-lucide="ellipsis"
-                                      ></i>
+                                  {{ i "ellipsis" "w-3 h-3" }}
                                   </button>
                               {{ end }}
                           </div>
@@ -182,7 +172,7 @@
                     ></div>
                   {{ end }}
                   {{ range $tagsForCommit }}
-                    <span class="text-xs rounded bg-gray-100 font-mono px-2 mx-1/2 inline-flex items-center">
+                    <span class="text-xs rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
                       {{ . }}
                     </span>
                   {{ end }}

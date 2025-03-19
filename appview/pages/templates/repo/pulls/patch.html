@@ -10,7 +10,7 @@
       <header class="pb-2">
           <div class="flex gap-3 items-center mb-3">
               <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2 font-medium">
-                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                {{ i "arrow-left" "w-5 h-5" }}
                 back
               </a>
               <span class="select-none before:content-['\00B7']"></span>
@@ -40,10 +40,7 @@
                   id="state"
                   class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}"
               >
-                  <i
-                      data-lucide="{{ $icon }}"
-                      class="w-4 h-4 mr-1.5 text-white"
-                  ></i>
+                  {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
                   <span class="text-white">{{ .Pull.State.String }}</span>
               </div>
               <span class="text-gray-500 text-sm">

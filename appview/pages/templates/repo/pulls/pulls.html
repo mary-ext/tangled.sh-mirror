@@ -24,7 +24,7 @@
             href="/{{ .RepoInfo.FullName }}/pulls/new"
             class="btn text-sm flex items-center gap-2 no-underline hover:no-underline"
         >
-            <i data-lucide="git-pull-request" class="w-5 h-5"></i>
+            {{ i "git-pull-request" "w-4 h-4" }}
             <span>new pull request</span>
         </a>
     </div>
@@ -57,10 +57,7 @@
                     <span
                         class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm"
                     >
-                        <i
-                            data-lucide="{{ $icon }}"
-                            class="w-3 h-3 mr-1.5 text-white"
-                        ></i>
+                        {{ i $icon "w-3 h-3 mr-1.5 text-white" }}
                         <span class="text-white">{{ .State.String }}</span>
                     </span>
 

@@ -13,7 +13,7 @@
         <a
             href="/{{ .RepoInfo.FullName }}/issues/new"
             class="btn text-sm flex items-center gap-2 no-underline hover:no-underline">
-            <i data-lucide="plus" class="w-5 h-5"></i>
+            {{ i "plus" "w-4 h-4" }}
             <span>new issue</span>
         </a>
     </div>
@@ -44,7 +44,7 @@
       {{ end }}
 
       <span class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm">
-          <i data-lucide="{{ $icon }}" class="w-3 h-3 mr-1.5 text-white"></i>
+          {{ i $icon "w-3 h-3 mr-1.5 text-white" }}
           <span class="text-white">{{ $state }}</span>
       </span>
 

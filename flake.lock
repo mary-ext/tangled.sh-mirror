@@ -67,13 +67,14 @@
     "lucide-src": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-5ipNSxTlQ7627lGgsyZxk7vS1sr9RkrlR8/QMj2Zg6s=",
-        "type": "file",
-        "url": "https://unpkg.com/lucide@0.482.0"
+        "lastModified": 1742302029,
+        "narHash": "sha256-OyPVtpnC4/AAmPq84Wt1r1Gcs48d9KG+UBCtZK87e9k=",
+        "type": "tarball",
+        "url": "https://github.com/lucide-icons/lucide/releases/download/0.483.0/lucide-icons-0.483.0.zip"
       },
       "original": {
-        "type": "file",
-        "url": "https://unpkg.com/lucide@0.482.0"
+        "type": "tarball",
+        "url": "https://github.com/lucide-icons/lucide/releases/download/0.483.0/lucide-icons-0.483.0.zip"
       }
     },
     "nixpkgs": {

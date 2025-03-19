@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"log"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -119,5 +121,39 @@ func funcMap() template.FuncMap {
 		"list": func(args ...any) []any {
 			return args
 		},
+		"i": func(name string, classes ...string) template.HTML {
+			data, err := icon(name, classes)
+			if err != nil {
+				log.Printf("icon %s does not exist", name)
+				data, _ = icon("airplay", classes)
+			}
+			return template.HTML(data)
+		},
 	}
+}
+
+func icon(name string, classes []string) (template.HTML, error) {
+	iconPath := filepath.Join("static", "icons", name)
+
+	if filepath.Ext(name) == "" {
+		iconPath += ".svg"
+	}
+
+	data, err := Files.ReadFile(iconPath)
+	if err != nil {
+		return "", fmt.Errorf("icon %s not found: %w", name, err)
+	}
+
+	// Convert SVG data to string
+	svgStr := string(data)
+
+	svgTagEnd := strings.Index(svgStr, ">")
+	if svgTagEnd == -1 {
+		return "", fmt.Errorf("invalid SVG format for icon %s", name)
+	}
+
+	classTag := ` class="` + strings.Join(classes, " ") + `"`
+
+	modifiedSVG := svgStr[:svgTagEnd] + classTag + svgStr[svgTagEnd:]
+	return template.HTML(modifiedSVG), nil
 }
