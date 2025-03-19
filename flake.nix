@@ -322,7 +322,6 @@
             isNormalUser = true;
             home = "/home/git";
             createHome = true;
-            uid = 1000;
             group = "git";
           };
 
