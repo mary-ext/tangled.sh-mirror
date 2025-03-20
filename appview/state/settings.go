@@ -1,6 +1,9 @@
 package state
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -9,15 +12,21 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/gliderlabs/ssh"
+	"github.com/google/uuid"
 	"github.com/sotangled/tangled/api/tangled"
 	"github.com/sotangled/tangled/appview/db"
+	"github.com/sotangled/tangled/appview/email"
 	"github.com/sotangled/tangled/appview/pages"
 )
 
 func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
-	// for now, this is just pubkeys
 	user := s.auth.GetUser(r)
 	pubKeys, err := db.GetPublicKeys(s.db, user.Did)
+	if err != nil {
+		log.Println(err)
+	}
+
+	emails, err := db.GetAllEmails(s.db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}
@@ -25,7 +34,183 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 	s.pages.Settings(w, pages.SettingsParams{
 		LoggedInUser: user,
 		PubKeys:      pubKeys,
+		Emails:       emails,
 	})
+}
+
+func (s *State) SettingsEmails(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		s.pages.Notice(w, "settings-emails", "Unimplemented.")
+		log.Println("unimplemented")
+		return
+	case http.MethodPut:
+		did := s.auth.GetDid(r)
+		emAddr := r.FormValue("email")
+		emAddr = strings.TrimSpace(emAddr)
+
+		if !email.IsValidEmail(emAddr) {
+			s.pages.Notice(w, "settings-emails-error", "Invalid email address.")
+			return
+		}
+
+		// check if email already exists in database
+		existingEmail, err := db.GetEmail(s.db, did, emAddr)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			log.Printf("checking for existing email: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			return
+		}
+
+		if err == nil {
+			if existingEmail.Verified {
+				s.pages.Notice(w, "settings-emails-error", "This email is already verified.")
+				return
+			}
+
+			s.pages.Notice(w, "settings-emails-error", "This email is already added but not verified. Check your inbox for the verification link.")
+			return
+		}
+
+		code := uuid.New().String()
+
+		// Begin transaction
+		tx, err := s.db.Begin()
+		if err != nil {
+			log.Printf("failed to start transaction: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			return
+		}
+		defer tx.Rollback()
+
+		if err := db.AddEmail(tx, db.Email{
+			Did:              did,
+			Address:          emAddr,
+			Verified:         false,
+			VerificationCode: code,
+		}); err != nil {
+			log.Printf("adding email: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			return
+		}
+
+		err = email.SendEmail(email.Email{
+			APIKey: s.config.ResendApiKey,
+
+			From:    "noreply@notifs.tangled.sh",
+			To:      emAddr,
+			Subject: "Verify your Tangled email",
+			Text: `Click the link below (or copy and paste it into your browser) to verify your email address.
+` + s.verifyUrl(did, emAddr, code),
+			Html: `<p>Click the link (or copy and paste it into your browser) to verify your email address.</p>
+<p><a href="` + s.verifyUrl(did, emAddr, code) + `">` + s.verifyUrl(did, emAddr, code) + `</a></p>`,
+		})
+
+		if err != nil {
+			log.Printf("sending email: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to send verification email at this moment, try again later.")
+			return
+		}
+
+		// Commit transaction
+		if err := tx.Commit(); err != nil {
+			log.Printf("failed to commit transaction: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			return
+		}
+
+		s.pages.Notice(w, "settings-emails-success", "Click the link in the email we sent you to verify your email address.")
+		return
+	case http.MethodDelete:
+		did := s.auth.GetDid(r)
+		emailAddr := r.FormValue("email")
+		emailAddr = strings.TrimSpace(emailAddr)
+
+		// Begin transaction
+		tx, err := s.db.Begin()
+		if err != nil {
+			log.Printf("failed to start transaction: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
+			return
+		}
+		defer tx.Rollback()
+
+		if err := db.DeleteEmail(tx, did, emailAddr); err != nil {
+			log.Printf("deleting email: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
+			return
+		}
+
+		// Commit transaction
+		if err := tx.Commit(); err != nil {
+			log.Printf("failed to commit transaction: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
+			return
+		}
+
+		s.pages.HxLocation(w, "/settings")
+		return
+	}
+}
+
+func (s *State) verifyUrl(did string, email string, code string) string {
+	var appUrl string
+	if s.config.Dev {
+		appUrl = "http://" + s.config.ListenAddr
+	} else {
+		appUrl = "https://tangled.sh"
+	}
+
+	return fmt.Sprintf("%s/settings/emails/verify?did=%s&email=%s&code=%s", appUrl, did, email, code)
+}
+
+func (s *State) SettingsEmailsVerify(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	// Get the parameters directly from the query
+	emailAddr := q.Get("email")
+	did := q.Get("did")
+	code := q.Get("code")
+
+	valid, err := db.CheckValidVerificationCode(s.db, did, emailAddr, code)
+	if err != nil {
+		log.Printf("checking email verification: %s", err)
+		s.pages.Notice(w, "settings-emails-error", "Error verifying email. Please try again later.")
+		return
+	}
+
+	if !valid {
+		s.pages.Notice(w, "settings-emails-error", "Invalid verification code. Please request a new verification email.")
+		return
+	}
+
+	// Mark email as verified in the database
+	if err := db.MarkEmailVerified(s.db, did, emailAddr); err != nil {
+		log.Printf("marking email as verified: %s", err)
+		s.pages.Notice(w, "settings-emails-error", "Error updating email verification status. Please try again later.")
+		return
+	}
+
+	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+}
+
+func (s *State) SettingsEmailsPrimary(w http.ResponseWriter, r *http.Request) {
+	did := s.auth.GetDid(r)
+	emailAddr := r.FormValue("email")
+	emailAddr = strings.TrimSpace(emailAddr)
+
+	if emailAddr == "" {
+		s.pages.Notice(w, "settings-emails-error", "Email address cannot be empty.")
+		return
+	}
+
+	if err := db.MakeEmailPrimary(s.db, did, emailAddr); err != nil {
+		log.Printf("setting primary email: %s", err)
+		s.pages.Notice(w, "settings-emails-error", "Error setting primary email. Please try again later.")
+		return
+	}
+
+	s.pages.HxLocation(w, "/settings")
 }
 
 func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {

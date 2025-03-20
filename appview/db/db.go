@@ -107,7 +107,7 @@ func Make(dbPath string) (*DB, error) {
 			-- identifiers
 			id integer primary key autoincrement,
 			pull_id integer not null,
-			
+
 			-- at identifiers
 			repo_at text not null,
 			owner_did text not null,
@@ -194,6 +194,17 @@ func Make(dbPath string) (*DB, error) {
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			foreign key (repo_at) references repos(at_uri) on delete cascade,
 			unique(starred_by_did, repo_at)
+		);
+
+		create table if not exists emails (
+			id integer primary key autoincrement,
+			did text not null,
+			email text not null,
+			verified integer not null default 0,
+			verification_code text not null,
+			is_primary integer not null default 0,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			unique(did, email)
 		);
 
 		create table if not exists migrations (

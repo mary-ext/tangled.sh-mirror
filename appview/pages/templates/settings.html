@@ -8,6 +8,7 @@
     {{ block "profile" . }} {{ end }}
     {{ block "keys" . }} {{ end }}
     {{ block "knots" . }} {{ end }}
+    {{ block "emails" . }} {{ end }}
   </div>
 {{ end }}
 
@@ -31,7 +32,7 @@
 <h2 class="text-sm font-bold py-2 px-6 uppercase">ssh keys</h2>
 <section class="rounded bg-white drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
   <div id="key-list" class="flex flex-col gap-6 mb-8">
-    {{ range .PubKeys }}
+    {{ range $index, $key := .PubKeys }}
     <div class="flex justify-between items-center gap-4">
       <div>
         <div class="inline-flex items-center gap-4">
@@ -39,7 +40,7 @@
           <p class="font-bold">{{ .Name }}</p>
           <p class="text-sm text-gray-500">added {{ .Created | timeFmt }}</p>
         </div>
-        <code class="block break-all text-sm break-all text-gray-500">{{ .Key }}</code>
+        <code class="block break-all text-sm text-gray-500">{{ .Key }}</code>
       </div>
       <button
         class="btn text-red-500 hover:text-red-700"
@@ -50,8 +51,10 @@
       </button>
     </div>
     {{ end }}
+    {{ if .PubKeys }}
+    <hr class="mb-4" />
+    {{ end }}
   </div>
-  <hr class="mb-4" />
   <p class="mb-2">add an ssh key</p>
   <form
       hx-put="/settings/keys"
@@ -76,6 +79,79 @@
       <button class="btn w-full" type="submit">add key</button>
 
       <div id="settings-keys" class="error"></div>
+  </form>
+</section>
+{{ end }}
+
+{{ define "emails" }}
+<h2 class="text-sm font-bold py-2 px-6 uppercase">email addresses</h2>
+<section class="rounded bg-white drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+  <div id="email-list" class="flex flex-col gap-6 mb-8">
+    {{ range $index, $email := .Emails }}
+    <div class="flex justify-between items-center gap-4">
+      <div>
+        <div class="inline-flex items-center gap-4">
+          <i class="w-3 h-3" data-lucide="mail"></i>
+          <p class="font-bold">{{ .Address }}</p>
+          <p class="text-sm text-gray-500">added {{ .CreatedAt | timeFmt }}</p>
+          {{ if .Verified }}
+          <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">verified</span>
+          {{ else }}
+          <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">unverified</span>
+          {{ end }}
+          {{ if .Primary }}
+          <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">primary</span>
+          {{ end }}
+        </div>
+      </div>
+      <div class="flex gap-2 items-center">
+        {{ if not .Primary }}
+        <a 
+          class="text-sm"
+          hx-post="/settings/emails/primary" 
+          hx-swap="none"
+          href="#"
+          hx-vals='{"email": "{{ .Address }}"}'>
+          set as primary
+        </a>
+        {{ end }}
+        {{ if not .Primary }}
+        <form hx-delete="/settings/emails" hx-confirm="Are you sure you wish to delete the email '{{ .Address }}'?">
+          <input type="hidden" name="email" value="{{ .Address }}">
+          <button
+            class="btn text-red-500 hover:text-red-700"
+            title="Delete email"
+            type="submit">
+            <i class="w-5 h-5" data-lucide="trash-2"></i>
+          </button>
+        </form>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
+    {{ if .Emails }}
+    <hr class="mb-4" />
+    {{ end }}
+  </div>
+  <p class="mb-2">add an email address</p>
+  <form
+      hx-put="/settings/emails"
+      hx-swap="none"
+      class="max-w-2xl mb-8 space-y-4"
+      >
+      <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="your@email.com"
+          required
+          class="w-full"/>
+
+      <button class="btn w-full" type="submit">add email</button>
+
+      <div id="settings-emails-error" class="error"></div>
+      <div id="settings-emails-success" class="success"></div>
+
   </form>
 </section>
 {{ end }}

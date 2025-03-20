@@ -12,6 +12,7 @@ type Config struct {
 	ListenAddr        string `env:"TANGLED_LISTEN_ADDR, default=0.0.0.0:3000"`
 	Dev               bool   `env:"TANGLED_DEV, default=false"`
 	JetstreamEndpoint string `env:"TANGLED_JETSTREAM_ENDPOINT, default=wss://jetstream1.us-east.bsky.network/subscribe"`
+	ResendApiKey      string `env:"TANGLED_RESEND_API_KEY"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {
