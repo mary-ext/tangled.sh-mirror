@@ -120,6 +120,7 @@ func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
 type SettingsParams struct {
 	LoggedInUser *auth.User
 	PubKeys      []db.PublicKey
+	Emails       []db.Email
 }
 
 func (p *Pages) Settings(w io.Writer, params SettingsParams) error {

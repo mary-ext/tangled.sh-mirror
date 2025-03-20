@@ -167,6 +167,10 @@ func (s *State) StandardRouter() http.Handler {
 		r.Use(AuthMiddleware(s))
 		r.Get("/", s.Settings)
 		r.Put("/keys", s.SettingsKeys)
+		r.Put("/emails", s.SettingsEmails)
+		r.Delete("/emails", s.SettingsEmails)
+		r.Get("/emails/verify", s.SettingsEmailsVerify)
+		r.Post("/emails/primary", s.SettingsEmailsPrimary)
 	})
 
 	r.Get("/keys/{user}", s.Keys)
