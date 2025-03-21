@@ -101,8 +101,12 @@ type PullComment struct {
 }
 
 func (p *Pull) LatestPatch() string {
-	latestSubmission := p.Submissions[len(p.Submissions)-1]
+	latestSubmission := p.Submissions[p.LastRoundNumber()]
 	return latestSubmission.Patch
+}
+
+func (p *Pull) LastRoundNumber() int {
+	return len(p.Submissions) - 1
 }
 
 func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {

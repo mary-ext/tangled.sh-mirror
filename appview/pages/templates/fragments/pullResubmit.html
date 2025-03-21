@@ -1,0 +1,52 @@
+{{ define "fragments/pullResubmit" }}
+  <div
+      id="resubmit-pull-card"
+      class="rounded relative border bg-amber-50 border-amber-200 px-6 py-2">
+
+      <div class="flex items-center gap-2 text-amber-500">
+        {{ i "pencil" "w-4 h-4" }}
+        <span class="font-medium">resubmit your patch</span>
+      </div>
+
+      <div class="mt-2 text-sm text-gray-700">
+        You can update this patch to address any reviews. 
+        This will begin a new round of reviews,
+        but you'll still be able to view your previous submissions and feedback.
+      </div>
+
+      <div class="mt-4 flex flex-col">
+        <form 
+          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit" 
+          hx-swap="none"
+          class="w-full flex flex-wrap gap-2">
+          <textarea
+            name="patch"
+            class="w-full p-2 mb-2 rounded border border-gray-200"
+            placeholder="Paste your updated patch here."
+            rows="15"
+            ></textarea>
+          <button
+              type="submit"
+              class="btn flex items-center gap-2"
+              {{ if or .Pull.State.IsClosed }}
+              disabled
+              {{ end }}>
+            {{ i "rotate-ccw" "w-4 h-4" }}
+            <span>resubmit</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn flex items-center gap-2" 
+            hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Pull.LastRoundNumber }}/actions"
+            hx-swap="outerHTML"
+            hx-target="#resubmit-pull-card">
+            {{ i "x" "w-4 h-4" }}
+            <span>cancel</span>
+          </button>
+        </form>
+
+        <div id="resubmit-error" class="error"></div>
+        <div id="resubmit-success" class="success"></div>
+      </div>
+  </div>
+{{ end }}

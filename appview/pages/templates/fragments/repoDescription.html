@@ -8,8 +8,7 @@
 
     {{ if .RepoInfo.Roles.IsOwner }}
     <button class="btn p-2 flex items-center gap-2 no-underline text-sm" hx-get="/{{ .RepoInfo.FullName }}/description/edit">
-      edit
-      {{ i "pencil" "w-3 h-3" }}
+      {{ i "pencil" "w-3 h-3" }} edit
     </button>
     {{ end }}
 </span>

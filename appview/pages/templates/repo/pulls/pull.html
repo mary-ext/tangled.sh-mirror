@@ -115,10 +115,12 @@
             </div>
           {{ end }}
 
-          {{ block "mergeStatus" $ }} {{ end }}
+          {{ if eq $lastIdx .RoundNumber }}
+            {{ block "mergeStatus" $ }} {{ end }}
+          {{ end }}
 
           {{ if $.LoggedInUser }}
-            {{ block "actions" (list $ .ID) }} {{ end }}
+            {{ template "fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck) }}
           {{ else }}
             <div class="bg-white rounded drop-shadow-sm px-6 py-4 w-fit">
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
@@ -132,7 +134,16 @@
 {{ end }}
 
 {{ define "mergeStatus" }}
-  {{ if .Pull.State.IsMerged }}
+  {{ if .Pull.State.IsClosed }}
+  <div class="bg-gray-50 border border-black rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+    <div class="flex items-center gap-2 text-black">
+      {{ i "ban" "w-4 h-4" }}
+      <span class="font-medium">closed without merging</span
+      >
+    </div>
+  </div>
+  {{ else if .Pull.State.IsMerged }}
   <div class="bg-purple-50 border border-purple-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
     <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
     <div class="flex items-center gap-2 text-purple-500">
@@ -141,6 +152,14 @@
       >
     </div>
   </div>
+  {{ else if and .MergeCheck .MergeCheck.Error }}
+    <div class="bg-red-50 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+      <div class="flex items-center gap-2 text-red-500">
+        {{ i "triangle-alert" "w-4 h-4" }}
+        <span class="font-medium">{{ .MergeCheck.Error }}</span>
+      </div>
+    </div>
   {{ else if and .MergeCheck .MergeCheck.IsConflicted }}
     <div class="bg-red-50 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
       <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
@@ -167,70 +186,6 @@
       <span class="font-medium">no conflicts, ready to merge</span>
     </div>
   </div>
-  {{ end }}
-{{ end }}
-
-{{ define "actions" }}
-  {{ $rootObj := index . 0 }}
-  {{ $submissionId := index . 1 }}
-
-  {{ with $rootObj }}
-    {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
-    {{ $isMerged := .Pull.State.IsMerged }}
-    {{ $isClosed := .Pull.State.IsClosed }}
-    {{ $isOpen := .Pull.State.IsOpen }}
-    {{ $isConflicted := and .MergeCheck .MergeCheck.IsConflicted }}
-    {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
-    <div class="relative w-fit">
-      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-      <div class="flex flex-wrap gap-2">
-          <button href="#" class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
-              {{ i "message-square-plus" "w-4 h-4" }}
-              <span>comment</span>
-          </button>
-          {{ if and $isPushAllowed $isOpen }}
-            {{ $disabled := "" }}
-            {{ if $isConflicted }}
-              {{ $disabled = "disabled" }}
-            {{ end }}
-            <button 
-              hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
-              hx-swap="none"
-              hx-confirm="Are you sure you want to merge this pull request?"
-              class="btn p-2 flex items-center gap-2" {{ $disabled }}>
-              {{ i "git-merge" "w-4 h-4" }}
-                <span>merge</span>
-            </button>
-          {{ end }}
-
-          {{ if and $isPullAuthor $isOpen }}
-          <button href="#" class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
-            {{ i "rotate-ccw" "w-4 h-4" }}
-              <span>resubmit</span>
-          </button>
-          {{ end }}
-
-          {{ if and $isPullAuthor $isPushAllowed $isOpen }}
-          <button 
-            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/close"
-            hx-swap="none"
-            class="btn p-2 flex items-center gap-2">
-            {{ i "ban" "w-4 h-4" }}
-              <span>close</span>
-          </button>
-          {{ end }}
-
-          {{ if and $isPullAuthor $isPushAllowed $isClosed }}
-          <button 
-            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/reopen"
-            hx-swap="none"
-            class="btn p-2 flex items-center gap-2">
-            {{ i "circle-dot" "w-4 h-4" }}
-              <span>reopen</span>
-          </button>
-          {{ end }}
-      </div>
-    </div>
   {{ end }}
 {{ end }}
 

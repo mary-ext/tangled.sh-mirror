@@ -1,0 +1,72 @@
+{{ define "fragments/pullActions" }}
+  {{ $lastIdx := sub (len .Pull.Submissions) 1 }}
+  {{ $roundNumber := .RoundNumber }}
+
+  {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
+  {{ $isMerged := .Pull.State.IsMerged }}
+  {{ $isClosed := .Pull.State.IsClosed }}
+  {{ $isOpen := .Pull.State.IsOpen }}
+  {{ $isConflicted := and .MergeCheck (or .MergeCheck.Error .MergeCheck.IsConflicted) }}
+  {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
+  {{ $isLastRound := eq $roundNumber $lastIdx }}
+  <div class="relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+    <div id="actions-{{$roundNumber}}" class="flex flex-wrap gap-2">
+        <button 
+          hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ $roundNumber }}/comment"
+          hx-target="#actions-{{$roundNumber}}"
+          hx-swap="outerHtml"
+          class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
+            {{ i "message-square-plus" "w-4 h-4" }}
+            <span>comment</span>
+        </button>
+        {{ if and $isPushAllowed $isOpen $isLastRound }}
+          {{ $disabled := "" }}
+          {{ if $isConflicted }}
+            {{ $disabled = "disabled" }}
+          {{ end }}
+          <button 
+            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
+            hx-swap="none"
+            hx-confirm="Are you sure you want to merge this pull request?"
+            class="btn p-2 flex items-center gap-2" {{ $disabled }}>
+            {{ i "git-merge" "w-4 h-4" }}
+              <span>merge</span>
+          </button>
+        {{ end }}
+
+        {{ if and $isPullAuthor $isOpen $isLastRound }}
+        <button 
+            hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
+            hx-target="#actions-{{$roundNumber}}"
+            hx-swap="outerHtml"
+            class="btn p-2 flex items-center gap-2">
+          {{ i "rotate-ccw" "w-4 h-4" }}
+            <span>resubmit</span>
+        </button>
+        {{ end }}
+
+        {{ if and $isPullAuthor $isPushAllowed $isOpen $isLastRound }}
+        <button 
+          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/close"
+          hx-swap="none"
+          class="btn p-2 flex items-center gap-2">
+          {{ i "ban" "w-4 h-4" }}
+            <span>close</span>
+        </button>
+        {{ end }}
+
+        {{ if and $isPullAuthor $isPushAllowed $isClosed $isLastRound }}
+        <button 
+          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/reopen"
+          hx-swap="none"
+          class="btn p-2 flex items-center gap-2">
+          {{ i "circle-dot" "w-4 h-4" }}
+            <span>reopen</span>
+        </button>
+        {{ end }}
+    </div>
+  </div>
+{{ end }}
+
+

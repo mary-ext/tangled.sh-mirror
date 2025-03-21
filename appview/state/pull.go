@@ -20,6 +20,48 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
+// htmx fragment
+func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		user := s.auth.GetUser(r)
+		f, err := fullyResolvedRepo(r)
+		if err != nil {
+			log.Println("failed to get repo and knot", err)
+			return
+		}
+
+		pull, ok := r.Context().Value("pull").(*db.Pull)
+		if !ok {
+			log.Println("failed to get pull")
+			s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+			return
+		}
+
+		roundNumberStr := chi.URLParam(r, "round")
+		roundNumber, err := strconv.Atoi(roundNumberStr)
+		if err != nil {
+			roundNumber = pull.LastRoundNumber()
+		}
+		if roundNumber >= len(pull.Submissions) {
+			http.Error(w, "bad round id", http.StatusBadRequest)
+			log.Println("failed to parse round id", err)
+			return
+		}
+
+		mergeCheckResponse := s.mergeCheck(f, pull)
+
+		s.pages.PullActionsFragment(w, pages.PullActionsParams{
+			LoggedInUser: user,
+			RepoInfo:     f.RepoInfo(s, user),
+			Pull:         pull,
+			RoundNumber:  roundNumber,
+			MergeCheck:   mergeCheckResponse,
+		})
+		return
+	}
+}
+
 func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
@@ -62,37 +104,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var mergeCheckResponse types.MergeCheckResponse
-
-	// Only perform merge check if the pull request is not already merged
-	if pull.State != db.PullMerged {
-		secret, err := db.GetRegistrationKey(s.db, f.Knot)
-		if err != nil {
-			log.Printf("failed to get registration key for %s", f.Knot)
-			s.pages.Notice(w, "pull", "Failed to load pull request. Try again later.")
-			return
-		}
-
-		ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
-		if err == nil {
-			resp, err := ksClient.MergeCheck([]byte(pull.LatestPatch()), pull.OwnerDid, f.RepoName, pull.TargetBranch)
-			if err != nil {
-				log.Println("failed to check for mergeability:", err)
-			} else {
-				respBody, err := io.ReadAll(resp.Body)
-				if err != nil {
-					log.Println("failed to read merge check response body")
-				} else {
-					err = json.Unmarshal(respBody, &mergeCheckResponse)
-					if err != nil {
-						log.Println("failed to unmarshal merge check response", err)
-					}
-				}
-			}
-		} else {
-			log.Printf("failed to setup signed client for %s; ignoring...", f.Knot)
-		}
-	}
+	mergeCheckResponse := s.mergeCheck(f, pull)
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
 		LoggedInUser: user,
@@ -101,6 +113,63 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		Pull:         *pull,
 		MergeCheck:   mergeCheckResponse,
 	})
+}
+
+func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull) types.MergeCheckResponse {
+	if pull.State == db.PullMerged {
+		return types.MergeCheckResponse{}
+	}
+
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("failed to get registration key: %w", err)
+		return types.MergeCheckResponse{
+			Error: "failed to check merge status: this knot is unregistered",
+		}
+	}
+
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to setup signed client for %s; ignoring: %v", f.Knot, err)
+		return types.MergeCheckResponse{
+			Error: "failed to check merge status",
+		}
+	}
+
+	resp, err := ksClient.MergeCheck([]byte(pull.LatestPatch()), pull.OwnerDid, f.RepoName, pull.TargetBranch)
+	if err != nil {
+		log.Println("failed to check for mergeability:", err)
+		switch resp.StatusCode {
+		case 400:
+			return types.MergeCheckResponse{
+				Error: "failed to check merge status: does this knot support PRs?",
+			}
+		default:
+			return types.MergeCheckResponse{
+				Error: "failed to check merge status: this knot is unreachable",
+			}
+		}
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("failed to read merge check response body")
+		return types.MergeCheckResponse{
+			Error: "failed to check merge status: knot is not speaking the right language",
+		}
+	}
+	defer resp.Body.Close()
+
+	var mergeCheckResponse types.MergeCheckResponse
+	err = json.Unmarshal(respBody, &mergeCheckResponse)
+	if err != nil {
+		log.Println("failed to unmarshal merge check response", err)
+		return types.MergeCheckResponse{
+			Error: "failed to check merge status: knot is not speaking the right language",
+		}
+	}
+
+	return mergeCheckResponse
 }
 
 func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
@@ -213,18 +282,27 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	roundNumberStr := chi.URLParam(r, "round")
+	roundNumber, err := strconv.Atoi(roundNumberStr)
+	if err != nil || roundNumber >= len(pull.Submissions) {
+		http.Error(w, "bad round id", http.StatusBadRequest)
+		log.Println("failed to parse round id", err)
+		return
+	}
+
 	switch r.Method {
+	case http.MethodGet:
+		s.pages.PullNewCommentFragment(w, pages.PullNewCommentParams{
+			LoggedInUser: user,
+			RepoInfo:     f.RepoInfo(s, user),
+			Pull:         pull,
+			RoundNumber:  roundNumber,
+		})
+		return
 	case http.MethodPost:
 		body := r.FormValue("body")
 		if body == "" {
 			s.pages.Notice(w, "pull", "Comment body is required")
-			return
-		}
-
-		submissionIdstr := r.FormValue("submissionId")
-		submissionId, err := strconv.Atoi(submissionIdstr)
-		if err != nil {
-			s.pages.Notice(w, "pull", "Invalid comment submission.")
 			return
 		}
 
@@ -263,6 +341,7 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		})
+		log.Println(atResp.Uri)
 		if err != nil {
 			log.Println("failed to create pull comment", err)
 			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
@@ -276,7 +355,7 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 			PullId:       pull.PullId,
 			Body:         body,
 			CommentAt:    atResp.Uri,
-			SubmissionId: submissionId,
+			SubmissionId: pull.Submissions[roundNumber].ID,
 		})
 		if err != nil {
 			log.Println("failed to create pull comment", err)
@@ -433,6 +512,12 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
+	case http.MethodGet:
+		s.pages.PullResubmitFragment(w, pages.PullResubmitParams{
+			RepoInfo: f.RepoInfo(s, user),
+			Pull:     pull,
+		})
+		return
 	case http.MethodPost:
 		patch := r.FormValue("patch")
 
