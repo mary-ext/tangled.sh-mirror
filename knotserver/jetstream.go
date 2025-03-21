@@ -118,7 +118,7 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		if err := h.db.UpdateLastTimeUs(lastTimeUs); err != nil {
 			err = fmt.Errorf("(deferred) failed to save last time us: %w", err)
 		}
-		h.jc.UpdateDids([]string{did})
+		// h.jc.UpdateDids([]string{did})
 	}()
 
 	raw := json.RawMessage(event.Commit.Record)

@@ -49,7 +49,7 @@ func main() {
 	jc, err := jetstream.NewJetstreamClient(c.Server.JetstreamEndpoint, "knotserver", []string{
 		tangled.PublicKeyNSID,
 		tangled.KnotMemberNSID,
-	}, nil, l, db, true)
+	}, nil, l, db, false)
 	if err != nil {
 		l.Error("failed to setup jetstream", "error", err)
 	}
