@@ -20,7 +20,12 @@
 
   <div class="flex items-center">
       <p class="text-sm text-gray-500">
-          <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">{{ $commit.Author.Name }}</a>
+          {{ if index .EmailToDidOrHandle $commit.Author.Email }}
+            {{ $handle := index .EmailToDidOrHandle $commit.Author.Email }}
+            <a href="/@{{ $handle }}" class="no-underline hover:underline text-gray-500">@{{ $handle }}</a>
+          {{ else }}
+            <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">{{ $commit.Author.Name }}</a>
+          {{ end }}
           <span class="px-1 select-none before:content-['\00B7']"></span>
           {{ timeFmt $commit.Author.When }}
           <span class="px-1 select-none before:content-['\00B7']"></span>

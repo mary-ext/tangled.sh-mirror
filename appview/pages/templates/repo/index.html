@@ -164,10 +164,11 @@
                       class="mx-2 before:content-['·'] before:select-none"
                   ></span>
                   <span>
+                      {{ $handle := index $.EmailToDidOrHandle .Author.Email }}
                       <a
-                          href="mailto:{{ .Author.Email }}"
+                          href="{{ if $handle }}/@{{ $handle }}{{ else }}mailto:{{ .Author.Email }}{{ end }}"
                           class="text-gray-500 no-underline hover:underline"
-                          >{{ .Author.Name }}</a
+                          >{{ if $handle }}@{{ $handle }}{{ else }}{{ .Author.Name }}{{ end }}</a
                       >
                   </span>
                   <div

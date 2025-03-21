@@ -1,6 +1,9 @@
 package db
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Email struct {
 	ID               int64
@@ -62,6 +65,47 @@ func GetDidForEmail(e Execer, em string) (string, error) {
 		return "", err
 	}
 	return did, nil
+}
+
+func GetDidsForEmails(e Execer, ems []string) ([]string, error) {
+	if len(ems) == 0 {
+		return []string{}, nil
+	}
+
+	// Create placeholders for the IN clause
+	placeholders := make([]string, len(ems))
+	args := make([]interface{}, len(ems))
+	for i, em := range ems {
+		placeholders[i] = "?"
+		args[i] = em
+	}
+
+	query := `
+		select did
+		from emails
+		where email in (` + strings.Join(placeholders, ",") + `)
+	`
+
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dids []string
+	for rows.Next() {
+		var did string
+		if err := rows.Scan(&did); err != nil {
+			return nil, err
+		}
+		dids = append(dids, did)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return dids, nil
 }
 
 func GetVerificationCodeForEmail(e Execer, did string, email string) (string, error) {

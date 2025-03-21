@@ -31,6 +31,7 @@
 {{ define "keys" }}
 <h2 class="text-sm font-bold py-2 px-6 uppercase">ssh keys</h2>
 <section class="rounded bg-white drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+  <p class="mb-8">SSH public keys added here will be broadcasted to knots that you are a member of, <br> allowing you to push to repositories there.</p>
   <div id="key-list" class="flex flex-col gap-6 mb-8">
     {{ range $index, $key := .PubKeys }}
     <div class="flex justify-between items-center gap-4">
@@ -51,11 +52,7 @@
       </button>
     </div>
     {{ end }}
-    {{ if .PubKeys }}
-    <hr class="mb-4" />
-    {{ end }}
   </div>
-  <p class="mb-2">add an ssh key</p>
   <form
       hx-put="/settings/keys"
       hx-swap="none"
@@ -76,7 +73,7 @@
           required
           class="w-full"/>
 
-      <button class="btn w-full" type="submit">add key</button>
+      <button class="btn" type="submit">add key</button>
 
       <div id="settings-keys" class="error"></div>
   </form>
@@ -86,6 +83,7 @@
 {{ define "emails" }}
 <h2 class="text-sm font-bold py-2 px-6 uppercase">email addresses</h2>
 <section class="rounded bg-white drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+<p class="mb-8">Commits authored using emails listed here will be associated with your Tangled profile.</p>
   <div id="email-list" class="flex flex-col gap-6 mb-8">
     {{ range $index, $email := .Emails }}
     <div class="flex justify-between items-center gap-4">
@@ -129,11 +127,7 @@
       </div>
     </div>
     {{ end }}
-    {{ if .Emails }}
-    <hr class="mb-4" />
-    {{ end }}
   </div>
-  <p class="mb-2">add an email address</p>
   <form
       hx-put="/settings/emails"
       hx-swap="none"
@@ -147,7 +141,7 @@
           required
           class="w-full"/>
 
-      <button class="btn w-full" type="submit">add email</button>
+      <button class="btn" type="submit">add email</button>
 
       <div id="settings-emails-error" class="error"></div>
       <div id="settings-emails-success" class="success"></div>
