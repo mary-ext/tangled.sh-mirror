@@ -66,14 +66,15 @@ func main() {
 	gitCommand := cmdParts[0]
 
 	// did:foo/repo-name or
-	// handle/repo-name
+	// handle/repo-name or
+	// any of the above with a leading slash (/)
 
-	components := strings.Split(strings.Trim(cmdParts[1], "'"), "/")
+	components := strings.Split(strings.TrimPrefix(strings.Trim(cmdParts[1], "'"), "/"), "/")
 	logEvent("Command components", map[string]interface{}{
 		"components": components,
 	})
 	if len(components) != 2 {
-		exitWithLog("invalid repo format, needs <user>/<repo>")
+		exitWithLog("invalid repo format, needs <user>/<repo> or /<user>/<repo>")
 	}
 
 	didOrHandle := components[0]
