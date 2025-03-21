@@ -46,7 +46,7 @@ func main() {
 
 	e.E.EnableAutoSave(true)
 
-	jc, err := jetstream.NewJetstreamClient("knotserver", []string{
+	jc, err := jetstream.NewJetstreamClient(c.Server.JetstreamEndpoint, "knotserver", []string{
 		tangled.PublicKeyNSID,
 		tangled.KnotMemberNSID,
 	}, nil, l, db, true)

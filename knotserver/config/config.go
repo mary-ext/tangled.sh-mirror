@@ -18,6 +18,7 @@ type Server struct {
 	Secret             string `env:"SECRET, required"`
 	DBPath             string `env:"DB_PATH, default=knotserver.db"`
 	Hostname           string `env:"HOSTNAME, required"`
+	JetstreamEndpoint  string `env:"JETSTREAM_ENDPOINT, default=wss://jetstream1.us-west.bsky.network/subscribe"`
 
 	// This disables signature verification so use with caution.
 	Dev bool `env:"DEV, default=false"`
