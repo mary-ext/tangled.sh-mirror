@@ -75,14 +75,16 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		tagMap[hash] = append(tagMap[hash], branch.Name)
 	}
 
+	emails := uniqueEmails(result.Commits)
+
 	user := s.auth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
-		LoggedInUser:      user,
-		RepoInfo:          f.RepoInfo(s, user),
-		TagMap:            tagMap,
-		RepoIndexResponse: result,
+		LoggedInUser:       user,
+		RepoInfo:           f.RepoInfo(s, user),
+		TagMap:             tagMap,
+		RepoIndexResponse:  result,
+		EmailToDidOrHandle: EmailToDidOrHandle(s, emails),
 	})
-
 	return
 }
 
@@ -129,9 +131,10 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoLog(w, pages.RepoLogParams{
-		LoggedInUser:    user,
-		RepoInfo:        f.RepoInfo(s, user),
-		RepoLogResponse: repolog,
+		LoggedInUser:       user,
+		RepoInfo:           f.RepoInfo(s, user),
+		RepoLogResponse:    repolog,
+		EmailToDidOrHandle: EmailToDidOrHandle(s, uniqueEmails(repolog.Commits)),
 	})
 	return
 }
@@ -265,6 +268,7 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(s, user),
 		RepoCommitResponse: result,
+		EmailToDidOrHandle: EmailToDidOrHandle(s, []string{result.Diff.Commit.Author.Email}),
 	})
 	return
 }
@@ -1067,53 +1071,5 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueId))
 		return
-	}
-}
-
-func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
-	repoName := chi.URLParam(r, "repo")
-	knot, ok := r.Context().Value("knot").(string)
-	if !ok {
-		log.Println("malformed middleware")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-	id, ok := r.Context().Value("resolvedId").(identity.Identity)
-	if !ok {
-		log.Println("malformed middleware")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-
-	repoAt, ok := r.Context().Value("repoAt").(string)
-	if !ok {
-		log.Println("malformed middleware")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-
-	parsedRepoAt, err := syntax.ParseATURI(repoAt)
-	if err != nil {
-		log.Println("malformed repo at-uri")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-
-	// pass through values from the middleware
-	description, ok := r.Context().Value("repoDescription").(string)
-	addedAt, ok := r.Context().Value("repoAddedAt").(string)
-
-	return &FullyResolvedRepo{
-		Knot:        knot,
-		OwnerId:     id,
-		RepoName:    repoName,
-		RepoAt:      parsedRepoAt,
-		Description: description,
-		AddedAt:     addedAt,
-	}, nil
-}
-
-func RolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) pages.RolesInRepo {
-	if u != nil {
-		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.OwnerSlashRepo())
-		return pages.RolesInRepo{r}
-	} else {
-		return pages.RolesInRepo{}
 	}
 }

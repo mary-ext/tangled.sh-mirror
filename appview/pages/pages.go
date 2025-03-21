@@ -295,8 +295,9 @@ type RepoIndexParams struct {
 	Active       string
 	TagMap       map[string][]string
 	types.RepoIndexResponse
-	HTMLReadme template.HTML
-	Raw        bool
+	HTMLReadme         template.HTML
+	Raw                bool
+	EmailToDidOrHandle map[string]string
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
@@ -328,6 +329,7 @@ type RepoLogParams struct {
 	RepoInfo     RepoInfo
 	types.RepoLogResponse
 	Active string
+	EmailToDidOrHandle map[string]string
 }
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
@@ -340,6 +342,7 @@ type RepoCommitParams struct {
 	RepoInfo     RepoInfo
 	Active       string
 	types.RepoCommitResponse
+	EmailToDidOrHandle map[string]string
 }
 
 func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {

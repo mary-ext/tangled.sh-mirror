@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -764,7 +763,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
 	}
 
-	profileAvatarUri, err := GetAvatarUri(ident.DID.String(), ident.PDSEndpoint())
+	profileAvatarUri, err := GetAvatarUri(ident.Handle.String())
 	if err != nil {
 		log.Println("failed to fetch bsky avatar", err)
 	}
@@ -785,47 +784,6 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func GetAvatarUri(did string, pds string) (string, error) {
-	recordURL := fmt.Sprintf("%s/xrpc/com.atproto.repo.getRecord?repo=%s&collection=app.bsky.actor.profile&rkey=self", pds, did)
-
-	recordResp, err := http.Get(recordURL)
-	if err != nil {
-		return "", err
-	}
-	defer recordResp.Body.Close()
-
-	if recordResp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("getRecord API returned status code %d", recordResp.StatusCode)
-	}
-
-	var profileResp map[string]any
-	if err := json.NewDecoder(recordResp.Body).Decode(&profileResp); err != nil {
-		return "", err
-	}
-
-	value, ok := profileResp["value"].(map[string]any)
-	if !ok {
-		log.Println(profileResp)
-		return "", fmt.Errorf("no value found for handle %s", did)
-	}
-
-	avatar, ok := value["avatar"].(map[string]any)
-	if !ok {
-		log.Println(profileResp)
-		return "", fmt.Errorf("no avatar found for handle %s", did)
-	}
-
-	blobRef, ok := avatar["ref"].(map[string]any)
-	if !ok {
-		log.Println(profileResp)
-		return "", fmt.Errorf("no ref found for handle %s", did)
-	}
-
-	link, ok := blobRef["$link"].(string)
-	if !ok {
-		log.Println(profileResp)
-		return "", fmt.Errorf("no link found for handle %s", did)
-	}
-
-	return fmt.Sprintf("%s/xrpc/com.atproto.sync.getBlob?did=%s&cid=%s", pds, did, link), nil
+func GetAvatarUri(handle string) (string, error) {
+	return fmt.Sprintf("https://avatars.dog/%s@webp", handle), nil
 }

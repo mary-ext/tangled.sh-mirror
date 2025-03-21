@@ -25,11 +25,20 @@
             </span>
             <span class="mx-2 before:content-['·'] before:select-none"></span>
             <span>
+                {{ $handle := index $.EmailToDidOrHandle $commit.Author.Email }}
+                {{ if $handle }}
+                <a
+                    href="/@{{ $handle }}"
+                    class="text-gray-500 no-underline hover:underline"
+                    >@{{ $handle }}</a
+                >
+                {{ else }}
                 <a
                     href="mailto:{{ $commit.Author.Email }}"
                     class="text-gray-500 no-underline hover:underline"
                     >{{ $commit.Author.Name }}</a
                 >
+                {{ end }}
             </span>
             <div
                 class="inline-block px-1 select-none after:content-['·']"
@@ -96,11 +105,20 @@
                                 class="mx-2 before:content-['·'] before:select-none"
                             ></span>
                             <span>
+                                {{ $handle := index $.EmailToDidOrHandle .Author.Email }}
+                                {{ if $handle }}
+                                <a
+                                    href="/@{{ $handle }}"
+                                    class="text-gray-500 no-underline hover:underline"
+                                    >@{{ $handle }}</a
+                                >
+                                {{ else }}
                                 <a
                                     href="mailto:{{ .Author.Email }}"
                                     class="text-gray-500 no-underline hover:underline"
                                     >{{ .Author.Name }}</a
                                 >
+                                {{ end }}
                             </span>
                             <div
                                 class="inline-block px-1 select-none after:content-['·']"
