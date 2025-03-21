@@ -769,7 +769,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.jc.UpdateDids([]string{data.Did})
+	// h.jc.UpdateDids([]string{data.Did})
 	if err := h.e.AddOwner(ThisServer, data.Did); err != nil {
 		l.Error("adding owner", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
