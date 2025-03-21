@@ -66,13 +66,27 @@ func (s *State) UserRouter() http.Handler {
 				r.Route("/{pull}", func(r chi.Router) {
 					r.Use(ResolvePull(s))
 					r.Get("/", s.RepoSinglePull)
-					r.Get("/round/{round}", s.RepoPullPatch)
+
+					r.Route("/round/{round}", func(r chi.Router) {
+						r.Get("/", s.RepoPullPatch)
+						r.Get("/actions", s.PullActions)
+						r.Route("/comment", func(r chi.Router) {
+							r.Get("/", s.PullComment)
+							r.Post("/", s.PullComment)
+						})
+					})
 
 					// authorized requests below this point
 					r.Group(func(r chi.Router) {
 						r.Use(AuthMiddleware(s))
-						r.Post("/resubmit", s.ResubmitPull)
-						r.Post("/comment", s.PullComment)
+						r.Route("/resubmit", func(r chi.Router) {
+							r.Get("/", s.ResubmitPull)
+							r.Post("/", s.ResubmitPull)
+						})
+						r.Route("/comment", func(r chi.Router) {
+							r.Get("/", s.PullComment)
+							r.Post("/", s.PullComment)
+						})
 						r.Post("/close", s.ClosePull)
 						r.Post("/reopen", s.ReopenPull)
 						// collaborators only

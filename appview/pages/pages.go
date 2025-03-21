@@ -576,6 +576,40 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 	return p.execute("repo/pulls/patch", w, params)
 }
 
+type PullResubmitParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Pull         *db.Pull
+	SubmissionId int
+}
+
+func (p *Pages) PullResubmitFragment(w io.Writer, params PullResubmitParams) error {
+	return p.executePlain("fragments/pullResubmit", w, params)
+}
+
+type PullActionsParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Pull         *db.Pull
+	RoundNumber  int
+	MergeCheck   types.MergeCheckResponse
+}
+
+func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error {
+	return p.executePlain("fragments/pullActions", w, params)
+}
+
+type PullNewCommentParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Pull         *db.Pull
+	RoundNumber  int
+}
+
+func (p *Pages) PullNewCommentFragment(w io.Writer, params PullNewCommentParams) error {
+	return p.executePlain("fragments/pullNewComment", w, params)
+}
+
 func (p *Pages) Static() http.Handler {
 	sub, err := fs.Sub(Files, "static")
 	if err != nil {
