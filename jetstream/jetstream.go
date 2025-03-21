@@ -127,40 +127,118 @@ func (j *JetstreamClient) rebalanceSubscribers() {
 		return
 	}
 
-	// stop all subscribers first
-	for _, sub := range j.subscribers {
-		if sub.running && sub.cancel != nil {
-			sub.cancel()
-			sub.running = false
-		}
-	}
-
 	// calculate how many subscribers we need
 	totalDids := len(j.cfg.WantedDids)
 	subscribersNeeded := (totalDids + j.maxDidsPerSubscriber - 1) / j.maxDidsPerSubscriber // ceiling division
 
-	// create or reuse subscribers as needed
-	j.subscribers = j.subscribers[:0]
+	// first case: no subscribers yet; create all needed subscribers
+	if len(j.subscribers) == 0 {
+		for i := range subscribersNeeded {
+			startIdx := i * j.maxDidsPerSubscriber
+			endIdx := min((i+1)*j.maxDidsPerSubscriber, totalDids)
 
-	for i := range subscribersNeeded {
+			subscriberDids := j.cfg.WantedDids[startIdx:endIdx]
+
+			subCfg := *j.cfg
+			subCfg.WantedDids = subscriberDids
+
+			ident := fmt.Sprintf("%s-%d", j.baseIdent, i)
+			subscriber := &JetstreamSubscriber{
+				dids:  subscriberDids,
+				ident: ident,
+			}
+			j.subscribers = append(j.subscribers, subscriber)
+
+			j.subscriberWg.Add(1)
+			go j.startSubscriber(subscriber, &subCfg)
+		}
+		return
+	}
+
+	// second case: we have more subscribers than needed, stop extra subscribers
+	if len(j.subscribers) > subscribersNeeded {
+		for i := subscribersNeeded; i < len(j.subscribers); i++ {
+			sub := j.subscribers[i]
+			if sub.running && sub.cancel != nil {
+				sub.cancel()
+				sub.running = false
+			}
+		}
+		j.subscribers = j.subscribers[:subscribersNeeded]
+	}
+
+	// third case: we need more subscribers
+	if len(j.subscribers) < subscribersNeeded {
+		existingCount := len(j.subscribers)
+		// Create additional subscribers
+		for i := existingCount; i < subscribersNeeded; i++ {
+			startIdx := i * j.maxDidsPerSubscriber
+			endIdx := min((i+1)*j.maxDidsPerSubscriber, totalDids)
+
+			subscriberDids := j.cfg.WantedDids[startIdx:endIdx]
+
+			subCfg := *j.cfg
+			subCfg.WantedDids = subscriberDids
+
+			ident := fmt.Sprintf("%s-%d", j.baseIdent, i)
+			subscriber := &JetstreamSubscriber{
+				dids:  subscriberDids,
+				ident: ident,
+			}
+			j.subscribers = append(j.subscribers, subscriber)
+
+			j.subscriberWg.Add(1)
+			go j.startSubscriber(subscriber, &subCfg)
+		}
+	}
+
+	// fourth case: update existing subscribers with new wantedDids
+	for i := 0; i < subscribersNeeded && i < len(j.subscribers); i++ {
 		startIdx := i * j.maxDidsPerSubscriber
 		endIdx := min((i+1)*j.maxDidsPerSubscriber, totalDids)
+		newDids := j.cfg.WantedDids[startIdx:endIdx]
 
-		subscriberDids := j.cfg.WantedDids[startIdx:endIdx]
+		// if the dids for this subscriber have changed, restart it
+		sub := j.subscribers[i]
+		if !didSlicesEqual(sub.dids, newDids) {
+			j.l.Info("subscriber DIDs changed, updating",
+				"subscriber", sub.ident,
+				"old_count", len(sub.dids),
+				"new_count", len(newDids))
 
-		subCfg := *j.cfg
-		subCfg.WantedDids = subscriberDids
+			if sub.running && sub.cancel != nil {
+				sub.cancel()
+				sub.running = false
+			}
 
-		ident := fmt.Sprintf("%s-%d", j.baseIdent, i)
-		subscriber := &JetstreamSubscriber{
-			dids:  subscriberDids,
-			ident: ident,
+			subCfg := *j.cfg
+			subCfg.WantedDids = newDids
+
+			sub.dids = newDids
+
+			j.subscriberWg.Add(1)
+			go j.startSubscriber(sub, &subCfg)
 		}
-		j.subscribers = append(j.subscribers, subscriber)
-
-		j.subscriberWg.Add(1)
-		go j.startSubscriber(subscriber, &subCfg)
 	}
+}
+
+func didSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	aMap := make(map[string]struct{}, len(a))
+	for _, did := range a {
+		aMap[did] = struct{}{}
+	}
+
+	for _, did := range b {
+		if _, exists := aMap[did]; !exists {
+			return false
+		}
+	}
+
+	return true
 }
 
 // startSubscriber initializes and starts a single subscriber
