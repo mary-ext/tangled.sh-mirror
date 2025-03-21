@@ -61,7 +61,7 @@ func Make(config *appview.Config) (*State, error) {
 	resolver := appview.NewResolver()
 
 	wrapper := db.DbWrapper{d}
-	jc, err := jetstream.NewJetstreamClient("appview", []string{tangled.GraphFollowNSID}, nil, slog.Default(), wrapper, false)
+	jc, err := jetstream.NewJetstreamClient(config.JetstreamEndpoint, "appview", []string{tangled.GraphFollowNSID}, nil, slog.Default(), wrapper, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
