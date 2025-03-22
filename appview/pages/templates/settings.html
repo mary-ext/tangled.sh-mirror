@@ -108,7 +108,7 @@
       </div>
       <div class="flex gap-2 items-center">
         {{ if not .Verified }}
-        <a 
+        <button
           class="btn flex gap-2"
           hx-post="/settings/emails/verify/resend" 
           hx-swap="none"
@@ -116,7 +116,7 @@
           hx-vals='{"email": "{{ .Address }}"}'>
           <i class="w-5 h-5" data-lucide="rotate-cw"></i>
           <span class="hidden md:inline">resend</span> 
-        </a>
+        </button>
         {{ end }}
         {{ if and (not .Primary) .Verified }}
         <a 

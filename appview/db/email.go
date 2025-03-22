@@ -24,7 +24,7 @@ func GetPrimaryEmail(e Execer, did string) (Email, error) {
 	`
 	var email Email
 	var createdStr string
-	var lastSent *string
+	var lastSent string
 	err := e.QueryRow(query, did).Scan(&email.ID, &email.Did, &email.Address, &email.Verified, &email.Primary, &email.VerificationCode, &lastSent, &createdStr)
 	if err != nil {
 		return Email{}, err
@@ -33,13 +33,11 @@ func GetPrimaryEmail(e Execer, did string) (Email, error) {
 	if err != nil {
 		return Email{}, err
 	}
-	if lastSent != nil {
-		parsedTime, err := time.Parse(time.RFC3339, *lastSent)
-		if err != nil {
-			return Email{}, err
-		}
-		email.LastSent = &parsedTime
+	parsedTime, err := time.Parse(time.RFC3339, lastSent)
+	if err != nil {
+		return Email{}, err
 	}
+	email.LastSent = &parsedTime
 	return email, nil
 }
 
@@ -51,7 +49,7 @@ func GetEmail(e Execer, did string, em string) (Email, error) {
 	`
 	var email Email
 	var createdStr string
-	var lastSent *string
+	var lastSent string
 	err := e.QueryRow(query, did, em).Scan(&email.ID, &email.Did, &email.Address, &email.Verified, &email.Primary, &email.VerificationCode, &lastSent, &createdStr)
 	if err != nil {
 		return Email{}, err
@@ -60,13 +58,11 @@ func GetEmail(e Execer, did string, em string) (Email, error) {
 	if err != nil {
 		return Email{}, err
 	}
-	if lastSent != nil {
-		parsedTime, err := time.Parse(time.RFC3339, *lastSent)
-		if err != nil {
-			return Email{}, err
-		}
-		email.LastSent = &parsedTime
+	parsedTime, err := time.Parse(time.RFC3339, lastSent)
+	if err != nil {
+		return Email{}, err
 	}
+	email.LastSent = &parsedTime
 	return email, nil
 }
 
@@ -260,7 +256,7 @@ func GetAllEmails(e Execer, did string) ([]Email, error) {
 	for rows.Next() {
 		var email Email
 		var createdStr string
-		var lastSent *string
+		var lastSent string
 		err := rows.Scan(&email.Did, &email.Address, &email.Verified, &email.Primary, &email.VerificationCode, &lastSent, &createdStr)
 		if err != nil {
 			return nil, err
@@ -269,13 +265,11 @@ func GetAllEmails(e Execer, did string) ([]Email, error) {
 		if err != nil {
 			return nil, err
 		}
-		if lastSent != nil {
-			parsedTime, err := time.Parse(time.RFC3339, *lastSent)
-			if err != nil {
-				return nil, err
-			}
-			email.LastSent = &parsedTime
+		parsedTime, err := time.Parse(time.RFC3339, lastSent)
+		if err != nil {
+			return nil, err
 		}
+		email.LastSent = &parsedTime
 		emails = append(emails, email)
 	}
 	return emails, nil
@@ -284,19 +278,10 @@ func GetAllEmails(e Execer, did string) ([]Email, error) {
 func UpdateVerificationCode(e Execer, did string, email string, code string) error {
 	query := `
 		update emails
-		set verification_code = ?
+		set verification_code = ?,
+			last_sent = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 		where did = ? and email = ?
 	`
 	_, err := e.Exec(query, code, did, email)
-	return err
-}
-
-func UpdateLastSent(e Execer, did string, email string, lastSent time.Time) error {
-	query := `
-		update emails
-		set last_sent = ?
-		where did = ? and email = ?
-	`
-	_, err := e.Exec(query, lastSent.Format(time.RFC3339), did, email)
 	return err
 }
