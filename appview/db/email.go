@@ -67,21 +67,21 @@ func GetDidForEmail(e Execer, em string) (string, error) {
 	return did, nil
 }
 
-func GetDidsForEmails(e Execer, ems []string) ([]string, error) {
+func GetEmailToDid(e Execer, ems []string) (map[string]string, error) {
 	if len(ems) == 0 {
-		return []string{}, nil
+		return make(map[string]string), nil
 	}
 
 	// Create placeholders for the IN clause
 	placeholders := make([]string, len(ems))
-	args := make([]interface{}, len(ems))
+	args := make([]any, len(ems))
 	for i, em := range ems {
 		placeholders[i] = "?"
 		args[i] = em
 	}
 
 	query := `
-		select did
+		select email, did
 		from emails
 		where email in (` + strings.Join(placeholders, ",") + `)
 	`
@@ -92,20 +92,21 @@ func GetDidsForEmails(e Execer, ems []string) ([]string, error) {
 	}
 	defer rows.Close()
 
-	var dids []string
+	assoc := make(map[string]string)
+
 	for rows.Next() {
-		var did string
-		if err := rows.Scan(&did); err != nil {
+		var email, did string
+		if err := rows.Scan(&email, &did); err != nil {
 			return nil, err
 		}
-		dids = append(dids, did)
+		assoc[email] = did
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return dids, nil
+	return assoc, nil
 }
 
 func GetVerificationCodeForEmail(e Execer, did string, email string) (string, error) {

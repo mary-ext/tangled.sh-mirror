@@ -20,9 +20,10 @@
 
   <div class="flex items-center">
       <p class="text-sm text-gray-500">
-          {{ if index .EmailToDidOrHandle $commit.Author.Email }}
-            {{ $handle := index .EmailToDidOrHandle $commit.Author.Email }}
-            <a href="/@{{ $handle }}" class="no-underline hover:underline text-gray-500">@{{ $handle }}</a>
+          {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
+
+          {{ if $didOrHandle }}
+            <a href="/{{ $didOrHandle }}" class="no-underline hover:underline text-gray-500">{{ $didOrHandle }}</a>
           {{ else }}
             <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">{{ $commit.Author.Name }}</a>
           {{ end }}
