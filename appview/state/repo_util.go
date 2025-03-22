@@ -81,33 +81,38 @@ func uniqueEmails(commits []*object.Commit) []string {
 }
 
 func EmailToDidOrHandle(s *State, emails []string) map[string]string {
-	dids, err := db.GetDidsForEmails(s.db, emails)
+	emailToDid, err := db.GetEmailToDid(s.db, emails)
 	if err != nil {
 		log.Printf("error fetching dids for emails: %v", err)
 		return nil
 	}
 
-	didHandleMap := make(map[string]string)
-	emailToDid := make(map[string]string)
+	log.Println(emailToDid)
+	var dids []string
+	for _, v := range emailToDid {
+		dids = append(dids, v)
+	}
+	log.Println(dids)
 	resolvedIdents := s.resolver.ResolveIdents(context.Background(), dids)
-	for i, resolved := range resolvedIdents {
-		if resolved != nil {
-			didHandleMap[dids[i]] = resolved.Handle.String()
-			if i < len(emails) {
-				emailToDid[emails[i]] = dids[i]
-			}
+
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIdents {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
 		}
 	}
 
 	// Create map of email to didOrHandle for commit display
 	emailToDidOrHandle := make(map[string]string)
 	for email, did := range emailToDid {
-		if handle, ok := didHandleMap[did]; ok {
-			emailToDidOrHandle[email] = handle
-		} else {
-			emailToDidOrHandle[email] = did
+		if didOrHandle, ok := didHandleMap[did]; ok {
+			emailToDidOrHandle[email] = didOrHandle
 		}
 	}
+
+	log.Println(emailToDidOrHandle)
 
 	return emailToDidOrHandle
 }
