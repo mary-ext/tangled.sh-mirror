@@ -136,18 +136,21 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull) types.MergeCheck
 		}
 	}
 
-	resp, err := ksClient.MergeCheck([]byte(pull.LatestPatch()), pull.OwnerDid, f.RepoName, pull.TargetBranch)
+	resp, err := ksClient.MergeCheck([]byte(pull.LatestPatch()), f.OwnerDid(), f.RepoName, pull.TargetBranch)
 	if err != nil {
 		log.Println("failed to check for mergeability:", err)
-		switch resp.StatusCode {
-		case 400:
-			return types.MergeCheckResponse{
-				Error: "failed to check merge status: does this knot support PRs?",
-			}
-		default:
-			return types.MergeCheckResponse{
-				Error: "failed to check merge status: this knot is unreachable",
-			}
+		return types.MergeCheckResponse{
+			Error: "failed to check merge status",
+		}
+	}
+	switch resp.StatusCode {
+	case 404:
+		return types.MergeCheckResponse{
+			Error: "failed to check merge status: this knot does not support PRs",
+		}
+	case 400:
+		return types.MergeCheckResponse{
+			Error: "failed to check merge status: does this knot support PRs?",
 		}
 	}
 
