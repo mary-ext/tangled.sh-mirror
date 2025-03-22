@@ -46,7 +46,7 @@
         </button>
         {{ end }}
 
-        {{ if and $isPullAuthor $isPushAllowed $isOpen $isLastRound }}
+        {{ if and (or $isPullAuthor $isPushAllowed) $isOpen $isLastRound }}
         <button 
           hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/close"
           hx-swap="none"
@@ -56,7 +56,7 @@
         </button>
         {{ end }}
 
-        {{ if and $isPullAuthor $isPushAllowed $isClosed $isLastRound }}
+        {{ if and (or $isPullAuthor $isPushAllowed) $isClosed $isLastRound }}
         <button 
           hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/reopen"
           hx-swap="none"

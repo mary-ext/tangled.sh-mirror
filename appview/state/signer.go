@@ -166,14 +166,14 @@ func (s *SignedClient) Merge(
 		Method = "POST"
 	)
 	endpoint := fmt.Sprintf("/%s/%s/merge", ownerDid, targetRepo)
-	
+
 	mr := types.MergeRequest{
-		Branch: branch,
+		Branch:        branch,
 		CommitMessage: commitMessage,
-		CommitBody: commitBody,
-		AuthorName: authorName,
-		AuthorEmail: authorEmail,
-		Patch: string(patch),
+		CommitBody:    commitBody,
+		AuthorName:    authorName,
+		AuthorEmail:   authorEmail,
+		Patch:         string(patch),
 	}
 
 	body, _ := json.Marshal(mr)
@@ -192,7 +192,7 @@ func (s *SignedClient) MergeCheck(patch []byte, ownerDid, targetRepo, branch str
 	)
 	endpoint := fmt.Sprintf("/%s/%s/merge/check", ownerDid, targetRepo)
 
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"patch":  string(patch),
 		"branch": branch,
 	})
