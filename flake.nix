@@ -279,10 +279,10 @@
                 description = "Internal address for inter-service communication";
               };
 
-              secret = mkOption {
-                type = types.str;
-                example = "super-secret-key";
-                description = "Secret key provided by appview (required)";
+              secretFile = mkOption {
+                type = lib.types.path;
+                example = "KNOT_SERVER_SECRET=<hash>";
+                description = "File containing secret key provided by appview (required)";
               };
 
               dbPath = mkOption {
@@ -359,9 +359,9 @@
                 "APPVIEW_ENDPOINT=${config.services.tangled-knotserver.appviewEndpoint}"
                 "KNOT_SERVER_INTERNAL_LISTEN_ADDR=${config.services.tangled-knotserver.server.internalListenAddr}"
                 "KNOT_SERVER_LISTEN_ADDR=${config.services.tangled-knotserver.server.listenAddr}"
-                "KNOT_SERVER_SECRET=${config.services.tangled-knotserver.server.secret}"
                 "KNOT_SERVER_HOSTNAME=${config.services.tangled-knotserver.server.hostname}"
               ];
+              EnvironmentFile = config.services.tangled-knotserver.server.secretFile;
               ExecStart = "${self.packages.${pkgs.system}.knotserver}/bin/knotserver";
               Restart = "always";
             };
@@ -384,10 +384,13 @@
           virtualisation.cores = 2;
           services.getty.autologinUser = "root";
           environment.systemPackages = with pkgs; [curl vim git];
+          systemd.tmpfiles.rules = [
+            "w /var/lib/knotserver/secret 0660 git git - KNOT_SERVER_SECRET=6995e040e80e2d593b5e5e9ca611a70140b9ef8044add0a28b48b1ee34aa3e85"
+          ];
           services.tangled-knotserver = {
             enable = true;
             server = {
-              secret = "6995e040e80e2d593b5e5e9ca611a70140b9ef8044add0a28b48b1ee34aa3e85";
+              secretFile = "/var/lib/knotserver/secret";
               hostname = "localhost:6000";
               listenAddr = "0.0.0.0:6000";
             };
