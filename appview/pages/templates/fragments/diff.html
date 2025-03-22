@@ -84,11 +84,11 @@
                 <div class="bg-gray-100 text-gray-500 select-none">{{ .Header }}</div>
                 {{- range .Lines -}}
                     {{- if eq .Op.String "+" -}}
-                    <div class="bg-green-100 text-green-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    <div class="bg-green-100 text-green-700 p-1 w-full min-w-fit"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                     {{- end -}}
 
                     {{- if eq .Op.String "-" -}}
-                    <div class="bg-red-100 text-red-700 p-1"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
+                    <div class="bg-red-100 text-red-700 p-1 w-full min-w-fit"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
                     {{- end -}}
 
                     {{- if eq .Op.String " " -}}

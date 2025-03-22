@@ -6,9 +6,11 @@ import (
 	"html"
 	"html/template"
 	"log"
+	"math"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 )
@@ -66,6 +68,25 @@ func funcMap() template.FuncMap {
 			return s
 		},
 		"timeFmt": humanize.Time,
+		"shortTimeFmt": func(t time.Time) string {
+			return humanize.CustomRelTime(t, time.Now(), "", "", []humanize.RelTimeMagnitude{
+				{time.Second, "now", time.Second},
+				{2 * time.Second, "1s %s", 1},
+				{time.Minute, "%ds %s", time.Second},
+				{2 * time.Minute, "1min %s", 1},
+				{time.Hour, "%dmin %s", time.Minute},
+				{2 * time.Hour, "1hr %s", 1},
+				{humanize.Day, "%dhrs %s", time.Hour},
+				{2 * humanize.Day, "1d %s", 1},
+				{20 * humanize.Day, "%dd %s", humanize.Day},
+				{8 * humanize.Week, "%dw %s", humanize.Week},
+				{humanize.Year, "%dmo %s", humanize.Month},
+				{18 * humanize.Month, "1y %s", 1},
+				{2 * humanize.Year, "2y %s", 1},
+				{humanize.LongTime, "%dy %s", humanize.Year},
+				{math.MaxInt64, "a long while %s", 1},
+			})
+		},
 		"byteFmt": humanize.Bytes,
 		"length": func(slice any) int {
 			v := reflect.ValueOf(slice)
