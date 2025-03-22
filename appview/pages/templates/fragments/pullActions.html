@@ -28,7 +28,7 @@
           <button 
             hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
             hx-swap="none"
-            hx-confirm="Are you sure you want to merge this pull request?"
+            hx-confirm="Are you sure you want to merge pull #{{ .Pull.PullId }} into the `{{ .Pull.TargetBranch }}` branch?"
             class="btn p-2 flex items-center gap-2" {{ $disabled }}>
             {{ i "git-merge" "w-4 h-4" }}
               <span>merge</span>

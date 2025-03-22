@@ -77,29 +77,40 @@
     {{ $oneIndexedRound := add .RoundNumber 1 }}
     <details {{ if eq $idx $lastIdx }}open{{ end }}>
         <summary id="round-#{{ $oneIndexedRound }}" class="list-none cursor-pointer">
-          <div class="flex gap-2 items-center">
-            <div class="rounded bg-white drop-shadow-sm p-3">
+          <div class="flex flex-wrap gap-2 items-center">
+            <!-- round number -->
+            <div class="rounded bg-white drop-shadow-sm px-3 py-2">
               #{{ $oneIndexedRound }}
             </div>
-            <div class="rounded drop-shadow-sm bg-white p-3 text-gray-500">
+            <!-- round summary -->
+            <div class="rounded drop-shadow-sm bg-white p-2 text-gray-500">
               <span>
                 {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
-                submitted by <a href="/{{ $owner }}">{{ $owner }}</a>
+                {{ $re := "re" }}
+                {{ if eq .RoundNumber 0 }}
+                  {{ $re = "" }}
+                {{ end }}
+                <span class="hidden md:inline">{{$re}}submitted</span>
+                by <a href="/{{ $owner }}">{{ $owner }}</a>
                 <span class="select-none before:content-['\00B7']"></span>
-                <a class="text-gray-500 hover:text-gray-500" href="#round-#{{ $oneIndexedRound }}"><time>{{ .Created | timeFmt }}</time></a>
+                <a class="text-gray-500 hover:text-gray-500" href="#round-#{{ $oneIndexedRound }}"><time>{{ .Created | shortTimeFmt }}</time></a>
                 <span class="select-none before:content-['·']"></span>
                 {{ $s := "s" }}
                 {{ if eq (len .Comments) 1 }}
                   {{ $s = "" }}
                 {{ end }}
                 {{ len .Comments }} comment{{$s}}
-                <span class="before:content-['·']"></span>
-                <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">view patch</a>
               </span>
             </div>
+            <!-- view patch -->
+            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2"
+               hx-boost="true"
+               href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">
+              {{ i "file-diff" "w-4 h-4" }} <span class="hidden md:inline">view patch</span>
+            </a>
           </div>
         </summary>
-        <div class="pl-12 flex flex-col gap-2 mt-2 relative">
+        <div class="md:pl-12 flex flex-col gap-2 mt-2 relative">
           {{ range .Comments }}
             <div id="comment-{{.ID}}" class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-fit">
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
@@ -107,10 +118,10 @@
                 {{ $owner := index $.DidHandleMap .OwnerDid }} 
                 <a href="/{{$owner}}">{{$owner}}</a>
                 <span class="before:content-['·']"></span>
-                <a href="#comment-{{.ID}}"><time>{{ .Created | timeFmt }}</time></a>
+                <a class="text-gray-500 hover:text-gray-500" href="#comment-{{.ID}}"><time>{{ .Created | shortTimeFmt }}</time></a>
               </div>
               <div class="prose">
-                {{ .Body }}
+                {{ .Body | markdown }}
               </div>
             </div>
           {{ end }}
@@ -129,6 +140,7 @@
           {{ end }}
         </div>
     </details>
+    <hr class="md:hidden"/>
     {{ end }}
   {{ end }}
 {{ end }}
@@ -187,186 +199,4 @@
     </div>
   </div>
   {{ end }}
-{{ end }}
-
-{{ define "newComment" }}
-  {{ $rootObj := index . 0 }}
-  {{ $submissionId := index . 1 }}
-
-  {{ with $rootObj }}
-    {{ if .LoggedInUser }}
-      <div class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-full md:w-96">
-        <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-        <div class="text-sm text-gray-500">
-          {{ index .DidHandleMap .LoggedInUser.Did }} 
-        </div>
-        <form
-            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/comment"
-            hx-swap="none">
-          <input type="hidden" name="submissionId" value="{{ $submissionId }}">
-          <textarea
-              name="body"
-              class="w-full border-0 h-8 focus:outline-none focus:ring-0 px-0 py-1"
-              placeholder="Add to the discussion..." /></textarea>
-          <div class="flex justify-end">
-            <button type="submit" class="btn text-sm mt-2">comment</button>
-          </div>
-          <div id="pull-comment"></div>
-        </form>
-      </div>
-      {{ else }}
-      <div class="bg-white rounded drop-shadow-sm px-6 py-4 text-sm w-fit">
-        <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-        <a href="/login" class="underline">login</a> to join the discussion
-      </div>
-    {{ end }}
-  {{ end }}
-{{ end }}
-
-{{ define "alreadyMergedCard" }}
-  <div
-      id="merge-status-card"
-      class="rounded relative bg-purple-50 border border-purple-200 p-4">
-
-      <div class="flex items-center gap-2 text-purple-500">
-        {{ i "git-merge" "w-4 h-4" }}
-          <span class="font-medium"
-              >pull request successfully merged</span
-          >
-      </div>
-
-      <div class="mt-2 text-sm text-gray-700">
-          <p>This pull request has been merged into the base branch.</p>
-      </div>
-  </div>
-{{ end }}
-
-{{ define "isConflictedCard" }}
-  <div
-      id="merge-status-card"
-      class="rounded relative border bg-red-50 border-red-200 p-4">
-
-      <div class="flex items-center gap-2 text-red-500">
-        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-        <span class="font-medium">merge conflicts detected</span>
-      </div>
-
-      <div class="mt-2">
-          <ul class="text-sm space-y-1">
-              {{ range .MergeCheck.Conflicts }}
-                  <li class="flex items-center">
-                      <i
-                          data-lucide="file-warning"
-                          class="w-3 h-3 mr-1.5 text-red-500"
-                      ></i>
-                      <span class="font-mono"
-                          >{{ slice .Filename 0 (sub (len .Filename) 2) }}</span
-                      >
-                  </li>
-              {{ end }}
-          </ul>
-      </div>
-      <div class="mt-3 text-sm text-gray-700">
-          <p>
-              Please resolve these conflicts locally and update
-              the patch to continue with the merge.
-          </p>
-      </div>
-  </div>
-{{ end }}
-
-
-{{ define "noConflictsCard" }}
-  {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
-  {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
-  <div
-      id="merge-status-card"
-      class="rounded relative border bg-green-50 border-green-200 p-4">
-
-      <div class="flex items-center gap-2 text-green-500">
-        <i data-lucide="check-circle" class="w-4 h-4"></i>
-        <span class="font-medium">ready to merge</span>
-      </div>
-
-      <div class="mt-2 text-sm text-gray-700">
-        No conflicts detected with the base branch. This
-        pull request can be merged safely.
-      </div>
-
-      <div class="flex items-center gap-2">
-        {{ if $isPushAllowed }}
-          <button
-              class="btn mt-4 flex items-center gap-2"
-              hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
-              hx-swap="none"
-              {{ if or .Pull.State.IsClosed .MergeCheck.IsConflicted }}
-                  disabled
-              {{ end }}>
-              <i data-lucide="git-merge" class="w-4 h-4"></i>
-              <span>merge</span>
-          </button>
-        {{ end }}
-
-        {{ if and (or $isPullAuthor $isPushAllowed) (not .Pull.State.IsMerged) }}
-          {{ $action := "close" }}
-          {{ $icon := "circle-x" }}
-          {{ $hoverColor := "red" }}
-          {{ if .Pull.State.IsClosed }}
-              {{ $action = "reopen" }}
-              {{ $icon = "circle-dot" }}
-              {{ $hoverColor = "green" }}
-          {{ end }}
-          <button
-            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/{{ $action }}"
-            hx-swap="none"
-            class="btn mt-4 flex items-center gap-2">
-              <i data-lucide="{{ $icon }}" class="w-4 h-4 text-{{ $hoverColor }}-400"></i>
-              <span class="text-black">{{ $action }}</span>
-          </button>
-        {{ end }}
-
-        <div id="pull-merge-error" class="error"></div>
-        <div id="pull-merge-success" class="success"></div>
-      </div>
-  </div>
-{{ end }}
-
-{{ define "resubmitCard" }}
-  <div
-      id="resubmit-pull-card"
-      class="rounded relative border bg-amber-50 border-amber-200 p-4">
-
-      <div class="flex items-center gap-2 text-amber-500">
-        <i data-lucide="edit" class="w-4 h-4"></i>
-        <span class="font-medium">resubmit your patch</span>
-      </div>
-
-      <div class="mt-2 text-sm text-gray-700">
-        You can update this patch to address any reviews. 
-        This will begin a new round of reviews,
-        but you'll still be able to view your previous submissions and feedback.
-      </div>
-
-      <div class="mt-4 flex flex-col">
-        <form hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit" class="w-full" hx-swap="none">
-          <textarea
-            name="patch"
-            class="w-full p-2 mb-2 rounded border border-gray-200"
-            placeholder="Paste your updated patch here."
-            ></textarea>
-          <button
-              type="submit"
-              class="btn flex items-center gap-2"
-              {{ if or .Pull.State.IsClosed }}
-              disabled
-              {{ end }}>
-            <i data-lucide="refresh-ccw" class="w-4 h-4"></i>
-            <span>resubmit</span>
-          </button>
-        </form>
-
-        <div id="resubmit-error" class="error"></div>
-        <div id="resubmit-success" class="success"></div>
-      </div>
-  </div>
 {{ end }}

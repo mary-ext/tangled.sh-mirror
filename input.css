@@ -132,7 +132,7 @@
             @apply relative z-10 inline-flex min-h-[30px] cursor-pointer items-center
             justify-center bg-transparent px-2 pb-[0.2rem] text-base
             text-gray-900 before:absolute before:inset-0 before:-z-10
-            before:block before:rounded-sm before:border before:border-gray-200
+            before:block before:rounded before:border before:border-gray-200
             before:bg-white before:drop-shadow-sm
             before:content-[''] hover:before:border-gray-300
             hover:before:bg-gray-50
