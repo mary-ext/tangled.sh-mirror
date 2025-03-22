@@ -84,23 +84,32 @@ func GetDidForEmail(e Execer, em string) (string, error) {
 	return did, nil
 }
 
-func GetEmailToDid(e Execer, ems []string) (map[string]string, error) {
+func GetEmailToDid(e Execer, ems []string, isVerifiedFilter bool) (map[string]string, error) {
 	if len(ems) == 0 {
 		return make(map[string]string), nil
 	}
 
+	verifiedFilter := 0
+	if isVerifiedFilter {
+		verifiedFilter = 1
+	}
+
 	// Create placeholders for the IN clause
 	placeholders := make([]string, len(ems))
-	args := make([]any, len(ems))
+	args := make([]any, len(ems)+1)
+
+	args[0] = verifiedFilter
 	for i, em := range ems {
 		placeholders[i] = "?"
-		args[i] = em
+		args[i+1] = em
 	}
 
 	query := `
 		select email, did
 		from emails
-		where email in (` + strings.Join(placeholders, ",") + `)
+		where 
+			verified = ? 
+			and email in (` + strings.Join(placeholders, ",") + `)
 	`
 
 	rows, err := e.Query(query, args...)
