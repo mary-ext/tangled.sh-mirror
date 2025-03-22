@@ -61,9 +61,3 @@ func IsValidEmail(email string) bool {
 
 	return true
 }
-
-func IsValidEmailSimple(email string) bool {
-	pattern := `^[a-zA-Z0-9.!#$%&'*+/=?^_\x60{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`
-	regex := regexp.MustCompile(pattern)
-	return regex.MatchString(email) && len(email) <= 254 && len(email) >= 3
-}
