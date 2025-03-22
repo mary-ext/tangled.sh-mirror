@@ -103,7 +103,17 @@
         </div>
       </div>
       <div class="flex gap-2 items-center">
-        {{ if not .Primary }}
+        {{ if not .Verified }}
+        <a 
+          class="text-sm"
+          hx-post="/settings/emails/verify/resend" 
+          hx-swap="none"
+          href="#"
+          hx-vals='{"email": "{{ .Address }}"}'>
+          resend verification
+        </a>
+        {{ end }}
+        {{ if and (not .Primary) .Verified }}
         <a 
           class="text-sm"
           hx-post="/settings/emails/primary" 
