@@ -170,6 +170,7 @@ func (s *State) StandardRouter() http.Handler {
 		r.Put("/emails", s.SettingsEmails)
 		r.Delete("/emails", s.SettingsEmails)
 		r.Get("/emails/verify", s.SettingsEmailsVerify)
+		r.Post("/emails/verify/resend", s.SettingsEmailsVerifyResend)
 		r.Post("/emails/primary", s.SettingsEmailsPrimary)
 	})
 

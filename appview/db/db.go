@@ -202,6 +202,7 @@ func Make(dbPath string) (*DB, error) {
 			email text not null,
 			verified integer not null default 0,
 			verification_code text not null,
+			last_sent text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			is_primary integer not null default 0,
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			unique(did, email)

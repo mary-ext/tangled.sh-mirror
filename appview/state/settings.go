@@ -38,6 +38,36 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// buildVerificationEmail creates an email.Email struct for verification emails
+func (s *State) buildVerificationEmail(emailAddr, did, code string) email.Email {
+	verifyURL := s.verifyUrl(did, emailAddr, code)
+
+	return email.Email{
+		APIKey:  s.config.ResendApiKey,
+		From:    "noreply@notifs.tangled.sh",
+		To:      emailAddr,
+		Subject: "Verify your Tangled email",
+		Text: `Click the link below (or copy and paste it into your browser) to verify your email address.
+` + verifyURL,
+		Html: `<p>Click the link (or copy and paste it into your browser) to verify your email address.</p>
+<p><a href="` + verifyURL + `">` + verifyURL + `</a></p>`,
+	}
+}
+
+// sendVerificationEmail handles the common logic for sending verification emails
+func (s *State) sendVerificationEmail(w http.ResponseWriter, did, emailAddr, code string, errorContext string) error {
+	emailToSend := s.buildVerificationEmail(emailAddr, did, code)
+
+	err := email.SendEmail(emailToSend)
+	if err != nil {
+		log.Printf("sending email: %s", err)
+		s.pages.Notice(w, "settings-emails-error", fmt.Sprintf("Unable to send verification email at this moment, try again later. %s", errorContext))
+		return err
+	}
+
+	return nil
+}
+
 func (s *State) SettingsEmails(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -94,21 +124,7 @@ func (s *State) SettingsEmails(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = email.SendEmail(email.Email{
-			APIKey: s.config.ResendApiKey,
-
-			From:    "noreply@notifs.tangled.sh",
-			To:      emAddr,
-			Subject: "Verify your Tangled email",
-			Text: `Click the link below (or copy and paste it into your browser) to verify your email address.
-` + s.verifyUrl(did, emAddr, code),
-			Html: `<p>Click the link (or copy and paste it into your browser) to verify your email address.</p>
-<p><a href="` + s.verifyUrl(did, emAddr, code) + `">` + s.verifyUrl(did, emAddr, code) + `</a></p>`,
-		})
-
-		if err != nil {
-			log.Printf("sending email: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to send verification email at this moment, try again later.")
+		if err := s.sendVerificationEmail(w, did, emAddr, code, ""); err != nil {
 			return
 		}
 
@@ -192,6 +208,82 @@ func (s *State) SettingsEmailsVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+}
+
+func (s *State) SettingsEmailsVerifyResend(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.pages.Notice(w, "settings-emails-error", "Invalid request method.")
+		return
+	}
+
+	did := s.auth.GetDid(r)
+	emAddr := r.FormValue("email")
+	emAddr = strings.TrimSpace(emAddr)
+
+	if !email.IsValidEmail(emAddr) {
+		s.pages.Notice(w, "settings-emails-error", "Invalid email address.")
+		return
+	}
+
+	// Check if email exists and is unverified
+	existingEmail, err := db.GetEmail(s.db, did, emAddr)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			s.pages.Notice(w, "settings-emails-error", "Email not found. Please add it first.")
+		} else {
+			log.Printf("checking for existing email: %s", err)
+			s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+		}
+		return
+	}
+
+	if existingEmail.Verified {
+		s.pages.Notice(w, "settings-emails-error", "This email is already verified.")
+		return
+	}
+
+	// Check if last verification email was sent less than 10 minutes ago
+	if existingEmail.LastSent != nil {
+		timeSinceLastSent := time.Since(*existingEmail.LastSent)
+		if timeSinceLastSent < 10*time.Minute {
+			waitTime := 10*time.Minute - timeSinceLastSent
+			s.pages.Notice(w, "settings-emails-error", fmt.Sprintf("Please wait %d minutes before requesting another verification email.", int(waitTime.Minutes()+1)))
+			return
+		}
+	}
+
+	// Generate new verification code
+	code := uuid.New().String()
+
+	// Begin transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		log.Printf("failed to start transaction: %s", err)
+		s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	// Update the verification code and last sent time
+	if err := db.UpdateVerificationCode(tx, did, emAddr, code); err != nil {
+		log.Printf("updating email verification: %s", err)
+		s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+		return
+	}
+
+	// Send verification email
+	if err := s.sendVerificationEmail(w, did, emAddr, code, ""); err != nil {
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		log.Printf("failed to commit transaction: %s", err)
+		s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+		return
+	}
+
+	s.pages.Notice(w, "settings-emails-success", "Verification email resent. Click the link in the email we sent you to verify your email address.")
 }
 
 func (s *State) SettingsEmailsPrimary(w http.ResponseWriter, r *http.Request) {
