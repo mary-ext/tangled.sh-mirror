@@ -25,12 +25,12 @@
             </span>
             <span class="mx-2 before:content-['·'] before:select-none"></span>
             <span>
-                {{ $handle := index $.EmailToDidOrHandle $commit.Author.Email }}
-                {{ if $handle }}
+                {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
+                {{ if $didOrHandle }}
                 <a
-                    href="/@{{ $handle }}"
+                    href="/{{ $didOrHandle }}"
                     class="text-gray-500 no-underline hover:underline"
-                    >@{{ $handle }}</a
+                    >{{ $didOrHandle }}</a
                 >
                 {{ else }}
                 <a
@@ -105,12 +105,12 @@
                                 class="mx-2 before:content-['·'] before:select-none"
                             ></span>
                             <span>
-                                {{ $handle := index $.EmailToDidOrHandle .Author.Email }}
-                                {{ if $handle }}
+                                {{ $didOrHandle := index $.EmailToDidOrHandle .Author.Email }}
+                                {{ if $didOrHandle }}
                                 <a
-                                    href="/@{{ $handle }}"
+                                    href="/{{ $didOrHandle }}"
                                     class="text-gray-500 no-underline hover:underline"
-                                    >@{{ $handle }}</a
+                                    >{{ $didOrHandle }}</a
                                 >
                                 {{ else }}
                                 <a
