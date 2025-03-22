@@ -81,18 +81,16 @@ func uniqueEmails(commits []*object.Commit) []string {
 }
 
 func EmailToDidOrHandle(s *State, emails []string) map[string]string {
-	emailToDid, err := db.GetEmailToDid(s.db, emails)
+	emailToDid, err := db.GetEmailToDid(s.db, emails, true) // only get verified emails for mapping
 	if err != nil {
 		log.Printf("error fetching dids for emails: %v", err)
 		return nil
 	}
 
-	log.Println(emailToDid)
 	var dids []string
 	for _, v := range emailToDid {
 		dids = append(dids, v)
 	}
-	log.Println(dids)
 	resolvedIdents := s.resolver.ResolveIdents(context.Background(), dids)
 
 	didHandleMap := make(map[string]string)
@@ -111,8 +109,6 @@ func EmailToDidOrHandle(s *State, emails []string) map[string]string {
 			emailToDidOrHandle[email] = didOrHandle
 		}
 	}
-
-	log.Println(emailToDidOrHandle)
 
 	return emailToDidOrHandle
 }
