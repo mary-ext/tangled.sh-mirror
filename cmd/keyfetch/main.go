@@ -42,5 +42,5 @@ func main() {
 		log.Fatalf("error unmarshalling response body: %v", err)
 	}
 
-	fmt.Print(formatKeyData(*repoguardPath, *gitDir, *logPath, data))
+	fmt.Print(formatKeyData(*repoguardPath, *gitDir, *logPath, *endpoint, data))
 }
