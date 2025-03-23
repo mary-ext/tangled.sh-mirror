@@ -122,7 +122,7 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull) types.MergeCheck
 
 	secret, err := db.GetRegistrationKey(s.db, f.Knot)
 	if err != nil {
-		log.Printf("failed to get registration key: %w", err)
+		log.Printf("failed to get registration key: %v", err)
 		return types.MergeCheckResponse{
 			Error: "failed to check merge status: this knot is unregistered",
 		}
