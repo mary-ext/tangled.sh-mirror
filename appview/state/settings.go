@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -177,7 +178,7 @@ func (s *State) verifyUrl(did string, email string, code string) string {
 		appUrl = "https://tangled.sh"
 	}
 
-	return fmt.Sprintf("%s/settings/emails/verify?did=%s&email=%s&code=%s", appUrl, did, email, code)
+	return fmt.Sprintf("%s/settings/emails/verify?did=%s&email=%s&code=%s", appUrl, url.QueryEscape(did), url.QueryEscape(email), url.QueryEscape(code))
 }
 
 func (s *State) SettingsEmailsVerify(w http.ResponseWriter, r *http.Request) {
