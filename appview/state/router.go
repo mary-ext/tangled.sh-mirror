@@ -2,10 +2,10 @@ package state
 
 import (
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sotangled/tangled/appview/state/userutil"
 )
 
 func (s *State) Router() http.Handler {
@@ -19,14 +19,14 @@ func (s *State) Router() http.Handler {
 			// Check if the first path element is a valid handle without '@' or a flattened DID
 			pathParts := strings.SplitN(pat, "/", 2)
 			if len(pathParts) > 0 {
-				if isHandleNoAt(pathParts[0]) {
+				if userutil.IsHandleNoAt(pathParts[0]) {
 					// Redirect to the same path but with '@' prefixed to the handle
 					redirectPath := "@" + pat
 					http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
 					return
-				} else if isFlattenedDid(pathParts[0]) {
+				} else if userutil.IsFlattenedDid(pathParts[0]) {
 					// Redirect to the unflattened DID version
-					unflattenedDid := unflattenDid(pathParts[0])
+					unflattenedDid := userutil.UnflattenDid(pathParts[0])
 					var redirectPath string
 					if len(pathParts) > 1 {
 						redirectPath = unflattenedDid + "/" + pathParts[1]
@@ -42,48 +42,6 @@ func (s *State) Router() http.Handler {
 	})
 
 	return router
-}
-
-func isHandleNoAt(s string) bool {
-	// ref: https://atproto.com/specs/handle
-	re := regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)
-	return re.MatchString(s)
-}
-
-func unflattenDid(s string) string {
-	if !isFlattenedDid(s) {
-		return s
-	}
-
-	parts := strings.SplitN(s[4:], "-", 2) // Skip "did-" prefix and split on first "-"
-	if len(parts) != 2 {
-		return s
-	}
-
-	return "did:" + parts[0] + ":" + parts[1]
-}
-
-// isFlattenedDid checks if the given string is a flattened DID.
-// A flattened DID is a DID with the :s swapped to -s to satisfy certain
-// application requirements, such as Go module naming conventions.
-func isFlattenedDid(s string) bool {
-	// Check if the string starts with "did-"
-	if !strings.HasPrefix(s, "did-") {
-		return false
-	}
-
-	// Split the string to extract method and identifier
-	parts := strings.SplitN(s[4:], "-", 2) // Skip "did-" prefix and split on first "-"
-	if len(parts) != 2 {
-		return false
-	}
-
-	// Reconstruct as a standard DID format
-	// Example: "did-plc-xyz-abc" becomes "did:plc:xyz-abc"
-	reconstructed := "did:" + parts[0] + ":" + parts[1]
-	re := regexp.MustCompile(`^did:[a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-]$`)
-
-	return re.MatchString(reconstructed)
 }
 
 func (s *State) UserRouter() http.Handler {

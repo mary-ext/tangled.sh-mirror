@@ -1,5 +1,14 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
+{{ define "extrameta" }}
+    <meta name="vcs:clone" content="https://tangled.sh/{{ .RepoInfo.FullName }}"/>
+    <meta name="forge:summary" content="https://tangled.sh/{{ .RepoInfo.FullName }}">
+    <meta name="forge:dir" content="https://tangled.sh/{{ .RepoInfo.FullName }}/tree/{ref}/{path}">
+    <meta name="forge:file" content="https://tangled.sh/{{ .RepoInfo.FullName }}/blob/{ref}/{path}">
+    <meta name="forge:line" content="https://tangled.sh/{{ .RepoInfo.FullName }}/blob/{ref}/{path}#L{line}">
+    <meta name="go-import" content="tangled.sh/{{ .RepoInfo.FullNameWithoutAt }} git https://tangled.sh/{{ .RepoInfo.FullName }}">
+{{ end }}
+
 {{ define "content" }}
     <section id="repo-header" class="mb-4 py-2 px-6">
       <p class="text-lg">
