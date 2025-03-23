@@ -22,6 +22,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/sotangled/tangled/appview/auth"
 	"github.com/sotangled/tangled/appview/db"
+	"github.com/sotangled/tangled/appview/state/userutil"
 	"github.com/sotangled/tangled/types"
 )
 
@@ -252,6 +253,18 @@ func (r RepoInfo) FullName() string {
 	return path.Join(r.OwnerWithAt(), r.Name)
 }
 
+func (r RepoInfo) OwnerWithoutAt() string {
+	if strings.HasPrefix(r.OwnerWithAt(), "@") {
+		return strings.TrimPrefix(r.OwnerWithAt(), "@")
+	} else {
+		return userutil.FlattenDid(r.OwnerDid)
+	}
+}
+
+func (r RepoInfo) FullNameWithoutAt() string {
+	return path.Join(r.OwnerWithoutAt(), r.Name)
+}
+
 func (r RepoInfo) GetTabs() [][]string {
 	tabs := [][]string{
 		{"overview", "/"},
@@ -328,7 +341,7 @@ type RepoLogParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
 	types.RepoLogResponse
-	Active string
+	Active             string
 	EmailToDidOrHandle map[string]string
 }
 
