@@ -1,4 +1,4 @@
-package state
+package userutil
 
 import "testing"
 
@@ -36,7 +36,7 @@ func TestUnflattenDid(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := unflattenDid(tc.input)
+			result := UnflattenDid(tc.input)
 			if result != tc.expected {
 				t.Errorf("unflattenDid(%q) = %q, want %q", tc.input, result, tc.expected)
 			}
@@ -105,7 +105,7 @@ var isFlattenedDidTests = []struct {
 func TestIsFlattenedDid(t *testing.T) {
 	for _, tc := range isFlattenedDidTests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := isFlattenedDid(tc.input)
+			result := IsFlattenedDid(tc.input)
 			if result != tc.expected {
 				t.Errorf("isFlattenedDid(%q) = %v, want %v", tc.input, result, tc.expected)
 			}
