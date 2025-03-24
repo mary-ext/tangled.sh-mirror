@@ -248,6 +248,15 @@ func Make(dbPath string) (*DB, error) {
 		return nil
 	})
 
+	runMigration(db, "add-deleted-and-edited-to-issue-comments", func(tx *sql.Tx) error {
+		// add unconstrained column
+		_, err := tx.Exec(`
+			alter table comments add column deleted text; -- timestamp
+			alter table comments add column edited text; -- timestamp
+		`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 

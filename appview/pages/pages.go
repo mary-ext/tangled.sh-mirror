@@ -534,6 +534,29 @@ func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 	return p.executeRepo("repo/issues/new", w, params)
 }
 
+type EditIssueCommentParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Issue        *db.Issue
+	Comment      *db.Comment
+}
+
+func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentParams) error {
+	return p.executePlain("fragments/editIssueComment", w, params)
+}
+
+type SingleIssueCommentParams struct {
+	LoggedInUser *auth.User
+	DidHandleMap map[string]string
+	RepoInfo     RepoInfo
+	Issue        *db.Issue
+	Comment      *db.Comment
+}
+
+func (p *Pages) SingleIssueCommentFragment(w io.Writer, params SingleIssueCommentParams) error {
+	return p.executePlain("fragments/issueComment", w, params)
+}
+
 type RepoNewPullParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo

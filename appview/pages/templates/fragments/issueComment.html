@@ -1,0 +1,52 @@
+{{ define "fragments/issueComment" }}
+  {{ with .Comment }}
+  <div id="comment-container-{{.CommentId}}">
+    <div class="flex items-center gap-2 mb-2 text-gray-500 text-sm">
+      {{ $owner := index $.DidHandleMap .OwnerDid }}
+      <a href="/{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
+
+      <!-- show user "hats" -->
+      {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
+      {{ if $isIssueAuthor }}
+      <span class="before:content-['·']"></span>
+      <span class="rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
+        author
+      </span>
+      {{ end }}
+
+      <span class="before:content-['·']"></span>
+      <a
+          href="#{{ .CommentId }}"
+          class="text-gray-500 hover:text-gray-500 hover:underline no-underline"
+          id="{{ .CommentId }}">
+        {{ .Created | timeFmt }}
+      </a>
+
+      {{ $isCommentOwner := eq $.LoggedInUser.Did .OwnerDid }}
+      {{ if and $isCommentOwner (not .Deleted) }}
+      <button 
+        class="btn px-2 py-1 text-sm" 
+        hx-get="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/edit"
+        hx-swap="outerHTML"
+        hx-target="#comment-container-{{.CommentId}}"
+        >
+        {{ i "pencil" "w-4 h-4" }}
+      </button>
+      <button class="btn px-2 py-1 text-sm text-red-500" hx-delete="">
+        {{ i "trash-2" "w-4 h-4" }}
+      </button>
+      {{ end }}
+
+      {{ if .Deleted }}
+      <span class="before:content-['·']">deleted {{ .Deleted | timeFmt }}</span>
+      {{ end }}
+
+    </div>
+    {{ if not .Deleted }}
+    <div class="prose">
+      {{ .Body | markdown }}
+    </div>
+    {{ end }}
+  </div>
+  {{ end }}
+{{ end }}
