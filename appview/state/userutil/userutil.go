@@ -16,12 +16,7 @@ func UnflattenDid(s string) string {
 		return s
 	}
 
-	parts := strings.SplitN(s[4:], "-", 2) // Skip "did-" prefix and split on first "-"
-	if len(parts) != 2 {
-		return s
-	}
-
-	return "did:" + parts[0] + ":" + parts[1]
+	return strings.Replace(s, "-", ":", 2)
 }
 
 // IsFlattenedDid checks if the given string is a flattened DID.
@@ -31,15 +26,9 @@ func IsFlattenedDid(s string) bool {
 		return false
 	}
 
-	// Split the string to extract method and identifier
-	parts := strings.SplitN(s[4:], "-", 2) // Skip "did-" prefix and split on first "-"
-	if len(parts) != 2 {
-		return false
-	}
-
-	// Reconstruct as a standard DID format
+	// Reconstruct as a standard DID format using Replace
 	// Example: "did-plc-xyz-abc" becomes "did:plc:xyz-abc"
-	reconstructed := "did:" + parts[0] + ":" + parts[1]
+	reconstructed := strings.Replace(s, "-", ":", 2)
 	re := regexp.MustCompile(`^did:[a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-]$`)
 
 	return re.MatchString(reconstructed)
@@ -49,14 +38,14 @@ func IsFlattenedDid(s string) bool {
 // A flattened DID is a DID with the :s swapped to -s to satisfy certain
 // application requirements, such as Go module naming conventions.
 func FlattenDid(s string) string {
-	if !IsFlattenedDid(s) {
-		return s
+	if IsDid(s) {
+		return strings.Replace(s, ":", "-", 2)
 	}
+	return s
+}
 
-	parts := strings.SplitN(s[4:], ":", 2) // Skip "did:" prefix and split on first ":"
-	if len(parts) != 2 {
-		return s
-	}
-
-	return "did-" + parts[0] + "-" + parts[1]
+// IsDid checks if the given string is a standard DID.
+func IsDid(s string) bool {
+	re := regexp.MustCompile(`^did:[a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-]$`)
+	return re.MatchString(s)
 }
