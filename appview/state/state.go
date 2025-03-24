@@ -17,13 +17,13 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
-	tangled "github.com/sotangled/tangled/api/tangled"
-	"github.com/sotangled/tangled/appview"
-	"github.com/sotangled/tangled/appview/auth"
-	"github.com/sotangled/tangled/appview/db"
-	"github.com/sotangled/tangled/appview/pages"
-	"github.com/sotangled/tangled/jetstream"
-	"github.com/sotangled/tangled/rbac"
+	tangled "tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/auth"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/jetstream"
+	"tangled.sh/tangled.sh/core/rbac"
 )
 
 type State struct {

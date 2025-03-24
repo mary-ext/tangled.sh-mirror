@@ -13,10 +13,10 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
-	"github.com/sotangled/tangled/api/tangled"
-	"github.com/sotangled/tangled/appview/db"
-	"github.com/sotangled/tangled/appview/email"
-	"github.com/sotangled/tangled/appview/pages"
+	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/email"
+	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
 func (s *State) Settings(w http.ResponseWriter, r *http.Request) {

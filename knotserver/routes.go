@@ -22,9 +22,9 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/sotangled/tangled/knotserver/db"
-	"github.com/sotangled/tangled/knotserver/git"
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/knotserver/git"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {

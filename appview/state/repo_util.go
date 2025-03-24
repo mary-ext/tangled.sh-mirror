@@ -10,9 +10,9 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/sotangled/tangled/appview/auth"
-	"github.com/sotangled/tangled/appview/db"
-	"github.com/sotangled/tangled/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/auth"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
 func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {

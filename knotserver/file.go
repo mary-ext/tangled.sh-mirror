@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 func (h *Handle) listFiles(files []types.NiceTree, data map[string]any, w http.ResponseWriter) {

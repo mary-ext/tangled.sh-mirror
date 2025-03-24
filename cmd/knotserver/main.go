@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sotangled/tangled/api/tangled"
-	"github.com/sotangled/tangled/jetstream"
-	"github.com/sotangled/tangled/knotserver"
-	"github.com/sotangled/tangled/knotserver/config"
-	"github.com/sotangled/tangled/knotserver/db"
-	"github.com/sotangled/tangled/log"
-	"github.com/sotangled/tangled/rbac"
+	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/jetstream"
+	"tangled.sh/tangled.sh/core/knotserver"
+	"tangled.sh/tangled.sh/core/knotserver/config"
+	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/log"
+	"tangled.sh/tangled.sh/core/rbac"
 
 	_ "net/http/pprof"
 )

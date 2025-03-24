@@ -20,10 +20,10 @@ import (
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/sotangled/tangled/appview/auth"
-	"github.com/sotangled/tangled/appview/db"
-	"github.com/sotangled/tangled/appview/state/userutil"
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/appview/auth"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/state/userutil"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 //go:embed templates/* static

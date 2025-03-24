@@ -10,7 +10,7 @@ import (
 	"github.com/bluesky-social/jetstream/pkg/client"
 	"github.com/bluesky-social/jetstream/pkg/client/schedulers/sequential"
 	"github.com/bluesky-social/jetstream/pkg/models"
-	"github.com/sotangled/tangled/log"
+	"tangled.sh/tangled.sh/core/log"
 )
 
 type DB interface {
