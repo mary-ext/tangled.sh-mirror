@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bluesky-social/indigo/atproto/data"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -907,7 +908,7 @@ func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
+func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
@@ -982,6 +983,240 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d#comment-%d", f.OwnerSlashRepo(), issueIdInt, commentId))
 		return
 	}
+}
+
+func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issueId := chi.URLParam(r, "issue")
+	issueIdInt, err := strconv.Atoi(issueId)
+	if err != nil {
+		http.Error(w, "bad issue id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	commentId := chi.URLParam(r, "comment_id")
+	commentIdInt, err := strconv.Atoi(commentId)
+	if err != nil {
+		http.Error(w, "bad comment id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	issue, err := db.GetIssue(s.db, f.RepoAt, issueIdInt)
+	if err != nil {
+		log.Println("failed to get issue", err)
+		s.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+		return
+	}
+
+	comment, err := db.GetComment(s.db, f.RepoAt, issueIdInt, commentIdInt)
+	if err != nil {
+		http.Error(w, "bad comment id", http.StatusBadRequest)
+		return
+	}
+
+	identity, err := s.resolver.ResolveIdent(r.Context(), comment.OwnerDid)
+	if err != nil {
+		log.Println("failed to resolve did")
+		return
+	}
+
+	didHandleMap := make(map[string]string)
+	if !identity.Handle.IsInvalidHandle() {
+		didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+	} else {
+		didHandleMap[identity.DID.String()] = identity.DID.String()
+	}
+
+	s.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(s, user),
+		DidHandleMap: didHandleMap,
+		Issue:        issue,
+		Comment:      comment,
+	})
+}
+
+func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issueId := chi.URLParam(r, "issue")
+	issueIdInt, err := strconv.Atoi(issueId)
+	if err != nil {
+		http.Error(w, "bad issue id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	commentId := chi.URLParam(r, "comment_id")
+	commentIdInt, err := strconv.Atoi(commentId)
+	if err != nil {
+		http.Error(w, "bad comment id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	issue, err := db.GetIssue(s.db, f.RepoAt, issueIdInt)
+	if err != nil {
+		log.Println("failed to get issue", err)
+		s.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+		return
+	}
+
+	comment, err := db.GetComment(s.db, f.RepoAt, issueIdInt, commentIdInt)
+	if err != nil {
+		http.Error(w, "bad comment id", http.StatusBadRequest)
+		return
+	}
+
+	if comment.OwnerDid != user.Did {
+		http.Error(w, "you are not the author of this comment", http.StatusUnauthorized)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		s.pages.EditIssueCommentFragment(w, pages.EditIssueCommentParams{
+			LoggedInUser: user,
+			RepoInfo:     f.RepoInfo(s, user),
+			Issue:        issue,
+			Comment:      comment,
+		})
+	case http.MethodPost:
+		// extract form value
+		newBody := r.FormValue("body")
+		client, _ := s.auth.AuthorizedClient(r)
+		log.Println("comment at", comment.CommentAt)
+		rkey := comment.CommentAt.RecordKey()
+
+		// optimistic update
+		err = db.EditComment(s.db, comment.RepoAt, comment.Issue, comment.CommentId, newBody)
+		if err != nil {
+			log.Println("failed to perferom update-description query", err)
+			s.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
+			return
+		}
+
+		// update the record on pds
+		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoIssueCommentNSID, user.Did, rkey.String())
+		if err != nil {
+			// failed to get record
+			log.Println(err, rkey.String())
+			s.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "Failed to update description, no record found on PDS.")
+			return
+		}
+		value, _ := ex.Value.MarshalJSON() // we just did get record; it is valid json
+		record, _ := data.UnmarshalJSON(value)
+
+		repoAt := record["repo"].(string)
+		issueAt := record["issue"].(string)
+		createdAt := record["createdAt"].(string)
+		commentIdInt64 := int64(commentIdInt)
+
+		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoNSID,
+			Repo:       user.Did,
+			Rkey:       rkey.String(),
+			SwapRecord: ex.Cid,
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.RepoIssueComment{
+					Repo:      &repoAt,
+					Issue:     issueAt,
+					CommentId: &commentIdInt64,
+					Owner:     &comment.OwnerDid,
+					Body:      &newBody,
+					CreatedAt: &createdAt,
+				},
+			},
+		})
+		if err != nil {
+			log.Println(err)
+		}
+
+		// optimistic update for htmx
+		didHandleMap := map[string]string{
+			user.Did: user.Handle,
+		}
+		comment.Body = newBody
+
+		// return new comment body with htmx
+		s.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
+			LoggedInUser: user,
+			RepoInfo:     f.RepoInfo(s, user),
+			DidHandleMap: didHandleMap,
+			Issue:        issue,
+			Comment:      comment,
+		})
+		return
+
+	}
+
+}
+
+func (s *State) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issueId := chi.URLParam(r, "issue")
+	issueIdInt, err := strconv.Atoi(issueId)
+	if err != nil {
+		http.Error(w, "bad issue id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	commentId := chi.URLParam(r, "comment_id")
+	commentIdInt, err := strconv.Atoi(commentId)
+	if err != nil {
+		http.Error(w, "bad comment id", http.StatusBadRequest)
+		log.Println("failed to parse issue id", err)
+		return
+	}
+
+	comment, err := db.GetComment(s.db, f.RepoAt, issueIdInt, commentIdInt)
+	if err != nil {
+		http.Error(w, "bad comment id", http.StatusBadRequest)
+		return
+	}
+
+	if comment.OwnerDid != user.Did {
+		http.Error(w, "you are not the author of this comment", http.StatusUnauthorized)
+		return
+	}
+
+	if comment.Deleted != nil {
+		http.Error(w, "comment already deleted", http.StatusBadRequest)
+		return
+	}
+
+	// optimistic deletion
+	err = db.DeleteComment(s.db, f.RepoAt, issueIdInt, commentIdInt)
+	if err != nil {
+		log.Println("failed to delete comment")
+		s.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "failed to delete comment")
+		return
+	}
+
+	// delete from pds
+
+	// htmx fragment of comment after deletion
+	return
 }
 
 func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {

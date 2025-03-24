@@ -79,24 +79,29 @@
             This is a binary file and will not be displayed.
             </p>
             {{ else }}
-            <pre class="overflow-auto">
-              {{- range .TextFragments -}}
-                <div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none">{{ .Header }}</div>
-                {{- range .Lines -}}
-                    {{- if eq .Op.String "+" -}}
-                    <div class="bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400 p-1 w-full min-w-fit"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                    {{- end -}}
-
-                    {{- if eq .Op.String "-" -}}
-                    <div class="bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 p-1 w-full min-w-fit"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                    {{- end -}}
-
-                    {{- if eq .Op.String " " -}}
-                    <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 px"><span class="select-none mx-2">{{ .Op.String }}</span><span>{{ .Line }}</span></div>
-                    {{- end -}}
-
-                {{- end -}}
-              {{- end -}}
+            <pre class="overflow-x-auto">
+               {{- range .TextFragments -}}
+               <div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none">{{- .Header -}}</div><div class="overflow-x-auto"><div class="min-w-full inline-block">
+               {{- range .Lines -}}
+                 {{- if eq .Op.String "+" -}}
+                 <div class="bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400 flex min-w-full">
+                   <div class="w-10 flex-shrink-0 select-none p-1 text-center">{{ .Op.String }}</div>
+                   <div class="p-1 whitespace-pre">{{ .Line }}</div>
+                 </div>
+                 {{- end -}}
+                 {{- if eq .Op.String "-" -}}
+                 <div class="bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 flex min-w-full">
+                   <div class="w-10 flex-shrink-0 select-none p-1 text-center">{{ .Op.String }}</div>
+                   <div class="p-1 whitespace-pre">{{ .Line }}</div>
+                 </div>
+                 {{- end -}}
+                 {{- if eq .Op.String " " -}}
+                 <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex min-w-full">
+                   <div class="w-10 flex-shrink-0 select-none p-1 text-center">{{ .Op.String }}</div>
+                   <div class="p-1 whitespace-pre">{{ .Line }}</div>
+                 </div>
+                 {{- end -}}
+               {{- end -}}</div></div>{{- end -}}
             </pre>
             {{- end -}}
             {{ end }}

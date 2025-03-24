@@ -1,4 +1,4 @@
-{{ define "title" }}{{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot;{{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}{{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
     <header class="pb-4">
@@ -49,36 +49,14 @@
         {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
-                class="rounded bg-white px-6 py-4 relative dark:bg-gray-800"
-            >
+                class="rounded bg-white px-6 py-4 relative dark:bg-gray-800">
                 {{ if eq $index 0 }}
                     <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300 dark:bg-gray-700" ></div>
                 {{ else }}
                     <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300 dark:bg-gray-700" ></div>
                 {{ end }}
-                <div class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400">
-                    {{ $owner := index $.DidHandleMap .OwnerDid }}
-                    <span class="text-sm">
-                        <a
-                            href="/{{ $owner }}"
-                            class="no-underline hover:underline"
-                            >{{ $owner }}</a
-                        >
-                    </span>
 
-                    <span class="before:content-['·']"></span>
-                    <a
-                        href="#{{ .CommentId }}"
-                        class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800"
-                        id="{{ .CommentId }}"
-                        title="{{ .Created | longTimeFmt }}"
-                    >
-                        {{ .Created | timeFmt }}
-                    </a>
-                </div>
-                <div class="prose dark:prose-invert">
-                    {{ .Body | markdown }}
-                </div>
+                {{ template "fragments/issueComment" (dict "RepoInfo" $.RepoInfo "LoggedInUser" $.LoggedInUser "DidHandleMap" $.DidHandleMap "Issue" $.Issue "Comment" .)}}
             </div>
         {{ end }}
     </section>
