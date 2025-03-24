@@ -1,8 +1,8 @@
 package main
 
 import (
-	shtangled "github.com/sotangled/tangled/api/tangled"
 	cbg "github.com/whyrusleeping/cbor-gen"
+	shtangled "tangled.sh/tangled.sh/core/api/tangled"
 )
 
 func main() {

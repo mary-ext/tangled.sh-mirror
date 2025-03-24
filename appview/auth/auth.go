@@ -10,7 +10,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
-	"github.com/sotangled/tangled/appview"
+	"tangled.sh/tangled.sh/core/appview"
 )
 
 type Auth struct {

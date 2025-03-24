@@ -7,10 +7,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sotangled/tangled/jetstream"
-	"github.com/sotangled/tangled/knotserver/config"
-	"github.com/sotangled/tangled/knotserver/db"
-	"github.com/sotangled/tangled/rbac"
+	"tangled.sh/tangled.sh/core/jetstream"
+	"tangled.sh/tangled.sh/core/knotserver/config"
+	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/rbac"
 )
 
 const (

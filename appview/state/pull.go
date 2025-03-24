@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sotangled/tangled/api/tangled"
-	"github.com/sotangled/tangled/appview/db"
-	"github.com/sotangled/tangled/appview/pages"
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/types"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"

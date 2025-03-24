@@ -18,7 +18,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 var (

@@ -8,8 +8,8 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/jetstream/pkg/models"
-	tangled "github.com/sotangled/tangled/api/tangled"
-	"github.com/sotangled/tangled/appview/db"
+	tangled "tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview/db"
 )
 
 type Ingester func(ctx context.Context, e *models.Event) error

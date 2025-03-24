@@ -12,7 +12,7 @@ import (
 
 	"github.com/bluesky-social/jetstream/pkg/client"
 	"github.com/bluesky-social/jetstream/pkg/models"
-	"github.com/sotangled/tangled/jetstream"
+	"tangled.sh/tangled.sh/core/jetstream"
 )
 
 // Simple in-memory implementation of DB interface

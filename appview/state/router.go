@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sotangled/tangled/appview/state/userutil"
+	"tangled.sh/tangled.sh/core/appview/state/userutil"
 )
 
 func (s *State) Router() http.Handler {

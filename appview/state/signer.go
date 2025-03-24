@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 type SignerTransport struct {

@@ -12,9 +12,9 @@ import (
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
-	"github.com/sotangled/tangled/appview"
-	"github.com/sotangled/tangled/appview/auth"
-	"github.com/sotangled/tangled/appview/db"
+	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/auth"
+	"tangled.sh/tangled.sh/core/appview/db"
 )
 
 type Middleware func(http.Handler) http.Handler

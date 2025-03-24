@@ -3,7 +3,7 @@
     "package": "tangled",
     "prefix": "sh.tangled",
     "outdir": "api/tangled",
-    "import": "github.com/sotangled/tangled/api/tangled",
+    "import": "tangled.sh/tangled.sh/core/api/tangled",
     "gen-server": true
   }
 ]

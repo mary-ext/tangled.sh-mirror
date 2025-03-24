@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/sotangled/tangled/knotserver/db"
-	"github.com/sotangled/tangled/rbac"
+	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/rbac"
 )
 
 type InternalHandle struct {
