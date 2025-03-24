@@ -27,11 +27,13 @@ type IssueMetadata struct {
 type Comment struct {
 	OwnerDid  string
 	RepoAt    syntax.ATURI
-	CommentAt string
+	CommentAt syntax.ATURI
 	Issue     int
 	CommentId int
 	Body      string
 	Created   *time.Time
+	Deleted   *time.Time
+	Edited    *time.Time
 }
 
 func NewIssue(tx *sql.Tx, issue *Issue) error {
@@ -247,6 +249,74 @@ func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) 
 	}
 
 	return comments, nil
+}
+
+func GetComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) (*Comment, error) {
+	query := `
+		select
+			owner_did, body, comment_at, created, deleted, edited
+		from
+			comments where repo_at = ? and issue_id = ? and comment_id = ?
+	`
+	row := e.QueryRow(query, repoAt, issueId, commentId)
+
+	var comment Comment
+	var createdAt string
+	var deletedAt, editedAt sql.NullString
+	err := row.Scan(&comment.OwnerDid, &comment.Body, &comment.CommentAt, &createdAt, &deletedAt, &editedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	createdTime, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		return nil, err
+	}
+	comment.Created = &createdTime
+
+	if deletedAt.Valid {
+		deletedTime, err := time.Parse(time.RFC3339, deletedAt.String)
+		if err != nil {
+			return nil, err
+		}
+		comment.Deleted = &deletedTime
+	}
+
+	if editedAt.Valid {
+		editedTime, err := time.Parse(time.RFC3339, editedAt.String)
+		if err != nil {
+			return nil, err
+		}
+		comment.Edited = &editedTime
+	}
+
+	comment.RepoAt = repoAt
+	comment.Issue = issueId
+	comment.CommentId = commentId
+
+	return &comment, nil
+}
+
+func EditComment(e Execer, repoAt syntax.ATURI, issueId, commentId int, newBody string) error {
+	_, err := e.Exec(
+		`
+		update comments
+		set body = ?,
+			edited = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+		where repo_at = ? and issue_id = ? and comment_id = ?
+		`, newBody, repoAt, issueId, commentId)
+	return err
+}
+
+func DeleteComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) error {
+	_, err := e.Exec(
+		`
+		update comments 
+		set body = "",
+			deleted = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+		where repo_at = ? and issue_id = ? and comment_id = ?
+		`, repoAt, issueId, commentId)
+	return err
 }
 
 func CloseIssue(e Execer, repoAt syntax.ATURI, issueId int) error {
