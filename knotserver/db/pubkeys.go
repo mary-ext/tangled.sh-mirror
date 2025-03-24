@@ -44,8 +44,8 @@ func (d *DB) RemovePublicKey(did string) error {
 	return err
 }
 
-func (pk *PublicKey) JSON() map[string]interface{} {
-	return map[string]interface{}{
+func (pk *PublicKey) JSON() map[string]any {
+	return map[string]any{
 		"did":     pk.Did,
 		"key":     pk.Key,
 		"created": pk.Created,

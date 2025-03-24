@@ -20,7 +20,7 @@ func jetstreamIngester(d db.DbWrapper) Ingester {
 		defer func() {
 			eventTime := e.TimeUS
 			lastTimeUs := eventTime + 1
-			if err := d.UpdateLastTimeUs(lastTimeUs); err != nil {
+			if err := d.SaveLastTimeUs(lastTimeUs); err != nil {
 				err = fmt.Errorf("(deferred) failed to save last time us: %w", err)
 			}
 		}()

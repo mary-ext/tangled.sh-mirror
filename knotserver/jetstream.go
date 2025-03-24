@@ -53,6 +53,7 @@ func (h *Handle) processKnotMember(ctx context.Context, did string, record tangl
 		l.Error("failed to add did", "error", err)
 		return fmt.Errorf("failed to add did: %w", err)
 	}
+	h.jc.AddDid(did)
 
 	if err := h.fetchAndAddKeys(ctx, did); err != nil {
 		return fmt.Errorf("failed to fetch and add keys: %w", err)
@@ -115,10 +116,9 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		eventTime := event.TimeUS
 		lastTimeUs := eventTime + 1
 		fmt.Println("lastTimeUs", lastTimeUs)
-		if err := h.db.UpdateLastTimeUs(lastTimeUs); err != nil {
+		if err := h.db.SaveLastTimeUs(lastTimeUs); err != nil {
 			err = fmt.Errorf("(deferred) failed to save last time us: %w", err)
 		}
-		// h.jc.UpdateDids([]string{did})
 	}()
 
 	raw := json.RawMessage(event.Commit.Record)
