@@ -448,7 +448,7 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		data := make([]map[string]interface{}, 0)
+		data := make([]map[string]any, 0)
 		for _, key := range keys {
 			j := key.JSON()
 			data = append(data, j)
@@ -684,8 +684,8 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	h.jc.AddDid(did)
+
 	if err := h.e.AddMember(ThisServer, did); err != nil {
 		l.Error("adding member", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
@@ -768,8 +768,8 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	h.jc.AddDid(data.Did)
 
-	// h.jc.UpdateDids([]string{data.Did})
 	if err := h.e.AddOwner(ThisServer, data.Did); err != nil {
 		l.Error("adding owner", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)

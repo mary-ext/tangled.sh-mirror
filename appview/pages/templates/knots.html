@@ -8,8 +8,7 @@
     <section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
       <p class="mb-8 dark:text-gray-300">Generate a key to initialize your knot server.</p>
       <form 
-        hx-put="/knots/key"
-        hx-swap="none"
+        hx-post="/knots/key"
         class="max-w-2xl mb-8 space-y-4"
       >
         <input

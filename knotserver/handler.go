@@ -63,7 +63,9 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	if len(dids) > 0 {
 		h.knotInitialized = true
 		close(h.init)
-		// h.jc.UpdateDids(dids)
+		for _, d := range dids {
+			h.jc.AddDid(d)
+		}
 	}
 
 	r.Get("/", h.Index)
