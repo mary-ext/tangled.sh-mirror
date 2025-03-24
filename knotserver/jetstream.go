@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/jetstream/pkg/models"
-	"github.com/sotangled/tangled/api/tangled"
-	"github.com/sotangled/tangled/knotserver/db"
-	"github.com/sotangled/tangled/log"
+	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/log"
 )
 
 func (h *Handle) processPublicKey(ctx context.Context, did string, record tangled.PublicKey) error {

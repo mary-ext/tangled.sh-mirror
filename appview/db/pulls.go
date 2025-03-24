@@ -9,7 +9,7 @@ import (
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 type PullState int
@@ -289,7 +289,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			rkey
 		from
 			pulls
-		where 
+		where
 			repo_at = ? and pull_id = ?
 		`
 	row := e.QueryRow(query, repoAt, pullId)
@@ -321,7 +321,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 	submissionsQuery := `
 		select
 			id, pull_id, repo_at, round_number, patch, created
-		from 
+		from
 			pull_submissions
 		where
 			repo_at = ? and pull_id = ?
@@ -370,7 +370,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 	}
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(submissionsMap)), ", ")
 	commentsQuery := fmt.Sprintf(`
-		select 
+		select
 			id,
 			pull_id,
 			submission_id,
@@ -383,7 +383,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			pull_comments
 		where
 			submission_id IN (%s)
-		order by 
+		order by
 			created asc
 		`, inClause)
 	commentsRows, err := e.Query(commentsQuery, args...)

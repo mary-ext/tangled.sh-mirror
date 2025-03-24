@@ -13,7 +13,7 @@ import (
 	"time"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/sotangled/tangled/appview"
+	"tangled.sh/tangled.sh/core/appview"
 )
 
 var (

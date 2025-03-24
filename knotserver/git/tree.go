@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/sotangled/tangled/types"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 func (g *GitRepo) FileTree(path string) ([]types.NiceTree, error) {

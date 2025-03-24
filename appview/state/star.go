@@ -8,9 +8,9 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
-	tangled "github.com/sotangled/tangled/api/tangled"
-	"github.com/sotangled/tangled/appview/db"
-	"github.com/sotangled/tangled/appview/pages"
+	tangled "tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
 func (s *State) Star(w http.ResponseWriter, r *http.Request) {
