@@ -7,7 +7,7 @@
 {{ $stat := .Diff.Stat }}
 {{ $diff := .Diff.Diff }}
 
-<section class="commit">
+<section class="commit dark:text-white">
   <div id="commit-message">
     {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
     <div>
@@ -19,13 +19,13 @@
   </div>
 
   <div class="flex items-center">
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-gray-500 dark:text-gray-300">
           {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
 
           {{ if $didOrHandle }}
-            <a href="/{{ $didOrHandle }}" class="no-underline hover:underline text-gray-500">{{ $didOrHandle }}</a>
+            <a href="/{{ $didOrHandle }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ $didOrHandle }}</a>
           {{ else }}
-            <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500">{{ $commit.Author.Name }}</a>
+            <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ $commit.Author.Name }}</a>
           {{ end }}
           <span class="px-1 select-none before:content-['\00B7']"></span>
           {{ timeFmt $commit.Author.When }}
@@ -34,24 +34,24 @@
           <span class="px-1 select-none before:content-['\00B7']"></span>
       </p>
 
-      <p class="flex items-center text-sm text-gray-500">
-          <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.This 0 8 }}</a>
+      <p class="flex items-center text-sm text-gray-500 dark:text-gray-300">
+          <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.This 0 8 }}</a>
           {{ if $commit.Parent }}
           {{ i "arrow-left" "w-3 h-3 mx-1" }}
-          <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500">{{ slice $commit.Parent 0 8 }}</a>
+          <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.Parent 0 8 }}</a>
           {{ end }}
       </p>
   </div>
-  
+
   <div class="diff-stat">
     <br>
-    <strong class="text-sm uppercase mb-4">Changed files</strong>
+    <strong class="text-sm uppercase mb-4 dark:text-gray-200">Changed files</strong>
     {{ range $diff }}
-    <ul>
+    <ul class="dark:text-gray-200">
       {{ if .IsDelete }}
-      <li><a href="#file-{{ .Name.Old }}">{{ .Name.Old }}</a></li>
+      <li><a href="#file-{{ .Name.Old }}" class="dark:hover:text-gray-300">{{ .Name.Old }}</a></li>
       {{ else }}
-      <li><a href="#file-{{ .Name.New }}">{{ .Name.New }}</a></li>
+      <li><a href="#file-{{ .Name.New }}" class="dark:hover:text-gray-300">{{ .Name.New }}</a></li>
       {{ end }}
     </ul>
     {{ end }}

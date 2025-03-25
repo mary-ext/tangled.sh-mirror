@@ -4,25 +4,25 @@
     <header class="pb-4">
       <h1 class="text-2xl">
       {{ .Issue.Title }}
-      <span class="text-gray-500">#{{ .Issue.IssueId }}</span>
+      <span class="text-gray-500 dark:text-gray-400">#{{ .Issue.IssueId }}</span>
       </h1>
     </header>
 
-    {{ $bgColor := "bg-gray-800" }}
+    {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
     {{ $icon := "ban" }}
     {{ if eq .State "open" }}
-        {{ $bgColor = "bg-green-600" }}
+        {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
         {{ $icon = "circle-dot" }}
     {{ end }}
 
     <section class="mt-2">
         <div class="inline-flex items-center gap-2">
             <div id="state"
-                class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }} text-sm">
+                class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}">
                 {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
                 <span class="text-white">{{ .State }}</span>
             </div>
-            <span class="text-gray-500 text-sm">
+            <span class="text-gray-500 dark:text-gray-400 text-sm">
                 opened by
                 {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
                 <a href="/{{ $owner }}" class="no-underline hover:underline"
@@ -34,7 +34,7 @@
         </div>
 
         {{ if .Issue.Body }}
-            <article id="body" class="mt-4 prose">
+            <article id="body" class="mt-8 prose dark:text-white">
                 {{ .Issue.Body | markdown }}
             </article>
         {{ end }}
@@ -47,14 +47,14 @@
         {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
-                class="rounded bg-white px-6 py-4 relative"
+                class="rounded bg-white px-6 py-4 relative dark:bg-gray-800"
             >
                 {{ if eq $index 0 }}
-                    <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300" ></div>
+                    <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300 dark:bg-gray-700" ></div>
                 {{ else }}
-                    <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300" ></div>
+                    <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300 dark:bg-gray-700" ></div>
                 {{ end }}
-                <div class="flex items-center gap-2 mb-2 text-gray-500">
+                <div class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400">
                     {{ $owner := index $.DidHandleMap .OwnerDid }}
                     <span class="text-sm">
                         <a
@@ -67,13 +67,13 @@
                     <span class="before:content-['·']"></span>
                     <a
                         href="#{{ .CommentId }}"
-                        class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline"
+                        class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800"
                         id="{{ .CommentId }}"
                     >
                         {{ .Created | timeFmt }}
                     </a>
                 </div>
-                <div class="prose">
+                <div class="prose dark:text-white">
                     {{ .Body | markdown }}
                 </div>
             </div>
@@ -101,7 +101,7 @@
         >
             <button type="submit" class="btn hover:bg-{{ $hoverColor }}-300">
                 {{ i $icon "w-4 h-4 mr-2" }}
-                <span class="text-black">{{ $action }}</span>
+                <span class="text-black dark:text-gray-400">{{ $action }}</span>
             </button>
             <div id="issue-action" class="error"></div>
         </form>
@@ -110,15 +110,15 @@
 
 {{ define "newComment" }}
   {{ if .LoggedInUser }}
-    <div class="bg-white rounded drop-shadow-sm py-4 px-6 relative w-full flex flex-col gap-2 mt-8">
-      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300" ></div>
-      <div class="text-sm text-gray-500">
+    <div class="bg-white rounded drop-shadow-sm py-4 px-6 relative w-full flex flex-col gap-2 mt-8 dark:bg-gray-800 dark:text-gray-400">
+      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300 dark:bg-gray-700" ></div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">
         {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
       </div>
       <form hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment">
           <textarea
               name="body"
-              class="w-full p-2 rounded border border-gray-200"
+              class="w-full p-2 rounded border border-gray-200 dark:border-gray-700"
               placeholder="Add to the discussion..."
           ></textarea>
           <button type="submit" class="btn mt-2">comment</button>
@@ -127,7 +127,7 @@
     </div>
   {{ else }}
     <div class="bg-white rounded drop-shadow-sm px-6 py-4 mt-8">
-      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300" ></div>
+      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300 dark:bg-gray-700" ></div>
       <a href="/login" class="underline">login</a> to join the discussion
     </div>
   {{ end }}

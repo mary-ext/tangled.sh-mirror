@@ -1,14 +1,14 @@
 {{ define "title" }}new pull | {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
-    <section class="prose">
+    <section class="prose dark:prose-invert">
     <p>
         This is v1 of the pull request flow. Paste your patch in the form below.
         Here are the steps to get you started:
-        <ul class="list-decimal pl-10 space-y-2 text-gray-700">
+        <ul class="list-decimal pl-10 space-y-2 text-gray-700 dark:text-gray-300">
             <li class="leading-relaxed">Clone this repository.</li>
             <li class="leading-relaxed">Make your changes in your local repository.</li>
-            <li class="leading-relaxed">Grab the diff using <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-800 font-mono text-sm">git diff</code>.</li>
+            <li class="leading-relaxed">Grab the diff using <code class="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-800 dark:text-gray-200 font-mono text-sm">git diff</code>.</li>
             <li class="leading-relaxed">Paste the diff output in the form below.</li>
         </ul>
     </p>
@@ -20,16 +20,16 @@
     >
         <div class="flex flex-col gap-4">
             <div>
-                <label for="title">write a title</label>
-                <input type="text" name="title" id="title" class="w-full" />
+                <label for="title" class="dark:text-white">write a title</label>
+                <input type="text" name="title" id="title" class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600" />
 
-                <label for="targetBranch">select a target branch</label>
-                <p class="text-gray-500">
+                <label for="targetBranch" class="dark:text-white">select a target branch</label>
+                <p class="text-gray-500 dark:text-gray-400">
                     The branch you want to make your change against.
                 </p>
                 <select
                     name="targetBranch"
-                    class="p-1 mb-2 border border-gray-200 bg-white"
+                    class="p-1 mb-2 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 >
                     <option disabled selected>select a branch</option>
                     {{ range .Branches }}
@@ -38,30 +38,30 @@
                         </option>
                     {{ end }}
                 </select>
-                <label for="body">add a description</label>
+                <label for="body" class="dark:text-white">add a description</label>
                 <textarea
                     name="body"
                     id="body"
                     rows="6"
-                    class="w-full resize-y"
+                    class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
                     placeholder="Describe your change. Markdown is supported."
                 ></textarea>
 
                 <div class="mt-4">
-                    <label for="patch">paste your patch here</label>
+                    <label for="patch" class="dark:text-white">paste your patch here</label>
                     <textarea
                         name="patch"
                         id="patch"
                         rows="10"
-                        class="w-full resize-y font-mono"
+                        class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
                         placeholder="Paste your git diff output here."
                     ></textarea>
                 </div>
             </div>
             <div>
-                <button type="submit" class="btn">create</button>
+                <button type="submit" class="btn dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">create</button>
             </div>
         </div>
-        <div id="pull" class="error"></div>
+        <div id="pull" class="error dark:text-red-300"></div>
     </form>
 {{ end }}

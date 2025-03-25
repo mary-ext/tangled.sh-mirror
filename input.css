@@ -96,11 +96,8 @@
             "calt" 1,
             "kern" 1;
     }
-
     ::selection {
-        @apply bg-yellow-400;
-        @apply text-black;
-        @apply bg-opacity-30;
+        @apply bg-yellow-400 text-black bg-opacity-30 dark:bg-yellow-600 dark:bg-opacity-50 dark:text-white;
     }
 
     @layer base {
@@ -110,17 +107,17 @@
             font-size: 14px;
         }
         a {
-            @apply no-underline text-black hover:underline hover:text-gray-800;
+            @apply no-underline text-black hover:underline hover:text-gray-800 dark:text-white dark:hover:text-gray-300;
         }
 
         label {
-            @apply block mb-2 text-gray-900 text-sm font-bold py-2 uppercase;
+            @apply block mb-2 text-gray-900 text-sm font-bold py-2 uppercase dark:text-gray-100;
         }
         input {
-            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-3;
+            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
         }
         textarea {
-            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-3;
+            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
         }
         details summary::-webkit-details-marker {
             display: none;
@@ -141,15 +138,21 @@
             focus-visible:before:outline-4 focus-visible:before:outline-gray-500
             active:before:shadow-[inset_0_2px_2px_0_rgba(20,20,96,0.1)]
             disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:before:border-gray-200
-            disabled:hover:before:bg-white disabled:hover:before:shadow-none;
+            disabled:hover:before:bg-white disabled:hover:before:shadow-none
+            dark:text-gray-100 dark:before:bg-gray-800 dark:before:border-gray-700
+            dark:hover:before:border-gray-600 dark:hover:before:bg-gray-700
+            dark:hover:before:shadow-[0_2px_2px_0_rgba(0,0,0,0.2),inset_0_-2px_0_0_#2d3748]
+            dark:focus-visible:before:outline-gray-400
+            dark:active:before:shadow-[inset_0_2px_2px_0_rgba(0,0,0,0.3)]
+            dark:disabled:hover:before:bg-gray-800 dark:disabled:hover:before:border-gray-700;
         }
     }
     @layer utilities {
         .error {
-            @apply py-1 text-red-400;
+            @apply py-1 text-red-400 dark:text-red-300;
         }
         .success {
-            @apply py-1 text-gray-900;
+            @apply py-1 text-gray-900 dark:text-gray-100;
         }
     }
 }

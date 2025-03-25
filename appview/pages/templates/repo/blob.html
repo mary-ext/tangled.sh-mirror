@@ -15,27 +15,27 @@
     {{ $lines := split .Contents }}
     {{ $tot_lines := len $lines }}
     {{ $tot_chars := len (printf "%d" $tot_lines) }}
-    {{ $code_number_style := "text-gray-400 left-0 bg-white text-right mr-6 select-none inline-block w-12" }}
+    {{ $code_number_style := "text-gray-400 dark:text-gray-500 left-0 bg-white dark:bg-gray-800 text-right mr-6 select-none inline-block w-12" }}
     {{ $linkstyle := "no-underline hover:underline" }}
-    <div class="pb-2 mb-3 text-base border-b border-gray-200">
+    <div class="pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
         <div class="flex flex-col md:flex-row md:justify-between gap-2">
             <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap">
                 {{ range $idx, $value := .BreadCrumbs }}
                     {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
                         <a
                             href="{{ index . 1 }}"
-                            class="text-bold text-gray-500 {{ $linkstyle }}"
+                            class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}"
                             >{{ index . 0 }}</a
                         >
                         /
                     {{ else }}
-                        <span class="text-bold text-gray-500"
+                        <span class="text-bold text-gray-500 dark:text-gray-400"
                             >{{ index . 0 }}</span
                         >
                     {{ end }}
                 {{ end }}
             </div>
-            <div id="file-info" class="text-gray-500 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
+            <div id="file-info" class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
                 <span>at <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Ref }}">{{ .Ref }}</a></span>
                 <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
                 <span>{{ .Lines }} lines</span>
@@ -47,7 +47,7 @@
         </div>
     </div>
     {{ if .IsBinary }}
-        <p class="text-center text-gray-400">
+        <p class="text-center text-gray-400 dark:text-gray-500">
             This is a binary file and will not be displayed.
         </p>
     {{ else }}
@@ -61,7 +61,7 @@
                       {{ $linenr }}
                   </span>
               </a>
-              <div class="whitespace-pre peer-target:bg-yellow-200">{{ $line | escapeHtml }}</div>
+              <div class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ $line | escapeHtml }}</div>
             </div>
         {{ end }}
     </div>
