@@ -98,6 +98,10 @@ func (s *State) UserRouter() http.Handler {
 						})
 					})
 
+					r.Route("/round/{round}.patch", func(r chi.Router) {
+						r.Get("/", s.RepoPullPatchRaw)
+					})
+
 					// authorized requests below this point
 					r.Group(func(r chi.Router) {
 						r.Use(AuthMiddleware(s))
