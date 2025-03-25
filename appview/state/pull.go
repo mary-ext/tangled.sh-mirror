@@ -648,6 +648,18 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ident, err := s.resolver.ResolveIdent(r.Context(), pull.OwnerDid)
+	if err != nil {
+		log.Printf("resolving identity: %s", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	email, err := db.GetPrimaryEmail(s.db, pull.OwnerDid)
+	if err != nil {
+		log.Printf("failed to get primary email: %s", err)
+	}
+
 	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
 	if err != nil {
 		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
@@ -656,7 +668,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Merge the pull request
-	resp, err := ksClient.Merge([]byte(pull.LatestPatch()), f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.Title, pull.Body, "", "")
+	resp, err := ksClient.Merge([]byte(pull.LatestPatch()), f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.Title, pull.Body, ident.Handle.String(), email.Address)
 	if err != nil {
 		log.Printf("failed to merge pull request: %s", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
