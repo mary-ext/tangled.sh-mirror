@@ -14,16 +14,16 @@
 {{ end }}
 
 {{ define "profileCard" }}
-    <div class="bg-white px-6 py-4 rounded drop-shadow-sm max-h-fit">
+    <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm max-h-fit">
         <div class="flex justify-center items-center">
             {{ if .AvatarUri }}
                 <img class="w-1/2 rounded-full p-2" src="{{ .AvatarUri }}" />
             {{ end }}
         </div>
-        <p class="text-xl font-bold text-center">
+        <p class="text-xl font-bold text-center dark:text-white">
             {{ truncateAt30 (didOrHandle .UserDid .UserHandle) }}
         </p>
-        <div class="text-sm text-center">
+        <div class="text-sm text-center dark:text-gray-300">
             <span>{{ .ProfileStats.Followers }} followers</span>
             <div
                 class="inline-block px-1 select-none after:content-['·']"
@@ -38,20 +38,20 @@
 {{ end }}
 
 {{ define "ownRepos" }}
-    <p class="text-sm font-bold py-2 px-6">REPOS</p>
+    <p class="text-sm font-bold py-2 px-6 dark:text-white">REPOS</p>
     <div id="repos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {{ range .Repos }}
             <div
                 id="repo-card"
-                class="py-4 px-6 drop-shadow-sm rounded bg-white"
+                class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800"
             >
-                <div id="repo-card-name" class="font-medium">
+                <div id="repo-card-name" class="font-medium dark:text-white">
                     <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
                         >{{ .Name }}</a
                     >
                 </div>
                 {{ if .Description }}
-                    <div class="text-gray-600 text-sm">
+                    <div class="text-gray-600 dark:text-gray-300 text-sm">
                         {{ .Description }}
                     </div>
                 {{ end }}
@@ -68,26 +68,26 @@
                 </div>
             </div>
         {{ else }}
-            <p class="px-6">This user does not have any repos yet.</p>
+            <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
         {{ end }}
     </div>
 {{ end }}
 
 {{ define "collaboratingRepos" }}
-    <p class="text-sm font-bold py-2 px-6">COLLABORATING ON</p>
+    <p class="text-sm font-bold py-2 px-6 dark:text-white">COLLABORATING ON</p>
     <div id="collaborating" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {{ range .CollaboratingRepos }}
             <div
                 id="repo-card"
-                class="py-4 px-6 drop-shadow-sm rounded bg-white flex flex-col"
+                class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800 flex flex-col"
             >
-                <div id="repo-card-name" class="font-medium">
+                <div id="repo-card-name" class="font-medium dark:text-white">
                     <a href="/{{ index $.DidHandleMap .Did }}/{{ .Name }}">
                         {{ index $.DidHandleMap .Did }}/{{ .Name }}
                     </a>
                 </div>
                 {{ if .Description }}
-                    <div class="text-gray-600 text-sm">
+                    <div class="text-gray-600 dark:text-gray-300 text-sm">
                         {{ .Description }}
                     </div>
                 {{ end }}
@@ -102,7 +102,7 @@
                 </div>
             </div>
         {{ else }}
-            <p class="px-6">This user is not collaborating.</p>
+            <p class="px-6 dark:text-white">This user is not collaborating.</p>
         {{ end }}
     </div>
 {{ end }}

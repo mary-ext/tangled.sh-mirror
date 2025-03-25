@@ -1,7 +1,7 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
-    <section id="repo-header" class="mb-4 py-2 px-6">
+    <section id="repo-header" class="mb-4 py-2 px-6 dark:text-white">
       <p class="text-lg">
         <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
         <span class="select-none">/</span>
@@ -15,7 +15,7 @@
     <section class="min-h-screen flex flex-col drop-shadow-sm">
         <nav class="w-full pl-4 overflow-auto">
             <div class="flex z-60">
-                {{ $activeTabStyles := "-mb-px bg-white" }}
+                {{ $activeTabStyles := "-mb-px bg-white dark:bg-gray-800" }}
                 {{ $tabs := .RepoInfo.GetTabs }}
                 {{ $tabmeta := .RepoInfo.TabMetadata }}
                 {{ range $item := $tabs }}
@@ -28,17 +28,17 @@
                         hx-boost="true"
                     >
                         <div
-                            class="px-4 py-1 mr-1 text-black min-w-[80px] text-center relative rounded-t whitespace-nowrap
+                            class="px-4 py-1 mr-1 text-black dark:text-white min-w-[80px] text-center relative rounded-t whitespace-nowrap
                              {{ if eq $.Active $key }}
                                 {{ $activeTabStyles }}
                              {{ else }}
-                                group-hover:bg-gray-200
+                                group-hover:bg-gray-200 dark:group-hover:bg-gray-700
                              {{ end }}
                              "
                         >
                             {{ $key }} 
                             {{ if not (isNil $meta) }}
-                            <span class="bg-gray-200 rounded py-1/2 px-1 text-sm">{{  $meta }}</span>
+                            <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm">{{  $meta }}</span>
                             {{ end }}
                         </div>
                     </a>
@@ -46,7 +46,7 @@
             </div>
         </nav>
         <section
-            class="bg-white p-6 rounded relative z-20 w-full mx-auto drop-shadow-sm"
+            class="bg-white dark:bg-gray-800 p-6 rounded relative z-20 w-full mx-auto drop-shadow-sm dark:text-white"
         >
             {{ block "repoContent" . }}{{ end }}
         </section>

@@ -2,42 +2,42 @@
 
 {{ define "content" }}
 <div class="p-6">
-  <p class="text-xl font-bold">Create a new repository</p>
+  <p class="text-xl font-bold dark:text-white">Create a new repository</p>
 </div>
-<div class="p-6 bg-white drop-shadow-sm rounded">
+<div class="p-6 bg-white dark:bg-gray-800 drop-shadow-sm rounded">
   <form hx-post="/repo/new" class="space-y-12" hx-swap="none">
     <div class="space-y-2">
-      <label for="name" class="-mb-1">Repository name</label>
+      <label for="name" class="-mb-1 dark:text-white">Repository name</label>
       <input
           type="text"
           id="name"
           name="name"
           required
-          class="w-full max-w-md"
+          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600"
           />
-      <p class="text-sm text-gray-500">All repositories are publicly visible.</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">All repositories are publicly visible.</p>
 
-      <label for="branch">Default branch</label>
+      <label for="branch" class="dark:text-white">Default branch</label>
       <input
           type="text"
           id="branch"
           name="branch"
           value="main"
           required
-          class="w-full max-w-md"
+          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600"
           />
 
-      <label for="description">Description</label>
+      <label for="description" class="dark:text-white">Description</label>
       <input
           type="text"
           id="description"
           name="description"
-          class="w-full max-w-md"
+          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600"
           />
     </div>
 
     <fieldset class="space-y-3">
-      <legend>Select a knot</legend>
+      <legend class="dark:text-white">Select a knot</legend>
       <div class="space-y-2">
         <div class="flex flex-col">
         {{ range .Knots }}
@@ -49,14 +49,14 @@
                 class="mr-2"
                 id="domain-{{ . }}"
                 />
-            <span>{{ . }}</span>
+            <span class="dark:text-white">{{ . }}</span>
           </div>
         {{ else }}
-        <p>No knots available.</p>
+        <p class="dark:text-white">No knots available.</p>
         {{ end }}
         </div>
       </div>
-      <p class="text-sm text-gray-500">A knot hosts repository data. <a href="/knots" class="underline">Learn how to register your own knot.</a></p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">A knot hosts repository data. <a href="/knots" class="underline">Learn how to register your own knot.</a></p>
     </fieldset>
 
     <div class="space-y-2">

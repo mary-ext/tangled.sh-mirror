@@ -1,40 +1,94 @@
-{{define "title"}}{{ .Registration.Domain }}{{end}}
+{{ define "title" }}{{ .Registration.Domain }}{{ end }}
 
-{{define "content"}}
-    <h1>{{.Registration.Domain}}</h1>
-    <p>
-      <code>
-        opened by: {{.Registration.ByDid}}
-        {{ if eq $.LoggedInUser.Did $.Registration.ByDid }}
-        (you)
-        {{ end }}
-      </code><br>
-      <code>on: {{.Registration.Created}}</code><br>
-      {{ if .Registration.Registered }}
-      <code>registered on: {{.Registration.Registered}}</code>
-      {{ else }}
-      <code>pending registration</code>
-      <button class="btn my-2" hx-post="/knots/{{.Domain}}/init" hx-swap="none">initialize</button>
+{{ define "content" }}
+  <div class="p-6">
+    <p class="text-xl font-bold dark:text-white">{{ .Registration.Domain }}</p>
+  </div>
+  
+  <div class="flex flex-col">
+    {{ block "registration-info" . }} {{ end }}
+    {{ block "members" . }} {{ end }}
+    {{ block "add-member" . }} {{ end }}
+  </div>
+{{ end }}
+
+{{ define "registration-info" }}
+<section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+  <dl class="grid grid-cols-[auto_1fr] gap-x-4 dark:text-gray-200">
+    <dt class="font-bold">opened by</dt>
+    <dd>
+      @{{ .Registration.ByDid }}
+      {{ if eq $.LoggedInUser.Did $.Registration.ByDid }}
+        <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded ml-2">you</span>
       {{ end }}
-    </p>
-
+    </dd>
+    
+    <dt class="font-bold">opened</dt>
+    <dd>{{ .Registration.Created | timeFmt }}</dd>
+    
     {{ if .Registration.Registered }}
-    <h3> members </h3>
-    <ol>
-    {{ range $.Members }}
-    <li><a href="/{{.}}">{{.}}</a></li>
+      <dt class="font-bold">registered</dt>
+      <dd>{{ .Registration.Registered | timeFmt }}</dd>
     {{ else }}
-    <p>no members</p>
+      <dt class="font-bold">status</dt>
+      <dd class="text-yellow-800 dark:text-yellow-200 bg-yellow-100 dark:bg-yellow-900 rounded px-2 py-1 inline-block">
+        Pending Registration
+      </dd>
     {{ end }}
-    {{ end }}
-    </ol>
+  </dl>
+  
+  {{ if not .Registration.Registered }}
+    <div class="mt-4">
+      <button 
+        class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600" 
+        hx-post="/knots/{{.Domain}}/init" 
+        hx-swap="none">
+        Initialize Registration
+      </button>
+    </div>
+  {{ end }}
+</section>
+{{ end }}
 
-    {{ if $.IsOwner }}
-    <h3>add member</h3>
-    <form hx-put="/knots/{{.Registration.Domain}}/member">
-        <label for="member">did or handle:</label>
-        <input type="text" id="member" name="member" required>
-        <button class="btn my-2" type="text">add member</button>
-    </form>
-    {{ end }}
-{{end}}
+{{ define "members" }}
+<h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">members</h2>
+<section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+  {{ if .Registration.Registered }}
+    <div id="member-list" class="flex flex-col gap-4">
+      {{ range $.Members }}
+        <div class="inline-flex items-center gap-4">
+          {{ i "user" "w-3 h-3 dark:text-gray-300" }}
+          <a href="/{{.}}" class="text-gray-900 dark:text-white">{{.}}</a>
+        </div>
+      {{ else }}
+        <p class="text-gray-500 dark:text-gray-400">No members have been added yet.</p>
+      {{ end }}
+    </div>
+  {{ else }}
+    <p class="text-gray-500 dark:text-gray-400">Members can be added after registration is complete.</p>
+  {{ end }}
+</section>
+{{ end }}
+
+{{ define "add-member" }}
+{{ if $.IsOwner }}
+<h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">add member</h2>
+<section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+  <form 
+    hx-put="/knots/{{.Registration.Domain}}/member"
+    class="max-w-2xl space-y-4">
+    <input
+      type="text"
+      id="member"
+      name="member"
+      placeholder="did or handle"
+      required
+      class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"/>
+
+    <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600" type="submit">add member</button>
+
+    <div id="add-member-error" class="error dark:text-red-400"></div>
+  </form>
+</section>
+{{ end }}
+{{ end }}

@@ -25,7 +25,7 @@
 <div class="flex justify-between pb-5">
     <select
         onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
-        class="p-1 border border-gray-200 bg-white"
+        class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
     >
         <optgroup label="branches" class="bold text-sm">
             {{ range .Branches }}
@@ -58,7 +58,7 @@
     </select>
     <a
         href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}"
-        class="ml-2 no-underline flex items-center gap-2 text-sm uppercase font-bold"
+        class="ml-2 no-underline flex items-center gap-2 text-sm uppercase font-bold dark:text-white"
     >
         {{ i "logs" "w-4 h-4" }}
         {{ .TotalCommits }}
@@ -68,9 +68,9 @@
 {{ end }}
 
 {{ define "fileTree" }}
-<div id="file-tree" class="col-span-1 pr-2 md:border-r md:border-gray-200">
+<div id="file-tree" class="col-span-1 pr-2 md:border-r md:border-gray-200 dark:md:border-gray-700">
     {{ $containerstyle := "py-1" }}
-    {{ $linkstyle := "no-underline hover:underline" }}
+    {{ $linkstyle := "no-underline hover:underline dark:text-white" }}
 
     {{ range .Files }}
         {{ if not .IsFile }}
@@ -86,7 +86,7 @@
                         </div>
                     </a>
 
-                    <time class="text-xs text-gray-500"
+                    <time class="text-xs text-gray-500 dark:text-gray-400"
                         >{{ timeFmt .LastCommit.When }}</time
                     >
                 </div>
@@ -107,7 +107,7 @@
                         </div>
                     </a>
 
-                    <time class="text-xs text-gray-500"
+                    <time class="text-xs text-gray-500 dark:text-gray-400"
                         >{{ timeFmt .LastCommit.When }}</time
                     >
                 </div>
@@ -129,13 +129,13 @@
                           <div>
                               <a
                                   href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
-                                  class="inline no-underline hover:underline"
+                                  class="inline no-underline hover:underline dark:text-white"
                                   >{{ index $messageParts 0 }}</a
                               >
                               {{ if gt (len $messageParts) 1 }}
 
                                   <button
-                                      class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded"
+                                      class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
                                       hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')"
                                   >
                                   {{ i "ellipsis" "w-3 h-3" }}
@@ -144,7 +144,7 @@
                           </div>
                           {{ if gt (len $messageParts) 1 }}
                               <p
-                                  class="hidden mt-1 text-sm cursor-text pb-2"
+                                  class="hidden mt-1 text-sm cursor-text pb-2 dark:text-gray-300"
                               >
                                   {{ nl2br (unwrapText (index $messageParts 1)) }}
                               </p>
@@ -153,11 +153,11 @@
                   </div>
               </div>
 
-              <div class="text-xs text-gray-500">
+              <div class="text-xs text-gray-500 dark:text-gray-400">
                   <span class="font-mono">
                       <a
                           href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
-                          class="text-gray-500 no-underline hover:underline"
+                          class="text-gray-500 dark:text-gray-400 no-underline hover:underline"
                           >{{ slice .Hash.String 0 8 }}</a
                       >
                   </span>
@@ -168,7 +168,7 @@
                       {{ $didOrHandle := index $.EmailToDidOrHandle .Author.Email }}
                       <a
                           href="{{ if $didOrHandle }}/{{ $didOrHandle }}{{ else }}mailto:{{ .Author.Email }}{{ end }}"
-                          class="text-gray-500 no-underline hover:underline"
+                          class="text-gray-500 dark:text-gray-400 no-underline hover:underline"
                           >{{ if $didOrHandle }}{{ $didOrHandle }}{{ else }}{{ .Author.Name }}{{ end }}</a
                       >
                   </span>
@@ -183,7 +183,7 @@
                     ></div>
                   {{ end }}
                   {{ range $tagsForCommit }}
-                    <span class="text-xs rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
+                    <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                       {{ . }}
                     </span>
                   {{ end }}
@@ -196,23 +196,23 @@
 
 {{ define "repoAfter" }}
     {{- if .HTMLReadme }}
-        <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto {{ if not .Raw }} prose {{ end }}">
-            <article class="{{ if .Raw }}whitespace-pre{{end}}">
-                {{ if .Raw }}
-                    <pre>{{ .HTMLReadme }}</pre>
-                {{ else }}
-                    {{ .HTMLReadme }}
-                {{ end }}
-            </article>
-        </section>
+    <section class="mt-4 p-6 rounded bg-white dark:bg-gray-800 dark:text-white w-full mx-auto overflow-auto {{ if not .Raw }} prose dark:prose-invert dark:[&_pre]:bg-gray-900 dark:[&_code]:text-gray-300 dark:[&_pre_code]:bg-gray-900 dark:[&_pre]:border dark:[&_pre]:border-gray-700 {{ end }}">
+        <article class="{{ if .Raw }}whitespace-pre{{end}}">
+            {{ if .Raw }}
+                <pre class="dark:bg-gray-900 dark:text-gray-200 dark:border dark:border-gray-700 dark:p-4 dark:rounded">{{ .HTMLReadme }}</pre>
+            {{ else }}
+                {{ .HTMLReadme }}
+            {{ end }}
+        </article>
+    </section>
     {{- end -}}
 
 
-    <section class="mt-4 p-6 rounded bg-white w-full mx-auto overflow-auto flex flex-col gap-4">
+    <section class="mt-4 p-6 rounded bg-white dark:bg-gray-800 dark:text-white w-full mx-auto overflow-auto flex flex-col gap-4">
       <div class="flex flex-col gap-2">
         <strong>push</strong>
         <div class="md:pl-4 overflow-x-auto whitespace-nowrap">
-          <code>git remote add origin git@{{.RepoInfo.Knot}}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code>
+          <code class="dark:text-gray-100">git remote add origin git@{{.RepoInfo.Knot}}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code>
         </div>
       </div>
 
@@ -221,22 +221,22 @@
         <div class="md:pl-4 flex flex-col gap-2">
 
           <div class="flex items-center gap-3">
-            <span class="bg-gray-100 p-1 mr-1 font-mono text-sm rounded select-none">HTTP</span>
+            <span class="bg-gray-100 dark:bg-gray-700 p-1 mr-1 font-mono text-sm rounded select-none dark:text-white">HTTP</span>
             <div class="overflow-x-auto whitespace-nowrap flex-1">
-              <code>git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}</code>
+              <code class="dark:text-gray-100">git clone https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}</code>
             </div>
           </div>
 
           <div class="flex items-center gap-3">
-            <span class="bg-gray-100 p-1 mr-1 font-mono text-sm rounded select-none">SSH</span>
+            <span class="bg-gray-100 dark:bg-gray-700 p-1 mr-1 font-mono text-sm rounded select-none dark:text-white">SSH</span>
             <div class="overflow-x-auto whitespace-nowrap flex-1">
-              <code>git clone git@{{.RepoInfo.Knot}}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code>
+              <code class="dark:text-gray-100">git clone git@{{.RepoInfo.Knot}}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code>
             </div>
           </div>
         </div>
       </div>
 
 
-      <p class="py-2 text-gray-500">Note that for self-hosted knots, clone URLs may be different based on your setup.</p>
+      <p class="py-2 text-gray-500 dark:text-gray-400">Note that for self-hosted knots, clone URLs may be different based on your setup.</p>
     </section>
 {{ end }}

@@ -4,20 +4,20 @@
 
 {{ define "repoContent" }}
     <header class="pb-4">
-        <h1 class="text-2xl">
+        <h1 class="text-2xl dark:text-white">
             {{ .Pull.Title }}
-            <span class="text-gray-500">#{{ .Pull.PullId }}</span>
+            <span class="text-gray-500 dark:text-gray-400">#{{ .Pull.PullId }}</span>
         </h1>
     </header>
 
-    {{ $bgColor := "bg-gray-800" }}
+    {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
     {{ $icon := "ban" }}
 
     {{ if .Pull.State.IsOpen }}
-        {{ $bgColor = "bg-green-600" }}
+        {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
         {{ $icon = "git-pull-request" }}
     {{ else if .Pull.State.IsMerged }}
-        {{ $bgColor = "bg-purple-600" }}
+        {{ $bgColor = "bg-purple-600 dark:bg-purple-700" }}
         {{ $icon = "git-merge" }}
     {{ end }}
 
@@ -30,7 +30,7 @@
                 {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
                 <span class="text-white">{{ .Pull.State.String }}</span>
             </div>
-            <span class="text-gray-500 text-sm">
+            <span class="text-gray-500 dark:text-gray-400 text-sm">
                 opened by
                 {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
                 <a href="/{{ $owner }}" class="no-underline hover:underline"
@@ -40,7 +40,7 @@
                 <time>{{ .Pull.Created | timeFmt }}</time>
                 <span class="select-none before:content-['\00B7']"></span>
                 <span>targeting branch 
-                  <span class="text-xs rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
+                  <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                     {{ .Pull.TargetBranch }}
                   </span>
                 </span>
@@ -48,7 +48,7 @@
         </div>
 
         {{ if .Pull.Body }}
-            <article id="body" class="mt-2 prose">
+            <article id="body" class="mt-2 prose dark:prose-invert">
                 {{ .Pull.Body | markdown }}
             </article>
         {{ end }}
@@ -78,11 +78,11 @@
         <summary id="round-#{{ .RoundNumber }}" class="list-none cursor-pointer">
           <div class="flex flex-wrap gap-2 items-center">
             <!-- round number -->
-            <div class="rounded bg-white drop-shadow-sm px-3 py-2">
+            <div class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-3 py-2 dark:text-white">
               #{{ .RoundNumber }}
             </div>
             <!-- round summary -->
-            <div class="rounded drop-shadow-sm bg-white p-2 text-gray-500">
+            <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 p-2 text-gray-500 dark:text-gray-400">
               <span>
                 {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
                 {{ $re := "re" }}
@@ -92,7 +92,7 @@
                 <span class="hidden md:inline">{{$re}}submitted</span>
                 by <a href="/{{ $owner }}">{{ $owner }}</a>
                 <span class="select-none before:content-['\00B7']"></span>
-                <a class="text-gray-500 hover:text-gray-500" href="#round-#{{ .RoundNumber }}"><time>{{ .Created | shortTimeFmt }}</time></a>
+                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500" href="#round-#{{ .RoundNumber }}"><time>{{ .Created | shortTimeFmt }}</time></a>
                 <span class="select-none before:content-['·']"></span>
                 {{ $s := "s" }}
                 {{ if eq (len .Comments) 1 }}
@@ -111,15 +111,15 @@
         </summary>
         <div class="md:pl-12 flex flex-col gap-2 mt-2 relative">
           {{ range .Comments }}
-            <div id="comment-{{.ID}}" class="bg-white rounded drop-shadow-sm py-2 px-4 relative w-fit">
-              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-              <div class="text-sm text-gray-500">
+            <div id="comment-{{.ID}}" class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-fit">
+              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">
                 {{ $owner := index $.DidHandleMap .OwnerDid }} 
                 <a href="/{{$owner}}">{{$owner}}</a>
                 <span class="before:content-['·']"></span>
-                <a class="text-gray-500 hover:text-gray-500" href="#comment-{{.ID}}"><time>{{ .Created | shortTimeFmt }}</time></a>
+                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" href="#comment-{{.ID}}"><time>{{ .Created | shortTimeFmt }}</time></a>
               </div>
-              <div class="prose">
+              <div class="prose dark:prose-invert">
                 {{ .Body | markdown }}
               </div>
             </div>
@@ -132,8 +132,8 @@
           {{ if $.LoggedInUser }}
             {{ template "fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck) }}
           {{ else }}
-            <div class="bg-white rounded drop-shadow-sm px-6 py-4 w-fit">
-              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
+            <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm px-6 py-4 w-fit dark:text-white">
+              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
               <a href="/login" class="underline">login</a> to join the discussion
             </div>
           {{ end }}
@@ -146,42 +146,42 @@
 
 {{ define "mergeStatus" }}
   {{ if .Pull.State.IsClosed }}
-  <div class="bg-gray-50 border border-black rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-    <div class="flex items-center gap-2 text-black">
+  <div class="bg-gray-50 dark:bg-gray-700 border border-black dark:border-gray-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+    <div class="flex items-center gap-2 text-black dark:text-white">
       {{ i "ban" "w-4 h-4" }}
       <span class="font-medium">closed without merging</span
       >
     </div>
   </div>
   {{ else if .Pull.State.IsMerged }}
-  <div class="bg-purple-50 border border-purple-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-    <div class="flex items-center gap-2 text-purple-500">
+  <div class="bg-purple-50 dark:bg-purple-900 border border-purple-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+    <div class="flex items-center gap-2 text-purple-500 dark:text-purple-300">
       {{ i "git-merge" "w-4 h-4" }}
       <span class="font-medium">pull request successfully merged</span
       >
     </div>
   </div>
   {{ else if and .MergeCheck .MergeCheck.Error }}
-    <div class="bg-red-50 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-      <div class="flex items-center gap-2 text-red-500">
+    <div class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+      <div class="flex items-center gap-2 text-red-500 dark:text-red-300">
         {{ i "triangle-alert" "w-4 h-4" }}
         <span class="font-medium">{{ .MergeCheck.Error }}</span>
       </div>
     </div>
   {{ else if and .MergeCheck .MergeCheck.IsConflicted }}
-    <div class="bg-red-50 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-      <div class="flex items-center gap-2 text-red-500">
+    <div class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+      <div class="flex items-center gap-2 text-red-500 dark:text-red-300">
         {{ i "triangle-alert" "w-4 h-4" }}
         <span class="font-medium">merge conflicts detected</span>
         <ul class="text-sm space-y-1">
           {{ range .MergeCheck.Conflicts }}
             {{ if .Filename }}
             <li class="flex items-center">
-              {{ i "file-warning" "w-3 h-3 mr-1.5 text-red-500" }}
+              {{ i "file-warning" "w-3 h-3 mr-1.5 text-red-500 dark:text-red-300" }}
               <span class="font-mono">{{ slice .Filename 0 (sub (len .Filename) 2) }}</span>
             </li>
             {{ end }}
@@ -190,9 +190,9 @@
       </div>
     </div>
   {{ else if .MergeCheck }}
-  <div class="bg-green-50 border border-green-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300"></div>
-    <div class="flex items-center gap-2 text-green-500">
+  <div class="bg-green-50 dark:bg-green-900 border border-green-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+    <div class="flex items-center gap-2 text-green-500 dark:text-green-300">
       {{ i "circle-check-big" "w-4 h-4" }}
       <span class="font-medium">no conflicts, ready to merge</span>
     </div>

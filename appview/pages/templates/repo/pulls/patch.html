@@ -4,7 +4,7 @@
 
 {{ define "content" }}
   {{ $stat := .Diff.Stat }}
-    <div class="rounded drop-shadow-sm bg-white py-4 px-6">
+    <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 py-4 px-6 dark:text-white">
       <header class="pb-2">
           <div class="flex gap-3 items-center mb-3">
               <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2 font-medium">
@@ -18,10 +18,10 @@
                   view raw
               </a>
           </div>
-          <div class="border-t border-gray-200 my-2"></div>
+          <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
           <h1 class="text-2xl mt-3">
               {{ .Pull.Title }}
-              <span class="text-gray-500">#{{ .Pull.PullId }}</span>
+              <span class="text-gray-500 dark:text-gray-400">#{{ .Pull.PullId }}</span>
           </h1>
       </header>
 
@@ -45,7 +45,7 @@
                   {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
                   <span class="text-white">{{ .Pull.State.String }}</span>
               </div>
-              <span class="text-gray-500 text-sm">
+              <span class="text-gray-500 dark:text-gray-400 text-sm">
                   opened by
                   {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
                   <a href="/{{ $owner }}" class="no-underline hover:underline"
@@ -55,7 +55,7 @@
                   <time>{{ .Pull.Created | timeFmt }}</time>
                   <span class="select-none before:content-['\00B7']"></span>
                   <span>targeting branch 
-                    <span class="text-xs rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
+                    <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                       {{ .Pull.TargetBranch }}
                     </span>
                   </span>
@@ -63,7 +63,7 @@
           </div>
 
           {{ if .Pull.Body }}
-              <article id="body" class="mt-2 prose">
+              <article id="body" class="mt-2 prose dark:prose-invert">
                   {{ .Pull.Body | markdown }}
               </article>
           {{ end }}

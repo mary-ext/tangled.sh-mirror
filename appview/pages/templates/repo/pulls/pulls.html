@@ -2,10 +2,10 @@
 
 {{ define "repoContent" }}
     <div class="flex justify-between items-center">
-        <p>
+        <p class="dark:text-white">
             filtering
             <select
-                class="border px-1 bg-white border-gray-200"
+                class="border px-1 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 dark:text-white"
                 onchange="window.location.href = '/{{ .RepoInfo.FullName }}/pulls?state=' + this.value"
             >
                 <option value="open" {{ if .FilteringBy.IsOpen }}selected{{ end }}>
@@ -22,7 +22,7 @@
         </p>
         <a
             href="/{{ .RepoInfo.FullName }}/pulls/new"
-            class="btn text-sm flex items-center gap-2 no-underline hover:no-underline"
+            class="btn text-sm flex items-center gap-2 no-underline hover:no-underline dark:text-white dark:bg-gray-700 dark:hover:bg-gray-600"
         >
             {{ i "git-pull-request" "w-4 h-4" }}
             <span>new pull request</span>
@@ -34,22 +34,22 @@
 {{ define "repoAfter" }}
     <div class="flex flex-col gap-2 mt-2">
         {{ range .Pulls }}
-            <div class="rounded drop-shadow-sm bg-white px-6 py-4">
+            <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 px-6 py-4">
                 <div class="pb-2">
-                    <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}">
+                    <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}" class="dark:text-white">
                         {{ .Title }}
-                        <span class="text-gray-500">#{{ .PullId }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
                     </a>
                 </div>
-                <p class="text-sm text-gray-500">
-                    {{ $bgColor := "bg-gray-800" }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
                     {{ $icon := "ban" }}
 
                     {{ if .State.IsOpen }}
-                        {{ $bgColor = "bg-green-600" }}
+                        {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
                         {{ $icon = "git-pull-request" }}
                     {{ else if .State.IsMerged }}
-                        {{ $bgColor = "bg-purple-600" }}
+                        {{ $bgColor = "bg-purple-600 dark:bg-purple-700" }}
                         {{ $icon = "git-merge" }}
                     {{ end }}
 
@@ -63,7 +63,7 @@
 
                     <span>
                         {{ $owner := index $.DidHandleMap .OwnerDid }}
-                        <a href="/{{ $owner }}">{{ $owner }}</a>
+                        <a href="/{{ $owner }}" class="dark:text-gray-300">{{ $owner }}</a>
                     </span>
 
                     <span class="before:content-['·']">
@@ -74,7 +74,7 @@
 
                     <span class="before:content-['·']">
                         targeting branch
-                        <span class="text-xs rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
+                        <span class="text-xs rounded bg-gray-100 dark:bg-gray-600 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                           {{ .TargetBranch }}
                         </span>
                     </span>

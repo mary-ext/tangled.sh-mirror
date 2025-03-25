@@ -4,7 +4,7 @@
     <div class="flex justify-between items-center">
         <p>
         filtering
-        <select class="border px-1 bg-white border-gray-200" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
+        <select class="border px-1 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
           <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>open ({{ .RepoInfo.Stats.IssueCount.Open }})</option>
           <option value="closed" {{ if not .FilteringByOpen }}selected{{ end }}>closed ({{ .RepoInfo.Stats.IssueCount.Closed }})</option>
         </select>
@@ -23,7 +23,7 @@
 {{ define "repoAfter" }}
 <div class="flex flex-col gap-2 mt-2">
   {{ range .Issues }}
-  <div class="rounded drop-shadow-sm bg-white px-6 py-4">
+  <div class="rounded drop-shadow-sm bg-white px-6 py-4 dark:bg-gray-800 dark:border-gray-700">
     <div class="pb-2">
       <a
           href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}"
@@ -33,19 +33,19 @@
           <span class="text-gray-500">#{{ .IssueId }}</span>
       </a>
     </div>
-    <p class="text-sm text-gray-500">
-      {{ $bgColor := "bg-gray-800" }}
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
       {{ $icon := "ban" }}
       {{ $state := "closed" }}
       {{ if .Open }}
-          {{ $bgColor = "bg-green-600" }}
+          {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
           {{ $icon = "circle-dot" }}
           {{ $state = "open" }}
       {{ end }}
 
       <span class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm">
-          {{ i $icon "w-3 h-3 mr-1.5 text-white" }}
-          <span class="text-white">{{ $state }}</span>
+          {{ i $icon "w-3 h-3 mr-1.5 text-white dark:text-white" }}
+          <span class="text-white dark:text-white">{{ $state }}</span>
       </span>
 
       <span>
@@ -64,7 +64,7 @@
         {{ if eq .Metadata.CommentCount 1 }}
         {{ $s = "" }}
         {{ end }}
-        <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-500">{{ .Metadata.CommentCount }} comment{{$s}}</a>
+        <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-500 dark:text-gray-400">{{ .Metadata.CommentCount }} comment{{$s}}</a>
       </span>
     </p>
   </div>

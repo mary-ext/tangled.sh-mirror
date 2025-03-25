@@ -1,18 +1,18 @@
 {{ define "title" }}settings &middot; {{ .RepoInfo.FullName }}{{ end }}
 {{ define "repoContent" }}
-    <header class="font-bold text-sm mb-4 uppercase">Collaborators</header>
+    <header class="font-bold text-sm mb-4 uppercase dark:text-white">Collaborators</header>
 
     <div id="collaborator-list" class="flex flex-col gap-2 mb-2">
         {{ range .Collaborators }}
             <div id="collaborator" class="mb-2">
                 <a
                     href="/{{ didOrHandle .Did .Handle }}"
-                    class="no-underline hover:underline text-black"
+                    class="no-underline hover:underline text-black dark:text-white"
                 >
                     {{ didOrHandle .Did .Handle }}
                 </a>
                 <div>
-                    <span class="text-sm text-gray-500">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
                         {{ .Role }}
                     </span>
                 </div>
@@ -21,11 +21,11 @@
     </div>
 
     {{ if .IsCollaboratorInviteAllowed }}
-        <h3>add collaborator</h3>
+        <h3 class="dark:text-white">add collaborator</h3>
         <form hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator">
-            <label for="collaborator">did or handle:</label>
-            <input type="text" id="collaborator" name="collaborator" required />
-            <button class="btn my-2" type="text">add collaborator</button>
+            <label for="collaborator" class="dark:text-white">did or handle:</label>
+            <input type="text" id="collaborator" name="collaborator" required class="dark:bg-gray-700 dark:text-white" />
+            <button class="btn my-2 dark:text-white dark:hover:bg-gray-700" type="text">add collaborator</button>
         </form>
     {{ end }}
 {{ end }}
