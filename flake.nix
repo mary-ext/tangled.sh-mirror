@@ -2,7 +2,7 @@
   description = "atproto github";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
     indigo = {
       url = "github:oppiliappan/indigo";
       flake = false;
@@ -52,7 +52,7 @@
           src = gitignoreSource ./.;
           subPackages = ["cmd/${name}"];
           vendorHash = goModHash;
-          env.CGO_ENABLED = 0;
+          CGO_ENABLED = 0;
         };
     in {
       indigo-lexgen = final.buildGoModule {
@@ -82,7 +82,7 @@
           doCheck = false;
           subPackages = ["cmd/appview"];
           vendorHash = goModHash;
-          env.CGO_ENABLED = 1;
+          CGO_ENABLED = 1;
           stdenv = pkgsStatic.stdenv;
         };
 
@@ -105,7 +105,7 @@
 
             runHook postInstall
           '';
-          env.CGO_ENABLED = 1;
+          CGO_ENABLED = 1;
         };
       knotserver-unwrapped = final.pkgsStatic.buildGoModule {
         pname = "knotserver";
@@ -113,7 +113,7 @@
         src = gitignoreSource ./.;
         subPackages = ["cmd/knotserver"];
         vendorHash = goModHash;
-        env.CGO_ENABLED = 1;
+        CGO_ENABLED = 1;
       };
       repoguard = buildCmdPackage "repoguard";
       keyfetch = buildCmdPackage "keyfetch";
