@@ -17,31 +17,32 @@
     {{ $containerstyle := "py-1" }}
     {{ $linkstyle := "no-underline hover:underline" }}
 
-    <div class="pb-2 text-base">
+    <div class="pb-2 mb-3 text-base border-b border-gray-200">
       <div class="flex justify-between">
         <div id="breadcrumbs">
           {{ range .BreadCrumbs }}
           <a href="{{ index . 1}}" class="text-bold text-gray-500 {{ $linkstyle }}">{{ index . 0 }}</a> /
           {{ end }}
         </div>
-        <div id="dir-info">
-          <span class="text-gray-500 text-xs">
-            {{ $stats := .TreeStats }}
+        <div id="dir-info" class="text-gray-500 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
+          {{ $stats := .TreeStats }}
 
-            {{ if eq $stats.NumFolders 1 }}
-              {{ $stats.NumFolders }} folder
-              <span class="px-1 select-none">·</span>
-            {{ else if gt $stats.NumFolders 1 }}
-              {{ $stats.NumFolders }} folders
-              <span class="px-1 select-none">·</span>
-            {{ end }}
+          <span>at <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}">{{ $.Ref }}</a></span>
+          <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+          {{ if eq $stats.NumFolders 1 }}
+            <span>{{ $stats.NumFolders }} folder</span>
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+          {{ else if gt $stats.NumFolders 1 }}
+            <span>{{ $stats.NumFolders }} folders</span>
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+          {{ end }}
 
-            {{ if eq $stats.NumFiles 1 }}
-              {{ $stats.NumFiles }} file
-            {{ else if gt $stats.NumFiles 1 }}
-              {{ $stats.NumFiles }} files
-            {{ end }}
-          </span>
+          {{ if eq $stats.NumFiles 1 }}
+            <span>{{ $stats.NumFiles }} file</span>
+          {{ else if gt $stats.NumFiles 1 }}
+            <span>{{ $stats.NumFiles }} files</span>
+          {{ end }}
+
         </div>
       </div>
     </div>

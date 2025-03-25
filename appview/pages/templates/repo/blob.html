@@ -17,9 +17,9 @@
     {{ $tot_chars := len (printf "%d" $tot_lines) }}
     {{ $code_number_style := "text-gray-400 left-0 bg-white text-right mr-6 select-none inline-block w-12" }}
     {{ $linkstyle := "no-underline hover:underline" }}
-    <div class="pb-2 text-base">
-        <div class="flex justify-between">
-            <div id="breadcrumbs">
+    <div class="pb-2 mb-3 text-base border-b border-gray-200">
+        <div class="flex flex-col md:flex-row md:justify-between gap-2">
+            <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap">
                 {{ range $idx, $value := .BreadCrumbs }}
                     {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
                         <a
@@ -35,10 +35,14 @@
                     {{ end }}
                 {{ end }}
             </div>
-            <div id="file-info" class="text-gray-500 text-xs">
-                {{ .Lines }} lines
-                <span class="select-none px-2 [&:before]:content-['·']"></span>
-                {{ byteFmt .SizeHint }}
+            <div id="file-info" class="text-gray-500 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
+                <span>at <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Ref }}">{{ .Ref }}</a></span>
+                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                <span>{{ .Lines }} lines</span>
+                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                <span>{{ byteFmt .SizeHint }}</span>
+                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                <a href="/{{ .RepoInfo.FullName }}/blob/raw/{{ .Ref }}/{{ .Path }}">view raw</a>
             </div>
         </div>
     </div>

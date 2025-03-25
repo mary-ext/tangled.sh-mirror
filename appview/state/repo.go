@@ -460,6 +460,50 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (s *State) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	ref := chi.URLParam(r, "ref")
+	filePath := chi.URLParam(r, "*")
+
+	protocol := "http"
+	if !s.config.Dev {
+		protocol = "https"
+	}
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath))
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoBlobResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return
+	}
+
+	if result.IsBinary {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write(body)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(result.Contents))
+	return
+}
+
 func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
