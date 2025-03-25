@@ -1,8 +1,8 @@
 {{ define "fragments/pullNewComment" }}
 <div 
   id="pull-comment-card-{{ .RoundNumber }}" 
-  class="bg-white rounded drop-shadow-sm p-4 relative w-full flex flex-col gap-2">
-  <div class="text-sm text-gray-500">
+  class="bg-white dark:bg-gray-800 rounded drop-shadow-sm p-4 relative w-full flex flex-col gap-2">
+  <div class="text-sm text-gray-500 dark:text-gray-400">
     {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
   </div>
   <form

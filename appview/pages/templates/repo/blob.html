@@ -19,7 +19,7 @@
     {{ $linkstyle := "no-underline hover:underline" }}
     <div class="pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
         <div class="flex flex-col md:flex-row md:justify-between gap-2">
-            <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap">
+            <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap text-gray-400 dark:text-gray-500">
                 {{ range $idx, $value := .BreadCrumbs }}
                     {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
                         <a
@@ -29,7 +29,7 @@
                         >
                         /
                     {{ else }}
-                        <span class="text-bold text-gray-500 dark:text-gray-400"
+                        <span class="text-bold text-gray-600 dark:text-gray-300"
                             >{{ index . 0 }}</span
                         >
                     {{ end }}
@@ -51,7 +51,7 @@
             This is a binary file and will not be displayed.
         </p>
     {{ else }}
-    <div class="overflow-auto relative text-ellipsis">
+    <div class="overflow-auto relative">
         {{ range $idx, $line := $lines }}
             {{ $linenr := add $idx 1 }}
             <div class="flex">
