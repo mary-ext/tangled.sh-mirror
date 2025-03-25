@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/jetstream"
@@ -66,6 +67,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	}
 
 	r.Get("/", h.Index)
+	r.Get("/version", h.Version)
 	r.Route("/{did}", func(r chi.Router) {
 		// Repo routes
 		r.Route("/{name}", func(r chi.Router) {
@@ -123,4 +125,32 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	r.Get("/keys", h.Keys)
 
 	return r, nil
+}
+
+// version is set during build time.
+var version string
+
+func (h *Handle) Version(w http.ResponseWriter, r *http.Request) {
+	if version == "" {
+		info, ok := debug.ReadBuildInfo()
+		if !ok {
+			http.Error(w, "failed to read build info", http.StatusInternalServerError)
+			return
+		}
+
+		var modVer string
+		for _, mod := range info.Deps {
+			if mod.Path == "tangled.sh/tangled.sh/knotserver" {
+				version = mod.Version
+				break
+			}
+		}
+
+		if modVer == "" {
+			version = "unknown"
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "knotserver/%s", version)
 }
