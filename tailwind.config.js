@@ -1,8 +1,9 @@
 /** @type {import('tailwindcss').Config} */
-const colors = require('tailwindcss/colors')
+const colors = require("tailwindcss/colors");
 
 module.exports = {
 	content: ["./appview/pages/templates/**/*.html"],
+	darkMode: "media",
 	theme: {
 		container: {
 			padding: "2rem",
@@ -21,6 +22,15 @@ module.exports = {
 				mono: ["iA Writer Mono S", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
 			},
 			typography: {
+				dark: {
+					css: {
+						maxWidth: 'none',
+						pre: {
+							backgroundColor: colors.gray[900],
+							color: colors.white,
+						},
+					},
+				},
 				DEFAULT: {
 					css: {
 						maxWidth: 'none',
