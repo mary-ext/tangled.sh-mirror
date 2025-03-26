@@ -34,7 +34,7 @@
         </div>
 
         {{ if .Issue.Body }}
-            <article id="body" class="mt-8 prose dark:text-white">
+            <article id="body" class="mt-8 prose dark:prose-invert">
                 {{ .Issue.Body | markdown }}
             </article>
         {{ end }}
@@ -73,7 +73,7 @@
                         {{ .Created | timeFmt }}
                     </a>
                 </div>
-                <div class="prose dark:text-white">
+                <div class="prose dark:prose-invert">
                     {{ .Body | markdown }}
                 </div>
             </div>
