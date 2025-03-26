@@ -174,14 +174,16 @@
   {{ else if and .MergeCheck .MergeCheck.IsConflicted }}
     <div class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
       <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
-      <div class="flex items-center gap-2 text-red-500 dark:text-red-300">
-        {{ i "triangle-alert" "w-4 h-4" }}
-        <span class="font-medium">merge conflicts detected</span>
-        <ul class="text-sm space-y-1">
+      <div class="flex flex-col items-center gap-2 text-red-500 dark:text-red-300">
+        <div class="flex items-center gap-2">
+          {{ i "triangle-alert" "w-4 h-4" }}
+          <span class="font-medium">merge conflicts detected</span>
+        </div>
+        <ul class="space-y-1">
           {{ range .MergeCheck.Conflicts }}
             {{ if .Filename }}
             <li class="flex items-center">
-              {{ i "file-warning" "w-3 h-3 mr-1.5 text-red-500 dark:text-red-300" }}
+              {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
               <span class="font-mono">{{ slice .Filename 0 (sub (len .Filename) 2) }}</span>
             </li>
             {{ end }}
