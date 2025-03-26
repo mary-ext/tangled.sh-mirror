@@ -128,7 +128,13 @@ func (s *CreateSessionWrapper) GetStatus() *string {
 }
 
 func (a *Auth) ClearSession(r *http.Request, w http.ResponseWriter) error {
-	clientSession, _ := a.Store.Get(r, appview.SessionName)
+	clientSession, err := a.Store.Get(r, appview.SessionName)
+	if err != nil {
+		return fmt.Errorf("invalid session", err)
+	}
+	if clientSession.IsNew {
+		return fmt.Errorf("invalid session")
+	}
 	clientSession.Options.MaxAge = -1
 	return clientSession.Save(r, w)
 }
