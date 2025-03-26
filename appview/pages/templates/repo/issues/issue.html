@@ -29,7 +29,9 @@
                     >{{ $owner }}</a
                 >
                 <span class="px-1 select-none before:content-['\00B7']"></span>
-                <time>{{ .Issue.Created | timeFmt }}</time>
+                <time title="{{ .Issue.Created | longTimeFmt }}">
+                    {{ .Issue.Created | timeFmt }}
+                </time>
             </span>
         </div>
 
@@ -69,6 +71,7 @@
                         href="#{{ .CommentId }}"
                         class="text-gray-500 text-sm hover:text-gray-500 hover:underline no-underline dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800"
                         id="{{ .CommentId }}"
+                        title="{{ .Created | longTimeFmt }}"
                     >
                         {{ .Created | timeFmt }}
                     </a>

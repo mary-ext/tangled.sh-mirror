@@ -68,6 +68,9 @@ func funcMap() template.FuncMap {
 			return s
 		},
 		"timeFmt": humanize.Time,
+		"longTimeFmt": func(t time.Time) string {
+			return t.Format("2006-01-02 * 3:04 PM")
+		},
 		"shortTimeFmt": func(t time.Time) string {
 			return humanize.CustomRelTime(t, time.Now(), "", "", []humanize.RelTimeMagnitude{
 				{time.Second, "now", time.Second},
