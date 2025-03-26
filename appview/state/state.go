@@ -165,7 +165,8 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
 	s.auth.ClearSession(r, w)
-	http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	w.Header().Set("HX-Redirect", "/login")
+	w.WriteHeader(http.StatusSeeOther)
 }
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {

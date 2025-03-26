@@ -161,7 +161,7 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Get("/", s.Timeline)
 
-	r.With(AuthMiddleware(s)).Get("/logout", s.Logout)
+	r.With(AuthMiddleware(s)).Post("/logout", s.Logout)
 
 	r.Route("/login", func(r chi.Router) {
 		r.Get("/", s.Login)
