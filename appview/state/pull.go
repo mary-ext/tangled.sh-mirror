@@ -375,7 +375,6 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		})
-		log.Println(atResp.Uri)
 		if err != nil {
 			log.Println("failed to create pull comment", err)
 			s.pages.Notice(w, "pull-comment", "Failed to create comment.")

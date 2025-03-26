@@ -93,7 +93,7 @@ func (s *State) UserRouter() http.Handler {
 					r.Route("/round/{round}", func(r chi.Router) {
 						r.Get("/", s.RepoPullPatch)
 						r.Get("/actions", s.PullActions)
-						r.Route("/comment", func(r chi.Router) {
+						r.With(AuthMiddleware(s)).Route("/comment", func(r chi.Router) {
 							r.Get("/", s.PullComment)
 							r.Post("/", s.PullComment)
 						})
@@ -103,16 +103,11 @@ func (s *State) UserRouter() http.Handler {
 						r.Get("/", s.RepoPullPatchRaw)
 					})
 
-					// authorized requests below this point
 					r.Group(func(r chi.Router) {
 						r.Use(AuthMiddleware(s))
 						r.Route("/resubmit", func(r chi.Router) {
 							r.Get("/", s.ResubmitPull)
 							r.Post("/", s.ResubmitPull)
-						})
-						r.Route("/comment", func(r chi.Router) {
-							r.Get("/", s.PullComment)
-							r.Post("/", s.PullComment)
 						})
 						r.Post("/close", s.ClosePull)
 						r.Post("/reopen", s.ReopenPull)
