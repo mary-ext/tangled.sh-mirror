@@ -933,13 +933,15 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		commentId := rand.IntN(1000000)
+		rkey := s.TID()
 
-		err := db.NewComment(s.db, &db.Comment{
+		err := db.NewIssueComment(s.db, &db.Comment{
 			OwnerDid:  user.Did,
 			RepoAt:    f.RepoAt,
 			Issue:     issueIdInt,
 			CommentId: commentId,
 			Body:      body,
+			Rkey:      rkey,
 		})
 		if err != nil {
 			log.Println("failed to create comment", err)
@@ -962,7 +964,7 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueCommentNSID,
 			Repo:       user.Did,
-			Rkey:       s.TID(),
+			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssueComment{
 					Repo:      &atUri,
@@ -1098,10 +1100,10 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		// extract form value
 		newBody := r.FormValue("body")
 		client, _ := s.auth.AuthorizedClient(r)
-		log.Println("comment at", comment.CommentAt)
-		rkey := comment.CommentAt.RecordKey()
+		rkey := comment.Rkey
 
 		// optimistic update
+		edited := time.Now()
 		err = db.EditComment(s.db, comment.RepoAt, comment.Issue, comment.CommentId, newBody)
 		if err != nil {
 			log.Println("failed to perferom update-description query", err)
@@ -1109,40 +1111,43 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// update the record on pds
-		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoIssueCommentNSID, user.Did, rkey.String())
-		if err != nil {
-			// failed to get record
-			log.Println(err, rkey.String())
-			s.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "Failed to update description, no record found on PDS.")
-			return
-		}
-		value, _ := ex.Value.MarshalJSON() // we just did get record; it is valid json
-		record, _ := data.UnmarshalJSON(value)
+		// rkey is optional, it was introduced later
+		if comment.Rkey != "" {
+			// update the record on pds
+			ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoIssueCommentNSID, user.Did, rkey)
+			if err != nil {
+				// failed to get record
+				log.Println(err, rkey)
+				s.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "Failed to update description, no record found on PDS.")
+				return
+			}
+			value, _ := ex.Value.MarshalJSON() // we just did get record; it is valid json
+			record, _ := data.UnmarshalJSON(value)
 
-		repoAt := record["repo"].(string)
-		issueAt := record["issue"].(string)
-		createdAt := record["createdAt"].(string)
-		commentIdInt64 := int64(commentIdInt)
+			repoAt := record["repo"].(string)
+			issueAt := record["issue"].(string)
+			createdAt := record["createdAt"].(string)
+			commentIdInt64 := int64(commentIdInt)
 
-		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
-			Collection: tangled.RepoNSID,
-			Repo:       user.Did,
-			Rkey:       rkey.String(),
-			SwapRecord: ex.Cid,
-			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.RepoIssueComment{
-					Repo:      &repoAt,
-					Issue:     issueAt,
-					CommentId: &commentIdInt64,
-					Owner:     &comment.OwnerDid,
-					Body:      &newBody,
-					CreatedAt: &createdAt,
+			_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+				Collection: tangled.RepoIssueCommentNSID,
+				Repo:       user.Did,
+				Rkey:       rkey,
+				SwapRecord: ex.Cid,
+				Record: &lexutil.LexiconTypeDecoder{
+					Val: &tangled.RepoIssueComment{
+						Repo:      &repoAt,
+						Issue:     issueAt,
+						CommentId: &commentIdInt64,
+						Owner:     &comment.OwnerDid,
+						Body:      &newBody,
+						CreatedAt: &createdAt,
+					},
 				},
-			},
-		})
-		if err != nil {
-			log.Println(err)
+			})
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		// optimistic update for htmx
@@ -1150,6 +1155,7 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 			user.Did: user.Handle,
 		}
 		comment.Body = newBody
+		comment.Edited = &edited
 
 		// return new comment body with htmx
 		s.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
@@ -1181,6 +1187,13 @@ func (s *State) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	issue, err := db.GetIssue(s.db, f.RepoAt, issueIdInt)
+	if err != nil {
+		log.Println("failed to get issue", err)
+		s.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+		return
+	}
+
 	commentId := chi.URLParam(r, "comment_id")
 	commentIdInt, err := strconv.Atoi(commentId)
 	if err != nil {
@@ -1206,6 +1219,7 @@ func (s *State) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// optimistic deletion
+	deleted := time.Now()
 	err = db.DeleteComment(s.db, f.RepoAt, issueIdInt, commentIdInt)
 	if err != nil {
 		log.Println("failed to delete comment")
@@ -1214,8 +1228,33 @@ func (s *State) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// delete from pds
+	if comment.Rkey != "" {
+		client, _ := s.auth.AuthorizedClient(r)
+		_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+			Collection: tangled.GraphFollowNSID,
+			Repo:       user.Did,
+			Rkey:       comment.Rkey,
+		})
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	// optimistic update for htmx
+	didHandleMap := map[string]string{
+		user.Did: user.Handle,
+	}
+	comment.Body = ""
+	comment.Deleted = &deleted
 
 	// htmx fragment of comment after deletion
+	s.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(s, user),
+		DidHandleMap: didHandleMap,
+		Issue:        issue,
+		Comment:      comment,
+	})
 	return
 }
 

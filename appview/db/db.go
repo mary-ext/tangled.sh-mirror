@@ -248,6 +248,14 @@ func Make(dbPath string) (*DB, error) {
 		return nil
 	})
 
+	runMigration(db, "add-rkey-to-comments", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table comments drop column comment_at;
+			alter table comments add column rkey text;
+		`)
+		return err
+	})
+
 	runMigration(db, "add-deleted-and-edited-to-issue-comments", func(tx *sql.Tx) error {
 		// add unconstrained column
 		_, err := tx.Exec(`

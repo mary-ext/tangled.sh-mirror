@@ -27,7 +27,7 @@ type IssueMetadata struct {
 type Comment struct {
 	OwnerDid  string
 	RepoAt    syntax.ATURI
-	CommentAt syntax.ATURI
+	Rkey      string
 	Issue     int
 	CommentId int
 	Body      string
@@ -201,13 +201,13 @@ func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, [
 	return &issue, comments, nil
 }
 
-func NewComment(e Execer, comment *Comment) error {
-	query := `insert into comments (owner_did, repo_at, comment_at, issue_id, comment_id, body) values (?, ?, ?, ?, ?, ?)`
+func NewIssueComment(e Execer, comment *Comment) error {
+	query := `insert into comments (owner_did, repo_at, rkey, issue_id, comment_id, body) values (?, ?, ?, ?, ?, ?)`
 	_, err := e.Exec(
 		query,
 		comment.OwnerDid,
 		comment.RepoAt,
-		comment.CommentAt,
+		comment.Rkey,
 		comment.Issue,
 		comment.CommentId,
 		comment.Body,
@@ -218,7 +218,25 @@ func NewComment(e Execer, comment *Comment) error {
 func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) {
 	var comments []Comment
 
-	rows, err := e.Query(`select owner_did, issue_id, comment_id, comment_at, body, created from comments where repo_at = ? and issue_id = ? order by created asc`, repoAt, issueId)
+	rows, err := e.Query(`
+		select 
+			owner_did,
+			issue_id,
+			comment_id,
+			rkey,
+			body,
+			created,
+			edited,
+			deleted
+		from
+			comments
+		where 
+			repo_at = ? and issue_id = ? 
+		order by
+			created asc`,
+		repoAt,
+		issueId,
+	)
 	if err == sql.ErrNoRows {
 		return []Comment{}, nil
 	}
@@ -230,7 +248,8 @@ func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) 
 	for rows.Next() {
 		var comment Comment
 		var createdAt string
-		err := rows.Scan(&comment.OwnerDid, &comment.Issue, &comment.CommentId, &comment.CommentAt, &comment.Body, &createdAt)
+		var deletedAt, editedAt, rkey sql.NullString
+		err := rows.Scan(&comment.OwnerDid, &comment.Issue, &comment.CommentId, &rkey, &comment.Body, &createdAt, &editedAt, &deletedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -240,6 +259,26 @@ func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) 
 			return nil, err
 		}
 		comment.Created = &createdAtTime
+
+		if deletedAt.Valid {
+			deletedTime, err := time.Parse(time.RFC3339, deletedAt.String)
+			if err != nil {
+				return nil, err
+			}
+			comment.Deleted = &deletedTime
+		}
+
+		if editedAt.Valid {
+			editedTime, err := time.Parse(time.RFC3339, editedAt.String)
+			if err != nil {
+				return nil, err
+			}
+			comment.Edited = &editedTime
+		}
+
+		if rkey.Valid {
+			comment.Rkey = rkey.String
+		}
 
 		comments = append(comments, comment)
 	}
@@ -254,7 +293,7 @@ func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) 
 func GetComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) (*Comment, error) {
 	query := `
 		select
-			owner_did, body, comment_at, created, deleted, edited
+			owner_did, body, rkey, created, deleted, edited
 		from
 			comments where repo_at = ? and issue_id = ? and comment_id = ?
 	`
@@ -262,8 +301,8 @@ func GetComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) (*Comment
 
 	var comment Comment
 	var createdAt string
-	var deletedAt, editedAt sql.NullString
-	err := row.Scan(&comment.OwnerDid, &comment.Body, &comment.CommentAt, &createdAt, &deletedAt, &editedAt)
+	var deletedAt, editedAt, rkey sql.NullString
+	err := row.Scan(&comment.OwnerDid, &comment.Body, &rkey, &createdAt, &deletedAt, &editedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -288,6 +327,10 @@ func GetComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) (*Comment
 			return nil, err
 		}
 		comment.Edited = &editedTime
+	}
+
+	if rkey.Valid {
+		comment.Rkey = rkey.String
 	}
 
 	comment.RepoAt = repoAt
