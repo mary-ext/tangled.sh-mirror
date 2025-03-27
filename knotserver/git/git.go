@@ -308,7 +308,7 @@ func (g *GitRepo) LastCommitForPath(path string) (*types.LastCommitInfo, error) 
 	}
 	cacheMu.RUnlock()
 
-	cmd := exec.Command("git", "-C", g.path, "log", "-1", "--format=%H %ct", "--", path)
+	cmd := exec.Command("git", "-C", g.path, "log", g.h.String(), "-1", "--format=%H %ct", "--", path)
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
