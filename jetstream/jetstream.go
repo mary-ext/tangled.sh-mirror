@@ -43,6 +43,7 @@ func (j *JetstreamClient) AddDid(did string) {
 		return
 	}
 
+	j.l.Info("adding did to in-memory filter", "did", did)
 	j.mu.Lock()
 	j.wantedDids[did] = struct{}{}
 	j.mu.Unlock()
@@ -51,6 +52,10 @@ func (j *JetstreamClient) AddDid(did string) {
 type processor func(context.Context, *models.Event) error
 
 func (j *JetstreamClient) withDidFilter(processFunc processor) processor {
+	// empty filter => all dids allowed
+	if len(j.wantedDids) == 0 {
+		return processFunc
+	}
 	// since this closure references j.WantedDids; it should auto-update
 	// existing instances of the closure when j.WantedDids is mutated
 	return func(ctx context.Context, evt *models.Event) error {

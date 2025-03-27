@@ -60,6 +60,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all Dids: %w", err)
 	}
+
 	if len(dids) > 0 {
 		h.knotInitialized = true
 		close(h.init)
