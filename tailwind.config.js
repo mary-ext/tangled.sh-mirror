@@ -2,7 +2,7 @@
 const colors = require("tailwindcss/colors");
 
 module.exports = {
-	content: ["./appview/pages/templates/**/*.html"],
+	content: ["./appview/pages/templates/**/*.html", "./appview/pages/chroma.go"],
 	darkMode: "media",
 	theme: {
 		container: {
