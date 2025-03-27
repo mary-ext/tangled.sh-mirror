@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/types"
@@ -56,7 +57,13 @@ func (g *GitRepo) makeNiceTree(t *object.Tree, parent string) []types.NiceTree {
 		lastCommit, err := g.LastCommitForPath(fpath)
 		if err != nil {
 			fmt.Println("error getting last commit time:", err)
-			continue
+			// We don't want to skip the file, so worst case lets just
+			// populate it with "defaults".
+			lastCommit = &types.LastCommitInfo{
+				Hash:    g.h,
+				Message: "",
+				When:    time.Now(),
+			}
 		}
 
 		nts = append(nts, types.NiceTree{
