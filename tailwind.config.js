@@ -22,21 +22,13 @@ module.exports = {
 				mono: ["iA Writer Mono S", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
 			},
 			typography: {
-				dark: {
-					css: {
-						maxWidth: 'none',
-						pre: {
-							backgroundColor: colors.gray[900],
-							color: colors.white,
-						},
-					},
-				},
 				DEFAULT: {
 					css: {
 						maxWidth: 'none',
 						pre: {
 							backgroundColor: colors.gray[100],
 							color: colors.black,
+  						'@apply dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700 dark:border': {}	
 						},
 					},
 				},
