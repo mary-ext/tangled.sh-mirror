@@ -139,6 +139,7 @@ func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
 
 type KnotParams struct {
 	LoggedInUser *auth.User
+	DidHandleMap map[string]string
 	Registration *db.Registration
 	Members      []string
 	IsOwner      bool

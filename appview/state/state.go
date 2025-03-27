@@ -420,11 +420,27 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var didsToResolve []string
+	for _, m := range members {
+		didsToResolve = append(didsToResolve, m)
+	}
+	didsToResolve = append(didsToResolve, reg.ByDid)
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
 	ok, err := s.enforcer.IsServerOwner(user.Did, domain)
 	isOwner := err == nil && ok
 
 	p := pages.KnotParams{
 		LoggedInUser: user,
+		DidHandleMap: didHandleMap,
 		Registration: reg,
 		Members:      members,
 		IsOwner:      isOwner,
