@@ -431,13 +431,12 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	style := styles.Get("bw")
 	b := style.Builder()
 	b.Add(chroma.LiteralString, "noitalic")
-	b.Add(chroma.Background, "bg:")
 	style, _ = b.Build()
 
 	if params.Lines < 5000 {
 		c := params.Contents
 		formatter := chromahtml.New(
-			chromahtml.InlineCode(true),
+			chromahtml.InlineCode(false),
 			chromahtml.WithLineNumbers(true),
 			chromahtml.WithLinkableLineNumbers(true, "L"),
 			chromahtml.Standalone(false),
