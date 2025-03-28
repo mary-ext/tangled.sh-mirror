@@ -38,7 +38,7 @@
               <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}/issues/{{ .Issue.IssueId }}" class="no-underline hover:underline">{{ .Issue.Title }} <span class="text-gray-500 dark:text-gray-400">#{{ .Issue.IssueId }}</span></a>
               on 
               <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ index $.DidHandleMap .Repo.Did }}<span class="select-none">/</span>{{ .Repo.Name }}</a>
-              <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
+              <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Issue.Created | shortTimeFmt }}</time>
               </p>
             </div>
           </div>
@@ -62,7 +62,7 @@
               on
               <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
                   {{ index $.DidHandleMap .Repo.Did }}<span class="select-none">/</span>{{ .Repo.Name }}</a>
-              <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
+              <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Pull.Created | shortTimeFmt }}</time>
               </p>
             </div>
           </div>
