@@ -24,14 +24,14 @@
         {{ range .ProfileTimeline }}
           {{ if eq .Type "issue" }}
           <div class="px-6 py-2 bg-white dark:bg-gray-800 rounded drop-shadow-sm w-fit max-w-full flex items-center gap-2">
-              {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+              {{ $textColor := "text-gray-800 dark:text-gray-700" }}
               {{ $icon := "ban" }}
               {{ if .Issue.Open }}
-                  {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+                  {{ $textColor = "text-green-600 dark:text-green-700" }}
                   {{ $icon = "circle-dot" }}
               {{ end }}
-            <div class="{{ $bgColor }} text-white rounded-full p-1">
-                {{ i $icon "w-4 h-4 text-white" }}
+            <div class="p-1 {{ $textColor }}">
+                {{ i $icon "w-5 h-5" }}
             </div>
             <div>
               <p class="text-gray-600 dark:text-gray-300">
@@ -44,8 +44,17 @@
           </div>
           {{ else if eq .Type "pull" }}
           <div class="px-6 py-2 bg-white dark:bg-gray-800 rounded drop-shadow-sm w-fit flex items-center gap-3">
-            <div class="bg-purple-600 dark:bg-purple-700 text-white rounded-full p-1">
-              {{ i "git-pull-request" "w-4 h-4" }}
+            {{ $textColor := "text-gray-800 dark:text-gray-700" }}
+            {{ $icon := "git-pull-request-closed" }}
+            {{ if .Pull.State.IsOpen }}
+                {{ $textColor = "text-green-600 dark:text-green-700" }}
+                {{ $icon = "git-pull-request" }}
+            {{ else if .Pull.State.IsMerged }}
+                {{ $textColor = "text-purple-600 dark:text-purple-700" }}
+                {{ $icon = "git-merge" }}
+            {{ end }}
+            <div class="{{ $textColor }} p-1">
+                {{ i $icon "w-5 h-5" }}
             </div>
             <div>
               <p class="text-gray-600 dark:text-gray-300">
@@ -59,8 +68,8 @@
           </div>
           {{ else if eq .Type "repo" }}
           <div class="px-6 py-2 bg-white dark:bg-gray-800 rounded drop-shadow-sm w-fit flex items-center gap-3">
-            <div class="bg-gray-200 dark:bg-gray-300 text-black rounded-full p-1">
-              {{ i "book-plus" "w-4 h-4" }}
+            <div class="text-black dark:text-white p-1">
+              {{ i "book-plus" "w-5 h-5" }}
             </div>
             <div>
               <p class="text-gray-600 dark:text-gray-300">
