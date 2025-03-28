@@ -1,23 +1,84 @@
 {{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
 
 {{ define "content" }}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="md:col-span-1">
-            {{ block "profileCard" . }}{{ end }}
-        </div>
-
-        <div class="md:col-span-3">
-            {{ block "ownRepos" . }}{{ end }}
-            {{ block "collaboratingRepos" . }}{{ end }}
-        </div>
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+    <div class="md:col-span-1 order-1 md:order-1">
+        {{ block "profileCard" . }}{{ end }}
     </div>
+    <div class="md:col-span-2 order-2 md:order-2">
+        {{ block "ownRepos" . }}{{ end }}
+        {{ block "collaboratingRepos" . }}{{ end }}
+    </div>
+    
+    <div class="md:col-span-2 order-3 md:order-3">
+        {{ block "profileTimeline" . }}{{ end }}
+    </div>
+</div>
+{{ end }}
+
+
+
+{{ define "profileTimeline" }}
+    <div class="flex flex-col gap-3 relative">
+        <p class="px-6 text-sm font-bold py-2 dark:text-white">ACTIVITY</p>
+        {{ range .ProfileTimeline }}
+          {{ if eq .Type "issue" }}
+          <div class="px-6 py-2 bg-white dark:bg-gray-800 rounded drop-shadow-sm w-fit max-w-full flex items-center gap-2">
+              {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+              {{ $icon := "ban" }}
+              {{ if .Issue.Open }}
+                  {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+                  {{ $icon = "circle-dot" }}
+              {{ end }}
+            <div class="{{ $bgColor }} text-white rounded-full p-1">
+                {{ i $icon "w-4 h-4 text-white" }}
+            </div>
+            <div>
+              <p class="text-gray-600 dark:text-gray-300">
+              <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}/issues/{{ .Issue.IssueId }}" class="no-underline hover:underline">{{ .Issue.Title }} <span class="text-gray-500 dark:text-gray-400">#{{ .Issue.IssueId }}</span></a>
+              on 
+              <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ index $.DidHandleMap .Repo.Did }}<span class="select-none">/</span>{{ .Repo.Name }}</a>
+              <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
+              </p>
+            </div>
+          </div>
+          {{ else if eq .Type "pull" }}
+          <div class="px-6 py-2 bg-white dark:bg-gray-800 rounded drop-shadow-sm w-fit flex items-center gap-3">
+            <div class="bg-purple-600 dark:bg-purple-700 text-white rounded-full p-1">
+              {{ i "git-pull-request" "w-4 h-4" }}
+            </div>
+            <div>
+              <p class="text-gray-600 dark:text-gray-300">
+              <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}/pulls/{{ .Pull.PullId }}" class="no-underline hover:underline">{{ .Pull.Title }} <span class="text-gray-500 dark:text-gray-400">#{{ .Pull.PullId }}</span></a>
+              on
+              <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
+                  {{ index $.DidHandleMap .Repo.Did }}<span class="select-none">/</span>{{ .Repo.Name }}</a>
+              <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
+              </p>
+            </div>
+          </div>
+          {{ else if eq .Type "repo" }}
+          <div class="px-6 py-2 bg-white dark:bg-gray-800 rounded drop-shadow-sm w-fit flex items-center gap-3">
+            <div class="bg-gray-200 dark:bg-gray-300 text-black rounded-full p-1">
+              {{ i "book-plus" "w-4 h-4" }}
+            </div>
+            <div>
+              <p class="text-gray-600 dark:text-gray-300">
+              <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
+              <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
+              </p>
+            </div>
+          </div>
+          {{ end }}
+        {{ end }}
+      </div>
 {{ end }}
 
 {{ define "profileCard" }}
     <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm max-h-fit">
         <div class="flex justify-center items-center">
             {{ if .AvatarUri }}
-                <img class="w-1/2 rounded-full p-2" src="{{ .AvatarUri }}" />
+                <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
             {{ end }}
         </div>
         <p class="text-xl font-bold text-center dark:text-white">
@@ -39,7 +100,7 @@
 
 {{ define "ownRepos" }}
     <p class="text-sm font-bold py-2 px-6 dark:text-white">REPOS</p>
-    <div id="repos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div id="repos" class="grid grid-cols-1 gap-4 mb-6">
         {{ range .Repos }}
             <div
                 id="repo-card"
@@ -71,11 +132,9 @@
             <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
         {{ end }}
     </div>
-{{ end }}
 
-{{ define "collaboratingRepos" }}
     <p class="text-sm font-bold py-2 px-6 dark:text-white">COLLABORATING ON</p>
-    <div id="collaborating" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div id="collaborating" class="grid grid-cols-1 gap-4 mb-6">
         {{ range .CollaboratingRepos }}
             <div
                 id="repo-card"

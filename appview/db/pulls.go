@@ -433,6 +433,59 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 	return &pull, nil
 }
 
+func GetPullsByOwnerDid(e Execer, did string) ([]Pull, error) {
+	var pulls []Pull
+
+	rows, err := e.Query(`
+			select
+				owner_did,
+				repo_at,
+				pull_id,
+				created,
+				title,
+				state
+			from
+				pulls
+			where
+				owner_did = ?
+			order by
+				created desc`, did)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var pull Pull
+		var createdAt string
+		err := rows.Scan(
+			&pull.OwnerDid,
+			&pull.RepoAt,
+			&pull.PullId,
+			&createdAt,
+			&pull.Title,
+			&pull.State,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		createdTime, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			return nil, err
+		}
+		pull.Created = createdTime
+
+		pulls = append(pulls, pull)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return pulls, nil
+}
+
 func NewPullComment(e Execer, comment *PullComment) (int64, error) {
 	query := `insert into pull_comments (owner_did, repo_at, submission_id, comment_at, pull_id, body) values (?, ?, ?, ?, ?, ?)`
 	res, err := e.Exec(

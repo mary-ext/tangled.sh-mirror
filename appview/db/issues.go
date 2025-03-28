@@ -118,7 +118,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool) ([]Issue, error) {
 		    issues i
 		left join
 			comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
-		where 
+		where
 		    i.repo_at = ? and i.open = ?
 		group by
 			i.id, i.owner_did, i.issue_id, i.created, i.title, i.body, i.open
@@ -135,6 +135,61 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool) ([]Issue, error) {
 		var createdAt string
 		var metadata IssueMetadata
 		err := rows.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
+		if err != nil {
+			return nil, err
+		}
+
+		createdTime, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			return nil, err
+		}
+		issue.Created = &createdTime
+		issue.Metadata = &metadata
+
+		issues = append(issues, issue)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return issues, nil
+}
+
+func GetIssuesByOwnerDid(e Execer, ownerDid string) ([]Issue, error) {
+	var issues []Issue
+
+	rows, err := e.Query(
+		`select
+			i.owner_did,
+			i.repo_at,
+			i.issue_id,
+			i.created,
+			i.title,
+			i.body,
+			i.open,
+			count(c.id)
+		from
+		    issues i
+		left join
+			comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
+		where
+		    i.owner_did = ?
+		group by
+			i.id, i.owner_did, i.repo_at, i.issue_id, i.created, i.title, i.body, i.open
+		order by
+			i.created desc`,
+		ownerDid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var issue Issue
+		var createdAt string
+		var metadata IssueMetadata
+		err := rows.Scan(&issue.OwnerDid, &issue.RepoAt, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +274,7 @@ func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) 
 	var comments []Comment
 
 	rows, err := e.Query(`
-		select 
+		select
 			owner_did,
 			issue_id,
 			comment_id,
@@ -230,8 +285,8 @@ func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) 
 			deleted
 		from
 			comments
-		where 
-			repo_at = ? and issue_id = ? 
+		where
+			repo_at = ? and issue_id = ?
 		order by
 			created asc`,
 		repoAt,
@@ -354,7 +409,7 @@ func EditComment(e Execer, repoAt syntax.ATURI, issueId, commentId int, newBody 
 func DeleteComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) error {
 	_, err := e.Exec(
 		`
-		update comments 
+		update comments
 		set body = "",
 			deleted = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 		where repo_at = ? and issue_id = ? and comment_id = ?
