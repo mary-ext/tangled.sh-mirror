@@ -15,6 +15,7 @@ type ProfileTimelineEvent struct {
 
 func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error) {
 	timeline := []ProfileTimelineEvent{}
+	limit := 30
 
 	pulls, err := GetPullsByOwnerDid(e, forDid)
 	if err != nil {
@@ -70,6 +71,10 @@ func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error
 	sort.Slice(timeline, func(i, j int) bool {
 		return timeline[i].EventAt.After(timeline[j].EventAt)
 	})
+
+	if len(timeline) > limit {
+		timeline = timeline[:limit]
+	}
 
 	return timeline, nil
 }
