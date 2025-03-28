@@ -168,6 +168,7 @@ type ProfilePageParams struct {
 	FollowStatus       db.FollowStatus
 	DidHandleMap       map[string]string
 	AvatarUri          string
+	ProfileTimeline    []db.ProfileTimelineEvent
 }
 
 type ProfileStats struct {
