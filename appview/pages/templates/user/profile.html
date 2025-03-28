@@ -64,7 +64,7 @@
             </div>
             <div>
               <p class="text-gray-600 dark:text-gray-300">
-              <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
+              created <a href="/{{ index $.DidHandleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
               <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
               </p>
             </div>
