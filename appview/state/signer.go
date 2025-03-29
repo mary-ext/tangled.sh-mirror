@@ -301,3 +301,17 @@ func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*http.Respon
 
 	return us.client.Do(req)
 }
+
+func (us *UnsignedClient) Capabilities(ownerDid, repoName string) (*http.Response, error) {
+	const (
+		Method   = "GET"
+		Endpoint = "/capabilities"
+	)
+
+	req, err := us.newRequest(Method, Endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
+}

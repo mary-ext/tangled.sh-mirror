@@ -70,6 +70,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	}
 
 	r.Get("/", h.Index)
+	r.Get("/capabilities", h.Capabilities)
 	r.Get("/version", h.Version)
 	r.Route("/{did}", func(r chi.Router) {
 		// Repo routes

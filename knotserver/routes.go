@@ -31,6 +31,24 @@ func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("This is a knot server. More info at https://tangled.sh"))
 }
 
+func (h *Handle) Capabilities(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	capabilities := map[string]any{
+		"pull_requests": map[string]any{
+			"patch_submissions": true,
+		},
+	}
+
+	jsonData, err := json.Marshal(capabilities)
+	if err != nil {
+		http.Error(w, "Failed to serialize JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonData)
+}
+
 func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	l := h.l.With("path", path, "handler", "RepoIndex")
