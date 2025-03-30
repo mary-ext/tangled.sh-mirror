@@ -131,6 +131,16 @@ func Open(path string, ref string) (*GitRepo, error) {
 	return &g, nil
 }
 
+func PlainOpen(path string) (*GitRepo, error) {
+	var err error
+	g := GitRepo{path: path}
+	g.r, err = git.PlainOpen(path)
+	if err != nil {
+		return nil, fmt.Errorf("opening %s: %w", path, err)
+	}
+	return &g, nil
+}
+
 func (g *GitRepo) Commits() ([]*object.Commit, error) {
 	ci, err := g.r.Log(&git.LogOptions{From: g.h})
 	if err != nil {

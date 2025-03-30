@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/types"
 )
@@ -46,16 +47,6 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 	}
 
 	nd := types.NiceDiff{}
-	nd.Commit.This = c.Hash.String()
-
-	if parent.Hash.IsZero() {
-		nd.Commit.Parent = ""
-	} else {
-		nd.Commit.Parent = parent.Hash.String()
-	}
-	nd.Commit.Author = c.Author
-	nd.Commit.Message = c.Message
-
 	for _, d := range diffs {
 		ndiff := types.Diff{}
 		ndiff.Name.New = d.NewName
@@ -82,6 +73,76 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 	}
 
 	nd.Stat.FilesChanged = len(diffs)
+	nd.Commit.This = c.Hash.String()
+
+	if parent.Hash.IsZero() {
+		nd.Commit.Parent = ""
+	} else {
+		nd.Commit.Parent = parent.Hash.String()
+	}
+	nd.Commit.Author = c.Author
+	nd.Commit.Message = c.Message
 
 	return &nd, nil
+}
+
+func (g *GitRepo) DiffTree(rev1, rev2 string) (*types.DiffTree, error) {
+	commit1, err := g.resolveRevision(rev1)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid revision: %s", rev1)
+	}
+
+	commit2, err := g.resolveRevision(rev2)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid revision: %s", rev2)
+	}
+
+	log.Println(commit1, commit2)
+
+	tree1, err := commit1.Tree()
+	if err != nil {
+		return nil, err
+	}
+
+	tree2, err := commit2.Tree()
+	if err != nil {
+		return nil, err
+	}
+
+	diff, err := object.DiffTree(tree1, tree2)
+	if err != nil {
+		return nil, err
+	}
+
+	patch, err := diff.Patch()
+	if err != nil {
+		return nil, err
+	}
+
+	diffs, _, err := gitdiff.Parse(strings.NewReader(patch.String()))
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.DiffTree{
+		Rev1:  commit1.Hash.String(),
+		Rev2:  commit2.Hash.String(),
+		Patch: patch.String(),
+		Diff:  diffs,
+	}, nil
+}
+
+func (g *GitRepo) resolveRevision(revStr string) (*object.Commit, error) {
+	rev, err := g.r.ResolveRevision(plumbing.Revision(revStr))
+	if err != nil {
+		return nil, fmt.Errorf("resolving revision %s: %w", revStr, err)
+	}
+
+	commit, err := g.r.CommitObject(*rev)
+	if err != nil {
+
+		return nil, fmt.Errorf("getting commit for %s: %w", revStr, err)
+	}
+
+	return commit, nil
 }

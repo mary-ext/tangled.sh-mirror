@@ -32,6 +32,10 @@ type RepoCommitResponse struct {
 	Diff *NiceDiff `json:"diff,omitempty"`
 }
 
+type RepoDiffTreeResponse struct {
+	DiffTree *DiffTree `json:"difftree,omitempty"`
+}
+
 type RepoTreeResponse struct {
 	Ref         string     `json:"ref,omitempty"`
 	Parent      string     `json:"parent,omitempty"`

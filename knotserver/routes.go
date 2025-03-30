@@ -36,7 +36,9 @@ func (h *Handle) Capabilities(w http.ResponseWriter, r *http.Request) {
 
 	capabilities := map[string]any{
 		"pull_requests": map[string]any{
-			"patch_submissions": true,
+			"patch_submissions":  true,
+			"branch_submissions": true,
+			"fork_submissions":   false,
 		},
 	}
 
@@ -681,6 +683,33 @@ func (h *Handle) MergeCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	writeError(w, err.Error(), http.StatusInternalServerError)
 	h.l.Error("git: failed to check merge", "handler", "MergeCheck", "error", err.Error())
+}
+
+func (h *Handle) Compare(w http.ResponseWriter, r *http.Request) {
+	rev1 := chi.URLParam(r, "rev1")
+	rev1, _ = url.PathUnescape(rev1)
+
+	rev2 := chi.URLParam(r, "rev2")
+	rev2, _ = url.PathUnescape(rev2)
+
+	l := h.l.With("handler", "Compare", "r1", rev1, "r2", rev2)
+
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	gr, err := git.PlainOpen(path)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	difftree, err := gr.DiffTree(rev1, rev2)
+	if err != nil {
+		l.Error("error comparing revisions", "msg", err.Error())
+		writeError(w, "error comparing revisions", http.StatusBadRequest)
+		return
+	}
+
+	writeJSON(w, types.RepoDiffTreeResponse{difftree})
+	return
 }
 
 func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {

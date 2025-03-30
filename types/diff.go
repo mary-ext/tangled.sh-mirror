@@ -38,3 +38,10 @@ type NiceDiff struct {
 	} `json:"stat"`
 	Diff []Diff `json:"diff"`
 }
+
+type DiffTree struct {
+	Rev1  string          `json:"rev1"`
+	Rev2  string          `json:"rev2"`
+	Patch string          `json:"patch"`
+	Diff  []*gitdiff.File `json:"diff"`
+}

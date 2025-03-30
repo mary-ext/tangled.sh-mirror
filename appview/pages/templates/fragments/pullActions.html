@@ -9,6 +9,7 @@
   {{ $isConflicted := and .MergeCheck (or .MergeCheck.Error .MergeCheck.IsConflicted) }}
   {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
   {{ $isLastRound := eq $roundNumber $lastIdx }}
+  {{ $isSameRepoBranch := .Pull.IsSameRepoBranch }}
   <div class="relative w-fit">
     <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
     <div id="actions-{{$roundNumber}}" class="flex flex-wrap gap-2">
@@ -36,14 +37,20 @@
         {{ end }}
 
         {{ if and $isPullAuthor $isOpen $isLastRound }}
-        <button 
-            hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
-            hx-target="#actions-{{$roundNumber}}"
-            hx-swap="outerHtml"
-            class="btn p-2 flex items-center gap-2">
-          {{ i "rotate-ccw" "w-4 h-4" }}
-            <span>resubmit</span>
-        </button>
+          <button id="resubmitBtn"
+              {{ if $isSameRepoBranch }}
+                hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
+              {{ else }}
+                hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
+                hx-target="#actions-{{$roundNumber}}"
+                hx-swap="outerHtml"
+              {{ end }}
+
+              hx-disabled-elt="#resubmitBtn"
+              class="btn p-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ i "rotate-ccw" "w-4 h-4" }}
+              <span>resubmit</span>
+          </button>
         {{ end }}
 
         {{ if and (or $isPullAuthor $isPushAllowed) $isOpen $isLastRound }}

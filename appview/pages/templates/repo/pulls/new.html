@@ -8,7 +8,7 @@
         <ul class="list-decimal pl-10 space-y-2 text-gray-700 dark:text-gray-300">
             <li class="leading-relaxed">Clone this repository.</li>
             <li class="leading-relaxed">Make your changes in your local repository.</li>
-            <li class="leading-relaxed">Grab the diff using <code class="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-800 dark:text-gray-200 font-mono text-sm">git diff</code>.</li>
+            <li class="leading-relaxed">Grab the diff using <code>git diff</code>.</li>
             <li class="leading-relaxed">Paste the diff output in the form below.</li>
         </ul>
     </p>
@@ -19,49 +19,83 @@
         hx-swap="none"
     >
         <div class="flex flex-col gap-4">
-            <div>
-                <label for="title" class="dark:text-white">write a title</label>
-                <input type="text" name="title" id="title" class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+          <div>
+            <label for="title" class="dark:text-white">write a title</label>
+            <input type="text" name="title" id="title" class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+          </div>
 
-                <label for="targetBranch" class="dark:text-white">select a target branch</label>
-                <p class="text-gray-500 dark:text-gray-400">
-                    The branch you want to make your change against.
-                </p>
-                <select
-                    name="targetBranch"
-                    class="p-1 mb-2 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                >
-                    <option disabled selected>select a branch</option>
-                    {{ range .Branches }}
-                        <option value="{{ .Reference.Name }}" class="py-1">
-                            {{ .Reference.Name }}
-                        </option>
-                    {{ end }}
-                </select>
-                <label for="body" class="dark:text-white">add a description</label>
-                <textarea
-                    name="body"
-                    id="body"
-                    rows="6"
-                    class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                    placeholder="Describe your change. Markdown is supported."
+          <div>
+            <label for="body" class="dark:text-white">add a description</label>
+            <textarea
+                name="body"
+                id="body"
+                rows="6"
+                class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                placeholder="Describe your change. Markdown is supported."
                 ></textarea>
+          </div>
 
-                <div class="mt-4">
-                    <label for="patch" class="dark:text-white">paste your patch here</label>
-                    <textarea
-                        name="patch"
-                        id="patch"
-                        rows="10"
-                        class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                        placeholder="Paste your git diff output here."
-                    ></textarea>
-                </div>
+          <div>
+            <label for="targetBranch" class="dark:text-white">configure branches</label>
+            <div class="flex flex-wrap gap-2 items-center">
+              <select
+                  required
+                  name="targetBranch"
+                  class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  >
+                  <option disabled selected>target branch</option>
+                  {{ range .Branches }}
+                  <option value="{{ .Reference.Name }}" class="py-1">
+                  {{ .Reference.Name }}
+                  </option>
+                  {{ end }}
+              </select>
+
+              {{ if .RepoInfo.Roles.IsPushAllowed }}
+              {{ i "move-left" "w-5 h-5" }}
+              <select
+                  name="sourceBranch"
+                  class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  >
+                  <option disabled selected>source branch</option>
+                  {{ range .Branches }}
+                  <option value="{{ .Reference.Name }}" class="py-1">
+                  {{ .Reference.Name }}
+                  </option>
+                  {{ end }}
+              </select>
+              {{ end }}
+
             </div>
-            <div>
-                <button type="submit" class="btn dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">create</button>
-            </div>
+          </div>
+
+          <div class="mt-4">
+            {{ $label := "paste your patch here" }}
+            {{ $rows := 10 }}
+            {{ if .RepoInfo.Roles.IsPushAllowed }}
+              {{ $label = "or paste your patch here" }}
+              {{ $rows = 4 }}
+            {{ end }}
+
+            <label for="patch" class="dark:text-white">{{ $label }}</label>
+            <textarea
+                name="patch"
+                id="patch"
+                rows="{{$rows}}"
+                class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                placeholder="Paste your git diff output here."
+            ></textarea>
+          </div>
+
+          <div class="flex justify-end items-center gap-2">
+            <button type="submit" class="btn">create</button>
+          </div>
+
         </div>
         <div id="pull" class="error dark:text-red-300"></div>
     </form>
+{{ end }}
+
+{{ define "repoAfter" }}
+<div id="patch-preview" class="error dark:text-red-300"></div>
 {{ end }}

@@ -257,10 +257,17 @@ func Make(dbPath string) (*DB, error) {
 	})
 
 	runMigration(db, "add-deleted-and-edited-to-issue-comments", func(tx *sql.Tx) error {
-		// add unconstrained column
 		_, err := tx.Exec(`
 			alter table comments add column deleted text; -- timestamp
 			alter table comments add column edited text; -- timestamp
+		`)
+		return err
+	})
+
+	runMigration(db, "add-source-info-to-pulls", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table pulls add column source_branch text;
+			alter table pulls add column source_repo_at text;
 		`)
 		return err
 	})
