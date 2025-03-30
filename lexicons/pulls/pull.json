@@ -9,7 +9,13 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["targetRepo", "targetBranch", "pullId", "title", "patch"],
+        "required": [
+          "targetRepo",
+          "targetBranch",
+          "pullId",
+          "title",
+          "patch"
+        ],
         "properties": {
           "targetRepo": {
             "type": "string",
@@ -17,10 +23,6 @@
           },
           "targetBranch": {
             "type": "string"
-          },
-          "sourceRepo": {
-            "type": "string",
-            "format": "at-uri"
           },
           "pullId": {
             "type": "integer"
@@ -37,7 +39,24 @@
           },
           "patch": {
             "type": "string"
+          },
+          "source": {
+            "type": "ref",
+            "ref": "#source"
           }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["branch"],
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "repo": {
+          "type": "string",
+          "format": "at-uri"
         }
       }
     }

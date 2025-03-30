@@ -19,48 +19,71 @@
         hx-swap="none"
     >
         <div class="flex flex-col gap-4">
-            <div>
-                <label for="title" class="dark:text-white">write a title</label>
-                <input type="text" name="title" id="title" class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+          <div>
+            <label for="title" class="dark:text-white">write a title</label>
+            <input type="text" name="title" id="title" class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+          </div>
 
-                <label for="targetBranch" class="dark:text-white">select a target branch</label>
-                <p class="text-gray-500 dark:text-gray-400">
-                    The branch you want to make your change against.
-                </p>
-                <select
-                    name="targetBranch"
-                    class="p-1 mb-2 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                >
-                    <option disabled selected>select a branch</option>
-                    {{ range .Branches }}
-                        <option value="{{ .Reference.Name }}" class="py-1">
-                            {{ .Reference.Name }}
-                        </option>
-                    {{ end }}
-                </select>
-                <label for="body" class="dark:text-white">add a description</label>
-                <textarea
-                    name="body"
-                    id="body"
-                    rows="6"
-                    class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                    placeholder="Describe your change. Markdown is supported."
+          <div>
+            <label for="body" class="dark:text-white">add a description</label>
+            <textarea
+                name="body"
+                id="body"
+                rows="6"
+                class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                placeholder="Describe your change. Markdown is supported."
                 ></textarea>
+          </div>
 
-                <div class="mt-4">
-                    <label for="patch" class="dark:text-white">paste your patch here</label>
-                    <textarea
-                        name="patch"
-                        id="patch"
-                        rows="10"
-                        class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                        placeholder="Paste your git diff output here."
-                    ></textarea>
-                </div>
+          <div>
+            <label for="targetBranch" class="dark:text-white">configure branches</label>
+            <div class="flex flex-wrap gap-2 items-center">
+              <select
+                  name="targetBranch"
+                  class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  >
+                  <option disabled selected>target branch</option>
+                  {{ range .Branches }}
+                  <option value="{{ .Reference.Name }}" class="py-1">
+                  {{ .Reference.Name }}
+                  </option>
+                  {{ end }}
+              </select>
+
+              {{ if .RepoInfo.Roles.IsPushAllowed }}
+              {{ i "move-left" "w-5 h-5" }}
+              <select
+                  name="sourceBranch"
+                  class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  >
+                  <option disabled selected>source branch</option>
+                  {{ range .Branches }}
+                  <option value="{{ .Reference.Name }}" class="py-1">
+                  {{ .Reference.Name }}
+                  </option>
+                  {{ end }}
+              </select>
+              {{ end }}
+
             </div>
-            <div>
-                <button type="submit" class="btn dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">create</button>
-            </div>
+          </div>
+
+          <div class="mt-4">
+              <label for="patch" class="dark:text-white">paste your patch here</label>
+              <textarea
+                  name="patch"
+                  id="patch"
+                  rows="10"
+                  class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  placeholder="Paste your git diff output here."
+              ></textarea>
+          </div>
+
+          <div class="flex items-center gap-2">
+              <button type="submit" class="btn">create</button>
+              <button class="btn">TODO preview</button>
+          </div>
+
         </div>
         <div id="pull" class="error dark:text-red-300"></div>
     </form>

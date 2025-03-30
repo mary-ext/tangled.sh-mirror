@@ -83,6 +83,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 			r.Get("/", h.RepoIndex)
 			r.Get("/info/refs", h.InfoRefs)
 			r.Post("/git-upload-pack", h.UploadPack)
+			r.Get("/compare/{rev1}/{rev2}", h.Compare) // git diff-tree compare of two objects
 
 			r.Route("/merge", func(r chi.Router) {
 				r.With(h.VerifySignature)

@@ -62,7 +62,13 @@ type Pull struct {
 	Submissions  []*PullSubmission
 
 	// meta
-	Created time.Time
+	Created    time.Time
+	PullSource *PullSource
+}
+
+type PullSource struct {
+	Branch string
+	Repo   *syntax.ATURI
 }
 
 type PullSubmission struct {
@@ -107,6 +113,18 @@ func (p *Pull) LatestPatch() string {
 
 func (p *Pull) LastRoundNumber() int {
 	return len(p.Submissions) - 1
+}
+
+func (p *Pull) IsSameRepoBranch() bool {
+	if p.PullSource != nil {
+		if p.PullSource.Repo != nil {
+			return p.PullSource.Repo == &p.RepoAt
+		} else {
+			// no repo specified
+			return true
+		}
+	}
+	return false
 }
 
 func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
@@ -175,10 +193,30 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 	pull.PullId = nextId
 	pull.State = PullOpen
 
-	_, err = tx.Exec(`
-		insert into pulls (repo_at, owner_did, pull_id, title, target_branch, body, rkey, state)
-		values (?, ?, ?, ?, ?, ?, ?, ?)
-	`, pull.RepoAt, pull.OwnerDid, pull.PullId, pull.Title, pull.TargetBranch, pull.Body, pull.Rkey, pull.State)
+	var sourceBranch, sourceRepoAt *string
+	if pull.PullSource != nil {
+		sourceBranch = &pull.PullSource.Branch
+		if pull.PullSource.Repo != nil {
+			x := pull.PullSource.Repo.String()
+			sourceRepoAt = &x
+		}
+	}
+
+	_, err = tx.Exec(
+		`
+		insert into pulls (repo_at, owner_did, pull_id, title, target_branch, body, rkey, state, source_branch, source_repo_at)
+		values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		pull.RepoAt,
+		pull.OwnerDid,
+		pull.PullId,
+		pull.Title,
+		pull.TargetBranch,
+		pull.Body,
+		pull.Rkey,
+		pull.State,
+		sourceBranch,
+		sourceRepoAt,
+	)
 	if err != nil {
 		return err
 	}
@@ -228,7 +266,9 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 			target_branch,
 			pull_at,
 			body,
-			rkey
+			rkey,
+			source_branch,
+			source_repo_at
 		from
 			pulls
 		where
@@ -243,6 +283,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 	for rows.Next() {
 		var pull Pull
 		var createdAt string
+		var sourceBranch, sourceRepoAt sql.NullString
 		err := rows.Scan(
 			&pull.OwnerDid,
 			&pull.PullId,
@@ -253,6 +294,8 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 			&pull.PullAt,
 			&pull.Body,
 			&pull.Rkey,
+			&sourceBranch,
+			&sourceRepoAt,
 		)
 		if err != nil {
 			return nil, err
@@ -263,6 +306,19 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 			return nil, err
 		}
 		pull.Created = createdTime
+
+		if sourceBranch.Valid {
+			pull.PullSource = &PullSource{
+				Branch: sourceBranch.String,
+			}
+			if sourceRepoAt.Valid {
+				sourceRepoAtParsed, err := syntax.ParseATURI(sourceRepoAt.String)
+				if err != nil {
+					return nil, err
+				}
+				pull.PullSource.Repo = &sourceRepoAtParsed
+			}
+		}
 
 		pulls = append(pulls, pull)
 	}
@@ -286,7 +342,9 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			pull_at,
 			repo_at,
 			body,
-			rkey
+			rkey,
+			source_branch,
+			source_repo_at
 		from
 			pulls
 		where
@@ -296,6 +354,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 
 	var pull Pull
 	var createdAt string
+	var sourceBranch, sourceRepoAt sql.NullString
 	err := row.Scan(
 		&pull.OwnerDid,
 		&pull.PullId,
@@ -307,6 +366,8 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		&pull.RepoAt,
 		&pull.Body,
 		&pull.Rkey,
+		&sourceBranch,
+		&sourceRepoAt,
 	)
 	if err != nil {
 		return nil, err
@@ -317,6 +378,20 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		return nil, err
 	}
 	pull.Created = createdTime
+
+	// populate source
+	if sourceBranch.Valid {
+		pull.PullSource = &PullSource{
+			Branch: sourceBranch.String,
+		}
+		if sourceRepoAt.Valid {
+			sourceRepoAtParsed, err := syntax.ParseATURI(sourceRepoAt.String)
+			if err != nil {
+				return nil, err
+			}
+			pull.PullSource.Repo = &sourceRepoAtParsed
+		}
+	}
 
 	submissionsQuery := `
 		select

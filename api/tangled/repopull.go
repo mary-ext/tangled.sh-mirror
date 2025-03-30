@@ -17,13 +17,19 @@ func init() {
 } //
 // RECORDTYPE: RepoPull
 type RepoPull struct {
-	LexiconTypeID string  `json:"$type,const=sh.tangled.repo.pull" cborgen:"$type,const=sh.tangled.repo.pull"`
-	Body          *string `json:"body,omitempty" cborgen:"body,omitempty"`
-	CreatedAt     *string `json:"createdAt,omitempty" cborgen:"createdAt,omitempty"`
-	Patch         string  `json:"patch" cborgen:"patch"`
-	PullId        int64   `json:"pullId" cborgen:"pullId"`
-	SourceRepo    *string `json:"sourceRepo,omitempty" cborgen:"sourceRepo,omitempty"`
-	TargetBranch  string  `json:"targetBranch" cborgen:"targetBranch"`
-	TargetRepo    string  `json:"targetRepo" cborgen:"targetRepo"`
-	Title         string  `json:"title" cborgen:"title"`
+	LexiconTypeID string           `json:"$type,const=sh.tangled.repo.pull" cborgen:"$type,const=sh.tangled.repo.pull"`
+	Body          *string          `json:"body,omitempty" cborgen:"body,omitempty"`
+	CreatedAt     *string          `json:"createdAt,omitempty" cborgen:"createdAt,omitempty"`
+	Patch         string           `json:"patch" cborgen:"patch"`
+	PullId        int64            `json:"pullId" cborgen:"pullId"`
+	Source        *RepoPull_Source `json:"source,omitempty" cborgen:"source,omitempty"`
+	TargetBranch  string           `json:"targetBranch" cborgen:"targetBranch"`
+	TargetRepo    string           `json:"targetRepo" cborgen:"targetRepo"`
+	Title         string           `json:"title" cborgen:"title"`
+}
+
+// RepoPull_Source is a "source" in the sh.tangled.repo.pull schema.
+type RepoPull_Source struct {
+	Branch string  `json:"branch" cborgen:"branch"`
+	Repo   *string `json:"repo,omitempty" cborgen:"repo,omitempty"`
 }

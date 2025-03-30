@@ -110,7 +110,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(s, user),
 		DidHandleMap: didHandleMap,
-		Pull:         *pull,
+		Pull:         pull,
 		MergeCheck:   mergeCheckResponse,
 	})
 }
@@ -453,12 +453,63 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		title := r.FormValue("title")
 		body := r.FormValue("body")
 		targetBranch := r.FormValue("targetBranch")
+		sourceBranch := r.FormValue("sourceBranch")
 		patch := r.FormValue("patch")
 
-		if title == "" || body == "" || patch == "" || targetBranch == "" {
+		if sourceBranch == "" && patch == "" {
+			s.pages.Notice(w, "pull", "neither sourceBranch nor patch supplied")
+			return
+		}
+
+		if title == "" || body == "" || targetBranch == "" {
 			s.pages.Notice(w, "pull", "Title, body and patch diff are required.")
 			return
 		}
+
+		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
+
+		// TODO: check if knot has this capability
+		var pullSource *db.PullSource
+		if sourceBranch != "" && isPushAllowed {
+			pullSource = &db.PullSource{
+				Branch: sourceBranch,
+			}
+			// generate a patch using /compare
+			ksClient, err := NewUnsignedClient(f.Knot, s.config.Dev)
+			if err != nil {
+				log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+				return
+			}
+
+			log.Println(targetBranch, sourceBranch)
+
+			resp, err := ksClient.Compare(f.OwnerDid(), f.RepoName, targetBranch, sourceBranch)
+			switch resp.StatusCode {
+			case 404:
+			case 400:
+				s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
+			}
+
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Println("failed to compare across branches")
+				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			}
+			defer resp.Body.Close()
+
+			var diffTreeResponse types.RepoDiffTreeResponse
+			err = json.Unmarshal(respBody, &diffTreeResponse)
+			if err != nil {
+				log.Println("failed to unmarshal diff tree response", err)
+				log.Println(string(respBody))
+				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			}
+
+			patch = diffTreeResponse.DiffTree.Patch
+		}
+
+		log.Println(patch)
 
 		// Validate patch format
 		if !isPatchValid(patch) {
@@ -488,6 +539,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			Submissions: []*db.PullSubmission{
 				&initialSubmission,
 			},
+			PullSource: pullSource,
 		})
 		if err != nil {
 			log.Println("failed to create pull request", err)
@@ -529,6 +581,9 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *State) RenderDiffFragment(w http.ResponseWriter, r *http.Request) {
+}
+
 func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
@@ -553,6 +608,46 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 		return
 	case http.MethodPost:
 		patch := r.FormValue("patch")
+
+		// this pull is a branch based pull
+		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
+		if pull.IsSameRepoBranch() && isPushAllowed {
+			sourceBranch := pull.PullSource.Branch
+			targetBranch := pull.TargetBranch
+			// extract patch by performing compare
+			ksClient, err := NewUnsignedClient(f.Knot, s.config.Dev)
+			if err != nil {
+				log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+				return
+			}
+
+			log.Println(targetBranch, sourceBranch)
+
+			resp, err := ksClient.Compare(f.OwnerDid(), f.RepoName, targetBranch, sourceBranch)
+			switch resp.StatusCode {
+			case 404:
+			case 400:
+				s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
+			}
+
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Println("failed to compare across branches")
+				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			}
+			defer resp.Body.Close()
+
+			var diffTreeResponse types.RepoDiffTreeResponse
+			err = json.Unmarshal(respBody, &diffTreeResponse)
+			if err != nil {
+				log.Println("failed to unmarshal diff tree response", err)
+				log.Println(string(respBody))
+				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			}
+
+			patch = diffTreeResponse.DiffTree.Patch
+		}
 
 		if patch == "" {
 			s.pages.Notice(w, "resubmit-error", "Patch is empty.")

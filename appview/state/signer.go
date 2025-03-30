@@ -282,3 +282,18 @@ func (us *UnsignedClient) Capabilities(ownerDid, repoName string) (*http.Respons
 
 	return us.client.Do(req)
 }
+
+func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+
+	endpoint := fmt.Sprintf("/%s/%s/compare/%s/%s", ownerDid, repoName, rev1, rev2)
+
+	req, err := us.newRequest(Method, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
+}

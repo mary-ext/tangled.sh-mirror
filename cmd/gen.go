@@ -23,6 +23,7 @@ func main() {
 		shtangled.RepoIssue{},
 		shtangled.Repo{},
 		shtangled.RepoPull{},
+		shtangled.RepoPull_Source{},
 		shtangled.RepoPullStatus{},
 		shtangled.RepoPullComment{},
 	); err != nil {

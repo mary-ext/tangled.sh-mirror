@@ -589,9 +589,8 @@ type RepoSinglePullParams struct {
 	RepoInfo     RepoInfo
 	Active       string
 	DidHandleMap map[string]string
-
-	Pull       db.Pull
-	MergeCheck types.MergeCheckResponse
+	Pull         *db.Pull
+	MergeCheck   types.MergeCheckResponse
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
