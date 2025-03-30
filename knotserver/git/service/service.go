@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 )
 
@@ -68,43 +69,49 @@ func (c *ServiceCommand) InfoRefs() error {
 }
 
 func (c *ServiceCommand) UploadPack() error {
-	cmd := exec.Command("git", []string{
-		"-c", "uploadpack.allowFilter=true",
-		"upload-pack",
-		"--stateless-rpc",
-		".",
-	}...)
+	var stderr bytes.Buffer
+
+	cmd := exec.Command("git", "-c", "uploadpack.allowFilter=true",
+		"upload-pack", "--stateless-rpc", ".")
 	cmd.Dir = c.Dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	stdoutPipe, _ := cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
-	defer stdoutPipe.Close()
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	cmd.Stderr = &stderr
 
 	stdinPipe, err := cmd.StdinPipe()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
-	defer stdinPipe.Close()
 
 	if err := cmd.Start(); err != nil {
-		log.Printf("git: failed to start git-upload-pack: %s", err)
-		return err
+		return fmt.Errorf("failed to start git-upload-pack: %w", err)
 	}
 
-	if _, err := io.Copy(stdinPipe, c.Stdin); err != nil {
-		log.Printf("git: failed to copy stdin: %s", err)
-		return err
-	}
-	stdinPipe.Close()
+	var wg sync.WaitGroup
 
-	if _, err := io.Copy(newWriteFlusher(c.Stdout), stdoutPipe); err != nil {
-		log.Printf("git: failed to copy stdout: %s", err)
-		return err
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer stdinPipe.Close()
+		io.Copy(stdinPipe, c.Stdin)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		io.Copy(newWriteFlusher(c.Stdout), stdoutPipe)
+		stdoutPipe.Close()
+	}()
+
+	wg.Wait()
+
 	if err := cmd.Wait(); err != nil {
-		log.Printf("git: failed to wait for git-upload-pack: %s", err)
-		return err
+		return fmt.Errorf("git-upload-pack failed: %w, stderr: %s", err, stderr.String())
 	}
 
 	return nil
