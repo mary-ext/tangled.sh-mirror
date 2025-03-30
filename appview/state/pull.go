@@ -450,23 +450,31 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			Branches:     result.Branches,
 		})
 	case http.MethodPost:
+		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
 		title := r.FormValue("title")
 		body := r.FormValue("body")
 		targetBranch := r.FormValue("targetBranch")
 		sourceBranch := r.FormValue("sourceBranch")
 		patch := r.FormValue("patch")
 
-		if sourceBranch == "" && patch == "" {
-			s.pages.Notice(w, "pull", "neither sourceBranch nor patch supplied")
+		if patch == "" {
+			if isPushAllowed && sourceBranch == "" {
+				s.pages.Notice(w, "pull", "Neither source branch nor patch supplied.")
+				return
+			}
+			s.pages.Notice(w, "pull", "Patch is empty.")
+			return
+		}
+
+		if patch != "" && sourceBranch != "" {
+			s.pages.Notice(w, "pull", "Cannot select both patch and source branch.")
 			return
 		}
 
 		if title == "" || body == "" || targetBranch == "" {
-			s.pages.Notice(w, "pull", "Title, body and patch diff are required.")
+			s.pages.Notice(w, "pull", "Title, body and target branch are required.")
 			return
 		}
-
-		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
 
 		// TODO: check if knot has this capability
 		var pullSource *db.PullSource
@@ -579,9 +587,6 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
 		return
 	}
-}
-
-func (s *State) RenderDiffFragment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {

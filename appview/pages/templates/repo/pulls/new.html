@@ -8,7 +8,7 @@
         <ul class="list-decimal pl-10 space-y-2 text-gray-700 dark:text-gray-300">
             <li class="leading-relaxed">Clone this repository.</li>
             <li class="leading-relaxed">Make your changes in your local repository.</li>
-            <li class="leading-relaxed">Grab the diff using <code class="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-800 dark:text-gray-200 font-mono text-sm">git diff</code>.</li>
+            <li class="leading-relaxed">Grab the diff using <code>git diff</code>.</li>
             <li class="leading-relaxed">Paste the diff output in the form below.</li>
         </ul>
     </p>
@@ -39,6 +39,7 @@
             <label for="targetBranch" class="dark:text-white">configure branches</label>
             <div class="flex flex-wrap gap-2 items-center">
               <select
+                  required
                   name="targetBranch"
                   class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   >
@@ -69,22 +70,32 @@
           </div>
 
           <div class="mt-4">
-              <label for="patch" class="dark:text-white">paste your patch here</label>
-              <textarea
-                  name="patch"
-                  id="patch"
-                  rows="10"
-                  class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                  placeholder="Paste your git diff output here."
-              ></textarea>
+            {{ $label := "paste your patch here" }}
+            {{ $rows := 10 }}
+            {{ if .RepoInfo.Roles.IsPushAllowed }}
+              {{ $label = "or paste your patch here" }}
+              {{ $rows = 4 }}
+            {{ end }}
+
+            <label for="patch" class="dark:text-white">{{ $label }}</label>
+            <textarea
+                name="patch"
+                id="patch"
+                rows="{{$rows}}"
+                class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                placeholder="Paste your git diff output here."
+            ></textarea>
           </div>
 
-          <div class="flex items-center gap-2">
-              <button type="submit" class="btn">create</button>
-              <button class="btn">TODO preview</button>
+          <div class="flex justify-end items-center gap-2">
+            <button type="submit" class="btn">create</button>
           </div>
 
         </div>
         <div id="pull" class="error dark:text-red-300"></div>
     </form>
+{{ end }}
+
+{{ define "repoAfter" }}
+<div id="patch-preview" class="error dark:text-red-300"></div>
 {{ end }}
