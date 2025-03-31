@@ -230,7 +230,9 @@
       pkgs,
       lib,
       ...
-    }:
+    }: let
+      cfg = config.services.tangled-knotserver;
+    in
       with lib; {
         options = {
           services.tangled-knotserver = {
@@ -252,10 +254,22 @@
               description = "User that hosts git repos and performs git operations";
             };
 
+            openFirewall = mkOption {
+              type = types.bool;
+              default = true;
+              description = "Open port 22 in the firewall for ssh";
+            };
+
+            stateDir = mkOption {
+              type = types.path;
+              default = "/home/${cfg.gitUser}";
+              description = "Tangled knot data directory";
+            };
+
             repo = {
               scanPath = mkOption {
                 type = types.path;
-                default = "/home/git";
+                default = cfg.stateDir;
                 description = "Path where repositories are scanned from";
               };
 
@@ -287,7 +301,7 @@
 
               dbPath = mkOption {
                 type = types.path;
-                default = "knotserver.db";
+                default = "${cfg.stateDir}/knotserver.db";
                 description = "Path to the database file";
               };
 
@@ -306,32 +320,38 @@
           };
         };
 
-        config = mkIf config.services.tangled-knotserver.enable {
+        config = mkIf cfg.enable {
           environment.systemPackages = with pkgs; [git];
 
           system.activationScripts.gitConfig = ''
-            mkdir -p /home/git/.config/git
-            cat > /home/git/.config/git/config << EOF
+            mkdir -p "${cfg.repo.scanPath}"
+            chown -R ${cfg.gitUser}:${cfg.gitUser} \
+                "${cfg.repo.scanPath}"
+
+            mkdir -p "${cfg.stateDir}/.config/git"
+            cat > "${cfg.stateDir}/.config/git/config" << EOF
             [user]
                 name = Git User
                 email = git@example.com
             EOF
-            chown -R git:git /home/git/.config
+            chown -R ${cfg.gitUser}:${cfg.gitUser} \
+                "${cfg.stateDir}"
           '';
 
-          users.users.git = {
-            isNormalUser = true;
-            home = "/home/git";
+          users.users.${cfg.gitUser} = {
+            isSystemUser = true;
+            useDefaultShell = true;
+            home = cfg.stateDir;
             createHome = true;
-            group = "git";
+            group = cfg.gitUser;
           };
 
-          users.groups.git = {};
+          users.groups.${cfg.gitUser} = {};
 
           services.openssh = {
             enable = true;
             extraConfig = ''
-              Match User git
+              Match User ${cfg.gitUser}
                   AuthorizedKeysCommand /etc/ssh/keyfetch_wrapper
                   AuthorizedKeysCommandUser nobody
             '';
@@ -343,6 +363,8 @@
               #!${pkgs.stdenv.shell}
               ${self.packages.${pkgs.system}.keyfetch}/bin/keyfetch \
                 -repoguard-path ${self.packages.${pkgs.system}.repoguard}/bin/repoguard \
+                -internal-api "http://${cfg.server.internalListenAddr}" \
+                -git-dir "${cfg.repo.scanPath}" \
                 -log-path /tmp/repoguard.log
             '';
           };
@@ -352,22 +374,24 @@
             after = ["network.target" "sshd.service"];
             wantedBy = ["multi-user.target"];
             serviceConfig = {
-              User = "git";
-              WorkingDirectory = "/home/git";
+              User = cfg.gitUser;
+              WorkingDirectory = cfg.stateDir;
               Environment = [
-                "KNOT_REPO_SCAN_PATH=${config.services.tangled-knotserver.repo.scanPath}"
-                "APPVIEW_ENDPOINT=${config.services.tangled-knotserver.appviewEndpoint}"
-                "KNOT_SERVER_INTERNAL_LISTEN_ADDR=${config.services.tangled-knotserver.server.internalListenAddr}"
-                "KNOT_SERVER_LISTEN_ADDR=${config.services.tangled-knotserver.server.listenAddr}"
-                "KNOT_SERVER_HOSTNAME=${config.services.tangled-knotserver.server.hostname}"
+                "KNOT_REPO_SCAN_PATH=${cfg.repo.scanPath}"
+                "KNOT_REPO_MAIN_BRANCH=${cfg.repo.mainBranch}"
+                "APPVIEW_ENDPOINT=${cfg.appviewEndpoint}"
+                "KNOT_SERVER_INTERNAL_LISTEN_ADDR=${cfg.server.internalListenAddr}"
+                "KNOT_SERVER_LISTEN_ADDR=${cfg.server.listenAddr}"
+                "KNOT_SERVER_DB_PATH=${cfg.server.dbPath}"
+                "KNOT_SERVER_HOSTNAME=${cfg.server.hostname}"
               ];
-              EnvironmentFile = config.services.tangled-knotserver.server.secretFile;
+              EnvironmentFile = cfg.server.secretFile;
               ExecStart = "${self.packages.${pkgs.system}.knotserver}/bin/knotserver";
               Restart = "always";
             };
           };
 
-          networking.firewall.allowedTCPPorts = [22];
+          networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [22];
         };
       };
 
