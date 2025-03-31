@@ -228,6 +228,11 @@ func (g *GitRepo) Branches() ([]*plumbing.Reference, error) {
 	return branches, nil
 }
 
+func (g *GitRepo) SetDefaultBranch(branch string) error {
+	ref := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName(branch))
+	return g.r.Storer.SetReference(ref)
+}
+
 func (g *GitRepo) FindMainBranch() (string, error) {
 	ref, err := g.r.Head()
 	if err != nil {

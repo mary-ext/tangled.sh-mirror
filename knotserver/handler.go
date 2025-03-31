@@ -102,7 +102,13 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 			r.Get("/archive/{file}", h.Archive)
 			r.Get("/commit/{ref}", h.Diff)
 			r.Get("/tags", h.Tags)
-			r.Get("/branches", h.Branches)
+			r.Route("/branches", func(r chi.Router) {
+				r.Get("/", h.Branches)
+				r.Route("/default", func(r chi.Router) {
+					r.Get("/", h.DefaultBranch)
+					r.With(h.VerifySignature).Put("/", h.SetDefaultBranch)
+				})
+			})
 		})
 	})
 

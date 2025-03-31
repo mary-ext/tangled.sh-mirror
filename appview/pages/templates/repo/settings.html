@@ -28,4 +28,22 @@
             <button class="btn my-2 dark:text-white dark:hover:bg-gray-700" type="text">add collaborator</button>
         </form>
     {{ end }}
+
+    <form hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default" class="mt-6">
+        <label for="branch">default branch:</label>
+        <select id="branch" name="branch" required class="p-1 border border-gray-200 bg-white">
+            {{ range .Branches }}
+                <option
+                    value="{{ . }}"
+                    class="py-1"
+                    {{ if eq . $.DefaultBranch }}
+                        selected
+                    {{ end }}
+                >
+                    {{ . }}
+                </option>
+            {{ end }}
+        </select>
+        <button class="btn my-2" type="text">save</button>
+    </form>
 {{ end }}

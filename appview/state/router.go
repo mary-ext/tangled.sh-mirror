@@ -143,6 +143,7 @@ func (s *State) UserRouter() http.Handler {
 				r.With(RepoPermissionMiddleware(s, "repo:settings")).Route("/settings", func(r chi.Router) {
 					r.Get("/", s.RepoSettings)
 					r.With(RepoPermissionMiddleware(s, "repo:invite")).Put("/collaborator", s.AddCollaborator)
+					r.Put("/branches/default", s.SetDefaultBranch)
 				})
 			})
 		})

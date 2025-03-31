@@ -594,6 +594,45 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (s *State) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	branch := r.FormValue("branch")
+	if branch == "" {
+		http.Error(w, "malformed form", http.StatusBadRequest)
+		return
+	}
+
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
+		return
+	}
+
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	if err != nil {
+		log.Println("failed to create client to ", f.Knot)
+		return
+	}
+
+	ksResp, err := ksClient.SetDefaultBranch(f.OwnerDid(), f.RepoName, branch)
+	if err != nil {
+		log.Printf("failed to make request to %s: %s", f.Knot, err)
+		return
+	}
+
+	if ksResp.StatusCode != http.StatusNoContent {
+		s.pages.Notice(w, "repo-settings", "Failed to set default branch. Try again later.")
+		return
+	}
+
+	w.Write([]byte(fmt.Sprint("default branch set to: ", branch)))
+}
+
 func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
@@ -618,11 +657,62 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		var branchNames []string
+		var defaultBranch string
+		us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+		if err != nil {
+			log.Println("failed to create unsigned client", err)
+		} else {
+			resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+			if err != nil {
+				log.Println("failed to reach knotserver", err)
+			} else {
+				defer resp.Body.Close()
+
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					log.Printf("Error reading response body: %v", err)
+				} else {
+					var result types.RepoBranchesResponse
+					err = json.Unmarshal(body, &result)
+					if err != nil {
+						log.Println("failed to parse response:", err)
+					} else {
+						for _, branch := range result.Branches {
+							branchNames = append(branchNames, branch.Name)
+						}
+					}
+				}
+			}
+
+			resp, err = us.DefaultBranch(f.OwnerDid(), f.RepoName)
+			if err != nil {
+				log.Println("failed to reach knotserver", err)
+			} else {
+				defer resp.Body.Close()
+
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					log.Printf("Error reading response body: %v", err)
+				} else {
+					var result types.RepoDefaultBranchResponse
+					err = json.Unmarshal(body, &result)
+					if err != nil {
+						log.Println("failed to parse response:", err)
+					} else {
+						defaultBranch = result.Branch
+					}
+				}
+			}
+		}
+
 		s.pages.RepoSettings(w, pages.RepoSettingsParams{
 			LoggedInUser:                user,
 			RepoInfo:                    f.RepoInfo(s, user),
 			Collaborators:               repoCollaborators,
 			IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
+			Branches:                    branchNames,
+			DefaultBranch:               defaultBranch,
 		})
 	}
 }

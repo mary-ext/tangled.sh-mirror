@@ -478,6 +478,8 @@ type RepoSettingsParams struct {
 	RepoInfo      RepoInfo
 	Collaborators []Collaborator
 	Active        string
+	Branches      []string
+	DefaultBranch string
 	// TODO: use repoinfo.roles
 	IsCollaboratorInviteAllowed bool
 }

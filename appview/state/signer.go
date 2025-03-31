@@ -140,6 +140,24 @@ func (s *SignedClient) AddMember(did string) (*http.Response, error) {
 	return s.client.Do(req)
 }
 
+func (s *SignedClient) SetDefaultBranch(ownerDid, repoName, branch string) (*http.Response, error) {
+	const (
+		Method = "PUT"
+	)
+	endpoint := fmt.Sprintf("/%s/%s/branches/default", ownerDid, repoName)
+
+	body, _ := json.Marshal(map[string]any{
+		"branch": branch,
+	})
+
+	req, err := s.newRequest(Method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}
+
 func (s *SignedClient) AddCollaborator(ownerDid, repoName, memberDid string) (*http.Response, error) {
 	const (
 		Method = "POST"
@@ -260,6 +278,21 @@ func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, e
 	)
 
 	endpoint := fmt.Sprintf("/%s/%s/branches", ownerDid, repoName)
+
+	req, err := us.newRequest(Method, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
+}
+
+func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+
+	endpoint := fmt.Sprintf("/%s/%s/branches/default", ownerDid, repoName)
 
 	req, err := us.newRequest(Method, endpoint, nil)
 	if err != nil {

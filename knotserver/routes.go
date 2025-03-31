@@ -739,6 +739,57 @@ func (h *Handle) AddRepoCollaborator(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handle) DefaultBranch(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "DefaultBranch")
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+
+	gr, err := git.Open(path, "")
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	branch, err := gr.FindMainBranch()
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		l.Error("getting default branch", "error", err.Error())
+		return
+	}
+
+	writeJSON(w, types.RepoDefaultBranchResponse{
+		Branch: branch,
+	})
+}
+
+func (h *Handle) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "SetDefaultBranch")
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+
+	data := struct {
+		Branch string `json:"branch"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	gr, err := git.Open(path, "")
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	err = gr.SetDefaultBranch(data.Branch)
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		l.Error("setting default branch", "error", err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "Init")
 
