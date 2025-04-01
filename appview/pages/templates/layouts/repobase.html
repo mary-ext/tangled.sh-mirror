@@ -1,27 +1,31 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
-    <section id="repo-header" class="mb-4 py-2 px-6 dark:text-white">
-      {{ if .RepoInfo.Source }}
-      <p class="text-sm">
-      <div class="flex items-center">
-          {{ i "git-fork" "w-3 h-3 mr-1"}}
-          forked from
-          {{ $sourceOwner := didOrHandle .RepoInfo.Source.Did .RepoInfo.SourceHandle  }}
-          <a class="ml-1 underline" href="/{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}">{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}</a>
-      </div>
-      </p>
-      {{ end }}
-      <p class="text-lg">
-        <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
-        <span class="select-none">/</span>
-        <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
-        <span class="ml-3">
-          {{ template "fragments/star" .RepoInfo }}
-        </span>
-      </p>
-      {{ template "fragments/repoDescription" . }}
-    </section>
+<section id="repo-header" class="mb-4 py-2 px-6 dark:text-white">
+  {{ if .RepoInfo.Source }}
+  <p class="text-sm">
+  <div class="flex items-center">
+      {{ i "git-fork" "w-3 h-3 mr-1"}}
+      forked from
+      {{ $sourceOwner := didOrHandle .RepoInfo.Source.Did .RepoInfo.SourceHandle  }}
+      <a class="ml-1 underline" href="/{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}">{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}</a>
+  </div>
+  </p>
+  {{ end }}
+  <div class="text-lg flex items-center justify-between">
+    <div>
+      <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
+      <span class="select-none">/</span>
+      <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
+    </div>
+    <div class="flex items-center">
+      <span class="mr-3">
+        {{ template "fragments/repoActions" .RepoInfo }}
+      </span>
+    </div>
+  </div>
+  {{ template "fragments/repoDescription" . }}
+</section>
     <section class="min-h-screen flex flex-col drop-shadow-sm">
         <nav class="w-full pl-4 overflow-auto">
             <div class="flex z-60">
@@ -46,7 +50,7 @@
                              {{ end }}
                              "
                         >
-                            {{ $key }} 
+                            {{ $key }}
                             {{ if not (isNil $meta) }}
                             <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm">{{  $meta }}</span>
                             {{ end }}

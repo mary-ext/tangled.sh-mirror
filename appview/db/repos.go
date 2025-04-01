@@ -88,8 +88,9 @@ func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 		var repoStats RepoStats
 		var createdAt string
 		var nullableDescription sql.NullString
+		var nullableSource sql.NullString
 
-		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repoStats.StarCount)
+		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repoStats.StarCount, &nullableSource)
 		if err != nil {
 			return nil, err
 		}
@@ -179,12 +180,12 @@ func RemoveRepo(e Execer, did, name, rkey string) error {
 }
 
 func GetRepoSource(e Execer, repoAt syntax.ATURI) (string, error) {
-	var source string
-	err := e.QueryRow(`select source from repos where at_uri = ?`, repoAt).Scan(&source)
+	var nullableSource sql.NullString
+	err := e.QueryRow(`select source from repos where at_uri = ?`, repoAt).Scan(&nullableSource)
 	if err != nil {
 		return "", err
 	}
-	return source, nil
+	return nullableSource.String, nil
 }
 
 func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot string) error {

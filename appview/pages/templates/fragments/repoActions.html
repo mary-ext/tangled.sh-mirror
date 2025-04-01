@@ -1,6 +1,7 @@
-{{ define "fragments/star" }}
+{{ define "fragments/repoActions" }}
+<div class="flex items-center">
   <button id="starBtn"
-    class="text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+    class="btn disabled:opacity-50 disabled:cursor-not-allowed"
 
     {{ if .IsStarred }}
     hx-delete="/star?subject={{.RepoAt}}&countHint={{.Stats.StarCount}}"
@@ -24,5 +25,10 @@
       </span>
     </div>
   </button>
+  <a class="btn no-underline hover:no-underline flex items-center" href="/{{ .FullName }}/fork">
+      {{ i "git-fork" "w-3 h-3 mr-1"}}
+      fork
+  </a>
+</div>
 {{ end }}
 

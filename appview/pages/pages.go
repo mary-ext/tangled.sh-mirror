@@ -199,14 +199,14 @@ func (p *Pages) FollowFragment(w io.Writer, params FollowFragmentParams) error {
 	return p.executePlain("fragments/follow", w, params)
 }
 
-type StarFragmentParams struct {
+type RepoActionsFragmentParams struct {
 	IsStarred bool
 	RepoAt    syntax.ATURI
 	Stats     db.RepoStats
 }
 
-func (p *Pages) StarFragment(w io.Writer, params StarFragmentParams) error {
-	return p.executePlain("fragments/star", w, params)
+func (p *Pages) RepoActionsFragment(w io.Writer, params RepoActionsFragmentParams) error {
+	return p.executePlain("fragments/repoActions", w, params)
 }
 
 type RepoDescriptionParams struct {

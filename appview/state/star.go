@@ -62,7 +62,7 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("created atproto record: ", resp.Uri)
 
-		s.pages.StarFragment(w, pages.StarFragmentParams{
+		s.pages.RepoActionsFragment(w, pages.RepoActionsFragmentParams{
 			IsStarred: true,
 			RepoAt:    subjectUri,
 			Stats: db.RepoStats{
@@ -101,7 +101,7 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 			log.Println("failed to get star count for ", subjectUri)
 		}
 
-		s.pages.StarFragment(w, pages.StarFragmentParams{
+		s.pages.RepoActionsFragment(w, pages.RepoActionsFragmentParams{
 			IsStarred: false,
 			RepoAt:    subjectUri,
 			Stats: db.RepoStats{

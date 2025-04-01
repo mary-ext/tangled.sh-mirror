@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"sort"
 	"time"
 )
@@ -19,13 +20,13 @@ func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error
 
 	pulls, err := GetPullsByOwnerDid(e, forDid)
 	if err != nil {
-		return timeline, err
+		return timeline, fmt.Errorf("error getting pulls by owner did: %w", err)
 	}
 
 	for _, pull := range pulls {
 		repo, err := GetRepoByAtUri(e, string(pull.RepoAt))
 		if err != nil {
-			return timeline, err
+			return timeline, fmt.Errorf("error getting repo by at uri: %w", err)
 		}
 
 		timeline = append(timeline, ProfileTimelineEvent{
@@ -38,13 +39,13 @@ func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error
 
 	issues, err := GetIssuesByOwnerDid(e, forDid)
 	if err != nil {
-		return timeline, err
+		return timeline, fmt.Errorf("error getting issues by owner did: %w", err)
 	}
 
 	for _, issue := range issues {
 		repo, err := GetRepoByAtUri(e, string(issue.RepoAt))
 		if err != nil {
-			return timeline, err
+			return timeline, fmt.Errorf("error getting repo by at uri: %w", err)
 		}
 
 		timeline = append(timeline, ProfileTimelineEvent{
@@ -57,7 +58,7 @@ func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error
 
 	repos, err := GetAllReposByDid(e, forDid)
 	if err != nil {
-		return timeline, err
+		return timeline, fmt.Errorf("error getting all repos by did: %w", err)
 	}
 
 	for _, repo := range repos {

@@ -807,7 +807,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 	if errors.Is(err, sql.ErrNoRows) {
 		source = ""
 	} else if err != nil {
-		log.Println("failed to get repo source for ", f.RepoAt)
+		log.Println("failed to get repo source for ", f.RepoAt, err)
 	}
 
 	var sourceRepo *db.Repo
@@ -818,11 +818,6 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 		}
 	}
 
-	knot := f.Knot
-	if knot == "knot1.tangled.sh" {
-		knot = "tangled.sh"
-	}
-
 	var sourceHandle *identity.Identity
 	if sourceRepo != nil {
 		sourceHandle, err = s.resolver.ResolveIdent(context.Background(), sourceRepo.Did)
@@ -831,7 +826,12 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 		}
 	}
 
-	return pages.RepoInfo{
+	knot := f.Knot
+	if knot == "knot1.tangled.sh" {
+		knot = "tangled.sh"
+	}
+
+	repoInfo := pages.RepoInfo{
 		OwnerDid:    f.OwnerDid(),
 		OwnerHandle: f.OwnerHandle(),
 		Name:        f.RepoName,
@@ -845,9 +845,14 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 			IssueCount: issueCount,
 			PullCount:  pullCount,
 		},
-		Source:       sourceRepo,
-		SourceHandle: sourceHandle.Handle.String(),
 	}
+
+	if sourceRepo != nil {
+		repoInfo.Source = sourceRepo
+		repoInfo.SourceHandle = sourceHandle.Handle.String()
+	}
+
+	return repoInfo
 }
 
 func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
