@@ -103,6 +103,26 @@ func (s *SignedClient) NewRepo(did, repoName, defaultBranch string) (*http.Respo
 	return s.client.Do(req)
 }
 
+func (s *SignedClient) ForkRepo(ownerDid, source, name string) (*http.Response, error) {
+	const (
+		Method   = "POST"
+		Endpoint = "/repo/fork"
+	)
+
+	body, _ := json.Marshal(map[string]any{
+		"did":    ownerDid,
+		"source": source,
+		"name":   name,
+	})
+
+	req, err := s.newRequest(Method, Endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}
+
 func (s *SignedClient) RemoveRepo(did, repoName string) (*http.Response, error) {
 	const (
 		Method   = "DELETE"

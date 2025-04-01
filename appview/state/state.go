@@ -190,6 +190,9 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	for _, ev := range timeline {
 		if ev.Repo != nil {
 			didsToResolve = append(didsToResolve, ev.Repo.Did)
+			if ev.Source != nil {
+				didsToResolve = append(didsToResolve, ev.Source.Did)
+			}
 		}
 		if ev.Follow != nil {
 			didsToResolve = append(didsToResolve, ev.Follow.UserDid, ev.Follow.SubjectDid)

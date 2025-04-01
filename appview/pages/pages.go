@@ -158,6 +158,16 @@ func (p *Pages) NewRepo(w io.Writer, params NewRepoParams) error {
 	return p.execute("repo/new", w, params)
 }
 
+type ForkRepoParams struct {
+	LoggedInUser *auth.User
+	Knots        []string
+	RepoInfo     RepoInfo
+}
+
+func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
+	return p.execute("repo/fork", w, params)
+}
+
 type ProfilePageParams struct {
 	LoggedInUser       *auth.User
 	UserDid            string
@@ -212,15 +222,17 @@ func (p *Pages) RepoDescriptionFragment(w io.Writer, params RepoDescriptionParam
 }
 
 type RepoInfo struct {
-	Name        string
-	OwnerDid    string
-	OwnerHandle string
-	Description string
-	Knot        string
-	RepoAt      syntax.ATURI
-	IsStarred   bool
-	Stats       db.RepoStats
-	Roles       RolesInRepo
+	Name         string
+	OwnerDid     string
+	OwnerHandle  string
+	Description  string
+	Knot         string
+	RepoAt       syntax.ATURI
+	IsStarred    bool
+	Stats        db.RepoStats
+	Roles        RolesInRepo
+	Source       *db.Repo
+	SourceHandle string
 }
 
 type RolesInRepo struct {

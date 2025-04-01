@@ -1,6 +1,8 @@
 {{ define "title" }}settings &middot; {{ .RepoInfo.FullName }}{{ end }}
 {{ define "repoContent" }}
-    <header class="font-bold text-sm mb-4 uppercase dark:text-white">Collaborators</header>
+    <header class="font-bold text-sm mb-4 uppercase dark:text-white">
+        Collaborators
+    </header>
 
     <div id="collaborator-list" class="flex flex-col gap-2 mb-2">
         {{ range .Collaborators }}
@@ -21,11 +23,24 @@
     </div>
 
     {{ if .IsCollaboratorInviteAllowed }}
-        <h3 class="dark:text-white">add collaborator</h3>
         <form hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator">
-            <label for="collaborator" class="dark:text-white">did or handle:</label>
-            <input type="text" id="collaborator" name="collaborator" required class="dark:bg-gray-700 dark:text-white" />
-            <button class="btn my-2 dark:text-white dark:hover:bg-gray-700" type="text">add collaborator</button>
+            <label for="collaborator" class="dark:text-white"
+                >add collaborator</label
+            >
+            <input
+                type="text"
+                id="collaborator"
+                name="collaborator"
+                required
+                class="dark:bg-gray-700 dark:text-white"
+                placeholder="enter did or handle"
+            />
+            <button
+                class="btn my-2 dark:text-white dark:hover:bg-gray-700"
+                type="text"
+            >
+                add
+            </button>
         </form>
     {{ end }}
 

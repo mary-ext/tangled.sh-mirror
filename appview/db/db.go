@@ -273,6 +273,13 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	runMigration(db, "add-source-to-repos", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table repos add column source text;
+		`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 

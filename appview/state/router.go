@@ -85,6 +85,12 @@ func (s *State) UserRouter() http.Handler {
 				})
 			})
 
+			r.Route("/fork", func(r chi.Router) {
+				r.Use(AuthMiddleware(s))
+				r.Get("/", s.ForkRepo)
+				r.Post("/", s.ForkRepo)
+			})
+
 			r.Route("/pulls", func(r chi.Router) {
 				r.Get("/", s.RepoPulls)
 				r.With(AuthMiddleware(s)).Route("/new", func(r chi.Router) {

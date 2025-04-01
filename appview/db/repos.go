@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"time"
+
+	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
 type Repo struct {
@@ -16,13 +18,16 @@ type Repo struct {
 
 	// optionally, populate this when querying for reverse mappings
 	RepoStats *RepoStats
+
+	// optional
+	Source string
 }
 
 func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
-		`select did, name, knot, rkey, description, created 
+		`select did, name, knot, rkey, description, created, source
 		from repos
 		order by created desc
 		limit ?
@@ -37,7 +42,7 @@ func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 	for rows.Next() {
 		var repo Repo
 		err := scanRepo(
-			rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Description, &repo.Created,
+			rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Description, &repo.Created, &repo.Source,
 		)
 		if err != nil {
 			return nil, err
@@ -63,7 +68,8 @@ func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 			r.rkey,
 			r.description,
 			r.created,
-			count(s.id) as star_count
+			count(s.id) as star_count,
+			r.source
 		from
 			repos r
 		left join
@@ -159,10 +165,10 @@ func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
 
 func AddRepo(e Execer, repo *Repo) error {
 	_, err := e.Exec(
-		`insert into repos 
-		(did, name, knot, rkey, at_uri, description)
-		values (?, ?, ?, ?, ?, ?)`,
-		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri, repo.Description,
+		`insert into repos
+		(did, name, knot, rkey, at_uri, description, source)
+		values (?, ?, ?, ?, ?, ?, ?)`,
+		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri, repo.Description, repo.Source,
 	)
 	return err
 }
@@ -170,6 +176,15 @@ func AddRepo(e Execer, repo *Repo) error {
 func RemoveRepo(e Execer, did, name, rkey string) error {
 	_, err := e.Exec(`delete from repos where did = ? and name = ? and rkey = ?`, did, name, rkey)
 	return err
+}
+
+func GetRepoSource(e Execer, repoAt syntax.ATURI) (string, error) {
+	var source string
+	err := e.QueryRow(`select source from repos where at_uri = ?`, repoAt).Scan(&source)
+	if err != nil {
+		return "", err
+	}
+	return source, nil
 }
 
 func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot string) error {
@@ -249,10 +264,11 @@ type RepoStats struct {
 	PullCount  PullCount
 }
 
-func scanRepo(rows *sql.Rows, did, name, knot, rkey, description *string, created *time.Time) error {
+func scanRepo(rows *sql.Rows, did, name, knot, rkey, description *string, created *time.Time, source *string) error {
 	var createdAt string
 	var nullableDescription sql.NullString
-	if err := rows.Scan(did, name, knot, rkey, &nullableDescription, &createdAt); err != nil {
+	var nullableSource sql.NullString
+	if err := rows.Scan(did, name, knot, rkey, &nullableDescription, &createdAt, &nullableSource); err != nil {
 		return err
 	}
 
@@ -267,6 +283,12 @@ func scanRepo(rows *sql.Rows, did, name, knot, rkey, description *string, create
 		*created = time.Now()
 	} else {
 		*created = createdAtTime
+	}
+
+	if nullableSource.Valid {
+		*source = nullableSource.String
+	} else {
+		*source = ""
 	}
 
 	return nil

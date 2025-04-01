@@ -2,8 +2,10 @@ package state
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
@@ -111,4 +113,16 @@ func EmailToDidOrHandle(s *State, emails []string) map[string]string {
 	}
 
 	return emailToDidOrHandle
+}
+
+func randomString(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	result := make([]byte, n)
+
+	for i := 0; i < n; i++ {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		result[i] = letters[n.Int64()]
+	}
+
+	return string(result)
 }

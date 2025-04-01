@@ -2,6 +2,16 @@
 
 {{ define "content" }}
     <section id="repo-header" class="mb-4 py-2 px-6 dark:text-white">
+      {{ if .RepoInfo.Source }}
+      <p class="text-sm">
+      <div class="flex items-center">
+          {{ i "git-fork" "w-3 h-3 mr-1"}}
+          forked from
+          {{ $sourceOwner := didOrHandle .RepoInfo.Source.Did .RepoInfo.SourceHandle  }}
+          <a class="ml-1 underline" href="/{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}">{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}</a>
+      </div>
+      </p>
+      {{ end }}
       <p class="text-lg">
         <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
         <span class="select-none">/</span>

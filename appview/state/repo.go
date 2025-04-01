@@ -2,11 +2,13 @@ package state
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
-	"math/rand/v2"
+	mathrand "math/rand/v2"
 	"net/http"
 	"path"
 	"slices"
@@ -801,10 +803,32 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 	if err != nil {
 		log.Println("failed to get issue count for ", f.RepoAt)
 	}
+	source, err := db.GetRepoSource(s.db, f.RepoAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		source = ""
+	} else if err != nil {
+		log.Println("failed to get repo source for ", f.RepoAt)
+	}
+
+	var sourceRepo *db.Repo
+	if source != "" {
+		sourceRepo, err = db.GetRepoByAtUri(s.db, source)
+		if err != nil {
+			log.Println("failed to get repo by at uri", err)
+		}
+	}
 
 	knot := f.Knot
 	if knot == "knot1.tangled.sh" {
 		knot = "tangled.sh"
+	}
+
+	var sourceHandle *identity.Identity
+	if sourceRepo != nil {
+		sourceHandle, err = s.resolver.ResolveIdent(context.Background(), sourceRepo.Did)
+		if err != nil {
+			log.Println("failed to resolve source repo", err)
+		}
 	}
 
 	return pages.RepoInfo{
@@ -821,6 +845,8 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 			IssueCount: issueCount,
 			PullCount:  pullCount,
 		},
+		Source:       sourceRepo,
+		SourceHandle: sourceHandle.Handle.String(),
 	}
 }
 
@@ -1022,7 +1048,7 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		commentId := rand.IntN(1000000)
+		commentId := mathrand.IntN(1000000)
 		rkey := s.TID()
 
 		err := db.NewIssueComment(s.db, &db.Comment{
@@ -1478,6 +1504,169 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueId))
+		return
+	}
+}
+
+func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Printf("failed to resolve source repo: %v", err)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		user := s.auth.GetUser(r)
+		knots, err := s.enforcer.GetDomainsForUser(user.Did)
+		if err != nil {
+			s.pages.Notice(w, "repo", "Invalid user account.")
+			return
+		}
+
+		s.pages.ForkRepo(w, pages.ForkRepoParams{
+			LoggedInUser: user,
+			Knots:        knots,
+			RepoInfo:     f.RepoInfo(s, user),
+		})
+
+	case http.MethodPost:
+
+		knot := r.FormValue("knot")
+		if knot == "" {
+			s.pages.Notice(w, "repo", "Invalid form submission&mdash;missing knot domain.")
+			return
+		}
+
+		ok, err := s.enforcer.E.Enforce(user.Did, knot, knot, "repo:create")
+		if err != nil || !ok {
+			s.pages.Notice(w, "repo", "You do not have permission to create a repo in this knot.")
+			return
+		}
+
+		forkName := fmt.Sprintf("%s", f.RepoName)
+
+		existingRepo, err := db.GetRepo(s.db, user.Did, f.RepoName)
+		if err == nil && existingRepo != nil {
+			forkName = fmt.Sprintf("%s-%s", forkName, randomString(3))
+		}
+
+		secret, err := db.GetRegistrationKey(s.db, knot)
+		if err != nil {
+			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", knot))
+			return
+		}
+
+		client, err := NewSignedClient(knot, secret, s.config.Dev)
+		if err != nil {
+			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
+			return
+		}
+
+		var uri string
+		if s.config.Dev {
+			uri = "http"
+		} else {
+			uri = "https"
+		}
+		sourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, knot, f.OwnerDid(), f.RepoName)
+		sourceAt := f.RepoAt.String()
+
+		rkey := s.TID()
+		repo := &db.Repo{
+			Did:    user.Did,
+			Name:   forkName,
+			Knot:   knot,
+			Rkey:   rkey,
+			Source: sourceAt,
+		}
+
+		tx, err := s.db.BeginTx(r.Context(), nil)
+		if err != nil {
+			log.Println(err)
+			s.pages.Notice(w, "repo", "Failed to save repository information.")
+			return
+		}
+		defer func() {
+			tx.Rollback()
+			err = s.enforcer.E.LoadPolicy()
+			if err != nil {
+				log.Println("failed to rollback policies")
+			}
+		}()
+
+		resp, err := client.ForkRepo(user.Did, sourceUrl, forkName)
+		if err != nil {
+			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
+			return
+		}
+
+		switch resp.StatusCode {
+		case http.StatusConflict:
+			s.pages.Notice(w, "repo", "A repository with that name already exists.")
+			return
+		case http.StatusInternalServerError:
+			s.pages.Notice(w, "repo", "Failed to create repository on knot. Try again later.")
+		case http.StatusNoContent:
+			// continue
+		}
+
+		xrpcClient, _ := s.auth.AuthorizedClient(r)
+
+		addedAt := time.Now().Format(time.RFC3339)
+		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoNSID,
+			Repo:       user.Did,
+			Rkey:       rkey,
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &tangled.Repo{
+					Knot:    repo.Knot,
+					Name:    repo.Name,
+					AddedAt: &addedAt,
+					Owner:   user.Did,
+					Source:  &sourceAt,
+				}},
+		})
+		if err != nil {
+			log.Printf("failed to create record: %s", err)
+			s.pages.Notice(w, "repo", "Failed to announce repository creation.")
+			return
+		}
+		log.Println("created repo record: ", atresp.Uri)
+
+		repo.AtUri = atresp.Uri
+		err = db.AddRepo(tx, repo)
+		if err != nil {
+			log.Println(err)
+			s.pages.Notice(w, "repo", "Failed to save repository information.")
+			return
+		}
+
+		// acls
+		p, _ := securejoin.SecureJoin(user.Did, forkName)
+		err = s.enforcer.AddRepo(user.Did, knot, p)
+		if err != nil {
+			log.Println(err)
+			s.pages.Notice(w, "repo", "Failed to set up repository permissions.")
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.Println("failed to commit changes", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = s.enforcer.E.SavePolicy()
+		if err != nil {
+			log.Println("failed to update ACLs", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Handle, forkName))
 		return
 	}
 }

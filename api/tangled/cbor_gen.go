@@ -1753,13 +1753,17 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 6
+	fieldCount := 7
 
 	if t.AddedAt == nil {
 		fieldCount--
 	}
 
 	if t.Description == nil {
+		fieldCount--
+	}
+
+	if t.Source == nil {
 		fieldCount--
 	}
 
@@ -1853,6 +1857,38 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string(t.Owner)); err != nil {
 		return err
+	}
+
+	// t.Source (string) (string)
+	if t.Source != nil {
+
+		if len("source") > 1000000 {
+			return xerrors.Errorf("Value in field \"source\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("source"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("source")); err != nil {
+			return err
+		}
+
+		if t.Source == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if len(*t.Source) > 1000000 {
+				return xerrors.Errorf("Value in field t.Source was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Source))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(*t.Source)); err != nil {
+				return err
+			}
+		}
 	}
 
 	// t.AddedAt (string) (string)
@@ -2005,6 +2041,27 @@ func (t *Repo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Owner = string(sval)
+			}
+			// t.Source (string) (string)
+		case "source":
+
+			{
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+
+					sval, err := cbg.ReadStringWithMax(cr, 1000000)
+					if err != nil {
+						return err
+					}
+
+					t.Source = (*string)(&sval)
+				}
 			}
 			// t.AddedAt (string) (string)
 		case "addedAt":

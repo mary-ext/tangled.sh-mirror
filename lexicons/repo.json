@@ -32,6 +32,11 @@
             "format": "datetime",
             "minLength": 1,
             "maxLength": 140
+          },
+          "source": {
+            "type": "string",
+            "format": "uri",
+            "description": "source of the repo"
           }
         }
       }

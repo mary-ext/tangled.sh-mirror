@@ -44,8 +44,15 @@
         <div class="flex items-center">
           <p class="text-gray-600 dark:text-gray-300">
           <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle | truncateAt30 }}</a>
+          {{ if .Source }}
+          forked
+          <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
+          from
+          <a href="/{{ index $.DidHandleMap .Source.Did }}/{{ .Source.Name }}" class="no-underline hover:underline">{{ index $.DidHandleMap .Source.Did }}/{{ .Source.Name }}</a>
+          {{ else }}
           created
           <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
+          {{ end }}
           <time class="text-gray-700 dark:text-gray-400 text-xs">{{ .Repo.Created | timeFmt }}</time>
           </p>
         </div>

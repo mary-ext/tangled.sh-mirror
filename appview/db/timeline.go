@@ -9,7 +9,11 @@ type TimelineEvent struct {
 	*Repo
 	*Follow
 	*Star
+
 	EventAt time.Time
+
+	// optional: populate only if Repo is a fork
+	Source *Repo
 }
 
 // TODO: this gathers heterogenous events from different sources and aggregates
@@ -34,6 +38,19 @@ func MakeTimeline(e Execer) ([]TimelineEvent, error) {
 	}
 
 	for _, repo := range repos {
+		if repo.Source != "" {
+			sourceRepo, err := GetRepoByAtUri(e, repo.Source)
+			if err != nil {
+				return nil, err
+			}
+
+			events = append(events, TimelineEvent{
+				Repo:    &repo,
+				EventAt: repo.Created,
+				Source:  sourceRepo,
+			})
+		}
+
 		events = append(events, TimelineEvent{
 			Repo:    &repo,
 			EventAt: repo.Created,

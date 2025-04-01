@@ -577,6 +577,49 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handle) RepoFork(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "RepoFork")
+
+	data := struct {
+		Did    string `json:"did"`
+		Source string `json:"source"`
+		Name   string `json:"name,omitempty"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.Did
+	source := data.Source
+
+	if did == "" || source == "" {
+		l.Error("invalid request body, empty did or name")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var name string
+	if data.Name != "" {
+		name = data.Name
+	} else {
+		name = filepath.Base(source)
+	}
+
+	relativeRepoPath := filepath.Join(did, name)
+	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
+
+	err := git.Fork(repoPath, source)
+	if err != nil {
+		l.Error("forking repo", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handle) RemoveRepo(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "RemoveRepo")
 

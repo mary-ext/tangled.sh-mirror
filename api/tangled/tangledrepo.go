@@ -25,4 +25,6 @@ type Repo struct {
 	// name: name of the repo
 	Name  string `json:"name" cborgen:"name"`
 	Owner string `json:"owner" cborgen:"owner"`
+	// source: source of the repo
+	Source *string `json:"source,omitempty" cborgen:"source,omitempty"`
 }
