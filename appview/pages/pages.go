@@ -586,13 +586,32 @@ func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
 	return p.executeRepo("repo/pulls/pulls", w, params)
 }
 
+type ResubmitResult uint64
+
+const (
+	ShouldResubmit ResubmitResult = iota
+	ShouldNotResubmit
+	Unknown
+)
+
+func (r ResubmitResult) Yes() bool {
+	return r == ShouldResubmit
+}
+func (r ResubmitResult) No() bool {
+	return r == ShouldNotResubmit
+}
+func (r ResubmitResult) Unknown() bool {
+	return r == Unknown
+}
+
 type RepoSinglePullParams struct {
-	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
-	Active       string
-	DidHandleMap map[string]string
-	Pull         *db.Pull
-	MergeCheck   types.MergeCheckResponse
+	LoggedInUser  *auth.User
+	RepoInfo      RepoInfo
+	Active        string
+	DidHandleMap  map[string]string
+	Pull          *db.Pull
+	MergeCheck    types.MergeCheckResponse
+	ResubmitCheck ResubmitResult
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
@@ -627,11 +646,12 @@ func (p *Pages) PullResubmitFragment(w io.Writer, params PullResubmitParams) err
 }
 
 type PullActionsParams struct {
-	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
-	Pull         *db.Pull
-	RoundNumber  int
-	MergeCheck   types.MergeCheckResponse
+	LoggedInUser  *auth.User
+	RepoInfo      RepoInfo
+	Pull          *db.Pull
+	RoundNumber   int
+	MergeCheck    types.MergeCheckResponse
+	ResubmitCheck ResubmitResult
 }
 
 func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error {

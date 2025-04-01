@@ -238,6 +238,19 @@ func (g *GitRepo) Branches() ([]*plumbing.Reference, error) {
 	return branches, nil
 }
 
+func (g *GitRepo) Branch(name string) (*plumbing.Reference, error) {
+	ref, err := g.r.Reference(plumbing.NewBranchReferenceName(name), false)
+	if err != nil {
+		return nil, fmt.Errorf("branch: %w", err)
+	}
+
+	if !ref.Name().IsBranch() {
+		return nil, fmt.Errorf("branch: %s is not a branch", ref.Name())
+	}
+
+	return ref, nil
+}
+
 func (g *GitRepo) SetDefaultBranch(branch string) error {
 	ref := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName(branch))
 	return g.r.Storer.SetReference(ref)

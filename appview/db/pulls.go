@@ -83,6 +83,7 @@ type PullSubmission struct {
 	RoundNumber int
 	Patch       string
 	Comments    []PullComment
+	SourceRev   string // include the rev that was used to create this submission: only for branch PRs
 
 	// meta
 	Created time.Time
@@ -222,9 +223,9 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 	}
 
 	_, err = tx.Exec(`
-		insert into pull_submissions (pull_id, repo_at, round_number, patch)
-		values (?, ?, ?, ?)
-	`, pull.PullId, pull.RepoAt, 0, pull.Submissions[0].Patch)
+		insert into pull_submissions (pull_id, repo_at, round_number, patch, source_rev)
+		values (?, ?, ?, ?, ?)
+	`, pull.PullId, pull.RepoAt, 0, pull.Submissions[0].Patch, pull.Submissions[0].SourceRev)
 	if err != nil {
 		return err
 	}
@@ -395,7 +396,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 
 	submissionsQuery := `
 		select
-			id, pull_id, repo_at, round_number, patch, created
+			id, pull_id, repo_at, round_number, patch, created, source_rev
 		from
 			pull_submissions
 		where
@@ -412,6 +413,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 	for submissionsRows.Next() {
 		var submission PullSubmission
 		var submissionCreatedStr string
+		var submissionSourceRev sql.NullString
 		err := submissionsRows.Scan(
 			&submission.ID,
 			&submission.PullId,
@@ -419,6 +421,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			&submission.RoundNumber,
 			&submission.Patch,
 			&submissionCreatedStr,
+			&submissionSourceRev,
 		)
 		if err != nil {
 			return nil, err
@@ -429,6 +432,10 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			return nil, err
 		}
 		submission.Created = submissionCreatedTime
+
+		if submissionSourceRev.Valid {
+			submission.SourceRev = submissionSourceRev.String
+		}
 
 		submissionsMap[submission.ID] = &submission
 	}
@@ -604,12 +611,12 @@ func MergePull(e Execer, repoAt syntax.ATURI, pullId int) error {
 	return err
 }
 
-func ResubmitPull(e Execer, pull *Pull, newPatch string) error {
+func ResubmitPull(e Execer, pull *Pull, newPatch, sourceRev string) error {
 	newRoundNumber := len(pull.Submissions)
 	_, err := e.Exec(`
-		insert into pull_submissions (pull_id, repo_at, round_number, patch)
-		values (?, ?, ?, ?)
-	`, pull.PullId, pull.RepoAt, newRoundNumber, newPatch)
+		insert into pull_submissions (pull_id, repo_at, round_number, patch, source_rev)
+		values (?, ?, ?, ?, ?)
+	`, pull.PullId, pull.RepoAt, newRoundNumber, newPatch, sourceRev)
 
 	return err
 }

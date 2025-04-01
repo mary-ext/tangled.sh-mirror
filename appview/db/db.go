@@ -264,10 +264,11 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
-	runMigration(db, "add-source-info-to-pulls", func(tx *sql.Tx) error {
+	runMigration(db, "add-source-info-to-pulls-and-submissions", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table pulls add column source_branch text;
 			alter table pulls add column source_repo_at text;
+			alter table pull_submissions add column source_rev text;
 		`)
 		return err
 	})

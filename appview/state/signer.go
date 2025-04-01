@@ -287,6 +287,21 @@ func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, e
 	return us.client.Do(req)
 }
 
+func (us *UnsignedClient) Branch(ownerDid, repoName, branch string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+
+	endpoint := fmt.Sprintf("/%s/%s/branches/%s", ownerDid, repoName, branch)
+
+	req, err := us.newRequest(Method, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
+}
+
 func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*http.Response, error) {
 	const (
 		Method = "GET"

@@ -135,10 +135,11 @@
 
           {{ if eq $lastIdx .RoundNumber }}
             {{ block "mergeStatus" $ }} {{ end }}
+            {{ block "resubmitStatus" $ }} {{ end }}
           {{ end }}
 
           {{ if $.LoggedInUser }}
-            {{ template "fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck) }}
+            {{ template "fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck) }}
           {{ else }}
             <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm px-6 py-4 w-fit dark:text-white">
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
@@ -205,6 +206,18 @@
     <div class="flex items-center gap-2 text-green-500 dark:text-green-300">
       {{ i "circle-check-big" "w-4 h-4" }}
       <span class="font-medium">no conflicts, ready to merge</span>
+    </div>
+  </div>
+  {{ end }}
+{{ end }}
+
+{{ define "resubmitStatus" }}
+  {{ if .ResubmitCheck.Yes }}
+  <div class="bg-amber-50 dark:bg-amber-900 border border-amber-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+    <div class="flex items-center gap-2 text-amber-500 dark:text-amber-300">
+      {{ i "triangle-alert" "w-4 h-4" }}
+      <span class="font-medium">this branch has been updated, consider resubmitting</span>
     </div>
   </div>
   {{ end }}

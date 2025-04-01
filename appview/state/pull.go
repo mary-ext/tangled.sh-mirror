@@ -50,13 +50,18 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		mergeCheckResponse := s.mergeCheck(f, pull)
+		var resubmitResult pages.ResubmitResult
+		if user.Did == pull.OwnerDid {
+			resubmitResult = s.resubmitCheck(f, pull)
+		}
 
 		s.pages.PullActionsFragment(w, pages.PullActionsParams{
-			LoggedInUser: user,
-			RepoInfo:     f.RepoInfo(s, user),
-			Pull:         pull,
-			RoundNumber:  roundNumber,
-			MergeCheck:   mergeCheckResponse,
+			LoggedInUser:  user,
+			RepoInfo:      f.RepoInfo(s, user),
+			Pull:          pull,
+			RoundNumber:   roundNumber,
+			MergeCheck:    mergeCheckResponse,
+			ResubmitCheck: resubmitResult,
 		})
 		return
 	}
@@ -105,13 +110,18 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mergeCheckResponse := s.mergeCheck(f, pull)
+	var resubmitResult pages.ResubmitResult
+	if user.Did == pull.OwnerDid {
+		resubmitResult = s.resubmitCheck(f, pull)
+	}
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
-		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(s, user),
-		DidHandleMap: didHandleMap,
-		Pull:         pull,
-		MergeCheck:   mergeCheckResponse,
+		LoggedInUser:  user,
+		RepoInfo:      f.RepoInfo(s, user),
+		DidHandleMap:  didHandleMap,
+		Pull:          pull,
+		MergeCheck:    mergeCheckResponse,
+		ResubmitCheck: resubmitResult,
 	})
 }
 
@@ -173,6 +183,48 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull) types.MergeCheck
 	}
 
 	return mergeCheckResponse
+}
+
+func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull) pages.ResubmitResult {
+	if pull.State == db.PullMerged {
+		return pages.Unknown
+	}
+
+	if pull.PullSource == nil {
+		return pages.Unknown
+	}
+
+	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to setup signed client for %s; ignoring: %v", f.Knot, err)
+		return pages.Unknown
+	}
+
+	resp, err := us.Branch(f.OwnerDid(), f.RepoName, pull.PullSource.Branch)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return pages.Unknown
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %v", err)
+		return pages.Unknown
+	}
+
+	var result types.RepoBranchResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return pages.Unknown
+	}
+
+	if pull.Submissions[pull.LastRoundNumber()].SourceRev != result.Branch.Hash {
+		log.Println(pull.Submissions[pull.LastRoundNumber()].SourceRev, result.Branch.Hash)
+		return pages.ShouldResubmit
+	} else {
+		return pages.ShouldNotResubmit
+	}
 }
 
 func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
@@ -457,16 +509,15 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		sourceBranch := r.FormValue("sourceBranch")
 		patch := r.FormValue("patch")
 
-		if patch == "" {
-			if isPushAllowed && sourceBranch == "" {
-				s.pages.Notice(w, "pull", "Neither source branch nor patch supplied.")
-				return
-			}
-			s.pages.Notice(w, "pull", "Patch is empty.")
+		isBranchBased := isPushAllowed && (sourceBranch != "")
+		isPatchBased := patch != ""
+
+		if !isBranchBased && !isPatchBased {
+			s.pages.Notice(w, "pull", "Neither source branch nor patch supplied.")
 			return
 		}
 
-		if patch != "" && sourceBranch != "" {
+		if isBranchBased && isPatchBased {
 			s.pages.Notice(w, "pull", "Cannot select both patch and source branch.")
 			return
 		}
@@ -477,9 +528,14 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// TODO: check if knot has this capability
+		var sourceRev string
 		var pullSource *db.PullSource
-		if sourceBranch != "" && isPushAllowed {
+		var recordPullSource *tangled.RepoPull_Source
+		if isBranchBased {
 			pullSource = &db.PullSource{
+				Branch: sourceBranch,
+			}
+			recordPullSource = &tangled.RepoPull_Source{
 				Branch: sourceBranch,
 			}
 			// generate a patch using /compare
@@ -489,8 +545,6 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 				return
 			}
-
-			log.Println(targetBranch, sourceBranch)
 
 			resp, err := ksClient.Compare(f.OwnerDid(), f.RepoName, targetBranch, sourceBranch)
 			switch resp.StatusCode {
@@ -510,14 +564,12 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			err = json.Unmarshal(respBody, &diffTreeResponse)
 			if err != nil {
 				log.Println("failed to unmarshal diff tree response", err)
-				log.Println(string(respBody))
 				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 			}
 
+			sourceRev = diffTreeResponse.DiffTree.Rev2
 			patch = diffTreeResponse.DiffTree.Patch
 		}
-
-		log.Println(patch)
 
 		// Validate patch format
 		if !isPatchValid(patch) {
@@ -535,7 +587,8 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 
 		rkey := s.TID()
 		initialSubmission := db.PullSubmission{
-			Patch: patch,
+			Patch:     patch,
+			SourceRev: sourceRev,
 		}
 		err = db.NewPull(tx, &db.Pull{
 			Title:        title,
@@ -573,6 +626,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 					TargetRepo:   string(f.RepoAt),
 					TargetBranch: targetBranch,
 					Patch:        patch,
+					Source:       recordPullSource,
 				},
 			},
 		})
@@ -613,12 +667,17 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 		return
 	case http.MethodPost:
 		patch := r.FormValue("patch")
+		var sourceRev string
+		var recordPullSource *tangled.RepoPull_Source
 
 		// this pull is a branch based pull
 		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
 		if pull.IsSameRepoBranch() && isPushAllowed {
 			sourceBranch := pull.PullSource.Branch
 			targetBranch := pull.TargetBranch
+			recordPullSource = &tangled.RepoPull_Source{
+				Branch: sourceBranch,
+			}
 			// extract patch by performing compare
 			ksClient, err := NewUnsignedClient(f.Knot, s.config.Dev)
 			if err != nil {
@@ -626,8 +685,6 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 				return
 			}
-
-			log.Println(targetBranch, sourceBranch)
 
 			resp, err := ksClient.Compare(f.OwnerDid(), f.RepoName, targetBranch, sourceBranch)
 			switch resp.StatusCode {
@@ -647,10 +704,10 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 			err = json.Unmarshal(respBody, &diffTreeResponse)
 			if err != nil {
 				log.Println("failed to unmarshal diff tree response", err)
-				log.Println(string(respBody))
 				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 			}
 
+			sourceRev = diffTreeResponse.DiffTree.Rev2
 			patch = diffTreeResponse.DiffTree.Patch
 		}
 
@@ -661,6 +718,11 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 
 		if patch == pull.LatestPatch() {
 			s.pages.Notice(w, "resubmit-error", "Patch is identical to previous submission.")
+			return
+		}
+
+		if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
+			s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
 			return
 		}
 
@@ -678,7 +740,7 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 		}
 		defer tx.Rollback()
 
-		err = db.ResubmitPull(tx, pull, patch)
+		err = db.ResubmitPull(tx, pull, patch, sourceRev)
 		if err != nil {
 			log.Println("failed to create pull request", err)
 			s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
@@ -705,6 +767,7 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 					TargetRepo:   string(f.RepoAt),
 					TargetBranch: pull.TargetBranch,
 					Patch:        patch, // new patch
+					Source:       recordPullSource,
 				},
 			},
 		})

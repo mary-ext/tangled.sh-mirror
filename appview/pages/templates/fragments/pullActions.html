@@ -10,6 +10,7 @@
   {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
   {{ $isLastRound := eq $roundNumber $lastIdx }}
   {{ $isSameRepoBranch := .Pull.IsSameRepoBranch }}
+  {{ $isUpToDate := .ResubmitCheck.No }}
   <div class="relative w-fit">
     <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
     <div id="actions-{{$roundNumber}}" class="flex flex-wrap gap-2">
@@ -37,6 +38,10 @@
         {{ end }}
 
         {{ if and $isPullAuthor $isOpen $isLastRound }}
+          {{ $disabled := "" }}
+          {{ if $isUpToDate }}
+            {{ $disabled = "disabled" }}
+          {{ end }}
           <button id="resubmitBtn"
               {{ if $isSameRepoBranch }}
                 hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
@@ -47,7 +52,14 @@
               {{ end }}
 
               hx-disabled-elt="#resubmitBtn"
-              class="btn p-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              class="btn p-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" {{ $disabled }}
+
+              {{ if $disabled }}
+              title="Update this branch to resubmit this pull request"
+              {{ else }}
+              title="Resubmit this pull request"
+              {{ end }}
+              >
             {{ i "rotate-ccw" "w-4 h-4" }}
               <span>resubmit</span>
           </button>

@@ -97,8 +97,6 @@ func (g *GitRepo) DiffTree(rev1, rev2 string) (*types.DiffTree, error) {
 		return nil, fmt.Errorf("Invalid revision: %s", rev2)
 	}
 
-	log.Println(commit1, commit2)
-
 	tree1, err := commit1.Tree()
 	if err != nil {
 		return nil, err

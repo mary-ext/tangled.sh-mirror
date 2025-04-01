@@ -456,6 +456,37 @@ func (h *Handle) Branches(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *Handle) Branch(w http.ResponseWriter, r *http.Request) {
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	branchName := chi.URLParam(r, "branch")
+	l := h.l.With("handler", "Branch")
+
+	gr, err := git.PlainOpen(path)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	ref, err := gr.Branch(branchName)
+	if err != nil {
+		l.Error("getting branches", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := types.RepoBranchResponse{
+		Branch: types.Branch{
+			Reference: types.Reference{
+				Name: ref.Name().Short(),
+				Hash: ref.Hash().String(),
+			},
+		},
+	}
+
+	writeJSON(w, resp)
+	return
+}
+
 func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "Keys")
 

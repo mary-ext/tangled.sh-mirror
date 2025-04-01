@@ -67,6 +67,10 @@ type RepoBranchesResponse struct {
 	Branches []Branch `json:"branches,omitempty"`
 }
 
+type RepoBranchResponse struct {
+	Branch Branch `json:"branch,omitempty"`
+}
+
 type RepoDefaultBranchResponse struct {
 	Branch string `json:"branch,omitempty"`
 }
