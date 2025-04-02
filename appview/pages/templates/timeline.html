@@ -46,9 +46,9 @@
           <a href="/{{ $userHandle }}" class="no-underline hover:underline">{{ $userHandle | truncateAt30 }}</a>
           {{ if .Source }}
           forked
-          <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
-          from
           <a href="/{{ index $.DidHandleMap .Source.Did }}/{{ .Source.Name }}" class="no-underline hover:underline">{{ index $.DidHandleMap .Source.Did }}/{{ .Source.Name }}</a>
+          to
+          <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
           {{ else }}
           created
           <a href="/{{ $userHandle }}/{{ .Repo.Name }}" class="no-underline hover:underline">{{ .Repo.Name }}</a>
