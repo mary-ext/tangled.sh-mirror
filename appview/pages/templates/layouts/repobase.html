@@ -18,11 +18,8 @@
       <span class="select-none">/</span>
       <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
     </div>
-    <div class="flex items-center">
-      <span class="mr-3">
-        {{ template "fragments/repoActions" .RepoInfo }}
-      </span>
-    </div>
+
+    {{ template "fragments/repoActions" .RepoInfo }}
   </div>
   {{ template "fragments/repoDescription" . }}
 </section>
