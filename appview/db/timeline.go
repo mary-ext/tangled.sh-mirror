@@ -38,22 +38,18 @@ func MakeTimeline(e Execer) ([]TimelineEvent, error) {
 	}
 
 	for _, repo := range repos {
+		var sourceRepo *Repo
 		if repo.Source != "" {
-			sourceRepo, err := GetRepoByAtUri(e, repo.Source)
+			sourceRepo, err = GetRepoByAtUri(e, repo.Source)
 			if err != nil {
 				return nil, err
 			}
-
-			events = append(events, TimelineEvent{
-				Repo:    &repo,
-				EventAt: repo.Created,
-				Source:  sourceRepo,
-			})
 		}
 
 		events = append(events, TimelineEvent{
 			Repo:    &repo,
 			EventAt: repo.Created,
+			Source:  sourceRepo,
 		})
 	}
 

@@ -97,8 +97,10 @@ func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 
 		if nullableDescription.Valid {
 			repo.Description = nullableDescription.String
-		} else {
-			repo.Description = ""
+		}
+
+		if nullableSource.Valid {
+			repo.Source = nullableSource.String
 		}
 
 		createdAtTime, err := time.Parse(time.RFC3339, createdAt)

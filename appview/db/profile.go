@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"time"
 )
@@ -12,6 +13,9 @@ type ProfileTimelineEvent struct {
 	*Issue
 	*Pull
 	*Repo
+
+	// optional: populate only if Repo is a fork
+	Source *Repo
 }
 
 func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error) {
@@ -61,11 +65,24 @@ func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error
 		return timeline, fmt.Errorf("error getting all repos by did: %w", err)
 	}
 
+	log.Println(repos)
+
 	for _, repo := range repos {
+		var sourceRepo *Repo
+		log.Println("name", repo.Name)
+		if repo.Source != "" {
+			log.Println("source", repo.Source)
+			sourceRepo, err = GetRepoByAtUri(e, repo.Source)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		timeline = append(timeline, ProfileTimelineEvent{
 			EventAt: repo.Created,
 			Type:    "repo",
 			Repo:    &repo,
+			Source:  sourceRepo,
 		})
 	}
 

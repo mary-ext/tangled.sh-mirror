@@ -44,6 +44,11 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		didsToResolve = append(didsToResolve, r.Did)
 	}
 	for _, evt := range timeline {
+		if evt.Repo != nil {
+			if evt.Repo.Source != "" {
+				didsToResolve = append(didsToResolve, evt.Source.Did)
+			}
+		}
 		didsToResolve = append(didsToResolve, evt.Repo.Did)
 	}
 
