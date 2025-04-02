@@ -643,6 +643,59 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *State) PatchUploadFragment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	s.pages.PullPatchUploadFragment(w, pages.PullPatchUploadParams{
+		RepoInfo: f.RepoInfo(s, user),
+	})
+}
+
+func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", f.Knot)
+		s.pages.Error503(w)
+		return
+	}
+
+	resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoBranchesResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse response:", err)
+		return
+	}
+
+	s.pages.PullCompareBranchesFragment(w, pages.PullCompareBranchesParams{
+		RepoInfo: f.RepoInfo(s, user),
+		Branches: result.Branches,
+	})
+}
+
 func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)

@@ -35,57 +35,11 @@
                 ></textarea>
           </div>
 
-          <div>
-            <label for="targetBranch" class="dark:text-white">configure branches</label>
-            <div class="flex flex-wrap gap-2 items-center">
-              <select
-                  required
-                  name="targetBranch"
-                  class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                  >
-                  <option disabled selected>target branch</option>
-                  {{ range .Branches }}
-                  <option value="{{ .Reference.Name }}" class="py-1">
-                  {{ .Reference.Name }}
-                  </option>
-                  {{ end }}
-              </select>
-
-              {{ if .RepoInfo.Roles.IsPushAllowed }}
-              {{ i "move-left" "w-5 h-5" }}
-              <select
-                  name="sourceBranch"
-                  class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                  >
-                  <option disabled selected>source branch</option>
-                  {{ range .Branches }}
-                  <option value="{{ .Reference.Name }}" class="py-1">
-                  {{ .Reference.Name }}
-                  </option>
-                  {{ end }}
-              </select>
-              {{ end }}
-
-            </div>
-          </div>
-
-          <div class="mt-4">
-            {{ $label := "paste your patch here" }}
-            {{ $rows := 10 }}
-            {{ if .RepoInfo.Roles.IsPushAllowed }}
-              {{ $label = "or paste your patch here" }}
-              {{ $rows = 4 }}
-            {{ end }}
-
-            <label for="patch" class="dark:text-white">{{ $label }}</label>
-            <textarea
-                name="patch"
-                id="patch"
-                rows="{{$rows}}"
-                class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                placeholder="Paste your git diff output here."
-            ></textarea>
-          </div>
+          {{ if not .RepoInfo.Roles.IsPushAllowed }}
+            {{ template "fragments/pullPatchUpload" . }}
+          {{ else }}
+            {{ template "fragments/pullCompareBranches" . }}
+          {{ end }}
 
           <div class="flex justify-end items-center gap-2">
             <button type="submit" class="btn">create</button>

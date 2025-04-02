@@ -634,6 +634,23 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 	return p.execute("repo/pulls/patch", w, params)
 }
 
+type PullPatchUploadParams struct {
+	RepoInfo RepoInfo
+}
+
+func (p *Pages) PullPatchUploadFragment(w io.Writer, params PullPatchUploadParams) error {
+	return p.executePlain("fragments/pullPatchUpload", w, params)
+}
+
+type PullCompareBranchesParams struct {
+	RepoInfo RepoInfo
+	Branches []types.Branch
+}
+
+func (p *Pages) PullCompareBranchesFragment(w io.Writer, params PullCompareBranchesParams) error {
+	return p.executePlain("fragments/pullCompareBranches", w, params)
+}
+
 type PullResubmitParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
