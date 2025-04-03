@@ -243,6 +243,20 @@ func (s *SignedClient) MergeCheck(patch []byte, ownerDid, targetRepo, branch str
 	return s.client.Do(req)
 }
 
+func (s *SignedClient) NewHiddenRef(ownerDid, targetRepo, forkBranch, remoteBranch string) (*http.Response, error) {
+	const (
+		Method = "POST"
+	)
+	endpoint := fmt.Sprintf("/%s/%s/hidden-ref/%s/%s", ownerDid, targetRepo, forkBranch, remoteBranch)
+
+	req, err := s.newRequest(Method, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}
+
 type UnsignedClient struct {
 	Url    *url.URL
 	client *http.Client

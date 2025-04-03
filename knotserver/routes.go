@@ -786,6 +786,29 @@ func (h *Handle) Compare(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *Handle) NewHiddenRef(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "NewHiddenRef")
+
+	forkRef := chi.URLParam(r, "forkRef")
+	remoteRef := chi.URLParam(r, "remoteRef")
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	gr, err := git.PlainOpen(path)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	err = gr.TrackHiddenRemoteRef(forkRef, remoteRef)
+	if err != nil {
+		l.Error("error tracking hidden remote ref", "msg", err.Error())
+		writeError(w, "error tracking hidden remote ref", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	return
+}
+
 func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "AddMember")
 
