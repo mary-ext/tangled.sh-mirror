@@ -176,8 +176,8 @@ func AddRepo(e Execer, repo *Repo) error {
 	return err
 }
 
-func RemoveRepo(e Execer, did, name, rkey string) error {
-	_, err := e.Exec(`delete from repos where did = ? and name = ? and rkey = ?`, did, name, rkey)
+func RemoveRepo(e Execer, did, name string) error {
+	_, err := e.Exec(`delete from repos where did = ? and name = ?`, did, name)
 	return err
 }
 

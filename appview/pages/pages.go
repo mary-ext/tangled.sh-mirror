@@ -246,6 +246,14 @@ func (r RolesInRepo) SettingsAllowed() bool {
 	return slices.Contains(r.Roles, "repo:settings")
 }
 
+func (r RolesInRepo) CollaboratorInviteAllowed() bool {
+	return slices.Contains(r.Roles, "repo:invite")
+}
+
+func (r RolesInRepo) RepoDeleteAllowed() bool {
+	return slices.Contains(r.Roles, "repo:delete")
+}
+
 func (r RolesInRepo) IsOwner() bool {
 	return slices.Contains(r.Roles, "repo:owner")
 }
