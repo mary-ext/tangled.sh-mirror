@@ -2,7 +2,9 @@ package pages
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io"
@@ -709,7 +711,9 @@ func (p *Pages) Static() http.Handler {
 
 func Cache(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, ".css") {
+		path := strings.Split(r.URL.Path, "?")[0]
+
+		if strings.HasSuffix(path, ".css") {
 			// on day for css files
 			w.Header().Set("Cache-Control", "public, max-age=86400")
 		} else {
@@ -717,6 +721,23 @@ func Cache(h http.Handler) http.Handler {
 		}
 		h.ServeHTTP(w, r)
 	})
+}
+
+func CssContentHash() string {
+	cssFile, err := Files.Open("static/tw.css")
+	if err != nil {
+		log.Printf("Error opening CSS file: %v", err)
+		return ""
+	}
+	defer cssFile.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, cssFile); err != nil {
+		log.Printf("Error hashing CSS file: %v", err)
+		return ""
+	}
+
+	return hex.EncodeToString(hasher.Sum(nil))[:8] // Use first 8 chars of hash
 }
 
 func (p *Pages) Error500(w io.Writer) error {

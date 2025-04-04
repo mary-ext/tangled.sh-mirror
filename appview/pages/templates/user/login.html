@@ -8,7 +8,7 @@
                 content="width=device-width, initial-scale=1.0"
             />
             <script src="/static/htmx.min.js"></script>
-            <link rel="stylesheet" href="/static/tw.css" type="text/css" />
+            <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
             <title>login</title>
         </head>
         <body class="flex items-center justify-center min-h-screen">
@@ -27,7 +27,13 @@
                 >
                     <div class="flex flex-col">
                         <label for="handle">handle</label>
-                        <input type="text" id="handle" name="handle" required />
+                        <input 
+                          type="text"
+                          id="handle"
+                          name="handle"
+                          tabindex="1"
+                          required
+                        />
                         <span class="text-xs text-gray-500 mt-1">
                             You need to use your
                             <a href="https://bsky.app">Bluesky</a> handle to log
@@ -41,6 +47,7 @@
                             type="password"
                             id="app_password"
                             name="app_password"
+                            tabindex="2"
                             required
                         />
                         <span class="text-xs text-gray-500 mt-1">
@@ -57,6 +64,7 @@
                         class="btn w-full my-2 mt-6"
                         type="submit"
                         id="login-button"
+                        tabindex="3"
                     >
                         <span>login</span>
                     </button>

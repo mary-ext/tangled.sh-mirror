@@ -8,8 +8,7 @@
                 content="width=device-width, initial-scale=1.0"
             />
             <script src="/static/htmx.min.js"></script>
-            <link href="/static/tw.css" rel="stylesheet" type="text/css" />
-            
+            <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
             <title>{{ block "title" . }}{{ end }} · tangled</title>
             {{ block "extrameta" . }}{{ end }}
         </head>
