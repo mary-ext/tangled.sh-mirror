@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 
@@ -34,13 +35,15 @@ func Fork(repoPath, source string) error {
 func (g *GitRepo) TrackHiddenRemoteRef(forkRef, remoteRef string) error {
 	fetchOpts := &git.FetchOptions{
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/hidden/%s/%s", forkRef, forkRef, remoteRef)),
+			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/hidden/%s/%s", remoteRef, forkRef, remoteRef)),
 		},
 		RemoteName: "origin",
 	}
 
 	err := g.r.Fetch(fetchOpts)
-	if err != nil {
+	if errors.Is(git.NoErrAlreadyUpToDate, err) {
+		return nil
+	} else if err != nil {
 		return fmt.Errorf("failed to fetch hidden remote: %s: %w", forkRef, err)
 	}
 	return nil
