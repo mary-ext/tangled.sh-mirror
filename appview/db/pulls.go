@@ -128,6 +128,10 @@ func (p *Pull) IsSameRepoBranch() bool {
 	return false
 }
 
+func (p *Pull) IsPatch() bool {
+	return p.PullSource == nil
+}
+
 func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
 	patch := s.Patch
 

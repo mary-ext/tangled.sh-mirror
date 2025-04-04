@@ -1,4 +1,4 @@
-{{ define "title" }}new pull | {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}new pull &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
     <section class="prose dark:prose-invert">
@@ -12,7 +12,7 @@
             <li class="leading-relaxed">Paste the diff output in the form below.</li>
         </ul>
     </p>
-    </section> 
+    </section>
     <form
         hx-post="/{{ .RepoInfo.FullName }}/pulls/new"
         class="mt-6 space-y-6"
@@ -41,8 +41,10 @@
             {{ template "fragments/pullCompareBranches" . }}
           {{ end }}
 
-          <div class="flex justify-end items-center gap-2">
-            <button type="submit" class="btn">create</button>
+          Or, select a fork to create a pull request from.
+
+          <div class="flex justify-start items-center gap-2">
+            <button type="submit" class="btn">create pull</button>
           </div>
 
         </div>

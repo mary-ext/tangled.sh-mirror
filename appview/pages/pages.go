@@ -575,6 +575,7 @@ func (p *Pages) SingleIssueCommentFragment(w io.Writer, params SingleIssueCommen
 type RepoNewPullParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Forks        []db.Repo
 	Branches     []types.Branch
 	Active       string
 }

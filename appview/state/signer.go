@@ -370,7 +370,7 @@ func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*http.
 		Method = "GET"
 	)
 
-	endpoint := fmt.Sprintf("/%s/%s/compare/%s/%s", ownerDid, repoName, rev1, rev2)
+	endpoint := fmt.Sprintf("/%s/%s/compare/%s/%s", ownerDid, repoName, url.PathEscape(rev1), url.PathEscape(rev2))
 
 	req, err := us.newRequest(Method, endpoint, nil)
 	if err != nil {

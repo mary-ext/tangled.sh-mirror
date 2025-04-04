@@ -11,7 +11,7 @@
 
   {{ if .RepoInfo.Roles.IsPushAllowed }}
     <div class="mt-4 text-sm">
-      you can also submit a pull request from a branch
+      You can also submit a pull request from a branch.
       <button
         class="btn text-sm"
         hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-branches"

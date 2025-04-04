@@ -45,8 +45,14 @@
                     {{ .Pull.TargetBranch }}
                   </span>
                 </span>
-                {{ if .Pull.IsSameRepoBranch }}
+                {{ if not .Pull.IsPatch }}
                 <span>from
+                  {{ if not .Pull.IsSameRepoBranch }}
+                  <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
+                    {{ .Pull.PullSource.Repo }}
+                  </span>
+                  <span class="select-none">/</span>
+                  {{ end }}
                   <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                     {{ .Pull.PullSource.Branch }}
                   </span>

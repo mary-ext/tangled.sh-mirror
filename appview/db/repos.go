@@ -190,6 +190,93 @@ func GetRepoSource(e Execer, repoAt syntax.ATURI) (string, error) {
 	return nullableSource.String, nil
 }
 
+func GetForksByDid(e Execer, did string) ([]Repo, error) {
+	var repos []Repo
+
+	rows, err := e.Query(
+		`select did, name, knot, rkey, description, created, at_uri, source
+		from repos
+		where did = ? and source is not null and source != ''
+		order by created desc`,
+		did,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var repo Repo
+		var createdAt string
+		var nullableDescription sql.NullString
+		var nullableSource sql.NullString
+
+		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repo.AtUri, &nullableSource)
+		if err != nil {
+			return nil, err
+		}
+
+		if nullableDescription.Valid {
+			repo.Description = nullableDescription.String
+		}
+
+		if nullableSource.Valid {
+			repo.Source = nullableSource.String
+		}
+
+		createdAtTime, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			repo.Created = time.Now()
+		} else {
+			repo.Created = createdAtTime
+		}
+
+		repos = append(repos, repo)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return repos, nil
+}
+
+func GetForkByDid(e Execer, did string, name string) (*Repo, error) {
+	var repo Repo
+	var createdAt string
+	var nullableDescription sql.NullString
+	var nullableSource sql.NullString
+
+	row := e.QueryRow(
+		`select did, name, knot, rkey, description, created, at_uri, source
+		from repos
+		where did = ? and name = ? and source is not null and source != ''`,
+		did, name,
+	)
+
+	err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repo.AtUri, &nullableSource)
+	if err != nil {
+		return nil, err
+	}
+
+	if nullableDescription.Valid {
+		repo.Description = nullableDescription.String
+	}
+
+	if nullableSource.Valid {
+		repo.Source = nullableSource.String
+	}
+
+	createdAtTime, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		repo.Created = time.Now()
+	} else {
+		repo.Created = createdAtTime
+	}
+
+	return &repo, nil
+}
+
 func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot string) error {
 	_, err := e.Exec(
 		`insert into collaborators (did, repo)

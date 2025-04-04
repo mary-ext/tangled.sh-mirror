@@ -43,7 +43,7 @@
             {{ $disabled = "disabled" }}
           {{ end }}
           <button id="resubmitBtn"
-              {{ if $isSameRepoBranch }}
+              {{ if not .Pull.IsPatch }}
                 hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
               {{ else }}
                 hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
