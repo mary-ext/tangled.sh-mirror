@@ -1,18 +1,6 @@
 {{ define "title" }}new pull &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
-    <section class="prose dark:prose-invert">
-    <p>
-        This is v1 of the pull request flow. Paste your patch in the form below.
-        Here are the steps to get you started:
-        <ul class="list-decimal pl-10 space-y-2 text-gray-700 dark:text-gray-300">
-            <li class="leading-relaxed">Clone this repository.</li>
-            <li class="leading-relaxed">Make your changes in your local repository.</li>
-            <li class="leading-relaxed">Grab the diff using <code>git diff</code>.</li>
-            <li class="leading-relaxed">Paste the diff output in the form below.</li>
-        </ul>
-    </p>
-    </section>
     <form
         hx-post="/{{ .RepoInfo.FullName }}/pulls/new"
         class="mt-6 space-y-6"
