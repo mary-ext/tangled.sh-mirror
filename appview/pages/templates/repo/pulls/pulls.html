@@ -42,6 +42,7 @@
                     </a>
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ $owner := index $.DidHandleMap .OwnerDid }}
                     {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
                     {{ $icon := "ban" }}
 
@@ -62,7 +63,6 @@
                     </span>
 
                     <span>
-                        {{ $owner := index $.DidHandleMap .OwnerDid }}
                         <a href="/{{ $owner }}" class="dark:text-gray-300">{{ $owner }}</a>
                     </span>
 
@@ -74,12 +74,16 @@
 
                     <span class="before:content-['·']">
                         targeting
-                        <span class="text-xs rounded bg-gray-100 dark:bg-gray-600 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
+                        <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                           {{ .TargetBranch }}
                         </span>
                     </span>
-                    {{ if .IsSameRepoBranch }}
+                    {{ if not .IsPatch }}
                     <span>from
+                      {{ if not .IsSameRepoBranch }}
+                        <a href="/{{ $owner }}/{{ .PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSource.Repo.Name }}</a>
+                      {{ end }}
+
                       <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                         {{ .PullSource.Branch }}
                       </span>

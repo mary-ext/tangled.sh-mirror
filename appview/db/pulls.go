@@ -68,7 +68,10 @@ type Pull struct {
 
 type PullSource struct {
 	Branch string
-	Repo   *syntax.ATURI
+	RepoAt *syntax.ATURI
+
+	// optionally populate this for reverse mappings
+	Repo *Repo
 }
 
 type PullSubmission struct {
@@ -118,8 +121,8 @@ func (p *Pull) LastRoundNumber() int {
 
 func (p *Pull) IsSameRepoBranch() bool {
 	if p.PullSource != nil {
-		if p.PullSource.Repo != nil {
-			return p.PullSource.Repo == &p.RepoAt
+		if p.PullSource.RepoAt != nil {
+			return p.PullSource.RepoAt == &p.RepoAt
 		} else {
 			// no repo specified
 			return true
@@ -201,8 +204,8 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 	var sourceBranch, sourceRepoAt *string
 	if pull.PullSource != nil {
 		sourceBranch = &pull.PullSource.Branch
-		if pull.PullSource.Repo != nil {
-			x := pull.PullSource.Repo.String()
+		if pull.PullSource.RepoAt != nil {
+			x := pull.PullSource.RepoAt.String()
 			sourceRepoAt = &x
 		}
 	}
@@ -321,7 +324,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 				if err != nil {
 					return nil, err
 				}
-				pull.PullSource.Repo = &sourceRepoAtParsed
+				pull.PullSource.RepoAt = &sourceRepoAtParsed
 			}
 		}
 
@@ -394,7 +397,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			if err != nil {
 				return nil, err
 			}
-			pull.PullSource.Repo = &sourceRepoAtParsed
+			pull.PullSource.RepoAt = &sourceRepoAtParsed
 		}
 	}
 

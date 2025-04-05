@@ -122,8 +122,8 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 
 	var pullSourceRepo *db.Repo
 	if pull.PullSource != nil {
-		if pull.PullSource.Repo != nil {
-			pullSourceRepo, err = db.GetRepoByAtUri(s.db, pull.PullSource.Repo.String())
+		if pull.PullSource.RepoAt != nil {
+			pullSourceRepo, err = db.GetRepoByAtUri(s.db, pull.PullSource.RepoAt.String())
 			if err != nil {
 				log.Printf("failed to get repo by at uri: %v", err)
 				return
@@ -209,9 +209,9 @@ func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull) pages.Resubmi
 
 	var knot, ownerDid, repoName string
 
-	if pull.PullSource.Repo != nil {
+	if pull.PullSource.RepoAt != nil {
 		// fork-based pulls
-		sourceRepo, err := db.GetRepoByAtUri(s.db, pull.PullSource.Repo.String())
+		sourceRepo, err := db.GetRepoByAtUri(s.db, pull.PullSource.RepoAt.String())
 		if err != nil {
 			log.Println("failed to get source repo", err)
 			return pages.Unknown
@@ -360,6 +360,21 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to get pulls", err)
 		s.pages.Notice(w, "pulls", "Failed to load pulls. Try again later.")
 		return
+	}
+
+	for _, p := range pulls {
+		var pullSourceRepo *db.Repo
+		if p.PullSource != nil {
+			if p.PullSource.RepoAt != nil {
+				pullSourceRepo, err = db.GetRepoByAtUri(s.db, p.PullSource.RepoAt.String())
+				if err != nil {
+					log.Printf("failed to get repo by at uri: %v", err)
+					return
+				}
+			}
+		}
+
+		p.PullSource.Repo = pullSourceRepo
 	}
 
 	identsToResolve := make([]string, len(pulls))
@@ -731,7 +746,7 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *F
 
 	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, &db.PullSource{
 		Branch: sourceBranch,
-		Repo:   &forkAtUri,
+		RepoAt: &forkAtUri,
 	}, &tangled.RepoPull_Source{Branch: sourceBranch, Repo: &fork.AtUri})
 }
 
@@ -993,7 +1008,7 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 			repoName = f.RepoName
 			knotName = f.Knot
 		} else if !isSameRepo {
-			sourceRepo, err := db.GetRepoByAtUri(s.db, pull.PullSource.Repo.String())
+			sourceRepo, err := db.GetRepoByAtUri(s.db, pull.PullSource.RepoAt.String())
 			if err != nil {
 				log.Println("failed to get source repo", err)
 				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
