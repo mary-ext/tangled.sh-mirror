@@ -46,15 +46,17 @@
   <div class="diff-stat">
     <br>
     <strong class="text-sm uppercase mb-4 dark:text-gray-200">Changed files</strong>
-    {{ range $diff }}
-    <ul class="dark:text-gray-200">
-      {{ if .IsDelete }}
-      <li><a href="#file-{{ .Name.Old }}" class="dark:hover:text-gray-300">{{ .Name.Old }}</a></li>
-      {{ else }}
-      <li><a href="#file-{{ .Name.New }}" class="dark:hover:text-gray-300">{{ .Name.New }}</a></li>
+    <div class="overflow-x-auto">
+      {{ range $diff }}
+      <ul class="dark:text-gray-200">
+        {{ if .IsDelete }}
+        <li><a href="#file-{{ .Name.Old }}" class="dark:hover:text-gray-300">{{ .Name.Old }}</a></li>
+        {{ else }}
+        <li><a href="#file-{{ .Name.New }}" class="dark:hover:text-gray-300">{{ .Name.New }}</a></li>
+        {{ end }}
+      </ul>
       {{ end }}
-    </ul>
-    {{ end }}
+    </div>
   </div>
 </section>
 

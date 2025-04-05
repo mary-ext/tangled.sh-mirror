@@ -17,9 +17,10 @@
         <details open>
           <summary class="list-none cursor-pointer sticky top-0">
             <div id="diff-file-header" class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
-              <div id="left-side-items" class="p-2 flex gap-2 items-center">
+              <div id="left-side-items" class="p-2 flex gap-2 items-center overflow-x-auto" style="direction: rtl;">
                 {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
 
+                <div class="flex gap-2 items-center" style="direction: ltr;">
                 {{ if .IsNew }}
                 <span class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">ADDED</span>
                 {{ else if .IsDelete }}
@@ -33,22 +34,23 @@
                 {{ end }}
 
                 {{ if .IsDelete }}
-                <a class="dark:text-white" {{if $this }}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}"{{end}}>
+                <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this }}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}"{{end}}>
                   {{ .Name.Old }}
                 </a>
                 {{ else if (or .IsCopy .IsRename) }}
-                <a class="dark:text-white" {{if $parent}}href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}"{{end}}>
+                <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $parent}}href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}"{{end}}>
                   {{ .Name.Old }}
                 </a>
                 {{ i "arrow-right" "w-4 h-4" }}
-                <a class="dark:text-white" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
+                <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
                   {{ .Name.New }}
                 </a>
                 {{ else }}
-                <a class="dark:text-white" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
+                <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
                   {{ .Name.New }}
                 </a>
                 {{ end }}
+                </div>
               </div>
 
               {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" }}
