@@ -372,9 +372,8 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
+			p.PullSource.Repo = pullSourceRepo
 		}
-
-		p.PullSource.Repo = pullSourceRepo
 	}
 
 	identsToResolve := make([]string, len(pulls))
