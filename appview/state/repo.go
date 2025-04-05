@@ -831,6 +831,33 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 		knot = "tangled.sh"
 	}
 
+	var disableFork bool
+	us, err := NewUnsignedClient(knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s: %v", knot, err)
+	} else {
+		resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+		if err != nil {
+			log.Printf("failed to get branches for %s/%s: %v", f.OwnerDid(), f.RepoName, err)
+		} else {
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("error reading branch response body: %v", err)
+			} else {
+				var branchesResp types.RepoBranchesResponse
+				if err := json.Unmarshal(body, &branchesResp); err != nil {
+					log.Printf("error parsing branch response: %v", err)
+				} else {
+					disableFork = false
+				}
+
+				if len(branchesResp.Branches) == 0 {
+					disableFork = true
+				}
+			}
+		}
+	}
 	repoInfo := pages.RepoInfo{
 		OwnerDid:    f.OwnerDid(),
 		OwnerHandle: f.OwnerHandle(),
@@ -845,6 +872,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 			IssueCount: issueCount,
 			PullCount:  pullCount,
 		},
+		DisableFork: disableFork,
 	}
 
 	if sourceRepo != nil {

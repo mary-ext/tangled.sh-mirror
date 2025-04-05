@@ -233,6 +233,7 @@ type RepoInfo struct {
 	Roles        RolesInRepo
 	Source       *db.Repo
 	SourceHandle string
+	DisableFork  bool
 }
 
 type RolesInRepo struct {
