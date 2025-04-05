@@ -35,16 +35,50 @@
                 ></textarea>
           </div>
 
-          {{ if not .RepoInfo.Roles.IsPushAllowed }}
-            {{ template "fragments/pullPatchUpload" . }}
-          {{ else }}
-            {{ template "fragments/pullCompareBranches" . }}
-          {{ end }}
 
-          Or, select a fork to create a pull request from.
+        <label>choose your pull strategy</label>
+        <nav class="flex space-x-4">
+            <button
+                type="button"
+                class="px-3 py-2 pb-2 btn"
+                hx-get="/{{ .RepoInfo.FullName }}/pulls/new/patch-upload"
+                hx-target="#patch-strategy"
+                hx-swap="innerHTML"
+            >
+                paste patch
+            </button>
+
+        {{ if .RepoInfo.Roles.IsPushAllowed }}
+            <button
+                type="button"
+                class="px-3 py-2 pb-2 btn"
+                hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-branches"
+                hx-target="#patch-strategy"
+                hx-swap="innerHTML"
+            >
+                compare branches
+            </button>
+        {{ end }}
+        <button
+            type="button"
+            class="px-3 py-2 pb-2 btn"
+            hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-forks"
+            hx-target="#patch-strategy"
+            hx-swap="innerHTML"
+        >
+            compare forks
+        </button>
+        </nav>
+
+        <section id="patch-strategy">
+            {{ template "fragments/pullPatchUpload" . }}
+        </section>
 
           <div class="flex justify-start items-center gap-2">
-            <button type="submit" class="btn">create pull</button>
+            <button type="submit" class="btn flex items-center gap-2">
+                {{ i "git-pull-request-create" "w-4 h-4" }}
+                create pull
+            </button>
           </div>
 
         </div>

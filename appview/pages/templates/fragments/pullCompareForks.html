@@ -1,0 +1,35 @@
+{{ define "fragments/pullCompareForks" }}
+    <div id="patch-upload">
+        <label for="forkSelect" class="dark:text-white"
+            >select a fork to compare</label
+        >
+        <div class="flex flex-wrap gap-2 items-center mb-4">
+            <select
+                id="forkSelect"
+                name="fork"
+                required
+                class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                hx-get="/{{ $.RepoInfo.FullName }}/pulls/new/fork-branches"
+                hx-target="#branch-selection"
+                hx-vals='{"fork": this.value}'
+                hx-swap="innerHTML"
+                onchange="document.getElementById('hiddenForkInput').value = this.value;"
+            >
+                <option disabled selected>select a fork</option>
+                {{ range .Forks }}
+                    <option value="{{ .Name }}" class="py-1">
+                        {{ .Name }}
+                    </option>
+                {{ end }}
+            </select>
+            
+            <input type="hidden" id="hiddenForkInput" name="fork" value="">
+        </div>
+
+        <div id="branch-selection" class="mt-2">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                Select a fork first to view available branches
+            </div>
+        </div>
+    </div>
+{{ end }}

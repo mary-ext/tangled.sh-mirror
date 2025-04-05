@@ -1,4 +1,5 @@
 {{ define "fragments/pullCompareBranches" }}
+
 <div id="patch-upload">
   <label for="targetBranch" class="dark:text-white">configure branches</label>
   <div class="flex flex-wrap gap-2 items-center">
@@ -28,18 +29,6 @@
         </option>
         {{ end }}
     </select>
-
-    <span class="text-sm">
-      ... or upload a patch
-      <button
-        class="btn text-sm"
-        hx-get="/{{ .RepoInfo.FullName }}/pulls/new/patch-upload"
-        hx-swap="outerHTML"
-        hx-target="#patch-upload"
-        >
-        upload patch
-      </button>
-    </span>
   </div>
 
 </div>

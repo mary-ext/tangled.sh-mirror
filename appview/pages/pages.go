@@ -618,13 +618,14 @@ func (r ResubmitResult) Unknown() bool {
 }
 
 type RepoSinglePullParams struct {
-	LoggedInUser  *auth.User
-	RepoInfo      RepoInfo
-	Active        string
-	DidHandleMap  map[string]string
-	Pull          *db.Pull
-	MergeCheck    types.MergeCheckResponse
-	ResubmitCheck ResubmitResult
+	LoggedInUser   *auth.User
+	RepoInfo       RepoInfo
+	Active         string
+	DidHandleMap   map[string]string
+	Pull           *db.Pull
+	PullSourceRepo *db.Repo
+	MergeCheck     types.MergeCheckResponse
+	ResubmitCheck  ResubmitResult
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
@@ -662,6 +663,25 @@ type PullCompareBranchesParams struct {
 
 func (p *Pages) PullCompareBranchesFragment(w io.Writer, params PullCompareBranchesParams) error {
 	return p.executePlain("fragments/pullCompareBranches", w, params)
+}
+
+type PullCompareForkParams struct {
+	RepoInfo RepoInfo
+	Forks    []db.Repo
+}
+
+func (p *Pages) PullCompareForkFragment(w io.Writer, params PullCompareForkParams) error {
+	return p.executePlain("fragments/pullCompareForks", w, params)
+}
+
+type PullCompareForkBranchesParams struct {
+	RepoInfo       RepoInfo
+	SourceBranches []types.Branch
+	TargetBranches []types.Branch
+}
+
+func (p *Pages) PullCompareForkBranchesFragment(w io.Writer, params PullCompareForkBranchesParams) error {
+	return p.executePlain("fragments/pullCompareForksBranches", w, params)
 }
 
 type PullResubmitParams struct {

@@ -97,6 +97,8 @@ func (s *State) UserRouter() http.Handler {
 					r.Get("/", s.NewPull)
 					r.Get("/patch-upload", s.PatchUploadFragment)
 					r.Get("/compare-branches", s.CompareBranchesFragment)
+					r.Get("/compare-forks", s.CompareForksFragment)
+					r.Get("/fork-branches", s.CompareForksBranchesFragment)
 					r.Post("/", s.NewPull)
 				})
 

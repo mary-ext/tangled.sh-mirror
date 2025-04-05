@@ -120,13 +120,25 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		resubmitResult = s.resubmitCheck(f, pull)
 	}
 
+	var pullSourceRepo *db.Repo
+	if pull.PullSource != nil {
+		if pull.PullSource.Repo != nil {
+			pullSourceRepo, err = db.GetRepoByAtUri(s.db, pull.PullSource.Repo.String())
+			if err != nil {
+				log.Printf("failed to get repo by at uri: %v", err)
+				return
+			}
+		}
+	}
+
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
-		LoggedInUser:  user,
-		RepoInfo:      f.RepoInfo(s, user),
-		DidHandleMap:  didHandleMap,
-		Pull:          pull,
-		MergeCheck:    mergeCheckResponse,
-		ResubmitCheck: resubmitResult,
+		LoggedInUser:   user,
+		RepoInfo:       f.RepoInfo(s, user),
+		DidHandleMap:   didHandleMap,
+		Pull:           pull,
+		PullSourceRepo: pullSourceRepo,
+		MergeCheck:     mergeCheckResponse,
+		ResubmitCheck:  resubmitResult,
 	})
 }
 
@@ -533,7 +545,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		title := r.FormValue("title")
 		body := r.FormValue("body")
 		targetBranch := r.FormValue("targetBranch")
-		fromFork := r.FormValue("fromFork")
+		fromFork := r.FormValue("fork")
 		sourceBranch := r.FormValue("sourceBranch")
 		patch := r.FormValue("patch")
 
@@ -840,6 +852,105 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 	s.pages.PullCompareBranchesFragment(w, pages.PullCompareBranchesParams{
 		RepoInfo: f.RepoInfo(s, user),
 		Branches: result.Branches,
+	})
+}
+
+func (s *State) CompareForksFragment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	forks, err := db.GetForksByDid(s.db, user.Did)
+	if err != nil {
+		log.Println("failed to get forks", err)
+		return
+	}
+
+	s.pages.PullCompareForkFragment(w, pages.PullCompareForkParams{
+		RepoInfo: f.RepoInfo(s, user),
+		Forks:    forks,
+	})
+}
+
+func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	forkVal := r.URL.Query().Get("fork")
+
+	// fork repo
+	repo, err := db.GetRepo(s.db, user.Did, forkVal)
+	if err != nil {
+		log.Println("failed to get repo", user.Did, forkVal)
+		return
+	}
+
+	sourceBranchesClient, err := NewUnsignedClient(repo.Knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", repo.Knot)
+		s.pages.Error503(w)
+		return
+	}
+
+	sourceResp, err := sourceBranchesClient.Branches(user.Did, repo.Name)
+	if err != nil {
+		log.Println("failed to reach knotserver for source branches", err)
+		return
+	}
+
+	sourceBody, err := io.ReadAll(sourceResp.Body)
+	if err != nil {
+		log.Println("failed to read source response body", err)
+		return
+	}
+	defer sourceResp.Body.Close()
+
+	var sourceResult types.RepoBranchesResponse
+	err = json.Unmarshal(sourceBody, &sourceResult)
+	if err != nil {
+		log.Println("failed to parse source branches response:", err)
+		return
+	}
+
+	targetBranchesClient, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for target knot %s", f.Knot)
+		s.pages.Error503(w)
+		return
+	}
+
+	targetResp, err := targetBranchesClient.Branches(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		log.Println("failed to reach knotserver for target branches", err)
+		return
+	}
+
+	targetBody, err := io.ReadAll(targetResp.Body)
+	if err != nil {
+		log.Println("failed to read target response body", err)
+		return
+	}
+	defer targetResp.Body.Close()
+
+	var targetResult types.RepoBranchesResponse
+	err = json.Unmarshal(targetBody, &targetResult)
+	if err != nil {
+		log.Println("failed to parse target branches response:", err)
+		return
+	}
+
+	s.pages.PullCompareForkBranchesFragment(w, pages.PullCompareForkBranchesParams{
+		RepoInfo:       f.RepoInfo(s, user),
+		SourceBranches: sourceResult.Branches,
+		TargetBranches: targetResult.Branches,
 	})
 }
 

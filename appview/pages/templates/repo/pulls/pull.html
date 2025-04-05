@@ -42,19 +42,16 @@
                 <span>
                   targeting
                   <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-                    {{ .Pull.TargetBranch }}
+                    <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Pull.TargetBranch }}" class="no-underline hover:underline">{{ .Pull.TargetBranch }}</a>
                   </span>
                 </span>
                 {{ if not .Pull.IsPatch }}
                 <span>from
                   {{ if not .Pull.IsSameRepoBranch }}
-                  <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-                    {{ .Pull.PullSource.Repo }}
-                  </span>
-                  <span class="select-none">/</span>
+                    <a href="/{{ $owner }}/{{ .PullSourceRepo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSourceRepo.Name }}</a>
                   {{ end }}
                   <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-                    {{ .Pull.PullSource.Branch }}
+                    <a href="/{{ $owner }}/{{ .PullSourceRepo.Name }}/tree/{{ .Pull.PullSource.Branch }}" class="no-underline hover:underline">{{ .Pull.PullSource.Branch }}</a>
                   </span>
                 </span>
                 {{ end }}

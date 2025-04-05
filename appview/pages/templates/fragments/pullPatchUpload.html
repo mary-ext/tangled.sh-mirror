@@ -1,26 +1,14 @@
 {{ define "fragments/pullPatchUpload" }}
-<div id="patch-upload">
-  <label for="patch" class="dark:text-white">paste your patch here</label>
-  <textarea
-      name="patch"
-      id="patch"
-      rows="10"
-      class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
-      placeholder="Paste your git diff output here."
-  ></textarea>
-
-  {{ if .RepoInfo.Roles.IsPushAllowed }}
-    <div class="mt-4 text-sm">
-      You can also submit a pull request from a branch.
-      <button
-        class="btn text-sm"
-        hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-branches"
-        hx-swap="outerHTML"
-        hx-target="#patch-upload"
-        >
-        compare branches
-      </button>
+    <div id="patch-upload">
+        <textarea
+            name="patch"
+            id="patch"
+            rows="12"
+            class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
+            placeholder="diff --git a/file.txt b/file.txt
+            index 1234567..abcdefg 100644
+            --- a/file.txt
+            +++ b/file.txt"
+        ></textarea>
     </div>
-  {{ end }}
-</div>
 {{ end }}
