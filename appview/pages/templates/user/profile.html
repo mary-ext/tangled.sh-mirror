@@ -108,8 +108,11 @@
                 <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
             {{ end }}
         </div>
-        <p class="text-xl font-bold text-center dark:text-white">
-            {{ truncateAt30 (didOrHandle .UserDid .UserHandle) }}
+        <p 
+          title="{{ didOrHandle .UserDid .UserHandle }}"
+          class="text-lg font-bold text-center dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full"
+          >
+          {{ didOrHandle .UserDid .UserHandle }}
         </p>
         <div class="text-sm text-center dark:text-gray-300">
             <span>{{ .ProfileStats.Followers }} followers</span>

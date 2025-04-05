@@ -168,6 +168,7 @@ func funcMap() template.FuncMap {
 			}
 			return template.HTML(data)
 		},
+		"cssContentHash": CssContentHash,
 	}
 }
 
