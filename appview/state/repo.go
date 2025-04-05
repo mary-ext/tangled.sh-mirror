@@ -827,10 +827,6 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 	}
 
 	knot := f.Knot
-	if knot == "knot1.tangled.sh" {
-		knot = "tangled.sh"
-	}
-
 	var disableFork bool
 	us, err := NewUnsignedClient(knot, s.config.Dev)
 	if err != nil {
@@ -858,6 +854,11 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 			}
 		}
 	}
+
+	if knot == "knot1.tangled.sh" {
+		knot = "tangled.sh"
+	}
+
 	repoInfo := pages.RepoInfo{
 		OwnerDid:    f.OwnerDid(),
 		OwnerHandle: f.OwnerHandle(),
