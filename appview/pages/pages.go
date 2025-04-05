@@ -178,9 +178,10 @@ type ProfilePageParams struct {
 	CollaboratingRepos []db.Repo
 	ProfileStats       ProfileStats
 	FollowStatus       db.FollowStatus
-	DidHandleMap       map[string]string
 	AvatarUri          string
-	ProfileTimeline    []db.ProfileTimelineEvent
+	ProfileTimeline    *db.ProfileTimeline
+
+	DidHandleMap map[string]string
 }
 
 type ProfileStats struct {

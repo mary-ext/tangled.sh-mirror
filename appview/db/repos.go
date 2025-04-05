@@ -77,7 +77,9 @@ func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 		where
 			r.did = ?
 		group by
-			r.at_uri`, did)
+			r.at_uri
+		order by r.created desc`,
+		did)
 	if err != nil {
 		return nil, err
 	}

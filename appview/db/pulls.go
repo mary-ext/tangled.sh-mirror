@@ -64,6 +64,9 @@ type Pull struct {
 	// meta
 	Created    time.Time
 	PullSource *PullSource
+
+	// optionally, populate this when querying for reverse mappings
+	Repo *Repo
 }
 
 type PullSource struct {
@@ -522,23 +525,32 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 	return &pull, nil
 }
 
-func GetPullsByOwnerDid(e Execer, did string) ([]Pull, error) {
+// timeframe here is directly passed into the sql query filter, and any
+// timeframe in the past should be negative; e.g.: "-3 months"
+func GetPullsByOwnerDid(e Execer, did, timeframe string) ([]Pull, error) {
 	var pulls []Pull
 
 	rows, err := e.Query(`
 			select
-				owner_did,
-				repo_at,
-				pull_id,
-				created,
-				title,
-				state
+				p.owner_did,
+				p.repo_at,
+				p.pull_id,
+				p.created,
+				p.title,
+				p.state,
+				r.did,
+				r.name,
+				r.knot,
+				r.rkey,
+				r.created
 			from
-				pulls
+				pulls p
+			join
+				repos r on p.repo_at = r.at_uri
 			where
-				owner_did = ?
+				p.owner_did = ? and p.created >= date ('now', ?)
 			order by
-				created desc`, did)
+				p.created desc`, did, timeframe)
 	if err != nil {
 		return nil, err
 	}
@@ -546,24 +558,38 @@ func GetPullsByOwnerDid(e Execer, did string) ([]Pull, error) {
 
 	for rows.Next() {
 		var pull Pull
-		var createdAt string
+		var repo Repo
+		var pullCreatedAt, repoCreatedAt string
 		err := rows.Scan(
 			&pull.OwnerDid,
 			&pull.RepoAt,
 			&pull.PullId,
-			&createdAt,
+			&pullCreatedAt,
 			&pull.Title,
 			&pull.State,
+			&repo.Did,
+			&repo.Name,
+			&repo.Knot,
+			&repo.Rkey,
+			&repoCreatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		createdTime, err := time.Parse(time.RFC3339, createdAt)
+		pullCreatedTime, err := time.Parse(time.RFC3339, pullCreatedAt)
 		if err != nil {
 			return nil, err
 		}
-		pull.Created = createdTime
+		pull.Created = pullCreatedTime
+
+		repoCreatedTime, err := time.Parse(time.RFC3339, repoCreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		repo.Created = repoCreatedTime
+
+		pull.Repo = &repo
 
 		pulls = append(pulls, pull)
 	}

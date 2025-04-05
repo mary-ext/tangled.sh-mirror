@@ -9,13 +9,190 @@
         {{ block "ownRepos" . }}{{ end }}
         {{ block "collaboratingRepos" . }}{{ end }}
     </div>
-    
     <div class="md:col-span-2 order-3 md:order-3">
-        {{ block "profileTimeline" . }}{{ end }}
+        {{ block "profileTimeline2" . }}{{ end }}
     </div>
 </div>
 {{ end }}
 
+{{ define "profileTimeline2" }}
+  <p class="text-sm font-bold py-2 dark:text-white">ACTIVITY</p>
+  <div class="flex flex-col gap-6 relative">
+    {{ with .ProfileTimeline }}
+      {{ range $idx, $byMonth := .ByMonth }}
+        {{ with $byMonth }}
+        <div>
+          {{ if eq $idx 0 }}
+          <p class="text-sm font-bold py-2 dark:text-white">This month</p>
+          {{ else }}
+          {{ $s := "s" }}
+          {{ if eq $idx 1 }}
+          {{ $s = "" }}
+          {{ end }}
+          <p class="text-sm font-bold py-2 dark:text-white">{{$idx}} month{{$s}} ago</p>
+          {{ end }}
+
+          <div class="flex flex-col gap-4">
+            {{ block "repoEvents"  (list .RepoEvents  $.DidHandleMap) }} {{ end }}
+            {{ block "issueEvents" (list .IssueEvents $.DidHandleMap) }} {{ end }}
+            {{ block "pullEvents"  (list .PullEvents  $.DidHandleMap) }} {{ end }}
+          </div>
+        </div>
+
+        {{ end }}
+      {{ else }}
+        <p class="dark:text-white">This user does not have any activity yet.</p>
+      {{ end }}
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "repoEvents" }}
+  {{ $items := index . 0 }}
+  {{ $handleMap := index . 1 }}
+
+  {{ if gt (len $items) 0 }}
+    <details open>
+      <summary class="list-none cursor-pointer">
+        <div class="flex items-center gap-2">
+          {{ i "unfold-vertical" "w-4 h-4" }}
+          created {{ len $items }} repositories
+        </div>
+      </summary>
+      <div class="p-2 pl-8 text-sm flex flex-col gap-3">
+        {{ range $items }}
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-gray-500 dark:text-gray-400">
+              {{ if .Source }}
+                {{ i "git-fork" "w-4 h-4" }}
+              {{ else }}
+                {{ i "book-plus" "w-4 h-4" }}
+              {{ end }}
+            </span>
+            <a href="/{{ index $handleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
+              {{- .Repo.Name -}}
+            </a>
+            <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
+          </div>
+        {{ end }}
+      </div>
+    </details>
+  {{ end }}
+{{ end }}
+
+{{ define "issueEvents" }}
+  {{ $i := index . 0 }}
+  {{ $items := $i.Items }}
+  {{ $stats := $i.Stats }}
+  {{ $handleMap := index . 1 }}
+
+  {{ if gt (len $items) 0 }}
+    <details open>
+      <summary class="list-none cursor-pointer">
+        <div class="flex items-center gap-2">
+          {{ i "unfold-vertical" "w-4 h-4" }}
+          <span>
+            created {{ len $items }} issues 
+          </span>
+          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-green-600 dark:bg-green-700">
+            {{$stats.Open}} open
+          </span>
+          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-gray-800 dark:bg-gray-700">
+            {{$stats.Closed}} closed
+          </span>
+        </div>
+      </summary>
+      <div class="p-2 pl-8 text-sm flex flex-col gap-3">
+        {{ range $items }}
+          {{ $repoOwner := index $handleMap .Metadata.Repo.Did }}
+          {{ $repoName := .Metadata.Repo.Name }}
+          {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
+
+          <div class="flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+            {{ if .Open }}
+              <span class="text-green-600 dark:text-green-500">
+                {{ i "circle-dot" "w-4 h-4" }}
+              </span>
+            {{ else }}
+              <span class="text-gray-500 dark:text-gray-400">
+                {{ i "ban" "w-4 h-4" }}
+              </span>
+            {{ end }}
+            <a href="/{{$repoUrl}}/issues/{{ .IssueId }}" class="no-underline hover:underline">
+              <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
+              {{ .Title -}}
+            </a>
+            on
+            <a href="/{{$repoUrl}}" class="no-underline hover:underline">
+              {{$repoUrl}}
+            </a>
+          <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Created | shortTimeFmt }}</time>
+          </p>
+        {{ end }}
+      </div>
+    </details>
+  {{ end }}
+{{ end }}
+
+{{ define "pullEvents" }}
+  {{ $i := index . 0 }}
+  {{ $items := $i.Items }}
+  {{ $stats := $i.Stats }}
+  {{ $handleMap := index . 1 }}
+  {{ if gt (len $items) 0 }}
+    <details open>
+      <summary class="list-none cursor-pointer">
+        <div class="flex items-center gap-2">
+          {{ i "unfold-vertical" "w-4 h-4" }}
+          <span>
+            created {{ len $items }} pull requests 
+          </span>
+          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-green-600 dark:bg-green-700">
+            {{$stats.Open}} open
+          </span>
+          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-purple-600 dark:bg-purple-700">
+            {{$stats.Merged}} merged
+          </span>
+          <span class="px-2 py-1/2 text-sm rounded-sm text-black dark:text-white bg-gray-50 dark:bg-gray-700 ">
+            {{$stats.Closed}} closed
+          </span>
+        </div>
+      </summary>
+      <div class="p-2 pl-8 text-sm flex flex-col gap-3">
+        {{ range $items }}
+          {{ $repoOwner := index $handleMap .Repo.Did }}
+          {{ $repoName := .Repo.Name }}
+          {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
+
+          <div class="flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+            {{ if .State.IsOpen }}
+              <span class="text-green-600 dark:text-green-500">
+                {{ i "git-pull-request" "w-4 h-4" }}
+              </span>
+            {{ else if .State.IsMerged }}
+              <span class="text-purple-600 dark:text-purple-500">
+                {{ i "git-merge" "w-4 h-4" }}
+              </span>
+            {{ else }}
+              <span class="text-gray-600 dark:text-gray-300">
+                {{ i "git-pull-request-closed" "w-4 h-4" }}
+              </span>
+            {{ end }}
+            <a href="/{{$repoUrl}}/pulls/{{ .PullId }}" class="no-underline hover:underline">
+              <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
+              {{ .Title -}}
+            </a>
+            on
+            <a href="/{{$repoUrl}}" class="no-underline hover:underline">
+              {{$repoUrl}}
+            </a>
+          <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Created | shortTimeFmt }}</time>
+          </p>
+        {{ end }}
+      </div>
+    </details>
+  {{ end }}
+{{ end }}
 
 {{ define "profileTimeline" }}
     <div class="flex flex-col gap-3 relative">
