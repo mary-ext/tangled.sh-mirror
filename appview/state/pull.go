@@ -55,7 +55,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		mergeCheckResponse := s.mergeCheck(f, pull)
-		var resubmitResult pages.ResubmitResult
+		resubmitResult := pages.Unknown
 		if user.Did == pull.OwnerDid {
 			resubmitResult = s.resubmitCheck(f, pull)
 		}
@@ -115,7 +115,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mergeCheckResponse := s.mergeCheck(f, pull)
-	var resubmitResult pages.ResubmitResult
+	resubmitResult := pages.Unknown
 	if user.Did == pull.OwnerDid {
 		resubmitResult = s.resubmitCheck(f, pull)
 	}
