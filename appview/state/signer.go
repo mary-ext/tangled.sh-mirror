@@ -351,7 +351,7 @@ func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*http.Respon
 	return us.client.Do(req)
 }
 
-func (us *UnsignedClient) Capabilities(ownerDid, repoName string) (*http.Response, error) {
+func (us *UnsignedClient) Capabilities() (*types.Capabilities, error) {
 	const (
 		Method   = "GET"
 		Endpoint = "/capabilities"
@@ -362,7 +362,18 @@ func (us *UnsignedClient) Capabilities(ownerDid, repoName string) (*http.Respons
 		return nil, err
 	}
 
-	return us.client.Do(req)
+	resp, err := us.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var capabilities types.Capabilities
+	if err := json.NewDecoder(resp.Body).Decode(&capabilities); err != nil {
+		return nil, err
+	}
+
+	return &capabilities, nil
 }
 
 func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*http.Response, error) {

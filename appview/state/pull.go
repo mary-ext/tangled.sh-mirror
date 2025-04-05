@@ -563,6 +563,20 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+		if err != nil {
+			log.Println("failed to create unsigned client to %s: %v", f.Knot, err)
+			s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
+			return
+		}
+
+		caps, err := us.Capabilities()
+		if err != nil {
+			log.Println("error fetching knot caps", f.Knot, err)
+			s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
+			return
+		}
+
 		// Determine PR type based on input parameters
 		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
 		isBranchBased := isPushAllowed && sourceBranch != "" && fromFork == ""
@@ -583,10 +597,22 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 
 		// Handle the PR creation based on the type
 		if isBranchBased {
+			if !caps.PullRequests.BranchSubmissions {
+				s.pages.Notice(w, "pull", "This knot doesn't support branch-based pull requests. Try another way?")
+				return
+			}
 			s.handleBranchBasedPull(w, r, f, user, title, body, targetBranch, sourceBranch)
 		} else if isForkBased {
+			if !caps.PullRequests.ForkSubmissions {
+				s.pages.Notice(w, "pull", "This knot doesn't support fork-based pull requests. Try another way?")
+				return
+			}
 			s.handleForkBasedPull(w, r, f, user, fromFork, title, body, targetBranch, sourceBranch)
 		} else if isPatchBased {
+			if !caps.PullRequests.PatchSubmissions {
+				s.pages.Notice(w, "pull", "This knot doesn't support patch-based pull requests. Send your patch over email.")
+				return
+			}
 			s.handlePatchBasedPull(w, r, f, user, title, body, targetBranch, patch)
 		}
 		return
