@@ -501,12 +501,6 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	forks, err := db.GetForksByDid(s.db, user.Did)
-	if err != nil {
-		log.Println("failed to get forks", err)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		us, err := NewUnsignedClient(f.Knot, s.config.Dev)
@@ -538,7 +532,6 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		s.pages.RepoNewPull(w, pages.RepoNewPullParams{
 			LoggedInUser: user,
 			RepoInfo:     f.RepoInfo(s, user),
-			Forks:        forks,
 			Branches:     result.Branches,
 		})
 	case http.MethodPost:
@@ -549,32 +542,37 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		sourceBranch := r.FormValue("sourceBranch")
 		patch := r.FormValue("patch")
 
-		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
-		isBranchBased := isPushAllowed && sourceBranch != "" && fromFork == ""
-		isPatchBased := patch != ""
-		isForkBased := fromFork != "" && sourceBranch != ""
-
-		if !isBranchBased && !isPatchBased && !isForkBased {
-			s.pages.Notice(w, "pull", "Neither source branch nor patch supplied.")
-			return
-		}
-
-		if isBranchBased && isPatchBased {
-			s.pages.Notice(w, "pull", "Cannot select both patch and source branch.")
-			return
-		}
-
+		// Validate required fields for all PR types
 		if title == "" || body == "" || targetBranch == "" {
 			s.pages.Notice(w, "pull", "Title, body and target branch are required.")
 			return
 		}
 
+		// Determine PR type based on input parameters
+		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
+		isBranchBased := isPushAllowed && sourceBranch != "" && fromFork == ""
+		isForkBased := fromFork != "" && sourceBranch != ""
+		isPatchBased := patch != "" && !isBranchBased && !isForkBased
+
+		// Validate we have at least one valid PR creation method
+		if !isBranchBased && !isPatchBased && !isForkBased {
+			s.pages.Notice(w, "pull", "Neither source branch nor patch supplied.")
+			return
+		}
+
+		// Can't mix branch-based and patch-based approaches
+		if isBranchBased && patch != "" {
+			s.pages.Notice(w, "pull", "Cannot select both patch and source branch.")
+			return
+		}
+
+		// Handle the PR creation based on the type
 		if isBranchBased {
 			s.handleBranchBasedPull(w, r, f, user, title, body, targetBranch, sourceBranch)
-		} else if isPatchBased {
-			s.handlePatchBasedPull(w, r, f, user, title, body, targetBranch, patch)
 		} else if isForkBased {
 			s.handleForkBasedPull(w, r, f, user, fromFork, title, body, targetBranch, sourceBranch)
+		} else if isPatchBased {
+			s.handlePatchBasedPull(w, r, f, user, title, body, targetBranch, patch)
 		}
 		return
 	}

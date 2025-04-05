@@ -36,8 +36,26 @@
           </div>
 
 
-        <label>choose your pull strategy</label>
-        <nav class="flex space-x-4">
+        <label>configure your pull request</label>
+
+        <p>First, choose a target branch on {{ .RepoInfo.FullName }}.</p>
+        <div class="pb-2">
+            <select
+                required
+                name="targetBranch"
+                class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+            >
+                <option disabled selected>target branch</option>
+                {{ range .Branches }}
+                <option value="{{ .Reference.Name }}" class="py-1">
+                    {{ .Reference.Name }}
+                </option>
+                {{ end }}
+            </select>
+        </div>
+
+        <p>Then, choose a pull strategy.</p>
+        <nav class="flex space-x-4 items-end">
             <button
                 type="button"
                 class="px-3 py-2 pb-2 btn"
@@ -49,6 +67,9 @@
             </button>
 
         {{ if .RepoInfo.Roles.IsPushAllowed }}
+        <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
+            or
+        </span>
             <button
                 type="button"
                 class="px-3 py-2 pb-2 btn"
@@ -59,6 +80,10 @@
                 compare branches
             </button>
         {{ end }}
+
+        <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
+            or
+        </span>
         <button
             type="button"
             class="px-3 py-2 pb-2 btn"
@@ -70,16 +95,16 @@
         </button>
         </nav>
 
-        <section id="patch-strategy">
+       <section id="patch-strategy">
             {{ template "fragments/pullPatchUpload" . }}
         </section>
 
-          <div class="flex justify-start items-center gap-2">
+        <div class="flex justify-start items-center gap-2 mt-4">
             <button type="submit" class="btn flex items-center gap-2">
                 {{ i "git-pull-request-create" "w-4 h-4" }}
                 create pull
             </button>
-          </div>
+        </div>
 
         </div>
         <div id="pull" class="error dark:text-red-300"></div>

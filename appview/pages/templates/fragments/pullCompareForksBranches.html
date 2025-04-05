@@ -1,22 +1,6 @@
 {{ define "fragments/pullCompareForksBranches" }}
     <div class="flex flex-wrap gap-2 items-center">
         <select
-            required
-            name="targetBranch"
-            class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-        >
-            <option disabled selected>target branch</option>
-            {{ range .TargetBranches }}
-                <option value="{{ .Reference.Name }}" class="py-1">
-                    {{ .Reference.Name }}
-                </option>
-            {{ end }}
-        </select>
-
-        {{ i "move-left" "w-5 h-5" }}
-
-
-        <select
             name="sourceBranch"
             class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
         >
