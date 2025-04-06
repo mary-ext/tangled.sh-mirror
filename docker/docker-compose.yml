@@ -1,0 +1,16 @@
+services:
+  knot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      KNOT_SERVER_HOSTNAME: "knot.example.org"
+      KNOT_SERVER_SECRET: "secret"
+      KNOT_SERVER_DB_PATH: "/app/knotserver.db"
+    volumes:
+      - "./keys:/etc/ssh/keys"
+      - "./repositories:/home/git/repositories"
+      - "./server:/app"
+    ports:
+      - "5555:5555"
+      - "2222:22"

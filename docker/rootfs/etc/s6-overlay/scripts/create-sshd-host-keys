@@ -1,0 +1,21 @@
+#!/usr/bin/execlineb -P
+
+foreground {
+  if -n { test -d /etc/ssh/keys }
+  mkdir /etc/ssh/keys
+}
+
+foreground {
+  if -n { test -f /etc/ssh/keys/ssh_host_rsa_key }
+  ssh-keygen -t rsa -f /etc/ssh/keys/ssh_host_rsa_key -q -N ""
+}
+
+foreground {
+  if -n { test -f /etc/ssh/keys/ssh_host_ecdsa_key }
+  ssh-keygen -t rsa -f /etc/ssh/keys/ssh_host_ecdsa_key -q -N ""
+}
+
+foreground {
+  if -n { test -f /etc/ssh/keys/ssh_host_ed25519_key }
+  ssh-keygen -t rsa -f /etc/ssh/keys/ssh_host_ed25519_key -q -N ""
+}
