@@ -775,7 +775,28 @@ func (h *Handle) Compare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	difftree, err := gr.DiffTree(rev1, rev2)
+	commit1, err := gr.ResolveRevision(rev1)
+	if err != nil {
+		l.Error("error resolving revision 1", "msg", err.Error())
+		writeError(w, fmt.Sprintf("error resolving revision %s", rev1), http.StatusBadRequest)
+		return
+	}
+
+	commit2, err := gr.ResolveRevision(rev2)
+	if err != nil {
+		l.Error("error resolving revision 2", "msg", err.Error())
+		writeError(w, fmt.Sprintf("error resolving revision %s", rev2), http.StatusBadRequest)
+		return
+	}
+
+	mergeBase, err := gr.MergeBase(commit1, commit2)
+	if err != nil {
+		l.Error("failed to find merge-base", "msg", err.Error())
+		writeError(w, "failed to calculate diff", http.StatusBadRequest)
+		return
+	}
+
+	difftree, err := gr.DiffTree(mergeBase, commit2)
 	if err != nil {
 		l.Error("error comparing revisions", "msg", err.Error())
 		writeError(w, "error comparing revisions", http.StatusBadRequest)

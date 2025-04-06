@@ -86,17 +86,7 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 	return &nd, nil
 }
 
-func (g *GitRepo) DiffTree(rev1, rev2 string) (*types.DiffTree, error) {
-	commit1, err := g.resolveRevision(rev1)
-	if err != nil {
-		return nil, fmt.Errorf("Invalid revision: %s", rev1)
-	}
-
-	commit2, err := g.resolveRevision(rev2)
-	if err != nil {
-		return nil, fmt.Errorf("Invalid revision: %s", rev2)
-	}
-
+func (g *GitRepo) DiffTree(commit1, commit2 *object.Commit) (*types.DiffTree, error) {
 	tree1, err := commit1.Tree()
 	if err != nil {
 		return nil, err
@@ -130,7 +120,29 @@ func (g *GitRepo) DiffTree(rev1, rev2 string) (*types.DiffTree, error) {
 	}, nil
 }
 
-func (g *GitRepo) resolveRevision(revStr string) (*object.Commit, error) {
+func (g *GitRepo) MergeBase(commit1, commit2 *object.Commit) (*object.Commit, error) {
+	isAncestor, err := commit1.IsAncestor(commit2)
+	if err != nil {
+		return nil, err
+	}
+
+	if isAncestor {
+		return commit1, nil
+	}
+
+	mergeBase, err := commit1.MergeBase(commit2)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(mergeBase) == 0 {
+		return nil, fmt.Errorf("failed to find a merge-base")
+	}
+
+	return mergeBase[0], nil
+}
+
+func (g *GitRepo) ResolveRevision(revStr string) (*object.Commit, error) {
 	rev, err := g.r.ResolveRevision(plumbing.Revision(revStr))
 	if err != nil {
 		return nil, fmt.Errorf("resolving revision %s: %w", revStr, err)
