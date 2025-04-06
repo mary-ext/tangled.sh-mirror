@@ -32,20 +32,17 @@
         "url": "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
       }
     },
-    "ia-fonts-src": {
+    "ibm-plex-mono-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1686932517,
-        "narHash": "sha256-2T165nFfCzO65/PIHauJA//S+zug5nUwPcg8NUEydfc=",
-        "owner": "iaolo",
-        "repo": "iA-Fonts",
-        "rev": "f32c04c3058a75d7ce28919ce70fe8800817491b",
-        "type": "github"
+        "lastModified": 1731402384,
+        "narHash": "sha256-OwUmrPfEehLDz0fl2ChYLK8FQM2p0G1+EMrGsYEq+6g=",
+        "type": "tarball",
+        "url": "https://github.com/IBM/plex/releases/download/@ibm/plex-mono@1.1.0/ibm-plex-mono.zip"
       },
       "original": {
-        "owner": "iaolo",
-        "repo": "iA-Fonts",
-        "type": "github"
+        "type": "tarball",
+        "url": "https://github.com/IBM/plex/releases/download/@ibm/plex-mono@1.1.0/ibm-plex-mono.zip"
       }
     },
     "indigo": {
@@ -62,6 +59,19 @@
         "owner": "oppiliappan",
         "repo": "indigo",
         "type": "github"
+      }
+    },
+    "inter-fonts-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1731680160,
+        "narHash": "sha256-5vdKKvHAeZi6igrfpbOdhZlDX2/5+UvzlnCQV6DdqoQ=",
+        "type": "tarball",
+        "url": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip"
       }
     },
     "lucide-src": {
@@ -97,8 +107,9 @@
       "inputs": {
         "gitignore": "gitignore",
         "htmx-src": "htmx-src",
-        "ia-fonts-src": "ia-fonts-src",
+        "ibm-plex-mono-src": "ibm-plex-mono-src",
         "indigo": "indigo",
+        "inter-fonts-src": "inter-fonts-src",
         "lucide-src": "lucide-src",
         "nixpkgs": "nixpkgs"
       }

@@ -15,9 +15,13 @@
       url = "https://github.com/lucide-icons/lucide/releases/download/0.483.0/lucide-icons-0.483.0.zip";
       flake = false;
     };
-    ia-fonts-src = {
-      url = "github:iaolo/iA-Fonts";
+    inter-fonts-src = {
+      url = "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip";
       flake = false;
+    };
+    ibm-plex-mono-src = {
+        url = "https://github.com/IBM/plex/releases/download/%40ibm%2Fplex-mono%401.1.0/ibm-plex-mono.zip";
+        flake = false;
     };
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
@@ -32,7 +36,8 @@
     htmx-src,
     lucide-src,
     gitignore,
-    ia-fonts-src,
+    inter-fonts-src,
+    ibm-plex-mono-src,
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -74,8 +79,9 @@
             mkdir -p appview/pages/static/{fonts,icons}
             cp -f ${htmx-src} appview/pages/static/htmx.min.js
             cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
-            cp -f ${ia-fonts-src}/"iA Writer Quattro"/Static/*.ttf appview/pages/static/fonts/
-            cp -f ${ia-fonts-src}/"iA Writer Mono"/Static/*.ttf appview/pages/static/fonts/
+            cp -f ${inter-fonts-src}/Inter/web/InterVariable*.woff2 appview/pages/static/fonts/
+            cp -f ${inter-fonts-src}/Inter/web/InterDisplay*.woff2 appview/pages/static/fonts/
+            cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
             ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
             popd
           '';
@@ -153,8 +159,9 @@
           mkdir -p appview/pages/static/{fonts,icons}
           cp -f ${htmx-src} appview/pages/static/htmx.min.js
           cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
-          cp -f ${ia-fonts-src}/"iA Writer Quattro"/Static/*.ttf appview/pages/static/fonts/
-          cp -f ${ia-fonts-src}/"iA Writer Mono"/Static/*.ttf appview/pages/static/fonts/
+          cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
+          cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
+          cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
         '';
       };
     });

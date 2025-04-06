@@ -3,108 +3,36 @@
 @tailwind utilities;
 @layer base {
     @font-face {
-        font-family: "iA Writer Quattro S";
-        src: url("/static/fonts/iAWriterQuattroS-Regular.ttf")
-            format("truetype");
+        font-family: "InterVariable";
+        src: url("/static/fonts/InterVariable.woff2") format("woff2");
         font-weight: normal;
         font-style: normal;
         font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
-    }
-    @font-face {
-        font-family: "iA Writer Quattro S";
-        src: url("/static/fonts/iAWriterQuattroS-Bold.ttf") format("truetype");
-        font-weight: bold;
-        font-style: normal;
-        font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
-    }
-    @font-face {
-        font-family: "iA Writer Quattro S";
-        src: url("/static/fonts/iAWriterQuattroS-Italic.ttf") format("truetype");
-        font-weight: normal;
-        font-style: italic;
-        font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
-    }
-    @font-face {
-        font-family: "iA Writer Quattro S";
-        src: url("/static/fonts/iAWriterQuattroS-BoldItalic.ttf")
-            format("truetype");
-        font-weight: bold;
-        font-style: italic;
-        font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
     }
 
     @font-face {
-        font-family: "iA Writer Mono S";
-        src: url("/static/fonts/iAWriterMonoS-Regular.ttf") format("truetype");
-        font-weight: normal;
-        font-style: normal;
-        font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
-    }
-    @font-face {
-        font-family: "iA Writer Mono S";
-        src: url("/static/fonts/iAWriterMonoS-Bold.ttf") format("truetype");
-        font-weight: bold;
-        font-style: normal;
-        font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
-    }
-    @font-face {
-        font-family: "iA Writer Mono S";
-        src: url("/static/fonts/iAWriterMonoS-Italic.ttf") format("truetype");
+        font-family: "InterVariable";
+        src: url("/static/fonts/InterVariable-Italic.woff2") format("woff2");
         font-weight: normal;
         font-style: italic;
         font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
-    }
-    @font-face {
-        font-family: "iA Writer Mono S";
-        src: url("/static/fonts/iAWriterMonoS-BoldItalic.ttf")
-            format("truetype");
-        font-weight: bold;
-        font-style: italic;
-        font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
     }
 
     @font-face {
-        font-family: "Inter";
-        font-style: normal;
-        font-weight: 400;
+        font-family: "IBMPlexMono";
+        src: url("/static/fonts/IBMPlexMono-Regular.woff2") format("woff2");
+        font-weight: normal;
+        font-style: italic;
         font-display: swap;
-        font-feature-settings:
-            "calt" 1,
-            "kern" 1;
     }
+
     ::selection {
         @apply bg-yellow-400 text-black bg-opacity-30 dark:bg-yellow-600 dark:bg-opacity-50 dark:text-white;
     }
 
     @layer base {
         html {
-            letter-spacing: -0.01em;
-            word-spacing: -0.07em;
-            font-size: 14px;
+            font-size: 15px;
         }
         a {
             @apply no-underline text-black hover:underline hover:text-gray-800 dark:text-white dark:hover:text-gray-300;
