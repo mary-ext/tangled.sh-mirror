@@ -1,7 +1,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -19,6 +18,12 @@ type ByMonth struct {
 	RepoEvents  []RepoEvent
 	IssueEvents IssueEvents
 	PullEvents  PullEvents
+}
+
+func (b ByMonth) IsEmpty() bool {
+	return len(b.RepoEvents) == 0 &&
+		len(b.IssueEvents.Items) == 0 &&
+		len(b.PullEvents.Items) == 0
 }
 
 type IssueEvents struct {
@@ -154,9 +159,6 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 			Source: sourceRepo,
 		})
 	}
-
-	x, _ := json.MarshalIndent(timeline, "", "\t")
-	fmt.Println(string(x))
 
 	return &timeline, nil
 }

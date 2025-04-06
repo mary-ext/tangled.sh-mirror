@@ -16,27 +16,33 @@
 {{ end }}
 
 {{ define "profileTimeline" }}
-  <p class="text-sm font-bold py-2 dark:text-white">ACTIVITY</p>
+  <p class="text-sm font-bold py-2 dark:text-white px-6">ACTIVITY</p>
   <div class="flex flex-col gap-6 relative">
     {{ with .ProfileTimeline }}
       {{ range $idx, $byMonth := .ByMonth }}
         {{ with $byMonth }}
         <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm">
           {{ if eq $idx 0 }}
-          <p class="text-sm font-bold py-2 dark:text-white">This month</p>
+
           {{ else }}
-          {{ $s := "s" }}
-          {{ if eq $idx 1 }}
-          {{ $s = "" }}
-          {{ end }}
-          <p class="text-sm font-bold py-2 dark:text-white">{{$idx}} month{{$s}} ago</p>
+            {{ $s := "s" }}
+            {{ if eq $idx 1 }}
+              {{ $s = "" }}
+            {{ end }}
+            <p class="text-sm font-bold dark:text-white mb-2">{{$idx}} month{{$s}} ago</p>
           {{ end }}
 
-          <div class="flex flex-col gap-4">
-            {{ block "repoEvents"  (list .RepoEvents  $.DidHandleMap) }} {{ end }}
-            {{ block "issueEvents" (list .IssueEvents $.DidHandleMap) }} {{ end }}
-            {{ block "pullEvents"  (list .PullEvents  $.DidHandleMap) }} {{ end }}
-          </div>
+          {{ if .IsEmpty }}
+            <div class="text-gray-500 dark:text-gray-400">
+              No activity for this month
+            </div>
+          {{ else }}
+            <div class="flex flex-col gap-1">
+              {{ block "repoEvents"  (list .RepoEvents  $.DidHandleMap) }} {{ end }}
+              {{ block "issueEvents" (list .IssueEvents $.DidHandleMap) }} {{ end }}
+              {{ block "pullEvents"  (list .PullEvents  $.DidHandleMap) }} {{ end }}
+            </div>
+          {{ end }}
         </div>
 
         {{ end }}
@@ -52,13 +58,14 @@
   {{ $handleMap := index . 1 }}
 
   {{ if gt (len $items) 0 }}
-    <details open>
-      <summary class="list-none cursor-pointer">
+    <details>
+      <summary class="list-none cursor-pointer hover:underline">
         <div class="flex items-center gap-2">
+          {{ i "book-plus" "w-4 h-4" }}
           created {{ len $items }} {{if eq (len $items) 1 }}repository{{else}}repositories{{end}}
         </div>
       </summary>
-      <div class="p-2 text-sm flex flex-col gap-3">
+      <div class="p-2 pr-0 text-sm flex flex-col gap-3">
         {{ range $items }}
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-gray-500 dark:text-gray-400">
@@ -86,21 +93,30 @@
   {{ $handleMap := index . 1 }}
 
   {{ if gt (len $items) 0 }}
-    <details open>
-      <summary class="list-none cursor-pointer">
+    <details>
+      <summary class="list-none cursor-pointer hover:underline">
         <div class="flex items-center gap-2">
-          <span>
+          {{ i "circle-dot" "w-4 h-4" }}
+
+          <div>
             created {{ len $items }} {{if eq (len $items) 1 }}issue{{else}}issues{{end}} 
-          </span>
-          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-green-600 dark:bg-green-700">
-            {{$stats.Open}} open
-          </span>
-          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-gray-800 dark:bg-gray-700">
+          </div>
+
+          {{ if gt $stats.Open 0 }}
+            <span class="px-2 py-1/2 text-sm rounded text-white bg-green-600 dark:bg-green-700">
+              {{$stats.Open}} open
+            </span>
+          {{ end }}
+
+          {{ if gt $stats.Closed 0 }}
+          <span class="px-2 py-1/2 text-sm rounded text-white bg-gray-800 dark:bg-gray-700">
             {{$stats.Closed}} closed
           </span>
+          {{ end }}
+
         </div>
       </summary>
-      <div class="p-2 text-sm flex flex-col gap-3">
+      <div class="p-2 pr-0 text-sm flex flex-col gap-3">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Metadata.Repo.Did }}
           {{ $repoName := .Metadata.Repo.Name }}
@@ -138,24 +154,37 @@
   {{ $stats := $i.Stats }}
   {{ $handleMap := index . 1 }}
   {{ if gt (len $items) 0 }}
-    <details open>
-      <summary class="list-none cursor-pointer">
+    <details>
+      <summary class="list-none cursor-pointer hover:underline">
         <div class="flex items-center gap-2">
-          <span>
+          {{ i "git-pull-request" "w-4 h-4" }}
+
+          <div>
             created {{ len $items }} {{if eq (len $items) 1 }}pull request{{else}}pull requests{{end}} 
-          </span>
-          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-green-600 dark:bg-green-700">
-            {{$stats.Open}} open
-          </span>
-          <span class="px-2 py-1/2 text-sm rounded-sm text-white bg-purple-600 dark:bg-purple-700">
-            {{$stats.Merged}} merged
-          </span>
-          <span class="px-2 py-1/2 text-sm rounded-sm text-black dark:text-white bg-gray-50 dark:bg-gray-700 ">
+          </div>
+
+          {{ if gt $stats.Open 0 }}
+            <span class="px-2 py-1/2 text-sm rounded text-white bg-green-600 dark:bg-green-700">
+              {{$stats.Open}} open
+            </span>
+          {{ end }}
+
+          {{ if gt $stats.Merged 0 }}
+            <span class="px-2 py-1/2 text-sm rounded text-white bg-purple-600 dark:bg-purple-700">
+              {{$stats.Merged}} merged
+            </span>
+          {{ end }}
+
+
+          {{ if gt $stats.Closed 0 }}
+          <span class="px-2 py-1/2 text-sm rounded text-black dark:text-white bg-gray-50 dark:bg-gray-700 ">
             {{$stats.Closed}} closed
           </span>
+          {{ end }}
+
         </div>
       </summary>
-      <div class="p-2 text-sm flex flex-col gap-3">
+      <div class="p-2 pr-0 text-sm flex flex-col gap-3">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Repo.Did }}
           {{ $repoName := .Repo.Name }}
@@ -184,7 +213,7 @@
               {{$repoUrl}}
             </a>
           <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Created | shortTimeFmt }}</time>
-          </p>
+          </div>
         {{ end }}
       </div>
     </details>
