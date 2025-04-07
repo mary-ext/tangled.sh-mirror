@@ -351,7 +351,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
-			htmlString = (params.Readme)
+			htmlString = markup.RenderMarkdown(params.Readme)
 			params.Raw = false
 			params.HTMLReadme = template.HTML(bluemonday.UGCPolicy().Sanitize(htmlString))
 		default:
