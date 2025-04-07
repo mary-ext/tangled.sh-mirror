@@ -43,6 +43,11 @@
                 <span>{{ byteFmt .SizeHint }}</span>
                 <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
                 <a href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/raw/{{ .Path }}">view raw</a>
+                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                <a 
+                href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .ShowRendered }}" 
+                hx-boost="true"
+                >view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}</a>
             </div>
         </div>
     </div>
@@ -52,7 +57,11 @@
         </p>
     {{ else }}
     <div class="overflow-auto relative">
-        <div class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ $.Contents | escapeHtml }}</div>
+        {{ if .ShowRendered }}
+        <div id="blob-contents" class="prose dark:prose-invert p-6">{{ .RenderedContents }}</div>
+        {{ else }}
+        <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ $.Contents | escapeHtml }}</div>
+        {{ end }}
     </div>
     {{ end }}
 {{ end }}
