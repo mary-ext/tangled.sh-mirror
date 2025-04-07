@@ -96,34 +96,62 @@ func (e *Enforcer) AddMember(domain, member string) error {
 	return err
 }
 
-func (e *Enforcer) AddRepo(member, domain, repo string) error {
-	// sanity check, repo must be of the form ownerDid/repo
-	if parts := strings.SplitN(repo, "/", 2); !strings.HasPrefix(parts[0], "did:") {
-		return fmt.Errorf("invalid repo: %s", repo)
-	}
-
-	_, err := e.E.AddPolicies([][]string{
+func repoPolicies(member, domain, repo string) [][]string {
+	return [][]string{
 		{member, domain, repo, "repo:settings"},
 		{member, domain, repo, "repo:push"},
 		{member, domain, repo, "repo:owner"},
 		{member, domain, repo, "repo:invite"},
 		{member, domain, repo, "repo:delete"},
 		{"server:owner", domain, repo, "repo:delete"}, // server owner can delete any repo
-	})
+	}
+}
+func (e *Enforcer) AddRepo(member, domain, repo string) error {
+	err := checkRepoFormat(repo)
+	if err != nil {
+		return err
+	}
+
+	_, err = e.E.AddPolicies(repoPolicies(member, domain, repo))
+	return err
+}
+func (e *Enforcer) RemoveRepo(member, domain, repo string) error {
+	err := checkRepoFormat(repo)
+	if err != nil {
+		return err
+	}
+
+	_, err = e.E.RemovePolicies(repoPolicies(member, domain, repo))
 	return err
 }
 
+var (
+	collaboratorPolicies = func(collaborator, domain, repo string) [][]string {
+		return [][]string{
+			{collaborator, domain, repo, "repo:collaborator"},
+			{collaborator, domain, repo, "repo:settings"},
+			{collaborator, domain, repo, "repo:push"},
+		}
+	}
+)
+
 func (e *Enforcer) AddCollaborator(collaborator, domain, repo string) error {
-	// sanity check, repo must be of the form ownerDid/repo
-	if parts := strings.SplitN(repo, "/", 2); !strings.HasPrefix(parts[0], "did:") {
-		return fmt.Errorf("invalid repo: %s", repo)
+	err := checkRepoFormat(repo)
+	if err != nil {
+		return err
 	}
 
-	_, err := e.E.AddPolicies([][]string{
-		{collaborator, domain, repo, "repo:collaborator"},
-		{collaborator, domain, repo, "repo:settings"},
-		{collaborator, domain, repo, "repo:push"},
-	})
+	_, err = e.E.AddPolicies(collaboratorPolicies(collaborator, domain, repo))
+	return err
+}
+
+func (e *Enforcer) RemoveCollaborator(collaborator, domain, repo string) error {
+	err := checkRepoFormat(repo)
+	if err != nil {
+		return err
+	}
+
+	_, err = e.E.RemovePolicies(collaboratorPolicies(collaborator, domain, repo))
 	return err
 }
 
@@ -165,6 +193,10 @@ func (e *Enforcer) IsSettingsAllowed(user, domain, repo string) (bool, error) {
 	return e.E.Enforce(user, domain, repo, "repo:settings")
 }
 
+func (e *Enforcer) IsCollaboratorInviteAllowed(user, domain, repo string) (bool, error) {
+	return e.E.Enforce(user, domain, repo, "repo:invite")
+}
+
 // given a repo, what permissions does this user have? repo:owner? repo:invite? etc.
 func (e *Enforcer) GetPermissionsInRepo(user, domain, repo string) []string {
 	var permissions []string
@@ -179,14 +211,19 @@ func (e *Enforcer) GetPermissionsInRepo(user, domain, repo string) []string {
 	return permissions
 }
 
-func (e *Enforcer) IsCollaboratorInviteAllowed(user, domain, repo string) (bool, error) {
-	return e.E.Enforce(user, domain, repo, "repo:invite")
-}
-
 // keyMatch2Func is a wrapper for keyMatch2 to make it compatible with Casbin
 func keyMatch2Func(args ...interface{}) (interface{}, error) {
 	name1 := args[0].(string)
 	name2 := args[1].(string)
 
 	return keyMatch2(name1, name2), nil
+}
+
+func checkRepoFormat(repo string) error {
+	// sanity check, repo must be of the form ownerDid/repo
+	if parts := strings.SplitN(repo, "/", 2); !strings.HasPrefix(parts[0], "did:") {
+		return fmt.Errorf("invalid repo: %s", repo)
+	}
+
+	return nil
 }

@@ -596,6 +596,112 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	// remove record from pds
+	xrpcClient, _ := s.auth.AuthorizedClient(r)
+	repoRkey := f.RepoAt.RecordKey().String()
+	_, err = comatproto.RepoDeleteRecord(r.Context(), xrpcClient, &comatproto.RepoDeleteRecord_Input{
+		Collection: tangled.RepoNSID,
+		Repo:       user.Did,
+		Rkey:       repoRkey,
+	})
+	if err != nil {
+		log.Printf("failed to delete record: %s", err)
+		s.pages.Notice(w, "settings-delete", "Failed to delete repository from PDS.")
+		return
+	}
+	log.Println("removed repo record ", f.RepoAt.String())
+
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
+		return
+	}
+
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	if err != nil {
+		log.Println("failed to create client to ", f.Knot)
+		return
+	}
+
+	ksResp, err := ksClient.RemoveRepo(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		log.Printf("failed to make request to %s: %s", f.Knot, err)
+		return
+	}
+
+	if ksResp.StatusCode != http.StatusNoContent {
+		log.Println("failed to remove repo from knot, continuing anyway ", f.Knot)
+	} else {
+		log.Println("removed repo from knot ", f.Knot)
+	}
+
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx")
+		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		return
+	}
+	defer func() {
+		tx.Rollback()
+		err = s.enforcer.E.LoadPolicy()
+		if err != nil {
+			log.Println("failed to rollback policies")
+		}
+	}()
+
+	// remove collaborator RBAC
+	repoCollaborators, err := s.enforcer.E.GetImplicitUsersForResourceByDomain(f.OwnerSlashRepo(), f.Knot)
+	if err != nil {
+		s.pages.Notice(w, "settings-delete", "Failed to remove collaborators")
+		return
+	}
+	for _, c := range repoCollaborators {
+		did := c[0]
+		s.enforcer.RemoveCollaborator(did, f.Knot, f.OwnerSlashRepo())
+	}
+	log.Println("removed collaborators")
+
+	// remove repo RBAC
+	err = s.enforcer.RemoveRepo(f.OwnerDid(), f.Knot, f.OwnerSlashRepo())
+	if err != nil {
+		s.pages.Notice(w, "settings-delete", "Failed to update RBAC rules")
+		return
+	}
+
+	// remove repo from db
+	err = db.RemoveRepo(tx, f.OwnerDid(), f.RepoName)
+	if err != nil {
+		s.pages.Notice(w, "settings-delete", "Failed to update appview")
+		return
+	}
+	log.Println("removed repo from db")
+
+	err = tx.Commit()
+	if err != nil {
+		log.Println("failed to commit changes", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = s.enforcer.E.SavePolicy()
+	if err != nil {
+		log.Println("failed to update ACLs", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.pages.HxRedirect(w, fmt.Sprintf("/%s", f.OwnerDid()))
+}
+
 func (s *State) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
