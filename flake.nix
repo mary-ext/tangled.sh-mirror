@@ -79,8 +79,8 @@
             mkdir -p appview/pages/static/{fonts,icons}
             cp -f ${htmx-src} appview/pages/static/htmx.min.js
             cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
-            cp -f ${inter-fonts-src}/Inter/web/InterVariable*.woff2 appview/pages/static/fonts/
-            cp -f ${inter-fonts-src}/Inter/web/InterDisplay*.woff2 appview/pages/static/fonts/
+            cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
+            cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
             cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
             ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
             popd
