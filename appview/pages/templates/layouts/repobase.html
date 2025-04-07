@@ -32,6 +32,7 @@
                 {{ range $item := $tabs }}
                     {{ $key := index $item 0 }}
                     {{ $value := index $item 1 }}
+                    {{ $icon := index $item 2 }}
                     {{ $meta := index $tabmeta $key }}
                     <a
                         href="/{{ $.RepoInfo.FullName }}{{ $value }}"
@@ -47,10 +48,13 @@
                              {{ end }}
                              "
                         >
-                            {{ $key }}
-                            {{ if not (isNil $meta) }}
-                            <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm">{{  $meta }}</span>
-                            {{ end }}
+                            <span class="flex items-center justify-center">
+                                {{ i $icon "w-4 h-4 mr-2" }}
+                                {{ $key }}
+                                {{ if not (isNil $meta) }}
+                                <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm ml-1">{{  $meta }}</span>
+                                {{ end }}
+                            </span>
                         </div>
                     </a>
                 {{ end }}

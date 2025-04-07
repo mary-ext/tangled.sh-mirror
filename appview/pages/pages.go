@@ -292,13 +292,13 @@ func (r RepoInfo) FullNameWithoutAt() string {
 
 func (r RepoInfo) GetTabs() [][]string {
 	tabs := [][]string{
-		{"overview", "/"},
-		{"issues", "/issues"},
-		{"pulls", "/pulls"},
+		{"overview", "/", "square-chart-gantt"},
+		{"issues", "/issues", "circle-dot"},
+		{"pulls", "/pulls", "git-pull-request"},
 	}
 
 	if r.Roles.SettingsAllowed() {
-		tabs = append(tabs, []string{"settings", "/settings"})
+		tabs = append(tabs, []string{"settings", "/settings", "cog"})
 	}
 
 	return tabs
