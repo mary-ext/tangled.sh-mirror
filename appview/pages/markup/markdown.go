@@ -1,4 +1,5 @@
-package pages
+// Package markup is an umbrella package for all markups and their renderers.
+package markup
 
 import (
 	"bytes"
@@ -8,7 +9,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 )
 
-func renderMarkdown(source string) string {
+func RenderMarkdown(source string) string {
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithParserOptions(

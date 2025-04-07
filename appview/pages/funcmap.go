@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"tangled.sh/tangled.sh/core/appview/pages/markup"
 )
 
 func funcMap() template.FuncMap {
@@ -137,7 +138,7 @@ func funcMap() template.FuncMap {
 			return v.Slice(start, end).Interface()
 		},
 		"markdown": func(text string) template.HTML {
-			return template.HTML(renderMarkdown(text))
+			return template.HTML(markup.RenderMarkdown(text))
 		},
 		"isNil": func(t any) bool {
 			// returns false for other "zero" values

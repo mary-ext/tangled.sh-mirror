@@ -24,6 +24,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
 	"tangled.sh/tangled.sh/core/types"
 )
@@ -350,7 +351,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
-			htmlString = renderMarkdown(params.Readme)
+			htmlString = markup.RenderMarkdown(params.Readme)
 			params.Raw = false
 			params.HTMLReadme = template.HTML(bluemonday.UGCPolicy().Sanitize(htmlString))
 		default:
@@ -446,10 +447,12 @@ func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 }
 
 type RepoBlobParams struct {
-	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
-	Active       string
-	BreadCrumbs  [][]string
+	LoggedInUser     *auth.User
+	RepoInfo         RepoInfo
+	Active           string
+	BreadCrumbs      [][]string
+	ShowRendered     bool
+	RenderedContents template.HTML
 	types.RepoBlobResponse
 }
 
@@ -458,6 +461,13 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	b := style.Builder()
 	b.Add(chroma.LiteralString, "noitalic")
 	style, _ = b.Build()
+
+	if params.ShowRendered {
+		switch markup.GetFormat(params.Path) {
+		case markup.FormatMarkdown:
+			params.RenderedContents = template.HTML(markup.RenderMarkdown(params.Contents))
+		}
+	}
 
 	if params.Lines < 5000 {
 		c := params.Contents

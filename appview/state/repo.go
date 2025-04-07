@@ -25,6 +25,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/types"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -453,12 +454,22 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var showRendered = false
+	if markup.GetFormat(result.Path) == markup.FormatMarkdown {
+		showRendered = true
+	}
+
+	if r.URL.Query().Get("code") == "true" {
+		showRendered = false
+	}
+
 	user := s.auth.GetUser(r)
 	s.pages.RepoBlob(w, pages.RepoBlobParams{
 		LoggedInUser:     user,
 		RepoInfo:         f.RepoInfo(s, user),
 		RepoBlobResponse: result,
 		BreadCrumbs:      breadcrumbs,
+		ShowRendered:     showRendered,
 	})
 	return
 }
