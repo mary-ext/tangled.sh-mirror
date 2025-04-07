@@ -453,16 +453,15 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
 		}
 	}
+	
+	showRendered := false
+	renderToggle := false
 
-	var showRendered = false
 	if markup.GetFormat(result.Path) == markup.FormatMarkdown {
-		showRendered = true
+		renderToggle = true
+		showRendered = r.URL.Query().Get("code") != "true"
 	}
-
-	if r.URL.Query().Get("code") == "true" {
-		showRendered = false
-	}
-
+	
 	user := s.auth.GetUser(r)
 	s.pages.RepoBlob(w, pages.RepoBlobParams{
 		LoggedInUser:     user,
@@ -470,6 +469,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		RepoBlobResponse: result,
 		BreadCrumbs:      breadcrumbs,
 		ShowRendered:     showRendered,
+		RenderToggle:     renderToggle,
 	})
 	return
 }

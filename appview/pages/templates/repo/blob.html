@@ -43,11 +43,13 @@
                 <span>{{ byteFmt .SizeHint }}</span>
                 <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
                 <a href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/raw/{{ .Path }}">view raw</a>
+                {{ if .RenderToggle }}
                 <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
                 <a 
                 href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .ShowRendered }}" 
                 hx-boost="true"
                 >view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}</a>
+                {{ end }}
             </div>
         </div>
     </div>

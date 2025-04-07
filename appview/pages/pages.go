@@ -452,6 +452,7 @@ type RepoBlobParams struct {
 	Active           string
 	BreadCrumbs      [][]string
 	ShowRendered     bool
+	RenderToggle     bool
 	RenderedContents template.HTML
 	types.RepoBlobResponse
 }
