@@ -34,6 +34,12 @@
         html {
             font-size: 15px;
         }
+        @supports (font-variation-settings: normal) {
+          html {
+            font-feature-settings: 'ss01' 1, 'kern' 1, 'liga' 1, 'cv05' 1, 'tnum' 1;
+          }
+        }
+
         a {
             @apply no-underline text-black hover:underline hover:text-gray-800 dark:text-white dark:hover:text-gray-300;
         }
