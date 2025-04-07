@@ -65,7 +65,7 @@
           created {{ len $items }} {{if eq (len $items) 1 }}repository{{else}}repositories{{end}}
         </div>
       </summary>
-      <div class="p-2 pr-0 ml-2 text-sm flex flex-col gap-3 mb-2 border-l border-gray-300 dark:border-gray-600">
+      <div class="py-2 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-gray-500 dark:text-gray-400">
@@ -115,7 +115,7 @@
 
         </div>
       </summary>
-      <div class="p-2 pr-0 ml-2 text-sm flex flex-col gap-3 mb-2 border-l border-gray-300 dark:border-gray-600">
+      <div class="py-2 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Metadata.Repo.Did }}
           {{ $repoName := .Metadata.Repo.Name }}
@@ -131,13 +131,15 @@
                 {{ i "ban" "w-4 h-4" }}
               </span>
             {{ end }}
+            <div class="flex-none min-w-8 text-right">
+              <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
+            </div>
             <div class="break-words max-w-full">
               <a href="/{{$repoUrl}}/issues/{{ .IssueId }}" class="no-underline hover:underline">
-                <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
                 {{ .Title -}}
               </a>
               on
-              <a href="/{{$repoUrl}}" class="no-underline hover:underline">
+              <a href="/{{$repoUrl}}" class="no-underline hover:underline whitespace-nowrap">
                 {{$repoUrl}}
               </a>
             </div>
@@ -184,7 +186,7 @@
 
         </div>
       </summary>
-      <div class="p-2 pr-0 ml-2 text-sm flex flex-col gap-3 mb-2 border-l border-gray-300 dark:border-gray-600">
+      <div class="py-2 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Repo.Did }}
           {{ $repoName := .Repo.Name }}
@@ -204,13 +206,15 @@
                 {{ i "git-pull-request-closed" "w-4 h-4" }}
               </span>
             {{ end }}
+            <div class="flex-none min-w-8 text-right">
+              <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
+            </div>
             <div class="break-words max-w-full">
               <a href="/{{$repoUrl}}/pulls/{{ .PullId }}" class="no-underline hover:underline">
-                <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
                 {{ .Title -}}
               </a>
               on
-              <a href="/{{$repoUrl}}" class="no-underline hover:underline">
+              <a href="/{{$repoUrl}}" class="no-underline hover:underline whitespace-nowrap">
                 {{$repoUrl}}
               </a>
             </div>
