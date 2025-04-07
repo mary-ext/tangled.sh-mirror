@@ -60,12 +60,12 @@
   {{ if gt (len $items) 0 }}
     <details>
       <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           {{ i "book-plus" "w-4 h-4" }}
           created {{ len $items }} {{if eq (len $items) 1 }}repository{{else}}repositories{{end}}
         </div>
       </summary>
-      <div class="p-2 pr-0 text-sm flex flex-col gap-3 mb-2">
+      <div class="p-2 pr-0 ml-2 text-sm flex flex-col gap-3 mb-2 border-l border-gray-300 dark:border-gray-600">
         {{ range $items }}
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-gray-500 dark:text-gray-400">
@@ -94,7 +94,7 @@
   {{ if gt (len $items) 0 }}
     <details>
       <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           {{ i "circle-dot" "w-4 h-4" }}
 
           <div>
@@ -115,7 +115,7 @@
 
         </div>
       </summary>
-      <div class="p-2 pr-0 text-sm flex flex-col gap-3 mb-2">
+      <div class="p-2 pr-0 ml-2 text-sm flex flex-col gap-3 mb-2 border-l border-gray-300 dark:border-gray-600">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Metadata.Repo.Did }}
           {{ $repoName := .Metadata.Repo.Name }}
@@ -156,7 +156,7 @@
   {{ if gt (len $items) 0 }}
     <details>
       <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           {{ i "git-pull-request" "w-4 h-4" }}
 
           <div>
@@ -184,7 +184,7 @@
 
         </div>
       </summary>
-      <div class="p-2 pr-0 text-sm flex flex-col gap-3 mb-2">
+      <div class="p-2 pr-0 ml-2 text-sm flex flex-col gap-3 mb-2 border-l border-gray-300 dark:border-gray-600">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Repo.Did }}
           {{ $repoName := .Repo.Name }}
