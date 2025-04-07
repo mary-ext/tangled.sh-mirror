@@ -116,7 +116,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 
 	mergeCheckResponse := s.mergeCheck(f, pull)
 	resubmitResult := pages.Unknown
-	if user.Did == pull.OwnerDid {
+	if user != nil && user.Did == pull.OwnerDid {
 		resubmitResult = s.resubmitCheck(f, pull)
 	}
 
