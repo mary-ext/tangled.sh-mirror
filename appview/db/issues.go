@@ -12,15 +12,19 @@ type Issue struct {
 	OwnerDid string
 	IssueId  int
 	IssueAt  string
-	Created  *time.Time
+	Created  time.Time
 	Title    string
 	Body     string
 	Open     bool
+
+	// optionally, populate this when querying for reverse mappings
+	// like comment counts, parent repo etc.
 	Metadata *IssueMetadata
 }
 
 type IssueMetadata struct {
 	CommentCount int
+	Repo         *Repo
 	// labels, assignee etc.
 }
 
@@ -143,7 +147,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool) ([]Issue, error) {
 		if err != nil {
 			return nil, err
 		}
-		issue.Created = &createdTime
+		issue.Created = createdTime
 		issue.Metadata = &metadata
 
 		issues = append(issues, issue)
@@ -156,7 +160,9 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool) ([]Issue, error) {
 	return issues, nil
 }
 
-func GetIssuesByOwnerDid(e Execer, ownerDid string) ([]Issue, error) {
+// timeframe here is directly passed into the sql query filter, and any
+// timeframe in the past should be negative; e.g.: "-3 months"
+func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, error) {
 	var issues []Issue
 
 	rows, err := e.Query(
@@ -168,18 +174,20 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string) ([]Issue, error) {
 			i.title,
 			i.body,
 			i.open,
-			count(c.id)
+			r.did,
+			r.name,
+			r.knot,
+			r.rkey,
+			r.created
 		from
 		    issues i
-		left join
-			comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
+		join
+			repos r on i.repo_at = r.at_uri
 		where
-		    i.owner_did = ?
-		group by
-			i.id, i.owner_did, i.repo_at, i.issue_id, i.created, i.title, i.body, i.open
+			i.owner_did = ? and i.created >= date ('now', ?)
 		order by
 			i.created desc`,
-		ownerDid)
+		ownerDid, timeframe)
 	if err != nil {
 		return nil, err
 	}
@@ -187,19 +195,41 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string) ([]Issue, error) {
 
 	for rows.Next() {
 		var issue Issue
-		var createdAt string
-		var metadata IssueMetadata
-		err := rows.Scan(&issue.OwnerDid, &issue.RepoAt, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
+		var issueCreatedAt, repoCreatedAt string
+		var repo Repo
+		err := rows.Scan(
+			&issue.OwnerDid,
+			&issue.RepoAt,
+			&issue.IssueId,
+			&issueCreatedAt,
+			&issue.Title,
+			&issue.Body,
+			&issue.Open,
+			&repo.Did,
+			&repo.Name,
+			&repo.Knot,
+			&repo.Rkey,
+			&repoCreatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		createdTime, err := time.Parse(time.RFC3339, createdAt)
+		issueCreatedTime, err := time.Parse(time.RFC3339, issueCreatedAt)
 		if err != nil {
 			return nil, err
 		}
-		issue.Created = &createdTime
-		issue.Metadata = &metadata
+		issue.Created = issueCreatedTime
+
+		repoCreatedTime, err := time.Parse(time.RFC3339, repoCreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		repo.Created = repoCreatedTime
+
+		issue.Metadata = &IssueMetadata{
+			Repo: &repo,
+		}
 
 		issues = append(issues, issue)
 	}
@@ -226,7 +256,7 @@ func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 	if err != nil {
 		return nil, err
 	}
-	issue.Created = &createdTime
+	issue.Created = createdTime
 
 	return &issue, nil
 }
@@ -246,7 +276,7 @@ func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, [
 	if err != nil {
 		return nil, nil, err
 	}
-	issue.Created = &createdTime
+	issue.Created = createdTime
 
 	comments, err := GetComments(e, repoAt, issueId)
 	if err != nil {

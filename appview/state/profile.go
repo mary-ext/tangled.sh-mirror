@@ -43,13 +43,19 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 	for _, r := range collaboratingRepos {
 		didsToResolve = append(didsToResolve, r.Did)
 	}
-	for _, evt := range timeline {
-		if evt.Repo != nil {
-			if evt.Repo.Source != "" {
-				didsToResolve = append(didsToResolve, evt.Source.Did)
+	for _, byMonth := range timeline.ByMonth {
+		for _, pe := range byMonth.PullEvents.Items {
+			didsToResolve = append(didsToResolve, pe.Repo.Did)
+		}
+		for _, ie := range byMonth.IssueEvents.Items {
+			didsToResolve = append(didsToResolve, ie.Metadata.Repo.Did)
+		}
+		for _, re := range byMonth.RepoEvents {
+			didsToResolve = append(didsToResolve, re.Repo.Did)
+			if re.Source != nil {
+				didsToResolve = append(didsToResolve, re.Source.Did)
 			}
 		}
-		didsToResolve = append(didsToResolve, evt.Repo.Did)
 	}
 
 	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)

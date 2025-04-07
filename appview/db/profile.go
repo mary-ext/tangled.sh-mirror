@@ -2,69 +2,140 @@ package db
 
 import (
 	"fmt"
-	"sort"
 	"time"
 )
 
-type ProfileTimelineEvent struct {
-	EventAt time.Time
-	Type    string
-	*Issue
-	*Pull
-	*Repo
-
-	// optional: populate only if Repo is a fork
+type RepoEvent struct {
+	Repo   *Repo
 	Source *Repo
 }
 
-func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error) {
-	timeline := []ProfileTimelineEvent{}
-	limit := 30
+type ProfileTimeline struct {
+	ByMonth []ByMonth
+}
 
-	pulls, err := GetPullsByOwnerDid(e, forDid)
-	if err != nil {
-		return timeline, fmt.Errorf("error getting pulls by owner did: %w", err)
+type ByMonth struct {
+	RepoEvents  []RepoEvent
+	IssueEvents IssueEvents
+	PullEvents  PullEvents
+}
+
+func (b ByMonth) IsEmpty() bool {
+	return len(b.RepoEvents) == 0 &&
+		len(b.IssueEvents.Items) == 0 &&
+		len(b.PullEvents.Items) == 0
+}
+
+type IssueEvents struct {
+	Items []*Issue
+}
+
+type IssueEventStats struct {
+	Open   int
+	Closed int
+}
+
+func (i IssueEvents) Stats() IssueEventStats {
+	var open, closed int
+	for _, issue := range i.Items {
+		if issue.Open {
+			open += 1
+		} else {
+			closed += 1
+		}
 	}
 
+	return IssueEventStats{
+		Open:   open,
+		Closed: closed,
+	}
+}
+
+type PullEvents struct {
+	Items []*Pull
+}
+
+func (p PullEvents) Stats() PullEventStats {
+	var open, merged, closed int
+	for _, pull := range p.Items {
+		switch pull.State {
+		case PullOpen:
+			open += 1
+		case PullMerged:
+			merged += 1
+		case PullClosed:
+			closed += 1
+		}
+	}
+
+	return PullEventStats{
+		Open:   open,
+		Merged: merged,
+		Closed: closed,
+	}
+}
+
+type PullEventStats struct {
+	Closed int
+	Open   int
+	Merged int
+}
+
+const TimeframeMonths = 3
+
+func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
+	timeline := ProfileTimeline{
+		ByMonth: make([]ByMonth, TimeframeMonths),
+	}
+	currentMonth := time.Now().Month()
+	timeframe := fmt.Sprintf("-%d months", TimeframeMonths)
+
+	pulls, err := GetPullsByOwnerDid(e, forDid, timeframe)
+	if err != nil {
+		return nil, fmt.Errorf("error getting pulls by owner did: %w", err)
+	}
+
+	// group pulls by month
 	for _, pull := range pulls {
-		repo, err := GetRepoByAtUri(e, string(pull.RepoAt))
-		if err != nil {
-			return timeline, fmt.Errorf("error getting repo by at uri: %w", err)
+		pullMonth := pull.Created.Month()
+
+		if currentMonth-pullMonth > TimeframeMonths {
+			// shouldn't happen; but times are weird
+			continue
 		}
 
-		timeline = append(timeline, ProfileTimelineEvent{
-			EventAt: pull.Created,
-			Type:    "pull",
-			Pull:    &pull,
-			Repo:    repo,
-		})
+		idx := currentMonth - pullMonth
+		items := &timeline.ByMonth[idx].PullEvents.Items
+
+		*items = append(*items, &pull)
 	}
 
-	issues, err := GetIssuesByOwnerDid(e, forDid)
+	issues, err := GetIssuesByOwnerDid(e, forDid, timeframe)
 	if err != nil {
-		return timeline, fmt.Errorf("error getting issues by owner did: %w", err)
+		return nil, fmt.Errorf("error getting issues by owner did: %w", err)
 	}
 
 	for _, issue := range issues {
-		repo, err := GetRepoByAtUri(e, string(issue.RepoAt))
-		if err != nil {
-			return timeline, fmt.Errorf("error getting repo by at uri: %w", err)
+		issueMonth := issue.Created.Month()
+
+		if currentMonth-issueMonth > TimeframeMonths {
+			// shouldn't happen; but times are weird
+			continue
 		}
 
-		timeline = append(timeline, ProfileTimelineEvent{
-			EventAt: *issue.Created,
-			Type:    "issue",
-			Issue:   &issue,
-			Repo:    repo,
-		})
+		idx := currentMonth - issueMonth
+		items := &timeline.ByMonth[idx].IssueEvents.Items
+
+		*items = append(*items, &issue)
 	}
 
 	repos, err := GetAllReposByDid(e, forDid)
 	if err != nil {
-		return timeline, fmt.Errorf("error getting all repos by did: %w", err)
+		return nil, fmt.Errorf("error getting all repos by did: %w", err)
 	}
 
 	for _, repo := range repos {
+		// TODO: get this in the original query; requires COALESCE because nullable
 		var sourceRepo *Repo
 		if repo.Source != "" {
 			sourceRepo, err = GetRepoByAtUri(e, repo.Source)
@@ -73,21 +144,21 @@ func MakeProfileTimeline(e Execer, forDid string) ([]ProfileTimelineEvent, error
 			}
 		}
 
-		timeline = append(timeline, ProfileTimelineEvent{
-			EventAt: repo.Created,
-			Type:    "repo",
-			Repo:    &repo,
-			Source:  sourceRepo,
+		repoMonth := repo.Created.Month()
+
+		if currentMonth-repoMonth > TimeframeMonths {
+			// shouldn't happen; but times are weird
+			continue
+		}
+
+		idx := currentMonth - repoMonth
+
+		items := &timeline.ByMonth[idx].RepoEvents
+		*items = append(*items, RepoEvent{
+			Repo:   &repo,
+			Source: sourceRepo,
 		})
 	}
 
-	sort.Slice(timeline, func(i, j int) bool {
-		return timeline[i].EventAt.After(timeline[j].EventAt)
-	})
-
-	if len(timeline) > limit {
-		timeline = timeline[:limit]
-	}
-
-	return timeline, nil
+	return &timeline, nil
 }
