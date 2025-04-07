@@ -59,13 +59,13 @@
 
   {{ if gt (len $items) 0 }}
     <details>
-      <summary class="list-none cursor-pointer hover:underline">
+      <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex items-center gap-2">
           {{ i "book-plus" "w-4 h-4" }}
           created {{ len $items }} {{if eq (len $items) 1 }}repository{{else}}repositories{{end}}
         </div>
       </summary>
-      <div class="p-2 pr-0 text-sm flex flex-col gap-3">
+      <div class="p-2 pr-0 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-gray-500 dark:text-gray-400">
@@ -78,7 +78,6 @@
             <a href="/{{ index $handleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
               {{- .Repo.Name -}}
             </a>
-            <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Repo.Created | shortTimeFmt }}</time>
           </div>
         {{ end }}
       </div>
@@ -94,7 +93,7 @@
 
   {{ if gt (len $items) 0 }}
     <details>
-      <summary class="list-none cursor-pointer hover:underline">
+      <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex items-center gap-2">
           {{ i "circle-dot" "w-4 h-4" }}
 
@@ -116,13 +115,13 @@
 
         </div>
       </summary>
-      <div class="p-2 pr-0 text-sm flex flex-col gap-3">
+      <div class="p-2 pr-0 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Metadata.Repo.Did }}
           {{ $repoName := .Metadata.Repo.Name }}
           {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
 
-          <div class="flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+          <div class="flex gap-2 text-gray-600 dark:text-gray-300">
             {{ if .Open }}
               <span class="text-green-600 dark:text-green-500">
                 {{ i "circle-dot" "w-4 h-4" }}
@@ -132,16 +131,17 @@
                 {{ i "ban" "w-4 h-4" }}
               </span>
             {{ end }}
-            <a href="/{{$repoUrl}}/issues/{{ .IssueId }}" class="no-underline hover:underline">
-              <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
-              {{ .Title -}}
-            </a>
-            on
-            <a href="/{{$repoUrl}}" class="no-underline hover:underline">
-              {{$repoUrl}}
-            </a>
-          <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Created | shortTimeFmt }}</time>
-          </p>
+            <div class="break-words max-w-full">
+              <a href="/{{$repoUrl}}/issues/{{ .IssueId }}" class="no-underline hover:underline">
+                <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
+                {{ .Title -}}
+              </a>
+              on
+              <a href="/{{$repoUrl}}" class="no-underline hover:underline">
+                {{$repoUrl}}
+              </a>
+            </div>
+          </div>
         {{ end }}
       </div>
     </details>
@@ -155,7 +155,7 @@
   {{ $handleMap := index . 1 }}
   {{ if gt (len $items) 0 }}
     <details>
-      <summary class="list-none cursor-pointer hover:underline">
+      <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex items-center gap-2">
           {{ i "git-pull-request" "w-4 h-4" }}
 
@@ -184,13 +184,13 @@
 
         </div>
       </summary>
-      <div class="p-2 pr-0 text-sm flex flex-col gap-3">
+      <div class="p-2 pr-0 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
           {{ $repoOwner := index $handleMap .Repo.Did }}
           {{ $repoName := .Repo.Name }}
           {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
 
-          <div class="flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+          <div class="flex gap-2 text-gray-600 dark:text-gray-300">
             {{ if .State.IsOpen }}
               <span class="text-green-600 dark:text-green-500">
                 {{ i "git-pull-request" "w-4 h-4" }}
@@ -204,15 +204,16 @@
                 {{ i "git-pull-request-closed" "w-4 h-4" }}
               </span>
             {{ end }}
-            <a href="/{{$repoUrl}}/pulls/{{ .PullId }}" class="no-underline hover:underline">
-              <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
-              {{ .Title -}}
-            </a>
-            on
-            <a href="/{{$repoUrl}}" class="no-underline hover:underline">
-              {{$repoUrl}}
-            </a>
-          <time class="text-gray-700 dark:text-gray-400 text-xs ml-2">{{ .Created | shortTimeFmt }}</time>
+            <div class="break-words max-w-full">
+              <a href="/{{$repoUrl}}/pulls/{{ .PullId }}" class="no-underline hover:underline">
+                <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
+                {{ .Title -}}
+              </a>
+              on
+              <a href="/{{$repoUrl}}" class="no-underline hover:underline">
+                {{$repoUrl}}
+              </a>
+            </div>
           </div>
         {{ end }}
       </div>
