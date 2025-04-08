@@ -33,6 +33,10 @@ func funcMap() template.FuncMap {
 		"add": func(a, b int) int {
 			return a + b
 		},
+		// the absolute state of go templates
+		"add64": func(a, b int64) int64 {
+			return a + b
+		},
 		"sub": func(a, b int) int {
 			return a - b
 		},
