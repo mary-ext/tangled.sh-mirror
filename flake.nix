@@ -20,8 +20,8 @@
       flake = false;
     };
     ibm-plex-mono-src = {
-        url = "https://github.com/IBM/plex/releases/download/%40ibm%2Fplex-mono%401.1.0/ibm-plex-mono.zip";
-        flake = false;
+      url = "https://github.com/IBM/plex/releases/download/%40ibm%2Fplex-mono%401.1.0/ibm-plex-mono.zip";
+      flake = false;
     };
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
@@ -415,8 +415,12 @@
           virtualisation.cores = 2;
           services.getty.autologinUser = "root";
           environment.systemPackages = with pkgs; [curl vim git];
-          systemd.tmpfiles.rules = [
-            "w /var/lib/knotserver/secret 0660 git git - KNOT_SERVER_SECRET=6995e040e80e2d593b5e5e9ca611a70140b9ef8044add0a28b48b1ee34aa3e85"
+          systemd.tmpfiles.rules = let
+            u = config.services.tangled-knotserver.gitUser;
+            g = config.services.tangled-knotserver.gitUser;
+          in [
+            "d /var/lib/knotserver 0770 ${u} ${g} - -" # Create the directory first
+            "f+ /var/lib/knotserver/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=6995e040e80e2d593b5e5e9ca611a70140b9ef8044add0a28b48b1ee34aa3e85"
           ];
           services.tangled-knotserver = {
             enable = true;
