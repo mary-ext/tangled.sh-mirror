@@ -617,6 +617,14 @@ func (h *Handle) RepoFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// add perms for this user to access the repo
+	err = h.e.AddRepo(did, ThisServer, relativeRepoPath)
+	if err != nil {
+		l.Error("adding repo permissions", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
