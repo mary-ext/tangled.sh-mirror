@@ -8,6 +8,6 @@ Read the introduction to Tangled [here](https://blog.tangled.sh/intro).
 
 Documentation:
 * [knot hosting
-guide](https://tangled.sh/@tangled.sh/core/tree/master/docs/knot-hosting.md)
+guide](https://tangled.sh/@tangled.sh/core/blob/master/docs/knot-hosting.md)
 * [contributing
-guide](https://tangled.sh/@tangled.sh/core/tree/master/docs/contributing.md)&mdash;**read this before opening a PR!**
+guide](https://tangled.sh/@tangled.sh/core/blob/master/docs/contributing.md)&mdash;**read this before opening a PR!**
