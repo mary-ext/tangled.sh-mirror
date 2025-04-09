@@ -127,7 +127,7 @@
         </summary>
         <div class="md:pl-12 flex flex-col gap-2 mt-2 relative">
           {{ range .Comments }}
-            <div id="comment-{{.ID}}" class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-fit">
+            <div id="comment-{{.ID}}" class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
               <div class="text-sm text-gray-500 dark:text-gray-400">
                 {{ $owner := index $.DidHandleMap .OwnerDid }} 
