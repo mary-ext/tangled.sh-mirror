@@ -453,7 +453,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
 		}
 	}
-	
+
 	showRendered := false
 	renderToggle := false
 
@@ -461,7 +461,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		renderToggle = true
 		showRendered = r.URL.Query().Get("code") != "true"
 	}
-	
+
 	user := s.auth.GetUser(r)
 	s.pages.RepoBlob(w, pages.RepoBlobParams{
 		LoggedInUser:     user,
@@ -1698,11 +1698,21 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 		forkName := fmt.Sprintf("%s", f.RepoName)
 
+		// this check is *only* to see if the forked repo name already exists
+		// in the user's account.
 		existingRepo, err := db.GetRepo(s.db, user.Did, f.RepoName)
-		if err == nil && existingRepo != nil {
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				// no existing repo with this name found, we can use the name as is
+			} else {
+				log.Println("error fetching existing repo from db", err)
+				s.pages.Notice(w, "repo", "Failed to fork this repository. Try again later.")
+				return
+			}
+		} else if existingRepo != nil {
+			// repo with this name already exists, append random string
 			forkName = fmt.Sprintf("%s-%s", forkName, randomString(3))
 		}
-
 		secret, err := db.GetRegistrationKey(s.db, knot)
 		if err != nil {
 			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", knot))
@@ -1711,7 +1721,7 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 		client, err := NewSignedClient(knot, secret, s.config.Dev)
 		if err != nil {
-			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
+			s.pages.Notice(w, "repo", "Failed to reach knot server.")
 			return
 		}
 
@@ -1721,7 +1731,7 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		} else {
 			uri = "https"
 		}
-		sourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, knot, f.OwnerDid(), f.RepoName)
+		sourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
 		sourceAt := f.RepoAt.String()
 
 		rkey := s.TID()
