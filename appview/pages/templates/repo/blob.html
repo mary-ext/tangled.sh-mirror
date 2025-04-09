@@ -60,7 +60,7 @@
     {{ else }}
     <div class="overflow-auto relative">
         {{ if .ShowRendered }}
-        <div id="blob-contents" class="prose dark:prose-invert p-6">{{ .RenderedContents }}</div>
+        <div id="blob-contents" class="prose dark:prose-invert">{{ .RenderedContents }}</div>
         {{ else }}
         <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ $.Contents | escapeHtml }}</div>
         {{ end }}

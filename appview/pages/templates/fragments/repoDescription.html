@@ -1,5 +1,5 @@
 {{ define "fragments/repoDescription" }}
-<span id="repo-description" class="flex flex-wrap items-center gap-2" hx-target="this" hx-swap="outerHTML">
+<span id="repo-description" class="flex flex-wrap items-center gap-2 text-sm" hx-target="this" hx-swap="outerHTML">
     {{ if .RepoInfo.Description }}
         {{ .RepoInfo.Description }}
     {{ else }}
@@ -7,8 +7,8 @@
     {{ end }}
 
     {{ if .RepoInfo.Roles.IsOwner }}
-    <button class="btn p-2 flex items-center gap-2 no-underline text-sm" hx-get="/{{ .RepoInfo.FullName }}/description/edit">
-      {{ i "pencil" "w-3 h-3" }} edit
+    <button class="flex items-center gap-2 no-underline text-sm" hx-get="/{{ .RepoInfo.FullName }}/description/edit">
+      {{ i "pencil" "w-3 h-3" }}
     </button>
     {{ end }}
 </span>

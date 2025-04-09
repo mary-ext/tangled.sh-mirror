@@ -81,27 +81,43 @@
             This is a binary file and will not be displayed.
             </p>
             {{ else }}
-            <pre class="overflow-x-auto"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}<div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none">{{- .Header -}}</div>{{- range .Lines -}}
-                       {{- if eq .Op.String "+" -}}
-                       <div class="bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400 flex min-w-full">
-                         <div class="w-10 flex-shrink-0 select-none p-1 text-center">{{ .Op.String }}</div>
-                         <div class="p-1 whitespace-pre">{{ .Line }}</div>
-                       </div>
-                       {{- end -}}
-                       {{- if eq .Op.String "-" -}}
-                       <div class="bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 flex min-w-full">
-                         <div class="w-10 flex-shrink-0 select-none p-1 text-center">{{ .Op.String }}</div>
-                         <div class="p-1 whitespace-pre">{{ .Line }}</div>
-                       </div>
-                       {{- end -}}
-                       {{- if eq .Op.String " " -}}
-                       <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex min-w-full">
-                         <div class="w-10 flex-shrink-0 select-none p-1 text-center">{{ .Op.String }}</div>
-                         <div class="p-1 whitespace-pre">{{ .Line }}</div>
-                       </div>
-                       {{- end -}}
-                     {{- end -}}
-                   {{- end -}}</div></div></pre>
+            <pre class="overflow-x-auto"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}<div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none text-center">&middot;&middot;&middot;</div>
+             {{- $oldStart := .OldPosition -}}
+             {{- $newStart := .NewPosition -}}
+             {{- $lineNrStyle := "min-w-[3rem] flex-shrink-0 select-none text-right" -}}
+             {{- $lineNrSepStyle1 := "text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800" -}}
+             {{- $lineNrSepStyle2 := "text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 pr-2" -}}
+             {{- range .Lines -}}
+               {{- if eq .Op.String "+" -}}
+                 <div class="bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400 flex min-w-full items-center">
+                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}"><span aria-hidden="true" class="invisible">{{$newStart}}</span></div>
+                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}">{{ $newStart }}</div>
+                   <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
+                   <div class="px-2">{{ .Line }}</div>
+                 </div>
+                 {{- $newStart = add64 $newStart 1 -}}
+               {{- end -}}
+               {{- if eq .Op.String "-" -}}
+                 <div class="bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 flex min-w-full items-center">
+                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}">{{ $oldStart }}</div>
+                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}"><span aria-hidden="true" class="invisible">{{$oldStart}}</span></div>
+                   <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
+                   <div class="px-2">{{ .Line }}</div>
+                 </div>
+                 {{- $oldStart = add64 $oldStart 1 -}}
+               {{- end -}}
+               {{- if eq .Op.String " " -}}
+                 <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex min-w-full items-center">
+                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}">{{ $oldStart }}</div>
+                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}">{{ $newStart }}</div>
+                   <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
+                   <div class="px-2">{{ .Line }}</div>
+                 </div>
+                 {{- $newStart = add64 $newStart 1 -}}
+                 {{- $oldStart = add64 $oldStart 1 -}}
+               {{- end -}}
+             {{- end -}}
+             {{- end -}}</div></div></pre>
             {{- end -}}
             {{ end }}
           </div>
