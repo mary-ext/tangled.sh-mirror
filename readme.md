@@ -7,6 +7,7 @@ on the [AT Protocol](https://atproto.com).
 Read the introduction to Tangled [here](https://blog.tangled.sh/intro).
 
 Documentation:
-
-* [knot hosting guide](https://tangled.sh/@tangled.sh/core/tree/master/docs/knot-hosting.md)
-* [contributing guide](https://tangled.sh/@tangled.sh/core/tree/master/docs/contributing.md)
+* [knot hosting
+guide](https://tangled.sh/@tangled.sh/core/tree/master/docs/knot-hosting.md)
+* [contributing
+guide](https://tangled.sh/@tangled.sh/core/tree/master/docs/contributing.md)&mdash;**read this before opening a PR!**
