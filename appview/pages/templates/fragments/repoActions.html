@@ -20,18 +20,18 @@
       {{ else }}
       {{ i "star" "w-4 h-4" }}
       {{ end }}
-      <span>
+      <span class="text-sm">
         {{ .Stats.StarCount }}
       </span>
     </div>
   </button>
   {{ if .DisableFork }}
-  <button class="btn no-underline hover:no-underline flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled title="Empty repositories cannot be forked">
+  <button class="btn text-sm no-underline hover:no-underline flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled title="Empty repositories cannot be forked">
       {{ i "git-fork" "w-4 h-4"}}
       fork
   </button>
   {{ else }}
-  <a class="btn no-underline hover:no-underline flex items-center gap-2" href="/{{ .FullName }}/fork">
+  <a class="btn text-sm no-underline hover:no-underline flex items-center gap-2" href="/{{ .FullName }}/fork">
       {{ i "git-fork" "w-4 h-4"}}
       fork
   </a>
