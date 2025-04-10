@@ -3,7 +3,6 @@ package rbac
 import (
 	"database/sql"
 	"fmt"
-	"path"
 	"strings"
 
 	adapter "github.com/Blank-Xu/sql-adapter"
@@ -26,17 +25,12 @@ g = _, _, _
 e = some(where (p.eft == allow))
 
 [matchers]
-m = r.act == p.act && r.dom == p.dom && keyMatch2(r.obj, p.obj) && g(r.sub, p.sub, r.dom)
+m = r.act == p.act && r.dom == p.dom && r.obj == p.obj && g(r.sub, p.sub, r.dom)
 `
 )
 
 type Enforcer struct {
 	E *casbin.Enforcer
-}
-
-func keyMatch2(key1 string, key2 string) bool {
-	matched, _ := path.Match(key2, key1)
-	return matched
 }
 
 func NewEnforcer(path string) (*Enforcer, error) {
@@ -61,8 +55,6 @@ func NewEnforcer(path string) (*Enforcer, error) {
 	}
 
 	e.EnableAutoSave(false)
-
-	e.AddFunction("keyMatch2", keyMatch2Func)
 
 	return &Enforcer{e}, nil
 }
@@ -209,14 +201,6 @@ func (e *Enforcer) GetPermissionsInRepo(user, domain, repo string) []string {
 	}
 
 	return permissions
-}
-
-// keyMatch2Func is a wrapper for keyMatch2 to make it compatible with Casbin
-func keyMatch2Func(args ...interface{}) (interface{}, error) {
-	name1 := args[0].(string)
-	name2 := args[1].(string)
-
-	return keyMatch2(name1, name2), nil
 }
 
 func checkRepoFormat(repo string) error {
