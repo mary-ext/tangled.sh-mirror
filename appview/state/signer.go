@@ -336,7 +336,7 @@ func (us *UnsignedClient) Branch(ownerDid, repoName, branch string) (*http.Respo
 	return us.client.Do(req)
 }
 
-func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*http.Response, error) {
+func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*types.RepoDefaultBranchResponse, error) {
 	const (
 		Method = "GET"
 	)
@@ -348,7 +348,18 @@ func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*http.Respon
 		return nil, err
 	}
 
-	return us.client.Do(req)
+	resp, err := us.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var branchResponse types.RepoDefaultBranchResponse
+	if err := json.NewDecoder(resp.Body).Decode(&branchResponse); err != nil {
+		return nil, err
+	}
+
+	return &branchResponse, nil
 }
 
 func (us *UnsignedClient) Capabilities() (*types.Capabilities, error) {

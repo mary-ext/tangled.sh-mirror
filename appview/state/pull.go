@@ -30,7 +30,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		user := s.auth.GetUser(r)
-		f, err := fullyResolvedRepo(r)
+		f, err := s.fullyResolvedRepo(r)
 		if err != nil {
 			log.Println("failed to get repo and knot", err)
 			return
@@ -74,7 +74,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -262,7 +262,7 @@ func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull) pages.Resubmi
 
 func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -349,7 +349,7 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		state = db.PullMerged
 	}
 
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -402,7 +402,7 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -509,7 +509,7 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -842,7 +842,7 @@ func (s *State) createPullRequest(w http.ResponseWriter, r *http.Request, f *Ful
 
 func (s *State) PatchUploadFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -855,7 +855,7 @@ func (s *State) PatchUploadFragment(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -895,7 +895,7 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 
 func (s *State) CompareForksFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -916,7 +916,7 @@ func (s *State) CompareForksFragment(w http.ResponseWriter, r *http.Request) {
 func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -994,7 +994,7 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 
 func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1193,7 +1193,7 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to resolve repo:", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
@@ -1258,7 +1258,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("malformed middleware")
 		return
@@ -1312,7 +1312,7 @@ func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
 func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to resolve repo", err)
 		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")

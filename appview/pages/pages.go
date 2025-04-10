@@ -231,6 +231,7 @@ type RepoInfo struct {
 	OwnerHandle  string
 	Description  string
 	Knot         string
+	Ref          string
 	RepoAt       syntax.ATURI
 	IsStarred    bool
 	Stats        db.RepoStats
@@ -351,7 +352,12 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
-			htmlString = markup.RenderMarkdown(params.Readme)
+			htmlString = markup.RenderMarkdownExtended(
+				params.Readme,
+				params.RepoInfo.OwnerHandle,
+				params.RepoInfo.Name,
+				params.RepoInfo.Ref,
+			)
 			params.Raw = false
 			params.HTMLReadme = template.HTML(bluemonday.UGCPolicy().Sanitize(htmlString))
 		default:
@@ -466,7 +472,12 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	if params.ShowRendered {
 		switch markup.GetFormat(params.Path) {
 		case markup.FormatMarkdown:
-			params.RenderedContents = template.HTML(markup.RenderMarkdown(params.Contents))
+			params.RenderedContents = template.HTML(markup.RenderMarkdownExtended(
+				params.Contents,
+				params.RepoInfo.OwnerHandle,
+				params.RepoInfo.Name,
+				params.RepoInfo.Ref,
+			))
 		}
 	}
 

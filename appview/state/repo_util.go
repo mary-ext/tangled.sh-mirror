@@ -17,8 +17,10 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
-func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
+func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	repoName := chi.URLParam(r, "repo")
+	ref := chi.URLParam(r, "ref")
+
 	knot, ok := r.Context().Value("knot").(string)
 	if !ok {
 		log.Println("malformed middleware")
@@ -36,10 +38,24 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
+	if ref == "" {
+		us, err := NewUnsignedClient(knot, s.config.Dev)
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup new signed client: %w", err)
+		}
+
+		def, err := us.DefaultBranch(id.DID.String(), repoName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get default branch: %w", err)
+		}
+
+		ref = def.Branch
+	}
+
 	parsedRepoAt, err := syntax.ParseATURI(repoAt)
 	if err != nil {
 		log.Println("malformed repo at-uri")
-		return nil, fmt.Errorf("malformed middleware")
+		return nil, fmt.Errorf("malformed middleware: %w", err)
 	}
 
 	// pass through values from the middleware
@@ -53,6 +69,7 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		RepoAt:      parsedRepoAt,
 		Description: description,
 		AddedAt:     addedAt,
+		Ref:         ref,
 	}, nil
 }
 
