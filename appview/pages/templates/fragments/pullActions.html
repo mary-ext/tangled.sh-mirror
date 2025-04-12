@@ -12,7 +12,6 @@
   {{ $isSameRepoBranch := .Pull.IsSameRepoBranch }}
   {{ $isUpToDate := .ResubmitCheck.No }}
   <div class="relative w-fit">
-    <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
     <div id="actions-{{$roundNumber}}" class="flex flex-wrap gap-2">
         <button 
           hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ $roundNumber }}/comment"

@@ -45,17 +45,14 @@
 
 {{ define "repoAfter" }}
     {{ if gt (len .Comments) 0 }}
-    <section id="comments" class="mt-8 space-y-4 relative">
+    <section id="comments" class="my-4 space-y-2 relative">
         {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
-                class="rounded bg-white px-6 py-4 relative dark:bg-gray-800">
-                {{ if eq $index 0 }}
-                    <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300 dark:bg-gray-700" ></div>
-                {{ else }}
-                    <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300 dark:bg-gray-700" ></div>
+                class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
+                {{ if gt $index 0 }}
+                <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
                 {{ end }}
-
                 {{ template "fragments/issueComment" (dict "RepoInfo" $.RepoInfo "LoggedInUser" $.LoggedInUser "DidHandleMap" $.DidHandleMap "Issue" $.Issue "Comment" .)}}
             </div>
         {{ end }}
@@ -64,51 +61,116 @@
 
     {{ block "newComment" . }} {{ end }}
 
-    {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.OwnerDid) }}
-    {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
-    {{ if or $isIssueAuthor $isRepoCollaborator }}
-        {{ $action := "close" }}
-        {{ $icon := "circle-x" }}
-        {{ $hoverColor := "red" }}
-        {{ if eq .State "closed" }}
-            {{ $action = "reopen" }}
-            {{ $icon = "circle-dot" }}
-            {{ $hoverColor = "green" }}
-        {{ end }}
-        <form
-            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/{{ $action }}"
-            hx-swap="none"
-            class="mt-8"
-        >
-            <button type="submit" class="btn hover:bg-{{ $hoverColor }}-300">
-                {{ i $icon "w-4 h-4 mr-2" }}
-                <span class="text-black dark:text-gray-400">{{ $action }}</span>
-            </button>
-            <div id="issue-action" class="error"></div>
-        </form>
-    {{ end }}
 {{ end }}
 
 {{ define "newComment" }}
   {{ if .LoggedInUser }}
-    <div class="bg-white rounded drop-shadow-sm py-4 px-6 relative w-full flex flex-col gap-2 mt-8 dark:bg-gray-800 dark:text-gray-400">
-      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300 dark:bg-gray-700" ></div>
-      <div class="text-sm text-gray-500 dark:text-gray-400">
+
+  <form 
+      id="comment-form" 
+      hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+      hx-on::after-request="if(event.detail.successful) this.reset()"
+  >
+    <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-full md:w-3/5">
+      <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+      <div class="text-sm pb-2 text-gray-500 dark:text-gray-400">
         {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
       </div>
-      <form hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment">
           <textarea
+              id="comment-textarea"
               name="body"
               class="w-full p-2 rounded border border-gray-200 dark:border-gray-700"
-              placeholder="Add to the discussion..."
+              placeholder="Add to the discussion. Markdown is supported."
+              onkeyup="updateCommentForm()"
           ></textarea>
-          <button type="submit" class="btn mt-2">comment</button>
           <div id="issue-comment"></div>
-      </form>
+          
+      <div id="issue-action" class="error"></div>
     </div>
+    
+    <div class="flex gap-2 mt-2">
+        <button 
+            id="comment-button" 
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment" 
+            type="submit" 
+            hx-disabled-elt="#comment-button"
+            class="btn p-2 flex items-center gap-2 no-underline hover:no-underline" 
+            disabled
+        >
+            {{ i "message-square-plus" "w-4 h-4" }}
+            comment
+        </button>
+        
+        {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.OwnerDid) }}
+        {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
+        {{ if and (or $isIssueAuthor $isRepoCollaborator) (eq .State "open") }}
+        <button 
+            id="close-button"
+            type="button" 
+            class="btn flex items-center gap-2"
+            hx-trigger="click"
+        >
+            {{ i "ban" "w-4 h-4" }}
+            close
+        </button>
+        <div 
+            id="close-with-comment" 
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment" 
+            hx-trigger="click from:#close-button" 
+            hx-disabled-elt="#close-with-comment"
+            hx-target="#issue-comment"
+            hx-vals="js:{body: document.getElementById('comment-textarea').value.trim() !== '' ? document.getElementById('comment-textarea').value : null}">
+        </div>
+        <div 
+            id="close-issue" 
+            hx-disabled-elt="#close-issue"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/close" 
+            hx-trigger="click from:#close-button, revealed from:#close-with-comment" 
+            hx-target="#issue-action"
+            hx-swap="none">
+        </div>
+        {{ else if and (or $isIssueAuthor $isRepoCollaborator) (eq .State "closed") }}
+        <button 
+            type="button" 
+            class="btn flex items-center gap-2"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/reopen"
+            hx-swap="none"
+        >
+            {{ i "circle-dot" "w-4 h-4" }}
+            reopen
+        </button>
+        {{ end }}
+        
+        <script>
+        function updateCommentForm() {
+            const textarea = document.getElementById('comment-textarea');
+            const commentButton = document.getElementById('comment-button');
+            const closeButton = document.getElementById('close-button');
+            
+            if (textarea.value.trim() !== '') {
+                commentButton.removeAttribute('disabled');
+            } else {
+                commentButton.setAttribute('disabled', '');
+            }
+            
+            if (closeButton) {
+                if (textarea.value.trim() !== '') {
+                    closeButton.innerHTML = '{{ i "ban" "w-4 h-4" }} close with comment';
+                } else {
+                    closeButton.innerHTML = '{{ i "ban" "w-4 h-4" }} close';
+                }
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCommentForm();
+        });
+        </script>
+    </div>
+  </form> 
   {{ else }}
     <div class="bg-white dark:bg-gray-800 dark:text-gray-400 rounded drop-shadow-sm px-6 py-4 mt-8">
-      <div class="absolute left-8 -top-8 w-px h-8 bg-gray-300 dark:bg-gray-700" ></div>
+      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
       <a href="/login" class="underline">login</a> to join the discussion
     </div>
   {{ end }}
