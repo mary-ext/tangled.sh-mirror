@@ -4,8 +4,6 @@
 
 {{ $repo := .RepoInfo.FullName }}
 {{ $commit := .Diff.Commit }}
-{{ $stat := .Diff.Stat }}
-{{ $diff := .Diff.Diff }}
 
 <section class="commit dark:text-white">
   <div id="commit-message">
@@ -13,7 +11,7 @@
     <div>
       <p class="pb-2">{{ index $messageParts 0 }}</p>
       {{ if gt (len $messageParts) 1 }}
-      <p class="mt-1 cursor-text pb-2 text-sm">{{ nl2br (unwrapText (index $messageParts 1)) }}</p>
+      <p class="mt-1 cursor-text pb-2 text-sm">{{ nl2br (index $messageParts 1) }}</p>
       {{ end }}
     </div>
   </div>
@@ -30,8 +28,6 @@
           <span class="px-1 select-none before:content-['\00B7']"></span>
           {{ timeFmt $commit.Author.When }}
           <span class="px-1 select-none before:content-['\00B7']"></span>
-          <span>{{ $stat.FilesChanged }}</span> files <span class="font-mono">(+{{ $stat.Insertions }}, -{{ $stat.Deletions }})</span>
-          <span class="px-1 select-none before:content-['\00B7']"></span>
       </p>
 
       <p class="flex items-center text-sm text-gray-500 dark:text-gray-300">
@@ -43,21 +39,6 @@
       </p>
   </div>
 
-  <div class="diff-stat">
-    <br>
-    <strong class="text-sm uppercase mb-4 dark:text-gray-200">Changed files</strong>
-    <div class="overflow-x-auto">
-      {{ range $diff }}
-      <ul class="dark:text-gray-200">
-        {{ if .IsDelete }}
-        <li><a href="#file-{{ .Name.Old }}" class="dark:hover:text-gray-300">{{ .Name.Old }}</a></li>
-        {{ else }}
-        <li><a href="#file-{{ .Name.New }}" class="dark:hover:text-gray-300">{{ .Name.New }}</a></li>
-        {{ end }}
-      </ul>
-      {{ end }}
-    </div>
-  </div>
 </section>
 
 {{end}}

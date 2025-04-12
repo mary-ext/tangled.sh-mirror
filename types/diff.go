@@ -23,6 +23,20 @@ type Diff struct {
 	IsRename      bool                   `json:"is_rename"`
 }
 
+type DiffStat struct {
+	Insertions int64
+	Deletions  int64
+}
+
+func (d *Diff) Stats() DiffStat {
+	var stats DiffStat
+	for _, f := range d.TextFragments {
+		stats.Insertions += f.LinesAdded
+		stats.Deletions += f.LinesDeleted
+	}
+	return stats
+}
+
 // A nicer git diff representation.
 type NiceDiff struct {
 	Commit struct {

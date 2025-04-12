@@ -28,18 +28,19 @@
           {{ $stats := .TreeStats }}
 
           <span>at <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}">{{ $.Ref }}</a></span>
-          <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
           {{ if eq $stats.NumFolders 1 }}
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
             <span>{{ $stats.NumFolders }} folder</span>
-            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
           {{ else if gt $stats.NumFolders 1 }}
-            <span>{{ $stats.NumFolders }} folders</span>
             <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+            <span>{{ $stats.NumFolders }} folders</span>
           {{ end }}
 
           {{ if eq $stats.NumFiles 1 }}
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
             <span>{{ $stats.NumFiles }} file</span>
           {{ else if gt $stats.NumFiles 1 }}
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
             <span>{{ $stats.NumFiles }} files</span>
           {{ end }}
 
