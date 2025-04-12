@@ -9,7 +9,7 @@
   {{ $isConflicted := and .MergeCheck (or .MergeCheck.Error .MergeCheck.IsConflicted) }}
   {{ $isPullAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
   {{ $isLastRound := eq $roundNumber $lastIdx }}
-  {{ $isSameRepoBranch := .Pull.IsSameRepoBranch }}
+  {{ $isSameRepoBranch := .Pull.IsBranchBased }}
   {{ $isUpToDate := .ResubmitCheck.No }}
   <div class="relative w-fit">
     <div id="actions-{{$roundNumber}}" class="flex flex-wrap gap-2">
@@ -42,7 +42,7 @@
             {{ $disabled = "disabled" }}
           {{ end }}
           <button id="resubmitBtn"
-              {{ if not .Pull.IsPatch }}
+              {{ if not .Pull.IsPatchBased }}
                 hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
               {{ else }}
                 hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"

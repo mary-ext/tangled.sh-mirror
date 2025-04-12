@@ -78,9 +78,9 @@
                           {{ .TargetBranch }}
                         </span>
                     </span>
-                    {{ if not .IsPatch }}
+                    {{ if not .IsPatchBased }}
                     <span>from
-                      {{ if not .IsSameRepoBranch }}
+                      {{ if not .IsBranchBased }}
                         <a href="/{{ $owner }}/{{ .PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSource.Repo.Name }}</a>
                       {{ end }}
 

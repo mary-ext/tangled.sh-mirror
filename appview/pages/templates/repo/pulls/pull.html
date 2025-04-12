@@ -45,14 +45,14 @@
                     <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Pull.TargetBranch }}" class="no-underline hover:underline">{{ .Pull.TargetBranch }}</a>
                   </span>
                 </span>
-                {{ if not .Pull.IsPatch }}
+                {{ if not .Pull.IsPatchBased }}
                 <span>from
-                  {{ if not .Pull.IsSameRepoBranch }}
+                  {{ if not .Pull.IsBranchBased }}
                     <a href="/{{ $owner }}/{{ .PullSourceRepo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSourceRepo.Name }}</a>
                   {{ end }}
 
                   {{ $fullRepo := .RepoInfo.FullName }}
-                  {{ if not .Pull.IsSameRepoBranch }}
+                  {{ if not .Pull.IsBranchBased }}
                     {{ $fullRepo = printf "%s/%s" $owner .PullSourceRepo.Name }}
                   {{ end }}
                   <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">

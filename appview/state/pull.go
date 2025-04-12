@@ -1015,181 +1015,429 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	case http.MethodPost:
-		patch := r.FormValue("patch")
-		var sourceRev string
-		var recordPullSource *tangled.RepoPull_Source
-
-		var ownerDid, repoName, knotName string
-		var isSameRepo bool = pull.IsSameRepoBranch()
-		sourceBranch := pull.PullSource.Branch
-		targetBranch := pull.TargetBranch
-		recordPullSource = &tangled.RepoPull_Source{
-			Branch: sourceBranch,
-		}
-
-		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
-		if isSameRepo && isPushAllowed {
-			ownerDid = f.OwnerDid()
-			repoName = f.RepoName
-			knotName = f.Knot
-		} else if !isSameRepo {
-			sourceRepo, err := db.GetRepoByAtUri(s.db, pull.PullSource.RepoAt.String())
-			if err != nil {
-				log.Println("failed to get source repo", err)
-				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-				return
-			}
-			ownerDid = sourceRepo.Did
-			repoName = sourceRepo.Name
-			knotName = sourceRepo.Knot
-		}
-
-		if sourceBranch != "" && knotName != "" {
-			// extract patch by performing compare
-			ksClient, err := NewUnsignedClient(knotName, s.config.Dev)
-			if err != nil {
-				log.Printf("failed to create client for %s: %s", knotName, err)
-				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-				return
-			}
-
-			if !isSameRepo {
-				secret, err := db.GetRegistrationKey(s.db, knotName)
-				if err != nil {
-					log.Printf("failed to get registration key for %s: %s", knotName, err)
-					s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-					return
-				}
-				// update the hidden tracking branch to latest
-				signedClient, err := NewSignedClient(knotName, secret, s.config.Dev)
-				if err != nil {
-					log.Printf("failed to create signed client for %s: %s", knotName, err)
-					s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-					return
-				}
-				resp, err := signedClient.NewHiddenRef(ownerDid, repoName, sourceBranch, targetBranch)
-				if err != nil || resp.StatusCode != http.StatusNoContent {
-					log.Printf("failed to update tracking branch: %s", err)
-					s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-					return
-				}
-			}
-
-			var compareResp *http.Response
-			if !isSameRepo {
-				hiddenRef := url.QueryEscape(fmt.Sprintf("hidden/%s/%s", sourceBranch, targetBranch))
-				compareResp, err = ksClient.Compare(ownerDid, repoName, hiddenRef, sourceBranch)
-			} else {
-				compareResp, err = ksClient.Compare(ownerDid, repoName, targetBranch, sourceBranch)
-			}
-			if err != nil {
-				log.Printf("failed to compare branches: %s", err)
-				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-				return
-			}
-			defer compareResp.Body.Close()
-
-			switch compareResp.StatusCode {
-			case 404:
-			case 400:
-				s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
-				return
-			}
-
-			respBody, err := io.ReadAll(compareResp.Body)
-			if err != nil {
-				log.Println("failed to compare across branches")
-				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-				return
-			}
-			defer compareResp.Body.Close()
-
-			var diffTreeResponse types.RepoDiffTreeResponse
-			err = json.Unmarshal(respBody, &diffTreeResponse)
-			if err != nil {
-				log.Println("failed to unmarshal diff tree response", err)
-				s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-				return
-			}
-
-			sourceRev = diffTreeResponse.DiffTree.Rev2
-			patch = diffTreeResponse.DiffTree.Patch
-		}
-
-		if patch == "" {
-			s.pages.Notice(w, "resubmit-error", "Patch is empty.")
+		if pull.IsPatchBased() {
+			s.resubmitPatch(w, r)
+			return
+		} else if pull.IsBranchBased() {
+			s.resubmitBranch(w, r)
+			return
+		} else if pull.IsForkBased() {
+			s.resubmitFork(w, r)
 			return
 		}
+	}
+}
 
-		if patch == pull.LatestPatch() {
-			s.pages.Notice(w, "resubmit-error", "Patch is identical to previous submission.")
-			return
-		}
+func (s *State) resubmitPatch(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
 
-		if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
-			s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
-			return
-		}
-
-		if !isPatchValid(patch) {
-			s.pages.Notice(w, "resubmit-error", "Invalid patch format. Please provide a valid diff.")
-			return
-		}
-
-		tx, err := s.db.BeginTx(r.Context(), nil)
-		if err != nil {
-			log.Println("failed to start tx")
-			s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-			return
-		}
-		defer tx.Rollback()
-
-		err = db.ResubmitPull(tx, pull, patch, sourceRev)
-		if err != nil {
-			log.Println("failed to create pull request", err)
-			s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-			return
-		}
-		client, _ := s.auth.AuthorizedClient(r)
-
-		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoPullNSID, user.Did, pull.Rkey)
-		if err != nil {
-			// failed to get record
-			s.pages.Notice(w, "resubmit-error", "Failed to update pull, no record found on PDS.")
-			return
-		}
-
-		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
-			Collection: tangled.RepoPullNSID,
-			Repo:       user.Did,
-			Rkey:       pull.Rkey,
-			SwapRecord: ex.Cid,
-			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.RepoPull{
-					Title:        pull.Title,
-					PullId:       int64(pull.PullId),
-					TargetRepo:   string(f.RepoAt),
-					TargetBranch: pull.TargetBranch,
-					Patch:        patch, // new patch
-					Source:       recordPullSource,
-				},
-			},
-		})
-		if err != nil {
-			log.Println("failed to update record", err)
-			s.pages.Notice(w, "resubmit-error", "Failed to update pull request on the PDS. Try again later.")
-			return
-		}
-
-		if err = tx.Commit(); err != nil {
-			log.Println("failed to commit transaction", err)
-			s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull.")
-			return
-		}
-
-		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
 		return
 	}
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	if user.Did != pull.OwnerDid {
+		log.Println("unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	patch := r.FormValue("patch")
+
+	if patch == "" {
+		s.pages.Notice(w, "resubmit-error", "Patch is empty.")
+		return
+	}
+
+	if patch == pull.LatestPatch() {
+		s.pages.Notice(w, "resubmit-error", "Patch is identical to previous submission.")
+		return
+	}
+
+	if !isPatchValid(patch) {
+		s.pages.Notice(w, "resubmit-error", "Invalid patch format. Please provide a valid diff.")
+		return
+	}
+
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx")
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	err = db.ResubmitPull(tx, pull, patch, "")
+	if err != nil {
+		log.Println("failed to resubmit pull request", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull request. Try again later.")
+		return
+	}
+	client, _ := s.auth.AuthorizedClient(r)
+
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoPullNSID, user.Did, pull.Rkey)
+	if err != nil {
+		// failed to get record
+		s.pages.Notice(w, "resubmit-error", "Failed to update pull, no record found on PDS.")
+		return
+	}
+
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoPullNSID,
+		Repo:       user.Did,
+		Rkey:       pull.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.RepoPull{
+				Title:        pull.Title,
+				PullId:       int64(pull.PullId),
+				TargetRepo:   string(f.RepoAt),
+				TargetBranch: pull.TargetBranch,
+				Patch:        patch, // new patch
+			},
+		},
+	})
+	if err != nil {
+		log.Println("failed to update record", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to update pull request on the PDS. Try again later.")
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Println("failed to commit transaction", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	return
+}
+
+func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	if user.Did != pull.OwnerDid {
+		log.Println("unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if !f.RepoInfo(s, user).Roles.IsPushAllowed() {
+		log.Println("unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	ksClient, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create client for %s: %s", f.Knot, err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	compareResp, err := ksClient.Compare(f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.PullSource.Branch)
+	if err != nil {
+		log.Printf("failed to compare branches: %s", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer compareResp.Body.Close()
+
+	switch compareResp.StatusCode {
+	case 404:
+	case 400:
+		s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
+		return
+	}
+
+	respBody, err := io.ReadAll(compareResp.Body)
+	if err != nil {
+		log.Println("failed to compare across branches")
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer compareResp.Body.Close()
+
+	var diffTreeResponse types.RepoDiffTreeResponse
+	err = json.Unmarshal(respBody, &diffTreeResponse)
+	if err != nil {
+		log.Println("failed to unmarshal diff tree response", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	sourceRev := diffTreeResponse.DiffTree.Rev2
+	patch := diffTreeResponse.DiffTree.Patch
+
+	if patch == "" {
+		s.pages.Notice(w, "resubmit-error", "Patch is empty.")
+		return
+	}
+
+	if patch == pull.LatestPatch() {
+		s.pages.Notice(w, "resubmit-error", "Patch is identical to previous submission.")
+		return
+	}
+
+	if !isPatchValid(patch) {
+		s.pages.Notice(w, "resubmit-error", "Invalid patch format. Please provide a valid diff.")
+		return
+	}
+
+	if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
+		s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
+		return
+	}
+
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx")
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	err = db.ResubmitPull(tx, pull, patch, sourceRev)
+	if err != nil {
+		log.Println("failed to create pull request", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+	client, _ := s.auth.AuthorizedClient(r)
+
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoPullNSID, user.Did, pull.Rkey)
+	if err != nil {
+		// failed to get record
+		s.pages.Notice(w, "resubmit-error", "Failed to update pull, no record found on PDS.")
+		return
+	}
+
+	recordPullSource := &tangled.RepoPull_Source{
+		Branch: pull.PullSource.Branch,
+	}
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoPullNSID,
+		Repo:       user.Did,
+		Rkey:       pull.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.RepoPull{
+				Title:        pull.Title,
+				PullId:       int64(pull.PullId),
+				TargetRepo:   string(f.RepoAt),
+				TargetBranch: pull.TargetBranch,
+				Patch:        patch, // new patch
+				Source:       recordPullSource,
+			},
+		},
+	})
+	if err != nil {
+		log.Println("failed to update record", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to update pull request on the PDS. Try again later.")
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Println("failed to commit transaction", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	return
+}
+
+func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		return
+	}
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	if user.Did != pull.OwnerDid {
+		log.Println("unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	forkRepo, err := db.GetRepoByAtUri(s.db, pull.PullSource.RepoAt.String())
+	if err != nil {
+		log.Println("failed to get source repo", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	// extract patch by performing compare
+	ksClient, err := NewUnsignedClient(forkRepo.Knot, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create client for %s: %s", forkRepo.Knot, err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	secret, err := db.GetRegistrationKey(s.db, forkRepo.Knot)
+	if err != nil {
+		log.Printf("failed to get registration key for %s: %s", forkRepo.Knot, err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	// update the hidden tracking branch to latest
+	signedClient, err := NewSignedClient(forkRepo.Knot, secret, s.config.Dev)
+	if err != nil {
+		log.Printf("failed to create signed client for %s: %s", forkRepo.Knot, err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	resp, err := signedClient.NewHiddenRef(forkRepo.Did, forkRepo.Name, pull.PullSource.Branch, pull.TargetBranch)
+	if err != nil || resp.StatusCode != http.StatusNoContent {
+		log.Printf("failed to update tracking branch: %s", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	hiddenRef := url.QueryEscape(fmt.Sprintf("hidden/%s/%s", pull.PullSource.Branch, pull.TargetBranch))
+	compareResp, err := ksClient.Compare(forkRepo.Did, forkRepo.Name, hiddenRef, pull.PullSource.Branch)
+	if err != nil {
+		log.Printf("failed to compare branches: %s", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer compareResp.Body.Close()
+
+	switch compareResp.StatusCode {
+	case 404:
+	case 400:
+		s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
+		return
+	}
+
+	respBody, err := io.ReadAll(compareResp.Body)
+	if err != nil {
+		log.Println("failed to compare across branches")
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer compareResp.Body.Close()
+
+	var diffTreeResponse types.RepoDiffTreeResponse
+	err = json.Unmarshal(respBody, &diffTreeResponse)
+	if err != nil {
+		log.Println("failed to unmarshal diff tree response", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	sourceRev := diffTreeResponse.DiffTree.Rev2
+	patch := diffTreeResponse.DiffTree.Patch
+
+	if patch == "" {
+		s.pages.Notice(w, "resubmit-error", "Patch is empty.")
+		return
+	}
+
+	if patch == pull.LatestPatch() {
+		s.pages.Notice(w, "resubmit-error", "Patch is identical to previous submission.")
+		return
+	}
+
+	if !isPatchValid(patch) {
+		s.pages.Notice(w, "resubmit-error", "Invalid patch format. Please provide a valid diff.")
+		return
+	}
+
+	if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
+		s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
+		return
+	}
+
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx")
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	err = db.ResubmitPull(tx, pull, patch, sourceRev)
+	if err != nil {
+		log.Println("failed to create pull request", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+	client, _ := s.auth.AuthorizedClient(r)
+
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoPullNSID, user.Did, pull.Rkey)
+	if err != nil {
+		// failed to get record
+		s.pages.Notice(w, "resubmit-error", "Failed to update pull, no record found on PDS.")
+		return
+	}
+
+	repoAt := pull.PullSource.RepoAt.String()
+	recordPullSource := &tangled.RepoPull_Source{
+		Branch: pull.PullSource.Branch,
+		Repo:   &repoAt,
+	}
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoPullNSID,
+		Repo:       user.Did,
+		Rkey:       pull.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.RepoPull{
+				Title:        pull.Title,
+				PullId:       int64(pull.PullId),
+				TargetRepo:   string(f.RepoAt),
+				TargetBranch: pull.TargetBranch,
+				Patch:        patch, // new patch
+				Source:       recordPullSource,
+			},
+		},
+	})
+	if err != nil {
+		log.Println("failed to update record", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to update pull request on the PDS. Try again later.")
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Println("failed to commit transaction", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	return
 }
 
 func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {

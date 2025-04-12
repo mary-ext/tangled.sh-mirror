@@ -420,7 +420,7 @@
             g = config.services.tangled-knotserver.gitUser;
           in [
             "d /var/lib/knotserver 0770 ${u} ${g} - -" # Create the directory first
-            "f+ /var/lib/knotserver/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=6995e040e80e2d593b5e5e9ca611a70140b9ef8044add0a28b48b1ee34aa3e85"
+            "f+ /var/lib/knotserver/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=5b42390da4c6659f34c9a545adebd8af82c4a19960d735f651e3d582623ba9f2"
           ];
           services.tangled-knotserver = {
             enable = true;
