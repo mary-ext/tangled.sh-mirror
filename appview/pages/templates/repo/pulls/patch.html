@@ -69,19 +69,6 @@
           {{ end }}
       </section>
 
-      <div id="diff-stat">
-        <br>
-        <strong class="text-sm uppercase mb-4">Changed files</strong>
-        {{ range .Diff.Diff }}
-        <ul>
-          {{ if .IsDelete }}
-          <li><a href="#file-{{ .Name.Old }}">{{ .Name.Old }}</a></li>
-          {{ else }}
-          <li><a href="#file-{{ .Name.New }}">{{ .Name.New }}</a></li>
-          {{ end }}
-        </ul>
-        {{ end }}
-      </div>
   </div>
 
   <section>

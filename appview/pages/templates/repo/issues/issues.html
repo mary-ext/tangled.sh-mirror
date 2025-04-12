@@ -4,7 +4,7 @@
     <div class="flex justify-between items-center">
         <p>
         filtering
-        <select class="border px-1 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
+        <select class="border p-1 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
           <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>open ({{ .RepoInfo.Stats.IssueCount.Open }})</option>
           <option value="closed" {{ if not .FilteringByOpen }}selected{{ end }}>closed ({{ .RepoInfo.Stats.IssueCount.Closed }})</option>
         </select>
