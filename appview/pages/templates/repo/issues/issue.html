@@ -44,8 +44,7 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-    {{ if gt (len .Comments) 0 }}
-    <section id="comments" class="my-4 space-y-2 relative">
+    <section id="comments" class="my-2 mt-2 space-y-2 relative">
         {{ range $index, $comment := .Comments }}
             <div
                 id="comment-{{ .CommentId }}"
@@ -57,22 +56,22 @@
             </div>
         {{ end }}
     </section>
-    {{ end }}
 
     {{ block "newComment" . }} {{ end }}
 
 {{ end }}
 
 {{ define "newComment" }}
+{{ if gt (len .Comments) 0 }}
+  <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+{{ end }}
   {{ if .LoggedInUser }}
-
   <form 
       id="comment-form" 
       hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
       hx-on::after-request="if(event.detail.successful) this.reset()"
   >
     <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-full md:w-3/5">
-      <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
       <div class="text-sm pb-2 text-gray-500 dark:text-gray-400">
         {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
       </div>
@@ -84,7 +83,6 @@
               onkeyup="updateCommentForm()"
           ></textarea>
           <div id="issue-comment"></div>
-          
       <div id="issue-action" class="error"></div>
     </div>
     
@@ -100,7 +98,7 @@
             {{ i "message-square-plus" "w-4 h-4" }}
             comment
         </button>
-        
+
         {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.OwnerDid) }}
         {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
         {{ if and (or $isIssueAuthor $isRepoCollaborator) (eq .State "open") }}
@@ -119,16 +117,30 @@
             hx-trigger="click from:#close-button" 
             hx-disabled-elt="#close-with-comment"
             hx-target="#issue-comment"
-            hx-vals="js:{body: document.getElementById('comment-textarea').value.trim() !== '' ? document.getElementById('comment-textarea').value : null}">
+            hx-vals="js:{body: document.getElementById('comment-textarea').value.trim() !== '' ? document.getElementById('comment-textarea').value : ''}"
+            hx-swap="none"
+        >
         </div>
         <div 
             id="close-issue" 
             hx-disabled-elt="#close-issue"
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/close" 
-            hx-trigger="click from:#close-button, revealed from:#close-with-comment" 
+            hx-trigger="click from:#close-button" 
             hx-target="#issue-action"
-            hx-swap="none">
+            hx-swap="none"
+        >
         </div>
+        <script>
+            document.addEventListener('htmx:configRequest', function(evt) {
+                if (evt.target.id === 'close-with-comment') {
+                    const commentText = document.getElementById('comment-textarea').value.trim();
+                    if (commentText === '') {
+                        evt.detail.parameters = {};
+                        evt.preventDefault();
+                    }
+                }
+            });
+        </script>
         {{ else if and (or $isIssueAuthor $isRepoCollaborator) (eq .State "closed") }}
         <button 
             type="button" 
@@ -136,23 +148,23 @@
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/reopen"
             hx-swap="none"
         >
-            {{ i "circle-dot" "w-4 h-4" }}
+            {{ i "refresh-ccw-dot" "w-4 h-4" }}
             reopen
         </button>
         {{ end }}
-        
+
         <script>
         function updateCommentForm() {
             const textarea = document.getElementById('comment-textarea');
             const commentButton = document.getElementById('comment-button');
             const closeButton = document.getElementById('close-button');
-            
+
             if (textarea.value.trim() !== '') {
                 commentButton.removeAttribute('disabled');
             } else {
                 commentButton.setAttribute('disabled', '');
             }
-            
+
             if (closeButton) {
                 if (textarea.value.trim() !== '') {
                     closeButton.innerHTML = '{{ i "ban" "w-4 h-4" }} close with comment';
@@ -161,7 +173,7 @@
                 }
             }
         }
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             updateCommentForm();
         });
@@ -169,8 +181,7 @@
     </div>
   </form> 
   {{ else }}
-    <div class="bg-white dark:bg-gray-800 dark:text-gray-400 rounded drop-shadow-sm px-6 py-4 mt-8">
-      <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+    <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-fit">
       <a href="/login" class="underline">login</a> to join the discussion
     </div>
   {{ end }}
