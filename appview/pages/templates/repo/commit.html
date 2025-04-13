@@ -44,5 +44,5 @@
 {{end}}
 
 {{ define "repoAfter" }}
-{{ template "fragments/diff" (list .RepoInfo.FullName .Diff) }}
+{{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
 {{end}}

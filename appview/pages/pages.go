@@ -36,11 +36,45 @@ type Pages struct {
 	t map[string]*template.Template
 }
 
+
+
 func NewPages() *Pages {
 	templates := make(map[string]*template.Template)
+	fragmentPaths := []string{}
 
-	// Walk through embedded templates directory and parse all .html files
+	// First, collect all fragment paths
 	err := fs.WalkDir(Files, "templates", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() && strings.HasSuffix(path, ".html") && strings.Contains(path, "fragments/") {
+			fragmentPaths = append(fragmentPaths, path)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("walking template dir for fragments: %v", err)
+	}
+
+	// Load all fragments first
+	for _, path := range fragmentPaths {
+		name := strings.TrimPrefix(path, "templates/")
+		name = strings.TrimSuffix(name, ".html")
+
+		tmpl, err := template.New(name).
+			Funcs(funcMap()).
+			ParseFS(Files, path)
+		if err != nil {
+			log.Fatalf("setting up fragment: %v", err)
+		}
+
+		templates[name] = tmpl
+		log.Printf("loaded fragment: %s", name)
+	}
+
+	// Then walk through and setup the rest of the templates
+	err = fs.WalkDir(Files, "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -49,26 +83,17 @@ func NewPages() *Pages {
 			name := strings.TrimPrefix(path, "templates/")
 			name = strings.TrimSuffix(name, ".html")
 
-			// add fragments as templates
-			if strings.HasPrefix(path, "templates/fragments/") {
-				tmpl, err := template.New(name).
-					Funcs(funcMap()).
-					ParseFS(Files, path)
-				if err != nil {
-					return fmt.Errorf("setting up fragment: %w", err)
-				}
-
-				templates[name] = tmpl
-				log.Printf("loaded fragment: %s", name)
+			// Skip fragments as they've already been loaded
+			if strings.Contains(path, "fragments/") {
+				return nil
 			}
 
-			// layouts and fragments are applied first
-			if !strings.HasPrefix(path, "templates/layouts/") &&
-				!strings.HasPrefix(path, "templates/fragments/") {
+			// Load layouts and main templates
+			if !strings.HasPrefix(path, "templates/layouts/") {
 				// Add the page template on top of the base
 				tmpl, err := template.New(name).
 					Funcs(funcMap()).
-					ParseFS(Files, "templates/layouts/*.html", "templates/fragments/*.html", path)
+					ParseFS(Files, "templates/layouts/*.html", "templates/**/fragments/*.html", path)
 				if err != nil {
 					return fmt.Errorf("setting up template: %w", err)
 				}
@@ -76,8 +101,6 @@ func NewPages() *Pages {
 				templates[name] = tmpl
 				log.Printf("loaded template: %s", name)
 			}
-
-			return nil
 		}
 		return nil
 	})
@@ -200,7 +223,7 @@ type FollowFragmentParams struct {
 }
 
 func (p *Pages) FollowFragment(w io.Writer, params FollowFragmentParams) error {
-	return p.executePlain("fragments/follow", w, params)
+	return p.executePlain("user/fragments/follow", w, params)
 }
 
 type RepoActionsFragmentParams struct {
@@ -210,7 +233,7 @@ type RepoActionsFragmentParams struct {
 }
 
 func (p *Pages) RepoActionsFragment(w io.Writer, params RepoActionsFragmentParams) error {
-	return p.executePlain("fragments/repoActions", w, params)
+	return p.executePlain("repo/fragments/repoActions", w, params)
 }
 
 type RepoDescriptionParams struct {
@@ -218,11 +241,11 @@ type RepoDescriptionParams struct {
 }
 
 func (p *Pages) EditRepoDescriptionFragment(w io.Writer, params RepoDescriptionParams) error {
-	return p.executePlain("fragments/editRepoDescription", w, params)
+	return p.executePlain("repo/fragments/editRepoDescription", w, params)
 }
 
 func (p *Pages) RepoDescriptionFragment(w io.Writer, params RepoDescriptionParams) error {
-	return p.executePlain("fragments/repoDescription", w, params)
+	return p.executePlain("repo/fragments/repoDescription", w, params)
 }
 
 type RepoInfo struct {
@@ -580,7 +603,7 @@ type EditIssueCommentParams struct {
 }
 
 func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentParams) error {
-	return p.executePlain("fragments/editIssueComment", w, params)
+	return p.executePlain("repo/issues/fragments/editIssueComment", w, params)
 }
 
 type SingleIssueCommentParams struct {
@@ -592,7 +615,7 @@ type SingleIssueCommentParams struct {
 }
 
 func (p *Pages) SingleIssueCommentFragment(w io.Writer, params SingleIssueCommentParams) error {
-	return p.executePlain("fragments/issueComment", w, params)
+	return p.executePlain("repo/issues/fragments/issueComment", w, params)
 }
 
 type RepoNewPullParams struct {
@@ -675,7 +698,7 @@ type PullPatchUploadParams struct {
 }
 
 func (p *Pages) PullPatchUploadFragment(w io.Writer, params PullPatchUploadParams) error {
-	return p.executePlain("fragments/pullPatchUpload", w, params)
+	return p.executePlain("repo/pulls/fragments/pullPatchUpload", w, params)
 }
 
 type PullCompareBranchesParams struct {
@@ -684,7 +707,7 @@ type PullCompareBranchesParams struct {
 }
 
 func (p *Pages) PullCompareBranchesFragment(w io.Writer, params PullCompareBranchesParams) error {
-	return p.executePlain("fragments/pullCompareBranches", w, params)
+	return p.executePlain("repo/pulls/fragments/pullCompareBranches", w, params)
 }
 
 type PullCompareForkParams struct {
@@ -693,7 +716,7 @@ type PullCompareForkParams struct {
 }
 
 func (p *Pages) PullCompareForkFragment(w io.Writer, params PullCompareForkParams) error {
-	return p.executePlain("fragments/pullCompareForks", w, params)
+	return p.executePlain("repo/pulls/fragments/pullCompareForks", w, params)
 }
 
 type PullCompareForkBranchesParams struct {
@@ -703,7 +726,7 @@ type PullCompareForkBranchesParams struct {
 }
 
 func (p *Pages) PullCompareForkBranchesFragment(w io.Writer, params PullCompareForkBranchesParams) error {
-	return p.executePlain("fragments/pullCompareForksBranches", w, params)
+	return p.executePlain("repo/pulls/fragments/pullCompareForksBranches", w, params)
 }
 
 type PullResubmitParams struct {
@@ -714,7 +737,7 @@ type PullResubmitParams struct {
 }
 
 func (p *Pages) PullResubmitFragment(w io.Writer, params PullResubmitParams) error {
-	return p.executePlain("fragments/pullResubmit", w, params)
+	return p.executePlain("repo/pulls/fragments/pullResubmit", w, params)
 }
 
 type PullActionsParams struct {
@@ -727,7 +750,7 @@ type PullActionsParams struct {
 }
 
 func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error {
-	return p.executePlain("fragments/pullActions", w, params)
+	return p.executePlain("repo/pulls/fragments/pullActions", w, params)
 }
 
 type PullNewCommentParams struct {
@@ -738,7 +761,7 @@ type PullNewCommentParams struct {
 }
 
 func (p *Pages) PullNewCommentFragment(w io.Writer, params PullNewCommentParams) error {
-	return p.executePlain("fragments/pullNewComment", w, params)
+	return p.executePlain("repo/pulls/fragments/pullNewComment", w, params)
 }
 
 func (p *Pages) Static() http.Handler {

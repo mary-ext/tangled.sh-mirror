@@ -147,7 +147,7 @@
           {{ end }}
 
           {{ if $.LoggedInUser }}
-            {{ template "fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck) }}
+            {{ template "repo/pulls/fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck) }}
           {{ else }}
             <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm px-6 py-4 w-fit dark:text-white">
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>

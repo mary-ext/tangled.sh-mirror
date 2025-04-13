@@ -247,7 +247,7 @@
         </div>
 
         {{ if ne .FollowStatus.String "IsSelf" }}
-            {{ template "fragments/follow" . }}
+            {{ template "user/fragments/follow" . }}
         {{ end }}
     </div>
 {{ end }}

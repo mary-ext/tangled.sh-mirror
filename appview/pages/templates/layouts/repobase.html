@@ -19,9 +19,9 @@
       <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
     </div>
 
-    {{ template "fragments/repoActions" .RepoInfo }}
+    {{ template "repo/fragments/repoActions" .RepoInfo }}
   </div>
-  {{ template "fragments/repoDescription" . }}
+  {{ template "repo/fragments/repoDescription" . }}
 </section>
     <section class="min-h-screen flex flex-col drop-shadow-sm">
         <nav class="w-full pl-4 overflow-auto">
