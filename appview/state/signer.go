@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -376,7 +378,7 @@ func (us *UnsignedClient) Capabilities() (*types.Capabilities, error) {
 	return &capabilities, nil
 }
 
-func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*http.Response, error) {
+func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*types.RepoDiffTreeResponse, error) {
 	const (
 		Method = "GET"
 	)
@@ -385,8 +387,34 @@ func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*http.
 
 	req, err := us.newRequest(Method, endpoint, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to create request.")
 	}
 
-	return us.client.Do(req)
+	compareResp, err := us.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create request.")
+	}
+	defer compareResp.Body.Close()
+
+	switch compareResp.StatusCode {
+	case 404:
+	case 400:
+		return nil, fmt.Errorf("Branch comparisons not supported on this knot.")
+	}
+
+	respBody, err := io.ReadAll(compareResp.Body)
+	if err != nil {
+		log.Println("failed to compare across branches")
+		return nil, fmt.Errorf("Failed to compare branches.")
+	}
+	defer compareResp.Body.Close()
+
+	var diffTreeResponse types.RepoDiffTreeResponse
+	err = json.Unmarshal(respBody, &diffTreeResponse)
+	if err != nil {
+		log.Println("failed to unmarshal diff tree response", err)
+		return nil, fmt.Errorf("Failed to compare branches.")
+	}
+
+	return &diffTreeResponse, nil
 }
