@@ -122,7 +122,11 @@ func (p *Pull) LastRoundNumber() int {
 	return len(p.Submissions) - 1
 }
 
-func (p *Pull) IsSameRepoBranch() bool {
+func (p *Pull) IsPatchBased() bool {
+	return p.PullSource == nil
+}
+
+func (p *Pull) IsBranchBased() bool {
 	if p.PullSource != nil {
 		if p.PullSource.RepoAt != nil {
 			return p.PullSource.RepoAt == &p.RepoAt
@@ -134,8 +138,14 @@ func (p *Pull) IsSameRepoBranch() bool {
 	return false
 }
 
-func (p *Pull) IsPatch() bool {
-	return p.PullSource == nil
+func (p *Pull) IsForkBased() bool {
+	if p.PullSource != nil {
+		if p.PullSource.RepoAt != nil {
+			// make sure repos are different
+			return p.PullSource.RepoAt != &p.RepoAt
+		}
+	}
+	return false
 }
 
 func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
