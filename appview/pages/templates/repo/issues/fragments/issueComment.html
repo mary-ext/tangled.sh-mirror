@@ -1,14 +1,14 @@
 {{ define "repo/issues/fragments/issueComment" }}
   {{ with .Comment }}
   <div id="comment-container-{{.CommentId}}">
-    <div class="flex items-center gap-2 mb-2 text-gray-500 text-sm">
+    <div class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400 text-sm">
       {{ $owner := index $.DidHandleMap .OwnerDid }}
       <a href="/{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
 
      <span class="before:content-['·']"></span>
       <a
           href="#{{ .CommentId }}"
-          class="text-gray-500 hover:text-gray-500 hover:underline no-underline"
+          class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-400 hover:underline no-underline"
           id="{{ .CommentId }}">
         {{ if .Deleted }}
           deleted {{ .Deleted | timeFmt }}

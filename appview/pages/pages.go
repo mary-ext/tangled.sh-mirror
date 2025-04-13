@@ -36,29 +36,28 @@ type Pages struct {
 	t map[string]*template.Template
 }
 
-
-
 func NewPages() *Pages {
 	templates := make(map[string]*template.Template)
-	fragmentPaths := []string{}
 
+	var fragmentPaths []string
 	// First, collect all fragment paths
 	err := fs.WalkDir(Files, "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !d.IsDir() && strings.HasSuffix(path, ".html") && strings.Contains(path, "fragments/") {
-			fragmentPaths = append(fragmentPaths, path)
+		if d.IsDir() {
+			return nil
 		}
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("walking template dir for fragments: %v", err)
-	}
 
-	// Load all fragments first
-	for _, path := range fragmentPaths {
+		if !strings.HasSuffix(path, ".html") {
+			return nil
+		}
+
+		if !strings.Contains(path, "fragments/") {
+			return nil
+		}
+
 		name := strings.TrimPrefix(path, "templates/")
 		name = strings.TrimSuffix(name, ".html")
 
@@ -70,7 +69,12 @@ func NewPages() *Pages {
 		}
 
 		templates[name] = tmpl
+		fragmentPaths = append(fragmentPaths, path)
 		log.Printf("loaded fragment: %s", name)
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("walking template dir for fragments: %v", err)
 	}
 
 	// Then walk through and setup the rest of the templates
@@ -79,29 +83,41 @@ func NewPages() *Pages {
 			return err
 		}
 
-		if !d.IsDir() && strings.HasSuffix(path, ".html") {
-			name := strings.TrimPrefix(path, "templates/")
-			name = strings.TrimSuffix(name, ".html")
-
-			// Skip fragments as they've already been loaded
-			if strings.Contains(path, "fragments/") {
-				return nil
-			}
-
-			// Load layouts and main templates
-			if !strings.HasPrefix(path, "templates/layouts/") {
-				// Add the page template on top of the base
-				tmpl, err := template.New(name).
-					Funcs(funcMap()).
-					ParseFS(Files, "templates/layouts/*.html", "templates/**/fragments/*.html", path)
-				if err != nil {
-					return fmt.Errorf("setting up template: %w", err)
-				}
-
-				templates[name] = tmpl
-				log.Printf("loaded template: %s", name)
-			}
+		if d.IsDir() {
+			return nil
 		}
+
+		if !strings.HasSuffix(path, "html") {
+			return nil
+		}
+
+		// Skip fragments as they've already been loaded
+		if strings.Contains(path, "fragments/") {
+			return nil
+		}
+
+		// Skip layouts
+		if strings.Contains(path, "layouts/") {
+			return nil
+		}
+
+		name := strings.TrimPrefix(path, "templates/")
+		name = strings.TrimSuffix(name, ".html")
+
+		// Add the page template on top of the base
+		allPaths := []string{}
+		allPaths = append(allPaths, "templates/layouts/*.html")
+		allPaths = append(allPaths, fragmentPaths...)
+		allPaths = append(allPaths, path)
+		tmpl, err := template.New(name).
+			Funcs(funcMap()).
+			ParseFS(Files, allPaths...)
+		if err != nil {
+			return fmt.Errorf("setting up template: %w", err)
+		}
+
+		templates[name] = tmpl
+		log.Printf("loaded template: %s", name)
 		return nil
 	})
 	if err != nil {
