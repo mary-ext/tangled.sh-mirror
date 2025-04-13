@@ -369,10 +369,11 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 				pullSourceRepo, err = db.GetRepoByAtUri(s.db, p.PullSource.RepoAt.String())
 				if err != nil {
 					log.Printf("failed to get repo by at uri: %v", err)
-					return
+					continue
+				} else {
+					p.PullSource.Repo = pullSourceRepo
 				}
 			}
-			p.PullSource.Repo = pullSourceRepo
 		}
 	}
 
