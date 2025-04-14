@@ -62,9 +62,6 @@
 {{ end }}
 
 {{ define "newComment" }}
-{{ if gt (len .Comments) 0 }}
-  <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
-{{ end }}
   {{ if .LoggedInUser }}
   <form 
       id="comment-form" 

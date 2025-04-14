@@ -45,14 +45,24 @@ module.exports = {
 						},
 						"code::before": {
 							content: '""',
-							"padding-left": "0.25rem"
 						},
 						"code::after": {
 							content: '""',
-							"padding-right": "0.25rem"
 						},
 						blockquote: {
 							quotes: "none",
+						},
+						'h1, h2, h3, h4': {
+							"@apply mt-4 mb-2": {}
+						},
+						h1: {
+							"@apply mt-3 pb-3 border-b border-gray-300 dark:border-gray-600": {}
+						},
+						h2: {
+							"@apply mt-3 pb-3 border-b border-gray-200 dark:border-gray-700": {}
+						},
+						h3: {
+							"@apply mt-2": {}
 						},
 					},
 				},
