@@ -26,7 +26,7 @@ Modify the `docker/docker-compose.yml`, specifically the
 docker compose -f docker/docker-compose.yml up
 ```
 
-### manual setup
+## manual setup
 
 First, clone this repository:
 
