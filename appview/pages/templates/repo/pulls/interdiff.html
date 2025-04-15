@@ -1,0 +1,10 @@
+{{ define "title" }}
+   interdiff of round #{{ .Round }} and #{{ sub .Round 1 }}; pull #{{ .Pull.PullId }} &middot; {{ .RepoInfo.FullName }}
+{{ end }}
+
+{{ define "content" }}
+  <section>
+    {{ template "repo/fragments/interdiff" (list .RepoInfo.FullName .Interdiff) }}
+  </section>
+{{ end }}
+

@@ -10,19 +10,22 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/interdiff"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/go-chi/chi/v5"
 )
 
 // htmx fragment
@@ -305,6 +308,66 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		Diff:         pull.Submissions[roundIdInt].AsNiceDiff(pull.TargetBranch),
 	})
 
+}
+
+func (s *State) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to get pull.")
+		return
+	}
+
+	roundId := chi.URLParam(r, "round")
+	roundIdInt, err := strconv.Atoi(roundId)
+	if err != nil || roundIdInt >= len(pull.Submissions) {
+		http.Error(w, "bad round id", http.StatusBadRequest)
+		log.Println("failed to parse round id", err)
+		return
+	}
+
+	if roundIdInt == 0 {
+		http.Error(w, "bad round id", http.StatusBadRequest)
+		log.Println("cannot interdiff initial submission")
+		return
+	}
+
+	identsToResolve := []string{pull.OwnerDid}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
+	currentPatch, _, _ := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt].Patch))
+	previousPatch, _, _ := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt-1].Patch))
+
+	interdiff := interdiff.Interdiff(previousPatch, currentPatch)
+
+	for _, f := range interdiff.Files {
+		fmt.Printf("%s, %+v\n-----", f.Name, f.File)
+	}
+	s.pages.RepoPullInterdiffPage(w, pages.RepoPullInterdiffParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo:     f.RepoInfo(s, user),
+		Pull:         pull,
+		Round:        roundIdInt,
+		DidHandleMap: didHandleMap,
+		Interdiff:    interdiff,
+	})
+	return
 }
 
 func (s *State) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {

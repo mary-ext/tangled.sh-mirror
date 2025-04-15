@@ -109,6 +109,7 @@ func (s *State) UserRouter() http.Handler {
 
 					r.Route("/round/{round}", func(r chi.Router) {
 						r.Get("/", s.RepoPullPatch)
+						r.Get("/interdiff", s.RepoPullInterdiff)
 						r.Get("/actions", s.PullActions)
 						r.With(AuthMiddleware(s)).Route("/comment", func(r chi.Router) {
 							r.Get("/", s.PullComment)
