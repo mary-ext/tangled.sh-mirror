@@ -1,0 +1,70 @@
+{{ define "repo/pulls/fragments/pullHeader" }}
+<header class="pb-4">
+    <h1 class="text-2xl dark:text-white">
+        {{ .Pull.Title }}
+        <span class="text-gray-500 dark:text-gray-400">#{{ .Pull.PullId }}</span>
+    </h1>
+</header>
+
+{{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+{{ $icon := "ban" }}
+
+{{ if .Pull.State.IsOpen }}
+    {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+    {{ $icon = "git-pull-request" }}
+{{ else if .Pull.State.IsMerged }}
+    {{ $bgColor = "bg-purple-600 dark:bg-purple-700" }}
+    {{ $icon = "git-merge" }}
+{{ end }}
+
+<section class="mt-2">
+    <div class="flex items-center gap-2">
+        <div
+            id="state"
+            class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}"
+        >
+            {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
+            <span class="text-white">{{ .Pull.State.String }}</span>
+        </div>
+        <span class="text-gray-500 dark:text-gray-400 text-sm">
+            opened by
+            {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
+            <a href="/{{ $owner }}" class="no-underline hover:underline"
+                >{{ $owner }}</a
+            >
+            <span class="select-none before:content-['\00B7']"></span>
+            <time>{{ .Pull.Created | timeFmt }}</time>
+            <span class="select-none before:content-['\00B7']"></span>
+            <span>
+              targeting
+              <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
+                <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Pull.TargetBranch }}" class="no-underline hover:underline">{{ .Pull.TargetBranch }}</a>
+              </span>
+            </span>
+            {{ if not .Pull.IsPatchBased }}
+            <span>from
+              {{ if not .Pull.IsBranchBased }}
+                <a href="/{{ $owner }}/{{ .PullSourceRepo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSourceRepo.Name }}</a>
+              {{ end }}
+
+              {{ $fullRepo := .RepoInfo.FullName }}
+              {{ if not .Pull.IsBranchBased }}
+                {{ $fullRepo = printf "%s/%s" $owner .PullSourceRepo.Name }}
+              {{ end }}
+              <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
+                <a href="/{{ $fullRepo }}/tree/{{ .Pull.PullSource.Branch }}" class="no-underline hover:underline">{{ .Pull.PullSource.Branch }}</a>
+              </span>
+            </span>
+            {{ end }}
+        </span>
+    </div>
+
+    {{ if .Pull.Body }}
+        <article id="body" class="mt-8 prose dark:prose-invert">
+            {{ .Pull.Body | markdown }}
+        </article>
+    {{ end }}
+</section>
+
+
+{{ end }}

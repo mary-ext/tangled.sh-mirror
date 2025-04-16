@@ -3,75 +3,25 @@
 {{ end }}
 
 {{ define "content" }}
-  {{ $stat := .Diff.Stat }}
-    <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 py-4 px-6 dark:text-white">
-      <header class="pb-2">
-          <div class="flex gap-3 items-center mb-3">
-              <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2 font-medium">
-                {{ i "arrow-left" "w-5 h-5" }}
-                back
-              </a>
-              <span class="select-none before:content-['\00B7']"></span>
-              round #{{ .Round }}
-              <span class="select-none before:content-['\00B7']"></span>
-              <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Round }}.patch">
-                  view raw
-              </a>
-          </div>
-          <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-          <h1 class="text-2xl mt-3">
-              {{ .Pull.Title }}
-              <span class="text-gray-500 dark:text-gray-400">#{{ .Pull.PullId }}</span>
-          </h1>
-      </header>
-
-      {{ $bgColor := "bg-gray-800" }}
-      {{ $icon := "ban" }}
-
-      {{ if .Pull.State.IsOpen }}
-          {{ $bgColor = "bg-green-600" }}
-          {{ $icon = "git-pull-request" }}
-      {{ else if .Pull.State.IsMerged }}
-          {{ $bgColor = "bg-purple-600" }}
-          {{ $icon = "git-merge" }}
-      {{ end }}
-
-      <section>
-          <div class="flex items-center gap-2">
-              <div
-                  id="state"
-                  class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}"
-              >
-                  {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
-                  <span class="text-white">{{ .Pull.State.String }}</span>
-              </div>
-              <span class="text-gray-500 dark:text-gray-400 text-sm">
-                  opened by
-                  {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
-                  <a href="/{{ $owner }}" class="no-underline hover:underline"
-                      >{{ $owner }}</a
-                  >
-                  <span class="select-none before:content-['\00B7']"></span>
-                  <time>{{ .Pull.Created | timeFmt }}</time>
-                  <span class="select-none before:content-['\00B7']"></span>
-                  <span>targeting branch 
-                    <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-                      {{ .Pull.TargetBranch }}
-                    </span>
-                  </span>
-              </span>
-          </div>
-
-          {{ if .Pull.Body }}
-              <article id="body" class="mt-2 prose dark:prose-invert">
-                  {{ .Pull.Body | markdown }}
-              </article>
-          {{ end }}
-      </section>
-
-  </div>
-
-  <section>
-    {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
-  </section>
+<section>
+    <section
+        class="bg-white dark:bg-gray-800 p-6 rounded relative z-20 w-full mx-auto drop-shadow-sm dark:text-white"
+    >
+        <div class="flex gap-3 items-center mb-3">
+            <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2 font-medium">
+              {{ i "arrow-left" "w-5 h-5" }}
+              back
+            </a>
+            <span class="select-none before:content-['\00B7']"></span>
+            round<span class="flex items-center">{{ i "hash" "w-4 h-4" }}{{ .Round }}</span>
+            <span class="select-none before:content-['\00B7']"></span>
+            <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Round }}.patch">
+                view raw
+            </a>
+        </div>
+        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+    {{ template "repo/pulls/fragments/pullHeader" . }}
+    </section>
+  {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
+</section>
 {{ end }}
