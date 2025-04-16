@@ -9,8 +9,8 @@ import (
 )
 
 type FormatPatch struct {
+	Files []*gitdiff.File
 	*gitdiff.PatchHeader
-	Patch string
 }
 
 func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
@@ -19,7 +19,7 @@ func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
 	result := []FormatPatch{}
 
 	for _, patch := range patches {
-		_, headerStr, err := gitdiff.Parse(strings.NewReader(patch))
+		files, headerStr, err := gitdiff.Parse(strings.NewReader(patch))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse patch: %w", err)
 		}
@@ -30,19 +30,18 @@ func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
 		}
 
 		result = append(result, FormatPatch{
+			Files:       files,
 			PatchHeader: header,
-			Patch:       patch,
 		})
 	}
 
 	return result, nil
 }
 
-// Very basic validation to check if it looks like a diff/patch
-// A valid patch usually starts with diff or --- lines or git format-patch header
+// IsPatchValid checks if the given patch string is valid.
+// It performs very basic sniffing for either git-diff or git-format-patch
+// header lines.
 func IsPatchValid(patch string) bool {
-	// Basic validation to check if it looks like a diff/patch
-	// A valid patch usually starts with diff or --- lines
 	if len(patch) == 0 {
 		return false
 	}
@@ -52,7 +51,6 @@ func IsPatchValid(patch string) bool {
 		return false
 	}
 
-	// Check for common patch format markers
 	firstLine := strings.TrimSpace(lines[0])
 	return strings.HasPrefix(firstLine, "diff ") ||
 		strings.HasPrefix(firstLine, "--- ") ||
@@ -92,14 +90,11 @@ func IsFormatPatch(patch string) bool {
 }
 
 func splitFormatPatch(patchText string) []string {
-	// The pattern to match is "From " followed by a commit hash and the rest of that line
 	re := regexp.MustCompile(`(?m)^From [0-9a-f]{40} .*$`)
 
-	// Find all starting positions of patches
 	indexes := re.FindAllStringIndex(patchText, -1)
 
 	if len(indexes) == 0 {
-		// No patches found
 		return []string{}
 	}
 
@@ -109,12 +104,10 @@ func splitFormatPatch(patchText string) []string {
 		startPos := indexes[i][0]
 		endPos := len(patchText)
 
-		// If there's a next patch, set end position to the start of the next patch
 		if i < len(indexes)-1 {
 			endPos = indexes[i+1][0]
 		}
 
-		// Extract the patch and trim any whitespace
 		patches[i] = strings.TrimSpace(patchText[startPos:endPos])
 	}
 	return patches
