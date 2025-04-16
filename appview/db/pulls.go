@@ -400,11 +400,9 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			submission_id
 	`, inClause)
 
-	args = make([]any, len(pulls))
-	idx = 0
+	args = make([]any, 0, len(pulls))
 	for _, p := range pulls {
-		args[idx] = p.Submissions[p.LastRoundNumber()].ID
-		idx += 1
+		args = append(args, p.Submissions[p.LastRoundNumber()].ID)
 	}
 	commentsRows, err := e.Query(commentsQuery, args...)
 	if err != nil {
@@ -429,11 +427,9 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		return nil, err
 	}
 
-	orderedByDate := make([]*Pull, len(pulls))
-	idx = 0
+	orderedByDate := make([]*Pull, 0, len(pulls))
 	for _, p := range pulls {
-		orderedByDate[idx] = p
-		idx += 1
+		orderedByDate = append(orderedByDate, p)
 	}
 	sort.Slice(orderedByDate, func(i, j int) bool {
 		return orderedByDate[i].Created.After(orderedByDate[j].Created)
