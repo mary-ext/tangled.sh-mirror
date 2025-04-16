@@ -24,6 +24,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/knotserver/git"
+	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 )
 
@@ -687,6 +688,9 @@ func (h *Handle) Merge(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
+
+	mo.FormatPatch = patchutil.IsFormatPatch(patch)
+
 	if err := gr.MergeWithOptions([]byte(patch), branch, mo); err != nil {
 		var mergeErr *git.ErrMerge
 		if errors.As(err, &mergeErr) {

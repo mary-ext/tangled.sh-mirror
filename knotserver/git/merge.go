@@ -31,6 +31,7 @@ type MergeOptions struct {
 	CommitBody    string
 	AuthorName    string
 	AuthorEmail   string
+	FormatPatch   bool
 }
 
 func (e ErrMerge) Error() string {
@@ -86,17 +87,12 @@ func (g *GitRepo) cloneRepository(targetBranch string) (string, error) {
 func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool, opts *MergeOptions) error {
 	var stderr bytes.Buffer
 	var cmd *exec.Cmd
-	var formatPatch = false
-
-	if patchutil.IsFormatPatch(patchFile) {
-		formatPatch = true
-	}
 
 	if checkOnly {
 		cmd = exec.Command("git", "-C", tmpDir, "apply", "--check", "-v", patchFile)
 	} else {
 		// if patch is a format-patch, apply using 'git am'
-		if formatPatch {
+		if opts.FormatPatch {
 			amCmd := exec.Command("git", "-C", tmpDir, "am", patchFile)
 			amCmd.Stderr = &stderr
 			if err := amCmd.Run(); err != nil {
@@ -169,6 +165,9 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool, opts *Mer
 }
 
 func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
+	var opts MergeOptions
+	opts.FormatPatch = patchutil.IsFormatPatch(string(patchData))
+
 	patchFile, err := g.createTempFileWithPatch(patchData)
 	if err != nil {
 		return &ErrMerge{
@@ -187,7 +186,7 @@ func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	return g.applyPatch(tmpDir, patchFile, true, nil)
+	return g.applyPatch(tmpDir, patchFile, true, &opts)
 }
 
 func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
