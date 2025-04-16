@@ -400,7 +400,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			submission_id
 	`, inClause)
 
-	args = make([]any, 0, len(pulls))
+	args = []any{}
 	for _, p := range pulls {
 		args = append(args, p.Submissions[p.LastRoundNumber()].ID)
 	}
@@ -427,7 +427,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		return nil, err
 	}
 
-	orderedByDate := make([]*Pull, 0, len(pulls))
+	orderedByDate := []*Pull{}
 	for _, p := range pulls {
 		orderedByDate = append(orderedByDate, p)
 	}
