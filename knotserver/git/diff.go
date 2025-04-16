@@ -1,13 +1,17 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 )
 
@@ -118,6 +122,33 @@ func (g *GitRepo) DiffTree(commit1, commit2 *object.Commit) (*types.DiffTree, er
 		Patch: patch.String(),
 		Diff:  diffs,
 	}, nil
+}
+
+// FormatPatch generates a git-format-patch output between two commits,
+// and returns the raw format-patch series, a parsed FormatPatch and an error.
+func (g *GitRepo) FormatPatch(base, commit2 *object.Commit) (string, []patchutil.FormatPatch, error) {
+	var stdout bytes.Buffer
+	cmd := exec.Command(
+		"git",
+		"-C",
+		g.path,
+		"format-patch",
+		fmt.Sprintf("%s..%s", base.Hash.String(), commit2.Hash.String()),
+		"--stdout",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return "", nil, err
+	}
+
+	formatPatch, err := patchutil.ExtractPatches(stdout.String())
+	if err != nil {
+		return "", nil, err
+	}
+
+	return stdout.String(), formatPatch, nil
 }
 
 func (g *GitRepo) MergeBase(commit1, commit2 *object.Commit) (*object.Commit, error) {

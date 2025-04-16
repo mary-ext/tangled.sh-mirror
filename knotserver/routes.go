@@ -808,14 +808,19 @@ func (h *Handle) Compare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	difftree, err := gr.DiffTree(mergeBase, commit2)
+	rawPatch, formatPatch, err := gr.FormatPatch(mergeBase, commit2)
 	if err != nil {
 		l.Error("error comparing revisions", "msg", err.Error())
 		writeError(w, "error comparing revisions", http.StatusBadRequest)
 		return
 	}
 
-	writeJSON(w, types.RepoDiffTreeResponse{difftree})
+	writeJSON(w, types.RepoFormatPatchResponse{
+		Rev1:        commit1.Hash.String(),
+		Rev2:        commit2.Hash.String(),
+		FormatPatch: formatPatch,
+		Patch:       rawPatch,
+	})
 	return
 }
 
