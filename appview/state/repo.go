@@ -21,6 +21,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -248,6 +249,12 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	if !s.config.Dev {
 		protocol = "https"
 	}
+
+	if !plumbing.IsHash(ref) {
+		s.pages.Error404(w)
+		return
+	}
+
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/commit/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
