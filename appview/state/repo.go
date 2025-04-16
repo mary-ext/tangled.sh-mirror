@@ -312,15 +312,15 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/%s/tree/%s", f.OwnerDid(), f.RepoName, ref)})
+	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
 	if treePath != "" {
 		for idx, elem := range strings.Split(treePath, "/") {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
 		}
 	}
 
-	baseTreeLink := path.Join(f.OwnerDid(), f.RepoName, "tree", ref, treePath)
-	baseBlobLink := path.Join(f.OwnerDid(), f.RepoName, "blob", ref, treePath)
+	baseTreeLink := path.Join(f.OwnerSlashRepo(), "tree", ref, treePath)
+	baseBlobLink := path.Join(f.OwnerSlashRepo(), "blob", ref, treePath)
 
 	s.pages.RepoTree(w, pages.RepoTreeParams{
 		LoggedInUser:     user,
@@ -447,7 +447,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/%s/tree/%s", f.OwnerDid(), f.RepoName, ref)})
+	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
 	if filePath != "" {
 		for idx, elem := range strings.Split(filePath, "/") {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
@@ -854,7 +854,15 @@ func (f *FullyResolvedRepo) OwnerHandle() string {
 }
 
 func (f *FullyResolvedRepo) OwnerSlashRepo() string {
-	p, _ := securejoin.SecureJoin(f.OwnerDid(), f.RepoName)
+	handle := f.OwnerId.Handle
+
+	var p string
+	if handle != "" && !handle.IsInvalidHandle() {
+		p, _ = securejoin.SecureJoin(fmt.Sprintf("@%s", handle), f.RepoName)
+	} else {
+		p, _ = securejoin.SecureJoin(f.OwnerDid(), f.RepoName)
+	}
+
 	return p
 }
 
