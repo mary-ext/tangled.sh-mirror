@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"tangled.sh/tangled.sh/core/patchutil"
 )
 
 type RepoIndexResponse struct {
@@ -32,8 +33,11 @@ type RepoCommitResponse struct {
 	Diff *NiceDiff `json:"diff,omitempty"`
 }
 
-type RepoDiffTreeResponse struct {
-	DiffTree *DiffTree `json:"difftree,omitempty"`
+type RepoFormatPatchResponse struct {
+	Rev1        string                  `json:"rev1,omitempty"`
+	Rev2        string                  `json:"rev2,omitempty"`
+	FormatPatch []patchutil.FormatPatch `json:"format_patch,omitempty"`
+	Patch       string                  `json:"patch,omitempty"`
 }
 
 type RepoTreeResponse struct {

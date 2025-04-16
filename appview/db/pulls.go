@@ -10,6 +10,7 @@ import (
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 )
 
@@ -188,6 +189,20 @@ func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
 	nd.Stat.FilesChanged = len(diffs)
 
 	return nd
+}
+
+func (s PullSubmission) IsFormatPatch() bool {
+	return patchutil.IsFormatPatch(s.Patch)
+}
+
+func (s PullSubmission) AsFormatPatch() []patchutil.FormatPatch {
+	patches, err := patchutil.ExtractPatches(s.Patch)
+	if err != nil {
+		log.Println("error extracting patches from submission:", err)
+		return []patchutil.FormatPatch{}
+	}
+
+	return patches
 }
 
 func NewPull(tx *sql.Tx, pull *Pull) error {

@@ -378,7 +378,7 @@ func (us *UnsignedClient) Capabilities() (*types.Capabilities, error) {
 	return &capabilities, nil
 }
 
-func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*types.RepoDiffTreeResponse, error) {
+func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*types.RepoFormatPatchResponse, error) {
 	const (
 		Method = "GET"
 	)
@@ -409,12 +409,12 @@ func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*types
 	}
 	defer compareResp.Body.Close()
 
-	var diffTreeResponse types.RepoDiffTreeResponse
-	err = json.Unmarshal(respBody, &diffTreeResponse)
+	var formatPatchResponse types.RepoFormatPatchResponse
+	err = json.Unmarshal(respBody, &formatPatchResponse)
 	if err != nil {
-		log.Println("failed to unmarshal diff tree response", err)
-		return nil, fmt.Errorf("Failed to compare branches.")
+		log.Println("failed to unmarshal format-patch response", err)
+		return nil, fmt.Errorf("failed to compare branches.")
 	}
 
-	return &diffTreeResponse, nil
+	return &formatPatchResponse, nil
 }

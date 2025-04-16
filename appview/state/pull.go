@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -18,6 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -254,6 +254,7 @@ func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull) pages.Resubmi
 
 	latestSubmission := pull.Submissions[pull.LastRoundNumber()]
 	if latestSubmission.SourceRev != result.Branch.Hash {
+		fmt.Println(latestSubmission.SourceRev, result.Branch.Hash)
 		return pages.ShouldResubmit
 	}
 
@@ -635,17 +636,17 @@ func (s *State) handleBranchBasedPull(w http.ResponseWriter, r *http.Request, f 
 		return
 	}
 
-	diffTreeResponse, err := ksClient.Compare(f.OwnerDid(), f.RepoName, targetBranch, sourceBranch)
+	comparison, err := ksClient.Compare(f.OwnerDid(), f.RepoName, targetBranch, sourceBranch)
 	if err != nil {
 		log.Println("failed to compare", err)
 		s.pages.Notice(w, "pull", err.Error())
 		return
 	}
 
-	sourceRev := diffTreeResponse.DiffTree.Rev2
-	patch := diffTreeResponse.DiffTree.Patch
+	sourceRev := comparison.Rev2
+	patch := comparison.Patch
 
-	if !isPatchValid(patch) {
+	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
@@ -654,7 +655,7 @@ func (s *State) handleBranchBasedPull(w http.ResponseWriter, r *http.Request, f 
 }
 
 func (s *State) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *FullyResolvedRepo, user *auth.User, title, body, targetBranch, patch string) {
-	if !isPatchValid(patch) {
+	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
@@ -714,17 +715,17 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *F
 	// hiddenRef: hidden/feature-1/main (on repo-fork)
 	// targetBranch: main (on repo-1)
 	// sourceBranch: feature-1 (on repo-fork)
-	diffTreeResponse, err := us.Compare(user.Did, fork.Name, hiddenRef, sourceBranch)
+	comparison, err := us.Compare(user.Did, fork.Name, hiddenRef, sourceBranch)
 	if err != nil {
 		log.Println("failed to compare across branches", err)
 		s.pages.Notice(w, "pull", err.Error())
 		return
 	}
 
-	sourceRev := diffTreeResponse.DiffTree.Rev2
-	patch := diffTreeResponse.DiffTree.Patch
+	sourceRev := comparison.Rev2
+	patch := comparison.Patch
 
-	if !isPatchValid(patch) {
+	if patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
@@ -742,7 +743,17 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *F
 	}, &tangled.RepoPull_Source{Branch: sourceBranch, Repo: &fork.AtUri})
 }
 
-func (s *State) createPullRequest(w http.ResponseWriter, r *http.Request, f *FullyResolvedRepo, user *auth.User, title, body, targetBranch, patch, sourceRev string, pullSource *db.PullSource, recordPullSource *tangled.RepoPull_Source) {
+func (s *State) createPullRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+	f *FullyResolvedRepo,
+	user *auth.User,
+	title, body, targetBranch string,
+	patch string,
+	sourceRev string,
+	pullSource *db.PullSource,
+	recordPullSource *tangled.RepoPull_Source,
+) {
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		log.Println("failed to start tx")
@@ -1112,15 +1123,15 @@ func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	diffTreeResponse, err := ksClient.Compare(f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.PullSource.Branch)
+	comparison, err := ksClient.Compare(f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.PullSource.Branch)
 	if err != nil {
 		log.Printf("compare request failed: %s", err)
 		s.pages.Notice(w, "resubmit-error", err.Error())
 		return
 	}
 
-	sourceRev := diffTreeResponse.DiffTree.Rev2
-	patch := diffTreeResponse.DiffTree.Patch
+	sourceRev := comparison.Rev2
+	patch := comparison.Patch
 
 	if err = validateResubmittedPatch(pull, patch); err != nil {
 		s.pages.Notice(w, "resubmit-error", err.Error())
@@ -1249,15 +1260,15 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hiddenRef := url.QueryEscape(fmt.Sprintf("hidden/%s/%s", pull.PullSource.Branch, pull.TargetBranch))
-	diffTreeResponse, err := ksClient.Compare(forkRepo.Did, forkRepo.Name, hiddenRef, pull.PullSource.Branch)
+	comparison, err := ksClient.Compare(forkRepo.Did, forkRepo.Name, hiddenRef, pull.PullSource.Branch)
 	if err != nil {
 		log.Printf("failed to compare branches: %s", err)
 		s.pages.Notice(w, "resubmit-error", err.Error())
 		return
 	}
 
-	sourceRev := diffTreeResponse.DiffTree.Rev2
-	patch := diffTreeResponse.DiffTree.Patch
+	sourceRev := comparison.Rev2
+	patch := comparison.Patch
 
 	if err = validateResubmittedPatch(pull, patch); err != nil {
 		s.pages.Notice(w, "resubmit-error", err.Error())
@@ -1338,7 +1349,7 @@ func validateResubmittedPatch(pull *db.Pull, patch string) error {
 		return fmt.Errorf("Patch is identical to previous submission.")
 	}
 
-	if !isPatchValid(patch) {
+	if patchutil.IsPatchValid(patch) {
 		return fmt.Errorf("Invalid patch format. Please provide a valid diff.")
 	}
 
@@ -1515,27 +1526,4 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
 	return
-}
-
-// Very basic validation to check if it looks like a diff/patch
-// A valid patch usually starts with diff or --- lines
-func isPatchValid(patch string) bool {
-	// Basic validation to check if it looks like a diff/patch
-	// A valid patch usually starts with diff or --- lines
-	if len(patch) == 0 {
-		return false
-	}
-
-	lines := strings.Split(patch, "\n")
-	if len(lines) < 2 {
-		return false
-	}
-
-	// Check for common patch format markers
-	firstLine := strings.TrimSpace(lines[0])
-	return strings.HasPrefix(firstLine, "diff ") ||
-		strings.HasPrefix(firstLine, "--- ") ||
-		strings.HasPrefix(firstLine, "Index: ") ||
-		strings.HasPrefix(firstLine, "+++ ") ||
-		strings.HasPrefix(firstLine, "@@ ")
 }
