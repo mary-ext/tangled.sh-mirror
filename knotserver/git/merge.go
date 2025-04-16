@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"tangled.sh/tangled.sh/core/patchutil"
 )
 
 type ErrMerge struct {
@@ -85,12 +86,27 @@ func (g *GitRepo) cloneRepository(targetBranch string) (string, error) {
 func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool, opts *MergeOptions) error {
 	var stderr bytes.Buffer
 	var cmd *exec.Cmd
+	var formatPatch = false
+
+	if patchutil.IsFormatPatch(patchFile) {
+		formatPatch = true
+	}
 
 	if checkOnly {
 		cmd = exec.Command("git", "-C", tmpDir, "apply", "--check", "-v", patchFile)
 	} else {
-		exec.Command("git", "-C", tmpDir, "config", "advice.mergeConflict", "false").Run()
+		// if patch is a format-patch, apply using 'git am'
+		if formatPatch {
+			amCmd := exec.Command("git", "-C", tmpDir, "am", patchFile)
+			amCmd.Stderr = &stderr
+			if err := amCmd.Run(); err != nil {
+				return fmt.Errorf("patch application failed: %s", stderr.String())
+			}
+			return nil
+		}
 
+		// else, apply using 'git apply' and commit it manually
+		exec.Command("git", "-C", tmpDir, "config", "advice.mergeConflict", "false").Run()
 		if opts != nil {
 			applyCmd := exec.Command("git", "-C", tmpDir, "apply", patchFile)
 			applyCmd.Stderr = &stderr
