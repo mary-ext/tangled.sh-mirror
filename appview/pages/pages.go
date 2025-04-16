@@ -649,7 +649,7 @@ func (p *Pages) RepoNewPull(w io.Writer, params RepoNewPullParams) error {
 type RepoPullsParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
-	Pulls        []db.Pull
+	Pulls        []*db.Pull
 	Active       string
 	DidHandleMap map[string]string
 	FilteringBy  db.PullState
