@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
@@ -17,10 +18,9 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ident, err := s.resolver.ResolveIdent(r.Context(), didOrHandle)
-	if err != nil {
-		log.Printf("resolving identity: %s", err)
-		w.WriteHeader(http.StatusNotFound)
+	ident, ok := r.Context().Value("resolvedId").(identity.Identity)
+	if !ok {
+		s.pages.Error404(w)
 		return
 	}
 
