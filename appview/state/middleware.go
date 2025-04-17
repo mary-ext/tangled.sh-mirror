@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"slices"
+
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/xrpc"
@@ -174,9 +176,15 @@ func StripLeadingAt(next http.Handler) http.Handler {
 }
 
 func ResolveIdent(s *State) Middleware {
+	excluded := []string{"favicon.ico"}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			didOrHandle := chi.URLParam(req, "user")
+			if slices.Contains(excluded, didOrHandle) {
+				next.ServeHTTP(w, req)
+				return
+			}
 
 			id, err := s.resolver.ResolveIdent(req.Context(), didOrHandle)
 			if err != nil {
