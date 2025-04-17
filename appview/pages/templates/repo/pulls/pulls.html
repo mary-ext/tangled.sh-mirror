@@ -93,6 +93,25 @@
                       </span>
                     </span>
                     {{ end }}
+                    <span class="before:content-['·']">
+                        {{ $latestRound := .LastRoundNumber }}
+                        {{ $lastSubmission := index .Submissions $latestRound }}
+                        round
+                        <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
+                          #{{ .LastRoundNumber }}
+                        </span>
+                        {{ $commentCount := len $lastSubmission.Comments }}
+                        {{ $s := "s" }}
+                        {{ if eq $commentCount 1 }}
+                          {{ $s = "" }}
+                        {{ end }}
+
+                        {{ if eq $commentCount 0 }}
+                          awaiting comments
+                        {{ else }}
+                          recieved {{ len $lastSubmission.Comments}} comment{{$s}}
+                        {{ end }}
+                    </span>
                 </p>
             </div>
         {{ end }}

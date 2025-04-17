@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -274,8 +275,8 @@ func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
 	return pullId - 1, err
 }
 
-func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
-	var pulls []Pull
+func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
+	pulls := make(map[int]*Pull)
 
 	rows, err := e.Query(`
 		select
@@ -293,9 +294,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 		from
 			pulls
 		where
-			repo_at = ? and state = ?
-		order by
-			created desc`, repoAt, state)
+			repo_at = ? and state = ?`, repoAt, state)
 	if err != nil {
 		return nil, err
 	}
@@ -341,14 +340,102 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]Pull, error) {
 			}
 		}
 
-		pulls = append(pulls, pull)
+		pulls[pull.PullId] = &pull
 	}
 
+	// get latest round no. for each pull
+	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
+	submissionsQuery := fmt.Sprintf(`
+		select
+			id, pull_id, round_number
+		from
+			pull_submissions
+		where
+			repo_at = ? and pull_id in (%s)
+	`, inClause)
+
+	args := make([]any, len(pulls)+1)
+	args[0] = repoAt.String()
+	idx := 1
+	for _, p := range pulls {
+		args[idx] = p.PullId
+		idx += 1
+	}
+	submissionsRows, err := e.Query(submissionsQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer submissionsRows.Close()
+
+	for submissionsRows.Next() {
+		var s PullSubmission
+		err := submissionsRows.Scan(
+			&s.ID,
+			&s.PullId,
+			&s.RoundNumber,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if p, ok := pulls[s.PullId]; ok {
+			p.Submissions = make([]*PullSubmission, s.RoundNumber+1)
+			p.Submissions[s.RoundNumber] = &s
+		}
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return pulls, nil
+	// get comment count on latest submission on each pull
+	inClause = strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
+	commentsQuery := fmt.Sprintf(`
+		select
+			count(id), pull_id
+		from
+			pull_comments
+		where
+			submission_id in (%s)
+		group by
+			submission_id
+	`, inClause)
+
+	args = []any{}
+	for _, p := range pulls {
+		args = append(args, p.Submissions[p.LastRoundNumber()].ID)
+	}
+	commentsRows, err := e.Query(commentsQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer commentsRows.Close()
+
+	for commentsRows.Next() {
+		var commentCount, pullId int
+		err := commentsRows.Scan(
+			&commentCount,
+			&pullId,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if p, ok := pulls[pullId]; ok {
+			p.Submissions[p.LastRoundNumber()].Comments = make([]PullComment, commentCount)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	orderedByDate := []*Pull{}
+	for _, p := range pulls {
+		orderedByDate = append(orderedByDate, p)
+	}
+	sort.Slice(orderedByDate, func(i, j int) bool {
+		return orderedByDate[i].Created.After(orderedByDate[j].Created)
+	})
+
+	return orderedByDate, nil
 }
 
 func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
