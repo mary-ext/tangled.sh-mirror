@@ -584,7 +584,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	err = s.enforcer.AddCollaborator(collaboratorIdent.DID.String(), f.Knot, f.OwnerSlashRepo())
+	err = s.enforcer.AddCollaborator(collaboratorIdent.DID.String(), f.Knot, f.DidSlashRepo())
 	if err != nil {
 		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
 		return
@@ -677,19 +677,19 @@ func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// remove collaborator RBAC
-	repoCollaborators, err := s.enforcer.E.GetImplicitUsersForResourceByDomain(f.OwnerSlashRepo(), f.Knot)
+	repoCollaborators, err := s.enforcer.E.GetImplicitUsersForResourceByDomain(f.DidSlashRepo(), f.Knot)
 	if err != nil {
 		s.pages.Notice(w, "settings-delete", "Failed to remove collaborators")
 		return
 	}
 	for _, c := range repoCollaborators {
 		did := c[0]
-		s.enforcer.RemoveCollaborator(did, f.Knot, f.OwnerSlashRepo())
+		s.enforcer.RemoveCollaborator(did, f.Knot, f.DidSlashRepo())
 	}
 	log.Println("removed collaborators")
 
 	// remove repo RBAC
-	err = s.enforcer.RemoveRepo(f.OwnerDid(), f.Knot, f.OwnerSlashRepo())
+	err = s.enforcer.RemoveRepo(f.OwnerDid(), f.Knot, f.DidSlashRepo())
 	if err != nil {
 		s.pages.Notice(w, "settings-delete", "Failed to update RBAC rules")
 		return
@@ -777,7 +777,7 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 
 		isCollaboratorInviteAllowed := false
 		if user != nil {
-			ok, err := s.enforcer.IsCollaboratorInviteAllowed(user.Did, f.Knot, f.OwnerSlashRepo())
+			ok, err := s.enforcer.IsCollaboratorInviteAllowed(user.Did, f.Knot, f.DidSlashRepo())
 			if err == nil && ok {
 				isCollaboratorInviteAllowed = true
 			}
@@ -873,8 +873,13 @@ func (f *FullyResolvedRepo) OwnerSlashRepo() string {
 	return p
 }
 
+func (f *FullyResolvedRepo) DidSlashRepo() string {
+	p, _ := securejoin.SecureJoin(f.OwnerDid(), f.RepoName)
+	return p
+}
+
 func (f *FullyResolvedRepo) Collaborators(ctx context.Context, s *State) ([]pages.Collaborator, error) {
-	repoCollaborators, err := s.enforcer.E.GetImplicitUsersForResourceByDomain(f.OwnerSlashRepo(), f.Knot)
+	repoCollaborators, err := s.enforcer.E.GetImplicitUsersForResourceByDomain(f.DidSlashRepo(), f.Knot)
 	if err != nil {
 		return nil, err
 	}

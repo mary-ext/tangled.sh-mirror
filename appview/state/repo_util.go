@@ -58,8 +58,7 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 
 func RolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) pages.RolesInRepo {
 	if u != nil {
-		ownerSlashRepo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.RepoName)
-		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, ownerSlashRepo)
+		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.DidSlashRepo())
 		return pages.RolesInRepo{r}
 	} else {
 		return pages.RolesInRepo{}

@@ -152,7 +152,7 @@ func RepoPermissionMiddleware(s *State, requiredPerm string) Middleware {
 				return
 			}
 
-			ok, err := s.enforcer.E.Enforce(actor.Did, f.Knot, f.OwnerSlashRepo(), requiredPerm)
+			ok, err := s.enforcer.E.Enforce(actor.Did, f.Knot, f.DidSlashRepo(), requiredPerm)
 			if err != nil || !ok {
 				// we need a logged in user
 				log.Printf("%s does not have perms of a %s in repo %s", actor.Did, requiredPerm, f.OwnerSlashRepo())
