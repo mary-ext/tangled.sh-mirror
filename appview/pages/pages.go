@@ -497,9 +497,8 @@ type RepoBlobParams struct {
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
-	style := styles.Get("bw")
+	var style *chroma.Style = styles.Get("catpuccin-latte")
 	b := style.Builder()
-	b.Add(chroma.LiteralString, "noitalic")
 	style, _ = b.Build()
 
 	if params.ShowRendered {
@@ -516,6 +515,7 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 			chromahtml.WithLineNumbers(true),
 			chromahtml.WithLinkableLineNumbers(true, "L"),
 			chromahtml.Standalone(false),
+			chromahtml.WithClasses(true),
 		)
 
 		lexer := lexers.Get(filepath.Base(params.Path))
