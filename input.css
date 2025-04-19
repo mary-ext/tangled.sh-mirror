@@ -246,13 +246,5 @@
 }
 
 .chroma .line:has(.ln:target) {
-  background-color: rgba(140, 143, 161, 0.2);
+  @apply bg-amber-400/30 dark:bg-amber-500/20
 }
-
-@media (prefers-color-scheme: dark) {
-  .chroma .line:has(.ln:target) {
-    background-color: rgba(128, 135, 162, 0.2);
-  }
-}
-
-
