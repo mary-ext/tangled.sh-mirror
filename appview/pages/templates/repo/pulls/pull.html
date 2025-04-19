@@ -64,6 +64,7 @@
                  href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}/interdiff">
                 {{ i "file-diff" "w-4 h-4" }} <span class="hidden md:inline">interdiff</span>
               </a>
+              <span id="interdiff-error-{{.RoundNumber}}"></span>
               {{ end }}
             {{ end }}
           </div>

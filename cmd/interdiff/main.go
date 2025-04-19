@@ -9,11 +9,16 @@ import (
 )
 
 func main() {
-	patch1, err := os.Open("patches/g1.patch")
+	if len(os.Args) != 3 {
+		fmt.Println("Usage: interdiff <patch1> <patch2>")
+		os.Exit(1)
+	}
+
+	patch1, err := os.Open(os.Args[1])
 	if err != nil {
 		fmt.Println(err)
 	}
-	patch2, err := os.Open("patches/g2.patch")
+	patch2, err := os.Open(os.Args[2])
 	if err != nil {
 		fmt.Println(err)
 	}

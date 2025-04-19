@@ -11,7 +11,7 @@
       <div class="overflow-x-auto">
         <ul class="dark:text-gray-200">
         {{ range $diff }}
-          <li><a href="#file-{{ .Name }}" class="dark:hover:text-gray-300">{{ .Name }} ({{ .Status.StatusKind }})</a></li>
+          <li><a href="#file-{{ .Name }}" class="dark:hover:text-gray-300">{{ .Name }}</a></li>
         {{ end }}
         </ul>
       </div>
@@ -24,7 +24,7 @@
   <section class="mt-6 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
     <div id="file-{{ .Name }}">
       <div id="diff-file">
-        <details open>
+        <details {{ if not (.Status.IsOnlyInOne) }}open{{end}}>
           <summary class="list-none cursor-pointer sticky top-0">
             <div id="diff-file-header" class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
               <div id="left-side-items" class="p-2 flex gap-2 items-center overflow-x-auto">
@@ -73,6 +73,10 @@
             {{ if .Status.IsUnchanged }}
               <p class="text-center text-gray-400 dark:text-gray-500 p-4">
               This file has not been changed.
+              </p>
+            {{ else if .Status.IsRebased }}
+              <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+              This patch was likely rebased, as context lines do not match.
               </p>
             {{ else if .Status.IsError }}
               <p class="text-center text-gray-400 dark:text-gray-500 p-4">

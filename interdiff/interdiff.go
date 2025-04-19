@@ -64,6 +64,31 @@ func bestName(file *gitdiff.File) string {
 	}
 }
 
+// in-place reverse of a diff
+func reverseDiff(file *gitdiff.File) {
+	file.OldName, file.NewName = file.NewName, file.OldName
+	file.OldMode, file.NewMode = file.NewMode, file.OldMode
+	file.BinaryFragment, file.ReverseBinaryFragment = file.ReverseBinaryFragment, file.BinaryFragment
+
+	for _, fragment := range file.TextFragments {
+		// swap postions
+		fragment.OldPosition, fragment.NewPosition = fragment.NewPosition, fragment.OldPosition
+		fragment.OldLines, fragment.NewLines = fragment.NewLines, fragment.OldLines
+		fragment.LinesAdded, fragment.LinesDeleted = fragment.LinesDeleted, fragment.LinesAdded
+
+		for i := range fragment.Lines {
+			switch fragment.Lines[i].Op {
+			case gitdiff.OpAdd:
+				fragment.Lines[i].Op = gitdiff.OpDelete
+			case gitdiff.OpDelete:
+				fragment.Lines[i].Op = gitdiff.OpAdd
+			default:
+				// do nothing
+			}
+		}
+	}
+}
+
 // rebuild the original file from a patch
 func CreateOriginal(file *gitdiff.File) ReconstructedFile {
 	rf := ReconstructedFile{
@@ -92,17 +117,16 @@ func CreateOriginal(file *gitdiff.File) ReconstructedFile {
 }
 
 type MergeError struct {
-	msg              string
-	mismatchingLines []int64
+	msg             string
+	mismatchingLine int64
 }
 
 func (m MergeError) Error() string {
-	return fmt.Sprintf("%s: %v", m.msg, m.mismatchingLines)
+	return fmt.Sprintf("%s: %v", m.msg, m.mismatchingLine)
 }
 
 // best effort merging of two reconstructed files
 func (this *ReconstructedFile) Merge(other *ReconstructedFile) (*ReconstructedFile, error) {
-	mismatchingLines := []int64{}
 	mergedFile := ReconstructedFile{}
 
 	var i, j int64
@@ -127,12 +151,15 @@ func (this *ReconstructedFile) Merge(other *ReconstructedFile) (*ReconstructedFi
 
 		if line1.LineNumber == line2.LineNumber {
 			if line1.Content != line2.Content {
-				mismatchingLines = append(mismatchingLines, line1.LineNumber)
+				return nil, MergeError{
+					msg:             "mismatching lines, this patch might have undergone rebase",
+					mismatchingLine: line1.LineNumber,
+				}
 			} else {
 				mergedFile.AddLine(line1)
-				i++
-				j++
 			}
+			i++
+			j++
 		} else if line1.LineNumber < line2.LineNumber {
 			mergedFile.AddLine(line1)
 			i++
@@ -142,14 +169,7 @@ func (this *ReconstructedFile) Merge(other *ReconstructedFile) (*ReconstructedFi
 		}
 	}
 
-	if len(mismatchingLines) > 0 {
-		return nil, MergeError{
-			msg:              "mismatching lines; this patch might have undergone rebase",
-			mismatchingLines: mismatchingLines,
-		}
-	} else {
-		return &mergedFile, nil
-	}
+	return &mergedFile, nil
 }
 
 func (r *ReconstructedFile) Apply(patch *gitdiff.File) (string, error) {
@@ -302,58 +322,63 @@ const (
 func interdiffFiles(f1, f2 *gitdiff.File) *InterdiffFile {
 	re1 := CreateOriginal(f1)
 	re2 := CreateOriginal(f2)
-	var interdiffFile InterdiffFile
-	var status InterdiffFileStatus
+
+	interdiffFile := InterdiffFile{
+		Name: bestName(f1),
+	}
 
 	merged, err := re1.Merge(&re2)
 	if err != nil {
-		status = InterdiffFileStatus{
+		interdiffFile.Status = InterdiffFileStatus{
 			StatusKind: StatusRebased,
 			Error:      err,
 		}
+		return &interdiffFile
 	}
 
 	rev1, err := merged.Apply(f1)
 	if err != nil {
-		status = InterdiffFileStatus{
+		interdiffFile.Status = InterdiffFileStatus{
 			StatusKind: StatusError,
 			Error:      err,
 		}
+		return &interdiffFile
 	}
 
 	rev2, err := merged.Apply(f2)
 	if err != nil {
-		status = InterdiffFileStatus{
+		interdiffFile.Status = InterdiffFileStatus{
 			StatusKind: StatusError,
 			Error:      err,
 		}
+		return &interdiffFile
 	}
 
 	diff, err := Unified(rev1, bestName(f1), rev2, bestName(f2))
 	if err != nil {
-		status = InterdiffFileStatus{
+		interdiffFile.Status = InterdiffFileStatus{
 			StatusKind: StatusError,
 			Error:      err,
 		}
+		return &interdiffFile
 	}
 
 	parsed, _, err := gitdiff.Parse(strings.NewReader(diff))
 	if err != nil {
-		status = InterdiffFileStatus{
+		interdiffFile.Status = InterdiffFileStatus{
 			StatusKind: StatusError,
 			Error:      err,
 		}
+		return &interdiffFile
 	}
 
 	if len(parsed) != 1 {
 		// files are identical?
-		status = InterdiffFileStatus{
+		interdiffFile.Status = InterdiffFileStatus{
 			StatusKind: StatusUnchanged,
 		}
+		return &interdiffFile
 	}
-
-	interdiffFile.Status = status
-	interdiffFile.Name = bestName(f1)
 
 	if interdiffFile.Status.StatusKind == StatusOk {
 		interdiffFile.File = parsed[0]
@@ -386,9 +411,13 @@ func Interdiff(patch1, patch2 []*gitdiff.File) *InterdiffResult {
 			// we have f1 and f2, calculate interdiff
 			interdiffFile = interdiffFiles(f1, f2)
 		} else {
-			// only in patch 1
+			// only in patch 1, this change would have to be "inverted" to dissapear
+			// from patch 2, so we reverseDiff(f1)
+			reverseDiff(f1)
+
 			interdiffFile = &InterdiffFile{
 				File: f1,
+				Name: fileName,
 				Status: InterdiffFileStatus{
 					StatusKind: StatusOnlyInOne,
 				},
@@ -408,6 +437,7 @@ func Interdiff(patch1, patch2 []*gitdiff.File) *InterdiffResult {
 
 		result.Files = append(result.Files, &InterdiffFile{
 			File: f2,
+			Name: fileName,
 			Status: InterdiffFileStatus{
 				StatusKind: StatusOnlyInTwo,
 			},

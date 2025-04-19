@@ -351,14 +351,22 @@ func (s *State) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	currentPatch, _, _ := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt].Patch))
-	previousPatch, _, _ := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt-1].Patch))
+	currentPatch, _, err := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt].Patch))
+	if err != nil {
+		log.Println("failed to interdiff; current patch malformed")
+		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; current patch is invalid.")
+		return
+	}
+
+	previousPatch, _, err := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt-1].Patch))
+	if err != nil {
+		log.Println("failed to interdiff; previous patch malformed")
+		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; previous patch is invalid.")
+		return
+	}
 
 	interdiff := interdiff.Interdiff(previousPatch, currentPatch)
 
-	for _, f := range interdiff.Files {
-		fmt.Printf("%s, %+v\n-----", f.Name, f.File)
-	}
 	s.pages.RepoPullInterdiffPage(w, pages.RepoPullInterdiffParams{
 		LoggedInUser: s.auth.GetUser(r),
 		RepoInfo:     f.RepoInfo(s, user),
