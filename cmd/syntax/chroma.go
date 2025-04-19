@@ -14,6 +14,20 @@ var (
 	darkTheme  = "catppuccin-macchiato"
 )
 
+const (
+	targetHl = `
+	.chroma .line:has(.ln:target) {
+		background-color: rgba(140, 143, 161, 0.3);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.chroma .line:has(.ln:target) {
+			background-color: rgba(128, 135, 162, 0.3);
+		}
+	}
+	`
+)
+
 func main() {
 	outFile := flag.String("out", "", "css output file path")
 	flag.Parse()
@@ -38,4 +52,6 @@ func main() {
 	file.WriteString("\n@media (prefers-color-scheme: dark) {\n")
 	formatter.WriteCSS(file, styles.Get(darkTheme))
 	file.WriteString("}\n")
+
+	file.WriteString(targetHl)
 }

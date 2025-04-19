@@ -498,8 +498,6 @@ type RepoBlobParams struct {
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	var style *chroma.Style = styles.Get("catpuccin-latte")
-	b := style.Builder()
-	style, _ = b.Build()
 
 	if params.ShowRendered {
 		switch markup.GetFormat(params.Path) {
