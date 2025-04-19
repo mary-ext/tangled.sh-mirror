@@ -69,15 +69,6 @@
         doCheck = false;
       };
 
-      syntax-chroma = final.buildGoModule {
-        pname = "chroma";
-        version = "0.1.0";
-        src = gitignoreSource ./.;
-        subPackages = ["cmd/syntax/chroma.go"];
-        vendorHash = goModHash;
-        CGO_ENABLED = 1;
-      };
-
       appview = with final;
         final.pkgsStatic.buildGoModule {
           pname = "appview";
@@ -91,7 +82,6 @@
             cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
             cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
             cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
-            ${pkgs.syntax-chroma}/bin/chroma -out appview/pages/static/syntax.css
             ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
             popd
           '';
