@@ -563,6 +563,31 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Determine PR type based on input parameters
+		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
+		isBranchBased := isPushAllowed && sourceBranch != "" && fromFork == ""
+		isForkBased := fromFork != "" && sourceBranch != ""
+		isPatchBased := patch != "" && !isBranchBased && !isForkBased
+
+		if isPatchBased && !patchutil.IsFormatPatch(patch) {
+			if title == "" {
+				s.pages.Notice(w, "pull", "Title is required for git-diff patches.")
+				return
+			}
+		}
+
+		// Validate we have at least one valid PR creation method
+		if !isBranchBased && !isPatchBased && !isForkBased {
+			s.pages.Notice(w, "pull", "Neither source branch nor patch supplied.")
+			return
+		}
+
+		// Can't mix branch-based and patch-based approaches
+		if isBranchBased && patch != "" {
+			s.pages.Notice(w, "pull", "Cannot select both patch and source branch.")
+			return
+		}
+
 		us, err := NewUnsignedClient(f.Knot, s.config.Dev)
 		if err != nil {
 			log.Printf("failed to create unsigned client to %s: %v", f.Knot, err)
@@ -574,24 +599,6 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("error fetching knot caps", f.Knot, err)
 			s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
-			return
-		}
-
-		// Determine PR type based on input parameters
-		isPushAllowed := f.RepoInfo(s, user).Roles.IsPushAllowed()
-		isBranchBased := isPushAllowed && sourceBranch != "" && fromFork == ""
-		isForkBased := fromFork != "" && sourceBranch != ""
-		isPatchBased := patch != "" && !isBranchBased && !isForkBased
-
-		// Validate we have at least one valid PR creation method
-		if !isBranchBased && !isPatchBased && !isForkBased {
-			s.pages.Notice(w, "pull", "Neither source branch nor patch supplied.")
-			return
-		}
-
-		// Can't mix branch-based and patch-based approaches
-		if isBranchBased && patch != "" {
-			s.pages.Notice(w, "pull", "Cannot select both patch and source branch.")
 			return
 		}
 
@@ -760,6 +767,23 @@ func (s *State) createPullRequest(
 		return
 	}
 	defer tx.Rollback()
+
+	// We've already checked earlier if it's diff-based and title is empty,
+	// so if it's still empty now, it's intentionally skipped owing to format-patch.
+	if title == "" {
+		formatPatches, err := patchutil.ExtractPatches(patch)
+		if err != nil {
+			s.pages.Notice(w, "pull", fmt.Sprintf("Failed to extract patches: %v", err))
+			return
+		}
+		if len(formatPatches) == 0 {
+			s.pages.Notice(w, "pull", "No patches found in the supplied format-patch.")
+			return
+		}
+
+		title = formatPatches[0].Title
+		body = formatPatches[0].Body
+	}
 
 	rkey := s.TID()
 	initialSubmission := db.PullSubmission{
@@ -1159,6 +1183,7 @@ func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 
 	if err = validateResubmittedPatch(pull, patch); err != nil {
 		s.pages.Notice(w, "resubmit-error", err.Error())
+		return
 	}
 
 	if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
@@ -1373,7 +1398,7 @@ func validateResubmittedPatch(pull *db.Pull, patch string) error {
 		return fmt.Errorf("Patch is identical to previous submission.")
 	}
 
-	if patchutil.IsPatchValid(patch) {
+	if !patchutil.IsPatchValid(patch) {
 		return fmt.Errorf("Invalid patch format. Please provide a valid diff.")
 	}
 
