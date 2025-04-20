@@ -284,6 +284,8 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	diff := pull.Submissions[roundIdInt].AsNiceDiff(pull.TargetBranch)
+
 	s.pages.RepoPullPatchPage(w, pages.RepoPullPatchParams{
 		LoggedInUser: user,
 		DidHandleMap: didHandleMap,
@@ -291,7 +293,7 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		Pull:         pull,
 		Round:        roundIdInt,
 		Submission:   pull.Submissions[roundIdInt],
-		Diff:         pull.Submissions[roundIdInt].AsNiceDiff(pull.TargetBranch),
+		Diff:         &diff,
 	})
 
 }

@@ -505,11 +505,12 @@ func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
 }
 
 type RepoCommitParams struct {
-	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
-	Active       string
-	types.RepoCommitResponse
+	LoggedInUser       *auth.User
+	RepoInfo           RepoInfo
+	Active             string
 	EmailToDidOrHandle map[string]string
+
+	types.RepoCommitResponse
 }
 
 func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
@@ -784,7 +785,7 @@ type RepoPullPatchParams struct {
 	DidHandleMap map[string]string
 	RepoInfo     RepoInfo
 	Pull         *db.Pull
-	Diff         types.NiceDiff
+	Diff         *types.NiceDiff
 	Round        int
 	Submission   *db.PullSubmission
 }

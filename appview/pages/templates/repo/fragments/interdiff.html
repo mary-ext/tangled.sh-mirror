@@ -1,6 +1,7 @@
 {{ define "repo/fragments/interdiff" }}
 {{ $repo := index . 0 }}
 {{ $x := index . 1 }}
+{{ $fileTree := fileTree $x.AffectedFiles }}
 {{ $diff := $x.Files }}
 
   <section class="mt-6 p-6 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
@@ -8,13 +9,7 @@
       <div class="flex gap-2 items-center">
         <strong class="text-sm uppercase dark:text-gray-200">files</strong>
       </div>
-      <div class="overflow-x-auto">
-        <ul class="dark:text-gray-200">
-        {{ range $diff }}
-          <li><a href="#file-{{ .Name }}" class="dark:hover:text-gray-300">{{ .Name }}</a></li>
-        {{ end }}
-        </ul>
-      </div>
+      {{ block "fileTree" $fileTree }} {{ end }}
     </div>
   </section>
 
