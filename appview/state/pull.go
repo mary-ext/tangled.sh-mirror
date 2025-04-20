@@ -860,9 +860,9 @@ func (s *State) ValidatePatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if patchutil.IsFormatPatch(patch) {
-		s.pages.Notice(w, "patch-preview", "Format patch detected. Title and description are optional; if left out, they will be extracted from the first commit.")
+		s.pages.Notice(w, "patch-preview", "git-format-patch detected. Title and description are optional; if left out, they will be extracted from the first commit.")
 	} else {
-		s.pages.Notice(w, "patch-preview", "Regular diff detected. Please provide a title and description.")
+		s.pages.Notice(w, "patch-preview", "Regular git-diff detected. Please provide a title and description.")
 	}
 }
 
