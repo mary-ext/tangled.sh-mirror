@@ -1080,6 +1080,7 @@ func (s *State) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 
 	if err = validateResubmittedPatch(pull, patch); err != nil {
 		s.pages.Notice(w, "resubmit-error", err.Error())
+		return
 	}
 
 	tx, err := s.db.BeginTx(r.Context(), nil)
@@ -1321,6 +1322,7 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 
 	if err = validateResubmittedPatch(pull, patch); err != nil {
 		s.pages.Notice(w, "resubmit-error", err.Error())
+		return
 	}
 
 	if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
