@@ -7,98 +7,107 @@
         hx-swap="none"
     >
         <div class="flex flex-col gap-4">
-          <div>
-            <label for="title" class="dark:text-white">write a title</label>
-            <input type="text" name="title" id="title" class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600" />
-          </div>
+            <label>configure your pull request</label>
 
-          <div>
-            <label for="body" class="dark:text-white">add a description</label>
-            <textarea
-                name="body"
-                id="body"
-                rows="6"
-                class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                placeholder="Describe your change. Markdown is supported."
-                ></textarea>
-          </div>
+            <p>First, choose a target branch on {{ .RepoInfo.FullName }}.</p>
+            <div class="pb-2">
+                <select
+                    required
+                    name="targetBranch"
+                    class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                >
+                    <option disabled selected>target branch</option>
+                    {{ range .Branches }}
+                        <option value="{{ .Reference.Name }}" class="py-1">
+                            {{ .Reference.Name }}
+                        </option>
+                    {{ end }}
+                </select>
+            </div>
 
+            <p>Next, choose a pull strategy.</p>
+            <nav class="flex space-x-4 items-end">
+                <button
+                    type="button"
+                    class="px-3 py-2 pb-2 btn"
+                    hx-get="/{{ .RepoInfo.FullName }}/pulls/new/patch-upload"
+                    hx-target="#patch-strategy"
+                    hx-swap="innerHTML"
+                >
+                    paste patch
+                </button>
 
-        <label>configure your pull request</label>
-
-        <p>First, choose a target branch on {{ .RepoInfo.FullName }}.</p>
-        <div class="pb-2">
-            <select
-                required
-                name="targetBranch"
-                class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-            >
-                <option disabled selected>target branch</option>
-                {{ range .Branches }}
-                <option value="{{ .Reference.Name }}" class="py-1">
-                    {{ .Reference.Name }}
-                </option>
+                {{ if .RepoInfo.Roles.IsPushAllowed }}
+                    <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
+                        or
+                    </span>
+                    <button
+                        type="button"
+                        class="px-3 py-2 pb-2 btn"
+                        hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-branches"
+                        hx-target="#patch-strategy"
+                        hx-swap="innerHTML"
+                    >
+                        compare branches
+                    </button>
                 {{ end }}
-            </select>
-        </div>
 
-        <p>Then, choose a pull strategy.</p>
-        <nav class="flex space-x-4 items-end">
-            <button
-                type="button"
-                class="px-3 py-2 pb-2 btn"
-                hx-get="/{{ .RepoInfo.FullName }}/pulls/new/patch-upload"
-                hx-target="#patch-strategy"
-                hx-swap="innerHTML"
-            >
-                paste patch
-            </button>
 
-        {{ if .RepoInfo.Roles.IsPushAllowed }}
-        <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
-            or
-        </span>
-            <button
-                type="button"
-                class="px-3 py-2 pb-2 btn"
-                hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-branches"
-                hx-target="#patch-strategy"
-                hx-swap="innerHTML"
-            >
-                compare branches
-            </button>
-        {{ end }}
+                <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
+                    or
+                </span>
+                <button
+                    type="button"
+                    class="px-3 py-2 pb-2 btn"
+                    hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-forks"
+                    hx-target="#patch-strategy"
+                    hx-swap="innerHTML"
+                >
+                    compare forks
+                </button>
+            </nav>
 
-        <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
-            or
-        </span>
-        <button
-            type="button"
-            class="px-3 py-2 pb-2 btn"
-            hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-forks"
-            hx-target="#patch-strategy"
-            hx-swap="innerHTML"
-        >
-            compare forks
-        </button>
-        </nav>
+            <section id="patch-strategy">
+                {{ template "repo/pulls/fragments/pullPatchUpload" . }}
+            </section>
 
-       <section id="patch-strategy">
-            {{ template "repo/pulls/fragments/pullPatchUpload" . }}
-        </section>
+            <p id="patch-preview"></p>
 
-        <div class="flex justify-start items-center gap-2 mt-4">
-            <button type="submit" class="btn flex items-center gap-2">
-                {{ i "git-pull-request-create" "w-4 h-4" }}
-                create pull
-            </button>
-        </div>
+            <div id="patch-error" class="error dark:text-red-300"></div>
 
+            <div>
+                <label for="title" class="dark:text-white">write a title</label>
+
+                <input
+                    type="text"
+                    name="title"
+                    id="title"
+                    class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    placeholder="One-line summary of your change."
+                />
+            </div>
+
+            <div>
+                <label for="body" class="dark:text-white"
+                    >add a description</label
+                >
+
+                <textarea
+                    name="body"
+                    id="body"
+                    rows="6"
+                    class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    placeholder="Describe your change. Markdown is supported."
+                ></textarea>
+            </div>
+
+            <div class="flex justify-start items-center gap-2 mt-4">
+                <button type="submit" class="btn flex items-center gap-2">
+                    {{ i "git-pull-request-create" "w-4 h-4" }}
+                    create pull
+                </button>
+            </div>
         </div>
         <div id="pull" class="error dark:text-red-300"></div>
     </form>
-{{ end }}
-
-{{ define "repoAfter" }}
-<div id="patch-preview" class="error dark:text-red-300"></div>
 {{ end }}

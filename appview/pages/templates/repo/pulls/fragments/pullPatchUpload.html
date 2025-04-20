@@ -1,14 +1,21 @@
 {{ define "repo/pulls/fragments/pullPatchUpload" }}
     <div id="patch-upload">
+        <p>
+            You can paste a <code>git diff</code> or a
+            <code>git format-patch</code> patch series here.
+        </p>
         <textarea
+            hx-trigger="keyup changed delay:500ms, paste delay:500ms"
+            hx-post="/{{ .RepoInfo.FullName }}/pulls/new/validate-patch"
+            hx-swap="none"
             name="patch"
             id="patch"
             rows="12"
-            class="w-full resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
+            class="w-full mt-2 resize-y font-mono dark:bg-gray-700 dark:text-white dark:border-gray-600"
             placeholder="diff --git a/file.txt b/file.txt
-            index 1234567..abcdefg 100644
-            --- a/file.txt
-            +++ b/file.txt"
+index 1234567..abcdefg 100644
+--- a/file.txt
++++ b/file.txt"
         ></textarea>
     </div>
 {{ end }}
