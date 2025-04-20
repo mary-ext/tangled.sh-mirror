@@ -59,3 +59,17 @@ type DiffTree struct {
 	Patch string          `json:"patch"`
 	Diff  []*gitdiff.File `json:"diff"`
 }
+
+func (d *NiceDiff) ChangedFiles() []string {
+	files := make([]string, len(d.Diff))
+
+	for i, f := range d.Diff {
+		if f.IsDelete {
+			files[i] = f.Name.Old
+		} else {
+			files[i] = f.Name.New
+		}
+	}
+
+	return files
+}

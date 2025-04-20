@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"tangled.sh/tangled.sh/core/appview/filetree"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 )
 
@@ -174,6 +175,7 @@ func funcMap() template.FuncMap {
 			return template.HTML(data)
 		},
 		"cssContentHash": CssContentHash,
+		"fileTree":       filetree.FileTree,
 	}
 }
 

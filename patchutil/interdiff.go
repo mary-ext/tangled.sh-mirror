@@ -11,6 +11,14 @@ type InterdiffResult struct {
 	Files []*InterdiffFile
 }
 
+func (i *InterdiffResult) AffectedFiles() []string {
+	files := make([]string, len(i.Files))
+	for _, f := range i.Files {
+		files = append(files, f.Name)
+	}
+	return files
+}
+
 func (i *InterdiffResult) String() string {
 	var b strings.Builder
 	for _, f := range i.Files {

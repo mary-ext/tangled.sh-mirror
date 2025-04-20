@@ -3,6 +3,7 @@
 {{ $diff := index . 1 }}
 {{ $commit := $diff.Commit }}
 {{ $stat := $diff.Stat }}
+{{ $fileTree := fileTree $diff.ChangedFiles }}
 {{ $diff := $diff.Diff }}
 
   {{ $this := $commit.This }}
@@ -14,17 +15,7 @@
         <strong class="text-sm uppercase dark:text-gray-200">Changed files</strong>
         {{ block "statPill" $stat }} {{ end }}
       </div>
-      <div class="overflow-x-auto">
-        {{ range $diff }}
-        <ul class="dark:text-gray-200">
-          {{ if .IsDelete }}
-          <li><a href="#file-{{ .Name.Old }}" class="dark:hover:text-gray-300">{{ .Name.Old }}</a></li>
-          {{ else }}
-          <li><a href="#file-{{ .Name.New }}" class="dark:hover:text-gray-300">{{ .Name.New }}</a></li>
-          {{ end }}
-        </ul>
-        {{ end }}
-      </div>
+      {{ block "fileTree" $fileTree }} {{ end }}
     </div>
   </section>
 
@@ -38,7 +29,7 @@
           <summary class="list-none cursor-pointer sticky top-0">
             <div id="diff-file-header" class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
               <div id="left-side-items" class="p-2 flex gap-2 items-center overflow-x-auto">
-                <div class="flex gap-1 items-center" style="direction: ltr;">
+                <div class="flex gap-1 items-center">
                   {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
                   {{ if .IsNew }}
                   <span class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">ADDED</span>
@@ -55,7 +46,7 @@
                   {{ block "statPill" .Stats }} {{ end }}
                 </div>
 
-                <div class="flex gap-2 items-center overflow-x-auto" style="direction: rtl;">
+                <div class="flex gap-2 items-center overflow-x-auto">
                   {{ if .IsDelete }}
                   <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this }}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}"{{end}}>
                     {{ .Name.Old }}
@@ -101,10 +92,6 @@
             {{ else if .IsCopy }}
               <p class="text-center text-gray-400 dark:text-gray-500 p-4">
               This file has been copied.
-              </p>
-            {{ else if .IsRename }}
-              <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-              This file has been renamed.
               </p>
             {{ else if .IsBinary }}
               <p class="text-center text-gray-400 dark:text-gray-500 p-4">
