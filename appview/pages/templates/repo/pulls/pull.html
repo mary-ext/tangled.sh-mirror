@@ -64,46 +64,59 @@
         
         {{ if .IsFormatPatch }}
         {{ $patches := .AsFormatPatch }}
-        {{ range $patches }}
-        <div class="rounded ml-20 drop-shadow-sm bg-white dark:bg-gray-800 dark:text-white w-fit md:max-w-3/5 flex flex-col gap-2 mt-2 relative">
-           <div id="commit-{{.SHA}}" class="py-2 px-2 relative w-full md:max-w-3/5 md:w-fit flex flex-col">
-             <div class="flex items-center justify-between gap-2">
-              <div class="mr-4 flex items-center justify-start">
-               {{ i "git-commit-horizontal" "w-4 h-4 mr-1.5" }}
-               <span>{{ .Title }}</span>
-               {{ if gt (len .Body) 0 }}
-               <button
-                 class="py-1/2 px-1 mx-2 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
-                 hx-on:click="document.getElementById('body-{{.SHA}}').classList.toggle('hidden')"
-               >
-                 {{ i "ellipsis" "w-3 h-3" }}
-               </button>
-               {{ end }}
-              </div>
-               <div class="text-sm text-gray-500 dark:text-gray-400">
-                 {{ if not $.Pull.IsPatchBased }}
-                   {{ $fullRepo := $.RepoInfo.FullName }}
-                   {{ if not $.Pull.IsBranchBased }}
-                     {{ $fullRepo = printf "%s/%s" $owner $.PullSourceRepo.Name }}
+        {{ $round := .RoundNumber }}
+        <details class="group py-2 md:ml-[3.5rem] text-gray-500 dark:text-gray-400 flex flex-col gap-2 relative text-sm">
+          <summary class="py-1 list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
+            {{ $s := "s" }}
+            {{ if eq (len $patches) 1 }}
+            {{ $s = "" }}
+            {{ end }}
+            <div class="group-open:hidden flex items-center gap-2 ml-2">
+              {{ i "chevrons-up-down" "w-4 h-4" }} expand {{ len $patches }} commit{{$s}}
+            </div>
+            <div class="hidden group-open:flex items-center gap-2 ml-2">
+              {{ i "chevrons-down-up" "w-4 h-4" }} hide {{ len $patches }} commit{{$s}}
+            </div>
+          </summary>
+          {{ range $patches }}
+             <div id="commit-{{.SHA}}" class="py-1 px-2 relative w-full md:max-w-3/5 md:w-fit flex flex-col">
+               <div class="flex items-center gap-2">
+                 {{ i "git-commit-horizontal" "w-4 h-4" }}
+                 <div class="text-sm text-gray-500 dark:text-gray-400">
+                   {{ if not $.Pull.IsPatchBased }}
+                     {{ $fullRepo := $.RepoInfo.FullName }}
+                     {{ if not $.Pull.IsBranchBased }}
+                       {{ $fullRepo = printf "%s/%s" $owner $.PullSourceRepo.Name }}
+                     {{ end }}
+                     <a href="/{{ $fullRepo }}/commit/{{ .SHA }}" class="font-mono text-gray-500 dark:text-gray-400">{{ slice .SHA 0 8 }}</a>
+                   {{ else }}
+                     <span class="font-mono">{{ slice .SHA 0 8 }}</span>
                    {{ end }}
-                   <a href="/{{ $fullRepo }}/commit/{{ .SHA }}" class="font-mono">{{ slice .SHA 0 8 }}</a>
-                 {{ else }}
-                   <span class="font-mono">{{ slice .SHA 0 8 }}</span>
-                 {{ end }}
+                 </div>
+                 <div class="flex items-center">
+                   <span>{{ .Title }}</span>
+                   {{ if gt (len .Body) 0 }}
+                   <button
+                       class="py-1/2 px-1 mx-2 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
+                       hx-on:click="document.getElementById('body-{{$round}}-{{.SHA}}').classList.toggle('hidden')"
+                       >
+                       {{ i "ellipsis" "w-3 h-3" }}
+                   </button>
+                     {{ end }}
+                 </div>
                </div>
+               {{ if gt (len .Body) 0 }}
+               <p id="body-{{$round}}-{{.SHA}}" class="hidden mt-1 text-sm pb-2">
+                 {{ nl2br .Body }}
+               </p>
+               {{ end }}
              </div>
-             {{ if gt (len .Body) 0 }}
-             <p id="body-{{.SHA}}" class="hidden mt-1 text-sm pb-2 dark:text-gray-300">
-               {{ nl2br .Body }}
-             </p>
-             {{ end }}
-           </div>
-        </div>
-        {{ end }}
+          {{ end }}
+        </details>
         {{ end }}
 
 
-        <div class="md:pl-12 flex flex-col gap-2 mt-2 relative">
+        <div class="md:pl-[3.5rem] flex flex-col gap-2 mt-2 relative">
           {{ range $cidx, $c := .Comments }}
             <div id="comment-{{$c.ID}}" class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
               {{ if gt $cidx 0 }}
@@ -203,4 +216,7 @@
     </div>
   </div>
   {{ end }}
+{{ end }}
+
+{{ define "commits" }}
 {{ end }}
