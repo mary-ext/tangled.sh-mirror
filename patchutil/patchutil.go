@@ -40,7 +40,7 @@ func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
 
 // IsPatchValid checks if the given patch string is valid.
 // It performs very basic sniffing for either git-diff or git-format-patch
-// header lines.
+// header lines. For format patches, it attempts to extract and validate each one.
 func IsPatchValid(patch string) bool {
 	if len(patch) == 0 {
 		return false
@@ -52,13 +52,29 @@ func IsPatchValid(patch string) bool {
 	}
 
 	firstLine := strings.TrimSpace(lines[0])
-	return strings.HasPrefix(firstLine, "diff ") ||
+
+	// check if it's a git diff
+	if strings.HasPrefix(firstLine, "diff ") ||
 		strings.HasPrefix(firstLine, "--- ") ||
 		strings.HasPrefix(firstLine, "Index: ") ||
 		strings.HasPrefix(firstLine, "+++ ") ||
-		strings.HasPrefix(firstLine, "@@ ") ||
-		strings.HasPrefix(firstLine, "From ") && strings.Contains(firstLine, " Mon Sep 17 00:00:00 2001") ||
-		strings.HasPrefix(firstLine, "From: ")
+		strings.HasPrefix(firstLine, "@@ ") {
+		return true
+	}
+
+	// check if it's format-patch
+	if strings.HasPrefix(firstLine, "From ") && strings.Contains(firstLine, " Mon Sep 17 00:00:00 2001") ||
+		strings.HasPrefix(firstLine, "From: ") {
+		// ExtractPatches already runs it through gitdiff.Parse so if that errors,
+		// it's safe to say it's broken.
+		patches, err := ExtractPatches(patch)
+		if err != nil {
+			return false
+		}
+		return len(patches) > 0
+	}
+
+	return false
 }
 
 func IsFormatPatch(patch string) bool {

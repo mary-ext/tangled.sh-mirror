@@ -5,6 +5,120 @@ import (
 	"testing"
 )
 
+func TestIsPatchValid(t *testing.T) {
+	tests := []struct {
+		name     string
+		patch    string
+		expected bool
+	}{
+		{
+			name:     `empty patch`,
+			patch:    ``,
+			expected: false,
+		},
+		{
+			name:     `single line patch`,
+			patch:    `single line`,
+			expected: false,
+		},
+		{
+			name: `valid diff patch`,
+			patch: `diff --git a/file.txt b/file.txt
+index abc..def 100644
+--- a/file.txt
++++ b/file.txt
+@@ -1,3 +1,3 @@
+-old line
++new line
+	context`,
+			expected: true,
+		},
+		{
+			name: `valid patch starting with ---`,
+			patch: `--- a/file.txt
++++ b/file.txt
+@@ -1,3 +1,3 @@
+-old line
++new line
+	context`,
+			expected: true,
+		},
+		{
+			name: `valid patch starting with Index`,
+			patch: `Index: file.txt
+==========
+--- a/file.txt
++++ b/file.txt
+@@ -1,3 +1,3 @@
+-old line
++new line
+	context`,
+			expected: true,
+		},
+		{
+			name: `valid patch starting with +++`,
+			patch: `+++ b/file.txt
+--- a/file.txt
+@@ -1,3 +1,3 @@
+-old line
++new line
+	context`,
+			expected: true,
+		},
+		{
+			name: `valid patch starting with @@`,
+			patch: `@@ -1,3 +1,3 @@
+-old line
++new line
+	context
+`,
+			expected: true,
+		},
+		{
+			name: `valid format patch`,
+			patch: `From 3c5035488318164b81f60fe3adcd6c9199d76331 Mon Sep 17 00:00:00 2001
+From: Author <author@example.com>
+Date: Wed, 16 Apr 2025 11:01:00 +0300
+Subject: [PATCH] Example patch
+
+diff --git a/file.txt b/file.txt
+index 123456..789012 100644
+--- a/file.txt
++++ b/file.txt
+@@ -1 +1 @@
+-old content
++new content
+--
+2.48.1`,
+			expected: true,
+		},
+		{
+			name: `invalid format patch`,
+			patch: `From 1234567890123456789012345678901234567890 Mon Sep 17 00:00:00 2001
+From: Author <author@example.com>
+This is not a valid patch format`,
+			expected: false,
+		},
+		{
+			name: `not a patch at all`,
+			patch: `This is
+just some
+random text
+that isn't a patch`,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsPatchValid(tt.patch)
+			if result != tt.expected {
+				t.Errorf("IsPatchValid() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestSplitPatches(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -18,7 +132,7 @@ func TestSplitPatches(t *testing.T) {
 		},
 		{
 			name:     "No valid patches",
-			input:    "This is not a patch\nJust some random text",
+			input:    "This is not a \nJust some random text",
 			expected: []string{},
 		},
 		{
