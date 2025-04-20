@@ -35,9 +35,14 @@
             font-size: 15px;
         }
         @supports (font-variation-settings: normal) {
-          html {
-            font-feature-settings: 'ss01' 1, 'kern' 1, 'liga' 1, 'cv05' 1, 'tnum' 1;
-          }
+            html {
+                font-feature-settings:
+                    "ss01" 1,
+                    "kern" 1,
+                    "liga" 1,
+                    "cv05" 1,
+                    "tnum" 1;
+            }
         }
 
         a {
@@ -48,10 +53,10 @@
             @apply block mb-2 text-gray-900 text-sm font-bold py-2 uppercase dark:text-gray-100;
         }
         input {
-            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
+            @apply border border-gray-400 block rounded bg-gray-50 focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
         }
         textarea {
-            @apply bg-white border border-gray-400 rounded-sm focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
+            @apply border border-gray-400 block rounded bg-gray-50 focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
         }
         details summary::-webkit-details-marker {
             display: none;

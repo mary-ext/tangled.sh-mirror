@@ -558,15 +558,14 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		sourceBranch := r.FormValue("sourceBranch")
 		patch := r.FormValue("patch")
 
-		// Validate required fields for all PR types
-		if title == "" || body == "" || targetBranch == "" {
-			s.pages.Notice(w, "pull", "Title, body and target branch are required.")
+		if targetBranch == "" {
+			s.pages.Notice(w, "pull", "Target branch is required.")
 			return
 		}
 
 		us, err := NewUnsignedClient(f.Knot, s.config.Dev)
 		if err != nil {
-			log.Println("failed to create unsigned client to %s: %v", f.Knot, err)
+			log.Printf("failed to create unsigned client to %s: %v", f.Knot, err)
 			s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
 			return
 		}
@@ -816,6 +815,31 @@ func (s *State) createPullRequest(
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
+}
+
+func (s *State) ValidatePatch(w http.ResponseWriter, r *http.Request) {
+	_, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	patch := r.FormValue("patch")
+	if patch == "" {
+		s.pages.Notice(w, "patch-error", "Patch is required.")
+		return
+	}
+
+	if patch == "" || !patchutil.IsPatchValid(patch) {
+		s.pages.Notice(w, "patch-error", "Invalid patch format. Please provide a valid git diff or format-patch.")
+		return
+	}
+
+	if patchutil.IsFormatPatch(patch) {
+		s.pages.Notice(w, "patch-preview", "Format patch detected. Title and description are optional; if left out, they will be extracted from the first commit.")
+	} else {
+		s.pages.Notice(w, "patch-preview", "Regular diff detected. Please provide a title and description.")
+	}
 }
 
 func (s *State) PatchUploadFragment(w http.ResponseWriter, r *http.Request) {

@@ -96,6 +96,7 @@ func (s *State) UserRouter() http.Handler {
 				r.With(AuthMiddleware(s)).Route("/new", func(r chi.Router) {
 					r.Get("/", s.NewPull)
 					r.Get("/patch-upload", s.PatchUploadFragment)
+					r.Post("/validate-patch", s.ValidatePatch)
 					r.Get("/compare-branches", s.CompareBranchesFragment)
 					r.Get("/compare-forks", s.CompareForksFragment)
 					r.Get("/fork-branches", s.CompareForksBranchesFragment)

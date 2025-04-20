@@ -81,9 +81,6 @@ func IsFormatPatch(patch string) bool {
 			strings.HasPrefix(line, "commit ") {
 			headerCount++
 		}
-		if strings.HasPrefix(line, "diff --git ") {
-			return true
-		}
 	}
 
 	return headerCount >= 2
