@@ -37,6 +37,7 @@ func (h *Handle) Capabilities(w http.ResponseWriter, r *http.Request) {
 
 	capabilities := map[string]any{
 		"pull_requests": map[string]any{
+			"format_patch":       true,
 			"patch_submissions":  true,
 			"branch_submissions": true,
 			"fork_submissions":   true,

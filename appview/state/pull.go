@@ -670,6 +670,11 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if !caps.PullRequests.FormatPatch {
+			s.pages.Notice(w, "pull", "This knot doesn't support format-patch. Unfortunately, there is no fallback for now.")
+			return
+		}
+
 		// Handle the PR creation based on the type
 		if isBranchBased {
 			if !caps.PullRequests.BranchSubmissions {
