@@ -82,6 +82,34 @@ func uniqueEmails(commits []*object.Commit) []string {
 	return uniqueEmails
 }
 
+func balanceTagsAndCommits(commits, tags, totalDesired int) (int, int) {
+	if commits == 0 && tags == 0 {
+		return 0, 0
+	}
+
+	half := totalDesired / 2
+
+	if commits+tags <= totalDesired {
+		return commits, tags
+	}
+
+	if commits >= half && tags >= half {
+		return half, half
+	}
+
+	if commits < half {
+		return commits, min(tags, totalDesired-commits)
+	}
+
+	if tags < half {
+		return min(commits, totalDesired-tags), tags
+	}
+
+	c := min(commits, half)
+	t := min(tags, totalDesired-c)
+	return c, t
+}
+
 func EmailToDidOrHandle(s *State, emails []string) map[string]string {
 	emailToDid, err := db.GetEmailToDid(s.db, emails, true) // only get verified emails for mapping
 	if err != nil {

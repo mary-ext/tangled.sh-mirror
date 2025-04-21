@@ -30,6 +30,7 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -462,6 +463,8 @@ type RepoIndexParams struct {
 	RepoInfo     RepoInfo
 	Active       string
 	TagMap       map[string][]string
+	Tags         []*types.TagReference
+	CommitsTrunc []*object.Commit
 	types.RepoIndexResponse
 	HTMLReadme         template.HTML
 	Raw                bool

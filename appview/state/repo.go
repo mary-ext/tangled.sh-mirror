@@ -82,14 +82,23 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		tagMap[hash] = append(tagMap[hash], branch.Name)
 	}
 
-	emails := uniqueEmails(result.Commits)
+	c, t := balanceTagsAndCommits(len(result.Commits), len(result.Tags), 10)
+	commits := result.Commits[:c]
+	tags := result.Tags[:t]
+	emails := uniqueEmails(commits)
+
+	for _, tag := range tags {
+		fmt.Printf("%#v\n\n", tag)
+	}
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(s, user),
 		TagMap:             tagMap,
+		Tags:               tags,
 		RepoIndexResponse:  result,
+		CommitsTrunc:       commits,
 		EmailToDidOrHandle: EmailToDidOrHandle(s, emails),
 	})
 	return
