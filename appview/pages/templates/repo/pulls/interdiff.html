@@ -1,0 +1,25 @@
+{{ define "title" }}
+   interdiff of round #{{ .Round }} and #{{ sub .Round 1 }}; pull #{{ .Pull.PullId }} &middot; {{ .RepoInfo.FullName }}
+{{ end }}
+
+{{ define "content" }}
+  <section class="rounded drop-shadow-sm bg-white dark:bg-gray-800 py-4 px-6 dark:text-white">
+    <header class="pb-2">
+      <div class="flex gap-3 items-center mb-3">
+        <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2 font-medium">
+          {{ i "arrow-left" "w-5 h-5" }}
+          back
+        </a>
+        <span class="select-none before:content-['\00B7']"></span>
+        interdiff of round #{{ .Round }} and #{{ sub .Round 1 }}
+      </div>
+      <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+      {{ template "repo/pulls/fragments/pullHeader" . }}
+    </header>
+  </section>
+
+  <section>
+    {{ template "repo/fragments/interdiff" (list .RepoInfo.FullName .Interdiff) }}
+  </section>
+{{ end }}
+

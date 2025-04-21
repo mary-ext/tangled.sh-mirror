@@ -2,6 +2,8 @@ package patchutil
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 
@@ -124,4 +126,71 @@ func splitFormatPatch(patchText string) []string {
 		patches[i] = strings.TrimSpace(patchText[startPos:endPos])
 	}
 	return patches
+}
+
+func bestName(file *gitdiff.File) string {
+	if file.IsDelete {
+		return file.OldName
+	} else {
+		return file.NewName
+	}
+}
+
+// in-place reverse of a diff
+func reverseDiff(file *gitdiff.File) {
+	file.OldName, file.NewName = file.NewName, file.OldName
+	file.OldMode, file.NewMode = file.NewMode, file.OldMode
+	file.BinaryFragment, file.ReverseBinaryFragment = file.ReverseBinaryFragment, file.BinaryFragment
+
+	for _, fragment := range file.TextFragments {
+		// swap postions
+		fragment.OldPosition, fragment.NewPosition = fragment.NewPosition, fragment.OldPosition
+		fragment.OldLines, fragment.NewLines = fragment.NewLines, fragment.OldLines
+		fragment.LinesAdded, fragment.LinesDeleted = fragment.LinesDeleted, fragment.LinesAdded
+
+		for i := range fragment.Lines {
+			switch fragment.Lines[i].Op {
+			case gitdiff.OpAdd:
+				fragment.Lines[i].Op = gitdiff.OpDelete
+			case gitdiff.OpDelete:
+				fragment.Lines[i].Op = gitdiff.OpAdd
+			default:
+				// do nothing
+			}
+		}
+	}
+}
+
+func Unified(oldText, oldFile, newText, newFile string) (string, error) {
+	oldTemp, err := os.CreateTemp("", "old_*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file for oldText: %w", err)
+	}
+	defer os.Remove(oldTemp.Name())
+	if _, err := oldTemp.WriteString(oldText); err != nil {
+		return "", fmt.Errorf("failed to write to old temp file: %w", err)
+	}
+	oldTemp.Close()
+
+	newTemp, err := os.CreateTemp("", "new_*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file for newText: %w", err)
+	}
+	defer os.Remove(newTemp.Name())
+	if _, err := newTemp.WriteString(newText); err != nil {
+		return "", fmt.Errorf("failed to write to new temp file: %w", err)
+	}
+	newTemp.Close()
+
+	cmd := exec.Command("diff", "-U", "9999", "--label", oldFile, "--label", newFile, oldTemp.Name(), newTemp.Name())
+	output, err := cmd.CombinedOutput()
+
+	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+		return string(output), nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("diff command failed: %w", err)
+	}
+
+	return string(output), nil
 }

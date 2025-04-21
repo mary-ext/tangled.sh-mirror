@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -23,6 +22,7 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/go-chi/chi/v5"
 )
 
 // htmx fragment
@@ -305,6 +305,74 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		Diff:         pull.Submissions[roundIdInt].AsNiceDiff(pull.TargetBranch),
 	})
 
+}
+
+func (s *State) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	f, err := fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	pull, ok := r.Context().Value("pull").(*db.Pull)
+	if !ok {
+		log.Println("failed to get pull")
+		s.pages.Notice(w, "pull-error", "Failed to get pull.")
+		return
+	}
+
+	roundId := chi.URLParam(r, "round")
+	roundIdInt, err := strconv.Atoi(roundId)
+	if err != nil || roundIdInt >= len(pull.Submissions) {
+		http.Error(w, "bad round id", http.StatusBadRequest)
+		log.Println("failed to parse round id", err)
+		return
+	}
+
+	if roundIdInt == 0 {
+		http.Error(w, "bad round id", http.StatusBadRequest)
+		log.Println("cannot interdiff initial submission")
+		return
+	}
+
+	identsToResolve := []string{pull.OwnerDid}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
+	currentPatch, err := pull.Submissions[roundIdInt].AsDiff(pull.TargetBranch)
+	if err != nil {
+		log.Println("failed to interdiff; current patch malformed")
+		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; current patch is invalid.")
+		return
+	}
+
+	previousPatch, err := pull.Submissions[roundIdInt-1].AsDiff(pull.TargetBranch)
+	if err != nil {
+		log.Println("failed to interdiff; previous patch malformed")
+		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; previous patch is invalid.")
+		return
+	}
+
+	interdiff := patchutil.Interdiff(previousPatch, currentPatch)
+
+	s.pages.RepoPullInterdiffPage(w, pages.RepoPullInterdiffParams{
+		LoggedInUser: s.auth.GetUser(r),
+		RepoInfo:     f.RepoInfo(s, user),
+		Pull:         pull,
+		Round:        roundIdInt,
+		DidHandleMap: didHandleMap,
+		Interdiff:    interdiff,
+	})
+	return
 }
 
 func (s *State) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {

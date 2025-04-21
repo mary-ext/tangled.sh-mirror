@@ -16,17 +16,19 @@ import (
 	"slices"
 	"strings"
 
+	"tangled.sh/tangled.sh/core/appview/auth"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pages/markup"
+	"tangled.sh/tangled.sh/core/appview/state/userutil"
+	"tangled.sh/tangled.sh/core/patchutil"
+	"tangled.sh/tangled.sh/core/types"
+
 	"github.com/alecthomas/chroma/v2"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/microcosm-cc/bluemonday"
-	"tangled.sh/tangled.sh/core/appview/auth"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages/markup"
-	"tangled.sh/tangled.sh/core/appview/state/userutil"
-	"tangled.sh/tangled.sh/core/types"
 )
 
 //go:embed templates/* static
@@ -705,6 +707,20 @@ type RepoPullPatchParams struct {
 // this name is a mouthful
 func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error {
 	return p.execute("repo/pulls/patch", w, params)
+}
+
+type RepoPullInterdiffParams struct {
+	LoggedInUser *auth.User
+	DidHandleMap map[string]string
+	RepoInfo     RepoInfo
+	Pull         *db.Pull
+	Round        int
+	Interdiff    *patchutil.InterdiffResult
+}
+
+// this name is a mouthful
+func (p *Pages) RepoPullInterdiffPage(w io.Writer, params RepoPullInterdiffParams) error {
+	return p.execute("repo/pulls/interdiff", w, params)
 }
 
 type PullPatchUploadParams struct {
