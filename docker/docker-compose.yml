@@ -4,8 +4,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     environment:
-      KNOT_SERVER_HOSTNAME: "knot.example.org"
-      KNOT_SERVER_SECRET: "secret"
+      KNOT_SERVER_HOSTNAME: ${KNOT_SERVER_HOSTNAME}
+      KNOT_SERVER_SECRET: ${KNOT_SERVER_SECRET}
       KNOT_SERVER_DB_PATH: "/app/knotserver.db"
       KNOT_REPO_SCAN_PATH: "/home/git/repositories"
     volumes:
