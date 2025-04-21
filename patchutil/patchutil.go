@@ -182,7 +182,7 @@ func Unified(oldText, oldFile, newText, newFile string) (string, error) {
 	}
 	newTemp.Close()
 
-	cmd := exec.Command("diff", "-U", "9999", "--label", oldFile, "--label", newFile, oldTemp.Name(), newTemp.Name())
+	cmd := exec.Command("diff", "-u", "--label", oldFile, "--label", newFile, oldTemp.Name(), newTemp.Name())
 	output, err := cmd.CombinedOutput()
 
 	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
