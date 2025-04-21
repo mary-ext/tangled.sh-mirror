@@ -10,18 +10,15 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/interdiff"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
-	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -351,21 +348,21 @@ func (s *State) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	currentPatch, _, err := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt].Patch))
+	currentPatch, err := pull.Submissions[roundIdInt].AsDiff(pull.TargetBranch)
 	if err != nil {
 		log.Println("failed to interdiff; current patch malformed")
 		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; current patch is invalid.")
 		return
 	}
 
-	previousPatch, _, err := gitdiff.Parse(strings.NewReader(pull.Submissions[roundIdInt-1].Patch))
+	previousPatch, err := pull.Submissions[roundIdInt-1].AsDiff(pull.TargetBranch)
 	if err != nil {
 		log.Println("failed to interdiff; previous patch malformed")
 		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; previous patch is invalid.")
 		return
 	}
 
-	interdiff := interdiff.Interdiff(previousPatch, currentPatch)
+	interdiff := patchutil.Interdiff(previousPatch, currentPatch)
 
 	s.pages.RepoPullInterdiffPage(w, pages.RepoPullInterdiffParams{
 		LoggedInUser: s.auth.GetUser(r),

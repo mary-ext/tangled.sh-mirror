@@ -150,10 +150,35 @@ func (p *Pull) IsForkBased() bool {
 	return false
 }
 
-func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
+func (s PullSubmission) AsDiff(targetBranch string) ([]*gitdiff.File, error) {
 	patch := s.Patch
 
-	diffs, _, err := gitdiff.Parse(strings.NewReader(patch))
+	// if format-patch; then extract each patch
+	var diffs []*gitdiff.File
+	if patchutil.IsFormatPatch(patch) {
+		patches, err := patchutil.ExtractPatches(patch)
+		if err != nil {
+			return nil, err
+		}
+		var ps [][]*gitdiff.File
+		for _, p := range patches {
+			ps = append(ps, p.Files)
+		}
+
+		diffs = patchutil.CombineDiff(ps...)
+	} else {
+		d, _, err := gitdiff.Parse(strings.NewReader(patch))
+		if err != nil {
+			return nil, err
+		}
+		diffs = d
+	}
+
+	return diffs, nil
+}
+
+func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
+	diffs, err := s.AsDiff(targetBranch)
 	if err != nil {
 		log.Println(err)
 	}

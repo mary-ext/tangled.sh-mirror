@@ -20,7 +20,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
-	"tangled.sh/tangled.sh/core/interdiff"
+	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/alecthomas/chroma/v2"
@@ -715,7 +715,7 @@ type RepoPullInterdiffParams struct {
 	RepoInfo     RepoInfo
 	Pull         *db.Pull
 	Round        int
-	Interdiff    *interdiff.InterdiffResult
+	Interdiff    *patchutil.InterdiffResult
 }
 
 // this name is a mouthful

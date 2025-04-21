@@ -10,7 +10,7 @@ import (
 
 func main() {
 	if len(os.Args) != 3 {
-		fmt.Println("Usage: interdiff <patch1> <patch2>")
+		fmt.Println("Usage: combinediff <patch1> <patch2>")
 		os.Exit(1)
 	}
 
@@ -33,6 +33,6 @@ func main() {
 		fmt.Println(err)
 	}
 
-	interDiffResult := patchutil.Interdiff(files1, files2)
-	fmt.Println(interDiffResult)
+	combined := patchutil.CombineDiff(files1, files2)
+	fmt.Println(combined)
 }
