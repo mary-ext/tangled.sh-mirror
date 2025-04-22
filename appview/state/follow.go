@@ -8,6 +8,7 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	tangled "tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
 )
@@ -36,7 +37,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		createdAt := time.Now().Format(time.RFC3339)
-		rkey := s.TID()
+		rkey := appview.TID()
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.GraphFollowNSID,
 			Repo:       currentUser.Did,

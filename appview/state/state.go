@@ -91,8 +91,8 @@ func Make(config *appview.Config) (*State, error) {
 	return state, nil
 }
 
-func (s *State) TID() string {
-	return s.tidClock.Next().String()
+func TID(c *syntax.TIDClock) string {
+	return c.Next().String()
 }
 
 func (s *State) Login(w http.ResponseWriter, r *http.Request) {
@@ -522,7 +522,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.KnotMemberNSID,
 		Repo:       currentUser.Did,
-		Rkey:       s.TID(),
+		Rkey:       appview.TID(),
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.KnotMember{
 				Member:  memberIdent.DID.String(),
@@ -646,7 +646,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rkey := s.TID()
+		rkey := appview.TID()
 		repo := &db.Repo{
 			Did:         user.Did,
 			Name:        repoName,

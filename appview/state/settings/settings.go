@@ -1,4 +1,4 @@
-package state
+package settings
 
 import (
 	"database/sql"
@@ -10,29 +10,55 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/auth"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/email"
+	"tangled.sh/tangled.sh/core/appview/middleware"
+	"tangled.sh/tangled.sh/core/appview/pages"
+
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/email"
-	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
-func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
-	pubKeys, err := db.GetPublicKeys(s.db, user.Did)
+type Settings struct {
+	Db     *db.DB
+	Auth   *auth.Auth
+	Pages  *pages.Pages
+	Config *appview.Config
+}
+
+func (s *Settings) Router(r chi.Router) {
+	r.Use(middleware.AuthMiddleware(s.Auth))
+
+	r.Get("/", s.settings)
+	r.Put("/keys", s.keys)
+	r.Delete("/keys", s.keys)
+	r.Put("/emails", s.emails)
+	r.Delete("/emails", s.emails)
+	r.Get("/emails/verify", s.emailsVerify)
+	r.Post("/emails/verify/resend", s.emailsVerifyResend)
+	r.Post("/emails/primary", s.emailsPrimary)
+
+}
+
+func (s *Settings) settings(w http.ResponseWriter, r *http.Request) {
+	user := s.Auth.GetUser(r)
+	pubKeys, err := db.GetPublicKeys(s.Db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}
 
-	emails, err := db.GetAllEmails(s.db, user.Did)
+	emails, err := db.GetAllEmails(s.Db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}
 
-	s.pages.Settings(w, pages.SettingsParams{
+	s.Pages.Settings(w, pages.SettingsParams{
 		LoggedInUser: user,
 		PubKeys:      pubKeys,
 		Emails:       emails,
@@ -40,11 +66,11 @@ func (s *State) Settings(w http.ResponseWriter, r *http.Request) {
 }
 
 // buildVerificationEmail creates an email.Email struct for verification emails
-func (s *State) buildVerificationEmail(emailAddr, did, code string) email.Email {
+func (s *Settings) buildVerificationEmail(emailAddr, did, code string) email.Email {
 	verifyURL := s.verifyUrl(did, emailAddr, code)
 
 	return email.Email{
-		APIKey:  s.config.ResendApiKey,
+		APIKey:  s.Config.ResendApiKey,
 		From:    "noreply@notifs.tangled.sh",
 		To:      emailAddr,
 		Subject: "Verify your Tangled email",
@@ -56,60 +82,60 @@ func (s *State) buildVerificationEmail(emailAddr, did, code string) email.Email 
 }
 
 // sendVerificationEmail handles the common logic for sending verification emails
-func (s *State) sendVerificationEmail(w http.ResponseWriter, did, emailAddr, code string, errorContext string) error {
+func (s *Settings) sendVerificationEmail(w http.ResponseWriter, did, emailAddr, code string, errorContext string) error {
 	emailToSend := s.buildVerificationEmail(emailAddr, did, code)
 
 	err := email.SendEmail(emailToSend)
 	if err != nil {
 		log.Printf("sending email: %s", err)
-		s.pages.Notice(w, "settings-emails-error", fmt.Sprintf("Unable to send verification email at this moment, try again later. %s", errorContext))
+		s.Pages.Notice(w, "settings-emails-error", fmt.Sprintf("Unable to send verification email at this moment, try again later. %s", errorContext))
 		return err
 	}
 
 	return nil
 }
 
-func (s *State) SettingsEmails(w http.ResponseWriter, r *http.Request) {
+func (s *Settings) emails(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.pages.Notice(w, "settings-emails", "Unimplemented.")
+		s.Pages.Notice(w, "settings-emails", "Unimplemented.")
 		log.Println("unimplemented")
 		return
 	case http.MethodPut:
-		did := s.auth.GetDid(r)
+		did := s.Auth.GetDid(r)
 		emAddr := r.FormValue("email")
 		emAddr = strings.TrimSpace(emAddr)
 
 		if !email.IsValidEmail(emAddr) {
-			s.pages.Notice(w, "settings-emails-error", "Invalid email address.")
+			s.Pages.Notice(w, "settings-emails-error", "Invalid email address.")
 			return
 		}
 
 		// check if email already exists in database
-		existingEmail, err := db.GetEmail(s.db, did, emAddr)
+		existingEmail, err := db.GetEmail(s.Db, did, emAddr)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			log.Printf("checking for existing email: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
 			return
 		}
 
 		if err == nil {
 			if existingEmail.Verified {
-				s.pages.Notice(w, "settings-emails-error", "This email is already verified.")
+				s.Pages.Notice(w, "settings-emails-error", "This email is already verified.")
 				return
 			}
 
-			s.pages.Notice(w, "settings-emails-error", "This email is already added but not verified. Check your inbox for the verification link.")
+			s.Pages.Notice(w, "settings-emails-error", "This email is already added but not verified. Check your inbox for the verification link.")
 			return
 		}
 
 		code := uuid.New().String()
 
 		// Begin transaction
-		tx, err := s.db.Begin()
+		tx, err := s.Db.Begin()
 		if err != nil {
 			log.Printf("failed to start transaction: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
 			return
 		}
 		defer tx.Rollback()
@@ -121,7 +147,7 @@ func (s *State) SettingsEmails(w http.ResponseWriter, r *http.Request) {
 			VerificationCode: code,
 		}); err != nil {
 			log.Printf("adding email: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
 			return
 		}
 
@@ -132,48 +158,48 @@ func (s *State) SettingsEmails(w http.ResponseWriter, r *http.Request) {
 		// Commit transaction
 		if err := tx.Commit(); err != nil {
 			log.Printf("failed to commit transaction: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to add email at this moment, try again later.")
 			return
 		}
 
-		s.pages.Notice(w, "settings-emails-success", "Click the link in the email we sent you to verify your email address.")
+		s.Pages.Notice(w, "settings-emails-success", "Click the link in the email we sent you to verify your email address.")
 		return
 	case http.MethodDelete:
-		did := s.auth.GetDid(r)
+		did := s.Auth.GetDid(r)
 		emailAddr := r.FormValue("email")
 		emailAddr = strings.TrimSpace(emailAddr)
 
 		// Begin transaction
-		tx, err := s.db.Begin()
+		tx, err := s.Db.Begin()
 		if err != nil {
 			log.Printf("failed to start transaction: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
 			return
 		}
 		defer tx.Rollback()
 
 		if err := db.DeleteEmail(tx, did, emailAddr); err != nil {
 			log.Printf("deleting email: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
 			return
 		}
 
 		// Commit transaction
 		if err := tx.Commit(); err != nil {
 			log.Printf("failed to commit transaction: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to delete email at this moment, try again later.")
 			return
 		}
 
-		s.pages.HxLocation(w, "/settings")
+		s.Pages.HxLocation(w, "/settings")
 		return
 	}
 }
 
-func (s *State) verifyUrl(did string, email string, code string) string {
+func (s *Settings) verifyUrl(did string, email string, code string) string {
 	var appUrl string
-	if s.config.Dev {
-		appUrl = "http://" + s.config.ListenAddr
+	if s.Config.Dev {
+		appUrl = "http://" + s.Config.ListenAddr
 	} else {
 		appUrl = "https://tangled.sh"
 	}
@@ -181,7 +207,7 @@ func (s *State) verifyUrl(did string, email string, code string) string {
 	return fmt.Sprintf("%s/settings/emails/verify?did=%s&email=%s&code=%s", appUrl, url.QueryEscape(did), url.QueryEscape(email), url.QueryEscape(code))
 }
 
-func (s *State) SettingsEmailsVerify(w http.ResponseWriter, r *http.Request) {
+func (s *Settings) emailsVerify(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	// Get the parameters directly from the query
@@ -189,57 +215,57 @@ func (s *State) SettingsEmailsVerify(w http.ResponseWriter, r *http.Request) {
 	did := q.Get("did")
 	code := q.Get("code")
 
-	valid, err := db.CheckValidVerificationCode(s.db, did, emailAddr, code)
+	valid, err := db.CheckValidVerificationCode(s.Db, did, emailAddr, code)
 	if err != nil {
 		log.Printf("checking email verification: %s", err)
-		s.pages.Notice(w, "settings-emails-error", "Error verifying email. Please try again later.")
+		s.Pages.Notice(w, "settings-emails-error", "Error verifying email. Please try again later.")
 		return
 	}
 
 	if !valid {
-		s.pages.Notice(w, "settings-emails-error", "Invalid verification code. Please request a new verification email.")
+		s.Pages.Notice(w, "settings-emails-error", "Invalid verification code. Please request a new verification email.")
 		return
 	}
 
 	// Mark email as verified in the database
-	if err := db.MarkEmailVerified(s.db, did, emailAddr); err != nil {
+	if err := db.MarkEmailVerified(s.Db, did, emailAddr); err != nil {
 		log.Printf("marking email as verified: %s", err)
-		s.pages.Notice(w, "settings-emails-error", "Error updating email verification status. Please try again later.")
+		s.Pages.Notice(w, "settings-emails-error", "Error updating email verification status. Please try again later.")
 		return
 	}
 
 	http.Redirect(w, r, "/settings", http.StatusSeeOther)
 }
 
-func (s *State) SettingsEmailsVerifyResend(w http.ResponseWriter, r *http.Request) {
+func (s *Settings) emailsVerifyResend(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		s.pages.Notice(w, "settings-emails-error", "Invalid request method.")
+		s.Pages.Notice(w, "settings-emails-error", "Invalid request method.")
 		return
 	}
 
-	did := s.auth.GetDid(r)
+	did := s.Auth.GetDid(r)
 	emAddr := r.FormValue("email")
 	emAddr = strings.TrimSpace(emAddr)
 
 	if !email.IsValidEmail(emAddr) {
-		s.pages.Notice(w, "settings-emails-error", "Invalid email address.")
+		s.Pages.Notice(w, "settings-emails-error", "Invalid email address.")
 		return
 	}
 
 	// Check if email exists and is unverified
-	existingEmail, err := db.GetEmail(s.db, did, emAddr)
+	existingEmail, err := db.GetEmail(s.Db, did, emAddr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			s.pages.Notice(w, "settings-emails-error", "Email not found. Please add it first.")
+			s.Pages.Notice(w, "settings-emails-error", "Email not found. Please add it first.")
 		} else {
 			log.Printf("checking for existing email: %s", err)
-			s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+			s.Pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
 		}
 		return
 	}
 
 	if existingEmail.Verified {
-		s.pages.Notice(w, "settings-emails-error", "This email is already verified.")
+		s.Pages.Notice(w, "settings-emails-error", "This email is already verified.")
 		return
 	}
 
@@ -248,7 +274,7 @@ func (s *State) SettingsEmailsVerifyResend(w http.ResponseWriter, r *http.Reques
 		timeSinceLastSent := time.Since(*existingEmail.LastSent)
 		if timeSinceLastSent < 10*time.Minute {
 			waitTime := 10*time.Minute - timeSinceLastSent
-			s.pages.Notice(w, "settings-emails-error", fmt.Sprintf("Please wait %d minutes before requesting another verification email.", int(waitTime.Minutes()+1)))
+			s.Pages.Notice(w, "settings-emails-error", fmt.Sprintf("Please wait %d minutes before requesting another verification email.", int(waitTime.Minutes()+1)))
 			return
 		}
 	}
@@ -257,10 +283,10 @@ func (s *State) SettingsEmailsVerifyResend(w http.ResponseWriter, r *http.Reques
 	code := uuid.New().String()
 
 	// Begin transaction
-	tx, err := s.db.Begin()
+	tx, err := s.Db.Begin()
 	if err != nil {
 		log.Printf("failed to start transaction: %s", err)
-		s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+		s.Pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
 		return
 	}
 	defer tx.Rollback()
@@ -268,7 +294,7 @@ func (s *State) SettingsEmailsVerifyResend(w http.ResponseWriter, r *http.Reques
 	// Update the verification code and last sent time
 	if err := db.UpdateVerificationCode(tx, did, emAddr, code); err != nil {
 		log.Printf("updating email verification: %s", err)
-		s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+		s.Pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
 		return
 	}
 
@@ -280,65 +306,65 @@ func (s *State) SettingsEmailsVerifyResend(w http.ResponseWriter, r *http.Reques
 	// Commit transaction
 	if err := tx.Commit(); err != nil {
 		log.Printf("failed to commit transaction: %s", err)
-		s.pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
+		s.Pages.Notice(w, "settings-emails-error", "Unable to resend verification email at this moment, try again later.")
 		return
 	}
 
-	s.pages.Notice(w, "settings-emails-success", "Verification email resent. Click the link in the email we sent you to verify your email address.")
+	s.Pages.Notice(w, "settings-emails-success", "Verification email resent. Click the link in the email we sent you to verify your email address.")
 }
 
-func (s *State) SettingsEmailsPrimary(w http.ResponseWriter, r *http.Request) {
-	did := s.auth.GetDid(r)
+func (s *Settings) emailsPrimary(w http.ResponseWriter, r *http.Request) {
+	did := s.Auth.GetDid(r)
 	emailAddr := r.FormValue("email")
 	emailAddr = strings.TrimSpace(emailAddr)
 
 	if emailAddr == "" {
-		s.pages.Notice(w, "settings-emails-error", "Email address cannot be empty.")
+		s.Pages.Notice(w, "settings-emails-error", "Email address cannot be empty.")
 		return
 	}
 
-	if err := db.MakeEmailPrimary(s.db, did, emailAddr); err != nil {
+	if err := db.MakeEmailPrimary(s.Db, did, emailAddr); err != nil {
 		log.Printf("setting primary email: %s", err)
-		s.pages.Notice(w, "settings-emails-error", "Error setting primary email. Please try again later.")
+		s.Pages.Notice(w, "settings-emails-error", "Error setting primary email. Please try again later.")
 		return
 	}
 
-	s.pages.HxLocation(w, "/settings")
+	s.Pages.HxLocation(w, "/settings")
 }
 
-func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
+func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.pages.Notice(w, "settings-keys", "Unimplemented.")
+		s.Pages.Notice(w, "settings-keys", "Unimplemented.")
 		log.Println("unimplemented")
 		return
 	case http.MethodPut:
-		did := s.auth.GetDid(r)
+		did := s.Auth.GetDid(r)
 		key := r.FormValue("key")
 		key = strings.TrimSpace(key)
 		name := r.FormValue("name")
-		client, _ := s.auth.AuthorizedClient(r)
+		client, _ := s.Auth.AuthorizedClient(r)
 
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
 		if err != nil {
 			log.Printf("parsing public key: %s", err)
-			s.pages.Notice(w, "settings-keys", "That doesn't look like a valid public key. Make sure it's a <strong>public</strong> key.")
+			s.Pages.Notice(w, "settings-keys", "That doesn't look like a valid public key. Make sure it's a <strong>public</strong> key.")
 			return
 		}
 
-		rkey := s.TID()
+		rkey := appview.TID()
 
-		tx, err := s.db.Begin()
+		tx, err := s.Db.Begin()
 		if err != nil {
 			log.Printf("failed to start tx; adding public key: %s", err)
-			s.pages.Notice(w, "settings-keys", "Unable to add public key at this moment, try again later.")
+			s.Pages.Notice(w, "settings-keys", "Unable to add public key at this moment, try again later.")
 			return
 		}
 		defer tx.Rollback()
 
 		if err := db.AddPublicKey(tx, did, name, key, rkey); err != nil {
 			log.Printf("adding public key: %s", err)
-			s.pages.Notice(w, "settings-keys", "Failed to add public key.")
+			s.Pages.Notice(w, "settings-keys", "Failed to add public key.")
 			return
 		}
 
@@ -357,7 +383,7 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		// invalid record
 		if err != nil {
 			log.Printf("failed to create record: %s", err)
-			s.pages.Notice(w, "settings-keys", "Failed to create record.")
+			s.Pages.Notice(w, "settings-keys", "Failed to create record.")
 			return
 		}
 
@@ -366,15 +392,15 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		err = tx.Commit()
 		if err != nil {
 			log.Printf("failed to commit tx; adding public key: %s", err)
-			s.pages.Notice(w, "settings-keys", "Unable to add public key at this moment, try again later.")
+			s.Pages.Notice(w, "settings-keys", "Unable to add public key at this moment, try again later.")
 			return
 		}
 
-		s.pages.HxLocation(w, "/settings")
+		s.Pages.HxLocation(w, "/settings")
 		return
 
 	case http.MethodDelete:
-		did := s.auth.GetDid(r)
+		did := s.Auth.GetDid(r)
 		q := r.URL.Query()
 
 		name := q.Get("name")
@@ -385,11 +411,11 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 		log.Println(rkey)
 		log.Println(key)
 
-		client, _ := s.auth.AuthorizedClient(r)
+		client, _ := s.Auth.AuthorizedClient(r)
 
-		if err := db.RemovePublicKey(s.db, did, name, key); err != nil {
+		if err := db.RemovePublicKey(s.Db, did, name, key); err != nil {
 			log.Printf("removing public key: %s", err)
-			s.pages.Notice(w, "settings-keys", "Failed to remove public key.")
+			s.Pages.Notice(w, "settings-keys", "Failed to remove public key.")
 			return
 		}
 
@@ -404,13 +430,13 @@ func (s *State) SettingsKeys(w http.ResponseWriter, r *http.Request) {
 			// invalid record
 			if err != nil {
 				log.Printf("failed to delete record from PDS: %s", err)
-				s.pages.Notice(w, "settings-keys", "Failed to remove key from PDS.")
+				s.Pages.Notice(w, "settings-keys", "Failed to remove key from PDS.")
 				return
 			}
 		}
 		log.Println("deleted successfully")
 
-		s.pages.HxLocation(w, "/settings")
+		s.Pages.HxLocation(w, "/settings")
 		return
 	}
 }

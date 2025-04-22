@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"tangled.sh/tangled.sh/core/appview/middleware"
+	"tangled.sh/tangled.sh/core/appview/state/settings"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
 )
 
@@ -70,7 +72,7 @@ func (s *State) UserRouter() http.Handler {
 				r.Get("/{issue}", s.RepoSingleIssue)
 
 				r.Group(func(r chi.Router) {
-					r.Use(AuthMiddleware(s))
+					r.Use(middleware.AuthMiddleware(s.auth))
 					r.Get("/new", s.NewIssue)
 					r.Post("/new", s.NewIssue)
 					r.Post("/{issue}/comment", s.NewIssueComment)
@@ -86,14 +88,14 @@ func (s *State) UserRouter() http.Handler {
 			})
 
 			r.Route("/fork", func(r chi.Router) {
-				r.Use(AuthMiddleware(s))
+				r.Use(middleware.AuthMiddleware(s.auth))
 				r.Get("/", s.ForkRepo)
 				r.Post("/", s.ForkRepo)
 			})
 
 			r.Route("/pulls", func(r chi.Router) {
 				r.Get("/", s.RepoPulls)
-				r.With(AuthMiddleware(s)).Route("/new", func(r chi.Router) {
+				r.With(middleware.AuthMiddleware(s.auth)).Route("/new", func(r chi.Router) {
 					r.Get("/", s.NewPull)
 					r.Get("/patch-upload", s.PatchUploadFragment)
 					r.Post("/validate-patch", s.ValidatePatch)
@@ -111,7 +113,7 @@ func (s *State) UserRouter() http.Handler {
 						r.Get("/", s.RepoPullPatch)
 						r.Get("/interdiff", s.RepoPullInterdiff)
 						r.Get("/actions", s.PullActions)
-						r.With(AuthMiddleware(s)).Route("/comment", func(r chi.Router) {
+						r.With(middleware.AuthMiddleware(s.auth)).Route("/comment", func(r chi.Router) {
 							r.Get("/", s.PullComment)
 							r.Post("/", s.PullComment)
 						})
@@ -122,7 +124,7 @@ func (s *State) UserRouter() http.Handler {
 					})
 
 					r.Group(func(r chi.Router) {
-						r.Use(AuthMiddleware(s))
+						r.Use(middleware.AuthMiddleware(s.auth))
 						r.Route("/resubmit", func(r chi.Router) {
 							r.Get("/", s.ResubmitPull)
 							r.Post("/", s.ResubmitPull)
@@ -145,7 +147,7 @@ func (s *State) UserRouter() http.Handler {
 
 			// settings routes, needs auth
 			r.Group(func(r chi.Router) {
-				r.Use(AuthMiddleware(s))
+				r.Use(middleware.AuthMiddleware(s.auth))
 				// repo description can only be edited by owner
 				r.With(RepoPermissionMiddleware(s, "repo:owner")).Route("/description", func(r chi.Router) {
 					r.Put("/", s.RepoDescription)
@@ -176,7 +178,7 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Get("/", s.Timeline)
 
-	r.With(AuthMiddleware(s)).Post("/logout", s.Logout)
+	r.With(middleware.AuthMiddleware(s.auth)).Post("/logout", s.Logout)
 
 	r.Route("/login", func(r chi.Router) {
 		r.Get("/", s.Login)
@@ -184,7 +186,7 @@ func (s *State) StandardRouter() http.Handler {
 	})
 
 	r.Route("/knots", func(r chi.Router) {
-		r.Use(AuthMiddleware(s))
+		r.Use(middleware.AuthMiddleware(s.auth))
 		r.Get("/", s.Knots)
 		r.Post("/key", s.RegistrationKey)
 
@@ -202,34 +204,24 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
-			r.Use(AuthMiddleware(s))
+			r.Use(middleware.AuthMiddleware(s.auth))
 			r.Get("/", s.NewRepo)
 			r.Post("/", s.NewRepo)
 		})
 		// r.Post("/import", s.ImportRepo)
 	})
 
-	r.With(AuthMiddleware(s)).Route("/follow", func(r chi.Router) {
+	r.With(middleware.AuthMiddleware(s.auth)).Route("/follow", func(r chi.Router) {
 		r.Post("/", s.Follow)
 		r.Delete("/", s.Follow)
 	})
 
-	r.With(AuthMiddleware(s)).Route("/star", func(r chi.Router) {
+	r.With(middleware.AuthMiddleware(s.auth)).Route("/star", func(r chi.Router) {
 		r.Post("/", s.Star)
 		r.Delete("/", s.Star)
 	})
 
-	r.Route("/settings", func(r chi.Router) {
-		r.Use(AuthMiddleware(s))
-		r.Get("/", s.Settings)
-		r.Put("/keys", s.SettingsKeys)
-		r.Delete("/keys", s.SettingsKeys)
-		r.Put("/emails", s.SettingsEmails)
-		r.Delete("/emails", s.SettingsEmails)
-		r.Get("/emails/verify", s.SettingsEmailsVerify)
-		r.Post("/emails/verify/resend", s.SettingsEmailsVerifyResend)
-		r.Post("/emails/primary", s.SettingsEmailsPrimary)
-	})
+	r.Route("/settings", s.SettingsRouter)
 
 	r.Get("/keys/{user}", s.Keys)
 
@@ -237,4 +229,15 @@ func (s *State) StandardRouter() http.Handler {
 		s.pages.Error404(w)
 	})
 	return r
+}
+
+func (s *State) SettingsRouter(r chi.Router) {
+	settings := &settings.Settings{
+		Db:     s.db,
+		Auth:   s.auth,
+		Pages:  s.pages,
+		Config: s.config,
+	}
+
+	settings.Router(r)
 }

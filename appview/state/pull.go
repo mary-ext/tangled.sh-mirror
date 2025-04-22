@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
@@ -521,7 +522,7 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 		atResp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoPullCommentNSID,
 			Repo:       user.Did,
-			Rkey:       s.TID(),
+			Rkey:       appview.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoPullComment{
 					Repo:      &atUri,
@@ -846,7 +847,7 @@ func (s *State) createPullRequest(
 		body = formatPatches[0].Body
 	}
 
-	rkey := s.TID()
+	rkey := appview.TID()
 	initialSubmission := db.PullSubmission{
 		Patch:     patch,
 		SourceRev: sourceRev,

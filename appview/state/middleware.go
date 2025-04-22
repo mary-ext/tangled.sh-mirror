@@ -10,98 +10,13 @@ import (
 
 	"slices"
 
-	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"
-	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview"
-	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/middleware"
 )
 
-type Middleware func(http.Handler) http.Handler
-
-func AuthMiddleware(s *State) Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			redirectFunc := func(w http.ResponseWriter, r *http.Request) {
-				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
-			}
-			if r.Header.Get("HX-Request") == "true" {
-				redirectFunc = func(w http.ResponseWriter, _ *http.Request) {
-					w.Header().Set("HX-Redirect", "/login")
-					w.WriteHeader(http.StatusOK)
-				}
-			}
-
-			session, err := s.auth.GetSession(r)
-			if session.IsNew || err != nil {
-				log.Printf("not logged in, redirecting")
-				redirectFunc(w, r)
-				return
-			}
-
-			authorized, ok := session.Values[appview.SessionAuthenticated].(bool)
-			if !ok || !authorized {
-				log.Printf("not logged in, redirecting")
-				redirectFunc(w, r)
-				return
-			}
-
-			// refresh if nearing expiry
-			// TODO: dedup with /login
-			expiryStr := session.Values[appview.SessionExpiry].(string)
-			expiry, err := time.Parse(time.RFC3339, expiryStr)
-			if err != nil {
-				log.Println("invalid expiry time", err)
-				redirectFunc(w, r)
-				return
-			}
-			pdsUrl, ok1 := session.Values[appview.SessionPds].(string)
-			did, ok2 := session.Values[appview.SessionDid].(string)
-			refreshJwt, ok3 := session.Values[appview.SessionRefreshJwt].(string)
-
-			if !ok1 || !ok2 || !ok3 {
-				log.Println("invalid expiry time", err)
-				redirectFunc(w, r)
-				return
-			}
-
-			if time.Now().After(expiry) {
-				log.Println("token expired, refreshing ...")
-
-				client := xrpc.Client{
-					Host: pdsUrl,
-					Auth: &xrpc.AuthInfo{
-						Did:        did,
-						AccessJwt:  refreshJwt,
-						RefreshJwt: refreshJwt,
-					},
-				}
-				atSession, err := comatproto.ServerRefreshSession(r.Context(), &client)
-				if err != nil {
-					log.Println("failed to refresh session", err)
-					redirectFunc(w, r)
-					return
-				}
-
-				sessionish := auth.RefreshSessionWrapper{atSession}
-
-				err = s.auth.StoreSession(r, w, &sessionish, pdsUrl)
-				if err != nil {
-					log.Printf("failed to store session for did: %s\n: %s", atSession.Did, err)
-					return
-				}
-
-				log.Println("successfully refreshed token")
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func knotRoleMiddleware(s *State, group string) Middleware {
+func knotRoleMiddleware(s *State, group string) middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// requires auth also
@@ -131,11 +46,11 @@ func knotRoleMiddleware(s *State, group string) Middleware {
 	}
 }
 
-func KnotOwner(s *State) Middleware {
+func KnotOwner(s *State) middleware.Middleware {
 	return knotRoleMiddleware(s, "server:owner")
 }
 
-func RepoPermissionMiddleware(s *State, requiredPerm string) Middleware {
+func RepoPermissionMiddleware(s *State, requiredPerm string) middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// requires auth also
@@ -175,7 +90,7 @@ func StripLeadingAt(next http.Handler) http.Handler {
 	})
 }
 
-func ResolveIdent(s *State) Middleware {
+func ResolveIdent(s *State) middleware.Middleware {
 	excluded := []string{"favicon.ico"}
 
 	return func(next http.Handler) http.Handler {
@@ -201,7 +116,7 @@ func ResolveIdent(s *State) Middleware {
 	}
 }
 
-func ResolveRepo(s *State) Middleware {
+func ResolveRepo(s *State) middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			repoName := chi.URLParam(req, "repo")
@@ -230,7 +145,7 @@ func ResolveRepo(s *State) Middleware {
 }
 
 // middleware that is tacked on top of /{user}/{repo}/pulls/{pull}
-func ResolvePull(s *State) Middleware {
+func ResolvePull(s *State) middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			f, err := fullyResolvedRepo(r)

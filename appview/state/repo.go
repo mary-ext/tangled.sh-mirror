@@ -23,6 +23,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
@@ -1116,7 +1117,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueStateNSID,
 			Repo:       user.Did,
-			Rkey:       s.TID(),
+			Rkey:       appview.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssueState{
 					Issue: issue.IssueAt,
@@ -1220,7 +1221,7 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		commentId := mathrand.IntN(1000000)
-		rkey := s.TID()
+		rkey := appview.TID()
 
 		err := db.NewIssueComment(s.db, &db.Comment{
 			OwnerDid:  user.Did,
@@ -1650,7 +1651,7 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,
-			Rkey:       s.TID(),
+			Rkey:       appview.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssue{
 					Repo:    atUri,
@@ -1754,7 +1755,7 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		sourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
 		sourceAt := f.RepoAt.String()
 
-		rkey := s.TID()
+		rkey := appview.TID()
 		repo := &db.Repo{
 			Did:    user.Did,
 			Name:   forkName,
