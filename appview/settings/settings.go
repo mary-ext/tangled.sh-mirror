@@ -32,18 +32,27 @@ type Settings struct {
 	Config *appview.Config
 }
 
-func (s *Settings) Router(r chi.Router) {
+func (s *Settings) Router() http.Handler {
+	r := chi.NewRouter()
+
 	r.Use(middleware.AuthMiddleware(s.Auth))
 
 	r.Get("/", s.settings)
-	r.Put("/keys", s.keys)
-	r.Delete("/keys", s.keys)
-	r.Put("/emails", s.emails)
-	r.Delete("/emails", s.emails)
-	r.Get("/emails/verify", s.emailsVerify)
-	r.Post("/emails/verify/resend", s.emailsVerifyResend)
-	r.Post("/emails/primary", s.emailsPrimary)
 
+	r.Route("/keys", func(r chi.Router) {
+		r.Put("/", s.keys)
+		r.Delete("/", s.keys)
+	})
+
+	r.Route("/emails", func(r chi.Router) {
+		r.Put("/", s.emails)
+		r.Delete("/", s.emails)
+		r.Get("/verify", s.emailsVerify)
+		r.Post("/verify/resend", s.emailsVerifyResend)
+		r.Post("/primary", s.emailsPrimary)
+	})
+
+	return r
 }
 
 func (s *Settings) settings(w http.ResponseWriter, r *http.Request) {

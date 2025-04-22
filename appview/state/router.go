@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/appview/middleware"
-	"tangled.sh/tangled.sh/core/appview/state/settings"
+	"tangled.sh/tangled.sh/core/appview/settings"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
 )
 
@@ -221,7 +221,7 @@ func (s *State) StandardRouter() http.Handler {
 		r.Delete("/", s.Star)
 	})
 
-	r.Route("/settings", s.SettingsRouter)
+	r.Mount("/settings", s.SettingsRouter())
 
 	r.Get("/keys/{user}", s.Keys)
 
@@ -231,7 +231,7 @@ func (s *State) StandardRouter() http.Handler {
 	return r
 }
 
-func (s *State) SettingsRouter(r chi.Router) {
+func (s *State) SettingsRouter() http.Handler {
 	settings := &settings.Settings{
 		Db:     s.db,
 		Auth:   s.auth,
@@ -239,5 +239,5 @@ func (s *State) SettingsRouter(r chi.Router) {
 		Config: s.config,
 	}
 
-	settings.Router(r)
+	return settings.Router()
 }

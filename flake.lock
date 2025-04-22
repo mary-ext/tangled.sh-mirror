@@ -48,11 +48,11 @@
     "indigo": {
       "flake": false,
       "locked": {
-        "lastModified": 1738491661,
-        "narHash": "sha256-+njDigkvjH4XmXZMog5Mp0K4x9mamHX6gSGJCZB9mE4=",
+        "lastModified": 1745333930,
+        "narHash": "sha256-83fIHqDE+dfnZ88HaNuwfKFO+R0RKAM1WxMfNh/Matk=",
         "owner": "oppiliappan",
         "repo": "indigo",
-        "rev": "feb802f02a462ac0a6392ffc3e40b0529f0cdf71",
+        "rev": "e4e59280737b8676611fc077a228d47b3e8e9491",
         "type": "github"
       },
       "original": {
