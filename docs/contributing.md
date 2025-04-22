@@ -11,13 +11,13 @@ change does and why it's needed
 ### message format
 
 ``` 
-<service/top-level directory>: <package/path>: <short summary of change>
+<service/top-level directory>: <affected package/directory>: <short summary of change>
 
 
-Optional longer description, if needed. Explain what the change does and
-why, especially if not obvious. Reference relevant issues or PRs when
-applicable. These can be links for now since we don't auto-link
-issues/PRs yet. 
+Optional longer description can go here, if necessary. Explain what the
+change does and why, especially if not obvious. Reference relevant
+issues or PRs when applicable. These can be links for now since we don't
+auto-link issues/PRs yet.
 ```
 
 Here are some examples:
@@ -35,8 +35,10 @@ knotserver: git/service: improve error checking in upload-pack
 
 ### general notes
 
-- PRs get merged as a single commit, so keep PRs small and focused. Use
-the above guidelines for the PR title and description.
+- PRs get merged "as-is" (fast-forward) -- like applying a patch-series
+using `git am`. At present, there is no squashing -- so please author
+your commits as they would appear on `master`, following the above
+guidelines.
 - Use the imperative mood in the summary line (e.g., "fix bug" not
 "fixed bug" or "fixes bug").
 - Try to keep the summary line under 72 characters, but we aren't too
