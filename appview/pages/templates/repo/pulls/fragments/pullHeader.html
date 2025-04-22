@@ -43,16 +43,16 @@
             </span>
             {{ if not .Pull.IsPatchBased }}
             <span>from
-              {{ if not .Pull.IsBranchBased }}
-                <a href="/{{ $owner }}/{{ .PullSourceRepo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSourceRepo.Name }}</a>
+              {{ if .Pull.IsForkBased }}
+                {{ if .Pull.PullSource.Repo }}
+                <a href="/{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}</a>
+                {{ else }}
+                <span class="italic">[deleted fork]</span>
+                {{ end }}
               {{ end }}
 
-              {{ $fullRepo := .RepoInfo.FullName }}
-              {{ if not .Pull.IsBranchBased }}
-                {{ $fullRepo = printf "%s/%s" $owner .PullSourceRepo.Name }}
-              {{ end }}
               <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-                <a href="/{{ $fullRepo }}/tree/{{ .Pull.PullSource.Branch }}" class="no-underline hover:underline">{{ .Pull.PullSource.Branch }}</a>
+                {{ .Pull.PullSource.Branch }}
               </span>
             </span>
             {{ end }}

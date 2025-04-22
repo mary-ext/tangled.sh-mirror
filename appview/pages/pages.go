@@ -679,14 +679,13 @@ func (r ResubmitResult) Unknown() bool {
 }
 
 type RepoSinglePullParams struct {
-	LoggedInUser   *auth.User
-	RepoInfo       RepoInfo
-	Active         string
-	DidHandleMap   map[string]string
-	Pull           *db.Pull
-	PullSourceRepo *db.Repo
-	MergeCheck     types.MergeCheckResponse
-	ResubmitCheck  ResubmitResult
+	LoggedInUser  *auth.User
+	RepoInfo      RepoInfo
+	Active        string
+	DidHandleMap  map[string]string
+	Pull          *db.Pull
+	MergeCheck    types.MergeCheckResponse
+	ResubmitCheck ResubmitResult
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {

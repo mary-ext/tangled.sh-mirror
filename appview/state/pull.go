@@ -120,25 +120,13 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		resubmitResult = s.resubmitCheck(f, pull)
 	}
 
-	var pullSourceRepo *db.Repo
-	if pull.PullSource != nil {
-		if pull.PullSource.RepoAt != nil {
-			pullSourceRepo, err = db.GetRepoByAtUri(s.db, pull.PullSource.RepoAt.String())
-			if err != nil {
-				log.Printf("failed to get repo by at uri: %v", err)
-				return
-			}
-		}
-	}
-
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
-		LoggedInUser:   user,
-		RepoInfo:       f.RepoInfo(s, user),
-		DidHandleMap:   didHandleMap,
-		Pull:           pull,
-		PullSourceRepo: pullSourceRepo,
-		MergeCheck:     mergeCheckResponse,
-		ResubmitCheck:  resubmitResult,
+		LoggedInUser:  user,
+		RepoInfo:      f.RepoInfo(s, user),
+		DidHandleMap:  didHandleMap,
+		Pull:          pull,
+		MergeCheck:    mergeCheckResponse,
+		ResubmitCheck: resubmitResult,
 	})
 }
 

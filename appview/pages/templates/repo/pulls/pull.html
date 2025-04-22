@@ -90,10 +90,14 @@
                  <div class="text-sm text-gray-500 dark:text-gray-400">
                    {{ if not $.Pull.IsPatchBased }}
                      {{ $fullRepo := $.RepoInfo.FullName }}
-                     {{ if not $.Pull.IsBranchBased }}
-                       {{ $fullRepo = printf "%s/%s" $owner $.PullSourceRepo.Name }}
+                     {{ if $.Pull.IsForkBased }}
+                        {{ if $.Pull.PullSource.Repo }}
+                          {{ $fullRepo = printf "%s/%s" $owner $.Pull.PullSource.Repo.Name }}
+                          <a href="/{{ $fullRepo }}/commit/{{ .SHA }}" class="font-mono text-gray-500 dark:text-gray-400">{{ slice .SHA 0 8 }}</a>
+                        {{ else }}
+                          <span class="font-mono">{{ slice .SHA 0 8 }}</span>
+                        {{ end }}
                      {{ end }}
-                     <a href="/{{ $fullRepo }}/commit/{{ .SHA }}" class="font-mono text-gray-500 dark:text-gray-400">{{ slice .SHA 0 8 }}</a>
                    {{ else }}
                      <span class="font-mono">{{ slice .SHA 0 8 }}</span>
                    {{ end }}

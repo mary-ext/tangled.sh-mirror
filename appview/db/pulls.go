@@ -654,6 +654,18 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		return nil, err
 	}
 
+	var pullSourceRepo *Repo
+	if pull.PullSource != nil {
+		if pull.PullSource.RepoAt != nil {
+			pullSourceRepo, err = GetRepoByAtUri(e, pull.PullSource.RepoAt.String())
+			if err != nil {
+				log.Printf("failed to get repo by at uri: %v", err)
+			} else {
+				pull.PullSource.Repo = pullSourceRepo
+			}
+		}
+	}
+
 	pull.Submissions = make([]*PullSubmission, len(submissionsMap))
 	for _, submission := range submissionsMap {
 		pull.Submissions[submission.RoundNumber] = submission
