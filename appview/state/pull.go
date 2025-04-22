@@ -804,7 +804,7 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *F
 	sourceRev := comparison.Rev2
 	patch := comparison.Patch
 
-	if patchutil.IsPatchValid(patch) {
+	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
