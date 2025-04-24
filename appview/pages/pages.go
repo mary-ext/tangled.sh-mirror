@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"slices"
@@ -35,41 +36,53 @@ import (
 var Files embed.FS
 
 type Pages struct {
-	t map[string]*template.Template
+	t           map[string]*template.Template
+	dev         bool
+	embedFS     embed.FS
+	templateDir string // Path to templates on disk for dev mode
 }
 
-func NewPages() *Pages {
-	templates := make(map[string]*template.Template)
+func NewPages(dev bool) *Pages {
+	p := &Pages{
+		t:           make(map[string]*template.Template),
+		dev:         dev,
+		embedFS:     Files,
+		templateDir: "appview/pages",
+	}
 
+	// Initial load of all templates
+	p.loadAllTemplates()
+
+	return p
+}
+
+func (p *Pages) loadAllTemplates() {
+	templates := make(map[string]*template.Template)
 	var fragmentPaths []string
+
+	// Use embedded FS for initial loading
 	// First, collect all fragment paths
-	err := fs.WalkDir(Files, "templates", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(p.embedFS, "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
 		if d.IsDir() {
 			return nil
 		}
-
 		if !strings.HasSuffix(path, ".html") {
 			return nil
 		}
-
 		if !strings.Contains(path, "fragments/") {
 			return nil
 		}
-
 		name := strings.TrimPrefix(path, "templates/")
 		name = strings.TrimSuffix(name, ".html")
-
 		tmpl, err := template.New(name).
 			Funcs(funcMap()).
-			ParseFS(Files, path)
+			ParseFS(p.embedFS, path)
 		if err != nil {
 			log.Fatalf("setting up fragment: %v", err)
 		}
-
 		templates[name] = tmpl
 		fragmentPaths = append(fragmentPaths, path)
 		log.Printf("loaded fragment: %s", name)
@@ -80,32 +93,26 @@ func NewPages() *Pages {
 	}
 
 	// Then walk through and setup the rest of the templates
-	err = fs.WalkDir(Files, "templates", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(p.embedFS, "templates", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
 		if d.IsDir() {
 			return nil
 		}
-
 		if !strings.HasSuffix(path, "html") {
 			return nil
 		}
-
 		// Skip fragments as they've already been loaded
 		if strings.Contains(path, "fragments/") {
 			return nil
 		}
-
 		// Skip layouts
 		if strings.Contains(path, "layouts/") {
 			return nil
 		}
-
 		name := strings.TrimPrefix(path, "templates/")
 		name = strings.TrimSuffix(name, ".html")
-
 		// Add the page template on top of the base
 		allPaths := []string{}
 		allPaths = append(allPaths, "templates/layouts/*.html")
@@ -113,11 +120,10 @@ func NewPages() *Pages {
 		allPaths = append(allPaths, path)
 		tmpl, err := template.New(name).
 			Funcs(funcMap()).
-			ParseFS(Files, allPaths...)
+			ParseFS(p.embedFS, allPaths...)
 		if err != nil {
 			return fmt.Errorf("setting up template: %w", err)
 		}
-
 		templates[name] = tmpl
 		log.Printf("loaded template: %s", name)
 		return nil
@@ -127,17 +133,86 @@ func NewPages() *Pages {
 	}
 
 	log.Printf("total templates loaded: %d", len(templates))
-
-	return &Pages{
-		t: templates,
-	}
+	p.t = templates
 }
 
-type LoginParams struct {
+// loadTemplateFromDisk loads a template from the filesystem in dev mode
+func (p *Pages) loadTemplateFromDisk(name string) error {
+	if !p.dev {
+		return nil
+	}
+
+	log.Printf("reloading template from disk: %s", name)
+
+	// Find all fragments first
+	var fragmentPaths []string
+	err := filepath.WalkDir(filepath.Join(p.templateDir, "templates"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(path, ".html") {
+			return nil
+		}
+		if !strings.Contains(path, "fragments/") {
+			return nil
+		}
+		fragmentPaths = append(fragmentPaths, path)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("walking disk template dir for fragments: %w", err)
+	}
+
+	// Find the template path on disk
+	templatePath := filepath.Join(p.templateDir, "templates", name+".html")
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		return fmt.Errorf("template not found on disk: %s", name)
+	}
+
+	// Create a new template
+	tmpl := template.New(name).Funcs(funcMap())
+
+	// Parse layouts
+	layoutGlob := filepath.Join(p.templateDir, "templates", "layouts", "*.html")
+	layouts, err := filepath.Glob(layoutGlob)
+	if err != nil {
+		return fmt.Errorf("finding layout templates: %w", err)
+	}
+
+	// Create paths for parsing
+	allFiles := append(layouts, fragmentPaths...)
+	allFiles = append(allFiles, templatePath)
+
+	// Parse all templates
+	tmpl, err = tmpl.ParseFiles(allFiles...)
+	if err != nil {
+		return fmt.Errorf("parsing template files: %w", err)
+	}
+
+	// Update the template in the map
+	p.t[name] = tmpl
+	log.Printf("template reloaded from disk: %s", name)
+	return nil
 }
 
 func (p *Pages) execute(name string, w io.Writer, params any) error {
-	return p.t[name].ExecuteTemplate(w, "layouts/base", params)
+	// In dev mode, reload the template from disk before executing
+	if p.dev {
+		if err := p.loadTemplateFromDisk(name); err != nil {
+			log.Printf("warning: failed to reload template %s from disk: %v", name, err)
+			// Continue with the existing template
+		}
+	}
+
+	tmpl, exists := p.t[name]
+	if !exists {
+		return fmt.Errorf("template not found: %s", name)
+	}
+
+	return tmpl.ExecuteTemplate(w, "layouts/base", params)
 }
 
 func (p *Pages) executePlain(name string, w io.Writer, params any) error {
@@ -146,6 +221,9 @@ func (p *Pages) executePlain(name string, w io.Writer, params any) error {
 
 func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
 	return p.t[name].ExecuteTemplate(w, "layouts/repobase", params)
+}
+
+type LoginParams struct {
 }
 
 func (p *Pages) Login(w io.Writer, params LoginParams) error {
@@ -794,6 +872,10 @@ func (p *Pages) PullNewCommentFragment(w io.Writer, params PullNewCommentParams)
 }
 
 func (p *Pages) Static() http.Handler {
+	if p.dev {
+		return http.StripPrefix("/static/", http.FileServer(http.Dir("appview/pages/static")))
+	}
+
 	sub, err := fs.Sub(Files, "static")
 	if err != nil {
 		log.Fatalf("no static dir found? that's crazy: %v", err)
