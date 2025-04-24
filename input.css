@@ -162,11 +162,11 @@
 /* CommentSpecial */ .chroma .cs { color: #9ca0b0; font-style: italic }
 /* CommentPreproc */ .chroma .cp { color: #9ca0b0; font-style: italic }
 /* CommentPreprocFile */ .chroma .cpf { color: #9ca0b0; font-weight: bold; font-style: italic }
-/* GenericDeleted */ .chroma .gd { color: #d20f39; background-color: #ccd0da }
+/* GenericDeleted */ .chroma .gd { color: #d20f39; background-color: oklch(93.6% 0.032 17.717) }
 /* GenericEmph */ .chroma .ge { font-style: italic }
 /* GenericError */ .chroma .gr { color: #d20f39 }
 /* GenericHeading */ .chroma .gh { color: #fe640b; font-weight: bold }
-/* GenericInserted */ .chroma .gi { color: #40a02b; background-color: #ccd0da }
+/* GenericInserted */ .chroma .gi { color: #40a02b; background-color: oklch(96.2% 0.044 156.743) }
 /* GenericStrong */ .chroma .gs { font-weight: bold }
 /* GenericSubheading */ .chroma .gu { color: #fe640b; font-weight: bold }
 /* GenericTraceback */ .chroma .gt { color: #d20f39 }
@@ -239,11 +239,11 @@
 /* CommentSpecial */ .chroma .cs { color: #6e738d; font-style: italic }
 /* CommentPreproc */ .chroma .cp { color: #6e738d; font-style: italic }
 /* CommentPreprocFile */ .chroma .cpf { color: #6e738d; font-weight: bold; font-style: italic }
-/* GenericDeleted */ .chroma .gd { color: #ed8796; background-color: #363a4f }
+/* GenericDeleted */ .chroma .gd { color: #ed8796; background-color: oklch(44.4% 0.177 26.899 / 0.5) }
 /* GenericEmph */ .chroma .ge { font-style: italic }
 /* GenericError */ .chroma .gr { color: #ed8796 }
 /* GenericHeading */ .chroma .gh { color: #f5a97f; font-weight: bold }
-/* GenericInserted */ .chroma .gi { color: #a6da95; background-color: #363a4f }
+/* GenericInserted */ .chroma .gi { color: #a6da95; background-color: oklch(44.8% 0.119 151.328 / 0.5) }
 /* GenericStrong */ .chroma .gs { font-weight: bold }
 /* GenericSubheading */ .chroma .gu { color: #f5a97f; font-weight: bold }
 /* GenericTraceback */ .chroma .gt { color: #ed8796 }
