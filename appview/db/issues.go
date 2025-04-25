@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.sh/tangled.sh/core/appview/pagination"
 )
 
 type Issue struct {
@@ -102,7 +103,7 @@ func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error
 	return ownerDid, err
 }
 
-func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool) ([]Issue, error) {
+func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page) ([]Issue, error) {
 	var issues []Issue
 	openValue := 0
 	if isOpen {
@@ -110,25 +111,39 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool) ([]Issue, error) {
 	}
 
 	rows, err := e.Query(
-		`select
-			i.owner_did,
-			i.issue_id,
-			i.created,
-			i.title,
-			i.body,
-			i.open,
-			count(c.id)
-		from
-		    issues i
-		left join
-			comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
-		where
-		    i.repo_at = ? and i.open = ?
-		group by
-			i.id, i.owner_did, i.issue_id, i.created, i.title, i.body, i.open
-		order by
-			i.created desc`,
-		repoAt, openValue)
+		`
+		with numbered_issue as (
+			select
+				i.owner_did,
+				i.issue_id,
+				i.created,
+				i.title,
+				i.body,
+				i.open,
+				count(c.id) as comment_count,
+				row_number() over (order by i.created desc) as row_num
+			from
+				issues i
+			left join
+				comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
+			where
+				i.repo_at = ? and i.open = ?
+			group by
+				i.id, i.owner_did, i.issue_id, i.created, i.title, i.body, i.open
+		)
+		select
+			owner_did,
+			issue_id,
+			created,
+			title,
+			body,
+			open,
+			comment_count
+		from 
+			numbered_issue
+		where 
+			row_num between ? and ?`,
+		repoAt, openValue, page.Offset+1, page.Offset+page.Limit)
 	if err != nil {
 		return nil, err
 	}

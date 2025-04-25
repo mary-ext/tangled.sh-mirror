@@ -70,4 +70,42 @@
   </div>
   {{ end }}
 </div>
+
+{{ block "pagination" . }} {{ end }}
+
+{{ end }}
+
+{{ define "pagination" }}
+<div class="flex justify-end mt-4 gap-2">
+    {{ $currentState := "closed" }}
+    {{ if .FilteringByOpen }}
+      {{ $currentState = "open" }}
+    {{ end }}
+
+    {{ if gt .Page.Offset 0 }}
+       {{ $prev := .Page.Previous }}
+        <a
+            class="btn flex items-center gap-2 no-underline hover:no-underline dark:text-white dark:hover:bg-gray-700"
+            hx-boost="true"
+            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&offset={{ $prev.Offset }}&limit={{ $prev.Limit }}"
+        >
+            {{ i "chevron-left" "w-4 h-4" }}
+            previous
+        </a>
+    {{ else }}
+        <div></div>
+    {{ end }}
+
+    {{ if eq (len .Issues) .Page.Limit }}
+       {{ $next := .Page.Next }}
+        <a
+            class="btn flex items-center gap-2 no-underline hover:no-underline dark:text-white dark:hover:bg-gray-700"
+            hx-boost="true"
+            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&offset={{ $next.Offset }}&limit={{ $next.Limit }}"
+        >
+            next
+            {{ i "chevron-right" "w-4 h-4" }}
+        </a>
+    {{ end }}
+</div>
 {{ end }}

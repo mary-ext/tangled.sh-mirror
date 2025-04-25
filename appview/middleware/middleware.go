@@ -1,14 +1,17 @@
 package middleware
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
+	"tangled.sh/tangled.sh/core/appview/pagination"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -91,4 +94,33 @@ func AuthMiddleware(a *auth.Auth) Middleware {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func Paginate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page := pagination.FirstPage()
+
+		offsetVal := r.URL.Query().Get("offset")
+		if offsetVal != "" {
+			offset, err := strconv.Atoi(offsetVal)
+			if err != nil {
+				log.Println("invalid offset")
+			} else {
+				page.Offset = offset
+			}
+		}
+
+		limitVal := r.URL.Query().Get("limit")
+		if limitVal != "" {
+			limit, err := strconv.Atoi(limitVal)
+			if err != nil {
+				log.Println("invalid limit")
+			} else {
+				page.Limit = limit
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), "page", page)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

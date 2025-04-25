@@ -19,6 +19,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
+	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
@@ -564,12 +565,12 @@ func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 }
 
 type RepoIssuesParams struct {
-	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
-	Active       string
-	Issues       []db.Issue
-	DidHandleMap map[string]string
-
+	LoggedInUser    *auth.User
+	RepoInfo        RepoInfo
+	Active          string
+	Issues          []db.Issue
+	DidHandleMap    map[string]string
+	Page            pagination.Page
 	FilteringByOpen bool
 }
 
