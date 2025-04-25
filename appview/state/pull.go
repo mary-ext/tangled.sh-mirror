@@ -528,7 +528,7 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoPullComment{
 					Repo:      &atUri,
-					Pull:      pullAt,
+					Pull:      string(pullAt),
 					Owner:     &ownerDid,
 					Body:      &body,
 					CreatedAt: &createdAt,
@@ -879,7 +879,7 @@ func (s *State) createPullRequest(
 		return
 	}
 
-	atResp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoPullNSID,
 		Repo:       user.Did,
 		Rkey:       rkey,
@@ -895,9 +895,8 @@ func (s *State) createPullRequest(
 		},
 	})
 
-	err = db.SetPullAt(s.db, f.RepoAt, pullId, atResp.Uri)
 	if err != nil {
-		log.Println("failed to get pull id", err)
+		log.Println("failed to create pull request", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
