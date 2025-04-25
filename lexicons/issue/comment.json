@@ -9,7 +9,11 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["issue"],
+        "required": [
+          "issue",
+          "body",
+          "createdAt"
+        ],
         "properties": {
           "issue": {
             "type": "string",

@@ -52,7 +52,7 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		RepoName:    repoName,
 		RepoAt:      parsedRepoAt,
 		Description: description,
-		AddedAt:     addedAt,
+		CreatedAt:   addedAt,
 	}, nil
 }
 

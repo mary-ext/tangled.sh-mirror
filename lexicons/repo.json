@@ -9,7 +9,12 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["name", "knot", "owner"],
+        "required": [
+          "name",
+          "knot",
+          "owner",
+          "createdAt"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -23,20 +28,20 @@
             "type": "string",
             "description": "knot where the repo was created"
           },
-          "addedAt": {
-            "type": "string",
-            "format": "datetime"
-          },
           "description": {
             "type": "string",
             "format": "datetime",
-            "minLength": 1,
-            "maxLength": 140
+            "minGraphemes": 1,
+            "maxGraphemes": 140
           },
           "source": {
             "type": "string",
             "format": "uri",
             "description": "source of the repo"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
           }
         }
       }

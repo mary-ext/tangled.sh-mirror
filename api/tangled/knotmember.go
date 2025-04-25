@@ -17,9 +17,9 @@ func init() {
 } //
 // RECORDTYPE: KnotMember
 type KnotMember struct {
-	LexiconTypeID string  `json:"$type,const=sh.tangled.knot.member" cborgen:"$type,const=sh.tangled.knot.member"`
-	AddedAt       *string `json:"addedAt,omitempty" cborgen:"addedAt,omitempty"`
+	LexiconTypeID string `json:"$type,const=sh.tangled.knot.member" cborgen:"$type,const=sh.tangled.knot.member"`
+	CreatedAt     string `json:"createdAt" cborgen:"createdAt"`
 	// domain: domain that this member now belongs to
-	Domain string `json:"domain" cborgen:"domain"`
-	Member string `json:"member" cborgen:"member"`
+	Domain  string `json:"domain" cborgen:"domain"`
+	Subject string `json:"subject" cborgen:"subject"`
 }

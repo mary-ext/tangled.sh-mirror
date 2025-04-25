@@ -9,7 +9,13 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["repo", "issueId", "owner", "title"],
+        "required": [
+          "repo",
+          "issueId",
+          "owner",
+          "title",
+          "createdAt"
+        ],
         "properties": {
           "repo": {
             "type": "string",

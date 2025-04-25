@@ -530,8 +530,8 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 					Repo:      &atUri,
 					Pull:      string(pullAt),
 					Owner:     &ownerDid,
-					Body:      &body,
-					CreatedAt: &createdAt,
+					Body:      body,
+					CreatedAt: createdAt,
 				},
 			},
 		})

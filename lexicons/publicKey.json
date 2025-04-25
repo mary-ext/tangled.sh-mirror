@@ -12,13 +12,12 @@
         "required": [
           "key",
           "name",
-          "created"
+          "createdAt"
         ],
         "properties": {
           "key": {
             "type": "string",
             "maxLength": 4096,
-            "maxGraphemes": 4096,
             "description": "public key contents"
           },
           "name": {
@@ -26,7 +25,7 @@
             "format": "string",
             "description": "human-readable name for this key"
           },
-          "created": {
+          "createdAt": {
             "type": "string",
             "format": "datetime",
             "description": "key upload timestamp"

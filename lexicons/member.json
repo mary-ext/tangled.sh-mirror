@@ -10,11 +10,12 @@
       "record": {
         "type": "object",
         "required": [
-          "member",
-          "domain"
+          "subject",
+          "domain",
+          "createdAt"
         ],
         "properties": {
-          "member": {
+          "subject": {
             "type": "string",
             "format": "did"
           },
@@ -22,7 +23,7 @@
             "type": "string",
             "description": "domain that this member now belongs to"
           },
-          "addedAt": {
+          "createdAt": {
             "type": "string",
             "format": "datetime"
           }

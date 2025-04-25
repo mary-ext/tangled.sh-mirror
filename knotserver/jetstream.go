@@ -43,11 +43,11 @@ func (h *Handle) processKnotMember(ctx context.Context, did string, record tangl
 		return fmt.Errorf("failed to enforce permissions: %w", err)
 	}
 
-	if err := h.e.AddMember(ThisServer, record.Member); err != nil {
+	if err := h.e.AddMember(ThisServer, record.Subject); err != nil {
 		l.Error("failed to add member", "error", err)
 		return fmt.Errorf("failed to add member: %w", err)
 	}
-	l.Info("added member from firehose", "member", record.Member)
+	l.Info("added member from firehose", "member", record.Subject)
 
 	if err := h.db.AddDid(did); err != nil {
 		l.Error("failed to add did", "error", err)

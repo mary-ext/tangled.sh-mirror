@@ -9,7 +9,11 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["pull"],
+        "required": [
+          "pull",
+          "body",
+          "createdAt"
+        ],
         "properties": {
           "pull": {
             "type": "string",

@@ -18,8 +18,8 @@ func init() {
 // RECORDTYPE: PublicKey
 type PublicKey struct {
 	LexiconTypeID string `json:"$type,const=sh.tangled.publicKey" cborgen:"$type,const=sh.tangled.publicKey"`
-	// created: key upload timestamp
-	Created string `json:"created" cborgen:"created"`
+	// createdAt: key upload timestamp
+	CreatedAt string `json:"createdAt" cborgen:"createdAt"`
 	// key: public key contents
 	Key string `json:"key" cborgen:"key"`
 	// name: human-readable name for this key

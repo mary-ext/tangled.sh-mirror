@@ -20,5 +20,5 @@ type RepoIssueState struct {
 	LexiconTypeID string `json:"$type,const=sh.tangled.repo.issue.state" cborgen:"$type,const=sh.tangled.repo.issue.state"`
 	Issue         string `json:"issue" cborgen:"issue"`
 	// state: state of the issue
-	State *string `json:"state,omitempty" cborgen:"state,omitempty"`
+	State string `json:"state" cborgen:"state"`
 }

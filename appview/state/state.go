@@ -502,32 +502,32 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memberDid := r.FormValue("member")
-	if memberDid == "" {
+	subjectIdentifier := r.FormValue("subject")
+	if subjectIdentifier == "" {
 		http.Error(w, "malformed form", http.StatusBadRequest)
 		return
 	}
 
-	memberIdent, err := s.resolver.ResolveIdent(r.Context(), memberDid)
+	subjectIdentity, err := s.resolver.ResolveIdent(r.Context(), subjectIdentifier)
 	if err != nil {
 		w.Write([]byte("failed to resolve member did to a handle"))
 		return
 	}
-	log.Printf("adding %s to %s\n", memberIdent.Handle.String(), domain)
+	log.Printf("adding %s to %s\n", subjectIdentity.Handle.String(), domain)
 
 	// announce this relation into the firehose, store into owners' pds
 	client, _ := s.auth.AuthorizedClient(r)
 	currentUser := s.auth.GetUser(r)
-	addedAt := time.Now().Format(time.RFC3339)
+	createdAt := time.Now().Format(time.RFC3339)
 	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.KnotMemberNSID,
 		Repo:       currentUser.Did,
 		Rkey:       appview.TID(),
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.KnotMember{
-				Member:  memberIdent.DID.String(),
-				Domain:  domain,
-				AddedAt: &addedAt,
+				Subject:   subjectIdentity.DID.String(),
+				Domain:    domain,
+				CreatedAt: createdAt,
 			}},
 	})
 
@@ -550,7 +550,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksResp, err := ksClient.AddMember(memberIdent.DID.String())
+	ksResp, err := ksClient.AddMember(subjectIdentity.DID.String())
 	if err != nil {
 		log.Printf("failed to make request to %s: %s", domain, err)
 		return
@@ -561,13 +561,13 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.enforcer.AddMember(domain, memberIdent.DID.String())
+	err = s.enforcer.AddMember(domain, subjectIdentity.DID.String())
 	if err != nil {
 		w.Write([]byte(fmt.Sprint("failed to add member: ", err)))
 		return
 	}
 
-	w.Write([]byte(fmt.Sprint("added member: ", memberIdent.Handle.String())))
+	w.Write([]byte(fmt.Sprint("added member: ", subjectIdentity.Handle.String())))
 }
 
 func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
@@ -657,17 +657,17 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		xrpcClient, _ := s.auth.AuthorizedClient(r)
 
-		addedAt := time.Now().Format(time.RFC3339)
+		createdAt := time.Now().Format(time.RFC3339)
 		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.Repo{
-					Knot:    repo.Knot,
-					Name:    repoName,
-					AddedAt: &addedAt,
-					Owner:   user.Did,
+					Knot:      repo.Knot,
+					Name:      repoName,
+					CreatedAt: createdAt,
+					Owner:     user.Did,
 				}},
 		})
 		if err != nil {

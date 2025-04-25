@@ -217,7 +217,7 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 					Knot:        f.Knot,
 					Name:        f.RepoName,
 					Owner:       user.Did,
-					AddedAt:     &f.AddedAt,
+					CreatedAt:   f.CreatedAt,
 					Description: &newDescription,
 				},
 			},
@@ -851,7 +851,7 @@ type FullyResolvedRepo struct {
 	RepoName    string
 	RepoAt      syntax.ATURI
 	Description string
-	AddedAt     string
+	CreatedAt   string
 }
 
 func (f *FullyResolvedRepo) OwnerDid() string {
@@ -1122,7 +1122,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssueState{
 					Issue: issue.IssueAt,
-					State: &closed,
+					State: closed,
 				},
 			},
 		})
@@ -1260,8 +1260,8 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 					Issue:     issueAt,
 					CommentId: &commentIdInt64,
 					Owner:     &ownerDid,
-					Body:      &body,
-					CreatedAt: &createdAt,
+					Body:      body,
+					CreatedAt: createdAt,
 				},
 			},
 		})
@@ -1429,8 +1429,8 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 						Issue:     issueAt,
 						CommentId: &commentIdInt64,
 						Owner:     &comment.OwnerDid,
-						Body:      &newBody,
-						CreatedAt: &createdAt,
+						Body:      newBody,
+						CreatedAt: createdAt,
 					},
 				},
 			})
@@ -1760,7 +1760,7 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		} else {
 			uri = "https"
 		}
-		sourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
+		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
 		sourceAt := f.RepoAt.String()
 
 		rkey := appview.TID()
@@ -1786,7 +1786,7 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
-		resp, err := client.ForkRepo(user.Did, sourceUrl, forkName)
+		resp, err := client.ForkRepo(user.Did, forkSourceUrl, forkName)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
 			return
@@ -1804,18 +1804,18 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 		xrpcClient, _ := s.auth.AuthorizedClient(r)
 
-		addedAt := time.Now().Format(time.RFC3339)
+		createdAt := time.Now().Format(time.RFC3339)
 		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.Repo{
-					Knot:    repo.Knot,
-					Name:    repo.Name,
-					AddedAt: &addedAt,
-					Owner:   user.Did,
-					Source:  &sourceAt,
+					Knot:      repo.Knot,
+					Name:      repo.Name,
+					CreatedAt: createdAt,
+					Owner:     user.Did,
+					Source:    &sourceAt,
 				}},
 		})
 		if err != nil {

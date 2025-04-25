@@ -9,7 +9,10 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["pull"],
+        "required": [
+          "pull",
+          "status"
+        ],
         "properties": {
           "pull": {
             "type": "string",

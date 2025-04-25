@@ -19,7 +19,7 @@ func init() {
 type RepoIssue struct {
 	LexiconTypeID string  `json:"$type,const=sh.tangled.repo.issue" cborgen:"$type,const=sh.tangled.repo.issue"`
 	Body          *string `json:"body,omitempty" cborgen:"body,omitempty"`
-	CreatedAt     *string `json:"createdAt,omitempty" cborgen:"createdAt,omitempty"`
+	CreatedAt     string  `json:"createdAt" cborgen:"createdAt"`
 	IssueId       int64   `json:"issueId" cborgen:"issueId"`
 	Owner         string  `json:"owner" cborgen:"owner"`
 	Repo          string  `json:"repo" cborgen:"repo"`

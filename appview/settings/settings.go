@@ -384,9 +384,9 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.PublicKey{
-					Created: time.Now().Format(time.RFC3339),
-					Key:     key,
-					Name:    name,
+					CreatedAt: time.Now().Format(time.RFC3339),
+					Key:       key,
+					Name:      name,
 				}},
 		})
 		// invalid record

@@ -14,7 +14,8 @@
           "targetBranch",
           "pullId",
           "title",
-          "patch"
+          "patch",
+          "createdAt"
         ],
         "properties": {
           "targetRepo": {
@@ -33,23 +34,25 @@
           "body": {
             "type": "string"
           },
-          "createdAt": {
-            "type": "string",
-            "format": "datetime"
-          },
           "patch": {
             "type": "string"
           },
           "source": {
             "type": "ref",
             "ref": "#source"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
           }
         }
       }
     },
     "source": {
       "type": "object",
-      "required": ["branch"],
+      "required": [
+        "branch"
+      ],
       "properties": {
         "branch": {
           "type": "string"
