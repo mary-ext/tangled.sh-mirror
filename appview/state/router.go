@@ -68,7 +68,7 @@ func (s *State) UserRouter() http.Handler {
 			r.Get("/blob/{ref}/raw/*", s.RepoBlobRaw)
 
 			r.Route("/issues", func(r chi.Router) {
-				r.Get("/", s.RepoIssues)
+				r.With(middleware.Paginate).Get("/", s.RepoIssues)
 				r.Get("/{issue}", s.RepoSingleIssue)
 
 				r.Group(func(r chi.Router) {

@@ -28,6 +28,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
+	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/types"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -1559,6 +1560,12 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		isOpen = true
 	}
 
+	page, ok := r.Context().Value("page").(pagination.Page)
+	if !ok {
+		log.Println("failed to get page")
+		page = pagination.FirstPage()
+	}
+
 	user := s.auth.GetUser(r)
 	f, err := fullyResolvedRepo(r)
 	if err != nil {
@@ -1566,7 +1573,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issues, err := db.GetIssues(s.db, f.RepoAt, isOpen)
+	issues, err := db.GetIssues(s.db, f.RepoAt, isOpen, page)
 	if err != nil {
 		log.Println("failed to get issues", err)
 		s.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
@@ -1593,6 +1600,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		Issues:          issues,
 		DidHandleMap:    didHandleMap,
 		FilteringByOpen: isOpen,
+		Page:            page,
 	})
 	return
 }
