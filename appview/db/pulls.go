@@ -10,6 +10,7 @@ import (
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	tangled "tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 )
@@ -54,7 +55,6 @@ type Pull struct {
 	RepoAt   syntax.ATURI
 	OwnerDid string
 	Rkey     string
-	PullAt   syntax.ATURI
 
 	// content
 	Title        string
@@ -118,6 +118,10 @@ type PullComment struct {
 func (p *Pull) LatestPatch() string {
 	latestSubmission := p.Submissions[p.LastRoundNumber()]
 	return latestSubmission.Patch
+}
+
+func (p *Pull) PullAt() syntax.ATURI {
+	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", p.OwnerDid, tangled.RepoPullNSID, p.Rkey))
 }
 
 func (p *Pull) LastRoundNumber() int {
@@ -298,15 +302,12 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 	return nil
 }
 
-func SetPullAt(e Execer, repoAt syntax.ATURI, pullId int, pullAt string) error {
-	_, err := e.Exec(`update pulls set pull_at = ? where repo_at = ? and pull_id = ?`, pullAt, repoAt, pullId)
-	return err
-}
-
-func GetPullAt(e Execer, repoAt syntax.ATURI, pullId int) (string, error) {
-	var pullAt string
-	err := e.QueryRow(`select pull_at from pulls where repo_at = ? and pull_id = ?`, repoAt, pullId).Scan(&pullAt)
-	return pullAt, err
+func GetPullAt(e Execer, repoAt syntax.ATURI, pullId int) (syntax.ATURI, error) {
+	pull, err := GetPull(e, repoAt, pullId)
+	if err != nil {
+		return "", err
+	}
+	return pull.PullAt(), err
 }
 
 func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
@@ -326,7 +327,6 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			title,
 			state,
 			target_branch,
-			pull_at,
 			body,
 			rkey,
 			source_branch,
@@ -351,7 +351,6 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			&pull.Title,
 			&pull.State,
 			&pull.TargetBranch,
-			&pull.PullAt,
 			&pull.Body,
 			&pull.Rkey,
 			&sourceBranch,
@@ -487,7 +486,6 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			title,
 			state,
 			target_branch,
-			pull_at,
 			repo_at,
 			body,
 			rkey,
@@ -510,7 +508,6 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		&pull.Title,
 		&pull.State,
 		&pull.TargetBranch,
-		&pull.PullAt,
 		&pull.RepoAt,
 		&pull.Body,
 		&pull.Rkey,
