@@ -198,29 +198,37 @@ func (p *Pages) loadTemplateFromDisk(name string) error {
 	return nil
 }
 
-func (p *Pages) execute(name string, w io.Writer, params any) error {
+func (p *Pages) executeOrReload(templateName string, w io.Writer, base string, params any) error {
 	// In dev mode, reload the template from disk before executing
 	if p.dev {
-		if err := p.loadTemplateFromDisk(name); err != nil {
-			log.Printf("warning: failed to reload template %s from disk: %v", name, err)
+		if err := p.loadTemplateFromDisk(templateName); err != nil {
+			log.Printf("warning: failed to reload template %s from disk: %v", templateName, err)
 			// Continue with the existing template
 		}
 	}
 
-	tmpl, exists := p.t[name]
+	tmpl, exists := p.t[templateName]
 	if !exists {
-		return fmt.Errorf("template not found: %s", name)
+		return fmt.Errorf("template not found: %s", templateName)
 	}
 
-	return tmpl.ExecuteTemplate(w, "layouts/base", params)
+	if base == "" {
+		return tmpl.Execute(w, params)
+	} else {
+		return tmpl.ExecuteTemplate(w, base, params)
+	}
+}
+
+func (p *Pages) execute(name string, w io.Writer, params any) error {
+	return p.executeOrReload(name, w, "layouts/base", params)
 }
 
 func (p *Pages) executePlain(name string, w io.Writer, params any) error {
-	return p.t[name].Execute(w, params)
+	return p.executeOrReload(name, w, "", params)
 }
 
 func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
-	return p.t[name].ExecuteTemplate(w, "layouts/repobase", params)
+	return p.executeOrReload(name, w, "layouts/repobase", params)
 }
 
 type LoginParams struct {
