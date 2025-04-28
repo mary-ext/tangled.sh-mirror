@@ -63,7 +63,7 @@ func Make(config *appview.Config) (*State, error) {
 	jc, err := jetstream.NewJetstreamClient(
 		config.JetstreamEndpoint,
 		"appview",
-		[]string{tangled.GraphFollowNSID, tangled.FeedStarNSID},
+		[]string{tangled.GraphFollowNSID, tangled.FeedStarNSID, tangled.PublicKeyNSID},
 		nil,
 		slog.Default(),
 		wrapper,
@@ -72,7 +72,7 @@ func Make(config *appview.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(context.Background(), jetstreamIngester(wrapper))
+	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
