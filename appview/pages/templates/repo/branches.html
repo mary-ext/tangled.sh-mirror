@@ -1,16 +1,56 @@
 {{ define "title" }}
-    branches | {{ .RepoInfo.FullName }}
+    branches · {{ .RepoInfo.FullName }}
 {{ end }}
 
 {{ define "repoContent" }}
-    <h3>branches</h3>
-    <div class="refs">
-        {{ range .Branches }}
-            <div>
-                <strong>{{ .Name }}</strong>
-                <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name }}/">browse</a>
-                <a href="/{{ $.RepoInfo.FullName }}/log/{{ .Name }}">log</a>
-            </div>
-        {{ end }}
+  <section>
+    <header class="font-bold text-sm mb-4 uppercase dark:text-white">
+        Branches
+    </header>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-auto">
+        <tbody>
+          {{ range .Branches }}
+          <tr>
+            <td class="whitespace-nowrap">
+              <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center gap-2">
+                <span>
+                  {{ .Name }}
+                </span>
+                {{ if .IsDefault }}
+                  <span class="
+                    text-sm rounded
+                    bg-gray-100 dark:bg-gray-700 text-black dark:text-white
+                    font-mono
+                    px-2 mx-1/2
+                    inline-flex items-center
+                    ">
+                    default
+                  </span>
+                {{ end }}
+              </a>
+            </td>
+            <td class="whitespace-nowrap hidden md:table-cell">
+              {{ if .Commit }}
+              <a href="/{{ $.RepoInfo.FullName }}/commits/{{ .Name | urlquery }}" class="font-mono">{{ slice  .Commit.Hash.String 0 8 }}</a>
+              {{ end }}
+            </td>
+            <td class="whitespace-nowrap hidden md:table-cell">
+              {{ if .Commit }}
+                {{ $messageParts := splitN .Commit.Message "\n\n" 2 }}
+                {{ index $messageParts 0 }}
+              {{ end }}
+            </td>
+            <td class="whitespace-nowrap">
+              {{ if .Commit }}
+                {{ .Commit.Author.When | timeFmt  }}
+              {{ end }}
+            </td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
     </div>
+  </section>
 {{ end }}

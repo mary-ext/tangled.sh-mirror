@@ -61,6 +61,8 @@ type Reference struct {
 
 type Branch struct {
 	Reference `json:"reference"`
+	Commit    *object.Commit `json:"commit,omitempty"`
+	IsDefault bool           `json:"is_deafult,omitempty"`
 }
 
 type RepoTagsResponse struct {

@@ -82,32 +82,32 @@ func uniqueEmails(commits []*object.Commit) []string {
 	return uniqueEmails
 }
 
-func balanceTagsAndCommits(commits, tags, totalDesired int) (int, int) {
-	if commits == 0 && tags == 0 {
-		return 0, 0
+func balanceIndexItems(commitCount, branchCount, tagCount, fileCount int) (commitsTrunc int, branchesTrunc int, tagsTrunc int) {
+	if commitCount == 0 && tagCount == 0 && branchCount == 0 {
+		return
 	}
 
-	half := totalDesired / 2
+	// typically 1 item on right side = 2 files in height
+	availableSpace := fileCount / 2
 
-	if commits+tags <= totalDesired {
-		return commits, tags
+	// clamp tagcount
+	if tagCount > 0 {
+		tagsTrunc = 1
+		availableSpace -= 1 // an extra subtracted for headers etc.
 	}
 
-	if commits >= half && tags >= half {
-		return half, half
+	// clamp branchcount
+	if branchCount > 0 {
+		branchesTrunc = min(max(branchCount, 1), 2)
+		availableSpace -= branchesTrunc // an extra subtracted for headers etc.
 	}
 
-	if commits < half {
-		return commits, min(tags, totalDesired-commits)
+	// show
+	if commitCount > 0 {
+		commitsTrunc = max(availableSpace, 3)
 	}
 
-	if tags < half {
-		return min(commits, totalDesired-tags), tags
-	}
-
-	c := min(commits, half)
-	t := min(tags, totalDesired-c)
-	return c, t
+	return
 }
 
 func EmailToDidOrHandle(s *State, emails []string) map[string]string {

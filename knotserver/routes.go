@@ -93,14 +93,6 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bs := []types.Branch{}
-	for _, branch := range branches {
-		b := types.Branch{}
-		b.Hash = branch.Hash().String()
-		b.Name = branch.Name().Short()
-		bs = append(bs, b)
-	}
-
 	tags, err := gr.Tags()
 	if err != nil {
 		// Non-fatal, we *should* have at least one branch to show.
@@ -160,7 +152,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		Readme:         readmeContent,
 		ReadmeFileName: readmeFile,
 		Files:          files,
-		Branches:       bs,
+		Branches:       branches,
 		Tags:           rtags,
 		TotalCommits:   total,
 	}
@@ -293,6 +285,8 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
+
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 
 	l := h.l.With("handler", "Log", "ref", ref, "path", path)
@@ -442,16 +436,8 @@ func (h *Handle) Branches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bs := []types.Branch{}
-	for _, branch := range branches {
-		b := types.Branch{}
-		b.Hash = branch.Hash().String()
-		b.Name = branch.Name().Short()
-		bs = append(bs, b)
-	}
-
 	resp := types.RepoBranchesResponse{
-		Branches: bs,
+		Branches: branches,
 	}
 
 	writeJSON(w, resp)
@@ -473,9 +459,25 @@ func (h *Handle) Branch(w http.ResponseWriter, r *http.Request) {
 
 	ref, err := gr.Branch(branchName)
 	if err != nil {
-		l.Error("getting branches", "error", err.Error())
+		l.Error("getting branch", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	commit, err := gr.Commit(ref.Hash())
+	if err != nil {
+		l.Error("getting commit object", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defaultBranch, err := gr.FindMainBranch()
+	isDefault := false
+	if err != nil {
+		l.Error("getting default branch", "error", err.Error())
+		// do not quit though
+	} else if defaultBranch == branchName {
+		isDefault = true
 	}
 
 	resp := types.RepoBranchResponse{
@@ -484,6 +486,8 @@ func (h *Handle) Branch(w http.ResponseWriter, r *http.Request) {
 				Name: ref.Name().Short(),
 				Hash: ref.Hash().String(),
 			},
+			Commit:    commit,
+			IsDefault: isDefault,
 		},
 	}
 

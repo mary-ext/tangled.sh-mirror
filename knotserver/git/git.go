@@ -156,6 +156,10 @@ func (g *GitRepo) Commits() ([]*object.Commit, error) {
 	return commits, nil
 }
 
+func (g *GitRepo) Commit(h plumbing.Hash) (*object.Commit, error) {
+	return g.r.CommitObject(h)
+}
+
 func (g *GitRepo) LastCommit() (*object.Commit, error) {
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
@@ -222,16 +226,36 @@ func (g *GitRepo) Tags() ([]*TagReference, error) {
 	return tags, nil
 }
 
-func (g *GitRepo) Branches() ([]*plumbing.Reference, error) {
+func (g *GitRepo) Branches() ([]types.Branch, error) {
 	bi, err := g.r.Branches()
 	if err != nil {
 		return nil, fmt.Errorf("branchs: %w", err)
 	}
 
-	branches := []*plumbing.Reference{}
+	branches := []types.Branch{}
+
+	defaultBranch, err := g.FindMainBranch()
+	if err != nil {
+		return nil, fmt.Errorf("getting default branch", "error", err.Error())
+	}
 
 	_ = bi.ForEach(func(ref *plumbing.Reference) error {
-		branches = append(branches, ref)
+		b := types.Branch{}
+		b.Hash = ref.Hash().String()
+		b.Name = ref.Name().Short()
+
+		// resolve commit that this branch points to
+		commit, _ := g.Commit(ref.Hash())
+		if commit != nil {
+			b.Commit = commit
+		}
+
+		if defaultBranch != "" && defaultBranch == b.Name {
+			b.IsDefault = true
+		}
+
+		branches = append(branches, b)
+
 		return nil
 	})
 

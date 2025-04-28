@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"tangled.sh/tangled.sh/core/types"
@@ -286,8 +287,15 @@ func NewUnsignedClient(domain string, dev bool) (*UnsignedClient, error) {
 	return unsignedClient, nil
 }
 
-func (us *UnsignedClient) newRequest(method, endpoint string, body []byte) (*http.Request, error) {
-	return http.NewRequest(method, us.Url.JoinPath(endpoint).String(), bytes.NewReader(body))
+func (us *UnsignedClient) newRequest(method, endpoint string, query url.Values, body []byte) (*http.Request, error) {
+	reqUrl := us.Url.JoinPath(endpoint)
+
+	// add query parameters
+	if query != nil {
+		reqUrl.RawQuery = query.Encode()
+	}
+
+	return http.NewRequest(method, reqUrl.String(), bytes.NewReader(body))
 }
 
 func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*http.Response, error) {
@@ -300,7 +308,26 @@ func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*http.Response,
 		endpoint = fmt.Sprintf("/%s/%s", ownerDid, repoName)
 	}
 
-	req, err := us.newRequest(Method, endpoint, nil)
+	req, err := us.newRequest(Method, endpoint, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
+}
+
+func (us *UnsignedClient) Log(ownerDid, repoName, ref string, page int) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+
+	endpoint := fmt.Sprintf("/%s/%s/log/%s", ownerDid, repoName, url.PathEscape(ref))
+
+	query := url.Values{}
+	query.Add("page", strconv.Itoa(page))
+	query.Add("per_page", strconv.Itoa(60))
+
+	req, err := us.newRequest(Method, endpoint, query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +342,22 @@ func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, e
 
 	endpoint := fmt.Sprintf("/%s/%s/branches", ownerDid, repoName)
 
-	req, err := us.newRequest(Method, endpoint, nil)
+	req, err := us.newRequest(Method, endpoint, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return us.client.Do(req)
+}
+
+func (us *UnsignedClient) Tags(ownerDid, repoName string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+
+	endpoint := fmt.Sprintf("/%s/%s/tags", ownerDid, repoName)
+
+	req, err := us.newRequest(Method, endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +372,7 @@ func (us *UnsignedClient) Branch(ownerDid, repoName, branch string) (*http.Respo
 
 	endpoint := fmt.Sprintf("/%s/%s/branches/%s", ownerDid, repoName, url.PathEscape(branch))
 
-	req, err := us.newRequest(Method, endpoint, nil)
+	req, err := us.newRequest(Method, endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +387,7 @@ func (us *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*http.Respon
 
 	endpoint := fmt.Sprintf("/%s/%s/branches/default", ownerDid, repoName)
 
-	req, err := us.newRequest(Method, endpoint, nil)
+	req, err := us.newRequest(Method, endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +401,7 @@ func (us *UnsignedClient) Capabilities() (*types.Capabilities, error) {
 		Endpoint = "/capabilities"
 	)
 
-	req, err := us.newRequest(Method, Endpoint, nil)
+	req, err := us.newRequest(Method, Endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +427,7 @@ func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*types
 
 	endpoint := fmt.Sprintf("/%s/%s/compare/%s/%s", ownerDid, repoName, url.PathEscape(rev1), url.PathEscape(rev2))
 
-	req, err := us.newRequest(Method, endpoint, nil)
+	req, err := us.newRequest(Method, endpoint, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create request.")
 	}

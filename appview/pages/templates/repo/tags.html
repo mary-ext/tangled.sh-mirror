@@ -1,17 +1,47 @@
+{{ define "title" }}
+    tags · {{ .RepoInfo.FullName }}
+{{ end }}
+
 {{ define "repoContent" }}
-    {{ $name := .RepoInfo.Name }}
-    <h3>tags</h3>
-    <div class="refs">
-        {{ range .Tags }}
-            <div>
-                <strong>{{ .Ref.Name }}</strong>
-                <a href="/{{ $name }}/tree/{{ .Ref.Name }}/">browse</a>
-                <a href="/{{ $name }}/log/{{ .Ref.Name }}">log</a>
-                <a href="/{{ $name }}/archive/{{ .Ref.Name }}.tar.gz">tar.gz</a>
-                {{ if .Message }}
-                    <pre>{{ .Message }}</pre>
+  <section>
+    <div class="flex flex-col py-2">
+      {{ range .Tags }}
+      <div class="grid grid-cols-12 items-start">
+        <!-- Header column (left) -->
+        <div class="col-span-3 border-r border-gray-200 dark:border-gray-700 h-full text-right px-2 pb-6">
+          <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center justify-end gap-2 font-bold">
+            {{ i "tag" "w-4 h-4" }}
+            {{ .Name }}
+          </a>
+          <div class="flex flex-grow flex-col text-gray-500 dark:text-gray-400 text-sm">
+            {{ if .Tag }}
+              <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Tag.Target.String }}" 
+                class="no-underline hover:underline text-gray-500 dark:text-gray-400 flex items-center justify-end gap-2">
+                {{ i "git-commit-horizontal" "w-4 h-4" }}
+                {{  slice .Tag.Target.String 0 8  }}
+              </a>
+              <span>{{ .Tag.Tagger.Name }}</span>
+              <time>{{ timeFmt .Tag.Tagger.When }}</time>
+            {{ end }}
+          </div>
+        </div>
+
+        <!-- Paragraph column (right) -->
+        <div class="col-span-9 px-2 pb-6">
+          <div>
+            {{ if .Tag }}
+              {{ $messageParts := splitN .Tag.Message "\n\n" 2 }}
+                <p class="font-bold">{{ index $messageParts 0 }}</p>
+                {{ if gt (len $messageParts) 1 }}
+                <p class="cursor-text pb-2 text-sm">{{ nl2br (index $messageParts 1) }}</p>
                 {{ end }}
-            </div>
-        {{ end }}
+            {{ else }}
+              <p class="italic text-gray-500 dark:text-gray-400">no message</p>
+            {{ end }}
+          </div>
+        </div>
+      </div>
+      {{ end }}
     </div>
+  </section>
 {{ end }}

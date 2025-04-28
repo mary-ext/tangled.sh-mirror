@@ -82,23 +82,44 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		tagMap[hash] = append(tagMap[hash], branch.Name)
 	}
 
-	c, t := balanceTagsAndCommits(len(result.Commits), len(result.Tags), 10)
-	commits := result.Commits[:c]
-	tags := result.Tags[:t]
-	emails := uniqueEmails(commits)
+	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
+		if a.Name == result.Ref {
+			return -1
+		}
+		if a.IsDefault {
+			return -1
+		}
+		if a.Commit != nil {
+			if a.Commit.Author.When.Before(b.Commit.Author.When) {
+				return 1
+			} else {
+				return -1
+			}
+		}
+		return strings.Compare(a.Name, b.Name) * -1
+	})
 
-	for _, tag := range tags {
-		fmt.Printf("%#v\n\n", tag)
-	}
+	commitCount := len(result.Commits)
+	branchCount := len(result.Branches)
+	tagCount := len(result.Tags)
+	fileCount := len(result.Files)
+
+	commitCount, branchCount, tagCount = balanceIndexItems(commitCount, branchCount, tagCount, fileCount)
+	commitsTrunc := result.Commits[:min(commitCount, len(result.Commits))]
+	tagsTrunc := result.Tags[:min(tagCount, len(result.Tags))]
+	branchesTrunc := result.Branches[:min(branchCount, len(result.Branches))]
+
+	emails := uniqueEmails(commitsTrunc)
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(s, user),
 		TagMap:             tagMap,
-		Tags:               tags,
 		RepoIndexResponse:  result,
-		CommitsTrunc:       commits,
+		CommitsTrunc:       commitsTrunc,
+		TagsTrunc:          tagsTrunc,
+		BranchesTrunc:      branchesTrunc,
 		EmailToDidOrHandle: EmailToDidOrHandle(s, emails),
 	})
 	return
@@ -121,12 +142,13 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 
-	protocol := "http"
-	if !s.config.Dev {
-		protocol = "https"
+	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Println("failed to create unsigned client", err)
+		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/log/%s?page=%d&per_page=60", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, page))
+	resp, err := us.Log(f.OwnerDid(), f.RepoName, ref, page)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -358,12 +380,13 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	protocol := "http"
-	if !s.config.Dev {
-		protocol = "https"
+	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	if err != nil {
+		log.Println("failed to create unsigned client", err)
+		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tags", protocol, f.Knot, f.OwnerDid(), f.RepoName))
+	resp, err := us.Tags(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -422,6 +445,20 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to parse response:", err)
 		return
 	}
+
+	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
+		if a.IsDefault {
+			return -1
+		}
+		if a.Commit != nil {
+			if a.Commit.Author.When.Before(b.Commit.Author.When) {
+				return 1
+			} else {
+				return -1
+			}
+		}
+		return strings.Compare(a.Name, b.Name) * -1
+	})
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoBranches(w, pages.RepoBranchesParams{

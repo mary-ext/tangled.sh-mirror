@@ -459,12 +459,13 @@ func (r RepoInfo) TabMetadata() map[string]any {
 }
 
 type RepoIndexParams struct {
-	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
-	Active       string
-	TagMap       map[string][]string
-	Tags         []*types.TagReference
-	CommitsTrunc []*object.Commit
+	LoggedInUser  *auth.User
+	RepoInfo      RepoInfo
+	Active        string
+	TagMap        map[string][]string
+	CommitsTrunc  []*object.Commit
+	TagsTrunc     []*types.TagReference
+	BranchesTrunc []types.Branch
 	types.RepoIndexResponse
 	HTMLReadme         template.HTML
 	Raw                bool
@@ -505,7 +506,7 @@ type RepoLogParams struct {
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
 	params.Active = "overview"
-	return p.execute("repo/log", w, params)
+	return p.executeRepo("repo/log", w, params)
 }
 
 type RepoCommitParams struct {
@@ -561,20 +562,24 @@ func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
 type RepoBranchesParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Active       string
 	types.RepoBranchesResponse
 }
 
 func (p *Pages) RepoBranches(w io.Writer, params RepoBranchesParams) error {
+	params.Active = "overview"
 	return p.executeRepo("repo/branches", w, params)
 }
 
 type RepoTagsParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	Active       string
 	types.RepoTagsResponse
 }
 
 func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
+	params.Active = "overview"
 	return p.executeRepo("repo/tags", w, params)
 }
 
