@@ -106,3 +106,85 @@ systemctl start knotserver
 
 You should now have a running knot server! You can finalize your registration by hitting the
 `initialize` button on the [/knots](/knots) page.
+
+### custom paths
+
+(This section applies to manual setup only. Docker users should edit the mounts
+in `docker-compose.yml` instead.)
+
+Right now, the database and repositories of your knot lives in `/home/git`. You
+can move these paths if you'd like to store them in another folder. Be careful
+when adjusting these paths:
+
+* Stop your knot when moving data (e.g. `systemctl stop knotserver`) to prevent
+any possible side effects. Remember to restart it once you're done.
+* Make backups before moving in case something goes wrong.
+* Make sure the `git` user can read and write from the new paths.
+
+#### database
+
+As an example, let's say the current database is at `/home/git/knotserver.db`,
+and we want to move it to `/home/git/database/knotserver.db`.
+
+Copy the current database to the new location. Make sure to copy the `.db-shm`
+and `.db-wal` files if they exist.
+
+```
+mkdir /home/git/database
+cp /home/git/knotserver.db* /home/git/database
+```
+
+In the environment (e.g. `/home/git/.knot.env`), set `KNOT_SERVER_DB_PATH` to
+the new file path (_not_ the directory):
+
+```
+KNOT_SERVER_DB_PATH=/home/git/database/knotserver.db
+```
+
+#### repositories
+
+As an example, let's say the repositories are currently in `/home/git`, and we
+want to move them into `/home/git/repositories`.
+
+Create the new folder, then move the existing repositories (if there are any):
+
+```
+mkdir /home/git/repositories
+# move all DIDs into the new folder; these will vary for you!
+mv /home/git/did:plc:wshs7t2adsemcrrd4snkeqli /home/git/repositories
+```
+
+In the environment (e.g. `/home/git/.knot.env`), update `KNOT_REPO_SCAN_PATH`
+to the new directory:
+
+```
+KNOT_REPO_SCAN_PATH=/home/git/repositories
+```
+
+In your SSH config (e.g. `/etc/ssh/sshd_config.d/authorized_keys_command.conf`),
+update the `AuthorizedKeysCommand` line to use the new folder. For example:
+
+```
+Match User git
+  AuthorizedKeysCommand /usr/local/libexec/tangled-keyfetch -git-dir /home/git/repositories
+  AuthorizedKeysCommandUser nobody
+```
+
+Make sure to restart your SSH server!
+
+#### git
+
+The keyfetch executable takes multiple arguments to change certain paths. You
+can view a full list by running `/usr/local/libexec/tangled-keyfetch -h`.
+
+As an example, if you wanted to change the path to the repoguard executable,
+you would edit your SSH config (e.g. `/etc/ssh/sshd_config.d/authorized_keys_command.conf`)
+and update the `AuthorizedKeysCommand` line:
+
+```
+Match User git
+  AuthorizedKeysCommand /usr/local/libexec/tangled-keyfetch -repoguard-path /path/to/repoguard
+  AuthorizedKeysCommandUser nobody
+```
+
+Make sure to restart your SSH server!
