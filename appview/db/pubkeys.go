@@ -23,8 +23,8 @@ func DeletePublicKey(e Execer, did, name, key string) error {
 
 func DeletePublicKeyByRkey(e Execer, did, rkey string) error {
 	_, err := e.Exec(`
-		delete or ignore from public_keys 
-		where did = ? and name = ? and rkey = ?`,
+		delete from public_keys 
+		where did = ? and rkey = ?`,
 		did, rkey)
 	return err
 }
