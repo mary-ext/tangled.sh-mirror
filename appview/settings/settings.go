@@ -422,7 +422,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 
 		client, _ := s.Auth.AuthorizedClient(r)
 
-		if err := db.RemovePublicKey(s.Db, did, name, key); err != nil {
+		if err := db.DeletePublicKey(s.Db, did, name, key); err != nil {
 			log.Printf("removing public key: %s", err)
 			s.Pages.Notice(w, "settings-keys", "Failed to remove public key.")
 			return

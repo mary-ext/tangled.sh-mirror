@@ -13,11 +13,19 @@ func AddPublicKey(e Execer, did, name, key, rkey string) error {
 	return err
 }
 
-func RemovePublicKey(e Execer, did, name, key string) error {
+func DeletePublicKey(e Execer, did, name, key string) error {
 	_, err := e.Exec(`
 		delete from public_keys 
 		where did = ? and name = ? and key = ?`,
 		did, name, key)
+	return err
+}
+
+func DeletePublicKeyByRkey(e Execer, did, rkey string) error {
+	_, err := e.Exec(`
+		delete or ignore from public_keys 
+		where did = ? and name = ? and rkey = ?`,
+		did, rkey)
 	return err
 }
 

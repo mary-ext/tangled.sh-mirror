@@ -86,7 +86,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.DeleteFollow(s.db, currentUser.Did, subjectIdent.DID.String())
+		err = db.DeleteFollowByRkey(s.db, currentUser.Did, follow.Rkey)
 		if err != nil {
 			log.Println("failed to delete follow from DB")
 			// this is not an issue, the firehose event might have already done this
