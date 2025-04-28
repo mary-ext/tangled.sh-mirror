@@ -249,7 +249,7 @@ func (s *SignedClient) NewHiddenRef(ownerDid, targetRepo, forkBranch, remoteBran
 	const (
 		Method = "POST"
 	)
-	endpoint := fmt.Sprintf("/%s/%s/hidden-ref/%s/%s", ownerDid, targetRepo, forkBranch, remoteBranch)
+	endpoint := fmt.Sprintf("/%s/%s/hidden-ref/%s/%s", ownerDid, targetRepo, url.PathEscape(forkBranch), url.PathEscape(remoteBranch))
 
 	req, err := s.newRequest(Method, endpoint, nil)
 	if err != nil {
