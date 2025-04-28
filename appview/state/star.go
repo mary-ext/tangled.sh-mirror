@@ -91,7 +91,7 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.DeleteStar(s.db, currentUser.Did, subjectUri)
+		err = db.DeleteStarByRkey(s.db, currentUser.Did, star.Rkey)
 		if err != nil {
 			log.Println("failed to delete star from DB")
 			// this is not an issue, the firehose event might have already done this

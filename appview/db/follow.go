@@ -47,6 +47,12 @@ func DeleteFollow(e Execer, userDid, subjectDid string) error {
 	return err
 }
 
+// Remove a follow
+func DeleteFollowByRkey(e Execer, userDid, rkey string) error {
+	_, err := e.Exec(`delete from follows where user_did = ? and rkey = ?`, userDid, rkey)
+	return err
+}
+
 func GetFollowerFollowing(e Execer, did string) (int, int, error) {
 	followers, following := 0, 0
 	err := e.QueryRow(
