@@ -779,7 +779,7 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *F
 		return
 	}
 
-	hiddenRef := url.QueryEscape(fmt.Sprintf("hidden/%s/%s", sourceBranch, targetBranch))
+	hiddenRef := fmt.Sprintf("hidden/%s/%s", sourceBranch, targetBranch)
 	// We're now comparing the sourceBranch (on the fork) against the hiddenRef which is tracking
 	// the targetBranch on the target repository. This code is a bit confusing, but here's an example:
 	// hiddenRef: hidden/feature-1/main (on repo-fork)

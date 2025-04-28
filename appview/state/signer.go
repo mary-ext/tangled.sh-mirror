@@ -328,7 +328,7 @@ func (us *UnsignedClient) Branch(ownerDid, repoName, branch string) (*http.Respo
 		Method = "GET"
 	)
 
-	endpoint := fmt.Sprintf("/%s/%s/branches/%s", ownerDid, repoName, branch)
+	endpoint := fmt.Sprintf("/%s/%s/branches/%s", ownerDid, repoName, url.PathEscape(branch))
 
 	req, err := us.newRequest(Method, endpoint, nil)
 	if err != nil {

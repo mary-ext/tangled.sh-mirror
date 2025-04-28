@@ -461,6 +461,8 @@ func (h *Handle) Branches(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) Branch(w http.ResponseWriter, r *http.Request) {
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	branchName := chi.URLParam(r, "branch")
+	branchName, _ = url.PathUnescape(branchName)
+
 	l := h.l.With("handler", "Branch")
 
 	gr, err := git.PlainOpen(path)
@@ -829,7 +831,11 @@ func (h *Handle) NewHiddenRef(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "NewHiddenRef")
 
 	forkRef := chi.URLParam(r, "forkRef")
+	forkRef, _ = url.PathUnescape(forkRef)
+
 	remoteRef := chi.URLParam(r, "remoteRef")
+	remoteRef, _ = url.PathUnescape(remoteRef)
+
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.PlainOpen(path)
 	if err != nil {
