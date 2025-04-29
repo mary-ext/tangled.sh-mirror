@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -1372,7 +1371,7 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hiddenRef := url.QueryEscape(fmt.Sprintf("hidden/%s/%s", pull.PullSource.Branch, pull.TargetBranch))
+	hiddenRef := fmt.Sprintf("hidden/%s/%s", pull.PullSource.Branch, pull.TargetBranch)
 	comparison, err := ksClient.Compare(forkRepo.Did, forkRepo.Name, hiddenRef, pull.PullSource.Branch)
 	if err != nil {
 		log.Printf("failed to compare branches: %s", err)
