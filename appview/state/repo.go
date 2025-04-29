@@ -117,7 +117,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		protocol = "https"
 	}
 
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/log/%s?page=%d&per_page=30", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, page))
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/log/%s?page=%d&per_page=60", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, page))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
