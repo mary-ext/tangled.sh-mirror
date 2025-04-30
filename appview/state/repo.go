@@ -74,6 +74,9 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	tagMap := make(map[string][]string)
 	for _, tag := range result.Tags {
 		hash := tag.Hash
+		if tag.Tag != nil {
+			hash = tag.Tag.Target.String()
+		}
 		tagMap[hash] = append(tagMap[hash], tag.Name)
 	}
 
@@ -189,6 +192,9 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 	tagMap := make(map[string][]string)
 	for _, tag := range result.Tags {
 		hash := tag.Hash
+		if tag.Tag != nil {
+			hash = tag.Tag.Target.String()
+		}
 		tagMap[hash] = append(tagMap[hash], tag.Name)
 	}
 
