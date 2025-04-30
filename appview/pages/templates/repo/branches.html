@@ -3,54 +3,99 @@
 {{ end }}
 
 {{ define "repoContent" }}
-  <section>
-    <header class="font-bold text-sm mb-4 uppercase dark:text-white">
-        Branches
-    </header>
+<section id="branches-table" class="overflow-x-auto">
+  <h2 class="font-bold text-sm mb-4 uppercase dark:text-white">
+      Branches
+  </h2>
 
-    <div class="overflow-x-auto">
-      <table class="min-w-full table-auto">
-        <tbody>
-          {{ range .Branches }}
-          <tr>
-            <td class="whitespace-nowrap">
-              <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center gap-2">
-                <span>
-                  {{ .Name }}
-                </span>
-                {{ if .IsDefault }}
-                  <span class="
-                    text-sm rounded
-                    bg-gray-100 dark:bg-gray-700 text-black dark:text-white
-                    font-mono
-                    px-2 mx-1/2
-                    inline-flex items-center
-                    ">
-                    default
-                  </span>
-                {{ end }}
-              </a>
-            </td>
-            <td class="whitespace-nowrap hidden md:table-cell">
-              {{ if .Commit }}
-              <a href="/{{ $.RepoInfo.FullName }}/commits/{{ .Name | urlquery }}" class="font-mono">{{ slice  .Commit.Hash.String 0 8 }}</a>
-              {{ end }}
-            </td>
-            <td class="whitespace-nowrap hidden md:table-cell">
-              {{ if .Commit }}
-                {{ $messageParts := splitN .Commit.Message "\n\n" 2 }}
-                {{ index $messageParts 0 }}
-              {{ end }}
-            </td>
-            <td class="whitespace-nowrap">
-              {{ if .Commit }}
-                {{ .Commit.Author.When | timeFmt  }}
-              {{ end }}
-            </td>
-          </tr>
+  <!-- desktop view (hidden on small screens) -->
+  <table class="w-full border-collapse hidden md:table">
+    <thead>
+      <tr>
+        <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Name</th>
+        <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Commit</th>
+        <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Message</th>
+        <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range $index, $branch := .Branches }}
+      <tr class="{{ if ne $index (sub (len $.Branches) 1) }}border-b border-gray-200 dark:border-gray-700{{ end }}">
+        <td class="py-3 whitespace-nowrap">
+          <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center gap-2">
+            <span class="dark:text-white">
+              {{ .Name }}
+            </span>
+            {{ if .IsDefault }}
+              <span class="
+                text-sm rounded
+                bg-gray-100 dark:bg-gray-700 text-black dark:text-white
+                font-mono
+                px-2 mx-1/2
+                inline-flex items-center
+                ">
+                default
+              </span>
+            {{ end }}
+          </a>
+        </td>
+        <td class="py-3 whitespace-nowrap">
+          {{ if .Commit }}
+            <a href="/{{ $.RepoInfo.FullName }}/commits/{{ .Name | urlquery }}" class="font-mono text-gray-700 dark:text-gray-300 no-underline hover:underline">{{ slice .Commit.Hash.String 0 8 }}</a>
           {{ end }}
-        </tbody>
-      </table>
+        </td>
+        <td class="py-3 whitespace-nowrap">
+          {{ if .Commit }}
+            {{ $messageParts := splitN .Commit.Message "\n\n" 2 }}
+            <span class="text-gray-700 dark:text-gray-300">{{ index $messageParts 0 }}</span>
+          {{ end }}
+        </td>
+        <td class="py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
+          {{ if .Commit }}
+            {{ .Commit.Author.When | timeFmt }}
+          {{ end }}
+        </td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+
+  <!-- mobile view (visible only on small screens) -->
+  <div class="md:hidden">
+    {{ range $index, $branch := .Branches }}
+    <div class="relative p-2 {{ if ne $index (sub (len $.Branches) 1) }}border-b border-gray-200 dark:border-gray-700{{ end }}">
+      <div class="flex items-center justify-between">
+        <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center gap-2">
+          <span class="dark:text-white font-medium">
+            {{ .Name }}
+          </span>
+          {{ if .IsDefault }}
+            <span class="
+              text-xs rounded
+              bg-gray-100 dark:bg-gray-700 text-black dark:text-white
+              font-mono
+              px-2
+              inline-flex items-center
+              ">
+              default
+            </span>
+          {{ end }}
+        </a>
+      </div>
+
+      {{ if .Commit }}
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center">
+        <span class="font-mono">
+          <a href="/{{ $.RepoInfo.FullName }}/commits/{{ .Name | urlquery }}" class="text-gray-500 dark:text-gray-400 no-underline hover:underline">
+            {{ slice .Commit.Hash.String 0 8 }}
+          </a>
+        </span>
+        <div class="inline-block px-1 select-none after:content-['·']"></div>
+        <span>{{ .Commit.Author.When | timeFmt }}</span>
+      </div>
+      {{ end }}
     </div>
-  </section>
+    {{ end }}
+  </div>
+</section>
 {{ end }}

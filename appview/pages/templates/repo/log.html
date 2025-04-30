@@ -2,21 +2,25 @@
 
 {{ define "repoContent" }}
 <section id="commit-table" class="overflow-x-auto">
+    <h2 class="font-bold text-sm mb-4 uppercase dark:text-white">
+       commits 
+    </h2>
+
     <!-- desktop view (hidden on small screens) -->
     <table class="w-full border-collapse hidden md:table">
         <thead>
             <tr>
-                <th class="px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Author</th>
-                <th class="px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Commit</th>
-                <th class="px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Message</th>
-                <th class="px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Date</th>
+                <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Author</th>
+                <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Commit</th>
+                <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Message</th>
+                <th class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">Date</th>
             </tr>
         </thead>
         <tbody>
             {{ range $index, $commit := .Commits }}
                 {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
-                <tr class="border-b border-gray-200 dark:border-gray-700">
-                    <td class="px-4 py-3 align-top">
+                <tr class="{{ if ne $index (sub (len $.Commits) 1) }}border-b border-gray-200 dark:border-gray-700{{ end }}">
+                    <td class=" py-3 align-top">
                         {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
                         {{ if $didOrHandle }}
                             <a href="/{{ $didOrHandle }}" class="text-gray-700 dark:text-gray-300 no-underline hover:underline">{{ $didOrHandle }}</a>
@@ -24,7 +28,7 @@
                             <a href="mailto:{{ $commit.Author.Email }}" class="text-gray-700 dark:text-gray-300 no-underline hover:underline">{{ $commit.Author.Name }}</a>
                         {{ end }}
                     </td>
-                    <td class="px-4 py-3 align-top font-mono flex items-end">
+                    <td class=" py-3 align-top font-mono flex items-end">
                         <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" class="text-gray-700 dark:text-gray-300 no-underline hover:underline">{{ slice $commit.Hash.String 0 8 }}</a>
                         <div class="inline-flex">
                             <button class="p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
@@ -37,7 +41,7 @@
                             </a>
                         </div>
                     </td>
-                    <td class="px-4 py-3 align-top">
+                    <td class=" py-3 align-top">
                       <div>
                           <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" class="dark:text-white no-underline hover:underline">{{ index $messageParts 0 }}</a>
                           {{ if gt (len $messageParts) 1 }} 
@@ -46,7 +50,7 @@
                           {{ end }}
                       </div>
                     </td>
-                    <td class="px-4 py-3 align-top text-gray-500 dark:text-gray-400">{{ timeFmt $commit.Author.When }}</td>
+                    <td class=" py-3 align-top text-gray-500 dark:text-gray-400">{{ timeFmt $commit.Author.When }}</td>
                 </tr>
             {{ end }}
         </tbody>
@@ -54,9 +58,8 @@
 
     <!-- mobile view (visible only on small screens) -->
     <div class="md:hidden">
-        <h2 class="p-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">commits</h2>
-        {{ range $commit := .Commits }}
-            <div class="relative p-2 border-b border-gray-200 dark:border-gray-700">
+        {{ range $index, $commit := .Commits }}
+            <div class="relative p-2 {{ if ne $index (sub (len $.Commits) 1) }}border-b border-gray-200 dark:border-gray-700{{ end }}">
                 <div id="commit-message">
                     {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
                     <div class="text-base cursor-pointer">
