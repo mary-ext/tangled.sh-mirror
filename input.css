@@ -13,8 +13,16 @@
     @font-face {
         font-family: "InterVariable";
         src: url("/static/fonts/InterVariable-Italic.woff2") format("woff2");
-        font-weight: normal;
+        font-weight: 400;
         font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "InterVariable";
+        src: url("/static/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 600;
+        font-style: normal;
         font-display: swap;
     }
 
