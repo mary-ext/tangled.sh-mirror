@@ -430,6 +430,7 @@
            , ...
            }: {
             virtualisation.memorySize = 2048;
+            virtualisation.diskSize = 10 * 1024;
             virtualisation.cores = 2;
             services.getty.autologinUser = "root";
             environment.systemPackages = with pkgs; [ curl vim git ];
@@ -440,7 +441,7 @@
               in
               [
                 "d /var/lib/knotserver 0770 ${u} ${g} - -" # Create the directory first
-                "f+ /var/lib/knotserver/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=5b42390da4c6659f34c9a545adebd8af82c4a19960d735f651e3d582623ba9f2"
+                "f+ /var/lib/knotserver/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=679f15000084699abc6a20d3ef449efa3656583f38e456a08f0638250688ff2e"
               ];
             services.tangled-knotserver = {
               enable = true;
