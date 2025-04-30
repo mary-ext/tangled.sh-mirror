@@ -29,7 +29,20 @@
 
 {{ define "repoContent" }}
     <main>
-        {{ block "branchSelector" . }}{{ end }}
+        <div class="flex items-center justify-between pb-5">
+          {{ block "branchSelector" . }}{{ end }}
+          <div class="flex md:hidden items-center gap-4">
+            <a href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}" class="inline-flex items-center text-sm gap-1">
+              {{ i "git-commit-horizontal" "w-4" "h-4" }} {{ .TotalCommits }}
+            </a>
+            <a href="/{{ .RepoInfo.FullName }}/branches" class="inline-flex items-center text-sm gap-1">
+              {{ i "git-branch" "w-4" "h-4" }} {{ len .Branches }}
+            </a>
+            <a href="/{{ .RepoInfo.FullName }}/tags" class="inline-flex items-center text-sm gap-1">
+              {{ i "tags" "w-4" "h-4" }} {{ len .Tags }}
+            </a>
+          </div>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
             {{ block "fileTree" . }}{{ end }}
             {{ block "rightInfo" . }}{{ end }}
@@ -38,41 +51,39 @@
 {{ end }}
 
 {{ define "branchSelector" }}
-    <div class="flex justify-between pb-5">
-        <select
-            onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
-            class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
-        >
-            <optgroup label="branches ({{len .Branches}})" class="bold text-sm">
-                {{ range .Branches }}
-                    <option
-                        value="{{ .Reference.Name }}"
-                        class="py-1"
-                        {{ if eq .Reference.Name $.Ref }}
-                            selected
-                        {{ end }}
-                    >
-                        {{ .Reference.Name }}
-                    </option>
-                {{ end }}
-            </optgroup>
-            <optgroup label="tags ({{len .Tags}})" class="bold text-sm">
-                {{ range .Tags }}
-                    <option
-                        value="{{ .Reference.Name }}"
-                        class="py-1"
-                        {{ if eq .Reference.Name $.Ref }}
-                            selected
-                        {{ end }}
-                    >
-                        {{ .Reference.Name }}
-                    </option>
-                {{ else }}
-                    <option class="py-1" disabled>no tags found</option>
-                {{ end }}
-            </optgroup>
-        </select>
-    </div>
+  <select
+      onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
+      class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
+  >
+      <optgroup label="branches ({{len .Branches}})" class="bold text-sm">
+          {{ range .Branches }}
+              <option
+                  value="{{ .Reference.Name }}"
+                  class="py-1"
+                  {{ if eq .Reference.Name $.Ref }}
+                      selected
+                  {{ end }}
+              >
+                  {{ .Reference.Name }}
+              </option>
+          {{ end }}
+      </optgroup>
+      <optgroup label="tags ({{len .Tags}})" class="bold text-sm">
+          {{ range .Tags }}
+              <option
+                  value="{{ .Reference.Name }}"
+                  class="py-1"
+                  {{ if eq .Reference.Name $.Ref }}
+                      selected
+                  {{ end }}
+              >
+                  {{ .Reference.Name }}
+              </option>
+          {{ else }}
+              <option class="py-1" disabled>no tags found</option>
+          {{ end }}
+      </optgroup>
+  </select>
 {{ end }}
 
 {{ define "fileTree" }}
@@ -129,7 +140,7 @@
 {{ end }}
 
 {{ define "rightInfo" }}
-    <div id="right-info" class="col-span-1">
+    <div id="right-info" class="hidden md:block col-span-1">
       {{ block "commitLog" . }} {{ end }}
       {{ block "branchList" . }} {{ end }}
       {{ block "tagList" . }} {{ end }}
@@ -143,11 +154,9 @@
       <div class="flex gap-2 items-center">
         {{ i "git-commit-horizontal" "w-4 h-4" }} commits
       </div>
-      {{ if lt (len .CommitsTrunc) .TotalCommits }}
-        <span class="hidden group-hover:flex gap-2 items-center text-sm text-gray-500 dark:text-gray-400 ">
-          view {{ .TotalCommits }} commits {{ i "chevron-right" "w-4 h-4" }}
-        </span>
-      {{ end }}
+      <span class="hidden group-hover:flex gap-2 items-center text-sm text-gray-500 dark:text-gray-400 ">
+        view {{ .TotalCommits }} commits {{ i "chevron-right" "w-4 h-4" }}
+      </span>
     </a>
   </div>
   <div class="flex flex-col gap-6">
@@ -243,11 +252,9 @@
           <!-- git-branch icon is seemingly bigger than others at 4x4 -->
           {{ i "git-branch" "w-3 h-3" }} branches
         </div>
-        {{ if lt (len .BranchesTrunc) (len .Branches) }}
         <span class="hidden group-hover:flex gap-2 items-center text-sm text-gray-500 dark:text-gray-400 ">
           view {{ len .Branches }} branches {{ i "chevron-right" "w-4 h-4" }}
         </span>
-        {{ end }}
       </a>
       <div class="flex flex-col gap-1">
         {{ range .BranchesTrunc }}
@@ -279,11 +286,9 @@
           <div class="flex gap-2 items-center">
             {{ i "tags" "w-4 h-4" }} tags
           </div>
-          {{ if lt (len .TagsTrunc) (len .Tags) }}
           <span class="hidden group-hover:flex gap-2 items-center text-sm text-gray-500 dark:text-gray-400 ">
             view {{ len .Tags }} tags {{ i "chevron-right" "w-4 h-4" }}
           </span>
-          {{ end }}
         </a>
       </div>
       <div class="flex flex-col gap-1">
