@@ -499,6 +499,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 type RepoLogParams struct {
 	LoggedInUser *auth.User
 	RepoInfo     RepoInfo
+	TagMap       map[string][]string
 	types.RepoLogResponse
 	Active             string
 	EmailToDidOrHandle map[string]string

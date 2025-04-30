@@ -43,16 +43,30 @@
                     </td>
                     <td class=" py-3 align-top">
                       <div>
-                          <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" class="dark:text-white no-underline hover:underline">{{ index $messageParts 0 }}</a>
-                          {{ if gt (len $messageParts) 1 }} 
-                          <button class="ml-2 py-1/2 px-1 bg-gray-200 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 rounded" hx-on:click="this.nextElementSibling.classList.toggle('hidden')">{{ i "ellipsis" "w-3 h-3" }}</button>
+                          <div class="flex items-center justify-start">
+                              <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" class="dark:text-white no-underline hover:underline">{{ index $messageParts 0 }}</a>
+                              {{ if gt (len $messageParts) 1 }} 
+                              <button class="ml-2 py-1/2 px-1 bg-gray-200 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 rounded" hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')">{{ i "ellipsis" "w-3 h-3" }}</button>
+                              {{ end }}
+
+                              
+                              {{ if index $.TagMap $commit.Hash.String }}
+                                {{ range $tag := index $.TagMap $commit.Hash.String }}
+                                  <span class="ml-2 text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 inline-flex items-center">
+                                    {{ $tag }}
+                                  </span>
+                                {{ end }}
+                              {{ end }}
+                  
+                          </div>
+                          
+                          {{ if gt (len $messageParts) 1 }}
                           <p class="hidden mt-1 text-sm text-gray-600 dark:text-gray-400">{{ nl2br (index $messageParts 1) }}</p>
                           {{ end }}
-                      </div>
                     </td>
                     <td class=" py-3 align-top text-gray-500 dark:text-gray-400">{{ timeFmt $commit.Author.When }}</td>
                 </tr>
-            {{ end }}
+                {{ end }}
         </tbody>
     </table>
 
@@ -66,17 +80,28 @@
                         <div>
                             <div class="flex items-center justify-between">
                                 <div class="flex-1">
-                                    <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" 
-                                       class="inline no-underline hover:underline dark:text-white">
-                                       {{ index $messageParts 0 }}
-                                    </a>
-                                    {{ if gt (len $messageParts) 1 }}
-                                        <button 
-                                            class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
-                                            hx-on:click="this.nextElementSibling.classList.toggle('hidden')">
-                                            {{ i "ellipsis" "w-3 h-3" }}
-                                        </button>
-                                    {{ end }}
+                                    <div class="flex items-center">
+                                        <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" 
+                                           class="inline no-underline hover:underline dark:text-white">
+                                           {{ index $messageParts 0 }}
+                                        </a>
+                                        {{ if gt (len $messageParts) 1 }}
+                                            <button 
+                                                class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600 ml-2"
+                                                hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')">
+                                                {{ i "ellipsis" "w-3 h-3" }}
+                                            </button>
+                                        {{ end }}
+
+                                        {{ if index $.TagMap $commit.Hash.String }}
+                                            {{ range $tag := index $.TagMap $commit.Hash.String }}
+                                                <span class="ml-2 text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 inline-flex items-center">
+                                                {{ $tag }}
+                                                </span>
+                                            {{ end }}
+                                        {{ end }}
+                                    </div>
+
                                     {{ if gt (len $messageParts) 1 }}
                                         <p class="hidden mt-1 text-sm cursor-text pb-2 dark:text-gray-300">
                                             {{ nl2br (index $messageParts 1) }}

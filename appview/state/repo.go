@@ -167,9 +167,35 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resp, err = us.Tags(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	body, err = io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("error reading response body: %v", err)
+		return
+	}
+
+	var result types.RepoTagsResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Printf("Error unmarshalling response body: %v", err)
+		return
+	}
+
+	tagMap := make(map[string][]string)
+	for _, tag := range result.Tags {
+		hash := tag.Hash
+		tagMap[hash] = append(tagMap[hash], tag.Name)
+	}
+
 	user := s.auth.GetUser(r)
 	s.pages.RepoLog(w, pages.RepoLogParams{
 		LoggedInUser:       user,
+		TagMap:             tagMap,
 		RepoInfo:           f.RepoInfo(s, user),
 		RepoLogResponse:    repolog,
 		EmailToDidOrHandle: EmailToDidOrHandle(s, uniqueEmails(repolog.Commits)),
