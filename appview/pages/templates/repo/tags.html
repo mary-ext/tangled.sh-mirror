@@ -4,17 +4,42 @@
 
 {{ define "repoContent" }}
   <section>
-    <div class="flex flex-col py-2">
+    <div class="flex flex-col py-2 gap-12 md:gap-0">
       {{ range .Tags }}
-      <div class="grid grid-cols-12 items-start">
-        <!-- Header column (left) -->
-        <div class="col-span-3 border-r border-gray-200 dark:border-gray-700 h-full text-right px-2 pb-6">
-          <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center justify-end gap-2 font-bold">
-            {{ i "tag" "w-4 h-4" }}
-            {{ .Name }}
-          </a>
-          <div class="flex flex-grow flex-col text-gray-500 dark:text-gray-400 text-sm">
-            {{ if .Tag }}
+      <div class="md:grid md:grid-cols-12 md:items-start flex flex-col">
+        <!-- Header column (top on mobile, left on md+) -->
+        <div class="md:col-span-3 md:border-r border-b md:border-b-0 border-gray-200 dark:border-gray-700 w-full md:h-full">
+          <!-- Mobile layout: horizontal -->
+          <div class="flex md:hidden flex-col py-2 px-2">
+            <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center gap-2 font-bold">
+              {{ i "tag" "w-4 h-4" }}
+              {{ .Name }}
+            </a>
+
+            <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400 text-sm">
+              {{ if .Tag }}
+              <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Tag.Target.String }}" 
+                class="no-underline hover:underline text-gray-500 dark:text-gray-400">
+                {{  slice .Tag.Target.String 0 8  }}
+              </a>
+
+              <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
+              <span>{{ .Tag.Tagger.Name }}</span>
+
+              <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
+              <time>{{ shortTimeFmt .Tag.Tagger.When }}</time>
+              {{ end }}
+            </div>
+          </div>
+
+          <!-- Desktop layout: vertical and right-aligned -->
+          <div class="hidden md:block text-right px-2 pb-6">
+            <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center justify-end gap-2 font-bold">
+              {{ i "tag" "w-4 h-4" }}
+              {{ .Name }}
+            </a>
+            <div class="flex flex-grow flex-col text-gray-500 dark:text-gray-400 text-sm">
+              {{ if .Tag }}
               <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Tag.Target.String }}" 
                 class="no-underline hover:underline text-gray-500 dark:text-gray-400 flex items-center justify-end gap-2">
                 {{ i "git-commit-horizontal" "w-4 h-4" }}
@@ -22,23 +47,22 @@
               </a>
               <span>{{ .Tag.Tagger.Name }}</span>
               <time>{{ timeFmt .Tag.Tagger.When }}</time>
-            {{ end }}
+              {{ end }}
+            </div>
           </div>
         </div>
 
-        <!-- Paragraph column (right) -->
-        <div class="col-span-9 px-2 pb-6">
-          <div>
-            {{ if .Tag }}
-              {{ $messageParts := splitN .Tag.Message "\n\n" 2 }}
-                <p class="font-bold">{{ index $messageParts 0 }}</p>
-                {{ if gt (len $messageParts) 1 }}
-                <p class="cursor-text pb-2 text-sm">{{ nl2br (index $messageParts 1) }}</p>
-                {{ end }}
-            {{ else }}
-              <p class="italic text-gray-500 dark:text-gray-400">no message</p>
+        <!-- Content column (bottom on mobile, right on md+) -->
+        <div class="md:col-span-9 px-2 py-3 md:py-0 md:pb-6">
+          {{ if .Tag }}
+            {{ $messageParts := splitN .Tag.Message "\n\n" 2 }}
+            <p class="font-bold">{{ index $messageParts 0 }}</p>
+            {{ if gt (len $messageParts) 1 }}
+              <p class="cursor-text pb-2 text-sm">{{ nl2br (index $messageParts 1) }}</p>
             {{ end }}
-          </div>
+          {{ else }}
+            <p class="italic text-gray-500 dark:text-gray-400">no message</p>
+          {{ end }}
         </div>
       </div>
       {{ end }}
