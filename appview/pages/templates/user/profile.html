@@ -226,30 +226,31 @@
 {{ end }}
 
 {{ define "profileCard" }}
-    <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm max-h-fit">
-        <div class="flex justify-center items-center">
-            {{ if .AvatarUri }}
-                <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
-            {{ end }}
-        </div>
+  <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm max-h-fit">
+    <div class="grid grid-cols-3 md:grid-cols-1 gap-3 items-center">
+      <div id="avatar" class="col-span-1 md-col-span-full flex justify-center items-center">
+        {{ if .AvatarUri }}
+        <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
+        {{ end }}
+      </div>
+      <div id="text" class="col-span-2 md:col-span-full">
         <p 
-          title="{{ didOrHandle .UserDid .UserHandle }}"
-          class="text-lg font-bold text-center dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full"
-          >
-          {{ didOrHandle .UserDid .UserHandle }}
+        title="{{ didOrHandle .UserDid .UserHandle }}"
+        class="text-lg font-bold md:text-center dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+        {{ didOrHandle .UserDid .UserHandle }}
         </p>
-        <div class="text-sm text-center dark:text-gray-300">
-            <span>{{ .ProfileStats.Followers }} followers</span>
-            <div
-                class="inline-block px-1 select-none after:content-['·']"
-            ></div>
-            <span>{{ .ProfileStats.Following }} following</span>
+        <div class="text-sm md:text-center dark:text-gray-300">
+          <span id="followers">{{ .ProfileStats.Followers }} followers</span>
+          <span class="px-1 select-none after:content-['·']"></span>
+          <span id="following">{{ .ProfileStats.Following }} following</span>
         </div>
 
         {{ if ne .FollowStatus.String "IsSelf" }}
-            {{ template "user/fragments/follow" . }}
+        {{ template "user/fragments/follow" . }}
         {{ end }}
+      </div>
     </div>
+  </div>
 {{ end }}
 
 {{ define "ownRepos" }}
