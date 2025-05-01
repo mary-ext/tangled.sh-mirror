@@ -37,7 +37,7 @@ import (
 
 func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to fully resolve repo", err)
 		return
@@ -129,7 +129,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to fully resolve repo", err)
 		return
@@ -210,7 +210,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -225,7 +225,7 @@ func (s *State) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -304,7 +304,7 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to fully resolve repo", err)
 		return
@@ -350,7 +350,7 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to fully resolve repo", err)
 		return
@@ -381,6 +381,13 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// redirects tree paths trying to access a blob; in this case the result.Files is unpopulated,
+	// so we can safely redirect to the "parent" (which is the same file).
+	if len(result.Files) == 0 && result.Parent == treePath {
+		http.Redirect(w, r, fmt.Sprintf("/%s/blob/%s/%s", f.OwnerSlashRepo(), ref, result.Parent), http.StatusFound)
+		return
+	}
+
 	user := s.auth.GetUser(r)
 
 	var breadcrumbs [][]string
@@ -406,7 +413,7 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -447,7 +454,7 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -502,7 +509,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -562,7 +569,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -606,7 +613,7 @@ func (s *State) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -697,7 +704,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -801,7 +808,7 @@ func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -840,7 +847,7 @@ func (s *State) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -891,27 +898,13 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			resp, err = us.DefaultBranch(f.OwnerDid(), f.RepoName)
+			defaultBranchResp, err := us.DefaultBranch(f.OwnerDid(), f.RepoName)
 			if err != nil {
 				log.Println("failed to reach knotserver", err)
 			} else {
-				defer resp.Body.Close()
-
-				body, err := io.ReadAll(resp.Body)
-				if err != nil {
-					log.Printf("Error reading response body: %v", err)
-				} else {
-					var result types.RepoDefaultBranchResponse
-					err = json.Unmarshal(body, &result)
-					if err != nil {
-						log.Println("failed to parse response:", err)
-					} else {
-						defaultBranch = result.Branch
-					}
-				}
+				defaultBranch = defaultBranchResp.Branch
 			}
 		}
-
 		s.pages.RepoSettings(w, pages.RepoSettingsParams{
 			LoggedInUser:                user,
 			RepoInfo:                    f.RepoInfo(s, user),
@@ -930,6 +923,7 @@ type FullyResolvedRepo struct {
 	RepoAt      syntax.ATURI
 	Description string
 	CreatedAt   string
+	Ref         string
 }
 
 func (f *FullyResolvedRepo) OwnerDid() string {
@@ -1082,6 +1076,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 		Name:        f.RepoName,
 		RepoAt:      f.RepoAt,
 		Description: f.Description,
+		Ref:         f.Ref,
 		IsStarred:   isStarred,
 		Knot:        knot,
 		Roles:       RolesInRepo(s, u, f),
@@ -1103,7 +1098,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 
 func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1157,7 +1152,7 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1229,7 +1224,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1277,7 +1272,7 @@ func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1356,7 +1351,7 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1415,7 +1410,7 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1540,7 +1535,7 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1645,7 +1640,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1686,7 +1681,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -1768,7 +1763,7 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Printf("failed to resolve source repo: %v", err)
 		return
