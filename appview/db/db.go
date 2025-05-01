@@ -208,6 +208,29 @@ func Make(dbPath string) (*DB, error) {
 			unique(did, email)
 		);
 
+		create table if not exists artifacts (
+			-- id
+			id integer primary key autoincrement,
+			did text not null,
+			rkey text not null,
+
+			-- meta
+			repo_at text not null,
+			tag binary(20) not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- data
+			blob_cid text not null,
+			name text not null,
+			size integer not null default 0,
+			mimetype string not null default "*/*",
+
+			-- constraints
+			unique(did, rkey),          -- record must be unique
+			unique(repo_at, tag, name), -- for a given tag object, each file must be unique
+			foreign key (repo_at) references repos(at_uri) on delete cascade
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique

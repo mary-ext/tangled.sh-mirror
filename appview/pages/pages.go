@@ -28,6 +28,7 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -484,11 +485,23 @@ type RepoTagsParams struct {
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	types.RepoTagsResponse
+	ArtifactMap       map[plumbing.Hash][]db.Artifact
+	DanglingArtifacts []db.Artifact
 }
 
 func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 	params.Active = "overview"
 	return p.executeRepo("repo/tags", w, params)
+}
+
+type RepoArtifactParams struct {
+	LoggedInUser *auth.User
+	RepoInfo     RepoInfo
+	Artifact     db.Artifact
+}
+
+func (p *Pages) RepoArtifactFragment(w io.Writer, params RepoArtifactParams) error {
+	return p.executePlain("repo/fragments/artifact", w, params)
 }
 
 type RepoBlobParams struct {

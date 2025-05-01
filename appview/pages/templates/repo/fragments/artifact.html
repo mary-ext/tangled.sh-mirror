@@ -1,0 +1,34 @@
+{{ define "repo/fragments/artifact" }}
+{{ $unique := .Artifact.BlobCid.String }}
+  <div id="artifact-{{ $unique }}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+      <div id="left-side" class="flex items-center gap-2 min-w-0 max-w-[60%]">
+        {{ i "box" "w-4 h-4" }}
+        <a href="/{{ .RepoInfo.FullName }}/tags/{{ .Artifact.Tag.String }}/download/{{ .Artifact.Name | urlquery }}" class="no-underline hover:no-underline">
+          {{ .Artifact.Name }}
+        </a>
+        <span class="text-gray-500 dark:text-gray-400 pl-2">{{ byteFmt .Artifact.Size }}</span>
+      </div>
+
+    <div id="right-side" class="text-gray-500 dark:text-gray-400 flex items-center flex-shrink-0 gap-2">
+      <span title="{{ longTimeFmt .Artifact.CreatedAt }}" class="hidden md:inline">{{ timeFmt .Artifact.CreatedAt }}</span>
+      <span title="{{ longTimeFmt .Artifact.CreatedAt }}" class="       md:hidden">{{ shortTimeFmt .Artifact.CreatedAt }}</span>
+
+      <span class="select-none after:content-['·'] hidden md:inline"></span>
+      <span class="truncate max-w-[100px] hidden md:inline">{{ .Artifact.Mimetype }}</span>
+
+      {{ if and (.LoggedInUser) (eq .LoggedInUser.Did .Artifact.Did) }}
+        <button
+          id="delete-{{ $unique }}"
+          class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2"
+          title="Delete artifact"
+          hx-delete="/{{ .RepoInfo.FullName }}/tags/{{ .Artifact.Tag.String }}/{{ .Artifact.Name | urlquery }}"
+          hx-swap="outerHTML"
+          hx-target="#artifact-{{ $unique }}"
+          hx-disabled-elt="#delete-{{ $unique }}"
+          hx-confirm="Are you sure you want to delete the artifact '{{ .Artifact.Name }}'?">
+          {{ i "trash-2" "w-4 h-4" }}
+        </button>
+      {{ end }}
+    </div>
+  </div>
+{{ end }}

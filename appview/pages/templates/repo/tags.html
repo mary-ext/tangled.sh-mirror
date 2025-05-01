@@ -11,7 +11,7 @@
       <!-- Header column (top on mobile, left on md+) -->
       <div class="md:col-span-2 md:border-r border-b md:border-b-0 border-gray-200 dark:border-gray-700 w-full md:h-full">
         <!-- Mobile layout: horizontal -->
-        <div class="flex md:hidden flex-col py-2 px-2">
+        <div class="flex md:hidden flex-col py-2 px-2 text-xl">
           <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Name | urlquery }}" class="no-underline hover:underline flex items-center gap-2 font-bold">
             {{ i "tag" "w-4 h-4" }}
             {{ .Name }}
@@ -54,13 +54,14 @@
       </div>
 
       <!-- Content column (bottom on mobile, right on md+) -->
-      <div class="md:col-span-9 px-2 py-3 md:py-0 md:pb-6">
+      <div class="md:col-span-10 px-2 py-3 md:py-0 md:pb-6">
         {{ if .Tag }}
           {{ $messageParts := splitN .Tag.Message "\n\n" 2 }}
-          <p class="font-bold">{{ index $messageParts 0 }}</p>
+          <p class="font-bold text-lg">{{ index $messageParts 0 }}</p>
           {{ if gt (len $messageParts) 1 }}
-            <p class="cursor-text pb-2 text-sm">{{ nl2br (index $messageParts 1) }}</p>
+            <p class="cursor-text py-2">{{ nl2br (index $messageParts 1) }}</p>
           {{ end }}
+          {{ block "artifacts" (list $ .) }} {{ end }}
         {{ else }}
           <p class="italic text-gray-500 dark:text-gray-400">no message</p>
         {{ end }}
@@ -73,4 +74,92 @@
     {{ end }}
   </div>
 </section>
+{{ end }}
+
+{{ define "repoAfter" }}
+{{ if gt (len .DanglingArtifacts) 0 }}
+  <section class="bg-white dark:bg-gray-800 p-6 mt-4">
+    {{ block "dangling" . }} {{ end }}
+  </section>
+{{ end }}
+{{ end }}
+
+{{ define "artifacts" }}
+  {{ $root := index . 0 }}
+  {{ $tag := index . 1 }}
+  {{ $isPushAllowed := $root.RepoInfo.Roles.IsPushAllowed }}
+  {{ $artifacts := index $root.ArtifactMap $tag.Tag.Hash }}
+
+  {{ if or (gt (len $artifacts) 0) $isPushAllowed }}
+  <h2 class="my-4 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">artifacts</h2>
+  <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700">
+    {{ range $artifact := $artifacts }}
+      {{ $args := dict "LoggedInUser" $root.LoggedInUser "RepoInfo" $root.RepoInfo "Artifact" $artifact }}
+      {{ template "repo/fragments/artifact" $args }}
+    {{ end }}
+    {{ if $isPushAllowed }}
+      {{ block "uploadArtifact" (list $root $tag) }} {{ end }}
+    {{ end }}
+  </div>
+  {{ end }}
+{{ end }}
+
+{{ define "uploadArtifact" }}
+{{ $root := index . 0 }}
+{{ $tag := index . 1 }}
+{{ $unique := $tag.Tag.Target.String }}
+  <form
+    id="upload-{{$unique}}"
+    method="post"
+    enctype="multipart/form-data"
+    hx-post="/{{ $root.RepoInfo.FullName }}/tags/{{ $tag.Name | urlquery }}/upload"
+    hx-on::after-request="if(event.detail.successful) this.reset()"
+    hx-disabled-elt="#upload-btn-{{$unique}}"
+    hx-swap="beforebegin"
+    hx-target="this"
+    class="flex items-center gap-2 px-2">
+    <div class="flex-grow">
+      <input type="file" 
+        name="artifact" 
+        required
+        class="block py-2 px-0 w-full border-none
+        text-black dark:text-white
+        bg-white dark:bg-gray-800
+        file:mr-4 file:px-2 file:py-2
+        file:rounded file:border-0
+        file:text-sm file:font-medium
+        file:text-gray-700 file:dark:text-gray-300
+        file:bg-gray-200 file:dark:bg-gray-700
+        file:hover:bg-gray-100 file:hover:dark:bg-gray-600
+        ">
+      </input>
+    </div>
+    <div class="flex justify-end">
+      <button 
+        type="submit" 
+        class="btn gap-2" 
+        id="upload-btn-{{$unique}}"
+        title="Upload artifact">
+        {{ i "upload" "w-4 h-4" }}
+        <span class="hidden md:inline">upload</span> 
+      </button>
+    </div>
+  </form>
+{{ end }}
+
+{{ define "dangling" }}
+  {{ $root := . }}
+  {{ $isPushAllowed := $root.RepoInfo.Roles.IsPushAllowed }}
+  {{ $artifacts := $root.DanglingArtifacts }}
+
+  {{ if and (gt (len $artifacts) 0) $isPushAllowed }}
+  <h2 class="mb-2 text-sm text-left text-red-700 dark:text-red-400 uppercase font-bold">dangling artifacts</h2>
+  <p class="mb-4">The tags that these artifacts were attached to have been deleted. These artifacts are only visible to collaborators.</p>
+  <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700">
+    {{ range $artifact := $artifacts }}
+      {{ $args := dict "LoggedInUser" $root.LoggedInUser "RepoInfo" $root.RepoInfo "Artifact" $artifact }}
+      {{ template "repo/fragments/artifact" $args }}
+    {{ end }}
+  </div>
+  {{ end }}
 {{ end }}
