@@ -350,7 +350,7 @@ func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, e
 	return us.client.Do(req)
 }
 
-func (us *UnsignedClient) Tags(ownerDid, repoName string) (*http.Response, error) {
+func (us *UnsignedClient) Tags(ownerDid, repoName string) (*types.RepoTagsResponse, error) {
 	const (
 		Method = "GET"
 	)
@@ -362,7 +362,23 @@ func (us *UnsignedClient) Tags(ownerDid, repoName string) (*http.Response, error
 		return nil, err
 	}
 
-	return us.client.Do(req)
+	resp, err := us.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.RepoTagsResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 func (us *UnsignedClient) Branch(ownerDid, repoName, branch string) (*http.Response, error) {

@@ -2,7 +2,7 @@ package main
 
 import (
 	cbg "github.com/whyrusleeping/cbor-gen"
-	shtangled "tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/api/tangled"
 )
 
 func main() {
@@ -14,18 +14,19 @@ func main() {
 	if err := genCfg.WriteMapEncodersToFile(
 		"api/tangled/cbor_gen.go",
 		"tangled",
-		shtangled.FeedStar{},
-		shtangled.GraphFollow{},
-		shtangled.KnotMember{},
-		shtangled.PublicKey{},
-		shtangled.RepoIssueComment{},
-		shtangled.RepoIssueState{},
-		shtangled.RepoIssue{},
-		shtangled.Repo{},
-		shtangled.RepoPull{},
-		shtangled.RepoPull_Source{},
-		shtangled.RepoPullStatus{},
-		shtangled.RepoPullComment{},
+		tangled.FeedStar{},
+		tangled.GraphFollow{},
+		tangled.KnotMember{},
+		tangled.PublicKey{},
+		tangled.RepoIssueComment{},
+		tangled.RepoIssueState{},
+		tangled.RepoIssue{},
+		tangled.Repo{},
+		tangled.RepoPull{},
+		tangled.RepoPull_Source{},
+		tangled.RepoPullStatus{},
+		tangled.RepoPullComment{},
+		tangled.RepoArtifact{},
 	); err != nil {
 		panic(err)
 	}

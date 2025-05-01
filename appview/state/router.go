@@ -63,7 +63,24 @@ func (s *State) UserRouter() http.Handler {
 			})
 			r.Get("/commit/{ref}", s.RepoCommit)
 			r.Get("/branches", s.RepoBranches)
-			r.Get("/tags", s.RepoTags)
+			r.Route("/tags", func(r chi.Router) {
+				r.Get("/", s.RepoTags)
+				r.Route("/{tag}", func(r chi.Router) {
+					r.Use(middleware.AuthMiddleware(s.auth))
+					// require auth to download for now
+					r.Get("/download/{file}", s.DownloadArtifact)
+
+					// require repo:push to upload or delete artifacts
+					//
+					// additionally: only the uploader can truly delete an artifact
+					// (record+blob will live on their pds)
+					r.Group(func(r chi.Router) {
+						r.With(RepoPermissionMiddleware(s, "repo:push"))
+						r.Post("/upload", s.AttachArtifact)
+						r.Delete("/{file}", s.DeleteArtifact)
+					})
+				})
+			})
 			r.Get("/blob/{ref}/*", s.RepoBlob)
 			r.Get("/raw/{ref}/*", s.RepoBlobRaw)
 

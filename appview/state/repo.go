@@ -16,12 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/data"
-	"github.com/bluesky-social/indigo/atproto/identity"
-	"github.com/bluesky-social/indigo/atproto/syntax"
-	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
@@ -31,6 +25,13 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/types"
+
+	"github.com/bluesky-social/indigo/atproto/data"
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -171,22 +172,9 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err = us.Tags(f.OwnerDid(), f.RepoName)
+	result, err := us.Tags(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
-		return
-	}
-
-	body, err = io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("error reading response body: %v", err)
-		return
-	}
-
-	var result types.RepoTagsResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Printf("Error unmarshalling response body: %v", err)
 		return
 	}
 
@@ -426,30 +414,47 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := us.Tags(f.OwnerDid(), f.RepoName)
+	result, err := us.Tags(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	artifacts, err := db.GetArtifact(s.db, db.NewFilter("repo_at", f.RepoAt))
 	if err != nil {
-		log.Printf("Error reading response body: %v", err)
+		log.Println("failed grab artifacts", err)
 		return
 	}
 
-	var result types.RepoTagsResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse response:", err)
-		return
+	// convert artifacts to map for easy UI building
+	artifactMap := make(map[plumbing.Hash][]db.Artifact)
+	for _, a := range artifacts {
+		artifactMap[a.Tag] = append(artifactMap[a.Tag], a)
+	}
+
+	var danglingArtifacts []db.Artifact
+	for _, a := range artifacts {
+		found := false
+		for _, t := range result.Tags {
+			if t.Tag != nil {
+				if t.Tag.Hash == a.Tag {
+					found = true
+				}
+			}
+		}
+
+		if !found {
+			danglingArtifacts = append(danglingArtifacts, a)
+		}
 	}
 
 	user := s.auth.GetUser(r)
 	s.pages.RepoTags(w, pages.RepoTagsParams{
-		LoggedInUser:     user,
-		RepoInfo:         f.RepoInfo(s, user),
-		RepoTagsResponse: result,
+		LoggedInUser:      user,
+		RepoInfo:          f.RepoInfo(s, user),
+		RepoTagsResponse:  *result,
+		ArtifactMap:       artifactMap,
+		DanglingArtifacts: danglingArtifacts,
 	})
 	return
 }
