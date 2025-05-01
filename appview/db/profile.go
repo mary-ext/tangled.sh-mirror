@@ -81,7 +81,7 @@ type PullEventStats struct {
 	Merged int
 }
 
-const TimeframeMonths = 3
+const TimeframeMonths = 7
 
 func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 	timeline := ProfileTimeline{
@@ -99,7 +99,7 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 	for _, pull := range pulls {
 		pullMonth := pull.Created.Month()
 
-		if currentMonth-pullMonth > TimeframeMonths {
+		if currentMonth-pullMonth >= TimeframeMonths {
 			// shouldn't happen; but times are weird
 			continue
 		}
@@ -118,7 +118,7 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 	for _, issue := range issues {
 		issueMonth := issue.Created.Month()
 
-		if currentMonth-issueMonth > TimeframeMonths {
+		if currentMonth-issueMonth >= TimeframeMonths {
 			// shouldn't happen; but times are weird
 			continue
 		}
@@ -146,7 +146,7 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 
 		repoMonth := repo.Created.Month()
 
-		if currentMonth-repoMonth > TimeframeMonths {
+		if currentMonth-repoMonth >= TimeframeMonths {
 			// shouldn't happen; but times are weird
 			continue
 		}
