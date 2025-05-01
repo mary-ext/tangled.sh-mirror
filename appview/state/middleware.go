@@ -61,7 +61,7 @@ func RepoPermissionMiddleware(s *State, requiredPerm string) middleware.Middlewa
 				http.Error(w, "Forbiden", http.StatusUnauthorized)
 				return
 			}
-			f, err := fullyResolvedRepo(r)
+			f, err := s.fullyResolvedRepo(r)
 			if err != nil {
 				http.Error(w, "malformed url", http.StatusBadRequest)
 				return
@@ -148,7 +148,7 @@ func ResolveRepo(s *State) middleware.Middleware {
 func ResolvePull(s *State) middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f, err := fullyResolvedRepo(r)
+			f, err := s.fullyResolvedRepo(r)
 			if err != nil {
 				log.Println("failed to fully resolve repo", err)
 				http.Error(w, "invalid repo url", http.StatusNotFound)

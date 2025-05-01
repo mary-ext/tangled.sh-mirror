@@ -17,7 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
-func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
+func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	repoName := chi.URLParam(r, "repo")
 	knot, ok := r.Context().Value("knot").(string)
 	if !ok {
@@ -42,6 +42,22 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
+	ref := chi.URLParam(r, "ref")
+
+	if ref == "" {
+		us, err := NewUnsignedClient(knot, s.config.Dev)
+		if err != nil {
+			return nil, err
+		}
+
+		defaultBranch, err := us.DefaultBranch(id.DID.String(), repoName)
+		if err != nil {
+			return nil, err
+		}
+
+		ref = defaultBranch.Branch
+	}
+
 	// pass through values from the middleware
 	description, ok := r.Context().Value("repoDescription").(string)
 	addedAt, ok := r.Context().Value("repoAddedAt").(string)
@@ -53,6 +69,7 @@ func fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		RepoAt:      parsedRepoAt,
 		Description: description,
 		CreatedAt:   addedAt,
+		Ref:         ref,
 	}, nil
 }
 

@@ -19,17 +19,10 @@ type RendererType int
 const (
 	// RendererTypeRepoMarkdown is for repository documentation markdown files
 	RendererTypeRepoMarkdown RendererType = iota
-	// RendererTypeIssueComment is for issue comments
-	RendererTypeIssueComment
-	// RendererTypePullComment is for pull request comments
-	RendererTypePullComment
-	// RendererTypeDefault is the default renderer with minimal transformations
-	RendererTypeDefault
 )
 
 // RenderContext holds the contextual data for rendering markdown.
-// It can be initialized empty, and that'll skip any transformations
-// and use the default renderer (RendererTypeDefault).
+// It can be initialized empty, and that'll skip any transformations.
 type RenderContext struct {
 	Ref          string
 	FullRepoName string
@@ -73,9 +66,9 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 
 		switch a.rctx.RendererType {
 		case RendererTypeRepoMarkdown:
-			a.rctx.relativeLinkTransformer(n.(*ast.Link))
-		case RendererTypeDefault:
-			a.rctx.relativeLinkTransformer(n.(*ast.Link))
+			if v, ok := n.(*ast.Link); ok {
+				a.rctx.relativeLinkTransformer(v)
+			}
 			// more types here like RendererTypeIssue/Pull etc.
 		}
 

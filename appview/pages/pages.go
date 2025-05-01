@@ -366,6 +366,7 @@ type RepoInfo struct {
 	Roles        RolesInRepo
 	Source       *db.Repo
 	SourceHandle string
+	Ref          string
 	DisableFork  bool
 }
 
@@ -478,12 +479,17 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		return p.executeRepo("repo/empty", w, params)
 	}
 
+	rctx := markup.RenderContext{
+		Ref:          params.RepoInfo.Ref,
+		FullRepoName: params.RepoInfo.FullName(),
+	}
+
 	if params.ReadmeFileName != "" {
 		var htmlString string
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
-			htmlString = markup.RenderMarkdown(params.Readme)
+			htmlString = rctx.RenderMarkdown(params.Readme)
 			params.Raw = false
 			params.HTMLReadme = template.HTML(bluemonday.UGCPolicy().Sanitize(htmlString))
 		default:
@@ -601,7 +607,12 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	if params.ShowRendered {
 		switch markup.GetFormat(params.Path) {
 		case markup.FormatMarkdown:
-			params.RenderedContents = template.HTML(markup.RenderMarkdown(params.Contents))
+			rctx := markup.RenderContext{
+				Ref:          params.RepoInfo.Ref,
+				FullRepoName: params.RepoInfo.FullName(),
+				RendererType: markup.RendererTypeRepoMarkdown,
+			}
+			params.RenderedContents = template.HTML(rctx.RenderMarkdown(params.Contents))
 		}
 	}
 
