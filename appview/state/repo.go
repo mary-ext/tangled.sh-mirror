@@ -28,6 +28,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
+	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/types"
 
@@ -996,7 +997,7 @@ func (f *FullyResolvedRepo) Collaborators(ctx context.Context, s *State) ([]page
 	return collaborators, nil
 }
 
-func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
+func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) repoinfo.RepoInfo {
 	isStarred := false
 	if u != nil {
 		isStarred = db.GetStarStatus(s.db, u.Did, syntax.ATURI(f.RepoAt))
@@ -1070,7 +1071,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) pages.RepoInfo {
 		knot = "tangled.sh"
 	}
 
-	repoInfo := pages.RepoInfo{
+	repoInfo := repoinfo.RepoInfo{
 		OwnerDid:    f.OwnerDid(),
 		OwnerHandle: f.OwnerHandle(),
 		Name:        f.RepoName,
