@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/jetstream/pkg/models"
-	tangled "tangled.sh/tangled.sh/core/api/tangled"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/ipfs/go-cid"
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
 )
 
@@ -36,6 +39,8 @@ func Ingest(d db.DbWrapper) Ingester {
 			ingestStar(&d, e)
 		case tangled.PublicKeyNSID:
 			ingestPublicKey(&d, e)
+		case tangled.RepoArtifactNSID:
+			ingestArtifact(&d, e)
 		}
 
 		return err
@@ -127,6 +132,56 @@ func ingestPublicKey(d *db.DbWrapper, e *models.Event) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to %s pubkey record: %w", e.Commit.Operation, err)
+	}
+
+	return nil
+}
+
+func ingestArtifact(d *db.DbWrapper, e *models.Event) error {
+	did := e.Did
+	var err error
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		log.Println("processing add of artifact")
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.RepoArtifact{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			log.Printf("invalid record: %s", err)
+			return err
+		}
+
+		repoAt, err := syntax.ParseATURI(record.Repo)
+		if err != nil {
+			return err
+		}
+
+		createdAt, err := time.Parse(time.RFC3339, record.CreatedAt)
+		if err != nil {
+			createdAt = time.Now()
+		}
+
+		artifact := db.Artifact{
+			Did:       did,
+			Rkey:      e.Commit.RKey,
+			RepoAt:    repoAt,
+			Tag:       plumbing.Hash(record.Tag),
+			CreatedAt: createdAt,
+			BlobCid:   cid.Cid(record.Artifact.Ref),
+			Name:      record.Name,
+			Size:      uint64(record.Artifact.Size),
+			MimeType:  record.Artifact.MimeType,
+		}
+
+		err = db.AddArtifact(d, artifact)
+	case models.CommitOperationDelete:
+		log.Println("processing delete of artifact")
+		err = db.DeleteArtifact(d, db.Filter("did", did), db.Filter("rkey", e.Commit.RKey))
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to %s artifact record: %w", e.Commit.Operation, err)
 	}
 
 	return nil
