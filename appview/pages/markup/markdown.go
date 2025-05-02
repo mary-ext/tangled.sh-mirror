@@ -21,11 +21,15 @@ type RendererType int
 const (
 	// RendererTypeRepoMarkdown is for repository documentation markdown files
 	RendererTypeRepoMarkdown RendererType = iota
+	// RendererTypeDefault is non-repo markdown, like issues/pulls/comments.
+	RendererTypeDefault
 )
 
 // RenderContext holds the contextual data for rendering markdown.
 // It can be initialized empty, and that'll skip any transformations.
 type RenderContext struct {
+	CamoUrl    string
+	CamoSecret string
 	repoinfo.RepoInfo
 	IsDev        bool
 	RendererType RendererType
@@ -73,8 +77,15 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 				a.rctx.relativeLinkTransformer(n.(*ast.Link))
 			case *ast.Image:
 				a.rctx.imageFromKnotTransformer(n.(*ast.Image))
+				a.rctx.camoImageLinkTransformer(n.(*ast.Image))
 			}
-			// more types here like RendererTypeIssue/Pull etc.
+
+		case RendererTypeDefault:
+			switch n.(type) {
+			case *ast.Image:
+				a.rctx.imageFromKnotTransformer(n.(*ast.Image))
+				a.rctx.camoImageLinkTransformer(n.(*ast.Image))
+			}
 		}
 
 		return ast.WalkContinue, nil
