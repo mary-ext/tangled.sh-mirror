@@ -7,3 +7,4 @@ appview/pages/static/*
 result
 !.gitkeep
 out/
+camo/node_modules

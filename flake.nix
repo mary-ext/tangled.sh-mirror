@@ -156,6 +156,7 @@
               pkgs.air
               pkgs.gopls
               pkgs.httpie
+              pkgs.nodejs
               pkgs.indigo-lexgen
               pkgs.litecli
               pkgs.websocat
