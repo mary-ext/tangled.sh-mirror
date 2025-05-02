@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
@@ -44,15 +45,17 @@ type Pages struct {
 	rctx        *markup.RenderContext
 }
 
-func NewPages(dev bool) *Pages {
+func NewPages(config *appview.Config) *Pages {
 	// initialized with safe defaults, can be overriden per use
 	rctx := &markup.RenderContext{
-		IsDev: dev,
+		IsDev:      config.Dev,
+		CamoUrl:    config.CamoHost,
+		CamoSecret: config.CamoSharedSecret,
 	}
 
 	p := &Pages{
 		t:           make(map[string]*template.Template),
-		dev:         dev,
+		dev:         config.Dev,
 		embedFS:     Files,
 		rctx:        rctx,
 		templateDir: "appview/pages",
@@ -380,11 +383,8 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		return p.executeRepo("repo/empty", w, params)
 	}
 
-	p.rctx = &markup.RenderContext{
-		RepoInfo:     params.RepoInfo,
-		IsDev:        p.dev,
-		RendererType: markup.RendererTypeRepoMarkdown,
-	}
+	p.rctx.RepoInfo = params.RepoInfo
+	p.rctx.RendererType = markup.RendererTypeRepoMarkdown
 
 	if params.ReadmeFileName != "" {
 		var htmlString string
@@ -521,11 +521,8 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	if params.ShowRendered {
 		switch markup.GetFormat(params.Path) {
 		case markup.FormatMarkdown:
-			p.rctx = &markup.RenderContext{
-				RepoInfo:     params.RepoInfo,
-				IsDev:        p.dev,
-				RendererType: markup.RendererTypeRepoMarkdown,
-			}
+			p.rctx.RepoInfo = params.RepoInfo
+			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
 			params.RenderedContents = template.HTML(p.rctx.RenderMarkdown(params.Contents))
 		}
 	}

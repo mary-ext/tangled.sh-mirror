@@ -55,7 +55,7 @@ func Make(config *appview.Config) (*State, error) {
 
 	clock := syntax.NewTIDClock(0)
 
-	pgs := pages.NewPages(config.Dev)
+	pgs := pages.NewPages(config)
 
 	resolver := appview.NewResolver()
 
