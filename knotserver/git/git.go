@@ -37,7 +37,8 @@ func init() {
 }
 
 var (
-	ErrBinaryFile = fmt.Errorf("binary file")
+	ErrBinaryFile    = fmt.Errorf("binary file")
+	ErrNotBinaryFile = fmt.Errorf("not binary file")
 )
 
 type GitRepo struct {
@@ -191,6 +192,35 @@ func (g *GitRepo) FileContent(path string) (string, error) {
 	} else {
 		return "", ErrBinaryFile
 	}
+}
+
+func (g *GitRepo) BinContent(path string) ([]byte, error) {
+	c, err := g.r.CommitObject(g.h)
+	if err != nil {
+		return nil, fmt.Errorf("commit object: %w", err)
+	}
+
+	tree, err := c.Tree()
+	if err != nil {
+		return nil, fmt.Errorf("file tree: %w", err)
+	}
+
+	file, err := tree.File(path)
+	if err != nil {
+		return nil, err
+	}
+
+	isbin, _ := file.IsBinary()
+	if isbin {
+		reader, err := file.Reader()
+		if err != nil {
+			return nil, fmt.Errorf("opening file reader: %w", err)
+		}
+		defer reader.Close()
+
+		return io.ReadAll(reader)
+	}
+	return nil, ErrNotBinaryFile
 }
 
 func (g *GitRepo) Tags() ([]*TagReference, error) {
