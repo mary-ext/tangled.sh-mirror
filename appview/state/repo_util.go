@@ -14,7 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 )
 
 func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
@@ -73,12 +73,12 @@ func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	}, nil
 }
 
-func RolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) pages.RolesInRepo {
+func RolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) repoinfo.RolesInRepo {
 	if u != nil {
 		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.DidSlashRepo())
-		return pages.RolesInRepo{r}
+		return repoinfo.RolesInRepo{r}
 	} else {
-		return pages.RolesInRepo{}
+		return repoinfo.RolesInRepo{}
 	}
 }
 

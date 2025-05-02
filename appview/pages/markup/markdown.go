@@ -3,6 +3,7 @@ package markup
 
 import (
 	"bytes"
+	"net/url"
 	"path"
 
 	"github.com/yuin/goldmark"
@@ -11,6 +12,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
+	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 )
 
 // RendererType defines the type of renderer to use based on context
@@ -24,8 +26,8 @@ const (
 // RenderContext holds the contextual data for rendering markdown.
 // It can be initialized empty, and that'll skip any transformations.
 type RenderContext struct {
-	Ref          string
-	FullRepoName string
+	repoinfo.RepoInfo
+	IsDev        bool
 	RendererType RendererType
 }
 
@@ -66,8 +68,11 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 
 		switch a.rctx.RendererType {
 		case RendererTypeRepoMarkdown:
-			if v, ok := n.(*ast.Link); ok {
-				a.rctx.relativeLinkTransformer(v)
+			switch n.(type) {
+			case *ast.Link:
+				a.rctx.relativeLinkTransformer(n.(*ast.Link))
+			case *ast.Image:
+				a.rctx.imageFromKnotTransformer(n.(*ast.Image))
 			}
 			// more types here like RendererTypeIssue/Pull etc.
 		}
@@ -79,12 +84,48 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 func (rctx *RenderContext) relativeLinkTransformer(link *ast.Link) {
 	dst := string(link.Destination)
 
-	if len(dst) == 0 || dst[0] == '#' ||
-		bytes.Contains(link.Destination, []byte("://")) ||
-		bytes.HasPrefix(link.Destination, []byte("mailto:")) {
+	if isAbsoluteUrl(dst) {
 		return
 	}
 
-	newPath := path.Join("/", rctx.FullRepoName, "tree", rctx.Ref, dst)
+	newPath := path.Join("/", rctx.RepoInfo.FullName(), "tree", rctx.RepoInfo.Ref, dst)
 	link.Destination = []byte(newPath)
+}
+
+func (rctx *RenderContext) imageFromKnotTransformer(img *ast.Image) {
+	dst := string(img.Destination)
+
+	if isAbsoluteUrl(dst) {
+		return
+	}
+
+	// strip leading './'
+	if len(dst) >= 2 && dst[0:2] == "./" {
+		dst = dst[2:]
+	}
+
+	scheme := "https"
+	if rctx.IsDev {
+		scheme = "http"
+	}
+	parsedURL := &url.URL{
+		Scheme: scheme,
+		Host:   rctx.Knot,
+		Path: path.Join("/",
+			rctx.RepoInfo.OwnerDid,
+			rctx.RepoInfo.Name,
+			"raw",
+			url.PathEscape(rctx.RepoInfo.Ref),
+			dst),
+	}
+	newPath := parsedURL.String()
+	img.Destination = []byte(newPath)
+}
+
+func isAbsoluteUrl(link string) bool {
+	parsed, err := url.Parse(link)
+	if err != nil {
+		return false
+	}
+	return parsed.IsAbs()
 }
