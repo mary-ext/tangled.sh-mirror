@@ -1,0 +1,20 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "camo",
+  "main": "src/index.js",
+  "compatibility_date": "2025-04-30",
+  "observability": {
+    "enabled": true,
+  },
+
+  "routes": [
+    {
+      "pattern": "camo.tangled.sh",
+      "custom_domain": true,
+    },
+  ],
+}
