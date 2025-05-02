@@ -13,6 +13,8 @@ type Config struct {
 	Dev               bool   `env:"TANGLED_DEV, default=false"`
 	JetstreamEndpoint string `env:"TANGLED_JETSTREAM_ENDPOINT, default=wss://jetstream1.us-east.bsky.network/subscribe"`
 	ResendApiKey      string `env:"TANGLED_RESEND_API_KEY"`
+	CamoHost          string `env:"TANGLED_CAMO_HOST, default=https://camo.tangled.sh"`
+	CamoSharedSecret  string `env:"TANGLED_CAMO_SHARED_SECRET"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {

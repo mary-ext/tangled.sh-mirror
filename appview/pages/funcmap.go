@@ -143,7 +143,7 @@ func funcMap() template.FuncMap {
 			return v.Slice(start, end).Interface()
 		},
 		"markdown": func(text string) template.HTML {
-			rctx := &markup.RenderContext{}
+			rctx := &markup.RenderContext{RendererType: markup.RendererTypeDefault}
 			return template.HTML(rctx.RenderMarkdown(text))
 		},
 		"isNil": func(t any) bool {
