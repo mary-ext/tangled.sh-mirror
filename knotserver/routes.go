@@ -194,12 +194,47 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *Handle) BlobRaw(w http.ResponseWriter, r *http.Request) {
+	treePath := chi.URLParam(r, "*")
+	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
+
+	l := h.l.With("handler", "BlobRaw", "ref", ref, "treePath", treePath)
+
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	gr, err := git.Open(path, ref)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	contents, err := gr.BinContent(treePath)
+	if err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		l.Error("file content", "error", err.Error())
+		return
+	}
+
+	mimeType := http.DetectContentType(contents)
+
+	if !strings.HasPrefix(mimeType, "image/") && !strings.HasPrefix(mimeType, "video/") {
+		l.Error("attempted to serve non-image/video file", "mimetype", mimeType)
+		writeError(w, "only image and video files can be accessed directly", http.StatusForbidden)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "public, max-age=86400") // cache for 24 hours
+	w.Header().Set("ETag", fmt.Sprintf("%x", sha256.Sum256(contents)))
+	w.Header().Set("Content-Type", mimeType)
+	w.Write(contents)
+}
+
 func (h *Handle) Blob(w http.ResponseWriter, r *http.Request) {
 	treePath := chi.URLParam(r, "*")
 	ref := chi.URLParam(r, "ref")
 	ref, _ = url.PathUnescape(ref)
 
-	l := h.l.With("handler", "FileContent", "ref", ref, "treePath", treePath)
+	l := h.l.With("handler", "Blob", "ref", ref, "treePath", treePath)
 
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	gr, err := git.Open(path, ref)
