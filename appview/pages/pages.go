@@ -12,16 +12,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
+	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
-	"tangled.sh/tangled.sh/core/appview/state/userutil"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
@@ -42,13 +40,20 @@ type Pages struct {
 	dev         bool
 	embedFS     embed.FS
 	templateDir string // Path to templates on disk for dev mode
+	rctx        *markup.RenderContext
 }
 
 func NewPages(dev bool) *Pages {
+	// initialized with safe defaults, can be overriden per use
+	rctx := &markup.RenderContext{
+		IsDev: dev,
+	}
+
 	p := &Pages{
 		t:           make(map[string]*template.Template),
 		dev:         dev,
 		embedFS:     Files,
+		rctx:        rctx,
 		templateDir: "appview/pages",
 	}
 
@@ -293,7 +298,7 @@ func (p *Pages) NewRepo(w io.Writer, params NewRepoParams) error {
 type ForkRepoParams struct {
 	LoggedInUser *auth.User
 	Knots        []string
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 }
 
 func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
@@ -343,7 +348,7 @@ func (p *Pages) RepoActionsFragment(w io.Writer, params RepoActionsFragmentParam
 }
 
 type RepoDescriptionParams struct {
-	RepoInfo RepoInfo
+	RepoInfo repoinfo.RepoInfo
 }
 
 func (p *Pages) EditRepoDescriptionFragment(w io.Writer, params RepoDescriptionParams) error {
@@ -354,114 +359,9 @@ func (p *Pages) RepoDescriptionFragment(w io.Writer, params RepoDescriptionParam
 	return p.executePlain("repo/fragments/repoDescription", w, params)
 }
 
-type RepoInfo struct {
-	Name         string
-	OwnerDid     string
-	OwnerHandle  string
-	Description  string
-	Knot         string
-	RepoAt       syntax.ATURI
-	IsStarred    bool
-	Stats        db.RepoStats
-	Roles        RolesInRepo
-	Source       *db.Repo
-	SourceHandle string
-	Ref          string
-	DisableFork  bool
-}
-
-type RolesInRepo struct {
-	Roles []string
-}
-
-func (r RolesInRepo) SettingsAllowed() bool {
-	return slices.Contains(r.Roles, "repo:settings")
-}
-
-func (r RolesInRepo) CollaboratorInviteAllowed() bool {
-	return slices.Contains(r.Roles, "repo:invite")
-}
-
-func (r RolesInRepo) RepoDeleteAllowed() bool {
-	return slices.Contains(r.Roles, "repo:delete")
-}
-
-func (r RolesInRepo) IsOwner() bool {
-	return slices.Contains(r.Roles, "repo:owner")
-}
-
-func (r RolesInRepo) IsCollaborator() bool {
-	return slices.Contains(r.Roles, "repo:collaborator")
-}
-
-func (r RolesInRepo) IsPushAllowed() bool {
-	return slices.Contains(r.Roles, "repo:push")
-}
-
-func (r RepoInfo) OwnerWithAt() string {
-	if r.OwnerHandle != "" {
-		return fmt.Sprintf("@%s", r.OwnerHandle)
-	} else {
-		return r.OwnerDid
-	}
-}
-
-func (r RepoInfo) FullName() string {
-	return path.Join(r.OwnerWithAt(), r.Name)
-}
-
-func (r RepoInfo) OwnerWithoutAt() string {
-	if strings.HasPrefix(r.OwnerWithAt(), "@") {
-		return strings.TrimPrefix(r.OwnerWithAt(), "@")
-	} else {
-		return userutil.FlattenDid(r.OwnerDid)
-	}
-}
-
-func (r RepoInfo) FullNameWithoutAt() string {
-	return path.Join(r.OwnerWithoutAt(), r.Name)
-}
-
-func (r RepoInfo) GetTabs() [][]string {
-	tabs := [][]string{
-		{"overview", "/", "square-chart-gantt"},
-		{"issues", "/issues", "circle-dot"},
-		{"pulls", "/pulls", "git-pull-request"},
-	}
-
-	if r.Roles.SettingsAllowed() {
-		tabs = append(tabs, []string{"settings", "/settings", "cog"})
-	}
-
-	return tabs
-}
-
-// each tab on a repo could have some metadata:
-//
-// issues -> number of open issues etc.
-// settings -> a warning icon to setup branch protection? idk
-//
-// we gather these bits of info here, because go templates
-// are difficult to program in
-func (r RepoInfo) TabMetadata() map[string]any {
-	meta := make(map[string]any)
-
-	if r.Stats.PullCount.Open > 0 {
-		meta["pulls"] = r.Stats.PullCount.Open
-	}
-
-	if r.Stats.IssueCount.Open > 0 {
-		meta["issues"] = r.Stats.IssueCount.Open
-	}
-
-	// more stuff?
-
-	return meta
-}
-
 type RepoIndexParams struct {
 	LoggedInUser  *auth.User
-	RepoInfo      RepoInfo
+	RepoInfo      repoinfo.RepoInfo
 	Active        string
 	TagMap        map[string][]string
 	CommitsTrunc  []*object.Commit
@@ -479,9 +379,10 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		return p.executeRepo("repo/empty", w, params)
 	}
 
-	rctx := markup.RenderContext{
-		Ref:          params.RepoInfo.Ref,
-		FullRepoName: params.RepoInfo.FullName(),
+	p.rctx = &markup.RenderContext{
+		RepoInfo:     params.RepoInfo,
+		IsDev:        p.dev,
+		RendererType: markup.RendererTypeRepoMarkdown,
 	}
 
 	if params.ReadmeFileName != "" {
@@ -489,7 +390,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
-			htmlString = rctx.RenderMarkdown(params.Readme)
+			htmlString = p.rctx.RenderMarkdown(params.Readme)
 			params.Raw = false
 			params.HTMLReadme = template.HTML(bluemonday.UGCPolicy().Sanitize(htmlString))
 		default:
@@ -504,7 +405,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 
 type RepoLogParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	TagMap       map[string][]string
 	types.RepoLogResponse
 	Active             string
@@ -518,7 +419,7 @@ func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
 
 type RepoCommitParams struct {
 	LoggedInUser       *auth.User
-	RepoInfo           RepoInfo
+	RepoInfo           repoinfo.RepoInfo
 	Active             string
 	EmailToDidOrHandle map[string]string
 
@@ -532,7 +433,7 @@ func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
 
 type RepoTreeParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	BreadCrumbs  [][]string
 	BaseTreeLink string
@@ -568,7 +469,7 @@ func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
 
 type RepoBranchesParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	types.RepoBranchesResponse
 }
@@ -580,7 +481,7 @@ func (p *Pages) RepoBranches(w io.Writer, params RepoBranchesParams) error {
 
 type RepoTagsParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	types.RepoTagsResponse
 }
@@ -592,7 +493,7 @@ func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 
 type RepoBlobParams struct {
 	LoggedInUser     *auth.User
-	RepoInfo         RepoInfo
+	RepoInfo         repoinfo.RepoInfo
 	Active           string
 	BreadCrumbs      [][]string
 	ShowRendered     bool
@@ -607,12 +508,12 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 	if params.ShowRendered {
 		switch markup.GetFormat(params.Path) {
 		case markup.FormatMarkdown:
-			rctx := markup.RenderContext{
-				Ref:          params.RepoInfo.Ref,
-				FullRepoName: params.RepoInfo.FullName(),
+			p.rctx = &markup.RenderContext{
+				RepoInfo:     params.RepoInfo,
+				IsDev:        p.dev,
 				RendererType: markup.RendererTypeRepoMarkdown,
 			}
-			params.RenderedContents = template.HTML(rctx.RenderMarkdown(params.Contents))
+			params.RenderedContents = template.HTML(p.rctx.RenderMarkdown(params.Contents))
 		}
 	}
 
@@ -657,7 +558,7 @@ type Collaborator struct {
 
 type RepoSettingsParams struct {
 	LoggedInUser  *auth.User
-	RepoInfo      RepoInfo
+	RepoInfo      repoinfo.RepoInfo
 	Collaborators []Collaborator
 	Active        string
 	Branches      []string
@@ -673,7 +574,7 @@ func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 
 type RepoIssuesParams struct {
 	LoggedInUser    *auth.User
-	RepoInfo        RepoInfo
+	RepoInfo        repoinfo.RepoInfo
 	Active          string
 	Issues          []db.Issue
 	DidHandleMap    map[string]string
@@ -688,7 +589,7 @@ func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {
 
 type RepoSingleIssueParams struct {
 	LoggedInUser     *auth.User
-	RepoInfo         RepoInfo
+	RepoInfo         repoinfo.RepoInfo
 	Active           string
 	Issue            db.Issue
 	Comments         []db.Comment
@@ -710,7 +611,7 @@ func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error
 
 type RepoNewIssueParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Active       string
 }
 
@@ -721,7 +622,7 @@ func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 
 type EditIssueCommentParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Issue        *db.Issue
 	Comment      *db.Comment
 }
@@ -733,7 +634,7 @@ func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentPar
 type SingleIssueCommentParams struct {
 	LoggedInUser *auth.User
 	DidHandleMap map[string]string
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Issue        *db.Issue
 	Comment      *db.Comment
 }
@@ -744,7 +645,7 @@ func (p *Pages) SingleIssueCommentFragment(w io.Writer, params SingleIssueCommen
 
 type RepoNewPullParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Branches     []types.Branch
 	Active       string
 }
@@ -756,7 +657,7 @@ func (p *Pages) RepoNewPull(w io.Writer, params RepoNewPullParams) error {
 
 type RepoPullsParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Pulls        []*db.Pull
 	Active       string
 	DidHandleMap map[string]string
@@ -788,7 +689,7 @@ func (r ResubmitResult) Unknown() bool {
 
 type RepoSinglePullParams struct {
 	LoggedInUser  *auth.User
-	RepoInfo      RepoInfo
+	RepoInfo      repoinfo.RepoInfo
 	Active        string
 	DidHandleMap  map[string]string
 	Pull          *db.Pull
@@ -804,7 +705,7 @@ func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
 type RepoPullPatchParams struct {
 	LoggedInUser *auth.User
 	DidHandleMap map[string]string
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
 	Diff         *types.NiceDiff
 	Round        int
@@ -819,7 +720,7 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 type RepoPullInterdiffParams struct {
 	LoggedInUser *auth.User
 	DidHandleMap map[string]string
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
 	Round        int
 	Interdiff    *patchutil.InterdiffResult
@@ -831,7 +732,7 @@ func (p *Pages) RepoPullInterdiffPage(w io.Writer, params RepoPullInterdiffParam
 }
 
 type PullPatchUploadParams struct {
-	RepoInfo RepoInfo
+	RepoInfo repoinfo.RepoInfo
 }
 
 func (p *Pages) PullPatchUploadFragment(w io.Writer, params PullPatchUploadParams) error {
@@ -839,7 +740,7 @@ func (p *Pages) PullPatchUploadFragment(w io.Writer, params PullPatchUploadParam
 }
 
 type PullCompareBranchesParams struct {
-	RepoInfo RepoInfo
+	RepoInfo repoinfo.RepoInfo
 	Branches []types.Branch
 }
 
@@ -848,7 +749,7 @@ func (p *Pages) PullCompareBranchesFragment(w io.Writer, params PullCompareBranc
 }
 
 type PullCompareForkParams struct {
-	RepoInfo RepoInfo
+	RepoInfo repoinfo.RepoInfo
 	Forks    []db.Repo
 }
 
@@ -857,7 +758,7 @@ func (p *Pages) PullCompareForkFragment(w io.Writer, params PullCompareForkParam
 }
 
 type PullCompareForkBranchesParams struct {
-	RepoInfo       RepoInfo
+	RepoInfo       repoinfo.RepoInfo
 	SourceBranches []types.Branch
 	TargetBranches []types.Branch
 }
@@ -868,7 +769,7 @@ func (p *Pages) PullCompareForkBranchesFragment(w io.Writer, params PullCompareF
 
 type PullResubmitParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
 	SubmissionId int
 }
@@ -879,7 +780,7 @@ func (p *Pages) PullResubmitFragment(w io.Writer, params PullResubmitParams) err
 
 type PullActionsParams struct {
 	LoggedInUser  *auth.User
-	RepoInfo      RepoInfo
+	RepoInfo      repoinfo.RepoInfo
 	Pull          *db.Pull
 	RoundNumber   int
 	MergeCheck    types.MergeCheckResponse
@@ -892,7 +793,7 @@ func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error
 
 type PullNewCommentParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
 	RoundNumber  int
 }
