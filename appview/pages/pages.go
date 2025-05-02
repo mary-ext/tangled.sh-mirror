@@ -496,7 +496,7 @@ func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 
 type RepoArtifactParams struct {
 	LoggedInUser *auth.User
-	RepoInfo     RepoInfo
+	RepoInfo     repoinfo.RepoInfo
 	Artifact     db.Artifact
 }
 

@@ -23,7 +23,7 @@ type Artifact struct {
 	BlobCid  cid.Cid
 	Name     string
 	Size     uint64
-	Mimetype string
+	MimeType string
 }
 
 func (a *Artifact) ArtifactAt() syntax.ATURI {
@@ -52,28 +52,28 @@ func AddArtifact(e Execer, artifact Artifact) error {
 		artifact.BlobCid.String(),
 		artifact.Name,
 		artifact.Size,
-		artifact.Mimetype,
+		artifact.MimeType,
 	)
 	return err
 }
 
-type Filter struct {
+type filter struct {
 	key string
 	arg any
 }
 
-func NewFilter(key string, arg any) Filter {
-	return Filter{
+func Filter(key string, arg any) filter {
+	return filter{
 		key: key,
 		arg: arg,
 	}
 }
 
-func (f Filter) Condition() string {
+func (f filter) Condition() string {
 	return fmt.Sprintf("%s = ?", f.key)
 }
 
-func GetArtifact(e Execer, filters ...Filter) ([]Artifact, error) {
+func GetArtifact(e Execer, filters ...filter) ([]Artifact, error) {
 	var artifacts []Artifact
 
 	var conditions []string
@@ -124,7 +124,7 @@ func GetArtifact(e Execer, filters ...Filter) ([]Artifact, error) {
 			&blobCid,
 			&artifact.Name,
 			&artifact.Size,
-			&artifact.Mimetype,
+			&artifact.MimeType,
 		); err != nil {
 			return nil, err
 		}
@@ -146,7 +146,7 @@ func GetArtifact(e Execer, filters ...Filter) ([]Artifact, error) {
 	return artifacts, nil
 }
 
-func RemoveArtifact(e Execer, filters ...Filter) error {
+func DeleteArtifact(e Execer, filters ...filter) error {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {

@@ -420,7 +420,7 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artifacts, err := db.GetArtifact(s.db, db.NewFilter("repo_at", f.RepoAt))
+	artifacts, err := db.GetArtifact(s.db, db.Filter("repo_at", f.RepoAt))
 	if err != nil {
 		log.Println("failed grab artifacts", err)
 		return

@@ -23,7 +23,7 @@ import (
 func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	tagParam := chi.URLParam(r, "tag")
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		s.pages.Notice(w, "upload", "failed to upload artifact, error in repo resolution")
@@ -98,7 +98,7 @@ func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 		BlobCid:   cid.Cid(uploadBlobResp.Blob.Ref),
 		Name:      handler.Filename,
 		Size:      uint64(uploadBlobResp.Blob.Size),
-		Mimetype:  uploadBlobResp.Blob.MimeType,
+		MimeType:  uploadBlobResp.Blob.MimeType,
 	}
 
 	err = db.AddArtifact(tx, artifact)
@@ -126,7 +126,7 @@ func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 func (s *State) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 	tagParam := chi.URLParam(r, "tag")
 	filename := chi.URLParam(r, "file")
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -143,9 +143,9 @@ func (s *State) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifacts, err := db.GetArtifact(
 		s.db,
-		db.NewFilter("repo_at", f.RepoAt),
-		db.NewFilter("tag", tag.Tag.Hash[:]),
-		db.NewFilter("name", filename),
+		db.Filter("repo_at", f.RepoAt),
+		db.Filter("tag", tag.Tag.Hash[:]),
+		db.Filter("name", filename),
 	)
 	if err != nil {
 		log.Println("failed to get artifacts", err)
@@ -173,7 +173,7 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	user := s.auth.GetUser(r)
 	tagParam := chi.URLParam(r, "tag")
 	filename := chi.URLParam(r, "file")
-	f, err := fullyResolvedRepo(r)
+	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -185,9 +185,9 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifacts, err := db.GetArtifact(
 		s.db,
-		db.NewFilter("repo_at", f.RepoAt),
-		db.NewFilter("tag", tag[:]),
-		db.NewFilter("name", filename),
+		db.Filter("repo_at", f.RepoAt),
+		db.Filter("tag", tag[:]),
+		db.Filter("name", filename),
 	)
 	if err != nil {
 		log.Println("failed to get artifacts", err)
@@ -226,10 +226,10 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	err = db.RemoveArtifact(tx,
-		db.NewFilter("repo_at", f.RepoAt),
-		db.NewFilter("tag", artifact.Tag[:]),
-		db.NewFilter("name", filename),
+	err = db.DeleteArtifact(tx,
+		db.Filter("repo_at", f.RepoAt),
+		db.Filter("tag", artifact.Tag[:]),
+		db.Filter("name", filename),
 	)
 	if err != nil {
 		log.Println("failed to remove artifact record from db", err)
