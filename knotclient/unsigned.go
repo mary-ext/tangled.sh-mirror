@@ -120,11 +120,11 @@ func (u *UnsignedClient) Branch(ownerDid, repoName, branch string) (*types.RepoB
 	return do[types.RepoBranchResponse](u, method, endpoint, nil, nil)
 }
 
-func (u *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*types.RepoBranchResponse, error) {
+func (u *UnsignedClient) DefaultBranch(ownerDid, repoName string) (*types.RepoDefaultBranchResponse, error) {
 	method := http.MethodGet
 	endpoint := fmt.Sprintf("/%s/%s/branches/default", ownerDid, repoName)
 
-	return do[types.RepoBranchResponse](u, method, endpoint, nil, nil)
+	return do[types.RepoDefaultBranchResponse](u, method, endpoint, nil, nil)
 }
 
 func (u *UnsignedClient) Capabilities() (*types.Capabilities, error) {
