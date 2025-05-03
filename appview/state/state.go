@@ -742,7 +742,3 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-func GetAvatarUri(handle string) (string, error) {
-	return fmt.Sprintf("https://avatars.dog/%s@webp", handle), nil
-}

@@ -8,4 +8,5 @@ result
 !.gitkeep
 out/
 ./camo/node_modules/*
+./avatar/node_modules/*
 

@@ -1,6 +1,9 @@
 package state
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -79,11 +82,7 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
 	}
 
-	profileAvatarUri, err := GetAvatarUri(ident.Handle.String())
-	if err != nil {
-		log.Println("failed to fetch bsky avatar", err)
-	}
-
+	profileAvatarUri := s.GetAvatarUri(ident.Handle.String())
 	s.pages.ProfilePage(w, pages.ProfilePageParams{
 		LoggedInUser:       loggedInUser,
 		UserDid:            ident.DID.String(),
@@ -99,4 +98,12 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		AvatarUri:       profileAvatarUri,
 		ProfileTimeline: timeline,
 	})
+}
+
+func (s *State) GetAvatarUri(handle string) string {
+	secret := s.config.AvatarSharedSecret
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(handle))
+	signature := hex.EncodeToString(h.Sum(nil))
+	return fmt.Sprintf("%s/%s/%s", s.config.AvatarHost, signature, handle)
 }
