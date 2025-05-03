@@ -94,6 +94,9 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		if a.IsDefault {
 			return -1
 		}
+		if b.IsDefault {
+			return 1
+		}
 		if a.Commit != nil {
 			if a.Commit.Author.When.Before(b.Commit.Author.When) {
 				return 1
@@ -494,6 +497,9 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
 		if a.IsDefault {
 			return -1
+		}
+		if b.IsDefault {
+			return 1
 		}
 		if a.Commit != nil {
 			if a.Commit.Author.When.Before(b.Commit.Author.When) {
