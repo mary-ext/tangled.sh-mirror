@@ -1078,10 +1078,6 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) repoinfo.RepoInfo {
 		}
 	}
 
-	if knot == "knot1.tangled.sh" {
-		knot = "tangled.sh"
-	}
-
 	repoInfo := repoinfo.RepoInfo{
 		OwnerDid:    f.OwnerDid(),
 		OwnerHandle: f.OwnerHandle(),
