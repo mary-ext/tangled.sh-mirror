@@ -1,0 +1,15 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "avatar",
+	"main": "src/index.js",
+	"compatibility_date": "2025-05-03",
+	"observability": {
+		"enabled": true,
+	},
+	"routes": [
+		{
+			"pattern": "avatar.tangled.sh",
+			"custom_domain": true,
+		},
+	],
+}
