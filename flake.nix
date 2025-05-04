@@ -163,6 +163,7 @@
           cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
           cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
         '';
+        CGO_ENABLED=1;
       };
     });
     apps = forAllSystems (system: let
@@ -171,7 +172,7 @@
         pkgs.writeShellScriptBin "run"
         ''
           TANGLED_DEV=true ${pkgs.air}/bin/air -c /dev/null \
-          -build.cmd "${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o ./appview/pages/static/tw.css && ${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" \
+          -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" \
           -build.bin "./out/${name}.out" \
           -build.stop_on_error "true" \
           -build.include_ext "go"

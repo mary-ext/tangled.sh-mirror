@@ -1,22 +1,22 @@
 {{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
 
 {{ define "content" }}
-<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
-    <div class="md:col-span-1 order-1 md:order-1">
+<div class="grid grid-cols-1 md:grid-cols-8 gap-6">
+    <div class="md:col-span-2 order-1 md:order-1">
         {{ block "profileCard" . }}{{ end }}
     </div>
-    <div class="md:col-span-2 order-2 md:order-2">
+    <div id="all-repos" class="md:col-span-3 order-2 md:order-2">
         {{ block "ownRepos" . }}{{ end }}
         {{ block "collaboratingRepos" . }}{{ end }}
     </div>
-    <div class="md:col-span-2 order-3 md:order-3">
+    <div class="md:col-span-3 order-3 md:order-3">
         {{ block "profileTimeline" . }}{{ end }}
     </div>
 </div>
 {{ end }}
 
 {{ define "profileTimeline" }}
-  <p class="text-sm font-bold py-2 dark:text-white px-6">ACTIVITY</p>
+  <p class="text-sm font-bold p-2 dark:text-white">ACTIVITY</p>
   <div class="flex flex-col gap-6 relative">
     {{ with .ProfileTimeline }}
       {{ range $idx, $byMonth := .ByMonth }}
@@ -233,90 +233,157 @@
         <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
         {{ end }}
       </div>
-      <div id="text" class="col-span-2 md:col-span-full">
-        <p 
-        title="{{ didOrHandle .UserDid .UserHandle }}"
-        class="text-lg font-bold md:text-center dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-        {{ didOrHandle .UserDid .UserHandle }}
+      <div class="col-span-2 md:col-span-full">
+        <p title="{{ didOrHandle .UserDid .UserHandle }}"
+        class="text-lg font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+          {{ didOrHandle .UserDid .UserHandle }}
         </p>
-        <div class="text-sm md:text-center dark:text-gray-300">
-          <span id="followers">{{ .ProfileStats.Followers }} followers</span>
-          <span class="px-1 select-none after:content-['·']"></span>
-          <span id="following">{{ .ProfileStats.Following }} following</span>
-        </div>
+        <div id="profile-bio" class="text-sm">
+          {{ if .Profile }}
+            <p>{{ .Profile.Description }}</p>
+          {{ end }}
 
-        {{ if ne .FollowStatus.String "IsSelf" }}
-        {{ template "user/fragments/follow" . }}
-        {{ end }}
+          <div class="flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+            <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
+            <span id="followers">{{ .ProfileStats.Followers }} followers</span>
+            <span class="select-none after:content-['·']"></span>
+            <span id="following">{{ .ProfileStats.Following }} following</span>
+          </div>
+
+          {{ $profile := .Profile }}
+          {{ with .Profile }}
+          <div class="flex flex-col gap-2 mb-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full"> 
+            {{ if .Location }}
+            <div class="flex items-center gap-2">
+              <span class="flex-shrink-0">{{ i "map-pin" "size-4" }}</span>
+              <span>{{ .Location }}</span>
+            </div>
+            {{ end }}
+
+            {{ if .IncludeBluesky }}
+            <div class="flex items-center gap-2">
+              <span class="flex-shrink-0">{{ i "link" "size-4" }}</span>
+              <a id="bluesky-link" href="https://bsky.app/profile/{{ $.UserDid }}">
+                bluesky/{{ didOrHandle $.UserDid $.UserHandle }}
+              </a>
+            </div>
+            {{ end }}
+
+            {{ range $link := .Links }}
+              {{ if $link }}
+              <div class="flex items-center gap-2">
+                <span class="flex-shrink-0">{{ i "link" "size-4" }}</span>
+                <a href="{{ $link }}">{{ $link }}</a>
+              </div>
+              {{ end }}
+            {{ end }}
+
+            {{ if not $profile.IsStatsEmpty }}
+            <div class="flex items-center justify-evenly gap-2 py-2">
+              {{ range $stat := .Stats }}
+                {{ if $stat.Kind }}
+                  <div class="flex flex-col items-center gap-2">
+                    <span class="text-xl font-bold">{{ $stat.Value }}</span>
+                    <span>{{ $stat.Kind.String }}</span>
+                  </div>
+                {{ end }}
+              {{ end }}
+            </div>
+            {{ end }}
+
+          </div>
+          {{ end }}
+
+          {{ if ne .FollowStatus.String "IsSelf" }}
+            {{ template "user/fragments/follow" . }}
+          {{ else }}
+            <button id="editBtn"
+              class="btn mt-2 w-full flex items-center gap-2"
+              hx-target="#profile-bio"
+              hx-get="/{{ $.UserDid }}/profile/edit-bio"
+              hx-swap="innerHTML">
+              {{ i "pencil" "w-4 h-4" }}
+              edit profile
+            </button>
+          {{ end }}
+        </div>
+        <div id="update-profile" class="text-red-400 dark:text-red-500"></div>
       </div>
     </div>
   </div>
 {{ end }}
 
 {{ define "ownRepos" }}
-    <p class="text-sm font-bold py-2 px-6 dark:text-white">REPOS</p>
-    <div id="repos" class="grid grid-cols-1 gap-4 mb-6">
-        {{ range .Repos }}
-            <div
-                id="repo-card"
-                class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800"
-            >
-                <div id="repo-card-name" class="font-medium dark:text-white">
-                    <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
-                        >{{ .Name }}</a
-                    >
+  <div class="text-sm font-bold p-2 pr-0 dark:text-white flex items-center justify-between gap-2">
+    <span>PINNED REPOS</span>
+    {{ if and .LoggedInUser (eq .LoggedInUser.Did .UserDid) }}
+      <button hx-get="/{{ $.UserDid }}/profile/edit-pins" hx-target="#all-repos" class="btn font-normal text-sm flex gap-2 items-center">
+        {{ i "pencil" "w-3 h-3" }}
+        edit
+      </button>
+    {{ end }}
+  </div>
+  <div id="repos" class="grid grid-cols-1 gap-4 mb-6">
+    {{ range .Repos }}
+      <div
+          id="repo-card"
+          class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
+          <div id="repo-card-name" class="font-medium">
+              <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
+                  >{{ .Name }}</a
+              >
+          </div>
+          {{ if .Description }}
+              <div class="text-gray-600 dark:text-gray-300 text-sm">
+                  {{ .Description }}
+              </div>
+          {{ end }}
+          <div class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto">
+            {{ if .RepoStats.StarCount }}
+                <div class="flex gap-1 items-center text-sm">
+                    {{ i "star" "w-3 h-3 fill-current" }}
+                    <span>{{ .RepoStats.StarCount }}</span>
                 </div>
-                {{ if .Description }}
-                    <div class="text-gray-600 dark:text-gray-300 text-sm">
-                        {{ .Description }}
-                    </div>
-                {{ end }}
-                <div
-                    class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto"
-                >
+            {{ end }}
+          </div>
+      </div>
+    {{ else }}
+        <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
+    {{ end }}
+  </div>
+{{ end }}
 
-                    {{ if .RepoStats.StarCount }}
-                        <div class="flex gap-1 items-center text-sm">
-                            {{ i "star" "w-3 h-3 fill-current" }}
-                            <span>{{ .RepoStats.StarCount }}</span>
-                        </div>
-                    {{ end }}
-                </div>
-            </div>
-        {{ else }}
-            <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
-        {{ end }}
-    </div>
-
-    <p class="text-sm font-bold py-2 px-6 dark:text-white">COLLABORATING ON</p>
+{{ define "collaboratingRepos" }}
+  {{ if gt (len .CollaboratingRepos) 0 }}
+    <p class="text-sm font-bold p-2 dark:text-white">COLLABORATING ON</p>
     <div id="collaborating" class="grid grid-cols-1 gap-4 mb-6">
-        {{ range .CollaboratingRepos }}
-            <div
-                id="repo-card"
-                class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800 flex flex-col"
-            >
-                <div id="repo-card-name" class="font-medium dark:text-white">
-                    <a href="/{{ index $.DidHandleMap .Did }}/{{ .Name }}">
-                        {{ index $.DidHandleMap .Did }}/{{ .Name }}
-                    </a>
+      {{ range .CollaboratingRepos }}
+        <div
+            id="repo-card"
+            class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800 flex flex-col">
+            <div id="repo-card-name" class="font-medium dark:text-white">
+                <a href="/{{ index $.DidHandleMap .Did }}/{{ .Name }}">
+                    {{ index $.DidHandleMap .Did }}/{{ .Name }}
+                </a>
+            </div>
+            {{ if .Description }}
+                <div class="text-gray-600 dark:text-gray-300 text-sm">
+                    {{ .Description }}
                 </div>
-                {{ if .Description }}
-                    <div class="text-gray-600 dark:text-gray-300 text-sm">
-                        {{ .Description }}
+            {{ end }}
+            <div class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto">
+
+                {{ if .RepoStats.StarCount }}
+                    <div class="flex gap-1 items-center text-sm">
+                        {{ i "star" "w-3 h-3 fill-current" }}
+                        <span>{{ .RepoStats.StarCount }}</span>
                     </div>
                 {{ end }}
-                <div class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto">
-
-                    {{ if .RepoStats.StarCount }}
-                        <div class="flex gap-1 items-center text-sm">
-                            {{ i "star" "w-3 h-3 fill-current" }}
-                            <span>{{ .RepoStats.StarCount }}</span>
-                        </div>
-                    {{ end }}
-                </div>
             </div>
-        {{ else }}
-            <p class="px-6 dark:text-white">This user is not collaborating.</p>
-        {{ end }}
+        </div>
+      {{ else }}
+          <p class="px-6 dark:text-white">This user is not collaborating.</p>
+      {{ end }}
     </div>
+  {{ end }}
 {{ end }}

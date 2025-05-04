@@ -54,6 +54,14 @@ func (s *State) UserRouter() http.Handler {
 
 	r.With(ResolveIdent(s)).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.ProfilePage)
+		r.Route("/profile", func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware(s.auth))
+			r.Get("/edit-bio", s.EditBioFragment)
+			r.Get("/edit-pins", s.EditPinsFragment)
+			r.Post("/bio", s.UpdateProfileBio)
+			r.Post("/pins", s.UpdateProfilePins)
+		})
+
 		r.With(ResolveRepo(s)).Route("/{repo}", func(r chi.Router) {
 			r.Get("/", s.RepoIndex)
 			r.Get("/commits/{ref}", s.RepoLog)
