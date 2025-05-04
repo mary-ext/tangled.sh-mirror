@@ -57,22 +57,6 @@ func AddArtifact(e Execer, artifact Artifact) error {
 	return err
 }
 
-type filter struct {
-	key string
-	arg any
-}
-
-func Filter(key string, arg any) filter {
-	return filter{
-		key: key,
-		arg: arg,
-	}
-}
-
-func (f filter) Condition() string {
-	return fmt.Sprintf("%s = ?", f.key)
-}
-
 func GetArtifact(e Execer, filters ...filter) ([]Artifact, error) {
 	var artifacts []Artifact
 

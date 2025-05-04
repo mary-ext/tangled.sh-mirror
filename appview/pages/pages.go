@@ -317,6 +317,7 @@ type ProfilePageParams struct {
 	CollaboratingRepos []db.Repo
 	ProfileStats       ProfileStats
 	FollowStatus       db.FollowStatus
+	Profile            *db.Profile
 	AvatarUri          string
 	ProfileTimeline    *db.ProfileTimeline
 
@@ -339,6 +340,31 @@ type FollowFragmentParams struct {
 
 func (p *Pages) FollowFragment(w io.Writer, params FollowFragmentParams) error {
 	return p.executePlain("user/fragments/follow", w, params)
+}
+
+type EditBioParams struct {
+	LoggedInUser *auth.User
+	Profile      *db.Profile
+}
+
+func (p *Pages) EditBioFragment(w io.Writer, params EditBioParams) error {
+	return p.executePlain("user/fragments/editBio", w, params)
+}
+
+type EditPinsParams struct {
+	LoggedInUser *auth.User
+	Profile      *db.Profile
+	AllRepos     []PinnedRepo
+	DidHandleMap map[string]string
+}
+
+type PinnedRepo struct {
+	IsPinned bool
+	db.Repo
+}
+
+func (p *Pages) EditPinsFragment(w io.Writer, params EditPinsParams) error {
+	return p.executePlain("user/fragments/editPins", w, params)
 }
 
 type RepoActionsFragmentParams struct {

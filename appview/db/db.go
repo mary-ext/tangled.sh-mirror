@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -231,6 +232,62 @@ func Make(dbPath string) (*DB, error) {
 			foreign key (repo_at) references repos(at_uri) on delete cascade
 		);
 
+		create table if not exists profile (
+			-- id
+			id integer primary key autoincrement,
+			did text not null,
+
+			-- data
+			description text not null,
+			include_bluesky integer not null default 0,
+			location text,
+
+			-- constraints
+			unique(did)
+		);
+		create table if not exists profile_links (
+			-- id
+			id integer primary key autoincrement,
+			did text not null,
+
+			-- data
+			link text not null,
+
+			-- constraints
+			foreign key (did) references profile(did) on delete cascade
+		);
+		create table if not exists profile_stats (
+			-- id
+			id integer primary key autoincrement,
+			did text not null,
+
+			-- data
+			kind text not null check (kind in (
+				"merged-pull-request-count",
+				"closed-pull-request-count",
+				"open-pull-request-count",
+				"open-issue-count",
+				"closed-issue-count",
+				"repository-count"
+			)),
+
+			-- constraints
+			foreign key (did) references profile(did) on delete cascade
+		);
+		create table if not exists profile_pinned_repositories (
+			-- id
+			id integer primary key autoincrement,
+			did text not null,
+
+			-- data
+			at_uri text not null,
+
+			-- constraints
+			unique(did, at_uri),
+			foreign key (did) references profile(did) on delete cascade,
+			foreign key (at_uri) references repos(at_uri) on delete cascade
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
@@ -347,4 +404,20 @@ func runMigration(d *sql.DB, name string, migrationFn migrationFn) error {
 	}
 
 	return nil
+}
+
+type filter struct {
+	key string
+	arg any
+}
+
+func Filter(key string, arg any) filter {
+	return filter{
+		key: key,
+		arg: arg,
+	}
+}
+
+func (f filter) Condition() string {
+	return fmt.Sprintf("%s = ?", f.key)
 }

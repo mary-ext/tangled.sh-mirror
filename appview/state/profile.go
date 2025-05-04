@@ -7,9 +7,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"slices"
+	"strings"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
 )
@@ -27,14 +34,41 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profile, err := db.GetProfile(s.db, ident.DID.String())
+	if err != nil {
+		log.Printf("getting profile data for %s: %s", ident.DID.String(), err)
+	}
+
 	repos, err := db.GetAllReposByDid(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
 	}
 
+	// filter out ones that are pinned
+	pinnedRepos := []db.Repo{}
+	for i, r := range repos {
+		// if this is a pinned repo, add it
+		if slices.Contains(profile.PinnedRepos[:], r.RepoAt()) {
+			pinnedRepos = append(pinnedRepos, r)
+		}
+
+		// if there are no saved pins, add the first 4 repos
+		if profile.IsPinnedReposEmpty() && i < 4 {
+			pinnedRepos = append(pinnedRepos, r)
+		}
+	}
+
 	collaboratingRepos, err := db.CollaboratingIn(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting collaborating repos for %s: %s", ident.DID.String(), err)
+	}
+
+	pinnedCollaboratingRepos := []db.Repo{}
+	for _, r := range collaboratingRepos {
+		// if this is a pinned repo, add it
+		if slices.Contains(profile.PinnedRepos[:], r.RepoAt()) {
+			pinnedCollaboratingRepos = append(pinnedCollaboratingRepos, r)
+		}
 	}
 
 	timeline, err := db.MakeProfileTimeline(s.db, ident.DID.String())
@@ -87,12 +121,13 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:       loggedInUser,
 		UserDid:            ident.DID.String(),
 		UserHandle:         ident.Handle.String(),
-		Repos:              repos,
-		CollaboratingRepos: collaboratingRepos,
+		Repos:              pinnedRepos,
+		CollaboratingRepos: pinnedCollaboratingRepos,
 		ProfileStats: pages.ProfileStats{
 			Followers: followers,
 			Following: following,
 		},
+		Profile:         profile,
 		FollowStatus:    db.FollowStatus(followStatus),
 		DidHandleMap:    didHandleMap,
 		AvatarUri:       profileAvatarUri,
@@ -106,4 +141,302 @@ func (s *State) GetAvatarUri(handle string) string {
 	h.Write([]byte(handle))
 	signature := hex.EncodeToString(h.Sum(nil))
 	return fmt.Sprintf("%s/%s/%s", s.config.AvatarHost, signature, handle)
+}
+
+func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	err := r.ParseForm()
+	if err != nil {
+		log.Println("invalid profile update form", err)
+		s.pages.Notice(w, "update-profile", "Invalid form.")
+		return
+	}
+
+	profile, err := db.GetProfile(s.db, user.Did)
+	if err != nil {
+		log.Printf("getting profile data for %s: %s", user.Did, err)
+	}
+
+	profile.Description = r.FormValue("description")
+	profile.IncludeBluesky = r.FormValue("includeBluesky") == "on"
+	profile.Location = r.FormValue("location")
+
+	var links [5]string
+	for i := range 5 {
+		iLink := r.FormValue(fmt.Sprintf("link%d", i))
+		links[i] = iLink
+	}
+	profile.Links = links
+
+	// Parse stats (exactly 2)
+	stat0 := r.FormValue("stat0")
+	stat1 := r.FormValue("stat1")
+
+	if stat0 != "" {
+		profile.Stats[0].Kind = db.VanityStatKind(stat0)
+	}
+
+	if stat1 != "" {
+		profile.Stats[1].Kind = db.VanityStatKind(stat1)
+	}
+
+	if err := s.validateProfile(profile); err != nil {
+		log.Println("invalid profile", err)
+		s.pages.Notice(w, "update-profile", err.Error())
+		return
+	}
+
+	s.updateProfile(profile, w, r)
+	return
+}
+
+func (s *State) UpdateProfilePins(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	err := r.ParseForm()
+	if err != nil {
+		log.Println("invalid profile update form", err)
+		s.pages.Notice(w, "update-profile", "Invalid form.")
+		return
+	}
+
+	profile, err := db.GetProfile(s.db, user.Did)
+	if err != nil {
+		log.Printf("getting profile data for %s: %s", user.Did, err)
+	}
+
+	i := 0
+	var pinnedRepos [6]syntax.ATURI
+	for key, values := range r.Form {
+		if i >= 6 {
+			log.Println("invalid pin update form", err)
+			s.pages.Notice(w, "update-profile", "Only 6 repositories can be pinned at a time.")
+			return
+		}
+		if strings.HasPrefix(key, "pinnedRepo") && len(values) > 0 && values[0] != "" && i < 6 {
+			aturi, err := syntax.ParseATURI(values[0])
+			if err != nil {
+				log.Println("invalid profile update form", err)
+				s.pages.Notice(w, "update-profile", "Invalid form.")
+				return
+			}
+			pinnedRepos[i] = aturi
+			i++
+		}
+	}
+	profile.PinnedRepos = pinnedRepos
+
+	s.updateProfile(profile, w, r)
+	return
+}
+
+func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start transaction", err)
+		s.pages.Notice(w, "update-profile", "Failed to update profile, try again later.")
+		return
+	}
+
+	client, _ := s.auth.AuthorizedClient(r)
+
+	// yeah... lexgen dose not support syntax.ATURI in the record for some reason,
+	// nor does it support exact size arrays
+	var pinnedRepoStrings []string
+	for _, r := range profile.PinnedRepos {
+		pinnedRepoStrings = append(pinnedRepoStrings, r.String())
+	}
+
+	var vanityStats []string
+	for _, v := range profile.Stats {
+		vanityStats = append(vanityStats, string(v.Kind))
+	}
+
+	ex, _ := comatproto.RepoGetRecord(r.Context(), client, "", tangled.ActorProfileNSID, user.Did, "self")
+	var cid *string
+	if ex != nil {
+		cid = ex.Cid
+	}
+
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		Collection: tangled.ActorProfileNSID,
+		Repo:       user.Did,
+		Rkey:       "self",
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.ActorProfile{
+				Bluesky:            &profile.IncludeBluesky,
+				Description:        &profile.Description,
+				Links:              profile.Links[:],
+				Location:           &profile.Location,
+				PinnedRepositories: pinnedRepoStrings,
+				Stats:              vanityStats[:],
+			}},
+		SwapRecord: cid,
+	})
+	if err != nil {
+		log.Println("failed to update profile", err)
+		s.pages.Notice(w, "update-profile", "Failed to update PDS, try again later.")
+		return
+	}
+
+	err = db.UpsertProfile(tx, profile)
+	if err != nil {
+		log.Println("failed to update profile", err)
+		s.pages.Notice(w, "update-profile", "Failed to update profile, try again later.")
+		return
+	}
+
+	s.pages.HxRedirect(w, "/"+user.Did)
+	return
+}
+
+func (s *State) validateProfile(profile *db.Profile) error {
+	// ensure description is not too long
+	if len(profile.Description) > 256 {
+		return fmt.Errorf("Entered bio is too long.")
+	}
+
+	// ensure description is not too long
+	if len(profile.Location) > 40 {
+		return fmt.Errorf("Entered location is too long.")
+	}
+
+	// ensure links are in order
+	err := validateLinks(profile)
+	if err != nil {
+		return err
+	}
+
+	// ensure all pinned repos are either own repos or collaborating repos
+	repos, err := db.GetAllReposByDid(s.db, profile.Did)
+	if err != nil {
+		log.Printf("getting repos for %s: %s", profile.Did, err)
+	}
+
+	collaboratingRepos, err := db.CollaboratingIn(s.db, profile.Did)
+	if err != nil {
+		log.Printf("getting collaborating repos for %s: %s", profile.Did, err)
+	}
+
+	var validRepos []syntax.ATURI
+	for _, r := range repos {
+		validRepos = append(validRepos, r.RepoAt())
+	}
+	for _, r := range collaboratingRepos {
+		validRepos = append(validRepos, r.RepoAt())
+	}
+
+	for _, pinned := range profile.PinnedRepos {
+		if pinned == "" {
+			continue
+		}
+		if !slices.Contains(validRepos, pinned) {
+			return fmt.Errorf("Invalid pinned repo: `%s, does not belong to own or collaborating repos", pinned)
+		}
+	}
+
+	return nil
+}
+
+func validateLinks(profile *db.Profile) error {
+	for i, link := range profile.Links {
+		if link == "" {
+			continue
+		}
+
+		parsedURL, err := url.Parse(link)
+		if err != nil {
+			return fmt.Errorf("Invalid URL '%s': %v\n", link, err)
+		}
+
+		if parsedURL.Scheme == "" {
+			if strings.HasPrefix(link, "//") {
+				profile.Links[i] = "https:" + link
+			} else {
+				profile.Links[i] = "https://" + link
+			}
+			continue
+		} else if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+			return fmt.Errorf("Warning: URL '%s' has unusual scheme: %s\n", link, parsedURL.Scheme)
+		}
+
+		// catch relative paths
+		if parsedURL.Host == "" {
+			return fmt.Errorf("Warning: URL '%s' appears to be a relative path\n", link)
+		}
+	}
+	return nil
+}
+
+func (s *State) EditBioFragment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	profile, err := db.GetProfile(s.db, user.Did)
+	if err != nil {
+		log.Printf("getting profile data for %s: %s", user.Did, err)
+	}
+
+	s.pages.EditBioFragment(w, pages.EditBioParams{
+		LoggedInUser: user,
+		Profile:      profile,
+	})
+}
+
+func (s *State) EditPinsFragment(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+
+	profile, err := db.GetProfile(s.db, user.Did)
+	if err != nil {
+		log.Printf("getting profile data for %s: %s", user.Did, err)
+	}
+
+	repos, err := db.GetAllReposByDid(s.db, user.Did)
+	if err != nil {
+		log.Printf("getting repos for %s: %s", user.Did, err)
+	}
+
+	collaboratingRepos, err := db.CollaboratingIn(s.db, user.Did)
+	if err != nil {
+		log.Printf("getting collaborating repos for %s: %s", user.Did, err)
+	}
+
+	allRepos := []pages.PinnedRepo{}
+
+	for _, r := range repos {
+		isPinned := slices.Contains(profile.PinnedRepos[:], r.RepoAt())
+		allRepos = append(allRepos, pages.PinnedRepo{
+			IsPinned: isPinned,
+			Repo:     r,
+		})
+	}
+	for _, r := range collaboratingRepos {
+		isPinned := slices.Contains(profile.PinnedRepos[:], r.RepoAt())
+		allRepos = append(allRepos, pages.PinnedRepo{
+			IsPinned: isPinned,
+			Repo:     r,
+		})
+	}
+
+	var didsToResolve []string
+	for _, r := range allRepos {
+		didsToResolve = append(didsToResolve, r.Did)
+	}
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
+	s.pages.EditPinsFragment(w, pages.EditPinsParams{
+		LoggedInUser: user,
+		Profile:      profile,
+		AllRepos:     allRepos,
+		DidHandleMap: didHandleMap,
+	})
 }

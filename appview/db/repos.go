@@ -2,9 +2,11 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.sh/tangled.sh/core/api/tangled"
 )
 
 type Repo struct {
@@ -21,6 +23,10 @@ type Repo struct {
 
 	// optional
 	Source string
+}
+
+func (r Repo) RepoAt() syntax.ATURI {
+	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", r.Did, tangled.RepoNSID, r.Rkey))
 }
 
 func GetAllRepos(e Execer, limit int) ([]Repo, error) {

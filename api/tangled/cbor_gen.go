@@ -3389,3 +3389,516 @@ func (t *RepoArtifact) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
+func (t *ActorProfile) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+	fieldCount := 7
+
+	if t.Bluesky == nil {
+		fieldCount--
+	}
+
+	if t.Description == nil {
+		fieldCount--
+	}
+
+	if t.Links == nil {
+		fieldCount--
+	}
+
+	if t.Location == nil {
+		fieldCount--
+	}
+
+	if t.PinnedRepositories == nil {
+		fieldCount--
+	}
+
+	if t.Stats == nil {
+		fieldCount--
+	}
+
+	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
+		return err
+	}
+
+	// t.LexiconTypeID (string) (string)
+	if len("$type") > 1000000 {
+		return xerrors.Errorf("Value in field \"$type\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("$type"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("$type")); err != nil {
+		return err
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sh.tangled.actor.profile"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("sh.tangled.actor.profile")); err != nil {
+		return err
+	}
+
+	// t.Links ([]string) (slice)
+	if t.Links != nil {
+
+		if len("links") > 1000000 {
+			return xerrors.Errorf("Value in field \"links\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("links"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("links")); err != nil {
+			return err
+		}
+
+		if len(t.Links) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Links was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Links))); err != nil {
+			return err
+		}
+		for _, v := range t.Links {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+
+	// t.Stats ([]string) (slice)
+	if t.Stats != nil {
+
+		if len("stats") > 1000000 {
+			return xerrors.Errorf("Value in field \"stats\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("stats"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("stats")); err != nil {
+			return err
+		}
+
+		if len(t.Stats) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Stats was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Stats))); err != nil {
+			return err
+		}
+		for _, v := range t.Stats {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+
+	// t.Bluesky (bool) (bool)
+	if t.Bluesky != nil {
+
+		if len("bluesky") > 1000000 {
+			return xerrors.Errorf("Value in field \"bluesky\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("bluesky"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("bluesky")); err != nil {
+			return err
+		}
+
+		if t.Bluesky == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if err := cbg.WriteBool(w, *t.Bluesky); err != nil {
+				return err
+			}
+		}
+	}
+
+	// t.Location (string) (string)
+	if t.Location != nil {
+
+		if len("location") > 1000000 {
+			return xerrors.Errorf("Value in field \"location\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("location"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("location")); err != nil {
+			return err
+		}
+
+		if t.Location == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if len(*t.Location) > 1000000 {
+				return xerrors.Errorf("Value in field t.Location was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Location))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(*t.Location)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// t.Description (string) (string)
+	if t.Description != nil {
+
+		if len("description") > 1000000 {
+			return xerrors.Errorf("Value in field \"description\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("description"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("description")); err != nil {
+			return err
+		}
+
+		if t.Description == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if len(*t.Description) > 1000000 {
+				return xerrors.Errorf("Value in field t.Description was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Description))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(*t.Description)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// t.PinnedRepositories ([]string) (slice)
+	if t.PinnedRepositories != nil {
+
+		if len("pinnedRepositories") > 1000000 {
+			return xerrors.Errorf("Value in field \"pinnedRepositories\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("pinnedRepositories"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("pinnedRepositories")); err != nil {
+			return err
+		}
+
+		if len(t.PinnedRepositories) > 8192 {
+			return xerrors.Errorf("Slice value in field t.PinnedRepositories was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.PinnedRepositories))); err != nil {
+			return err
+		}
+		for _, v := range t.PinnedRepositories {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+	return nil
+}
+
+func (t *ActorProfile) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = ActorProfile{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("ActorProfile: map struct too large (%d)", extra)
+	}
+
+	n := extra
+
+	nameBuf := make([]byte, 18)
+	for i := uint64(0); i < n; i++ {
+		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		switch string(nameBuf[:nameLen]) {
+		// t.LexiconTypeID (string) (string)
+		case "$type":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.LexiconTypeID = string(sval)
+			}
+			// t.Links ([]string) (slice)
+		case "links":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Links: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Links = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Links[i] = string(sval)
+					}
+
+				}
+			}
+			// t.Stats ([]string) (slice)
+		case "stats":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Stats: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Stats = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Stats[i] = string(sval)
+					}
+
+				}
+			}
+			// t.Bluesky (bool) (bool)
+		case "bluesky":
+
+			{
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+
+					maj, extra, err = cr.ReadHeader()
+					if err != nil {
+						return err
+					}
+					if maj != cbg.MajOther {
+						return fmt.Errorf("booleans must be major type 7")
+					}
+
+					var val bool
+					switch extra {
+					case 20:
+						val = false
+					case 21:
+						val = true
+					default:
+						return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
+					}
+					t.Bluesky = &val
+				}
+			}
+			// t.Location (string) (string)
+		case "location":
+
+			{
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+
+					sval, err := cbg.ReadStringWithMax(cr, 1000000)
+					if err != nil {
+						return err
+					}
+
+					t.Location = (*string)(&sval)
+				}
+			}
+			// t.Description (string) (string)
+		case "description":
+
+			{
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+
+					sval, err := cbg.ReadStringWithMax(cr, 1000000)
+					if err != nil {
+						return err
+					}
+
+					t.Description = (*string)(&sval)
+				}
+			}
+			// t.PinnedRepositories ([]string) (slice)
+		case "pinnedRepositories":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.PinnedRepositories: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.PinnedRepositories = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.PinnedRepositories[i] = string(sval)
+					}
+
+				}
+			}
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
