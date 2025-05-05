@@ -13,5 +13,21 @@ services:
       - "./repositories:/home/git/repositories"
       - "./server:/app"
     ports:
-      - "5555:5555"
       - "2222:22"
+  frontend:
+    image: caddy:2-alpine
+    command: >
+      caddy
+      reverse-proxy
+      --from ${KNOT_SERVER_HOSTNAME}
+      --to knot:5555
+    depends_on:
+      - knot
+    ports:
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+    restart: always
+volumes:
+  caddy_data:

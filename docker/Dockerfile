@@ -42,11 +42,9 @@ COPY --from=build /usr/local/bin/repoguard /home/git/repoguard
 COPY docker/rootfs/ .
 
 RUN chown root:root /usr/local/libexec/tangled-keyfetch && \
-    chmod 755 /usr/local/libexec/tangled-keyfetch && \
-    chown git:git /home/git/repoguard && \
-    chown git:git /app && chown git:git /home/git/repositories
+    chmod 755 /usr/local/libexec/tangled-keyfetch
 
 EXPOSE 22
 EXPOSE 5555
 
-ENTRYPOINT ["/init"]
+ENTRYPOINT ["/bin/sh", "-c", "chown git:git /home/git/repoguard && chown git:git /app && chown git:git /home/git/repositories && /init"]
