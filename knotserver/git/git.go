@@ -194,7 +194,7 @@ func (g *GitRepo) FileContent(path string) (string, error) {
 	}
 }
 
-func (g *GitRepo) BinContent(path string) ([]byte, error) {
+func (g *GitRepo) RawContent(path string) ([]byte, error) {
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
 		return nil, fmt.Errorf("commit object: %w", err)
@@ -210,17 +210,13 @@ func (g *GitRepo) BinContent(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	isbin, _ := file.IsBinary()
-	if isbin {
-		reader, err := file.Reader()
-		if err != nil {
-			return nil, fmt.Errorf("opening file reader: %w", err)
-		}
-		defer reader.Close()
-
-		return io.ReadAll(reader)
+	reader, err := file.Reader()
+	if err != nil {
+		return nil, fmt.Errorf("opening file reader: %w", err)
 	}
-	return nil, ErrNotBinaryFile
+	defer reader.Close()
+
+	return io.ReadAll(reader)
 }
 
 func (g *GitRepo) Tags() ([]*TagReference, error) {

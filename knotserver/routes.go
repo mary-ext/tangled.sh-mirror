@@ -208,7 +208,7 @@ func (h *Handle) BlobRaw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contents, err := gr.BinContent(treePath)
+	contents, err := gr.RawContent(treePath)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusBadRequest)
 		l.Error("file content", "error", err.Error())
@@ -216,6 +216,11 @@ func (h *Handle) BlobRaw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mimeType := http.DetectContentType(contents)
+
+	// exception for svg
+	if strings.HasPrefix(mimeType, "text/xml") && filepath.Ext(treePath) == ".svg" {
+		mimeType = "image/svg+xml"
+	}
 
 	if !strings.HasPrefix(mimeType, "image/") && !strings.HasPrefix(mimeType, "video/") {
 		l.Error("attempted to serve non-image/video file", "mimetype", mimeType)
