@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -248,6 +249,11 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) resolveTag(f *FullyResolvedRepo, tagParam string) (*types.TagReference, error) {
+	tagParam, err := url.QueryUnescape(tagParam)
+	if err != nil {
+		return nil, err
+	}
+
 	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
 	if err != nil {
 		return nil, err
