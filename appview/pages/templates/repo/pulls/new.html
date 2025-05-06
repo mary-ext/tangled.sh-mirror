@@ -18,7 +18,7 @@
                 >
                     <option disabled selected>target branch</option>
                     {{ range .Branches }}
-                        <option value="{{ .Reference.Name }}" class="py-1">
+                        <option value="{{ .Reference.Name }}" class="py-1" {{if .IsDefault}}selected{{end}}>
                             {{ .Reference.Name }}
                         </option>
                     {{ end }}
