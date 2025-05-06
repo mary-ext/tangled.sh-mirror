@@ -18,6 +18,7 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
+	"go.opentelemetry.io/otel/attribute"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
@@ -83,7 +84,7 @@ func Make(ctx context.Context, config *appview.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper))
+	err = jc.StartJetstream(ctx, appview.Ingest(wrapper))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
@@ -198,11 +199,16 @@ func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	ctx, span := s.t.TraceStart(r.Context(), "Timeline")
+	defer span.End()
 
-	timeline, err := db.MakeTimeline(s.db)
+	user := s.auth.GetUser(r)
+	span.SetAttributes(attribute.String("user.did", user.Did))
+
+	timeline, err := db.MakeTimeline(ctx, s.db)
 	if err != nil {
 		log.Println(err)
+		span.RecordError(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
 	}
 
@@ -221,8 +227,9 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 			didsToResolve = append(didsToResolve, ev.Star.StarredByDid, ev.Star.Repo.Did)
 		}
 	}
+	span.SetAttributes(attribute.Int("dids.to_resolve.count", len(didsToResolve)))
 
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	resolvedIds := s.resolver.ResolveIdents(ctx, didsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -231,6 +238,7 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 			didHandleMap[identity.DID.String()] = identity.DID.String()
 		}
 	}
+	span.SetAttributes(attribute.Int("dids.resolved.count", len(resolvedIds)))
 
 	s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
@@ -594,14 +602,22 @@ func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
+	ctx, span := s.t.TraceStart(r.Context(), "NewRepo")
+	defer span.End()
+
 	switch r.Method {
 	case http.MethodGet:
 		user := s.auth.GetUser(r)
+		span.SetAttributes(attribute.String("user.did", user.Did))
+		span.SetAttributes(attribute.String("request.method", "GET"))
+
 		knots, err := s.enforcer.GetDomainsForUser(user.Did)
 		if err != nil {
+			span.RecordError(err)
 			s.pages.Notice(w, "repo", "Invalid user account.")
 			return
 		}
+		span.SetAttributes(attribute.Int("knots.count", len(knots)))
 
 		s.pages.NewRepo(w, pages.NewRepoParams{
 			LoggedInUser: user,
@@ -610,18 +626,22 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		user := s.auth.GetUser(r)
+		span.SetAttributes(attribute.String("user.did", user.Did))
+		span.SetAttributes(attribute.String("request.method", "POST"))
 
 		domain := r.FormValue("domain")
 		if domain == "" {
 			s.pages.Notice(w, "repo", "Invalid form submission&mdash;missing knot domain.")
 			return
 		}
+		span.SetAttributes(attribute.String("domain", domain))
 
 		repoName := r.FormValue("name")
 		if repoName == "" {
 			s.pages.Notice(w, "repo", "Repository name cannot be empty.")
 			return
 		}
+		span.SetAttributes(attribute.String("repo.name", repoName))
 
 		// Check for valid repository name (GitHub-like rules)
 		// No spaces, only alphanumeric characters, dashes, and underscores
@@ -639,29 +659,39 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		if defaultBranch == "" {
 			defaultBranch = "main"
 		}
+		span.SetAttributes(attribute.String("repo.default_branch", defaultBranch))
 
 		description := r.FormValue("description")
 
 		ok, err := s.enforcer.E.Enforce(user.Did, domain, domain, "repo:create")
 		if err != nil || !ok {
+			if err != nil {
+				span.RecordError(err)
+			}
+			span.SetAttributes(attribute.Bool("permission.granted", false))
 			s.pages.Notice(w, "repo", "You do not have permission to create a repo in this knot.")
 			return
 		}
+		span.SetAttributes(attribute.Bool("permission.granted", true))
 
-		existingRepo, err := db.GetRepo(s.db, user.Did, repoName)
+		existingRepo, err := db.GetRepo(ctx, s.db, user.Did, repoName)
 		if err == nil && existingRepo != nil {
+			span.SetAttributes(attribute.Bool("repo.exists", true))
 			s.pages.Notice(w, "repo", fmt.Sprintf("A repo by this name already exists on %s", existingRepo.Knot))
 			return
 		}
+		span.SetAttributes(attribute.Bool("repo.exists", false))
 
 		secret, err := db.GetRegistrationKey(s.db, domain)
 		if err != nil {
+			span.RecordError(err)
 			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", domain))
 			return
 		}
 
 		client, err := NewSignedClient(domain, secret, s.config.Dev)
 		if err != nil {
+			span.RecordError(err)
 			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return
 		}
@@ -675,10 +705,11 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			Description: description,
 		}
 
-		xrpcClient, _ := s.auth.AuthorizedClient(r)
+		rWithCtx := r.WithContext(ctx)
+		xrpcClient, _ := s.auth.AuthorizedClient(rWithCtx)
 
 		createdAt := time.Now().Format(time.RFC3339)
-		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
+		atresp, err := comatproto.RepoPutRecord(ctx, xrpcClient, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
@@ -691,14 +722,17 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 				}},
 		})
 		if err != nil {
+			span.RecordError(err)
 			log.Printf("failed to create record: %s", err)
 			s.pages.Notice(w, "repo", "Failed to announce repository creation.")
 			return
 		}
 		log.Println("created repo record: ", atresp.Uri)
+		span.SetAttributes(attribute.String("repo.uri", atresp.Uri))
 
-		tx, err := s.db.BeginTx(r.Context(), nil)
+		tx, err := s.db.BeginTx(ctx, nil)
 		if err != nil {
+			span.RecordError(err)
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to save repository information.")
 			return
@@ -713,9 +747,11 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)
 		if err != nil {
+			span.RecordError(err)
 			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
 			return
 		}
+		span.SetAttributes(attribute.Int("knot_response.status", resp.StatusCode))
 
 		switch resp.StatusCode {
 		case http.StatusConflict:
@@ -728,8 +764,9 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		}
 
 		repo.AtUri = atresp.Uri
-		err = db.AddRepo(tx, repo)
+		err = db.AddRepo(ctx, tx, repo)
 		if err != nil {
+			span.RecordError(err)
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to save repository information.")
 			return
@@ -739,6 +776,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		p, _ := securejoin.SecureJoin(user.Did, repoName)
 		err = s.enforcer.AddRepo(user.Did, domain, p)
 		if err != nil {
+			span.RecordError(err)
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to set up repository permissions.")
 			return
@@ -746,6 +784,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		err = tx.Commit()
 		if err != nil {
+			span.RecordError(err)
 			log.Println("failed to commit changes", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -753,6 +792,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		err = s.enforcer.E.SavePolicy()
 		if err != nil {
+			span.RecordError(err)
 			log.Println("failed to update ACLs", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

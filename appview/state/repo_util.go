@@ -12,25 +12,42 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"go.opentelemetry.io/otel/attribute"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
+	"tangled.sh/tangled.sh/core/telemetry"
 )
 
 func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
+	ctx := r.Context()
+
+	attrs := telemetry.MapAttrs(map[string]string{
+		"repo": chi.URLParam(r, "repo"),
+		"ref":  chi.URLParam(r, "ref"),
+	})
+
+	ctx, span := s.t.TraceStart(ctx, "fullyResolvedRepo", attrs...)
+	defer span.End()
+
 	repoName := chi.URLParam(r, "repo")
-	knot, ok := r.Context().Value("knot").(string)
-	if !ok {
-		log.Println("malformed middleware")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-	id, ok := r.Context().Value("resolvedId").(identity.Identity)
+	knot, ok := ctx.Value("knot").(string)
 	if !ok {
 		log.Println("malformed middleware")
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
-	repoAt, ok := r.Context().Value("repoAt").(string)
+	span.SetAttributes(attribute.String("knot", knot))
+
+	id, ok := ctx.Value("resolvedId").(identity.Identity)
+	if !ok {
+		log.Println("malformed middleware")
+		return nil, fmt.Errorf("malformed middleware")
+	}
+
+	span.SetAttributes(attribute.String("did", id.DID.String()))
+
+	repoAt, ok := ctx.Value("repoAt").(string)
 	if !ok {
 		log.Println("malformed middleware")
 		return nil, fmt.Errorf("malformed middleware")
@@ -56,11 +73,12 @@ func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		}
 
 		ref = defaultBranch.Branch
+
+		span.SetAttributes(attribute.String("default_branch", ref))
 	}
 
-	// pass through values from the middleware
-	description, ok := r.Context().Value("repoDescription").(string)
-	addedAt, ok := r.Context().Value("repoAddedAt").(string)
+	description, ok := ctx.Value("repoDescription").(string)
+	addedAt, ok := ctx.Value("repoAddedAt").(string)
 
 	return &FullyResolvedRepo{
 		Knot:        knot,

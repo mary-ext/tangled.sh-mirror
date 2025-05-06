@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -17,12 +18,12 @@ type Star struct {
 	Repo *Repo
 }
 
-func (star *Star) ResolveRepo(e Execer) error {
+func (star *Star) ResolveRepo(ctx context.Context, e Execer) error {
 	if star.Repo != nil {
 		return nil
 	}
 
-	repo, err := GetRepoByAtUri(e, star.RepoAt.String())
+	repo, err := GetRepoByAtUri(ctx, e, star.RepoAt.String())
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func AddStar(e Execer, starredByDid string, repoAt syntax.ATURI, rkey string) er
 // Get a star record
 func GetStar(e Execer, starredByDid string, repoAt syntax.ATURI) (*Star, error) {
 	query := `
-	select starred_by_did, repo_at, created, rkey 
+	select starred_by_did, repo_at, created, rkey
 	from stars
 	where starred_by_did = ? and repo_at = ?`
 	row := e.QueryRow(query, starredByDid, repoAt)
@@ -97,7 +98,7 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 	var stars []Star
 
 	rows, err := e.Query(`
-		select 
+		select
 			s.starred_by_did,
 			s.repo_at,
 			s.rkey,

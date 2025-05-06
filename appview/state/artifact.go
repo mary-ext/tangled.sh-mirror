@@ -118,7 +118,7 @@ func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.RepoArtifactFragment(w, pages.RepoArtifactParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(s, user),
+		RepoInfo:     f.RepoInfo(r.Context(), s, user),
 		Artifact:     artifact,
 	})
 }

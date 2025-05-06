@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
@@ -234,7 +237,18 @@ func (s PullSubmission) AsFormatPatch() []patchutil.FormatPatch {
 	return patches
 }
 
-func NewPull(tx *sql.Tx, pull *Pull) error {
+func NewPull(ctx context.Context, tx *sql.Tx, pull *Pull) error {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("repo.at", pull.RepoAt.String()),
+		attribute.String("owner.did", pull.OwnerDid),
+		attribute.String("title", pull.Title),
+		attribute.String("target_branch", pull.TargetBranch),
+	)
+	span.AddEvent("creating new pull request")
+
 	defer tx.Rollback()
 
 	_, err := tx.Exec(`
@@ -242,6 +256,7 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 		values (?, 1)
 		`, pull.RepoAt)
 	if err != nil {
+		span.RecordError(err)
 		return err
 	}
 
@@ -253,11 +268,15 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 		returning next_pull_id - 1
 		`, pull.RepoAt).Scan(&nextId)
 	if err != nil {
+		span.RecordError(err)
 		return err
 	}
 
 	pull.PullId = nextId
 	pull.State = PullOpen
+
+	span.SetAttributes(attribute.Int("pull.id", pull.PullId))
+	span.AddEvent("assigned pull ID")
 
 	var sourceBranch, sourceRepoAt *string
 	if pull.PullSource != nil {
@@ -284,26 +303,34 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 		sourceRepoAt,
 	)
 	if err != nil {
+		span.RecordError(err)
 		return err
 	}
+
+	span.AddEvent("inserted pull record")
 
 	_, err = tx.Exec(`
 		insert into pull_submissions (pull_id, repo_at, round_number, patch, source_rev)
 		values (?, ?, ?, ?, ?)
 	`, pull.PullId, pull.RepoAt, 0, pull.Submissions[0].Patch, pull.Submissions[0].SourceRev)
 	if err != nil {
+		span.RecordError(err)
 		return err
 	}
+
+	span.AddEvent("inserted initial pull submission")
 
 	if err := tx.Commit(); err != nil {
+		span.RecordError(err)
 		return err
 	}
 
+	span.AddEvent("transaction committed successfully")
 	return nil
 }
 
-func GetPullAt(e Execer, repoAt syntax.ATURI, pullId int) (syntax.ATURI, error) {
-	pull, err := GetPull(e, repoAt, pullId)
+func GetPullAt(ctx context.Context, e Execer, repoAt syntax.ATURI, pullId int) (syntax.ATURI, error) {
+	pull, err := GetPull(ctx, e, repoAt, pullId)
 	if err != nil {
 		return "", err
 	}
@@ -316,10 +343,19 @@ func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
 	return pullId - 1, err
 }
 
-func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
+func GetPulls(ctx context.Context, e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("repoAt", repoAt.String()),
+		attribute.String("state", state.String()),
+	)
+	span.AddEvent("querying pulls")
+
 	pulls := make(map[int]*Pull)
 
-	rows, err := e.Query(`
+	rows, err := e.QueryContext(ctx, `
 		select
 			owner_did,
 			pull_id,
@@ -336,6 +372,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		where
 			repo_at = ? and state = ?`, repoAt, state)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -357,11 +394,13 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			&sourceRepoAt,
 		)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 
 		createdTime, err := time.Parse(time.RFC3339, createdAt)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 		pull.Created = createdTime
@@ -373,6 +412,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			if sourceRepoAt.Valid {
 				sourceRepoAtParsed, err := syntax.ParseATURI(sourceRepoAt.String)
 				if err != nil {
+					span.RecordError(err)
 					return nil, err
 				}
 				pull.PullSource.RepoAt = &sourceRepoAtParsed
@@ -381,6 +421,9 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 
 		pulls[pull.PullId] = &pull
 	}
+
+	span.AddEvent("querying pull submissions")
+	span.SetAttributes(attribute.Int("pull_count", len(pulls)))
 
 	// get latest round no. for each pull
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
@@ -400,8 +443,9 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		args[idx] = p.PullId
 		idx += 1
 	}
-	submissionsRows, err := e.Query(submissionsQuery, args...)
+	submissionsRows, err := e.QueryContext(ctx, submissionsQuery, args...)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	defer submissionsRows.Close()
@@ -414,6 +458,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			&s.RoundNumber,
 		)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 
@@ -423,8 +468,11 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		}
 	}
 	if err := rows.Err(); err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
+
+	span.AddEvent("querying pull comments")
 
 	// get comment count on latest submission on each pull
 	inClause = strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
@@ -443,8 +491,9 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 	for _, p := range pulls {
 		args = append(args, p.Submissions[p.LastRoundNumber()].ID)
 	}
-	commentsRows, err := e.Query(commentsQuery, args...)
+	commentsRows, err := e.QueryContext(ctx, commentsQuery, args...)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	defer commentsRows.Close()
@@ -456,6 +505,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			&pullId,
 		)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 		if p, ok := pulls[pullId]; ok {
@@ -463,8 +513,11 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		}
 	}
 	if err := rows.Err(); err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
+
+	span.AddEvent("sorting pulls by date")
 
 	orderedByDate := []*Pull{}
 	for _, p := range pulls {
@@ -474,10 +527,17 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		return orderedByDate[i].Created.After(orderedByDate[j].Created)
 	})
 
+	span.SetAttributes(attribute.Int("result_count", len(orderedByDate)))
 	return orderedByDate, nil
 }
 
-func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
+func GetPull(ctx context.Context, e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.SetAttributes(attribute.String("repoAt", repoAt.String()), attribute.Int("pull.id", pullId))
+	span.AddEvent("query pull metadata")
+
 	query := `
 		select
 			owner_did,
@@ -496,7 +556,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		where
 			repo_at = ? and pull_id = ?
 		`
-	row := e.QueryRow(query, repoAt, pullId)
+	row := e.QueryRowContext(ctx, query, repoAt, pullId)
 
 	var pull Pull
 	var createdAt string
@@ -515,16 +575,17 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		&sourceRepoAt,
 	)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
 	createdTime, err := time.Parse(time.RFC3339, createdAt)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	pull.Created = createdTime
 
-	// populate source
 	if sourceBranch.Valid {
 		pull.PullSource = &PullSource{
 			Branch: sourceBranch.String,
@@ -532,12 +593,14 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		if sourceRepoAt.Valid {
 			sourceRepoAtParsed, err := syntax.ParseATURI(sourceRepoAt.String)
 			if err != nil {
+				span.RecordError(err)
 				return nil, err
 			}
 			pull.PullSource.RepoAt = &sourceRepoAtParsed
 		}
 	}
 
+	span.AddEvent("query submissions")
 	submissionsQuery := `
 		select
 			id, pull_id, repo_at, round_number, patch, created, source_rev
@@ -546,8 +609,9 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		where
 			repo_at = ? and pull_id = ?
 	`
-	submissionsRows, err := e.Query(submissionsQuery, repoAt, pullId)
+	submissionsRows, err := e.QueryContext(ctx, submissionsQuery, repoAt, pullId)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	defer submissionsRows.Close()
@@ -568,11 +632,13 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			&submissionSourceRev,
 		)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 
 		submissionCreatedTime, err := time.Parse(time.RFC3339, submissionCreatedStr)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 		submission.Created = submissionCreatedTime
@@ -584,6 +650,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		submissionsMap[submission.ID] = &submission
 	}
 	if err = submissionsRows.Close(); err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	if len(submissionsMap) == 0 {
@@ -595,6 +662,8 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		args = append(args, k)
 	}
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(submissionsMap)), ", ")
+
+	span.AddEvent("query comments")
 	commentsQuery := fmt.Sprintf(`
 		select
 			id,
@@ -612,8 +681,9 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		order by
 			created asc
 		`, inClause)
-	commentsRows, err := e.Query(commentsQuery, args...)
+	commentsRows, err := e.QueryContext(ctx, commentsQuery, args...)
 	if err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 	defer commentsRows.Close()
@@ -632,34 +702,34 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			&commentCreatedStr,
 		)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 
 		commentCreatedTime, err := time.Parse(time.RFC3339, commentCreatedStr)
 		if err != nil {
+			span.RecordError(err)
 			return nil, err
 		}
 		comment.Created = commentCreatedTime
 
-		// Add the comment to its submission
 		if submission, ok := submissionsMap[comment.SubmissionId]; ok {
 			submission.Comments = append(submission.Comments, comment)
 		}
-
 	}
 	if err = commentsRows.Err(); err != nil {
+		span.RecordError(err)
 		return nil, err
 	}
 
-	var pullSourceRepo *Repo
-	if pull.PullSource != nil {
-		if pull.PullSource.RepoAt != nil {
-			pullSourceRepo, err = GetRepoByAtUri(e, pull.PullSource.RepoAt.String())
-			if err != nil {
-				log.Printf("failed to get repo by at uri: %v", err)
-			} else {
-				pull.PullSource.Repo = pullSourceRepo
-			}
+	if pull.PullSource != nil && pull.PullSource.RepoAt != nil {
+		span.AddEvent("query pull source repo")
+		pullSourceRepo, err := GetRepoByAtUri(ctx, e, pull.PullSource.RepoAt.String())
+		if err != nil {
+			span.RecordError(err)
+			log.Printf("failed to get repo by at uri: %v", err)
+		} else {
+			pull.PullSource.Repo = pullSourceRepo
 		}
 	}
 
@@ -747,9 +817,21 @@ func GetPullsByOwnerDid(e Execer, did, timeframe string) ([]Pull, error) {
 	return pulls, nil
 }
 
-func NewPullComment(e Execer, comment *PullComment) (int64, error) {
+func NewPullComment(ctx context.Context, e Execer, comment *PullComment) (int64, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("repo.at", comment.RepoAt),
+		attribute.Int("pull.id", comment.PullId),
+		attribute.Int("submission.id", comment.SubmissionId),
+		attribute.String("owner.did", comment.OwnerDid),
+	)
+	span.AddEvent("inserting new pull comment")
+
 	query := `insert into pull_comments (owner_did, repo_at, submission_id, comment_at, pull_id, body) values (?, ?, ?, ?, ?, ?)`
-	res, err := e.Exec(
+	res, err := e.ExecContext(
+		ctx,
 		query,
 		comment.OwnerDid,
 		comment.RepoAt,
@@ -759,14 +841,18 @@ func NewPullComment(e Execer, comment *PullComment) (int64, error) {
 		comment.Body,
 	)
 	if err != nil {
+		span.RecordError(err)
 		return 0, err
 	}
 
 	i, err := res.LastInsertId()
 	if err != nil {
+		span.RecordError(err)
 		return 0, err
 	}
 
+	span.SetAttributes(attribute.Int64("comment.id", i))
+	span.AddEvent("pull comment created successfully")
 	return i, nil
 }
 

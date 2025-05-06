@@ -2,8 +2,9 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -60,7 +61,16 @@ func (t *Telemetry) Tracer() oteltrace.Tracer {
 	return t.tracer
 }
 
-func (t *Telemetry) TraceStart(ctx context.Context, name string) (context.Context, oteltrace.Span) {
-	tracer := otel.Tracer(t.serviceName)
-	return tracer.Start(ctx, name)
+func (t *Telemetry) TraceStart(ctx context.Context, name string, attrs ...attribute.KeyValue) (context.Context, oteltrace.Span) {
+	ctx, span := t.tracer.Start(ctx, name)
+	span.SetAttributes(attrs...)
+	return ctx, span
+}
+
+func MapAttrs[T any](attrs map[string]T) []attribute.KeyValue {
+	var result []attribute.KeyValue
+	for k, v := range attrs {
+		result = append(result, attribute.Key(k).String(fmt.Sprintf("%v", v)))
+	}
+	return result
 }
