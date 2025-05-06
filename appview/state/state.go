@@ -63,7 +63,13 @@ func Make(config *appview.Config) (*State, error) {
 	jc, err := jetstream.NewJetstreamClient(
 		config.JetstreamEndpoint,
 		"appview",
-		[]string{tangled.GraphFollowNSID, tangled.FeedStarNSID, tangled.PublicKeyNSID, tangled.RepoArtifactNSID},
+		[]string{
+			tangled.GraphFollowNSID,
+			tangled.FeedStarNSID,
+			tangled.PublicKeyNSID,
+			tangled.RepoArtifactNSID,
+			tangled.ActorProfileNSID,
+		},
 		nil,
 		slog.Default(),
 		wrapper,

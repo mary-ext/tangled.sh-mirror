@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/url"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -337,7 +340,7 @@ func UpsertProfile(tx *sql.Tx, profile *Profile) error {
 		)
 
 		if err != nil {
-			log.Println("profile_pinned_repositories")
+			log.Println("profile_pinned_repositories", "err", err)
 			return err
 		}
 	}
@@ -446,4 +449,82 @@ func GetVanityStat(e Execer, did string, stat VanityStatKind) (uint64, error) {
 	}
 
 	return result, nil
+}
+
+func ValidateProfile(e Execer, profile *Profile) error {
+	// ensure description is not too long
+	if len(profile.Description) > 256 {
+		return fmt.Errorf("Entered bio is too long.")
+	}
+
+	// ensure description is not too long
+	if len(profile.Location) > 40 {
+		return fmt.Errorf("Entered location is too long.")
+	}
+
+	// ensure links are in order
+	err := validateLinks(profile)
+	if err != nil {
+		return err
+	}
+
+	// ensure all pinned repos are either own repos or collaborating repos
+	repos, err := GetAllReposByDid(e, profile.Did)
+	if err != nil {
+		log.Printf("getting repos for %s: %s", profile.Did, err)
+	}
+
+	collaboratingRepos, err := CollaboratingIn(e, profile.Did)
+	if err != nil {
+		log.Printf("getting collaborating repos for %s: %s", profile.Did, err)
+	}
+
+	var validRepos []syntax.ATURI
+	for _, r := range repos {
+		validRepos = append(validRepos, r.RepoAt())
+	}
+	for _, r := range collaboratingRepos {
+		validRepos = append(validRepos, r.RepoAt())
+	}
+
+	for _, pinned := range profile.PinnedRepos {
+		if pinned == "" {
+			continue
+		}
+		if !slices.Contains(validRepos, pinned) {
+			return fmt.Errorf("Invalid pinned repo: `%s, does not belong to own or collaborating repos", pinned)
+		}
+	}
+
+	return nil
+}
+
+func validateLinks(profile *Profile) error {
+	for i, link := range profile.Links {
+		if link == "" {
+			continue
+		}
+
+		parsedURL, err := url.Parse(link)
+		if err != nil {
+			return fmt.Errorf("Invalid URL '%s': %v\n", link, err)
+		}
+
+		if parsedURL.Scheme == "" {
+			if strings.HasPrefix(link, "//") {
+				profile.Links[i] = "https:" + link
+			} else {
+				profile.Links[i] = "https://" + link
+			}
+			continue
+		} else if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+			return fmt.Errorf("Warning: URL '%s' has unusual scheme: %s\n", link, parsedURL.Scheme)
+		}
+
+		// catch relative paths
+		if parsedURL.Host == "" {
+			return fmt.Errorf("Warning: URL '%s' appears to be a relative path\n", link)
+		}
+	}
+	return nil
 }
