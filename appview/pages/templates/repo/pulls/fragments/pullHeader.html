@@ -42,19 +42,17 @@
               </span>
             </span>
             {{ if not .Pull.IsPatchBased }}
-            <span>from
-              {{ if .Pull.IsForkBased }}
-                {{ if .Pull.PullSource.Repo }}
-                <a href="/{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}</a>
-                {{ else }}
-                <span class="italic">[deleted fork]</span>
-                {{ end }}
-              {{ end }}
-
+              from
               <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-                {{ .Pull.PullSource.Branch }}
+                {{ if .Pull.IsForkBased }}
+                  {{ if .Pull.PullSource.Repo }}
+                  <a href="/{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}</a>:
+                  {{- else -}}
+                  <span class="italic">[deleted fork]</span>
+                  {{- end -}}
+                {{- end -}}
+                {{- .Pull.PullSource.Branch -}}
               </span>
-            </span>
             {{ end }}
         </span>
     </div>

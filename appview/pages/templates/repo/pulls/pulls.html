@@ -79,18 +79,16 @@
                         </span>
                     </span>
                     {{ if not .IsPatchBased }}
-                    <span>from
-                      {{ if .IsForkBased }}
-                        {{ if .PullSource.Repo }}
-                        <a href="/{{ $owner }}/{{ .PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSource.Repo.Name }}</a>
-                        {{ else }}
-                        <span class="italic">[deleted fork]</span>
-                        {{ end }}
-                      {{ end }}
-
-                      <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-                        {{ .PullSource.Branch }}
-                      </span>
+                    from
+                    <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
+                        {{ if .IsForkBased }}
+                          {{ if .PullSource.Repo }}
+                          <a href="/{{ $owner }}/{{ .PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .PullSource.Repo.Name }}</a>:
+                          {{- else -}}
+                          <span class="italic">[deleted fork]</span>
+                          {{- end -}}
+                        {{- end -}}
+                        {{- .PullSource.Branch -}}
                     </span>
                     {{ end }}
                     <span class="before:content-['·']">
