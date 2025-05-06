@@ -41,6 +41,8 @@ func Ingest(d db.DbWrapper) Ingester {
 			ingestPublicKey(&d, e)
 		case tangled.RepoArtifactNSID:
 			ingestArtifact(&d, e)
+		case tangled.ActorProfileNSID:
+			ingestProfile(&d, e)
 		}
 
 		return err
@@ -143,7 +145,6 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event) error {
 
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate, models.CommitOperationUpdate:
-		log.Println("processing add of artifact")
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.RepoArtifact{}
 		err = json.Unmarshal(raw, &record)
@@ -176,12 +177,102 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event) error {
 
 		err = db.AddArtifact(d, artifact)
 	case models.CommitOperationDelete:
-		log.Println("processing delete of artifact")
 		err = db.DeleteArtifact(d, db.Filter("did", did), db.Filter("rkey", e.Commit.RKey))
 	}
 
 	if err != nil {
 		return fmt.Errorf("failed to %s artifact record: %w", e.Commit.Operation, err)
+	}
+
+	return nil
+}
+
+func ingestProfile(d *db.DbWrapper, e *models.Event) error {
+	did := e.Did
+	var err error
+
+	if e.Commit.RKey != "self" {
+		return fmt.Errorf("ingestProfile only ingests `self` record")
+	}
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.ActorProfile{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			log.Printf("invalid record: %s", err)
+			return err
+		}
+
+		description := ""
+		if record.Description != nil {
+			description = *record.Description
+		}
+
+		includeBluesky := false
+		if record.Bluesky != nil {
+			includeBluesky = *record.Bluesky
+		}
+
+		location := ""
+		if record.Location != nil {
+			location = *record.Location
+		}
+
+		var links [5]string
+		for i, l := range record.Links {
+			if i < 5 {
+				links[i] = l
+			}
+		}
+
+		var stats [2]db.VanityStat
+		for i, s := range record.Stats {
+			if i < 2 {
+				stats[i].Kind = db.VanityStatKind(s)
+			}
+		}
+
+		var pinned [6]syntax.ATURI
+		for i, r := range record.PinnedRepositories {
+			if i < 6 {
+				pinned[i] = syntax.ATURI(r)
+			}
+		}
+
+		profile := db.Profile{
+			Did:            did,
+			Description:    description,
+			IncludeBluesky: includeBluesky,
+			Location:       location,
+			Links:          links,
+			Stats:          stats,
+			PinnedRepos:    pinned,
+		}
+
+		ddb, ok := d.Execer.(*db.DB)
+		if !ok {
+			return fmt.Errorf("failed to index profile record, invalid db cast")
+		}
+
+		tx, err := ddb.Begin()
+		if err != nil {
+			return fmt.Errorf("failed to start transaction")
+		}
+
+		err = db.ValidateProfile(tx, &profile)
+		if err != nil {
+			return fmt.Errorf("invalid profile record")
+		}
+
+		err = db.UpsertProfile(tx, &profile)
+	case models.CommitOperationDelete:
+		err = db.DeleteArtifact(d, db.Filter("did", did), db.Filter("rkey", e.Commit.RKey))
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to %s profile record: %w", e.Commit.Operation, err)
 	}
 
 	return nil

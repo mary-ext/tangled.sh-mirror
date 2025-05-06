@@ -227,31 +227,35 @@
 
 {{ define "profileCard" }}
   <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm max-h-fit">
-    <div class="grid grid-cols-3 md:grid-cols-1 gap-3 items-center">
-      <div id="avatar" class="col-span-1 md-col-span-full flex justify-center items-center">
+    <div class="grid grid-cols-3 md:grid-cols-1 gap-1 items-center">
+      <div id="avatar" class="col-span-1 flex justify-center items-center">
         {{ if .AvatarUri }}
         <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
         {{ end }}
       </div>
-      <div class="col-span-2 md:col-span-full">
+      <div class="col-span-2">
         <p title="{{ didOrHandle .UserDid .UserHandle }}"
         class="text-lg font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
           {{ didOrHandle .UserDid .UserHandle }}
         </p>
+
+        <div class="md:hidden">
+          {{ block "followerFollowing" .ProfileStats }} {{ end }}
+        </div>
+      </div>
+      <div class="col-span-3 md:col-span-full">
         <div id="profile-bio" class="text-sm">
-          {{ if .Profile }}
-            <p>{{ .Profile.Description }}</p>
-          {{ end }}
-
-          <div class="flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-            <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
-            <span id="followers">{{ .ProfileStats.Followers }} followers</span>
-            <span class="select-none after:content-['·']"></span>
-            <span id="following">{{ .ProfileStats.Following }} following</span>
-          </div>
-
           {{ $profile := .Profile }}
           {{ with .Profile }}
+
+          {{ if .Description }}
+            <p class="text-base pb-4 md:pb-2">{{ .Description }}</p>
+          {{ end }}
+
+          <div class="hidden md:block">
+            {{ block "followerFollowing" $.ProfileStats }} {{ end }}
+          </div>
+
           <div class="flex flex-col gap-2 mb-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full"> 
             {{ if .Location }}
             <div class="flex items-center gap-2">
@@ -259,7 +263,6 @@
               <span>{{ .Location }}</span>
             </div>
             {{ end }}
-
             {{ if .IncludeBluesky }}
             <div class="flex items-center gap-2">
               <span class="flex-shrink-0">{{ i "link" "size-4" }}</span>
@@ -268,7 +271,6 @@
               </a>
             </div>
             {{ end }}
-
             {{ range $link := .Links }}
               {{ if $link }}
               <div class="flex items-center gap-2">
@@ -277,7 +279,6 @@
               </div>
               {{ end }}
             {{ end }}
-
             {{ if not $profile.IsStatsEmpty }}
             <div class="flex items-center justify-evenly gap-2 py-2">
               {{ range $stat := .Stats }}
@@ -290,10 +291,8 @@
               {{ end }}
             </div>
             {{ end }}
-
           </div>
           {{ end }}
-
           {{ if ne .FollowStatus.String "IsSelf" }}
             {{ template "user/fragments/follow" . }}
           {{ else }}
@@ -303,13 +302,22 @@
               hx-get="/{{ $.UserDid }}/profile/edit-bio"
               hx-swap="innerHTML">
               {{ i "pencil" "w-4 h-4" }}
-              edit profile
+              edit
             </button>
           {{ end }}
         </div>
         <div id="update-profile" class="text-red-400 dark:text-red-500"></div>
       </div>
     </div>
+  </div>
+{{ end }}
+
+{{ define "followerFollowing" }}
+  <div class="flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full text-sm">
+    <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
+    <span id="followers">{{ .Followers }} followers</span>
+    <span class="select-none after:content-['·']"></span>
+    <span id="following">{{ .Following }} following</span>
   </div>
 {{ end }}
 
