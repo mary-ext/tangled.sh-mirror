@@ -9,6 +9,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/telemetry"
 )
 
 type State struct {
@@ -34,10 +36,11 @@ type State struct {
 	pages    *pages.Pages
 	resolver *appview.Resolver
 	jc       *jetstream.JetstreamClient
+	t        *telemetry.Telemetry
 	config   *appview.Config
 }
 
-func Make(config *appview.Config) (*State, error) {
+func Make(ctx context.Context, config *appview.Config) (*State, error) {
 	d, err := db.Make(config.DbPath)
 	if err != nil {
 		return nil, err
@@ -59,6 +62,14 @@ func Make(config *appview.Config) (*State, error) {
 
 	resolver := appview.NewResolver()
 
+	bi, ok := debug.ReadBuildInfo()
+	var version string
+	if ok {
+		version = bi.Main.Version
+	} else {
+		version = "v0.0.0-unknown"
+	}
+
 	wrapper := db.DbWrapper{d}
 	jc, err := jetstream.NewJetstreamClient(
 		config.JetstreamEndpoint,
@@ -77,6 +88,14 @@ func Make(config *appview.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
 
+	var tele *telemetry.Telemetry
+	if config.EnableTelemetry {
+		tele, err = telemetry.NewTelemetry(ctx, "appview", version, config.Dev)
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup telemetry: %w", err)
+		}
+	}
+
 	state := &State{
 		d,
 		auth,
@@ -85,6 +104,7 @@ func Make(config *appview.Config) (*State, error) {
 		pgs,
 		resolver,
 		jc,
+		tele,
 		config,
 	}
 
