@@ -600,6 +600,12 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	name := data.Name
 	defaultBranch := data.DefaultBranch
 
+	if err := validateRepoName(name); err != nil {
+		l.Error("creating repo", "error", err.Error())
+		writeError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	relativeRepoPath := filepath.Join(did, name)
 	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
 	err := git.InitBare(repoPath, defaultBranch)
@@ -1077,4 +1083,36 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
+}
+
+func validateRepoName(name string) error {
+	// check for path traversal attempts
+	if name == "." || name == ".." ||
+		strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return fmt.Errorf("Repository name contains invalid path characters")
+	}
+
+	// check for sequences that could be used for traversal when normalized
+	if strings.Contains(name, "./") || strings.Contains(name, "../") ||
+		strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
+		return fmt.Errorf("Repository name contains invalid path sequence")
+	}
+
+	// then continue with character validation
+	for _, char := range name {
+		if !((char >= 'a' && char <= 'z') ||
+			(char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') ||
+			char == '-' || char == '_' || char == '.') {
+			return fmt.Errorf("Repository name can only contain alphanumeric characters, periods, hyphens, and underscores")
+		}
+	}
+
+	// additional check to prevent multiple sequential dots
+	if strings.Contains(name, "..") {
+		return fmt.Errorf("Repository name cannot contain sequential dots")
+	}
+
+	// if all checks pass
+	return nil
 }
