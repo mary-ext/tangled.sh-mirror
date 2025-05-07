@@ -14,15 +14,13 @@ import (
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
-	ctx := context.Background()
-
-	c, err := appview.LoadConfig(ctx)
+	c, err := appview.LoadConfig(context.Background())
 	if err != nil {
 		log.Println("failed to load config", "error", err)
 		return
 	}
 
-	state, err := state.Make(ctx, c)
+	state, err := state.Make(c)
 
 	if err != nil {
 		log.Fatal(err)

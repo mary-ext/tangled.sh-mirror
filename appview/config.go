@@ -17,7 +17,6 @@ type Config struct {
 	CamoSharedSecret   string `env:"TANGLED_CAMO_SHARED_SECRET"`
 	AvatarSharedSecret string `env:"TANGLED_AVATAR_SHARED_SECRET"`
 	AvatarHost         string `env:"TANGLED_AVATAR_HOST, default=https://avatar.tangled.sh"`
-	EnableTelemetry    bool   `env:"TANGLED_TELEMETRY_ENABLED, default=false"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {

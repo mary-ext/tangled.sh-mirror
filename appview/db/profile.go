@@ -1,13 +1,8 @@
 package db
 
 import (
-	"context"
 	"fmt"
 	"time"
-
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type RepoEvent struct {
@@ -88,14 +83,7 @@ type PullEventStats struct {
 
 const TimeframeMonths = 7
 
-func MakeProfileTimeline(ctx context.Context, e Execer, forDid string) (*ProfileTimeline, error) {
-	span := trace.SpanFromContext(ctx)
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("forDid", forDid),
-	)
-
+func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 	timeline := ProfileTimeline{
 		ByMonth: make([]ByMonth, TimeframeMonths),
 	}
@@ -104,12 +92,8 @@ func MakeProfileTimeline(ctx context.Context, e Execer, forDid string) (*Profile
 
 	pulls, err := GetPullsByOwnerDid(e, forDid, timeframe)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "error getting pulls by owner did")
 		return nil, fmt.Errorf("error getting pulls by owner did: %w", err)
 	}
-
-	span.SetAttributes(attribute.Int("pulls.count", len(pulls)))
 
 	// group pulls by month
 	for _, pull := range pulls {
@@ -128,12 +112,8 @@ func MakeProfileTimeline(ctx context.Context, e Execer, forDid string) (*Profile
 
 	issues, err := GetIssuesByOwnerDid(e, forDid, timeframe)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "error getting issues by owner did")
 		return nil, fmt.Errorf("error getting issues by owner did: %w", err)
 	}
-
-	span.SetAttributes(attribute.Int("issues.count", len(issues)))
 
 	for _, issue := range issues {
 		issueMonth := issue.Created.Month()
@@ -149,23 +129,17 @@ func MakeProfileTimeline(ctx context.Context, e Execer, forDid string) (*Profile
 		*items = append(*items, &issue)
 	}
 
-	repos, err := GetAllReposByDid(ctx, e, forDid)
+	repos, err := GetAllReposByDid(e, forDid)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "error getting all repos by did")
 		return nil, fmt.Errorf("error getting all repos by did: %w", err)
 	}
-
-	span.SetAttributes(attribute.Int("repos.count", len(repos)))
 
 	for _, repo := range repos {
 		// TODO: get this in the original query; requires COALESCE because nullable
 		var sourceRepo *Repo
 		if repo.Source != "" {
-			sourceRepo, err = GetRepoByAtUri(ctx, e, repo.Source)
+			sourceRepo, err = GetRepoByAtUri(e, repo.Source)
 			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, "error getting repo by at uri")
 				return nil, err
 			}
 		}

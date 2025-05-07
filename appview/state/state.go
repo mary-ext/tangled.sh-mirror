@@ -9,7 +9,6 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
-	"go.opentelemetry.io/otel/attribute"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
@@ -26,7 +24,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/rbac"
-	"tangled.sh/tangled.sh/core/telemetry"
 )
 
 type State struct {
@@ -37,11 +34,10 @@ type State struct {
 	pages    *pages.Pages
 	resolver *appview.Resolver
 	jc       *jetstream.JetstreamClient
-	t        *telemetry.Telemetry
 	config   *appview.Config
 }
 
-func Make(ctx context.Context, config *appview.Config) (*State, error) {
+func Make(config *appview.Config) (*State, error) {
 	d, err := db.Make(config.DbPath)
 	if err != nil {
 		return nil, err
@@ -63,14 +59,6 @@ func Make(ctx context.Context, config *appview.Config) (*State, error) {
 
 	resolver := appview.NewResolver()
 
-	bi, ok := debug.ReadBuildInfo()
-	var version string
-	if ok {
-		version = bi.Main.Version
-	} else {
-		version = "v0.0.0-unknown"
-	}
-
 	wrapper := db.DbWrapper{d}
 	jc, err := jetstream.NewJetstreamClient(
 		config.JetstreamEndpoint,
@@ -84,17 +72,9 @@ func Make(ctx context.Context, config *appview.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(ctx, appview.Ingest(wrapper))
+	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
-	}
-
-	var tele *telemetry.Telemetry
-	if config.EnableTelemetry {
-		tele, err = telemetry.NewTelemetry(ctx, "appview", version, config.Dev)
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup telemetry: %w", err)
-		}
 	}
 
 	state := &State{
@@ -105,7 +85,6 @@ func Make(ctx context.Context, config *appview.Config) (*State, error) {
 		pgs,
 		resolver,
 		jc,
-		tele,
 		config,
 	}
 
@@ -199,16 +178,11 @@ func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
-	ctx, span := s.t.TraceStart(r.Context(), "Timeline")
-	defer span.End()
-
 	user := s.auth.GetUser(r)
-	span.SetAttributes(attribute.String("user.did", user.Did))
 
-	timeline, err := db.MakeTimeline(ctx, s.db)
+	timeline, err := db.MakeTimeline(s.db)
 	if err != nil {
 		log.Println(err)
-		span.RecordError(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
 	}
 
@@ -227,9 +201,8 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 			didsToResolve = append(didsToResolve, ev.Star.StarredByDid, ev.Star.Repo.Did)
 		}
 	}
-	span.SetAttributes(attribute.Int("dids.to_resolve.count", len(didsToResolve)))
 
-	resolvedIds := s.resolver.ResolveIdents(ctx, didsToResolve)
+	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -238,7 +211,6 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 			didHandleMap[identity.DID.String()] = identity.DID.String()
 		}
 	}
-	span.SetAttributes(attribute.Int("dids.resolved.count", len(resolvedIds)))
 
 	s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
@@ -634,22 +606,14 @@ func validateRepoName(name string) error {
 }
 
 func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
-	ctx, span := s.t.TraceStart(r.Context(), "NewRepo")
-	defer span.End()
-
 	switch r.Method {
 	case http.MethodGet:
 		user := s.auth.GetUser(r)
-		span.SetAttributes(attribute.String("user.did", user.Did))
-		span.SetAttributes(attribute.String("request.method", "GET"))
-
 		knots, err := s.enforcer.GetDomainsForUser(user.Did)
 		if err != nil {
-			span.RecordError(err)
 			s.pages.Notice(w, "repo", "Invalid user account.")
 			return
 		}
-		span.SetAttributes(attribute.Int("knots.count", len(knots)))
 
 		s.pages.NewRepo(w, pages.NewRepoParams{
 			LoggedInUser: user,
@@ -658,22 +622,18 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		user := s.auth.GetUser(r)
-		span.SetAttributes(attribute.String("user.did", user.Did))
-		span.SetAttributes(attribute.String("request.method", "POST"))
 
 		domain := r.FormValue("domain")
 		if domain == "" {
 			s.pages.Notice(w, "repo", "Invalid form submission&mdash;missing knot domain.")
 			return
 		}
-		span.SetAttributes(attribute.String("domain", domain))
 
 		repoName := r.FormValue("name")
 		if repoName == "" {
 			s.pages.Notice(w, "repo", "Repository name cannot be empty.")
 			return
 		}
-		span.SetAttributes(attribute.String("repo.name", repoName))
 
 		if err := validateRepoName(repoName); err != nil {
 			s.pages.Notice(w, "repo", err.Error())
@@ -684,39 +644,29 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		if defaultBranch == "" {
 			defaultBranch = "main"
 		}
-		span.SetAttributes(attribute.String("repo.default_branch", defaultBranch))
 
 		description := r.FormValue("description")
 
 		ok, err := s.enforcer.E.Enforce(user.Did, domain, domain, "repo:create")
 		if err != nil || !ok {
-			if err != nil {
-				span.RecordError(err)
-			}
-			span.SetAttributes(attribute.Bool("permission.granted", false))
 			s.pages.Notice(w, "repo", "You do not have permission to create a repo in this knot.")
 			return
 		}
-		span.SetAttributes(attribute.Bool("permission.granted", true))
 
-		existingRepo, err := db.GetRepo(ctx, s.db, user.Did, repoName)
+		existingRepo, err := db.GetRepo(s.db, user.Did, repoName)
 		if err == nil && existingRepo != nil {
-			span.SetAttributes(attribute.Bool("repo.exists", true))
 			s.pages.Notice(w, "repo", fmt.Sprintf("A repo by this name already exists on %s", existingRepo.Knot))
 			return
 		}
-		span.SetAttributes(attribute.Bool("repo.exists", false))
 
 		secret, err := db.GetRegistrationKey(s.db, domain)
 		if err != nil {
-			span.RecordError(err)
 			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", domain))
 			return
 		}
 
 		client, err := NewSignedClient(domain, secret, s.config.Dev)
 		if err != nil {
-			span.RecordError(err)
 			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return
 		}
@@ -730,11 +680,10 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			Description: description,
 		}
 
-		rWithCtx := r.WithContext(ctx)
-		xrpcClient, _ := s.auth.AuthorizedClient(rWithCtx)
+		xrpcClient, _ := s.auth.AuthorizedClient(r)
 
 		createdAt := time.Now().Format(time.RFC3339)
-		atresp, err := comatproto.RepoPutRecord(ctx, xrpcClient, &comatproto.RepoPutRecord_Input{
+		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
@@ -747,17 +696,14 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 				}},
 		})
 		if err != nil {
-			span.RecordError(err)
 			log.Printf("failed to create record: %s", err)
 			s.pages.Notice(w, "repo", "Failed to announce repository creation.")
 			return
 		}
 		log.Println("created repo record: ", atresp.Uri)
-		span.SetAttributes(attribute.String("repo.uri", atresp.Uri))
 
-		tx, err := s.db.BeginTx(ctx, nil)
+		tx, err := s.db.BeginTx(r.Context(), nil)
 		if err != nil {
-			span.RecordError(err)
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to save repository information.")
 			return
@@ -772,11 +718,9 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)
 		if err != nil {
-			span.RecordError(err)
 			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
 			return
 		}
-		span.SetAttributes(attribute.Int("knot_response.status", resp.StatusCode))
 
 		switch resp.StatusCode {
 		case http.StatusConflict:
@@ -789,9 +733,8 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		}
 
 		repo.AtUri = atresp.Uri
-		err = db.AddRepo(ctx, tx, repo)
+		err = db.AddRepo(tx, repo)
 		if err != nil {
-			span.RecordError(err)
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to save repository information.")
 			return
@@ -801,7 +744,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		p, _ := securejoin.SecureJoin(user.Did, repoName)
 		err = s.enforcer.AddRepo(user.Did, domain, p)
 		if err != nil {
-			span.RecordError(err)
 			log.Println(err)
 			s.pages.Notice(w, "repo", "Failed to set up repository permissions.")
 			return
@@ -809,7 +751,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		err = tx.Commit()
 		if err != nil {
-			span.RecordError(err)
 			log.Println("failed to commit changes", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -817,7 +758,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		err = s.enforcer.E.SavePolicy()
 		if err != nil {
-			span.RecordError(err)
 			log.Println("failed to update ACLs", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

@@ -13,12 +13,6 @@ import (
 func (s *State) Router() http.Handler {
 	router := chi.NewRouter()
 
-	if s.t != nil {
-		// top-level telemetry middleware
-		// router.Use(s.t.RequestDuration())
-		// router.Use(s.t.RequestInFlight())
-	}
-
 	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		pat := chi.URLParam(r, "*")
 		if strings.HasPrefix(pat, "did:") || strings.HasPrefix(pat, "@") {
@@ -54,6 +48,7 @@ func (s *State) Router() http.Handler {
 
 func (s *State) UserRouter() http.Handler {
 	r := chi.NewRouter()
+
 	// strip @ from user
 	r.Use(StripLeadingAt)
 

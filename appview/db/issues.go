@@ -1,13 +1,10 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 )
 
@@ -106,25 +103,14 @@ func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error
 	return ownerDid, err
 }
 
-func GetIssues(ctx context.Context, e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page) ([]Issue, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetIssues")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("repo_at", repoAt.String()),
-		attribute.Bool("is_open", isOpen),
-		attribute.Int("page.offset", page.Offset),
-		attribute.Int("page.limit", page.Limit),
-	)
-
+func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page) ([]Issue, error) {
 	var issues []Issue
 	openValue := 0
 	if isOpen {
 		openValue = 1
 	}
 
-	rows, err := e.QueryContext(
-		ctx,
+	rows, err := e.Query(
 		`
 		with numbered_issue as (
 			select
@@ -153,13 +139,12 @@ func GetIssues(ctx context.Context, e Execer, repoAt syntax.ATURI, isOpen bool, 
 			body,
 			open,
 			comment_count
-		from
+		from 
 			numbered_issue
-		where
+		where 
 			row_num between ? and ?`,
 		repoAt, openValue, page.Offset+1, page.Offset+page.Limit)
 	if err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -170,13 +155,11 @@ func GetIssues(ctx context.Context, e Execer, repoAt syntax.ATURI, isOpen bool, 
 		var metadata IssueMetadata
 		err := rows.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
 		if err != nil {
-			span.RecordError(err)
 			return nil, err
 		}
 
 		createdTime, err := time.Parse(time.RFC3339, createdAt)
 		if err != nil {
-			span.RecordError(err)
 			return nil, err
 		}
 		issue.Created = createdTime
@@ -186,11 +169,9 @@ func GetIssues(ctx context.Context, e Execer, repoAt syntax.ATURI, isOpen bool, 
 	}
 
 	if err := rows.Err(); err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 
-	span.SetAttributes(attribute.Int("issues.count", len(issues)))
 	return issues, nil
 }
 
@@ -275,10 +256,7 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 	return issues, nil
 }
 
-func GetIssue(ctx context.Context, e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetIssue")
-	defer span.End()
-
+func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 	query := `select owner_did, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
@@ -298,10 +276,7 @@ func GetIssue(ctx context.Context, e Execer, repoAt syntax.ATURI, issueId int) (
 	return &issue, nil
 }
 
-func GetIssueWithComments(ctx context.Context, e Execer, repoAt syntax.ATURI, issueId int) (*Issue, []Comment, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetIssueWithComments")
-	defer span.End()
-
+func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, []Comment, error) {
 	query := `select owner_did, issue_id, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 

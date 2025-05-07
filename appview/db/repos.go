@@ -1,13 +1,10 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 type Repo struct {
@@ -26,11 +23,7 @@ type Repo struct {
 	Source string
 }
 
-func GetAllRepos(ctx context.Context, e Execer, limit int) ([]Repo, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetAllRepos")
-	defer span.End()
-	span.SetAttributes(attribute.Int("limit", limit))
-
+func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
@@ -42,7 +35,6 @@ func GetAllRepos(ctx context.Context, e Execer, limit int) ([]Repo, error) {
 		limit,
 	)
 	if err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -53,26 +45,19 @@ func GetAllRepos(ctx context.Context, e Execer, limit int) ([]Repo, error) {
 			rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Description, &repo.Created, &repo.Source,
 		)
 		if err != nil {
-			span.RecordError(err)
 			return nil, err
 		}
 		repos = append(repos, repo)
 	}
 
 	if err := rows.Err(); err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 
-	span.SetAttributes(attribute.Int("repos.count", len(repos)))
 	return repos, nil
 }
 
-func GetAllReposByDid(ctx context.Context, e Execer, did string) ([]Repo, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetAllReposByDid")
-	defer span.End()
-	span.SetAttributes(attribute.String("did", did))
-
+func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
@@ -96,7 +81,6 @@ func GetAllReposByDid(ctx context.Context, e Execer, did string) ([]Repo, error)
 		order by r.created desc`,
 		did)
 	if err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -110,7 +94,6 @@ func GetAllReposByDid(ctx context.Context, e Execer, did string) ([]Repo, error)
 
 		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repoStats.StarCount, &nullableSource)
 		if err != nil {
-			span.RecordError(err)
 			return nil, err
 		}
 
@@ -135,22 +118,13 @@ func GetAllReposByDid(ctx context.Context, e Execer, did string) ([]Repo, error)
 	}
 
 	if err := rows.Err(); err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 
-	span.SetAttributes(attribute.Int("repos.count", len(repos)))
 	return repos, nil
 }
 
-func GetRepo(ctx context.Context, e Execer, did, name string) (*Repo, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetRepo")
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("did", did),
-		attribute.String("name", name),
-	)
-
+func GetRepo(e Execer, did, name string) (*Repo, error) {
 	var repo Repo
 	var nullableDescription sql.NullString
 
@@ -158,7 +132,6 @@ func GetRepo(ctx context.Context, e Execer, did, name string) (*Repo, error) {
 
 	var createdAt string
 	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &nullableDescription); err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
@@ -173,11 +146,7 @@ func GetRepo(ctx context.Context, e Execer, did, name string) (*Repo, error) {
 	return &repo, nil
 }
 
-func GetRepoByAtUri(ctx context.Context, e Execer, atUri string) (*Repo, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetRepoByAtUri")
-	defer span.End()
-	span.SetAttributes(attribute.String("atUri", atUri))
-
+func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
 	var repo Repo
 	var nullableDescription sql.NullString
 
@@ -185,7 +154,6 @@ func GetRepoByAtUri(ctx context.Context, e Execer, atUri string) (*Repo, error) 
 
 	var createdAt string
 	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &nullableDescription); err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
@@ -200,60 +168,31 @@ func GetRepoByAtUri(ctx context.Context, e Execer, atUri string) (*Repo, error) 
 	return &repo, nil
 }
 
-func AddRepo(ctx context.Context, e Execer, repo *Repo) error {
-	ctx, span := otel.Tracer("db").Start(ctx, "AddRepo")
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("did", repo.Did),
-		attribute.String("name", repo.Name),
-	)
-
+func AddRepo(e Execer, repo *Repo) error {
 	_, err := e.Exec(
 		`insert into repos
 		(did, name, knot, rkey, at_uri, description, source)
 		values (?, ?, ?, ?, ?, ?, ?)`,
 		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri, repo.Description, repo.Source,
 	)
-	if err != nil {
-		span.RecordError(err)
-	}
 	return err
 }
 
-func RemoveRepo(ctx context.Context, e Execer, did, name string) error {
-	ctx, span := otel.Tracer("db").Start(ctx, "RemoveRepo")
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("did", did),
-		attribute.String("name", name),
-	)
-
+func RemoveRepo(e Execer, did, name string) error {
 	_, err := e.Exec(`delete from repos where did = ? and name = ?`, did, name)
-	if err != nil {
-		span.RecordError(err)
-	}
 	return err
 }
 
-func GetRepoSource(ctx context.Context, e Execer, repoAt syntax.ATURI) (string, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetRepoSource")
-	defer span.End()
-	span.SetAttributes(attribute.String("repoAt", repoAt.String()))
-
+func GetRepoSource(e Execer, repoAt syntax.ATURI) (string, error) {
 	var nullableSource sql.NullString
 	err := e.QueryRow(`select source from repos where at_uri = ?`, repoAt).Scan(&nullableSource)
 	if err != nil {
-		span.RecordError(err)
 		return "", err
 	}
 	return nullableSource.String, nil
 }
 
-func GetForksByDid(ctx context.Context, e Execer, did string) ([]Repo, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetForksByDid")
-	defer span.End()
-	span.SetAttributes(attribute.String("did", did))
-
+func GetForksByDid(e Execer, did string) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
@@ -264,7 +203,6 @@ func GetForksByDid(ctx context.Context, e Execer, did string) ([]Repo, error) {
 		did,
 	)
 	if err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -277,7 +215,6 @@ func GetForksByDid(ctx context.Context, e Execer, did string) ([]Repo, error) {
 
 		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repo.AtUri, &nullableSource)
 		if err != nil {
-			span.RecordError(err)
 			return nil, err
 		}
 
@@ -300,22 +237,13 @@ func GetForksByDid(ctx context.Context, e Execer, did string) ([]Repo, error) {
 	}
 
 	if err := rows.Err(); err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 
-	span.SetAttributes(attribute.Int("forks.count", len(repos)))
 	return repos, nil
 }
 
-func GetForkByDid(ctx context.Context, e Execer, did string, name string) (*Repo, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "GetForkByDid")
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("did", did),
-		attribute.String("name", name),
-	)
-
+func GetForkByDid(e Execer, did string, name string) (*Repo, error) {
 	var repo Repo
 	var createdAt string
 	var nullableDescription sql.NullString
@@ -330,7 +258,6 @@ func GetForkByDid(ctx context.Context, e Execer, did string, name string) (*Repo
 
 	err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repo.AtUri, &nullableSource)
 	if err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 
@@ -352,46 +279,21 @@ func GetForkByDid(ctx context.Context, e Execer, did string, name string) (*Repo
 	return &repo, nil
 }
 
-func AddCollaborator(ctx context.Context, e Execer, collaborator, repoOwnerDid, repoName, repoKnot string) error {
-	ctx, span := otel.Tracer("db").Start(ctx, "AddCollaborator")
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("collaborator", collaborator),
-		attribute.String("repoOwnerDid", repoOwnerDid),
-		attribute.String("repoName", repoName),
-	)
-
+func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot string) error {
 	_, err := e.Exec(
 		`insert into collaborators (did, repo)
 		values (?, (select id from repos where did = ? and name = ? and knot = ?));`,
 		collaborator, repoOwnerDid, repoName, repoKnot)
-	if err != nil {
-		span.RecordError(err)
-	}
 	return err
 }
 
-func UpdateDescription(ctx context.Context, e Execer, repoAt, newDescription string) error {
-	ctx, span := otel.Tracer("db").Start(ctx, "UpdateDescription")
-	defer span.End()
-	span.SetAttributes(
-		attribute.String("repoAt", repoAt),
-		attribute.String("description", newDescription),
-	)
-
+func UpdateDescription(e Execer, repoAt, newDescription string) error {
 	_, err := e.Exec(
 		`update repos set description = ? where at_uri = ?`, newDescription, repoAt)
-	if err != nil {
-		span.RecordError(err)
-	}
 	return err
 }
 
-func CollaboratingIn(ctx context.Context, e Execer, collaborator string) ([]Repo, error) {
-	ctx, span := otel.Tracer("db").Start(ctx, "CollaboratingIn")
-	defer span.End()
-	span.SetAttributes(attribute.String("collaborator", collaborator))
-
+func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
@@ -408,7 +310,6 @@ func CollaboratingIn(ctx context.Context, e Execer, collaborator string) ([]Repo
 		group by
 			r.id;`, collaborator)
 	if err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -421,7 +322,6 @@ func CollaboratingIn(ctx context.Context, e Execer, collaborator string) ([]Repo
 
 		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repoStats.StarCount)
 		if err != nil {
-			span.RecordError(err)
 			return nil, err
 		}
 
@@ -444,11 +344,9 @@ func CollaboratingIn(ctx context.Context, e Execer, collaborator string) ([]Repo
 	}
 
 	if err := rows.Err(); err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 
-	span.SetAttributes(attribute.Int("repos.count", len(repos)))
 	return repos, nil
 }
 
