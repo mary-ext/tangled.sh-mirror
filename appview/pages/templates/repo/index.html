@@ -320,7 +320,7 @@
 {{ define "repoAfter" }}
     {{- if .HTMLReadme }}
         <section
-            class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white w-full mx-auto overflow-auto {{ if not .Raw }}
+            class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto overflow-auto {{ if not .Raw }}
                 prose dark:prose-invert dark:[&_pre]:bg-gray-900
                 dark:[&_code]:text-gray-300 dark:[&_pre_code]:bg-gray-900
                 dark:[&_pre]:border dark:[&_pre]:border-gray-700
