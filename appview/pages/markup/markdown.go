@@ -10,6 +10,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
@@ -41,6 +42,7 @@ func (rctx *RenderContext) RenderMarkdown(source string) string {
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
+		goldmark.WithRendererOptions(html.WithUnsafe()),
 	)
 
 	if rctx != nil {

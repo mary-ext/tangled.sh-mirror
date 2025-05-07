@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/microcosm-cc/bluemonday"
 	"tangled.sh/tangled.sh/core/appview/filetree"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 )
@@ -144,7 +145,7 @@ func funcMap() template.FuncMap {
 		},
 		"markdown": func(text string) template.HTML {
 			rctx := &markup.RenderContext{RendererType: markup.RendererTypeDefault}
-			return template.HTML(rctx.RenderMarkdown(text))
+			return template.HTML(bluemonday.UGCPolicy().Sanitize(rctx.RenderMarkdown(text)))
 		},
 		"isNil": func(t any) bool {
 			// returns false for other "zero" values

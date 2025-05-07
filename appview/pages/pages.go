@@ -562,7 +562,7 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 		case markup.FormatMarkdown:
 			p.rctx.RepoInfo = params.RepoInfo
 			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
-			params.RenderedContents = template.HTML(p.rctx.RenderMarkdown(params.Contents))
+			params.RenderedContents = template.HTML(bluemonday.UGCPolicy().Sanitize(p.rctx.RenderMarkdown(params.Contents)))
 		}
 	}
 
