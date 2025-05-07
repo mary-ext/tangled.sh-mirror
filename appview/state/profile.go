@@ -20,7 +20,17 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
-func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
+func (s *State) Profile(w http.ResponseWriter, r *http.Request) {
+	tabVal := r.URL.Query().Get("tab")
+	switch tabVal {
+	case "":
+		s.profilePage(w, r)
+	case "repos":
+		s.reposPage(w, r)
+	}
+}
+
+func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 	didOrHandle := chi.URLParam(r, "user")
 	if didOrHandle == "" {
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -118,19 +128,64 @@ func (s *State) ProfilePage(w http.ResponseWriter, r *http.Request) {
 	profileAvatarUri := s.GetAvatarUri(ident.Handle.String())
 	s.pages.ProfilePage(w, pages.ProfilePageParams{
 		LoggedInUser:       loggedInUser,
-		UserDid:            ident.DID.String(),
-		UserHandle:         ident.Handle.String(),
 		Repos:              pinnedRepos,
 		CollaboratingRepos: pinnedCollaboratingRepos,
-		ProfileStats: pages.ProfileStats{
-			Followers: followers,
-			Following: following,
+		DidHandleMap:       didHandleMap,
+		Card: pages.ProfileCard{
+			UserDid:      ident.DID.String(),
+			UserHandle:   ident.Handle.String(),
+			AvatarUri:    profileAvatarUri,
+			Profile:      profile,
+			FollowStatus: followStatus,
+			Followers:    followers,
+			Following:    following,
 		},
-		Profile:         profile,
-		FollowStatus:    db.FollowStatus(followStatus),
-		DidHandleMap:    didHandleMap,
-		AvatarUri:       profileAvatarUri,
 		ProfileTimeline: timeline,
+	})
+}
+
+func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
+	ident, ok := r.Context().Value("resolvedId").(identity.Identity)
+	if !ok {
+		s.pages.Error404(w)
+		return
+	}
+
+	profile, err := db.GetProfile(s.db, ident.DID.String())
+	if err != nil {
+		log.Printf("getting profile data for %s: %s", ident.DID.String(), err)
+	}
+
+	repos, err := db.GetAllReposByDid(s.db, ident.DID.String())
+	if err != nil {
+		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
+	}
+
+	loggedInUser := s.auth.GetUser(r)
+	followStatus := db.IsNotFollowing
+	if loggedInUser != nil {
+		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
+	}
+
+	followers, following, err := db.GetFollowerFollowing(s.db, ident.DID.String())
+	if err != nil {
+		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
+	}
+
+	profileAvatarUri := s.GetAvatarUri(ident.Handle.String())
+
+	s.pages.ReposPage(w, pages.ReposPageParams{
+		LoggedInUser: loggedInUser,
+		Repos:        repos,
+		Card: pages.ProfileCard{
+			UserDid:      ident.DID.String(),
+			UserHandle:   ident.Handle.String(),
+			AvatarUri:    profileAvatarUri,
+			Profile:      profile,
+			FollowStatus: followStatus,
+			Followers:    followers,
+			Following:    following,
+		},
 	})
 }
 
