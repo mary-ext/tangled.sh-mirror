@@ -601,6 +601,38 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
 }
 
+func validateRepoName(name string) error {
+	// check for path traversal attempts
+	if name == "." || name == ".." ||
+		strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return fmt.Errorf("Repository name contains invalid path characters")
+	}
+
+	// check for sequences that could be used for traversal when normalized
+	if strings.Contains(name, "./") || strings.Contains(name, "../") ||
+		strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
+		return fmt.Errorf("Repository name contains invalid path sequence")
+	}
+
+	// then continue with character validation
+	for _, char := range name {
+		if !((char >= 'a' && char <= 'z') ||
+			(char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') ||
+			char == '-' || char == '_' || char == '.') {
+			return fmt.Errorf("Repository name can only contain alphanumeric characters, periods, hyphens, and underscores")
+		}
+	}
+
+	// additional check to prevent multiple sequential dots
+	if strings.Contains(name, "..") {
+		return fmt.Errorf("Repository name cannot contain sequential dots")
+	}
+
+	// if all checks pass
+	return nil
+}
+
 func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 	ctx, span := s.t.TraceStart(r.Context(), "NewRepo")
 	defer span.End()
@@ -643,16 +675,9 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		span.SetAttributes(attribute.String("repo.name", repoName))
 
-		// Check for valid repository name (GitHub-like rules)
-		// No spaces, only alphanumeric characters, dashes, and underscores
-		for _, char := range repoName {
-			if !((char >= 'a' && char <= 'z') ||
-				(char >= 'A' && char <= 'Z') ||
-				(char >= '0' && char <= '9') ||
-				char == '-' || char == '_' || char == '.') {
-				s.pages.Notice(w, "repo", "Repository name can only contain alphanumeric characters, periods, hyphens, and underscores.")
-				return
-			}
+		if err := validateRepoName(repoName); err != nil {
+			s.pages.Notice(w, "repo", err.Error())
+			return
 		}
 
 		defaultBranch := r.FormValue("branch")
