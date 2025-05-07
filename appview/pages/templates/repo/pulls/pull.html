@@ -54,13 +54,13 @@
             <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2"
                hx-boost="true"
                href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">
-              {{ i "file-diff" "w-4 h-4" }} <span class="hidden md:inline">view patch</span>
+              {{ i "file-diff" "w-4 h-4" }} <span class="hidden md:inline">diff</span>
             </a>
             {{ if not (eq .RoundNumber 0) }}
             <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2"
                hx-boost="true"
                href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}/interdiff">
-              {{ i "file-diff" "w-4 h-4" }} <span class="hidden md:inline">interdiff</span>
+              {{ i "chevrons-left-right-ellipsis" "w-4 h-4 rotate-90" }} <span class="hidden md:inline">interdiff</span>
             </a>
             <span id="interdiff-error-{{.RoundNumber}}"></span>
             {{ end }}
