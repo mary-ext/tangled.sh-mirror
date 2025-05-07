@@ -36,16 +36,16 @@ func NewTelemetry(ctx context.Context, serviceName, serviceVersion string, isDev
 		return nil, err
 	}
 
-	mp, err := NewMeterProvider(ctx, res, isDev)
-	if err != nil {
-		return nil, err
-	}
+	// mp, err := NewMeterProvider(ctx, res, isDev)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &Telemetry{
 		tp: tp,
-		mp: mp,
+		//mp: mp,
 
-		meter:  mp.Meter(serviceName),
+		//meter:  mp.Meter(serviceName),
 		tracer: tp.Tracer(serviceVersion),
 
 		serviceName:    serviceName,
