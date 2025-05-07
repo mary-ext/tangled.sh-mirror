@@ -311,26 +311,39 @@ func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
 
 type ProfilePageParams struct {
 	LoggedInUser       *auth.User
-	UserDid            string
-	UserHandle         string
 	Repos              []db.Repo
 	CollaboratingRepos []db.Repo
-	ProfileStats       ProfileStats
-	FollowStatus       db.FollowStatus
-	Profile            *db.Profile
-	AvatarUri          string
 	ProfileTimeline    *db.ProfileTimeline
+	Card               ProfileCard
 
 	DidHandleMap map[string]string
 }
 
-type ProfileStats struct {
-	Followers int
-	Following int
+type ProfileCard struct {
+	UserDid      string
+	UserHandle   string
+	FollowStatus db.FollowStatus
+	AvatarUri    string
+	Followers    int
+	Following    int
+
+	Profile *db.Profile
 }
 
 func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
 	return p.execute("user/profile", w, params)
+}
+
+type ReposPageParams struct {
+	LoggedInUser *auth.User
+	Repos        []db.Repo
+	Card         ProfileCard
+
+	DidHandleMap map[string]string
+}
+
+func (p *Pages) ReposPage(w io.Writer, params ReposPageParams) error {
+	return p.execute("user/repos", w, params)
 }
 
 type FollowFragmentParams struct {

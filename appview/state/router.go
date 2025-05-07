@@ -53,14 +53,7 @@ func (s *State) UserRouter() http.Handler {
 	r.Use(StripLeadingAt)
 
 	r.With(ResolveIdent(s)).Route("/{user}", func(r chi.Router) {
-		r.Get("/", s.ProfilePage)
-		r.Route("/profile", func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware(s.auth))
-			r.Get("/edit-bio", s.EditBioFragment)
-			r.Get("/edit-pins", s.EditPinsFragment)
-			r.Post("/bio", s.UpdateProfileBio)
-			r.Post("/pins", s.UpdateProfilePins)
-		})
+		r.Get("/", s.Profile)
 
 		r.With(ResolveRepo(s)).Route("/{repo}", func(r chi.Router) {
 			r.Get("/", s.RepoIndex)
@@ -244,6 +237,14 @@ func (s *State) StandardRouter() http.Handler {
 	r.With(middleware.AuthMiddleware(s.auth)).Route("/star", func(r chi.Router) {
 		r.Post("/", s.Star)
 		r.Delete("/", s.Star)
+	})
+
+	r.Route("/profile", func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware(s.auth))
+		r.Get("/edit-bio", s.EditBioFragment)
+		r.Get("/edit-pins", s.EditPinsFragment)
+		r.Post("/bio", s.UpdateProfileBio)
+		r.Post("/pins", s.UpdateProfilePins)
 	})
 
 	r.Mount("/settings", s.SettingsRouter())

@@ -1,9 +1,9 @@
-{{ define "title" }}{{ or .UserHandle .UserDid }}{{ end }}
+{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }}{{ end }}
 
 {{ define "content" }}
 <div class="grid grid-cols-1 md:grid-cols-8 gap-6">
     <div class="md:col-span-2 order-1 md:order-1">
-        {{ block "profileCard" . }}{{ end }}
+        {{ template "user/fragments/profileCard" .Card }}
     </div>
     <div id="all-repos" class="md:col-span-3 order-2 md:order-2">
         {{ block "ownRepos" . }}{{ end }}
@@ -225,107 +225,17 @@
   {{ end }}
 {{ end }}
 
-{{ define "profileCard" }}
-  <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm max-h-fit">
-    <div class="grid grid-cols-3 md:grid-cols-1 gap-1 items-center">
-      <div id="avatar" class="col-span-1 flex justify-center items-center">
-        {{ if .AvatarUri }}
-        <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
-        {{ end }}
-      </div>
-      <div class="col-span-2">
-        <p title="{{ didOrHandle .UserDid .UserHandle }}"
-        class="text-lg font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-          {{ didOrHandle .UserDid .UserHandle }}
-        </p>
-
-        <div class="md:hidden">
-          {{ block "followerFollowing" .ProfileStats }} {{ end }}
-        </div>
-      </div>
-      <div class="col-span-3 md:col-span-full">
-        <div id="profile-bio" class="text-sm">
-          {{ $profile := .Profile }}
-          {{ with .Profile }}
-
-          {{ if .Description }}
-            <p class="text-base pb-4 md:pb-2">{{ .Description }}</p>
-          {{ end }}
-
-          <div class="hidden md:block">
-            {{ block "followerFollowing" $.ProfileStats }} {{ end }}
-          </div>
-
-          <div class="flex flex-col gap-2 mb-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full"> 
-            {{ if .Location }}
-            <div class="flex items-center gap-2">
-              <span class="flex-shrink-0">{{ i "map-pin" "size-4" }}</span>
-              <span>{{ .Location }}</span>
-            </div>
-            {{ end }}
-            {{ if .IncludeBluesky }}
-            <div class="flex items-center gap-2">
-              <span class="flex-shrink-0">{{ i "link" "size-4" }}</span>
-              <a id="bluesky-link" href="https://bsky.app/profile/{{ $.UserDid }}">
-                bluesky/{{ didOrHandle $.UserDid $.UserHandle }}
-              </a>
-            </div>
-            {{ end }}
-            {{ range $link := .Links }}
-              {{ if $link }}
-              <div class="flex items-center gap-2">
-                <span class="flex-shrink-0">{{ i "link" "size-4" }}</span>
-                <a href="{{ $link }}">{{ $link }}</a>
-              </div>
-              {{ end }}
-            {{ end }}
-            {{ if not $profile.IsStatsEmpty }}
-            <div class="flex items-center justify-evenly gap-2 py-2">
-              {{ range $stat := .Stats }}
-                {{ if $stat.Kind }}
-                  <div class="flex flex-col items-center gap-2">
-                    <span class="text-xl font-bold">{{ $stat.Value }}</span>
-                    <span>{{ $stat.Kind.String }}</span>
-                  </div>
-                {{ end }}
-              {{ end }}
-            </div>
-            {{ end }}
-          </div>
-          {{ end }}
-          {{ if ne .FollowStatus.String "IsSelf" }}
-            {{ template "user/fragments/follow" . }}
-          {{ else }}
-            <button id="editBtn"
-              class="btn mt-2 w-full flex items-center gap-2"
-              hx-target="#profile-bio"
-              hx-get="/{{ $.UserDid }}/profile/edit-bio"
-              hx-swap="innerHTML">
-              {{ i "pencil" "w-4 h-4" }}
-              edit
-            </button>
-          {{ end }}
-        </div>
-        <div id="update-profile" class="text-red-400 dark:text-red-500"></div>
-      </div>
-    </div>
-  </div>
-{{ end }}
-
-{{ define "followerFollowing" }}
-  <div class="flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full text-sm">
-    <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
-    <span id="followers">{{ .Followers }} followers</span>
-    <span class="select-none after:content-['·']"></span>
-    <span id="following">{{ .Following }} following</span>
-  </div>
-{{ end }}
-
 {{ define "ownRepos" }}
   <div class="text-sm font-bold p-2 pr-0 dark:text-white flex items-center justify-between gap-2">
-    <span>PINNED REPOS</span>
-    {{ if and .LoggedInUser (eq .LoggedInUser.Did .UserDid) }}
-      <button hx-get="/{{ $.UserDid }}/profile/edit-pins" hx-target="#all-repos" class="btn font-normal text-sm flex gap-2 items-center">
+    <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}?tab=repos"
+      class="flex text-black dark:text-white items-center gap-4 no-underline hover:no-underline group">
+      <span>PINNED REPOS</span>
+      <span class="flex md:hidden group-hover:flex gap-2 items-center font-normal text-sm text-gray-500 dark:text-gray-400 ">
+        view all {{ i "chevron-right" "w-4 h-4" }}
+      </span>
+    </a>
+    {{ if and .LoggedInUser (eq .LoggedInUser.Did .Card.UserDid) }}
+      <button hx-get="profile/edit-pins" hx-target="#all-repos" class="btn font-normal text-sm flex gap-2 items-center">
         {{ i "pencil" "w-3 h-3" }}
         edit
       </button>
@@ -337,7 +247,7 @@
           id="repo-card"
           class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
           <div id="repo-card-name" class="font-medium">
-              <a href="/@{{ or $.UserHandle $.UserDid }}/{{ .Name }}"
+              <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}/{{ .Name }}"
                   >{{ .Name }}</a
               >
           </div>

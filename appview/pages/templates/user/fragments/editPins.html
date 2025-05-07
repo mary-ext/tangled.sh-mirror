@@ -1,7 +1,7 @@
 {{ define "user/fragments/editPins" }}
   {{ $profile := .Profile }}
     <form
-        hx-post="/{{ .LoggedInUser.Did }}/profile/pins"
+        hx-post="/profile/pins"
         hx-disabled-elt="#save-btn,#cancel-btn"
         hx-swap="none">
       <div class="flex items-center justify-between mb-2">
