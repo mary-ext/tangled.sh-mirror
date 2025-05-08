@@ -9,4 +9,5 @@ result
 out/
 ./camo/node_modules/*
 ./avatar/node_modules/*
-
+patches
+*.qcow2
