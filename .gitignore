@@ -11,3 +11,5 @@ out/
 ./avatar/node_modules/*
 patches
 *.qcow2
+.DS_Store
+.env
