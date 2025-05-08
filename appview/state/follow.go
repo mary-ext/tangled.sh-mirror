@@ -14,7 +14,7 @@ import (
 )
 
 func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
-	currentUser := s.auth.GetUser(r)
+	currentUser := s.oauth.GetUser(r)
 
 	subject := r.URL.Query().Get("subject")
 	if subject == "" {
@@ -32,13 +32,17 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, _ := s.auth.AuthorizedClient(r)
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to authorize client")
+		return
+	}
 
 	switch r.Method {
 	case http.MethodPost:
 		createdAt := time.Now().Format(time.RFC3339)
 		rkey := appview.TID()
-		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.GraphFollowNSID,
 			Repo:       currentUser.Did,
 			Rkey:       rkey,
@@ -75,7 +79,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+		_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
 			Collection: tangled.GraphFollowNSID,
 			Repo:       currentUser.Did,
 			Rkey:       follow.Rkey,

@@ -12,8 +12,8 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 )
 
@@ -45,7 +45,7 @@ func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	ref := chi.URLParam(r, "ref")
 
 	if ref == "" {
-		us, err := NewUnsignedClient(knot, s.config.Dev)
+		us, err := NewUnsignedClient(knot, s.config.Core.Dev)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +73,7 @@ func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	}, nil
 }
 
-func RolesInRepo(s *State, u *auth.User, f *FullyResolvedRepo) repoinfo.RolesInRepo {
+func RolesInRepo(s *State, u *oauth.User, f *FullyResolvedRepo) repoinfo.RolesInRepo {
 	if u != nil {
 		r := s.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.DidSlashRepo())
 		return repoinfo.RolesInRepo{r}

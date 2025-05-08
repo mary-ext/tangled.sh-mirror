@@ -1,6 +1,6 @@
 [build]
 cmd = "tailwindcss -i input.css -o ./appview/pages/static/tw.css && go build -o .bin/app ./cmd/appview/main.go"
-bin = ".bin/app"
+bin = ";set -o allexport && source .env && set +o allexport; .bin/app"
 root = "."
 
 exclude_regex = [".*_templ.go"]

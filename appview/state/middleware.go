@@ -20,7 +20,7 @@ func knotRoleMiddleware(s *State, group string) middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// requires auth also
-			actor := s.auth.GetUser(r)
+			actor := s.oauth.GetUser(r)
 			if actor == nil {
 				// we need a logged in user
 				log.Printf("not logged in, redirecting")
@@ -54,7 +54,7 @@ func RepoPermissionMiddleware(s *State, requiredPerm string) middleware.Middlewa
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// requires auth also
-			actor := s.auth.GetUser(r)
+			actor := s.oauth.GetUser(r)
 			if actor == nil {
 				// we need a logged in user
 				log.Printf("not logged in, redirecting")

@@ -26,6 +26,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("starting server on", c.ListenAddr)
-	log.Println(http.ListenAndServe(c.ListenAddr, state.Router()))
+	log.Println("starting server on", c.Core.ListenAddr)
+	log.Println(http.ListenAndServe(c.Core.ListenAddr, state.Router()))
 }

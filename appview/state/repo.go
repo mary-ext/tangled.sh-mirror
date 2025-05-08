@@ -18,8 +18,8 @@ import (
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
-	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
@@ -45,7 +45,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s", f.Knot)
 		s.pages.Error503(w)
@@ -119,7 +119,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	emails := uniqueEmails(commitsTrunc)
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(s, user),
@@ -150,7 +150,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create unsigned client", err)
 		return
@@ -190,7 +190,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		tagMap[hash] = append(tagMap[hash], tag.Name)
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	s.pages.RepoLog(w, pages.RepoLogParams{
 		LoggedInUser:       user,
 		TagMap:             tagMap,
@@ -209,7 +209,7 @@ func (s *State) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	s.pages.EditRepoDescriptionFragment(w, pages.RepoDescriptionParams{
 		RepoInfo: f.RepoInfo(s, user),
 	})
@@ -232,7 +232,7 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	switch r.Method {
 	case http.MethodGet:
@@ -241,9 +241,14 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	case http.MethodPut:
-		user := s.auth.GetUser(r)
+		user := s.oauth.GetUser(r)
 		newDescription := r.FormValue("description")
-		client, _ := s.auth.AuthorizedClient(r)
+		client, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			log.Println("failed to get client")
+			s.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
+			return
+		}
 
 		// optimistic update
 		err = db.UpdateDescription(s.db, string(repoAt), newDescription)
@@ -256,13 +261,13 @@ func (s *State) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		// this is a bit of a pain because the golang atproto impl does not allow nil SwapRecord field
 		//
 		// SwapRecord is optional and should happen automagically, but given that it does not, we have to perform two requests
-		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, user.Did, rkey)
+		ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, user.Did, rkey)
 		if err != nil {
 			// failed to get record
 			s.pages.Notice(w, "repo-notice", "Failed to update description, no record found on PDS.")
 			return
 		}
-		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
@@ -303,7 +308,7 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	}
 	ref := chi.URLParam(r, "ref")
 	protocol := "http"
-	if !s.config.Dev {
+	if !s.config.Core.Dev {
 		protocol = "https"
 	}
 
@@ -331,7 +336,7 @@ func (s *State) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	s.pages.RepoCommit(w, pages.RepoCommitParams{
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(s, user),
@@ -351,7 +356,7 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
 	treePath := chi.URLParam(r, "*")
 	protocol := "http"
-	if !s.config.Dev {
+	if !s.config.Core.Dev {
 		protocol = "https"
 	}
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tree/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, treePath))
@@ -380,7 +385,7 @@ func (s *State) RepoTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	var breadcrumbs [][]string
 	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
@@ -411,7 +416,7 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create unsigned client", err)
 		return
@@ -451,7 +456,7 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	s.pages.RepoTags(w, pages.RepoTagsParams{
 		LoggedInUser:      user,
 		RepoInfo:          f.RepoInfo(s, user),
@@ -469,7 +474,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create unsigned client", err)
 		return
@@ -511,7 +516,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return strings.Compare(a.Name, b.Name) * -1
 	})
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	s.pages.RepoBranches(w, pages.RepoBranchesParams{
 		LoggedInUser:         user,
 		RepoInfo:             f.RepoInfo(s, user),
@@ -530,7 +535,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
 	filePath := chi.URLParam(r, "*")
 	protocol := "http"
-	if !s.config.Dev {
+	if !s.config.Core.Dev {
 		protocol = "https"
 	}
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath))
@@ -568,7 +573,7 @@ func (s *State) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		showRendered = r.URL.Query().Get("code") != "true"
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	s.pages.RepoBlob(w, pages.RepoBlobParams{
 		LoggedInUser:     user,
 		RepoInfo:         f.RepoInfo(s, user),
@@ -591,7 +596,7 @@ func (s *State) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	filePath := chi.URLParam(r, "*")
 
 	protocol := "http"
-	if !s.config.Dev {
+	if !s.config.Core.Dev {
 		protocol = "https"
 	}
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath))
@@ -652,7 +657,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", f.Knot)
 		return
@@ -714,7 +719,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
@@ -723,9 +728,13 @@ func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// remove record from pds
-	xrpcClient, _ := s.auth.AuthorizedClient(r)
+	xrpcClient, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get authorized client", err)
+		return
+	}
 	repoRkey := f.RepoAt.RecordKey().String()
-	_, err = comatproto.RepoDeleteRecord(r.Context(), xrpcClient, &comatproto.RepoDeleteRecord_Input{
+	_, err = xrpcClient.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       user.Did,
 		Rkey:       repoRkey,
@@ -743,7 +752,7 @@ func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", f.Knot)
 		return
@@ -838,7 +847,7 @@ func (s *State) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Dev)
+	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", f.Knot)
 		return
@@ -868,7 +877,7 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// for now, this is just pubkeys
-		user := s.auth.GetUser(r)
+		user := s.oauth.GetUser(r)
 		repoCollaborators, err := f.Collaborators(r.Context(), s)
 		if err != nil {
 			log.Println("failed to get collaborators", err)
@@ -884,7 +893,7 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 
 		var branchNames []string
 		var defaultBranch string
-		us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+		us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
 		if err != nil {
 			log.Println("failed to create unsigned client", err)
 		} else {
@@ -1008,7 +1017,7 @@ func (f *FullyResolvedRepo) Collaborators(ctx context.Context, s *State) ([]page
 	return collaborators, nil
 }
 
-func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) repoinfo.RepoInfo {
+func (f *FullyResolvedRepo) RepoInfo(s *State, u *oauth.User) repoinfo.RepoInfo {
 	isStarred := false
 	if u != nil {
 		isStarred = db.GetStarStatus(s.db, u.Did, syntax.ATURI(f.RepoAt))
@@ -1051,7 +1060,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) repoinfo.RepoInfo {
 
 	knot := f.Knot
 	var disableFork bool
-	us, err := NewUnsignedClient(knot, s.config.Dev)
+	us, err := NewUnsignedClient(knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s: %v", knot, err)
 	} else {
@@ -1105,7 +1114,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *auth.User) repoinfo.RepoInfo {
 }
 
 func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1159,7 +1168,7 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1195,8 +1204,12 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 
 		closed := tangled.RepoIssueStateClosed
 
-		client, _ := s.auth.AuthorizedClient(r)
-		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		client, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			log.Println("failed to get authorized client", err)
+			return
+		}
+		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueStateNSID,
 			Repo:       user.Did,
 			Rkey:       appview.TID(),
@@ -1214,7 +1227,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err := db.CloseIssue(s.db, f.RepoAt, issueIdInt)
+		err = db.CloseIssue(s.db, f.RepoAt, issueIdInt)
 		if err != nil {
 			log.Println("failed to close issue", err)
 			s.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
@@ -1231,7 +1244,7 @@ func (s *State) CloseIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1279,7 +1292,7 @@ func (s *State) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1330,8 +1343,13 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		atUri := f.RepoAt.String()
-		client, _ := s.auth.AuthorizedClient(r)
-		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		client, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			log.Println("failed to get authorized client", err)
+			s.pages.Notice(w, "issue-comment", "Failed to create comment.")
+			return
+		}
+		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueCommentNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
@@ -1358,7 +1376,7 @@ func (s *State) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1417,7 +1435,7 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1469,7 +1487,12 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		// extract form value
 		newBody := r.FormValue("body")
-		client, _ := s.auth.AuthorizedClient(r)
+		client, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			log.Println("failed to get authorized client", err)
+			s.pages.Notice(w, "issue-comment", "Failed to create comment.")
+			return
+		}
 		rkey := comment.Rkey
 
 		// optimistic update
@@ -1484,7 +1507,7 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		// rkey is optional, it was introduced later
 		if comment.Rkey != "" {
 			// update the record on pds
-			ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoIssueCommentNSID, user.Did, rkey)
+			ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoIssueCommentNSID, user.Did, rkey)
 			if err != nil {
 				// failed to get record
 				log.Println(err, rkey)
@@ -1499,7 +1522,7 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 			createdAt := record["createdAt"].(string)
 			commentIdInt64 := int64(commentIdInt)
 
-			_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+			_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 				Collection: tangled.RepoIssueCommentNSID,
 				Repo:       user.Did,
 				Rkey:       rkey,
@@ -1542,7 +1565,7 @@ func (s *State) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1599,8 +1622,13 @@ func (s *State) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	// delete from pds
 	if comment.Rkey != "" {
-		client, _ := s.auth.AuthorizedClient(r)
-		_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+		client, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			log.Println("failed to get authorized client", err)
+			s.pages.Notice(w, "issue-comment", "Failed to delete comment.")
+			return
+		}
+		_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
 			Collection: tangled.GraphFollowNSID,
 			Repo:       user.Did,
 			Rkey:       comment.Rkey,
@@ -1647,7 +1675,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		page = pagination.FirstPage()
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1676,7 +1704,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.RepoIssues(w, pages.RepoIssuesParams{
-		LoggedInUser:    s.auth.GetUser(r),
+		LoggedInUser:    s.oauth.GetUser(r),
 		RepoInfo:        f.RepoInfo(s, user),
 		Issues:          issues,
 		DidHandleMap:    didHandleMap,
@@ -1687,7 +1715,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
@@ -1735,9 +1763,14 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client, _ := s.auth.AuthorizedClient(r)
+		client, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			log.Println("failed to get authorized client", err)
+			s.pages.Notice(w, "issues", "Failed to create issue.")
+			return
+		}
 		atUri := f.RepoAt.String()
-		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,
 			Rkey:       appview.TID(),
@@ -1770,7 +1803,7 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Printf("failed to resolve source repo: %v", err)
@@ -1779,7 +1812,7 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		user := s.auth.GetUser(r)
+		user := s.oauth.GetUser(r)
 		knots, err := s.enforcer.GetDomainsForUser(user.Did)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Invalid user account.")
@@ -1829,14 +1862,14 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client, err := NewSignedClient(knot, secret, s.config.Dev)
+		client, err := NewSignedClient(knot, secret, s.config.Core.Dev)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to reach knot server.")
 			return
 		}
 
 		var uri string
-		if s.config.Dev {
+		if s.config.Core.Dev {
 			uri = "http"
 		} else {
 			uri = "https"
@@ -1883,10 +1916,15 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			// continue
 		}
 
-		xrpcClient, _ := s.auth.AuthorizedClient(r)
+		xrpcClient, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			log.Println("failed to get authorized client", err)
+			s.pages.Notice(w, "repo", "Failed to create repository.")
+			return
+		}
 
 		createdAt := time.Now().Format(time.RFC3339)
-		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
+		atresp, err := xrpcClient.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,

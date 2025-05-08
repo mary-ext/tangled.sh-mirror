@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/sessions"
 	"tangled.sh/tangled.sh/core/appview/middleware"
+	oauthhandler "tangled.sh/tangled.sh/core/appview/oauth/handler"
 	"tangled.sh/tangled.sh/core/appview/settings"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
 )
@@ -67,7 +69,7 @@ func (s *State) UserRouter() http.Handler {
 			r.Route("/tags", func(r chi.Router) {
 				r.Get("/", s.RepoTags)
 				r.Route("/{tag}", func(r chi.Router) {
-					r.Use(middleware.AuthMiddleware(s.auth))
+					r.Use(middleware.AuthMiddleware(s.oauth))
 					// require auth to download for now
 					r.Get("/download/{file}", s.DownloadArtifact)
 
@@ -90,7 +92,7 @@ func (s *State) UserRouter() http.Handler {
 				r.Get("/{issue}", s.RepoSingleIssue)
 
 				r.Group(func(r chi.Router) {
-					r.Use(middleware.AuthMiddleware(s.auth))
+					r.Use(middleware.AuthMiddleware(s.oauth))
 					r.Get("/new", s.NewIssue)
 					r.Post("/new", s.NewIssue)
 					r.Post("/{issue}/comment", s.NewIssueComment)
@@ -106,14 +108,14 @@ func (s *State) UserRouter() http.Handler {
 			})
 
 			r.Route("/fork", func(r chi.Router) {
-				r.Use(middleware.AuthMiddleware(s.auth))
+				r.Use(middleware.AuthMiddleware(s.oauth))
 				r.Get("/", s.ForkRepo)
 				r.Post("/", s.ForkRepo)
 			})
 
 			r.Route("/pulls", func(r chi.Router) {
 				r.Get("/", s.RepoPulls)
-				r.With(middleware.AuthMiddleware(s.auth)).Route("/new", func(r chi.Router) {
+				r.With(middleware.AuthMiddleware(s.oauth)).Route("/new", func(r chi.Router) {
 					r.Get("/", s.NewPull)
 					r.Get("/patch-upload", s.PatchUploadFragment)
 					r.Post("/validate-patch", s.ValidatePatch)
@@ -131,7 +133,7 @@ func (s *State) UserRouter() http.Handler {
 						r.Get("/", s.RepoPullPatch)
 						r.Get("/interdiff", s.RepoPullInterdiff)
 						r.Get("/actions", s.PullActions)
-						r.With(middleware.AuthMiddleware(s.auth)).Route("/comment", func(r chi.Router) {
+						r.With(middleware.AuthMiddleware(s.oauth)).Route("/comment", func(r chi.Router) {
 							r.Get("/", s.PullComment)
 							r.Post("/", s.PullComment)
 						})
@@ -142,7 +144,7 @@ func (s *State) UserRouter() http.Handler {
 					})
 
 					r.Group(func(r chi.Router) {
-						r.Use(middleware.AuthMiddleware(s.auth))
+						r.Use(middleware.AuthMiddleware(s.oauth))
 						r.Route("/resubmit", func(r chi.Router) {
 							r.Get("/", s.ResubmitPull)
 							r.Post("/", s.ResubmitPull)
@@ -165,7 +167,7 @@ func (s *State) UserRouter() http.Handler {
 
 			// settings routes, needs auth
 			r.Group(func(r chi.Router) {
-				r.Use(middleware.AuthMiddleware(s.auth))
+				r.Use(middleware.AuthMiddleware(s.oauth))
 				// repo description can only be edited by owner
 				r.With(RepoPermissionMiddleware(s, "repo:owner")).Route("/description", func(r chi.Router) {
 					r.Put("/", s.RepoDescription)
@@ -196,15 +198,15 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Get("/", s.Timeline)
 
-	r.With(middleware.AuthMiddleware(s.auth)).Post("/logout", s.Logout)
+	r.With(middleware.AuthMiddleware(s.oauth)).Post("/logout", s.Logout)
 
-	r.Route("/login", func(r chi.Router) {
-		r.Get("/", s.Login)
-		r.Post("/", s.Login)
-	})
+	// r.Route("/login", func(r chi.Router) {
+	// 	r.Get("/", s.Login)
+	// 	r.Post("/", s.Login)
+	// })
 
 	r.Route("/knots", func(r chi.Router) {
-		r.Use(middleware.AuthMiddleware(s.auth))
+		r.Use(middleware.AuthMiddleware(s.oauth))
 		r.Get("/", s.Knots)
 		r.Post("/key", s.RegistrationKey)
 
@@ -222,25 +224,25 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware(s.auth))
+			r.Use(middleware.AuthMiddleware(s.oauth))
 			r.Get("/", s.NewRepo)
 			r.Post("/", s.NewRepo)
 		})
 		// r.Post("/import", s.ImportRepo)
 	})
 
-	r.With(middleware.AuthMiddleware(s.auth)).Route("/follow", func(r chi.Router) {
+	r.With(middleware.AuthMiddleware(s.oauth)).Route("/follow", func(r chi.Router) {
 		r.Post("/", s.Follow)
 		r.Delete("/", s.Follow)
 	})
 
-	r.With(middleware.AuthMiddleware(s.auth)).Route("/star", func(r chi.Router) {
+	r.With(middleware.AuthMiddleware(s.oauth)).Route("/star", func(r chi.Router) {
 		r.Post("/", s.Star)
 		r.Delete("/", s.Star)
 	})
 
 	r.Route("/profile", func(r chi.Router) {
-		r.Use(middleware.AuthMiddleware(s.auth))
+		r.Use(middleware.AuthMiddleware(s.oauth))
 		r.Get("/edit-bio", s.EditBioFragment)
 		r.Get("/edit-pins", s.EditPinsFragment)
 		r.Post("/bio", s.UpdateProfileBio)
@@ -248,7 +250,7 @@ func (s *State) StandardRouter() http.Handler {
 	})
 
 	r.Mount("/settings", s.SettingsRouter())
-
+	r.Mount("/oauth", s.OAuthRouter())
 	r.Get("/keys/{user}", s.Keys)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -257,10 +259,23 @@ func (s *State) StandardRouter() http.Handler {
 	return r
 }
 
+func (s *State) OAuthRouter() http.Handler {
+	oauth := &oauthhandler.OAuthHandler{
+		Config:   s.config,
+		Pages:    s.pages,
+		Resolver: s.resolver,
+		Db:       s.db,
+		Store:    sessions.NewCookieStore([]byte(s.config.Core.CookieSecret)),
+		OAuth:    s.oauth,
+	}
+
+	return oauth.Router()
+}
+
 func (s *State) SettingsRouter() http.Handler {
 	settings := &settings.Settings{
 		Db:     s.db,
-		Auth:   s.auth,
+		OAuth:  s.oauth,
 		Pages:  s.pages,
 		Config: s.config,
 	}

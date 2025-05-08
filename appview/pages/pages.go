@@ -16,8 +16,8 @@ import (
 	"strings"
 
 	"tangled.sh/tangled.sh/core/appview"
-	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
@@ -48,14 +48,14 @@ type Pages struct {
 func NewPages(config *appview.Config) *Pages {
 	// initialized with safe defaults, can be overriden per use
 	rctx := &markup.RenderContext{
-		IsDev:      config.Dev,
-		CamoUrl:    config.CamoHost,
-		CamoSecret: config.CamoSharedSecret,
+		IsDev:      config.Core.Dev,
+		CamoUrl:    config.Camo.Host,
+		CamoSecret: config.Camo.SharedSecret,
 	}
 
 	p := &Pages{
 		t:           make(map[string]*template.Template),
-		dev:         config.Dev,
+		dev:         config.Core.Dev,
 		embedFS:     Files,
 		rctx:        rctx,
 		templateDir: "appview/pages",
@@ -249,8 +249,12 @@ func (p *Pages) Login(w io.Writer, params LoginParams) error {
 	return p.executePlain("user/login", w, params)
 }
 
+func (p *Pages) OAuthLogin(w io.Writer, params LoginParams) error {
+	return p.executePlain("user/oauthlogin", w, params)
+}
+
 type TimelineParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	Timeline     []db.TimelineEvent
 	DidHandleMap map[string]string
 }
@@ -260,7 +264,7 @@ func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
 }
 
 type SettingsParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	PubKeys      []db.PublicKey
 	Emails       []db.Email
 }
@@ -270,7 +274,7 @@ func (p *Pages) Settings(w io.Writer, params SettingsParams) error {
 }
 
 type KnotsParams struct {
-	LoggedInUser  *auth.User
+	LoggedInUser  *oauth.User
 	Registrations []db.Registration
 }
 
@@ -279,7 +283,7 @@ func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
 }
 
 type KnotParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	DidHandleMap map[string]string
 	Registration *db.Registration
 	Members      []string
@@ -291,7 +295,7 @@ func (p *Pages) Knot(w io.Writer, params KnotParams) error {
 }
 
 type NewRepoParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	Knots        []string
 }
 
@@ -300,7 +304,7 @@ func (p *Pages) NewRepo(w io.Writer, params NewRepoParams) error {
 }
 
 type ForkRepoParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	Knots        []string
 	RepoInfo     repoinfo.RepoInfo
 }
@@ -310,7 +314,7 @@ func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
 }
 
 type ProfilePageParams struct {
-	LoggedInUser       *auth.User
+	LoggedInUser       *oauth.User
 	Repos              []db.Repo
 	CollaboratingRepos []db.Repo
 	ProfileTimeline    *db.ProfileTimeline
@@ -335,7 +339,7 @@ func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
 }
 
 type ReposPageParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	Repos        []db.Repo
 	Card         ProfileCard
 
@@ -356,7 +360,7 @@ func (p *Pages) FollowFragment(w io.Writer, params FollowFragmentParams) error {
 }
 
 type EditBioParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	Profile      *db.Profile
 }
 
@@ -365,7 +369,7 @@ func (p *Pages) EditBioFragment(w io.Writer, params EditBioParams) error {
 }
 
 type EditPinsParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	Profile      *db.Profile
 	AllRepos     []PinnedRepo
 	DidHandleMap map[string]string
@@ -403,7 +407,7 @@ func (p *Pages) RepoDescriptionFragment(w io.Writer, params RepoDescriptionParam
 }
 
 type RepoIndexParams struct {
-	LoggedInUser  *auth.User
+	LoggedInUser  *oauth.User
 	RepoInfo      repoinfo.RepoInfo
 	Active        string
 	TagMap        map[string][]string
@@ -444,7 +448,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 }
 
 type RepoLogParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	TagMap       map[string][]string
 	types.RepoLogResponse
@@ -458,7 +462,7 @@ func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
 }
 
 type RepoCommitParams struct {
-	LoggedInUser       *auth.User
+	LoggedInUser       *oauth.User
 	RepoInfo           repoinfo.RepoInfo
 	Active             string
 	EmailToDidOrHandle map[string]string
@@ -472,7 +476,7 @@ func (p *Pages) RepoCommit(w io.Writer, params RepoCommitParams) error {
 }
 
 type RepoTreeParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	BreadCrumbs  [][]string
@@ -508,7 +512,7 @@ func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
 }
 
 type RepoBranchesParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	types.RepoBranchesResponse
@@ -520,7 +524,7 @@ func (p *Pages) RepoBranches(w io.Writer, params RepoBranchesParams) error {
 }
 
 type RepoTagsParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	types.RepoTagsResponse
@@ -534,7 +538,7 @@ func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 }
 
 type RepoArtifactParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Artifact     db.Artifact
 }
@@ -544,7 +548,7 @@ func (p *Pages) RepoArtifactFragment(w io.Writer, params RepoArtifactParams) err
 }
 
 type RepoBlobParams struct {
-	LoggedInUser     *auth.User
+	LoggedInUser     *oauth.User
 	RepoInfo         repoinfo.RepoInfo
 	Active           string
 	BreadCrumbs      [][]string
@@ -606,7 +610,7 @@ type Collaborator struct {
 }
 
 type RepoSettingsParams struct {
-	LoggedInUser  *auth.User
+	LoggedInUser  *oauth.User
 	RepoInfo      repoinfo.RepoInfo
 	Collaborators []Collaborator
 	Active        string
@@ -622,7 +626,7 @@ func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 }
 
 type RepoIssuesParams struct {
-	LoggedInUser    *auth.User
+	LoggedInUser    *oauth.User
 	RepoInfo        repoinfo.RepoInfo
 	Active          string
 	Issues          []db.Issue
@@ -637,7 +641,7 @@ func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {
 }
 
 type RepoSingleIssueParams struct {
-	LoggedInUser     *auth.User
+	LoggedInUser     *oauth.User
 	RepoInfo         repoinfo.RepoInfo
 	Active           string
 	Issue            db.Issue
@@ -659,7 +663,7 @@ func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error
 }
 
 type RepoNewIssueParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
 }
@@ -670,7 +674,7 @@ func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 }
 
 type EditIssueCommentParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Issue        *db.Issue
 	Comment      *db.Comment
@@ -681,7 +685,7 @@ func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentPar
 }
 
 type SingleIssueCommentParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	DidHandleMap map[string]string
 	RepoInfo     repoinfo.RepoInfo
 	Issue        *db.Issue
@@ -693,7 +697,7 @@ func (p *Pages) SingleIssueCommentFragment(w io.Writer, params SingleIssueCommen
 }
 
 type RepoNewPullParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Branches     []types.Branch
 	Active       string
@@ -705,7 +709,7 @@ func (p *Pages) RepoNewPull(w io.Writer, params RepoNewPullParams) error {
 }
 
 type RepoPullsParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Pulls        []*db.Pull
 	Active       string
@@ -737,7 +741,7 @@ func (r ResubmitResult) Unknown() bool {
 }
 
 type RepoSinglePullParams struct {
-	LoggedInUser  *auth.User
+	LoggedInUser  *oauth.User
 	RepoInfo      repoinfo.RepoInfo
 	Active        string
 	DidHandleMap  map[string]string
@@ -752,7 +756,7 @@ func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
 }
 
 type RepoPullPatchParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	DidHandleMap map[string]string
 	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
@@ -767,7 +771,7 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 }
 
 type RepoPullInterdiffParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	DidHandleMap map[string]string
 	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
@@ -817,7 +821,7 @@ func (p *Pages) PullCompareForkBranchesFragment(w io.Writer, params PullCompareF
 }
 
 type PullResubmitParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
 	SubmissionId int
@@ -828,7 +832,7 @@ func (p *Pages) PullResubmitFragment(w io.Writer, params PullResubmitParams) err
 }
 
 type PullActionsParams struct {
-	LoggedInUser  *auth.User
+	LoggedInUser  *oauth.User
 	RepoInfo      repoinfo.RepoInfo
 	Pull          *db.Pull
 	RoundNumber   int
@@ -841,7 +845,7 @@ func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error
 }
 
 type PullNewCommentParams struct {
-	LoggedInUser *auth.User
+	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
 	RoundNumber  int

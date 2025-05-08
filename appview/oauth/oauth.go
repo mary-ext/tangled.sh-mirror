@@ -48,6 +48,8 @@ func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq db.OAut
 	}
 
 	userSession.Values[appview.SessionDid] = oreq.Did
+	userSession.Values[appview.SessionHandle] = oreq.Handle
+	userSession.Values[appview.SessionPds] = oreq.PdsUrl
 	userSession.Values[appview.SessionAuthenticated] = true
 	err = userSession.Save(r, w)
 	if err != nil {

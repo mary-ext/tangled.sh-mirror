@@ -119,7 +119,7 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
 	}
 
-	loggedInUser := s.auth.GetUser(r)
+	loggedInUser := s.oauth.GetUser(r)
 	followStatus := db.IsNotFollowing
 	if loggedInUser != nil {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
@@ -161,7 +161,7 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
 	}
 
-	loggedInUser := s.auth.GetUser(r)
+	loggedInUser := s.oauth.GetUser(r)
 	followStatus := db.IsNotFollowing
 	if loggedInUser != nil {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
@@ -190,15 +190,15 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) GetAvatarUri(handle string) string {
-	secret := s.config.AvatarSharedSecret
+	secret := s.config.Avatar.SharedSecret
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(handle))
 	signature := hex.EncodeToString(h.Sum(nil))
-	return fmt.Sprintf("%s/%s/%s", s.config.AvatarHost, signature, handle)
+	return fmt.Sprintf("%s/%s/%s", s.config.Avatar.Host, signature, handle)
 }
 
 func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	err := r.ParseForm()
 	if err != nil {
@@ -246,7 +246,7 @@ func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) UpdateProfilePins(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	err := r.ParseForm()
 	if err != nil {
@@ -286,7 +286,7 @@ func (s *State) UpdateProfilePins(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		log.Println("failed to start transaction", err)
@@ -294,7 +294,12 @@ func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *htt
 		return
 	}
 
-	client, _ := s.auth.AuthorizedClient(r)
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get authorized client", err)
+		s.pages.Notice(w, "update-profile", "Failed to update profile, try again later.")
+		return
+	}
 
 	// yeah... lexgen dose not support syntax.ATURI in the record for some reason,
 	// nor does it support exact size arrays
@@ -308,13 +313,13 @@ func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *htt
 		vanityStats = append(vanityStats, string(v.Kind))
 	}
 
-	ex, _ := comatproto.RepoGetRecord(r.Context(), client, "", tangled.ActorProfileNSID, user.Did, "self")
+	ex, _ := client.RepoGetRecord(r.Context(), "", tangled.ActorProfileNSID, user.Did, "self")
 	var cid *string
 	if ex != nil {
 		cid = ex.Cid
 	}
 
-	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 		Collection: tangled.ActorProfileNSID,
 		Repo:       user.Did,
 		Rkey:       "self",
@@ -347,7 +352,7 @@ func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *htt
 }
 
 func (s *State) EditBioFragment(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	profile, err := db.GetProfile(s.db, user.Did)
 	if err != nil {
@@ -361,7 +366,7 @@ func (s *State) EditBioFragment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) EditPinsFragment(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	profile, err := db.GetProfile(s.db, user.Did)
 	if err != nil {

@@ -288,6 +288,32 @@ func Make(dbPath string) (*DB, error) {
 			foreign key (at_uri) references repos(at_uri) on delete cascade
 		);
 
+		create table if not exists oauth_requests (
+			id integer primary key autoincrement,
+			auth_server_iss text not null,
+			state text not null,
+			did text not null,
+			handle text not null,
+			pds_url text not null,
+			pkce_verifier text not null,
+			dpop_auth_server_nonce text not null,
+			dpop_private_jwk text not null
+		);
+
+		create table if not exists oauth_sessions (
+			id integer primary key autoincrement,
+			did text not null,
+			handle text not null,
+			pds_url text not null,
+			auth_server_iss text not null,
+			access_jwt text not null,
+			refresh_jwt text not null,
+			dpop_pds_nonce text,
+			dpop_auth_server_nonce text not null,
+			dpop_private_jwk text not null,
+			expiry text not null
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique

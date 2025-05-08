@@ -22,7 +22,7 @@ import (
 
 // TODO: proper statuses here on early exit
 func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	tagParam := chi.URLParam(r, "tag")
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
@@ -46,9 +46,14 @@ func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	client, _ := s.auth.AuthorizedClient(r)
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get authorized client", err)
+		s.pages.Notice(w, "upload", "failed to get authorized client")
+		return
+	}
 
-	uploadBlobResp, err := comatproto.RepoUploadBlob(r.Context(), client, file)
+	uploadBlobResp, err := client.RepoUploadBlob(r.Context(), file)
 	if err != nil {
 		log.Println("failed to upload blob", err)
 		s.pages.Notice(w, "upload", "Failed to upload blob to your PDS. Try again later.")
@@ -60,7 +65,7 @@ func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	rkey := appview.TID()
 	createdAt := time.Now()
 
-	putRecordResp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+	putRecordResp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoArtifactNSID,
 		Repo:       user.Did,
 		Rkey:       rkey,
@@ -140,7 +145,11 @@ func (s *State) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, _ := s.auth.AuthorizedClient(r)
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get authorized client", err)
+		return
+	}
 
 	artifacts, err := db.GetArtifact(
 		s.db,
@@ -159,7 +168,7 @@ func (s *State) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifact := artifacts[0]
 
-	getBlobResp, err := comatproto.SyncGetBlob(r.Context(), client, artifact.BlobCid.String(), artifact.Did)
+	getBlobResp, err := client.SyncGetBlob(r.Context(), artifact.BlobCid.String(), artifact.Did)
 	if err != nil {
 		log.Println("failed to get blob from pds", err)
 		return
@@ -171,7 +180,7 @@ func (s *State) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 
 // TODO: proper statuses here on early exit
 func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	tagParam := chi.URLParam(r, "tag")
 	filename := chi.URLParam(r, "file")
 	f, err := s.fullyResolvedRepo(r)
@@ -180,7 +189,7 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, _ := s.auth.AuthorizedClient(r)
+	client, _ := s.oauth.AuthorizedClient(r)
 
 	tag := plumbing.NewHash(tagParam)
 
@@ -208,7 +217,7 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.RepoArtifactNSID,
 		Repo:       user.Did,
 		Rkey:       artifact.Rkey,
@@ -254,7 +263,7 @@ func (s *State) resolveTag(f *FullyResolvedRepo, tagParam string) (*types.TagRef
 		return nil, err
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Dev)
+	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		return nil, err
 	}

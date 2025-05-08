@@ -9,4 +9,7 @@ const (
 	SessionRefreshJwt    = "refreshJwt"
 	SessionExpiry        = "expiry"
 	SessionAuthenticated = "authenticated"
+
+	SessionDpopPrivateJwk      = "dpopPrivateJwk"
+	SessionDpopAuthServerNonce = "dpopAuthServerNonce"
 )

@@ -13,10 +13,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
-	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/email"
 	"tangled.sh/tangled.sh/core/appview/middleware"
+	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -27,7 +27,7 @@ import (
 
 type Settings struct {
 	Db     *db.DB
-	Auth   *auth.Auth
+	OAuth  *oauth.OAuth
 	Pages  *pages.Pages
 	Config *appview.Config
 }
@@ -35,7 +35,7 @@ type Settings struct {
 func (s *Settings) Router() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.AuthMiddleware(s.Auth))
+	r.Use(middleware.AuthMiddleware(s.OAuth))
 
 	r.Get("/", s.settings)
 
@@ -56,7 +56,7 @@ func (s *Settings) Router() http.Handler {
 }
 
 func (s *Settings) settings(w http.ResponseWriter, r *http.Request) {
-	user := s.Auth.GetUser(r)
+	user := s.OAuth.GetUser(r)
 	pubKeys, err := db.GetPublicKeys(s.Db, user.Did)
 	if err != nil {
 		log.Println(err)
@@ -79,7 +79,7 @@ func (s *Settings) buildVerificationEmail(emailAddr, did, code string) email.Ema
 	verifyURL := s.verifyUrl(did, emailAddr, code)
 
 	return email.Email{
-		APIKey:  s.Config.ResendApiKey,
+		APIKey:  s.Config.Resend.ApiKey,
 		From:    "noreply@notifs.tangled.sh",
 		To:      emailAddr,
 		Subject: "Verify your Tangled email",
@@ -111,7 +111,7 @@ func (s *Settings) emails(w http.ResponseWriter, r *http.Request) {
 		log.Println("unimplemented")
 		return
 	case http.MethodPut:
-		did := s.Auth.GetDid(r)
+		did := s.OAuth.GetDid(r)
 		emAddr := r.FormValue("email")
 		emAddr = strings.TrimSpace(emAddr)
 
@@ -174,7 +174,7 @@ func (s *Settings) emails(w http.ResponseWriter, r *http.Request) {
 		s.Pages.Notice(w, "settings-emails-success", "Click the link in the email we sent you to verify your email address.")
 		return
 	case http.MethodDelete:
-		did := s.Auth.GetDid(r)
+		did := s.OAuth.GetDid(r)
 		emailAddr := r.FormValue("email")
 		emailAddr = strings.TrimSpace(emailAddr)
 
@@ -207,8 +207,8 @@ func (s *Settings) emails(w http.ResponseWriter, r *http.Request) {
 
 func (s *Settings) verifyUrl(did string, email string, code string) string {
 	var appUrl string
-	if s.Config.Dev {
-		appUrl = "http://" + s.Config.ListenAddr
+	if s.Config.Core.Dev {
+		appUrl = "http://" + s.Config.Core.ListenAddr
 	} else {
 		appUrl = "https://tangled.sh"
 	}
@@ -252,7 +252,7 @@ func (s *Settings) emailsVerifyResend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	did := s.Auth.GetDid(r)
+	did := s.OAuth.GetDid(r)
 	emAddr := r.FormValue("email")
 	emAddr = strings.TrimSpace(emAddr)
 
@@ -323,7 +323,7 @@ func (s *Settings) emailsVerifyResend(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Settings) emailsPrimary(w http.ResponseWriter, r *http.Request) {
-	did := s.Auth.GetDid(r)
+	did := s.OAuth.GetDid(r)
 	emailAddr := r.FormValue("email")
 	emailAddr = strings.TrimSpace(emailAddr)
 
@@ -348,13 +348,17 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 		log.Println("unimplemented")
 		return
 	case http.MethodPut:
-		did := s.Auth.GetDid(r)
+		did := s.OAuth.GetDid(r)
 		key := r.FormValue("key")
 		key = strings.TrimSpace(key)
 		name := r.FormValue("name")
-		client, _ := s.Auth.AuthorizedClient(r)
+		client, err := s.OAuth.AuthorizedClient(r)
+		if err != nil {
+			s.Pages.Notice(w, "settings-keys", "Failed to authorize. Try again later.")
+			return
+		}
 
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
+		_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(key))
 		if err != nil {
 			log.Printf("parsing public key: %s", err)
 			s.Pages.Notice(w, "settings-keys", "That doesn't look like a valid public key. Make sure it's a <strong>public</strong> key.")
@@ -378,7 +382,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// store in pds too
-		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.PublicKeyNSID,
 			Repo:       did,
 			Rkey:       rkey,
@@ -409,7 +413,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case http.MethodDelete:
-		did := s.Auth.GetDid(r)
+		did := s.OAuth.GetDid(r)
 		q := r.URL.Query()
 
 		name := q.Get("name")
@@ -420,7 +424,12 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 		log.Println(rkey)
 		log.Println(key)
 
-		client, _ := s.Auth.AuthorizedClient(r)
+		client, err := s.OAuth.AuthorizedClient(r)
+		if err != nil {
+			log.Printf("failed to authorize client: %s", err)
+			s.Pages.Notice(w, "settings-keys", "Failed to authorize client.")
+			return
+		}
 
 		if err := db.DeletePublicKey(s.Db, did, name, key); err != nil {
 			log.Printf("removing public key: %s", err)
@@ -430,7 +439,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 
 		if rkey != "" {
 			// remove from pds too
-			_, err := comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
+			_, err := client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
 				Collection: tangled.PublicKeyNSID,
 				Repo:       did,
 				Rkey:       rkey,

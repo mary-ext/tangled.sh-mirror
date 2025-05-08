@@ -21,6 +21,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/rbac"
@@ -29,8 +30,9 @@ import (
 type State struct {
 	db       *db.DB
 	auth     *auth.Auth
+	oauth    *oauth.OAuth
 	enforcer *rbac.Enforcer
-	tidClock *syntax.TIDClock
+	tidClock syntax.TIDClock
 	pages    *pages.Pages
 	resolver *appview.Resolver
 	jc       *jetstream.JetstreamClient
@@ -38,17 +40,17 @@ type State struct {
 }
 
 func Make(config *appview.Config) (*State, error) {
-	d, err := db.Make(config.DbPath)
+	d, err := db.Make(config.Core.DbPath)
 	if err != nil {
 		return nil, err
 	}
 
-	auth, err := auth.Make(config.CookieSecret)
+	auth, err := auth.Make(config.Core.CookieSecret)
 	if err != nil {
 		return nil, err
 	}
 
-	enforcer, err := rbac.NewEnforcer(config.DbPath)
+	enforcer, err := rbac.NewEnforcer(config.Core.DbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +61,11 @@ func Make(config *appview.Config) (*State, error) {
 
 	resolver := appview.NewResolver()
 
+	oauth := oauth.NewOAuth(d, config)
+
 	wrapper := db.DbWrapper{d}
 	jc, err := jetstream.NewJetstreamClient(
-		config.JetstreamEndpoint,
+		config.Jetstream.Endpoint,
 		"appview",
 		[]string{
 			tangled.GraphFollowNSID,
@@ -86,6 +90,7 @@ func Make(config *appview.Config) (*State, error) {
 	state := &State{
 		d,
 		auth,
+		oauth,
 		enforcer,
 		clock,
 		pgs,
@@ -101,90 +106,90 @@ func TID(c *syntax.TIDClock) string {
 	return c.Next().String()
 }
 
-func (s *State) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+// func (s *State) Login(w http.ResponseWriter, r *http.Request) {
+// 	ctx := r.Context()
 
-	switch r.Method {
-	case http.MethodGet:
-		err := s.pages.Login(w, pages.LoginParams{})
-		if err != nil {
-			log.Printf("rendering login page: %s", err)
-		}
+// 	switch r.Method {
+// 	case http.MethodGet:
+// 		err := s.pages.Login(w, pages.LoginParams{})
+// 		if err != nil {
+// 			log.Printf("rendering login page: %s", err)
+// 		}
 
-		return
-	case http.MethodPost:
-		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
-		appPassword := r.FormValue("app_password")
+// 		return
+// 	case http.MethodPost:
+// 		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
+// 		appPassword := r.FormValue("app_password")
 
-		resolved, err := s.resolver.ResolveIdent(ctx, handle)
-		if err != nil {
-			log.Println("failed to resolve handle:", err)
-			s.pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
-			return
-		}
+// 		resolved, err := s.resolver.ResolveIdent(ctx, handle)
+// 		if err != nil {
+// 			log.Println("failed to resolve handle:", err)
+// 			s.pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
+// 			return
+// 		}
 
-		atSession, err := s.auth.CreateInitialSession(ctx, resolved, appPassword)
-		if err != nil {
-			s.pages.Notice(w, "login-msg", "Invalid handle or password.")
-			return
-		}
-		sessionish := auth.CreateSessionWrapper{ServerCreateSession_Output: atSession}
+// 		atSession, err := s.oauth.CreateInitialSession(ctx, resolved, appPassword)
+// 		if err != nil {
+// 			s.pages.Notice(w, "login-msg", "Invalid handle or password.")
+// 			return
+// 		}
+// 		sessionish := auth.CreateSessionWrapper{ServerCreateSession_Output: atSession}
 
-		err = s.auth.StoreSession(r, w, &sessionish, resolved.PDSEndpoint())
-		if err != nil {
-			s.pages.Notice(w, "login-msg", "Failed to login, try again later.")
-			return
-		}
+// 		err = s.oauth.StoreSession(r, w, &sessionish, resolved.PDSEndpoint())
+// 		if err != nil {
+// 			s.pages.Notice(w, "login-msg", "Failed to login, try again later.")
+// 			return
+// 		}
 
-		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
+// 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
 
-		did := resolved.DID.String()
-		defaultKnot := "knot1.tangled.sh"
+// 		did := resolved.DID.String()
+// 		defaultKnot := "knot1.tangled.sh"
 
-		go func() {
-			log.Printf("adding %s to default knot", did)
-			err = s.enforcer.AddMember(defaultKnot, did)
-			if err != nil {
-				log.Println("failed to add user to knot1.tangled.sh: ", err)
-				return
-			}
-			err = s.enforcer.E.SavePolicy()
-			if err != nil {
-				log.Println("failed to add user to knot1.tangled.sh: ", err)
-				return
-			}
+// 		go func() {
+// 			log.Printf("adding %s to default knot", did)
+// 			err = s.enforcer.AddMember(defaultKnot, did)
+// 			if err != nil {
+// 				log.Println("failed to add user to knot1.tangled.sh: ", err)
+// 				return
+// 			}
+// 			err = s.enforcer.E.SavePolicy()
+// 			if err != nil {
+// 				log.Println("failed to add user to knot1.tangled.sh: ", err)
+// 				return
+// 			}
 
-			secret, err := db.GetRegistrationKey(s.db, defaultKnot)
-			if err != nil {
-				log.Println("failed to get registration key for knot1.tangled.sh")
-				return
-			}
-			signedClient, err := NewSignedClient(defaultKnot, secret, s.config.Dev)
-			resp, err := signedClient.AddMember(did)
-			if err != nil {
-				log.Println("failed to add user to knot1.tangled.sh: ", err)
-				return
-			}
+// 			secret, err := db.GetRegistrationKey(s.db, defaultKnot)
+// 			if err != nil {
+// 				log.Println("failed to get registration key for knot1.tangled.sh")
+// 				return
+// 			}
+// 			signedClient, err := NewSignedClient(defaultKnot, secret, s.config.Core.Dev)
+// 			resp, err := signedClient.AddMember(did)
+// 			if err != nil {
+// 				log.Println("failed to add user to knot1.tangled.sh: ", err)
+// 				return
+// 			}
 
-			if resp.StatusCode != http.StatusNoContent {
-				log.Println("failed to add user to knot1.tangled.sh: ", resp.StatusCode)
-				return
-			}
-		}()
+// 			if resp.StatusCode != http.StatusNoContent {
+// 				log.Println("failed to add user to knot1.tangled.sh: ", resp.StatusCode)
+// 				return
+// 			}
+// 		}()
 
-		s.pages.HxRedirect(w, "/")
-		return
-	}
-}
+// 		s.pages.HxRedirect(w, "/")
+// 		return
+// 	}
+// }
 
 func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
-	s.auth.ClearSession(r, w)
+	s.oauth.ClearSession(r, w)
 	w.Header().Set("HX-Redirect", "/login")
 	w.WriteHeader(http.StatusSeeOther)
 }
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	timeline, err := db.MakeTimeline(s.db)
 	if err != nil {
@@ -235,7 +240,7 @@ func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
 
 		return
 	case http.MethodPost:
-		session, err := s.auth.Store.Get(r, appview.SessionName)
+		session, err := s.oauth.Store.Get(r, appview.SessionName)
 		if err != nil || session.IsNew {
 			log.Println("unauthorized attempt to generate registration key")
 			http.Error(w, "Forbidden", http.StatusUnauthorized)
@@ -297,7 +302,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 
 // create a signed request and check if a node responds to that
 func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 
 	domain := chi.URLParam(r, "domain")
 	if domain == "" {
@@ -312,7 +317,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := NewSignedClient(domain, secret, s.config.Dev)
+	client, err := NewSignedClient(domain, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", domain)
 	}
@@ -421,7 +426,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	reg, err := db.RegistrationByDomain(s.db, domain)
 	if err != nil {
 		w.Write([]byte("failed to pull up registration info"))
@@ -469,7 +474,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 // get knots registered by this user
 func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
 	// for now, this is just pubkeys
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	registrations, err := db.RegistrationsByDid(s.db, user.Did)
 	if err != nil {
 		log.Println(err)
@@ -522,10 +527,14 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 	log.Printf("adding %s to %s\n", subjectIdentity.Handle.String(), domain)
 
 	// announce this relation into the firehose, store into owners' pds
-	client, _ := s.auth.AuthorizedClient(r)
-	currentUser := s.auth.GetUser(r)
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		http.Error(w, "failed to authorize client", http.StatusInternalServerError)
+		return
+	}
+	currentUser := s.oauth.GetUser(r)
 	createdAt := time.Now().Format(time.RFC3339)
-	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 		Collection: tangled.KnotMemberNSID,
 		Repo:       currentUser.Did,
 		Rkey:       appview.TID(),
@@ -550,7 +559,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(domain, secret, s.config.Dev)
+	ksClient, err := NewSignedClient(domain, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", domain)
 		return
@@ -614,7 +623,7 @@ func validateRepoName(name string) error {
 func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		user := s.auth.GetUser(r)
+		user := s.oauth.GetUser(r)
 		knots, err := s.enforcer.GetDomainsForUser(user.Did)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Invalid user account.")
@@ -627,7 +636,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case http.MethodPost:
-		user := s.auth.GetUser(r)
+		user := s.oauth.GetUser(r)
 
 		domain := r.FormValue("domain")
 		if domain == "" {
@@ -671,7 +680,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client, err := NewSignedClient(domain, secret, s.config.Dev)
+		client, err := NewSignedClient(domain, secret, s.config.Core.Dev)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return
@@ -686,10 +695,14 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			Description: description,
 		}
 
-		xrpcClient, _ := s.auth.AuthorizedClient(r)
+		xrpcClient, err := s.oauth.AuthorizedClient(r)
+		if err != nil {
+			s.pages.Notice(w, "repo", "Failed to write record to PDS.")
+			return
+		}
 
 		createdAt := time.Now().Format(time.RFC3339)
-		atresp, err := comatproto.RepoPutRecord(r.Context(), xrpcClient, &comatproto.RepoPutRecord_Input{
+		atresp, err := xrpcClient.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,

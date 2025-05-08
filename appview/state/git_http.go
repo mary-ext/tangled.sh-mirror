@@ -15,7 +15,7 @@ func (s *State) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	repo := chi.URLParam(r, "repo")
 
 	scheme := "https"
-	if s.config.Dev {
+	if s.config.Core.Dev {
 		scheme = "http"
 	}
 	targetURL := fmt.Sprintf("%s://%s/%s/%s/info/refs?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
@@ -52,7 +52,7 @@ func (s *State) UploadPack(w http.ResponseWriter, r *http.Request) {
 	repo := chi.URLParam(r, "repo")
 
 	scheme := "https"
-	if s.config.Dev {
+	if s.config.Core.Dev {
 		scheme = "http"
 	}
 	targetURL := fmt.Sprintf("%s://%s/%s/%s/git-upload-pack?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
