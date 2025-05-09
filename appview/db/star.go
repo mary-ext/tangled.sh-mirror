@@ -71,7 +71,7 @@ func DeleteStar(e Execer, starredByDid string, repoAt syntax.ATURI) error {
 
 // Remove a star
 func DeleteStarByRkey(e Execer, starredByDid string, rkey string) error {
-	_, err := e.Exec(`delete or ignore from stars where starred_by_did = ? and rkey = ?`, starredByDid, rkey)
+	_, err := e.Exec(`delete from stars where starred_by_did = ? and rkey = ?`, starredByDid, rkey)
 	return err
 }
 
