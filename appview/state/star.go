@@ -100,6 +100,7 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 		starCount, err := db.GetStarCount(s.db, subjectUri)
 		if err != nil {
 			log.Println("failed to get star count for ", subjectUri)
+			return
 		}
 
 		s.pages.RepoActionsFragment(w, pages.RepoActionsFragmentParams{
