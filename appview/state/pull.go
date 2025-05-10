@@ -903,8 +903,13 @@ func (s *State) createPullRequest(
 			},
 		},
 	})
-
 	if err != nil {
+		log.Println("failed to create pull request", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
 		log.Println("failed to create pull request", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
