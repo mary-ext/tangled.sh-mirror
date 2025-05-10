@@ -235,8 +235,6 @@ func (s PullSubmission) AsFormatPatch() []patchutil.FormatPatch {
 }
 
 func NewPull(tx *sql.Tx, pull *Pull) error {
-	defer tx.Rollback()
-
 	_, err := tx.Exec(`
 		insert or ignore into repo_pull_seqs (repo_at, next_pull_id)
 		values (?, 1)
@@ -291,15 +289,7 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 		insert into pull_submissions (pull_id, repo_at, round_number, patch, source_rev)
 		values (?, ?, ?, ?, ?)
 	`, pull.PullId, pull.RepoAt, 0, pull.Submissions[0].Patch, pull.Submissions[0].SourceRev)
-	if err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func GetPullAt(e Execer, repoAt syntax.ATURI, pullId int) (syntax.ATURI, error) {
