@@ -14,6 +14,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
 	"tangled.sh/tangled.sh/core/appview/pages"
@@ -38,6 +39,8 @@ func (o *OAuthHandler) Router() http.Handler {
 	r.Get("/login", o.login)
 	r.Post("/login", o.login)
 
+	r.With(middleware.AuthMiddleware(o.OAuth)).Post("/logout", o.logout)
+
 	r.Get("/oauth/client-metadata.json", o.clientMetadata)
 	r.Get("/oauth/jwks.json", o.jwks)
 	r.Get("/oauth/callback", o.callback)
@@ -60,8 +63,6 @@ func (o *OAuthHandler) clientMetadata(w http.ResponseWriter, r *http.Request) {
 		"token_endpoint_auth_method":      "private_key_jwt",
 		"token_endpoint_auth_signing_alg": "ES256",
 	}
-
-	fmt.Println("clientMetadata", metadata)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -243,6 +244,18 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("session saved successfully")
 
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func (o *OAuthHandler) logout(w http.ResponseWriter, r *http.Request) {
+	err := o.OAuth.ClearSession(r, w)
+	if err != nil {
+		log.Println("failed to clear session:", err)
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	log.Println("session cleared successfully")
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
