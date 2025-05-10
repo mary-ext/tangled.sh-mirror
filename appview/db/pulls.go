@@ -63,6 +63,11 @@ type Pull struct {
 	State        PullState
 	Submissions  []*PullSubmission
 
+	// stacking
+	StackId        string // nullable string
+	ChangeId       string // nullable string
+	ParentChangeId string // nullable string
+
 	// meta
 	Created    time.Time
 	PullSource *PullSource
@@ -480,7 +485,10 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			body,
 			rkey,
 			source_branch,
-			source_repo_at
+			source_repo_at,
+			stack_id,
+			change_id,
+			parent_change_id
 		from
 			pulls
 		where
@@ -490,7 +498,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 
 	var pull Pull
 	var createdAt string
-	var sourceBranch, sourceRepoAt sql.NullString
+	var sourceBranch, sourceRepoAt, stackId, changeId, parentChangeId sql.NullString
 	err := row.Scan(
 		&pull.OwnerDid,
 		&pull.PullId,
@@ -503,6 +511,9 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		&pull.Rkey,
 		&sourceBranch,
 		&sourceRepoAt,
+		&stackId,
+		&changeId,
+		&parentChangeId,
 	)
 	if err != nil {
 		return nil, err
@@ -526,6 +537,16 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 			}
 			pull.PullSource.RepoAt = &sourceRepoAtParsed
 		}
+	}
+
+	if stackId.Valid {
+		pull.StackId = stackId.String
+	}
+	if changeId.Valid {
+		pull.ChangeId = changeId.String
+	}
+	if parentChangeId.Valid {
+		pull.ParentChangeId = parentChangeId.String
 	}
 
 	submissionsQuery := `
