@@ -210,10 +210,7 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 			description = *record.Description
 		}
 
-		includeBluesky := false
-		if record.Bluesky != nil {
-			includeBluesky = *record.Bluesky
-		}
+		includeBluesky := record.Bluesky
 
 		location := ""
 		if record.Location != nil {

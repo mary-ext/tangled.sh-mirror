@@ -19,7 +19,7 @@ func init() {
 type ActorProfile struct {
 	LexiconTypeID string `json:"$type,const=sh.tangled.actor.profile" cborgen:"$type,const=sh.tangled.actor.profile"`
 	// bluesky: Include link to this account on Bluesky.
-	Bluesky *bool `json:"bluesky,omitempty" cborgen:"bluesky,omitempty"`
+	Bluesky bool `json:"bluesky" cborgen:"bluesky"`
 	// description: Free-form profile description text.
 	Description *string  `json:"description,omitempty" cborgen:"description,omitempty"`
 	Links       []string `json:"links,omitempty" cborgen:"links,omitempty"`
