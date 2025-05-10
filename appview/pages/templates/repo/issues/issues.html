@@ -1,23 +1,32 @@
 {{ define "title" }}issues &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
-    <div class="flex justify-between items-center">
-        <p>
-        filtering
-        <select class="border p-1 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700" onchange="window.location.href = '/{{ .RepoInfo.FullName }}/issues?state=' + this.value">
-          <option value="open" {{ if .FilteringByOpen }}selected{{ end }}>open ({{ .RepoInfo.Stats.IssueCount.Open }})</option>
-          <option value="closed" {{ if not .FilteringByOpen }}selected{{ end }}>closed ({{ .RepoInfo.Stats.IssueCount.Closed }})</option>
-        </select>
-        issues
-        </p>
-        <a
-            href="/{{ .RepoInfo.FullName }}/issues/new"
-            class="btn text-sm flex items-center gap-2 no-underline hover:no-underline">
-            {{ i "circle-plus" "w-4 h-4" }}
-            <span>new</span>
-        </a>
-    </div>
-    <div class="error" id="issues"></div>
+<div class="flex justify-between items-center gap-4">
+  <div class="flex gap-4">
+    <a
+        href="?state=open"
+        class="flex items-center gap-2 {{ if .FilteringByOpen }}font-bold{{ end }}"
+        >
+        {{ i "circle-dot" "w-4 h-4" }}
+        <span>{{ .RepoInfo.Stats.IssueCount.Open }} open</span>
+    </a>
+    <a
+        href="?state=closed"
+        class="flex items-center gap-2 {{ if not .FilteringByOpen }}font-bold{{ end }}"
+        >
+        {{ i "ban" "w-4 h-4" }}
+        <span>{{ .RepoInfo.Stats.IssueCount.Closed }} closed</span>
+    </a>
+  </div>
+  <a
+      href="/{{ .RepoInfo.FullName }}/issues/new"
+      class="btn text-sm flex items-center justify-center gap-2 no-underline hover:no-underline"
+      >
+      {{ i "circle-plus" "w-4 h-4" }}
+      <span>new</span>
+  </a>
+</div>
+<div class="error" id="issues"></div>
 {{ end }}
 
 {{ define "repoAfter" }}
