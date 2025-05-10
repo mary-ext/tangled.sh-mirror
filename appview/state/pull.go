@@ -633,6 +633,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 		isBranchBased := isPushAllowed && sourceBranch != "" && fromFork == ""
 		isForkBased := fromFork != "" && sourceBranch != ""
 		isPatchBased := patch != "" && !isBranchBased && !isForkBased
+		isStacked := r.FormValue("isStacked") == "on"
 
 		if isPatchBased && !patchutil.IsFormatPatch(patch) {
 			if title == "" {
@@ -678,25 +679,35 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 				s.pages.Notice(w, "pull", "This knot doesn't support branch-based pull requests. Try another way?")
 				return
 			}
-			s.handleBranchBasedPull(w, r, f, user, title, body, targetBranch, sourceBranch)
+			s.handleBranchBasedPull(w, r, f, user, title, body, targetBranch, sourceBranch, isStacked)
 		} else if isForkBased {
 			if !caps.PullRequests.ForkSubmissions {
 				s.pages.Notice(w, "pull", "This knot doesn't support fork-based pull requests. Try another way?")
 				return
 			}
-			s.handleForkBasedPull(w, r, f, user, fromFork, title, body, targetBranch, sourceBranch)
+			s.handleForkBasedPull(w, r, f, user, fromFork, title, body, targetBranch, sourceBranch, isStacked)
 		} else if isPatchBased {
 			if !caps.PullRequests.PatchSubmissions {
 				s.pages.Notice(w, "pull", "This knot doesn't support patch-based pull requests. Send your patch over email.")
 				return
 			}
-			s.handlePatchBasedPull(w, r, f, user, title, body, targetBranch, patch)
+			s.handlePatchBasedPull(w, r, f, user, title, body, targetBranch, patch, isStacked)
 		}
 		return
 	}
 }
 
-func (s *State) handleBranchBasedPull(w http.ResponseWriter, r *http.Request, f *FullyResolvedRepo, user *oauth.User, title, body, targetBranch, sourceBranch string) {
+func (s *State) handleBranchBasedPull(
+	w http.ResponseWriter,
+	r *http.Request,
+	f *FullyResolvedRepo,
+	user *oauth.User,
+	title,
+	body,
+	targetBranch,
+	sourceBranch string,
+	isStacked bool,
+) {
 	pullSource := &db.PullSource{
 		Branch: sourceBranch,
 	}
@@ -727,19 +738,19 @@ func (s *State) handleBranchBasedPull(w http.ResponseWriter, r *http.Request, f 
 		return
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, pullSource, recordPullSource)
+	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, pullSource, recordPullSource, isStacked)
 }
 
-func (s *State) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *FullyResolvedRepo, user *oauth.User, title, body, targetBranch, patch string) {
+func (s *State) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *FullyResolvedRepo, user *oauth.User, title, body, targetBranch, patch string, isStacked bool) {
 	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, "", nil, nil)
+	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, "", nil, nil, isStacked)
 }
 
-func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *FullyResolvedRepo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string) {
+func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *FullyResolvedRepo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string, isStacked bool) {
 	fork, err := db.GetForkByDid(s.db, user.Did, forkRepo)
 	if errors.Is(err, sql.ErrNoRows) {
 		s.pages.Notice(w, "pull", "No such fork.")
@@ -816,7 +827,7 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *F
 	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, &db.PullSource{
 		Branch: sourceBranch,
 		RepoAt: &forkAtUri,
-	}, &tangled.RepoPull_Source{Branch: sourceBranch, Repo: &fork.AtUri})
+	}, &tangled.RepoPull_Source{Branch: sourceBranch, Repo: &fork.AtUri}, isStacked)
 }
 
 func (s *State) createPullRequest(
@@ -829,7 +840,11 @@ func (s *State) createPullRequest(
 	sourceRev string,
 	pullSource *db.PullSource,
 	recordPullSource *tangled.RepoPull_Source,
+	isStacked bool,
 ) {
+	if isStacked {
+	}
+
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		log.Println("failed to start tx")

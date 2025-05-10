@@ -3,78 +3,76 @@
 {{ define "repoContent" }}
     <form
         hx-post="/{{ .RepoInfo.FullName }}/pulls/new"
-        class="mt-6 space-y-6"
         hx-indicator="#create-pull-spinner"
         hx-swap="none"
     >
-        <div class="flex flex-col gap-4">
-            <label>configure your pull request</label>
-
-            <p>First, choose a target branch on {{ .RepoInfo.FullName }}.</p>
-            <div class="pb-2">
+        <div class="flex flex-col gap-6">
+            <div class="flex gap-2 items-center">
+              <p>First, choose a target branch on {{ .RepoInfo.FullName }}:</p>
+              <div>
                 <select
-                    required
-                    name="targetBranch"
-                    class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                >
-                    <option disabled selected>target branch</option>
-                    {{ range .Branches }}
-                        <option value="{{ .Reference.Name }}" class="py-1" {{if .IsDefault}}selected{{end}}>
-                            {{ .Reference.Name }}
-                        </option>
-                    {{ end }}
+                  required
+                  name="targetBranch"
+                  class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  >
+                  <option disabled selected>target branch</option>
+                  {{ range .Branches }}
+                  <option value="{{ .Reference.Name }}" class="py-1" {{if .IsDefault}}selected{{end}}>
+                  {{ .Reference.Name }}
+                  </option>
+                  {{ end }}
                 </select>
+              </div>
             </div>
 
-            <p>Next, choose a pull strategy.</p>
-            <nav class="flex space-x-4 items-end">
-                <button
-                    type="button"
-                    class="px-3 py-2 pb-2 btn"
-                    hx-get="/{{ .RepoInfo.FullName }}/pulls/new/patch-upload"
-                    hx-target="#patch-strategy"
-                    hx-swap="innerHTML"
-                >
-                    paste patch
-                </button>
+            <div class="flex flex-col gap-2">
+              <p>Next, choose a pull strategy.</p>
+              <nav class="flex space-x-4 items-center">
+                  <button
+                      type="button"
+                      class="btn"
+                      hx-get="/{{ .RepoInfo.FullName }}/pulls/new/patch-upload"
+                      hx-target="#patch-strategy"
+                      hx-swap="innerHTML"
+                  >
+                      paste patch
+                  </button>
 
-                {{ if .RepoInfo.Roles.IsPushAllowed }}
-                    <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
-                        or
-                    </span>
-                    <button
-                        type="button"
-                        class="px-3 py-2 pb-2 btn"
-                        hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-branches"
-                        hx-target="#patch-strategy"
-                        hx-swap="innerHTML"
-                    >
-                        compare branches
-                    </button>
-                {{ end }}
+                  {{ if .RepoInfo.Roles.IsPushAllowed }}
+                      <span class="text-sm text-gray-500 dark:text-gray-400">
+                          or
+                      </span>
+                      <button
+                          type="button"
+                          class="btn"
+                          hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-branches"
+                          hx-target="#patch-strategy"
+                          hx-swap="innerHTML"
+                      >
+                          compare branches
+                      </button>
+                  {{ end }}
 
 
-                <span class="text-sm text-gray-500 dark:text-gray-400 pb-2">
-                    or
-                </span>
-                <button
-                    type="button"
-                    class="px-3 py-2 pb-2 btn"
-                    hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-forks"
-                    hx-target="#patch-strategy"
-                    hx-swap="innerHTML"
-                >
-                    compare forks
-                </button>
-            </nav>
+                  <span class="text-sm text-gray-500 dark:text-gray-400">
+                      or
+                  </span>
+                  <button
+                      type="button"
+                      class="btn"
+                      hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-forks"
+                      hx-target="#patch-strategy"
+                      hx-swap="innerHTML"
+                  >
+                      compare forks
+                  </button>
+              </nav>
+              <section id="patch-strategy" class="flex flex-col gap-2">
+                  {{ template "repo/pulls/fragments/pullPatchUpload" . }}
+              </section>
 
-            <section id="patch-strategy">
-                {{ template "repo/pulls/fragments/pullPatchUpload" . }}
-            </section>
-
-            <p id="patch-preview"></p>
-
-            <div id="patch-error" class="error dark:text-red-300"></div>
+              <div id="patch-error" class="error dark:text-red-300"></div>
+            </div>
 
             <div>
                 <label for="title" class="dark:text-white">write a title</label>

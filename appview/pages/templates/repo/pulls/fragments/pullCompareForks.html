@@ -3,7 +3,7 @@
         <label for="forkSelect" class="dark:text-white"
             >select a fork to compare</label
         >
-        <div class="flex flex-wrap gap-4 items-center mb-4">
+        <div class="flex flex-wrap gap-4 items-center">
             <div class="flex flex-wrap gap-2 items-center">
                 <select
                     id="forkSelect"
@@ -39,6 +39,12 @@
             </div>
         </div>
     </div>
+
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="isStacked" name="isStacked" value="on">
+      <label for="isStacked" class="my-0 py-0 normal-case font-normal">Submit as stacked PRs</label>
+    </div>
+
     <p class="mt-4">
         Title and description are optional; if left out, they will be extracted
         from the first commit.
