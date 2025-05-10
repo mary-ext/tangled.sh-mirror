@@ -35,12 +35,12 @@ type OAuthHandler struct {
 func (o *OAuthHandler) Router() http.Handler {
 	r := chi.NewRouter()
 
-	// gets mounted on /oauth
-	r.Get("/client-metadata.json", o.clientMetadata)
-	r.Get("/jwks.json", o.jwks)
 	r.Get("/login", o.login)
 	r.Post("/login", o.login)
-	r.Get("/callback", o.callback)
+
+	r.Get("/oauth/client-metadata.json", o.clientMetadata)
+	r.Get("/oauth/jwks.json", o.jwks)
+	r.Get("/oauth/callback", o.callback)
 	return r
 }
 
@@ -84,11 +84,10 @@ func (o *OAuthHandler) jwks(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// temporary until we swap out the main login page
 func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		o.Pages.OAuthLogin(w, pages.LoginParams{})
+		o.Pages.Login(w, pages.LoginParams{})
 	case http.MethodPost:
 		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
 

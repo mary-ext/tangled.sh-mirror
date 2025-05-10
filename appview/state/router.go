@@ -200,11 +200,6 @@ func (s *State) StandardRouter() http.Handler {
 
 	r.With(middleware.AuthMiddleware(s.oauth)).Post("/logout", s.Logout)
 
-	// r.Route("/login", func(r chi.Router) {
-	// 	r.Get("/", s.Login)
-	// 	r.Post("/", s.Login)
-	// })
-
 	r.Route("/knots", func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(s.oauth))
 		r.Get("/", s.Knots)
@@ -250,7 +245,7 @@ func (s *State) StandardRouter() http.Handler {
 	})
 
 	r.Mount("/settings", s.SettingsRouter())
-	r.Mount("/oauth", s.OAuthRouter())
+	r.Mount("/", s.OAuthRouter())
 	r.Get("/keys/{user}", s.Keys)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {

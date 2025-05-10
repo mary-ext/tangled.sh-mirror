@@ -8,55 +8,43 @@
                 content="width=device-width, initial-scale=1.0"
             />
             <script src="/static/htmx.min.js"></script>
-            <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
+            <link
+                rel="stylesheet"
+                href="/static/tw.css?{{ cssContentHash }}"
+                type="text/css"
+            />
             <title>login</title>
         </head>
         <body class="flex items-center justify-center min-h-screen">
-            <main class="max-w-7xl px-6 -mt-4">
-                <h1 class="text-center text-2xl font-semibold italic dark:text-white">
+            <main class="max-w-md px-6 -mt-4">
+                <h1
+                    class="text-center text-2xl font-semibold italic dark:text-white"
+                >
                     tangled
                 </h1>
                 <h2 class="text-center text-xl italic dark:text-white">
                     tightly-knit social coding.
                 </h2>
                 <form
-                    class="w-full mt-4"
-                    hx-post="/login"
+                    class="mt-4 max-w-sm mx-auto"
+                    hx-post="/oauth/login"
                     hx-swap="none"
                     hx-disabled-elt="this"
                 >
                     <div class="flex flex-col">
                         <label for="handle">handle</label>
-                        <input 
-                          type="text"
-                          id="handle"
-                          name="handle"
-                          tabindex="1"
-                          required
-                        />
-                        <span class="text-xs text-gray-500 mt-1">
-                            You need to use your
-                            <a href="https://bsky.app">Bluesky</a> handle to log
-                            in.
-                        </span>
-                    </div>
-
-                    <div class="flex flex-col mt-2">
-                        <label for="app_password">app password</label>
                         <input
-                            type="password"
-                            id="app_password"
-                            name="app_password"
-                            tabindex="2"
+                            type="text"
+                            id="handle"
+                            name="handle"
+                            tabindex="1"
                             required
                         />
-                        <span class="text-xs text-gray-500 mt-1">
-                            Generate an app password
-                            <a
-                                href="https://bsky.app/settings/app-passwords"
-                                target="_blank"
-                                >here</a
-                            >.
+                        <span class="text-sm text-gray-500 mt-1">
+                            Use your
+                            <a href="https://bsky.app">Bluesky</a> handle to log
+                            in. You will then be redirected to your PDS to
+                            complete authentication.
                         </span>
                     </div>
 
@@ -70,7 +58,8 @@
                     </button>
                 </form>
                 <p class="text-sm text-gray-500">
-                    Join our <a href="https://chat.tangled.sh">Discord</a> or IRC channel:
+                    Join our <a href="https://chat.tangled.sh">Discord</a> or
+                    IRC channel:
                     <a href="https://web.libera.chat/#tangled"
                         ><code>#tangled</code> on Libera Chat</a
                     >.

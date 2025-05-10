@@ -249,10 +249,6 @@ func (p *Pages) Login(w io.Writer, params LoginParams) error {
 	return p.executePlain("user/login", w, params)
 }
 
-func (p *Pages) OAuthLogin(w io.Writer, params LoginParams) error {
-	return p.executePlain("user/oauthlogin", w, params)
-}
-
 type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []db.TimelineEvent
