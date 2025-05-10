@@ -37,6 +37,7 @@ type RepoFormatPatchResponse struct {
 	Rev1        string                  `json:"rev1,omitempty"`
 	Rev2        string                  `json:"rev2,omitempty"`
 	FormatPatch []patchutil.FormatPatch `json:"format_patch,omitempty"`
+	MergeBase   string                  `json:"merge_base,omitempty"`
 	Patch       string                  `json:"patch,omitempty"`
 }
 
