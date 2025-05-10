@@ -16,7 +16,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-chi/chi/v5 v5.2.0
-	github.com/go-git/go-git/v5 v5.14.0
+	github.com/go-git/go-git/v5 v5.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/haileyok/atproto-oauth-golang v0.0.2
@@ -123,6 +123,8 @@ require (
 replace github.com/sergi/go-diff => github.com/sergi/go-diff v1.1.0
 
 replace github.com/go-git/go-git/v5 => /home/op/code/go-git
+
+replace github.com/bluekeyes/go-gitdiff => /home/op/code/go-gitdiff
 
 // from bluesky-social/indigo
 replace github.com/gocql/gocql => github.com/scylladb/gocql v1.14.4

@@ -872,6 +872,7 @@ func (h *Handle) Compare(w http.ResponseWriter, r *http.Request) {
 		Rev1:        commit1.Hash.String(),
 		Rev2:        commit2.Hash.String(),
 		FormatPatch: formatPatch,
+		MergeBase:   mergeBase.Hash.String(),
 		Patch:       rawPatch,
 	})
 	return
