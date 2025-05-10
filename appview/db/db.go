@@ -386,6 +386,15 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	runMigration(db, "add-stack-columns-to-pulls", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table pulls add column stack_id text;
+			alter table pulls add column change_id text;
+			alter table pulls add column parent_change_id text;
+		`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 
