@@ -5,14 +5,14 @@
   <div class="flex gap-4">
     <a
         href="?state=open"
-        class="flex items-center gap-2 {{ if .FilteringByOpen }}font-bold{{ end }}"
+        class="flex items-center gap-2 {{ if .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
         >
         {{ i "circle-dot" "w-4 h-4" }}
         <span>{{ .RepoInfo.Stats.IssueCount.Open }} open</span>
     </a>
     <a
         href="?state=closed"
-        class="flex items-center gap-2 {{ if not .FilteringByOpen }}font-bold{{ end }}"
+        class="flex items-center gap-2 {{ if not .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
         >
         {{ i "ban" "w-4 h-4" }}
         <span>{{ .RepoInfo.Stats.IssueCount.Closed }} closed</span>

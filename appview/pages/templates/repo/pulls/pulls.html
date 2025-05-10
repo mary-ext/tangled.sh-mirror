@@ -2,24 +2,29 @@
 
 {{ define "repoContent" }}
     <div class="flex justify-between items-center">
-        <p class="dark:text-white">
-            filtering
-            <select
-                class="border p-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 dark:text-white"
-                onchange="window.location.href = '/{{ .RepoInfo.FullName }}/pulls?state=' + this.value"
+        <div class="flex gap-4">
+            <a
+                href="?state=open"
+                class="flex items-center gap-2 {{ if .FilteringBy.IsOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
             >
-                <option value="open" {{ if .FilteringBy.IsOpen }}selected{{ end }}>
-                    open ({{ .RepoInfo.Stats.PullCount.Open }})
-                </option>
-                <option value="merged" {{ if .FilteringBy.IsMerged }}selected{{ end }}>
-                    merged ({{ .RepoInfo.Stats.PullCount.Merged }})
-                </option>
-                <option value="closed" {{ if .FilteringBy.IsClosed }}selected{{ end }}>
-                    closed ({{ .RepoInfo.Stats.PullCount.Closed }})
-                </option>
-            </select>
-            pull requests
-        </p>
+                {{ i "circle-dot" "w-4 h-4" }}
+                <span>{{ .RepoInfo.Stats.PullCount.Open }} open</span>
+            </a>
+            <a
+                href="?state=merged"
+                class="flex items-center gap-2 {{ if .FilteringBy.IsMerged }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
+            >
+                {{ i "git-merge" "w-4 h-4" }}
+                <span>{{ .RepoInfo.Stats.PullCount.Merged }} merged</span>
+            </a>
+            <a
+                href="?state=closed"
+                class="flex items-center gap-2 {{ if .FilteringBy.IsClosed }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
+            >
+                {{ i "ban" "w-4 h-4" }}
+                <span>{{ .RepoInfo.Stats.PullCount.Closed }} closed</span>
+            </a>
+        </div>
         <a
             href="/{{ .RepoInfo.FullName }}/pulls/new"
             class="btn text-sm flex items-center gap-2 no-underline hover:no-underline"
