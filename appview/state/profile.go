@@ -325,7 +325,7 @@ func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *htt
 		Rkey:       "self",
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.ActorProfile{
-				Bluesky:            &profile.IncludeBluesky,
+				Bluesky:            profile.IncludeBluesky,
 				Description:        &profile.Description,
 				Links:              profile.Links[:],
 				Location:           &profile.Location,

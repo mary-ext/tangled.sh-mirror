@@ -3398,10 +3398,6 @@ func (t *ActorProfile) MarshalCBOR(w io.Writer) error {
 	cw := cbg.NewCborWriter(w)
 	fieldCount := 7
 
-	if t.Bluesky == nil {
-		fieldCount--
-	}
-
 	if t.Description == nil {
 		fieldCount--
 	}
@@ -3518,28 +3514,19 @@ func (t *ActorProfile) MarshalCBOR(w io.Writer) error {
 	}
 
 	// t.Bluesky (bool) (bool)
-	if t.Bluesky != nil {
+	if len("bluesky") > 1000000 {
+		return xerrors.Errorf("Value in field \"bluesky\" was too long")
+	}
 
-		if len("bluesky") > 1000000 {
-			return xerrors.Errorf("Value in field \"bluesky\" was too long")
-		}
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("bluesky"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("bluesky")); err != nil {
+		return err
+	}
 
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("bluesky"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("bluesky")); err != nil {
-			return err
-		}
-
-		if t.Bluesky == nil {
-			if _, err := cw.Write(cbg.CborNull); err != nil {
-				return err
-			}
-		} else {
-			if err := cbg.WriteBool(w, *t.Bluesky); err != nil {
-				return err
-			}
-		}
+	if err := cbg.WriteBool(w, t.Bluesky); err != nil {
+		return err
 	}
 
 	// t.Location (string) (string)
@@ -3779,35 +3766,20 @@ func (t *ActorProfile) UnmarshalCBOR(r io.Reader) (err error) {
 			// t.Bluesky (bool) (bool)
 		case "bluesky":
 
-			{
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-
-					maj, extra, err = cr.ReadHeader()
-					if err != nil {
-						return err
-					}
-					if maj != cbg.MajOther {
-						return fmt.Errorf("booleans must be major type 7")
-					}
-
-					var val bool
-					switch extra {
-					case 20:
-						val = false
-					case 21:
-						val = true
-					default:
-						return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
-					}
-					t.Bluesky = &val
-				}
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+			if maj != cbg.MajOther {
+				return fmt.Errorf("booleans must be major type 7")
+			}
+			switch extra {
+			case 20:
+				t.Bluesky = false
+			case 21:
+				t.Bluesky = true
+			default:
+				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
 			}
 			// t.Location (string) (string)
 		case "location":
