@@ -8,7 +8,9 @@
       "key": "literal:self",
       "record": {
         "type": "object",
-        "required": ["bluesky"],
+        "required": [
+          "bluesky"
+        ],
         "properties": {
           "description": {
             "type": "string",
