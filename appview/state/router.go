@@ -58,6 +58,8 @@ func (s *State) UserRouter() http.Handler {
 		r.Get("/", s.Profile)
 
 		r.With(ResolveRepo(s)).Route("/{repo}", func(r chi.Router) {
+			r.Use(GoImport(s))
+
 			r.Get("/", s.RepoIndex)
 			r.Get("/commits/{ref}", s.RepoLog)
 			r.Route("/tree/{ref}", func(r chi.Router) {

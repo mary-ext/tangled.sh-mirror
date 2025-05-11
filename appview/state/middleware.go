@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -131,7 +132,7 @@ func ResolveRepo(s *State) middleware.Middleware {
 			if err != nil {
 				// invalid did or handle
 				log.Println("failed to resolve repo")
-				w.WriteHeader(http.StatusNotFound)
+				s.pages.Error404(w)
 				return
 			}
 
@@ -172,6 +173,38 @@ func ResolvePull(s *State) middleware.Middleware {
 			ctx := context.WithValue(r.Context(), "pull", pr)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// this should serve the go-import meta tag even if the path is technically
+// a 404 like tangled.sh/oppi.li/go-git/v5
+func GoImport(s *State) middleware.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f, err := s.fullyResolvedRepo(r)
+			if err != nil {
+				log.Println("failed to fully resolve repo", err)
+				http.Error(w, "invalid repo url", http.StatusNotFound)
+				return
+			}
+
+			fullName := f.OwnerHandle() + "/" + f.RepoName
+
+			if r.Header.Get("User-Agent") == "Go-http-client/1.1" {
+				if r.URL.Query().Get("go-get") == "1" {
+					html := fmt.Sprintf(
+						`<meta name="go-import" content="tangled.sh/%s git https://tangled.sh/%s"/>`,
+						fullName,
+						fullName,
+					)
+					w.Header().Set("Content-Type", "text/html")
+					w.Write([]byte(html))
+					return
+				}
+			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }
