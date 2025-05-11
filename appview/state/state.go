@@ -19,7 +19,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
-	"tangled.sh/tangled.sh/core/appview/auth"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
@@ -29,7 +28,6 @@ import (
 
 type State struct {
 	db       *db.DB
-	auth     *auth.Auth
 	oauth    *oauth.OAuth
 	enforcer *rbac.Enforcer
 	tidClock syntax.TIDClock
@@ -41,11 +39,6 @@ type State struct {
 
 func Make(config *appview.Config) (*State, error) {
 	d, err := db.Make(config.Core.DbPath)
-	if err != nil {
-		return nil, err
-	}
-
-	auth, err := auth.Make(config.Core.CookieSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +82,6 @@ func Make(config *appview.Config) (*State, error) {
 
 	state := &State{
 		d,
-		auth,
 		oauth,
 		enforcer,
 		clock,
