@@ -2,7 +2,7 @@
   description = "atproto github";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     indigo = {
       url = "github:oppiliappan/indigo";
       flake = false;
@@ -49,7 +49,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-CmBuvv3duQQoc8iTW4244w1rYLGeqMQS+qQ3wwReZZg=";
+      goModHash = "sha256-zcfTNo7QsiihzLa4qHEX8uGGtbcmBn8TlSm0YHBRNw8=";
       buildCmdPackage = name:
         final.buildGoModule {
           pname = name;
@@ -57,7 +57,7 @@
           src = gitignoreSource ./.;
           subPackages = ["cmd/${name}"];
           vendorHash = goModHash;
-          CGO_ENABLED = 0;
+          env.CGO_ENABLED = 0;
         };
     in {
       indigo-lexgen = final.buildGoModule {
@@ -88,7 +88,7 @@
           doCheck = false;
           subPackages = ["cmd/appview"];
           vendorHash = goModHash;
-          CGO_ENABLED = 1;
+          env.CGO_ENABLED = 1;
           stdenv = pkgsStatic.stdenv;
         };
 
@@ -111,7 +111,7 @@
 
             runHook postInstall
           '';
-          CGO_ENABLED = 1;
+          env.CGO_ENABLED = 1;
         };
       knotserver-unwrapped = final.pkgsStatic.buildGoModule {
         pname = "knotserver";
@@ -119,7 +119,7 @@
         src = gitignoreSource ./.;
         subPackages = ["cmd/knotserver"];
         vendorHash = goModHash;
-        CGO_ENABLED = 1;
+        env.CGO_ENABLED = 1;
       };
       repoguard = buildCmdPackage "repoguard";
       keyfetch = buildCmdPackage "keyfetch";
@@ -163,7 +163,7 @@
           cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
           cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
         '';
-        CGO_ENABLED=1;
+        env.CGO_ENABLED = 1;
       };
     });
     apps = forAllSystems (system: let
@@ -447,4 +447,3 @@
     };
   };
 }
-
