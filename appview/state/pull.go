@@ -14,6 +14,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/patchutil"
@@ -143,7 +144,7 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull) types.MergeCheck
 		}
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to setup signed client for %s; ignoring: %v", f.Knot, err)
 		return types.MergeCheckResponse{
@@ -215,7 +216,7 @@ func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull) pages.Resubmi
 		repoName = f.RepoName
 	}
 
-	us, err := NewUnsignedClient(knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to setup client for %s; ignoring: %v", knot, err)
 		return pages.Unknown
@@ -582,7 +583,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+		us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 		if err != nil {
 			log.Printf("failed to create unsigned client for %s", f.Knot)
 			s.pages.Error503(w)
@@ -651,7 +652,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+		us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 		if err != nil {
 			log.Printf("failed to create unsigned client to %s: %v", f.Knot, err)
 			s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
@@ -703,7 +704,7 @@ func (s *State) handleBranchBasedPull(w http.ResponseWriter, r *http.Request, f 
 	}
 
 	// Generate a patch using /compare
-	ksClient, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	ksClient, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
@@ -755,14 +756,14 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *F
 		return
 	}
 
-	sc, err := NewSignedClient(fork.Knot, secret, s.config.Core.Dev)
+	sc, err := knotclient.NewSignedClient(fork.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create signed client:", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
 
-	us, err := NewUnsignedClient(fork.Knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(fork.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create unsigned client:", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
@@ -964,7 +965,7 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s", f.Knot)
 		s.pages.Error503(w)
@@ -1034,7 +1035,7 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	sourceBranchesClient, err := NewUnsignedClient(repo.Knot, s.config.Core.Dev)
+	sourceBranchesClient, err := knotclient.NewUnsignedClient(repo.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s", repo.Knot)
 		s.pages.Error503(w)
@@ -1061,7 +1062,7 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	targetBranchesClient, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	targetBranchesClient, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for target knot %s", f.Knot)
 		s.pages.Error503(w)
@@ -1247,7 +1248,7 @@ func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	ksClient, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create client for %s: %s", f.Knot, err)
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
@@ -1367,7 +1368,7 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// extract patch by performing compare
-	ksClient, err := NewUnsignedClient(forkRepo.Knot, s.config.Core.Dev)
+	ksClient, err := knotclient.NewUnsignedClient(forkRepo.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create client for %s: %s", forkRepo.Knot, err)
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
@@ -1382,7 +1383,7 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update the hidden tracking branch to latest
-	signedClient, err := NewSignedClient(forkRepo.Knot, secret, s.config.Core.Dev)
+	signedClient, err := knotclient.NewSignedClient(forkRepo.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create signed client for %s: %s", forkRepo.Knot, err)
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
@@ -1533,7 +1534,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 		log.Printf("failed to get primary email: %s", err)
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")

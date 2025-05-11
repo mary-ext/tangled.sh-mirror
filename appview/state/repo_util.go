@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 )
@@ -45,7 +46,7 @@ func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 	ref := chi.URLParam(r, "ref")
 
 	if ref == "" {
-		us, err := NewUnsignedClient(knot, s.config.Core.Dev)
+		us, err := knotclient.NewUnsignedClient(knot, s.config.Core.Dev)
 		if err != nil {
 			return nil, err
 		}

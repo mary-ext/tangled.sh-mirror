@@ -264,6 +264,7 @@ func (s *State) OAuthRouter() http.Handler {
 		Db:       s.db,
 		Store:    sessions.NewCookieStore([]byte(s.config.Core.CookieSecret)),
 		OAuth:    s.oauth,
+		Enforcer: s.enforcer,
 	}
 
 	return oauth.Router()

@@ -19,6 +19,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
@@ -45,7 +46,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s", f.Knot)
 		s.pages.Error503(w)
@@ -150,7 +151,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create unsigned client", err)
 		return
@@ -416,7 +417,7 @@ func (s *State) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create unsigned client", err)
 		return
@@ -474,7 +475,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create unsigned client", err)
 		return
@@ -657,7 +658,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", f.Knot)
 		return
@@ -752,7 +753,7 @@ func (s *State) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", f.Knot)
 		return
@@ -847,7 +848,7 @@ func (s *State) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", f.Knot)
 		return
@@ -893,7 +894,7 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 
 		var branchNames []string
 		var defaultBranch string
-		us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+		us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 		if err != nil {
 			log.Println("failed to create unsigned client", err)
 		} else {
@@ -1060,7 +1061,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *oauth.User) repoinfo.RepoInfo 
 
 	knot := f.Knot
 	var disableFork bool
-	us, err := NewUnsignedClient(knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s: %v", knot, err)
 	} else {
@@ -1862,7 +1863,7 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client, err := NewSignedClient(knot, secret, s.config.Core.Dev)
+		client, err := knotclient.NewSignedClient(knot, secret, s.config.Core.Dev)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to reach knot server.")
 			return

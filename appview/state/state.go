@@ -20,6 +20,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/jetstream"
@@ -309,7 +310,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := NewSignedClient(domain, secret, s.config.Core.Dev)
+	client, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", domain)
 	}
@@ -551,7 +552,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := NewSignedClient(domain, secret, s.config.Core.Dev)
+	ksClient, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Println("failed to create client to ", domain)
 		return
@@ -672,7 +673,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client, err := NewSignedClient(domain, secret, s.config.Core.Dev)
+		client, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return

@@ -14,10 +14,12 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/rbac"
 )
 
 const (
@@ -31,6 +33,7 @@ type OAuthHandler struct {
 	Db       *db.DB
 	Store    *sessions.CookieStore
 	OAuth    *oauth.OAuth
+	Enforcer *rbac.Enforcer
 }
 
 func (o *OAuthHandler) Router() http.Handler {
@@ -243,6 +246,7 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("session saved successfully")
+	go o.addToDefaultKnot(oauthRequest.Did)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -269,4 +273,37 @@ func pubKeyFromJwk(jwks string) (jwk.Key, error) {
 		return nil, err
 	}
 	return pubKey, nil
+}
+
+func (o *OAuthHandler) addToDefaultKnot(did string) {
+	defaultKnot := "knot1.tangled.sh"
+
+	log.Printf("adding %s to default knot", did)
+	err := o.Enforcer.AddMember(defaultKnot, did)
+	if err != nil {
+		log.Println("failed to add user to knot1.tangled.sh: ", err)
+		return
+	}
+	err = o.Enforcer.E.SavePolicy()
+	if err != nil {
+		log.Println("failed to add user to knot1.tangled.sh: ", err)
+		return
+	}
+
+	secret, err := db.GetRegistrationKey(o.Db, defaultKnot)
+	if err != nil {
+		log.Println("failed to get registration key for knot1.tangled.sh")
+		return
+	}
+	signedClient, err := knotclient.NewSignedClient(defaultKnot, secret, o.Config.Core.Dev)
+	resp, err := signedClient.AddMember(did)
+	if err != nil {
+		log.Println("failed to add user to knot1.tangled.sh: ", err)
+		return
+	}
+
+	if resp.StatusCode != http.StatusNoContent {
+		log.Println("failed to add user to knot1.tangled.sh: ", resp.StatusCode)
+		return
+	}
 }

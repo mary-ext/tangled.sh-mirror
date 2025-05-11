@@ -16,6 +16,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/types"
 )
@@ -263,7 +264,7 @@ func (s *State) resolveTag(f *FullyResolvedRepo, tagParam string) (*types.TagRef
 		return nil, err
 	}
 
-	us, err := NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		return nil, err
 	}
