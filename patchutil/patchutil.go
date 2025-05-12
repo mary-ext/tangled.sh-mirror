@@ -15,6 +15,22 @@ type FormatPatch struct {
 	*gitdiff.PatchHeader
 }
 
+// Extracts just the diff from this format-patch
+func (f FormatPatch) Patch() string {
+	var b strings.Builder
+	for _, p := range f.Files {
+		b.WriteString(p.String())
+	}
+	return b.String()
+}
+
+func (f FormatPatch) ChangeId() (string, error) {
+	if vals, ok := f.RawHeaders["Change-Id"]; ok && len(vals) == 1 {
+		return vals[0], nil
+	}
+	return "", fmt.Errorf("no change-id found")
+}
+
 func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
 	patches := splitFormatPatch(formatPatch)
 

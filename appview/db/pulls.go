@@ -271,10 +271,23 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 		}
 	}
 
+	var stackId, changeId, parentChangeId *string
+	if pull.StackId != "" {
+		stackId = &pull.StackId
+	}
+	if pull.ChangeId != "" {
+		changeId = &pull.ChangeId
+	}
+	if pull.ParentChangeId != "" {
+		parentChangeId = &pull.ParentChangeId
+	}
+
 	_, err = tx.Exec(
 		`
-		insert into pulls (repo_at, owner_did, pull_id, title, target_branch, body, rkey, state, source_branch, source_repo_at)
-		values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		insert into pulls (
+			repo_at, owner_did, pull_id, title, target_branch, body, rkey, state, source_branch, source_repo_at, stack_id, change_id, parent_change_id
+		)
+		values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		pull.RepoAt,
 		pull.OwnerDid,
 		pull.PullId,
@@ -285,6 +298,9 @@ func NewPull(tx *sql.Tx, pull *Pull) error {
 		pull.State,
 		sourceBranch,
 		sourceRepoAt,
+		stackId,
+		changeId,
+		parentChangeId,
 	)
 	if err != nil {
 		return err
