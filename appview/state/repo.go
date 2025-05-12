@@ -121,9 +121,38 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	emails := uniqueEmails(commitsTrunc)
 
 	user := s.oauth.GetUser(r)
+	repoInfo := f.RepoInfo(s, user)
+
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	}
+
+	// update the hidden tracking branch to latest
+	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	}
+
+	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)
+	if err != nil || newHiddenRefResp.StatusCode != http.StatusNoContent {
+		log.Printf("failed to update tracking branch: %s", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	}
+
+	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
+	comparison, err := us.Compare(user.Did, repoInfo.Name, f.Ref, hiddenRef)
+	if err != nil {
+		log.Printf("failed to compare branches: %s", err)
+		s.pages.Notice(w, "resubmit-error", err.Error())
+	}
+	log.Println(comparison)
+
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:       user,
-		RepoInfo:           f.RepoInfo(s, user),
+		RepoInfo:           repoInfo,
 		TagMap:             tagMap,
 		RepoIndexResponse:  result,
 		CommitsTrunc:       commitsTrunc,
@@ -1801,6 +1830,52 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueId))
+		return
+	}
+}
+
+func (s *State) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
+	user := s.auth.GetUser(r)
+	f, err := s.fullyResolvedRepo(r)
+	if err != nil {
+		log.Printf("failed to resolve source repo: %v", err)
+		return
+	}
+
+	params := r.URL.Query()
+	knot := params.Get("knot")
+	branch := params.Get("branch")
+
+	switch r.Method {
+	case http.MethodPost:
+		secret, err := db.GetRegistrationKey(s.db, knot)
+		if err != nil {
+			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", knot))
+			return
+		}
+
+		client, err := NewSignedClient(knot, secret, s.config.Dev)
+		if err != nil {
+			s.pages.Notice(w, "repo", "Failed to reach knot server.")
+			return
+		}
+
+		var uri string
+		if s.config.Dev {
+			uri = "http"
+		} else {
+			uri = "https"
+		}
+		forkName := fmt.Sprintf("%s", f.RepoName)
+		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
+
+		_, err = client.SyncRepoFork(user.Did, forkSourceUrl, forkName, branch)
+		if err != nil {
+			s.pages.Notice(w, "repo", "Failed to sync repository fork.")
+			return
+		}
+
+		s.pages.HxRefresh(w)
 		return
 	}
 }
