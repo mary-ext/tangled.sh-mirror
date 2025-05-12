@@ -32,39 +32,50 @@
 {{ end }}
 
 {{ define "branchSelector" }}
-  <select
-      onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
-      class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
-  >
-      <optgroup label="branches ({{len .Branches}})" class="bold text-sm">
-          {{ range .Branches }}
-              <option
-                  value="{{ .Reference.Name }}"
-                  class="py-1"
-                  {{ if eq .Reference.Name $.Ref }}
-                      selected
-                  {{ end }}
-              >
-                  {{ .Reference.Name }}
-              </option>
-          {{ end }}
-      </optgroup>
-      <optgroup label="tags ({{len .Tags}})" class="bold text-sm">
-          {{ range .Tags }}
-              <option
-                  value="{{ .Reference.Name }}"
-                  class="py-1"
-                  {{ if eq .Reference.Name $.Ref }}
-                      selected
-                  {{ end }}
-              >
-                  {{ .Reference.Name }}
-              </option>
-          {{ else }}
-              <option class="py-1" disabled>no tags found</option>
-          {{ end }}
-      </optgroup>
-  </select>
+  <div>
+    <select
+        onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
+        class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
+    >
+        <optgroup label="branches ({{len .Branches}})" class="bold text-sm">
+            {{ range .Branches }}
+                <option
+                    value="{{ .Reference.Name }}"
+                    class="py-1"
+                    {{ if eq .Reference.Name $.Ref }}
+                        selected
+                    {{ end }}
+                >
+                    {{ .Reference.Name }}
+                </option>
+            {{ end }}
+        </optgroup>
+        <optgroup label="tags ({{len .Tags}})" class="bold text-sm">
+            {{ range .Tags }}
+                <option
+                    value="{{ .Reference.Name }}"
+                    class="py-1"
+                    {{ if eq .Reference.Name $.Ref }}
+                        selected
+                    {{ end }}
+                >
+                    {{ .Reference.Name }}
+                </option>
+            {{ else }}
+                <option class="py-1" disabled>no tags found</option>
+            {{ end }}
+        </optgroup>
+    </select>
+    <button
+        id="syncBtn"
+        class="btn disabled:opacity-50 disabled:cursor-not-allowed"
+        hx-post="/{{ .RepoInfo.FullName }}/fork/sync?knot={{ .RepoInfo.Knot }}&branch={{ .RepoInfo.Ref }}"
+        hx-trigger="click"
+        hx-swap="none"
+    >
+      sync
+    </button>
+  </div>
 {{ end }}
 
 {{ define "fileTree" }}
