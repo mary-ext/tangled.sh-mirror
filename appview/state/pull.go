@@ -25,6 +25,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // htmx fragment
@@ -843,6 +844,19 @@ func (s *State) createPullRequest(
 	isStacked bool,
 ) {
 	if isStacked {
+		// creates a series of PRs, each linking to the previous, identified by jj's change-id
+		s.createStackedPulLRequest(
+			w,
+			r,
+			f,
+			user,
+			title, body, targetBranch,
+			patch,
+			sourceRev,
+			pullSource,
+			recordPullSource,
+		)
+		return
 	}
 
 	tx, err := s.db.BeginTx(r.Context(), nil)
@@ -933,6 +947,139 @@ func (s *State) createPullRequest(
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
+}
+
+func (s *State) createStackedPulLRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+	f *FullyResolvedRepo,
+	user *oauth.User,
+	title, body, targetBranch string,
+	patch string,
+	sourceRev string,
+	pullSource *db.PullSource,
+	recordPullSource *tangled.RepoPull_Source,
+) {
+	// run some necessary checks for stacked-prs first
+
+	//  must be branch or fork based
+	if sourceRev == "" {
+		log.Println("stacked PR from patch-based pull")
+		s.pages.Notice(w, "pull", "Stacking is only supported on branch and fork based pull-requests.")
+		return
+	}
+
+	formatPatches, err := patchutil.ExtractPatches(patch)
+	if err != nil {
+		s.pages.Notice(w, "pull", fmt.Sprintf("Failed to extract patches: %v", err))
+		return
+	}
+
+	//  must have atleast 1 patch to begin with
+	if len(formatPatches) == 0 {
+		s.pages.Notice(w, "pull", "No patches found in the generated format-patch.")
+		return
+	}
+
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx")
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	// create a series of pull requests, and write records from them at once
+	var writes []*comatproto.RepoApplyWrites_Input_Writes_Elem
+
+	// the stack is identified by a UUID
+	stackId := uuid.New()
+	parentChangeId := ""
+	for _, fp := range formatPatches {
+		//  all patches must have a jj change-id
+		changeId, err := fp.ChangeId()
+		if err != nil {
+			s.pages.Notice(w, "pull", "Stacking is only supported if all patches contain a change-id commit header.")
+			return
+		}
+
+		title = fp.Title
+		body = fp.Body
+		rkey := appview.TID()
+
+		// TODO: can we just use a format-patch string here?
+		initialSubmission := db.PullSubmission{
+			Patch:     fp.Patch(),
+			SourceRev: sourceRev,
+		}
+		err = db.NewPull(tx, &db.Pull{
+			Title:        title,
+			Body:         body,
+			TargetBranch: targetBranch,
+			OwnerDid:     user.Did,
+			RepoAt:       f.RepoAt,
+			Rkey:         rkey,
+			Submissions: []*db.PullSubmission{
+				&initialSubmission,
+			},
+			PullSource: pullSource,
+
+			StackId:        stackId.String(),
+			ChangeId:       changeId,
+			ParentChangeId: parentChangeId,
+		})
+		if err != nil {
+			log.Println("failed to create pull request", err)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
+
+		record := tangled.RepoPull{
+			Title:        title,
+			TargetRepo:   string(f.RepoAt),
+			TargetBranch: targetBranch,
+			Patch:        fp.Patch(),
+			Source:       recordPullSource,
+		}
+		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
+			RepoApplyWrites_Create: &comatproto.RepoApplyWrites_Create{
+				Collection: tangled.RepoPullNSID,
+				Rkey:       &rkey,
+				Value: &lexutil.LexiconTypeDecoder{
+					Val: &record,
+				},
+			},
+		})
+
+		parentChangeId = changeId
+	}
+
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get authorized client", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	// apply all record creations at once
+	_, err = client.RepoApplyWrites(r.Context(), &comatproto.RepoApplyWrites_Input{
+		Repo:   user.Did,
+		Writes: writes,
+	})
+	if err != nil {
+		log.Println("failed to create stacked pull request", err)
+		s.pages.Notice(w, "pull", "Failed to create stacked pull request. Try again later.")
+		return
+	}
+
+	// create all pulls at once
+	if err = tx.Commit(); err != nil {
+		log.Println("failed to create pull request", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls", f.OwnerSlashRepo()))
 }
 
 func (s *State) ValidatePatch(w http.ResponseWriter, r *http.Request) {

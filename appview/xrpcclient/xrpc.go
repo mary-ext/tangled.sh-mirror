@@ -31,6 +31,15 @@ func (c *Client) RepoPutRecord(ctx context.Context, input *atproto.RepoPutRecord
 	return &out, nil
 }
 
+func (c *Client) RepoApplyWrites(ctx context.Context, input *atproto.RepoApplyWrites_Input) (*atproto.RepoApplyWrites_Output, error) {
+	var out atproto.RepoApplyWrites_Output
+	if err := c.Do(ctx, c.authArgs, xrpc.Procedure, "application/json", "com.atproto.repo.applyWrites", nil, input, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 func (c *Client) RepoGetRecord(ctx context.Context, cid string, collection string, repo string, rkey string) (*atproto.RepoGetRecord_Output, error) {
 	var out atproto.RepoGetRecord_Output
 

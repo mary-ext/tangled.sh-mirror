@@ -156,6 +156,8 @@
           pkgs.websocat
           pkgs.tailwindcss
           pkgs.nixos-shell
+          pkgs.nodePackages.localtunnel
+          pkgs.python312Packages.pyngrok
         ];
         shellHook = ''
           mkdir -p appview/pages/static/{fonts,icons}
