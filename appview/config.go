@@ -15,8 +15,7 @@ type CoreConfig struct {
 }
 
 type OAuthConfig struct {
-	Jwks              string `env:"JWKS"`
-	ServerMetadataUrl string `env:"SERVER_METADATA_URL"`
+	Jwks string `env:"JWKS"`
 }
 
 type JetstreamConfig struct {

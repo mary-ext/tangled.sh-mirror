@@ -51,25 +51,9 @@ func (o *OAuthHandler) Router() http.Handler {
 }
 
 func (o *OAuthHandler) clientMetadata(w http.ResponseWriter, r *http.Request) {
-	metadata := map[string]any{
-		"client_id":                       o.Config.OAuth.ServerMetadataUrl,
-		"client_name":                     "Tangled",
-		"subject_type":                    "public",
-		"client_uri":                      o.Config.Core.AppviewHost,
-		"redirect_uris":                   []string{fmt.Sprintf("%s/oauth/callback", o.Config.Core.AppviewHost)},
-		"grant_types":                     []string{"authorization_code", "refresh_token"},
-		"response_types":                  []string{"code"},
-		"application_type":                "web",
-		"dpop_bound_access_tokens":        true,
-		"jwks_uri":                        fmt.Sprintf("%s/oauth/jwks.json", o.Config.Core.AppviewHost),
-		"scope":                           "atproto transition:generic",
-		"token_endpoint_auth_method":      "private_key_jwt",
-		"token_endpoint_auth_signing_alg": "ES256",
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(metadata)
+	json.NewEncoder(w).Encode(o.OAuth.ClientMetadata())
 }
 
 func (o *OAuthHandler) jwks(w http.ResponseWriter, r *http.Request) {
@@ -101,10 +85,12 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 			o.Pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
 			return
 		}
+		self := o.OAuth.ClientMetadata()
 		oauthClient, err := client.NewClient(
-			o.Config.OAuth.ServerMetadataUrl,
+			self.ClientID,
 			o.Config.OAuth.Jwks,
-			fmt.Sprintf("%s/oauth/callback", o.Config.Core.AppviewHost))
+			self.RedirectURIs[0],
+		)
 
 		if err != nil {
 			log.Println("failed to create oauth client:", err)
@@ -164,7 +150,10 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		u, _ := url.Parse(authMeta.AuthorizationEndpoint)
-		u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(o.Config.OAuth.ServerMetadataUrl), parResp.RequestUri)
+		query := url.Values{}
+		query.Add("client_id", self.ClientID)
+		query.Add("request_uri", parResp.RequestUri)
+		u.RawQuery = query.Encode()
 		o.Pages.HxRedirect(w, u.String())
 	}
 }
@@ -186,6 +175,14 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	error := r.FormValue("error")
+	errorDescription := r.FormValue("error_description")
+	if error != "" || errorDescription != "" {
+		log.Printf("error: %s, %s", error, errorDescription)
+		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		return
+	}
+
 	code := r.FormValue("code")
 	if code == "" {
 		log.Println("missing code for state: ", state)
@@ -200,10 +197,13 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	self := o.OAuth.ClientMetadata()
+
 	oauthClient, err := client.NewClient(
-		o.Config.OAuth.ServerMetadataUrl,
+		self.ClientID,
 		o.Config.OAuth.Jwks,
-		fmt.Sprintf("%s/oauth/callback", o.Config.Core.AppviewHost))
+		self.RedirectURIs[0],
+	)
 
 	if err != nil {
 		log.Println("failed to create oauth client:", err)

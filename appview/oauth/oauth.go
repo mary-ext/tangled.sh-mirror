@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -113,9 +114,14 @@ func (o *OAuth) GetSession(r *http.Request) (*db.OAuthSession, bool, error) {
 		if err != nil {
 			return nil, false, err
 		}
-		oauthClient, err := client.NewClient(o.Config.OAuth.ServerMetadataUrl,
+
+		self := o.ClientMetadata()
+
+		oauthClient, err := client.NewClient(
+			self.ClientID,
 			o.Config.OAuth.Jwks,
-			fmt.Sprintf("%s/oauth/callback", o.Config.Core.AppviewHost))
+			self.RedirectURIs[0],
+		)
 
 		if err != nil {
 			return nil, false, err
@@ -205,4 +211,58 @@ func (o *OAuth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
 	})
 
 	return xrpcClient, nil
+}
+
+type ClientMetadata struct {
+	ClientID                    string   `json:"client_id"`
+	ClientName                  string   `json:"client_name"`
+	SubjectType                 string   `json:"subject_type"`
+	ClientURI                   string   `json:"client_uri"`
+	RedirectURIs                []string `json:"redirect_uris"`
+	GrantTypes                  []string `json:"grant_types"`
+	ResponseTypes               []string `json:"response_types"`
+	ApplicationType             string   `json:"application_type"`
+	DpopBoundAccessTokens       bool     `json:"dpop_bound_access_tokens"`
+	JwksURI                     string   `json:"jwks_uri"`
+	Scope                       string   `json:"scope"`
+	TokenEndpointAuthMethod     string   `json:"token_endpoint_auth_method"`
+	TokenEndpointAuthSigningAlg string   `json:"token_endpoint_auth_signing_alg"`
+}
+
+func (o *OAuth) ClientMetadata() ClientMetadata {
+	makeRedirectURIs := func(c string) []string {
+		return []string{fmt.Sprintf("%s/oauth/callback", c)}
+	}
+
+	clientURI := o.Config.Core.AppviewHost
+	clientID := fmt.Sprintf("%s/oauth/client-metadata.json", clientURI)
+	redirectURIs := makeRedirectURIs(clientURI)
+
+	if o.Config.Core.Dev {
+		clientURI = fmt.Sprintf("http://127.0.0.1:3000")
+		redirectURIs = makeRedirectURIs(clientURI)
+
+		query := url.Values{}
+		query.Add("redirect_uri", redirectURIs[0])
+		query.Add("scope", "atproto transition:generic")
+		clientID = fmt.Sprintf("http://localhost?%s", query.Encode())
+	}
+
+	jwksURI := fmt.Sprintf("%s/oauth/jwks.json", clientURI)
+
+	return ClientMetadata{
+		ClientID:                    clientID,
+		ClientName:                  "Tangled",
+		SubjectType:                 "public",
+		ClientURI:                   clientURI,
+		RedirectURIs:                redirectURIs,
+		GrantTypes:                  []string{"authorization_code", "refresh_token"},
+		ResponseTypes:               []string{"code"},
+		ApplicationType:             "web",
+		DpopBoundAccessTokens:       true,
+		JwksURI:                     jwksURI,
+		Scope:                       "atproto transition:generic",
+		TokenEndpointAuthMethod:     "private_key_jwt",
+		TokenEndpointAuthSigningAlg: "ES256",
+	}
 }
