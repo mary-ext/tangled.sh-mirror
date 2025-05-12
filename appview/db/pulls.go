@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -157,6 +158,10 @@ func (p *Pull) IsForkBased() bool {
 		}
 	}
 	return false
+}
+
+func (p *Pull) IsStacked() bool {
+	return p.StackId != ""
 }
 
 func (s PullSubmission) AsDiff(targetBranch string) ([]*gitdiff.File, error) {
@@ -327,12 +332,25 @@ func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
 	return pullId - 1, err
 }
 
-func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
+func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 	pulls := make(map[int]*Pull)
 
-	rows, err := e.Query(`
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.arg)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`
 		select
 			owner_did,
+			repo_at,
 			pull_id,
 			created,
 			title,
@@ -341,11 +359,16 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			body,
 			rkey,
 			source_branch,
-			source_repo_at
+			source_repo_at,
+			stack_id,
+			change_id,
+			parent_change_id
 		from
 			pulls
-		where
-			repo_at = ? and state = ?`, repoAt, state)
+		%s
+	`, whereClause)
+
+	rows, err := e.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -354,9 +377,10 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 	for rows.Next() {
 		var pull Pull
 		var createdAt string
-		var sourceBranch, sourceRepoAt sql.NullString
+		var sourceBranch, sourceRepoAt, stackId, changeId, parentChangeId sql.NullString
 		err := rows.Scan(
 			&pull.OwnerDid,
+			&pull.RepoAt,
 			&pull.PullId,
 			&createdAt,
 			&pull.Title,
@@ -366,6 +390,9 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			&pull.Rkey,
 			&sourceBranch,
 			&sourceRepoAt,
+			&stackId,
+			&changeId,
+			&parentChangeId,
 		)
 		if err != nil {
 			return nil, err
@@ -390,6 +417,16 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			}
 		}
 
+		if stackId.Valid {
+			pull.StackId = stackId.String
+		}
+		if changeId.Valid {
+			pull.ChangeId = changeId.String
+		}
+		if parentChangeId.Valid {
+			pull.ParentChangeId = parentChangeId.String
+		}
+
 		pulls[pull.PullId] = &pull
 	}
 
@@ -397,16 +434,19 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
 	submissionsQuery := fmt.Sprintf(`
 		select
-			id, pull_id, round_number
+			id, pull_id, round_number, patch
 		from
 			pull_submissions
 		where
-			repo_at = ? and pull_id in (%s)
-	`, inClause)
+			repo_at in (%s) and pull_id in (%s)
+	`, inClause, inClause)
 
-	args := make([]any, len(pulls)+1)
-	args[0] = repoAt.String()
-	idx := 1
+	args = make([]any, len(pulls)*2)
+	idx := 0
+	for _, p := range pulls {
+		args[idx] = p.RepoAt
+		idx += 1
+	}
 	for _, p := range pulls {
 		args[idx] = p.PullId
 		idx += 1
@@ -423,6 +463,7 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 			&s.ID,
 			&s.PullId,
 			&s.RoundNumber,
+			&s.Patch,
 		)
 		if err != nil {
 			return nil, err
@@ -477,15 +518,15 @@ func GetPulls(e Execer, repoAt syntax.ATURI, state PullState) ([]*Pull, error) {
 		return nil, err
 	}
 
-	orderedByDate := []*Pull{}
+	orderedByPullId := []*Pull{}
 	for _, p := range pulls {
-		orderedByDate = append(orderedByDate, p)
+		orderedByPullId = append(orderedByPullId, p)
 	}
-	sort.Slice(orderedByDate, func(i, j int) bool {
-		return orderedByDate[i].Created.After(orderedByDate[j].Created)
+	sort.Slice(orderedByPullId, func(i, j int) bool {
+		return orderedByPullId[i].PullId > orderedByPullId[j].PullId
 	})
 
-	return orderedByDate, nil
+	return orderedByPullId, nil
 }
 
 func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
@@ -853,4 +894,98 @@ func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
 	}
 
 	return count, nil
+}
+
+type Stack []*Pull
+
+//	change-id     parent-change-id
+//
+// 4       w      ,-------- z          (TOP)
+// 3       z <----',------- y
+// 2       y <-----',------ x
+// 1       x <------'      nil         (BOT)
+//
+// `w` is parent of none, so it is the top of the stack
+func GetStack(e Execer, stackId string) (Stack, error) {
+	unorderedPulls, err := GetPulls(e, Filter("stack_id", stackId))
+	if err != nil {
+		return nil, err
+	}
+	// map of parent-change-id to pull
+	changeIdMap := make(map[string]*Pull, len(unorderedPulls))
+	parentMap := make(map[string]*Pull, len(unorderedPulls))
+	for _, p := range unorderedPulls {
+		changeIdMap[p.ChangeId] = p
+		if p.ParentChangeId != "" {
+			parentMap[p.ParentChangeId] = p
+		}
+	}
+
+	// the top of the stack is the pull that is not a parent of any pull
+	var topPull *Pull
+	for _, maybeTop := range unorderedPulls {
+		if _, ok := parentMap[maybeTop.ChangeId]; !ok {
+			topPull = maybeTop
+			break
+		}
+	}
+
+	pulls := []*Pull{}
+	for {
+		pulls = append(pulls, topPull)
+		if topPull.ParentChangeId != "" {
+			if next, ok := changeIdMap[topPull.ParentChangeId]; ok {
+				topPull = next
+			} else {
+				return nil, fmt.Errorf("failed to find parent pull request, stack is malformed")
+			}
+		} else {
+			break
+		}
+	}
+
+	return pulls, nil
+}
+
+// position of this pull in the stack
+func (stack Stack) Position(pull *Pull) int {
+	return slices.IndexFunc(stack, func(p *Pull) bool {
+		return p.ChangeId == pull.ChangeId
+	})
+}
+
+// all pulls below this pull (including self) in this stack
+//
+// nil if this pull does not belong to this stack
+func (stack Stack) Below(pull *Pull) Stack {
+	position := stack.Position(pull)
+
+	if position < 0 {
+		return nil
+	}
+
+	return stack[position:]
+}
+
+// all pulls below this pull (excluding self) in this stack
+func (stack Stack) StrictlyBelow(pull *Pull) Stack {
+	below := stack.Below(pull)
+
+	if len(below) > 0 {
+		return below[1:]
+	}
+
+	return nil
+}
+
+// the combined format-patches of all the newest submissions in this stack
+func (stack Stack) CombinedPatch() string {
+	// go in reverse order because the bottom of the stack is the last element in the slice
+	var combined strings.Builder
+	for idx := range stack {
+		pull := stack[len(stack)-1-idx]
+		combined.WriteString(pull.LatestPatch())
+		combined.WriteString("\n")
+	}
+	return combined.String()
 }

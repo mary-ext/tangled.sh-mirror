@@ -46,6 +46,9 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// can be nil  if this pull is not stacked
+		stack := r.Context().Value("stack").(db.Stack)
+
 		roundNumberStr := chi.URLParam(r, "round")
 		roundNumber, err := strconv.Atoi(roundNumberStr)
 		if err != nil {
@@ -57,7 +60,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		mergeCheckResponse := s.mergeCheck(f, pull)
+		mergeCheckResponse := s.mergeCheck(f, pull, stack)
 		resubmitResult := pages.Unknown
 		if user.Did == pull.OwnerDid {
 			resubmitResult = s.resubmitCheck(f, pull)
@@ -90,6 +93,9 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// can be nil  if this pull is not stacked
+	stack := r.Context().Value("stack").(db.Stack)
+
 	totalIdents := 1
 	for _, submission := range pull.Submissions {
 		totalIdents += len(submission.Comments)
@@ -117,7 +123,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	mergeCheckResponse := s.mergeCheck(f, pull)
+	mergeCheckResponse := s.mergeCheck(f, pull, stack)
 	resubmitResult := pages.Unknown
 	if user != nil && user.Did == pull.OwnerDid {
 		resubmitResult = s.resubmitCheck(f, pull)
@@ -133,7 +139,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull) types.MergeCheckResponse {
+func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stack) types.MergeCheckResponse {
 	if pull.State == db.PullMerged {
 		return types.MergeCheckResponse{}
 	}
@@ -154,7 +160,31 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull) types.MergeCheck
 		}
 	}
 
-	resp, err := ksClient.MergeCheck([]byte(pull.LatestPatch()), f.OwnerDid(), f.RepoName, pull.TargetBranch)
+	patch := pull.LatestPatch()
+	if pull.IsStacked() {
+		// combine patches of substack
+		subStack := stack.Below(pull)
+
+		// collect the portion of the stack that is mergeable
+		var mergeable db.Stack
+		for _, p := range subStack {
+			// stop at the first merged PR
+			if p.State == db.PullMerged {
+				break
+			}
+
+			// skip over closed PRs
+			//
+			// we will close PRs that are "removed" from a stack
+			if p.State != db.PullClosed {
+				mergeable = append(mergeable, p)
+			}
+		}
+
+		patch = mergeable.CombinedPatch()
+	}
+
+	resp, err := ksClient.MergeCheck([]byte(patch), f.OwnerDid(), f.RepoName, pull.TargetBranch)
 	if err != nil {
 		log.Println("failed to check for mergeability:", err)
 		return types.MergeCheckResponse{
@@ -417,7 +447,11 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pulls, err := db.GetPulls(s.db, f.RepoAt, state)
+	pulls, err := db.GetPulls(
+		s.db,
+		db.Filter("repo_at", f.RepoAt),
+		db.Filter("state", state),
+	)
 	if err != nil {
 		log.Println("failed to get pulls", err)
 		s.pages.Notice(w, "pulls", "Failed to load pulls. Try again later.")
@@ -1009,7 +1043,7 @@ func (s *State) createStackedPulLRequest(
 
 		// TODO: can we just use a format-patch string here?
 		initialSubmission := db.PullSubmission{
-			Patch:     fp.Patch(),
+			Patch:     fp.Raw,
 			SourceRev: sourceRev,
 		}
 		err = db.NewPull(tx, &db.Pull{
@@ -1038,7 +1072,7 @@ func (s *State) createStackedPulLRequest(
 			Title:        title,
 			TargetRepo:   string(f.RepoAt),
 			TargetBranch: targetBranch,
-			Patch:        fp.Patch(),
+			Patch:        fp.Raw,
 			Source:       recordPullSource,
 		}
 		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
@@ -1692,9 +1726,43 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	pull, ok := r.Context().Value("pull").(*db.Pull)
 	if !ok {
 		log.Println("failed to get pull")
-		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge patch. Try again later.")
 		return
 	}
+
+	var pullsToMerge db.Stack
+	pullsToMerge = append(pullsToMerge, pull)
+	if pull.IsStacked() {
+		stack, ok := r.Context().Value("stack").(db.Stack)
+		if !ok {
+			log.Println("failed to get stack")
+			s.pages.Notice(w, "pull-merge-error", "Failed to merge patch. Try again later.")
+			return
+		}
+
+		// combine patches of substack
+		subStack := stack.Below(pull)
+
+		// collect the portion of the stack that is mergeable
+		for _, p := range subStack {
+			// stop at the first merged PR
+			if p.State == db.PullMerged {
+				break
+			}
+
+			// skip over closed PRs
+			//
+			// TODO: we need a "deleted" state for such PRs, but without losing discussions
+			// we will close PRs that are "removed" from a stack
+			if p.State == db.PullClosed {
+				continue
+			}
+
+			pullsToMerge = append(pullsToMerge, p)
+		}
+	}
+
+	patch := pullsToMerge.CombinedPatch()
 
 	secret, err := db.GetRegistrationKey(s.db, f.Knot)
 	if err != nil {
@@ -1723,25 +1791,44 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Merge the pull request
-	resp, err := ksClient.Merge([]byte(pull.LatestPatch()), f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.Title, pull.Body, ident.Handle.String(), email.Address)
+	resp, err := ksClient.Merge([]byte(patch), f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.Title, pull.Body, ident.Handle.String(), email.Address)
 	if err != nil {
 		log.Printf("failed to merge pull request: %s", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
 		return
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		err := db.MergePull(s.db, f.RepoAt, pull.PullId)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("knotserver returned non-OK status code for merge: %d", resp.StatusCode)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		log.Printf("failed to start transcation", err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	for _, p := range pullsToMerge {
+		err := db.MergePull(tx, f.RepoAt, p.PullId)
 		if err != nil {
 			log.Printf("failed to update pull request status in database: %s", err)
 			s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
 			return
 		}
-		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pull.PullId))
-	} else {
-		log.Printf("knotserver returned non-OK status code for merge: %d", resp.StatusCode)
-		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		// TODO: this is unsound, we should also revert the merge from the knotserver here
+		log.Printf("failed to update pull request status in database: %s", err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pull.PullId))
 }
 
 func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
@@ -1779,12 +1866,24 @@ func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Close the pull in the database
-	err = db.ClosePull(tx, f.RepoAt, pull.PullId)
-	if err != nil {
-		log.Println("failed to close pull", err)
-		s.pages.Notice(w, "pull-close", "Failed to close pull.")
-		return
+	var pullsToClose []*db.Pull
+	pullsToClose = append(pullsToClose, pull)
+
+	// if this PR is stacked, then we want to close all PRs below this one on the stack
+	if pull.IsStacked() {
+		stack := r.Context().Value("stack").(db.Stack)
+		subStack := stack.StrictlyBelow(pull)
+		pullsToClose = append(pullsToClose, subStack...)
+	}
+
+	for _, p := range pullsToClose {
+		// Close the pull in the database
+		err = db.ClosePull(tx, f.RepoAt, p.PullId)
+		if err != nil {
+			log.Println("failed to close pull", err)
+			s.pages.Notice(w, "pull-close", "Failed to close pull.")
+			return
+		}
 	}
 
 	// Commit the transaction
@@ -1834,12 +1933,24 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reopen the pull in the database
-	err = db.ReopenPull(tx, f.RepoAt, pull.PullId)
-	if err != nil {
-		log.Println("failed to reopen pull", err)
-		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
-		return
+	var pullsToReopen []*db.Pull
+	pullsToReopen = append(pullsToReopen, pull)
+
+	// if this PR is stacked, then we want to reopen all PRs below this one on the stack
+	if pull.IsStacked() {
+		stack := r.Context().Value("stack").(db.Stack)
+		subStack := stack.StrictlyBelow(pull)
+		pullsToReopen = append(pullsToReopen, subStack...)
+	}
+
+	for _, p := range pullsToReopen {
+		// Close the pull in the database
+		err = db.ReopenPull(tx, f.RepoAt, p.PullId)
+		if err != nil {
+			log.Println("failed to close pull", err)
+			s.pages.Notice(w, "pull-close", "Failed to close pull.")
+			return
+		}
 	}
 
 	// Commit the transaction

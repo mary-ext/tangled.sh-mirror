@@ -49,7 +49,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-TwlPge7vhVGmtNvYkHFFnZjJs2DWPUwPhCSBTCUYCtc=";
+      goModHash = "sha256-CmBuvv3duQQoc8iTW4244w1rYLGeqMQS+qQ3wwReZZg=";
       buildCmdPackage = name:
         final.buildGoModule {
           pname = name;
@@ -156,8 +156,6 @@
           pkgs.websocat
           pkgs.tailwindcss
           pkgs.nixos-shell
-          pkgs.nodePackages.localtunnel
-          pkgs.python312Packages.pyngrok
         ];
         shellHook = ''
           mkdir -p appview/pages/static/{fonts,icons}

@@ -172,6 +172,16 @@ func ResolvePull(s *State) middleware.Middleware {
 
 			ctx := context.WithValue(r.Context(), "pull", pr)
 
+			if pr.IsStacked() {
+				stack, err := db.GetStack(s.db, pr.StackId)
+				if err != nil {
+					log.Println("failed to get stack", err)
+					return
+				}
+
+				ctx = context.WithValue(ctx, "stack", stack)
+			}
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
