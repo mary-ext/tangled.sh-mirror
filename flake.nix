@@ -171,7 +171,7 @@
       air-watcher = name:
         pkgs.writeShellScriptBin "run"
         ''
-          TANGLED_DEV=true ${pkgs.air}/bin/air -c /dev/null \
+          ${pkgs.air}/bin/air -c /dev/null \
           -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" \
           -build.bin "./out/${name}.out" \
           -build.stop_on_error "true" \
