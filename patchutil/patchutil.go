@@ -13,15 +13,7 @@ import (
 type FormatPatch struct {
 	Files []*gitdiff.File
 	*gitdiff.PatchHeader
-}
-
-// Extracts just the diff from this format-patch
-func (f FormatPatch) Patch() string {
-	var b strings.Builder
-	for _, p := range f.Files {
-		b.WriteString(p.String())
-	}
-	return b.String()
+	Raw string
 }
 
 func (f FormatPatch) ChangeId() (string, error) {
@@ -50,6 +42,7 @@ func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
 		result = append(result, FormatPatch{
 			Files:       files,
 			PatchHeader: header,
+			Raw:         patch,
 		})
 	}
 
