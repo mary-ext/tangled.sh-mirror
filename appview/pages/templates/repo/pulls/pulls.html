@@ -7,7 +7,7 @@
                 href="?state=open"
                 class="flex items-center gap-2 {{ if .FilteringBy.IsOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
             >
-                {{ i "circle-dot" "w-4 h-4" }}
+                {{ i "git-pull-request" "w-4 h-4" }}
                 <span>{{ .RepoInfo.Stats.PullCount.Open }} open</span>
             </a>
             <a
