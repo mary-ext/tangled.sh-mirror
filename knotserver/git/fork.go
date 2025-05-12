@@ -27,6 +27,22 @@ func Fork(repoPath, source string) error {
 	return nil
 }
 
+func (g *GitRepo) Sync(branch string) error {
+	fetchOpts := &git.FetchOptions{
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/heads/%s", branch, branch)),
+		},
+	}
+
+	err := g.r.Fetch(fetchOpts)
+	if errors.Is(git.NoErrAlreadyUpToDate, err) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to fetch origin branch: %s: %w", branch, err)
+	}
+	return nil
+}
+
 // TrackHiddenRemoteRef tracks a hidden remote in the repository. For example,
 // if the feature branch on the fork (forkRef) is feature-1, and the remoteRef,
 // i.e. the branch we want to merge into, is main, this will result in a refspec:
