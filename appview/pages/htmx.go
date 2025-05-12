@@ -15,6 +15,12 @@ func (s *Pages) Notice(w http.ResponseWriter, id, msg string) {
 	w.Write([]byte(html))
 }
 
+// HxRefresh is a client-side full refresh of the page.
+func (s *Pages) HxRefresh(w http.ResponseWriter) {
+	w.Header().Set("HX-Refresh", "true")
+	w.WriteHeader(http.StatusOK)
+}
+
 // HxRedirect is a full page reload with a new location.
 func (s *Pages) HxRedirect(w http.ResponseWriter, location string) {
 	w.Header().Set("HX-Redirect", location)
