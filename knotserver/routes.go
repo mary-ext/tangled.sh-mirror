@@ -631,6 +631,59 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "RepoForkSync")
+
+	data := struct {
+		Did    string `json:"did"`
+		Source string `json:"source"`
+		Name   string `json:"name,omitempty"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.Did
+	source := data.Source
+
+	if did == "" || source == "" {
+		l.Error("invalid request body, empty did or name")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var name string
+	if data.Name != "" {
+		name = data.Name
+	} else {
+		name = filepath.Base(source)
+	}
+
+	branch := chi.URLParam(r, "branch")
+	branch, _ = url.PathUnescape(branch)
+
+	relativeRepoPath := filepath.Join(did, name)
+	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
+
+	gr, err := git.PlainOpen(repoPath)
+	if err != nil {
+		log.Println(err)
+		notFound(w)
+		return
+	}
+
+	err = gr.Sync(branch)
+	if err != nil {
+		l.Error("syncing repo fork", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handle) RepoFork(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "RepoFork")
 
