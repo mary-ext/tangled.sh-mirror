@@ -42,6 +42,24 @@ func (s *State) UploadPack(w http.ResponseWriter, r *http.Request) {
 	s.proxyRequest(w, r, targetURL)
 }
 
+func (s *State) ReceivePack(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value("resolvedId").(identity.Identity)
+	if !ok {
+		http.Error(w, "failed to resolve user", http.StatusInternalServerError)
+		return
+	}
+	knot := r.Context().Value("knot").(string)
+	repo := chi.URLParam(r, "repo")
+
+	scheme := "https"
+	if s.config.Core.Dev {
+		scheme = "http"
+	}
+
+	targetURL := fmt.Sprintf("%s://%s/%s/%s/git-receive-pack?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
+	s.proxyRequest(w, r, targetURL)
+}
+
 func (s *State) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
 	client := &http.Client{}
 

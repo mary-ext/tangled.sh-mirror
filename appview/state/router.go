@@ -169,6 +169,7 @@ func (s *State) UserRouter() http.Handler {
 			// These routes get proxied to the knot
 			r.Get("/info/refs", s.InfoRefs)
 			r.Post("/git-upload-pack", s.UploadPack)
+			r.Post("/git-receive-pack", s.ReceivePack)
 
 			// settings routes, needs auth
 			r.Group(func(r chi.Router) {
