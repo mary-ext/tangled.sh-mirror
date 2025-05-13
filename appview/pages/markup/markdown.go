@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -13,6 +14,7 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
+
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 )
 
@@ -62,6 +64,27 @@ func (rctx *RenderContext) RenderMarkdown(source string) string {
 	return buf.String()
 }
 
+func (rctx *RenderContext) Sanitize(html string) string {
+	policy := bluemonday.UGCPolicy()
+	policy.AllowAttrs("align", "style").Globally()
+	policy.AllowStyles(
+		"margin",
+		"padding",
+		"text-align",
+		"font-weight",
+		"text-decoration",
+		"padding-left",
+		"padding-right",
+		"padding-top",
+		"padding-bottom",
+		"margin-left",
+		"margin-right",
+		"margin-top",
+		"margin-bottom",
+	)
+	return policy.Sanitize(html)
+}
+
 type MarkdownTransformer struct {
 	rctx *RenderContext
 }
@@ -74,19 +97,18 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 
 		switch a.rctx.RendererType {
 		case RendererTypeRepoMarkdown:
-			switch n.(type) {
+			switch n := n.(type) {
 			case *ast.Link:
-				a.rctx.relativeLinkTransformer(n.(*ast.Link))
+				a.rctx.relativeLinkTransformer(n)
 			case *ast.Image:
-				a.rctx.imageFromKnotTransformer(n.(*ast.Image))
-				a.rctx.camoImageLinkTransformer(n.(*ast.Image))
+				a.rctx.imageFromKnotTransformer(n)
+				a.rctx.camoImageLinkTransformer(n)
 			}
-
 		case RendererTypeDefault:
-			switch n.(type) {
+			switch n := n.(type) {
 			case *ast.Image:
-				a.rctx.imageFromKnotTransformer(n.(*ast.Image))
-				a.rctx.camoImageLinkTransformer(n.(*ast.Image))
+				a.rctx.imageFromKnotTransformer(n)
+				a.rctx.camoImageLinkTransformer(n)
 			}
 		}
 
@@ -95,13 +117,16 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 }
 
 func (rctx *RenderContext) relativeLinkTransformer(link *ast.Link) {
+
 	dst := string(link.Destination)
 
 	if isAbsoluteUrl(dst) {
 		return
 	}
 
-	newPath := path.Join("/", rctx.RepoInfo.FullName(), "tree", rctx.RepoInfo.Ref, dst)
+	actualPath := rctx.actualPath(dst)
+
+	newPath := path.Join("/", rctx.RepoInfo.FullName(), "tree", rctx.RepoInfo.Ref, actualPath)
 	link.Destination = []byte(newPath)
 }
 
@@ -112,15 +137,13 @@ func (rctx *RenderContext) imageFromKnotTransformer(img *ast.Image) {
 		return
 	}
 
-	// strip leading './'
-	if len(dst) >= 2 && dst[0:2] == "./" {
-		dst = dst[2:]
-	}
-
 	scheme := "https"
 	if rctx.IsDev {
 		scheme = "http"
 	}
+
+	actualPath := rctx.actualPath(dst)
+
 	parsedURL := &url.URL{
 		Scheme: scheme,
 		Host:   rctx.Knot,
@@ -129,10 +152,22 @@ func (rctx *RenderContext) imageFromKnotTransformer(img *ast.Image) {
 			rctx.RepoInfo.Name,
 			"raw",
 			url.PathEscape(rctx.RepoInfo.Ref),
-			dst),
+			actualPath),
 	}
 	newPath := parsedURL.String()
 	img.Destination = []byte(newPath)
+}
+
+// actualPath decides when to join the file path with the
+// current repository directory (essentially only when the link
+// destination is relative. if it's absolute then we assume the
+// user knows what they're doing.)
+func (rctx *RenderContext) actualPath(dst string) string {
+	if path.IsAbs(dst) {
+		return dst
+	}
+
+	return path.Join(rctx.CurrentDir, dst)
 }
 
 func isAbsoluteUrl(link string) bool {

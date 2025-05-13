@@ -432,7 +432,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
 			htmlString = p.rctx.RenderMarkdown(params.Readme)
 			params.Raw = false
-			params.HTMLReadme = template.HTML(bluemonday.UGCPolicy().Sanitize(htmlString))
+			params.HTMLReadme = template.HTML(p.rctx.Sanitize(htmlString))
 		default:
 			htmlString = string(params.Readme)
 			params.Raw = true
@@ -562,7 +562,8 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 		case markup.FormatMarkdown:
 			p.rctx.RepoInfo = params.RepoInfo
 			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
-			params.RenderedContents = template.HTML(bluemonday.UGCPolicy().Sanitize(p.rctx.RenderMarkdown(params.Contents)))
+			htmlString := p.rctx.RenderMarkdown(params.Contents)
+			params.RenderedContents = template.HTML(p.rctx.Sanitize(htmlString))
 		}
 	}
 

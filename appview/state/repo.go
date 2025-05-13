@@ -946,6 +946,7 @@ type FullyResolvedRepo struct {
 	Description string
 	CreatedAt   string
 	Ref         string
+	CurrentDir  string
 }
 
 func (f *FullyResolvedRepo) OwnerDid() string {
@@ -1104,6 +1105,7 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *oauth.User) repoinfo.RepoInfo 
 			PullCount:  pullCount,
 		},
 		DisableFork: disableFork,
+		CurrentDir:  f.CurrentDir,
 	}
 
 	if sourceRepo != nil {
