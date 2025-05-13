@@ -882,7 +882,7 @@ func (s *State) createPullRequest(
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
-	pullId, err := db.NextPullId(s.db, f.RepoAt)
+	pullId, err := db.NextPullId(tx, f.RepoAt)
 	if err != nil {
 		log.Println("failed to get pull id", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
