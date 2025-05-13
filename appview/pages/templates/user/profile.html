@@ -235,9 +235,13 @@
       </span>
     </a>
     {{ if and .LoggedInUser (eq .LoggedInUser.Did .Card.UserDid) }}
-      <button hx-get="profile/edit-pins" hx-target="#all-repos" class="btn font-normal text-sm flex gap-2 items-center">
+      <button 
+        hx-get="profile/edit-pins"
+        hx-target="#all-repos"
+        class="btn font-normal text-sm flex gap-2 items-center group">
         {{ i "pencil" "w-3 h-3" }}
         edit
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
       </button>
     {{ end }}
   </div>

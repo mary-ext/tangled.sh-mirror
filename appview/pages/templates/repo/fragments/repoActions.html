@@ -2,7 +2,7 @@
     <div class="flex items-center gap-2 z-auto">
         <button
             id="starBtn"
-            class="btn disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn disabled:opacity-50 disabled:cursor-not-allowed flex gap-2 items-center group"
             {{ if .IsStarred }}
                 hx-delete="/star?subject={{ .RepoAt }}&countHint={{ .Stats.StarCount }}"
             {{ else }}
@@ -14,16 +14,15 @@
             hx-swap="outerHTML"
             hx-disabled-elt="#starBtn"
         >
-            <div class="flex gap-2 items-center">
-                {{ if .IsStarred }}
-                    {{ i "star" "w-4 h-4 fill-current" }}
-                {{ else }}
-                    {{ i "star" "w-4 h-4" }}
-                {{ end }}
-                <span class="text-sm">
-                    {{ .Stats.StarCount }}
-                </span>
-            </div>
+          {{ if .IsStarred }}
+              {{ i "star" "w-4 h-4 fill-current" }}
+          {{ else }}
+              {{ i "star" "w-4 h-4" }}
+          {{ end }}
+          <span class="text-sm">
+              {{ .Stats.StarCount }}
+          </span>
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
         {{ if .DisableFork }}
             <button
@@ -36,11 +35,13 @@
             </button>
         {{ else }}
             <a
-                class="btn text-sm no-underline hover:no-underline flex items-center gap-2"
+                class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
+                hx-boost="true"
                 href="/{{ .FullName }}/fork"
             >
                 {{ i "git-fork" "w-4 h-4" }}
                 fork
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </a>
         {{ end }}
     </div>

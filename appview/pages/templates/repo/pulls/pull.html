@@ -51,16 +51,20 @@
               </span>
             </div>
 
-            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2"
+            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
                hx-boost="true"
                href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">
-              {{ i "file-diff" "w-4 h-4" }} <span class="hidden md:inline">diff</span>
+              {{ i "file-diff" "w-4 h-4" }} 
+              <span class="hidden md:inline">diff</span>
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </a>
             {{ if not (eq .RoundNumber 0) }}
-            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2"
+            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
                hx-boost="true"
                href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}/interdiff">
-              {{ i "chevrons-left-right-ellipsis" "w-4 h-4 rotate-90" }} <span class="hidden md:inline">interdiff</span>
+              {{ i "chevrons-left-right-ellipsis" "w-4 h-4 rotate-90" }}
+              <span class="hidden md:inline">interdiff</span>
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </a>
             <span id="interdiff-error-{{.RoundNumber}}"></span>
             {{ end }}
