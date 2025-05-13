@@ -123,6 +123,7 @@
       };
       repoguard = buildCmdPackage "repoguard";
       keyfetch = buildCmdPackage "keyfetch";
+      genjwks = buildCmdPackage "genjwks";
     };
     packages = forAllSystems (system: {
       inherit
@@ -133,6 +134,7 @@
         knotserver-unwrapped
         repoguard
         keyfetch
+        genjwks
         ;
     });
     defaultPackage = forAllSystems (system: nixpkgsFor.${system}.appview);
@@ -162,6 +164,7 @@
           cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
           cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
           cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
+          export TANGLED_OAUTH_JWKS="$(${pkgs.genjwks}/bin/genjwks)"
         '';
         env.CGO_ENABLED = 1;
       };

@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -36,7 +35,5 @@ func main() {
 		panic(err)
 	}
 
-	if err := os.WriteFile("./jwks.json", b, 0644); err != nil {
-		panic(err)
-	}
+	fmt.Println(string(b))
 }
