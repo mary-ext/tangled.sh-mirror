@@ -631,6 +631,74 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handle) RepoForkSyncable(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "RepoForkSync")
+
+	data := struct {
+		Did       string `json:"did"`
+		Source    string `json:"source"`
+		Name      string `json:"name,omitempty"`
+		HiddenRef string `json:"hiddenref"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.Did
+	source := data.Source
+
+	if did == "" || source == "" {
+		l.Error("invalid request body, empty did or name")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var name string
+	if data.Name != "" {
+		name = data.Name
+	} else {
+		name = filepath.Base(source)
+	}
+
+	branch := chi.URLParam(r, "branch")
+	branch, _ = url.PathUnescape(branch)
+
+	relativeRepoPath := filepath.Join(did, name)
+	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
+
+	gr, err := git.PlainOpen(repoPath)
+	if err != nil {
+		log.Println(err)
+		notFound(w)
+		return
+	}
+
+	forkCommit, err := gr.ResolveRevision(branch)
+	if err != nil {
+		l.Error("error resolving ref revision", "msg", err.Error())
+		writeError(w, fmt.Sprintf("error resolving revision %s", branch), http.StatusBadRequest)
+		return
+	}
+
+	sourceCommit, err := gr.ResolveRevision(data.HiddenRef)
+	if err != nil {
+		l.Error("error resolving hidden ref revision", "msg", err.Error())
+		writeError(w, fmt.Sprintf("error resolving revision %s", data.HiddenRef), http.StatusBadRequest)
+		return
+	}
+
+	isAncestor, err := forkCommit.IsAncestor(sourceCommit)
+	if err != nil {
+		log.Printf("error resolving whether %s is ancestor of %s: %s", branch, data.HiddenRef, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(types.AncestorCheckResponse{IsAncestor: isAncestor})
+}
+
 func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "RepoForkSync")
 
@@ -676,7 +744,7 @@ func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {
 
 	err = gr.Sync(branch)
 	if err != nil {
-		l.Error("syncing repo fork", "error", err.Error())
+		l.Error("error syncing repo fork", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
