@@ -7,6 +7,9 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -59,6 +62,8 @@ func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		ref = defaultBranch.Branch
 	}
 
+	currentDir := path.Dir(extractPathAfterRef(r.URL.EscapedPath(), ref))
+
 	// pass through values from the middleware
 	description, ok := r.Context().Value("repoDescription").(string)
 	addedAt, ok := r.Context().Value("repoAddedAt").(string)
@@ -71,6 +76,7 @@ func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
 		Description: description,
 		CreatedAt:   addedAt,
 		Ref:         ref,
+		CurrentDir:  currentDir,
 	}, nil
 }
 
@@ -81,6 +87,31 @@ func RolesInRepo(s *State, u *oauth.User, f *FullyResolvedRepo) repoinfo.RolesIn
 	} else {
 		return repoinfo.RolesInRepo{}
 	}
+}
+
+// extractPathAfterRef gets the actual repository path
+// after the ref. for example:
+//
+//	/@icyphox.sh/foorepo/blob/main/abc/xyz/ => abc/xyz/
+func extractPathAfterRef(fullPath, ref string) string {
+	fullPath = strings.TrimPrefix(fullPath, "/")
+
+	ref = url.PathEscape(ref)
+
+	prefixes := []string{
+		fmt.Sprintf("blob/%s/", ref),
+		fmt.Sprintf("tree/%s/", ref),
+		fmt.Sprintf("raw/%s/", ref),
+	}
+
+	for _, prefix := range prefixes {
+		idx := strings.Index(fullPath, prefix)
+		if idx != -1 {
+			return fullPath[idx+len(prefix):]
+		}
+	}
+
+	return ""
 }
 
 func uniqueEmails(commits []*object.Commit) []string {

@@ -63,6 +63,7 @@ type RepoInfo struct {
 	SourceHandle string
 	Ref          string
 	DisableFork  bool
+	CurrentDir   string
 }
 
 // each tab on a repo could have some metadata:
