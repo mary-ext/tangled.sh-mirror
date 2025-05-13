@@ -68,12 +68,13 @@
             {{ template "user/fragments/follow" . }}
           {{ else }}
             <button id="editBtn"
-              class="btn mt-2 w-full flex items-center gap-2"
+              class="btn mt-2 w-full flex items-center gap-2 group"
               hx-target="#profile-bio"
               hx-get="/profile/edit-bio"
               hx-swap="innerHTML">
               {{ i "pencil" "w-4 h-4" }}
               edit
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </button>
           {{ end }}
         </div>

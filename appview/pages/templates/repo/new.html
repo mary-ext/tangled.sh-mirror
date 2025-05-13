@@ -5,7 +5,7 @@
   <p class="text-xl font-bold dark:text-white">Create a new repository</p>
 </div>
 <div class="p-6 bg-white dark:bg-gray-800 drop-shadow-sm rounded">
-  <form hx-post="/repo/new" class="space-y-12" hx-swap="none">
+  <form hx-post="/repo/new" class="space-y-12" hx-swap="none" hx-indicator="#spinner">
     <div class="space-y-2">
       <label for="name" class="-mb-1 dark:text-white">Repository name</label>
       <input
@@ -60,7 +60,12 @@
     </fieldset>
 
     <div class="space-y-2">
-      <button type="submit" class="btn">create repo</button>
+      <button type="submit" class="btn flex gap-2 items-center">
+        create repo
+        <span id="spinner" class="group">
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </span>
+      </button>
       <div id="repo" class="error"></div>
     </div>
   </form>

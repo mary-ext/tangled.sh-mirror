@@ -3,7 +3,8 @@
     hx-post="/profile/bio"
     class="flex flex-col gap-4 my-2 max-w-full"
     hx-disabled-elt="#save-btn,#cancel-btn"
-    hx-swap="none">
+    hx-swap="none"
+    hx-indicator="#spinner">
     <div class="flex flex-col gap-1">
       {{ $description := "" }}
       {{ if and .Profile .Profile.Description }}
@@ -75,6 +76,9 @@
     <div class="flex items-center gap-2 justify-between">
       <button id="save-btn" type="submit" class="btn p-1 w-full flex items-center gap-2 no-underline text-sm">
         {{ i "check" "size-4" }} save
+        <span id="spinner" class="group">
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </span>
       </button>
       <a href="/{{.LoggedInUser.Did}}" class="w-full no-underline hover:no-underline">
         <button id="cancel-btn" type="button" class="btn p-1 w-full flex items-center gap-2 no-underline text-sm">

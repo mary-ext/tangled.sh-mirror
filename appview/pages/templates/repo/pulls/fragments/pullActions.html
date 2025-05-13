@@ -17,9 +17,10 @@
           hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ $roundNumber }}/comment"
           hx-target="#actions-{{$roundNumber}}"
           hx-swap="outerHtml"
-          class="btn p-2 flex items-center gap-2 no-underline hover:no-underline">
+          class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group">
             {{ i "message-square-plus" "w-4 h-4" }}
             <span>comment</span>
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
         {{ if and $isPushAllowed $isOpen $isLastRound }}
           {{ $disabled := "" }}
@@ -30,9 +31,10 @@
             hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
             hx-swap="none"
             hx-confirm="Are you sure you want to merge pull #{{ .Pull.PullId }} into the `{{ .Pull.TargetBranch }}` branch?"
-            class="btn p-2 flex items-center gap-2" {{ $disabled }}>
+            class="btn p-2 flex items-center gap-2 group" {{ $disabled }}>
             {{ i "git-merge" "w-4 h-4" }}
-              <span>merge</span>
+            <span>merge</span>
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </button>
         {{ end }}
 
@@ -51,7 +53,7 @@
               {{ end }}
 
               hx-disabled-elt="#resubmitBtn"
-              class="btn p-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" {{ $disabled }}
+              class="btn p-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group" {{ $disabled }}
 
               {{ if $disabled }}
               title="Update this branch to resubmit this pull request"
@@ -59,8 +61,9 @@
               title="Resubmit this pull request"
               {{ end }}
               >
-            {{ i "rotate-ccw" "w-4 h-4" }}
+              {{ i "rotate-ccw" "w-4 h-4" }}
               <span>resubmit</span>
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </button>
         {{ end }}
 
@@ -68,9 +71,10 @@
         <button 
           hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/close"
           hx-swap="none"
-          class="btn p-2 flex items-center gap-2">
-          {{ i "ban" "w-4 h-4" }}
+          class="btn p-2 flex items-center gap-2 group">
+            {{ i "ban" "w-4 h-4" }}
             <span>close</span>
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
         {{ end }}
 
@@ -78,9 +82,10 @@
         <button 
           hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/reopen"
           hx-swap="none"
-          class="btn p-2 flex items-center gap-2">
-          {{ i "refresh-ccw-dot" "w-4 h-4" }}
+          class="btn p-2 flex items-center gap-2 group">
+            {{ i "refresh-ccw-dot" "w-4 h-4" }}
             <span>reopen</span>
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
         {{ end }}
     </div>
