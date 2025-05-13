@@ -18,27 +18,9 @@ func (s *State) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	if s.config.Core.Dev {
 		scheme = "http"
 	}
+
 	targetURL := fmt.Sprintf("%s://%s/%s/%s/info/refs?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
-	resp, err := http.Get(targetURL)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-
-	// Copy response headers
-	for k, v := range resp.Header {
-		w.Header()[k] = v
-	}
-
-	// Set response status code
-	w.WriteHeader(resp.StatusCode)
-
-	// Copy response body
-	if _, err := io.Copy(w, resp.Body); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	s.proxyRequest(w, r, targetURL)
 
 }
 
@@ -55,7 +37,12 @@ func (s *State) UploadPack(w http.ResponseWriter, r *http.Request) {
 	if s.config.Core.Dev {
 		scheme = "http"
 	}
+
 	targetURL := fmt.Sprintf("%s://%s/%s/%s/git-upload-pack?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
+	s.proxyRequest(w, r, targetURL)
+}
+
+func (s *State) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
 	client := &http.Client{}
 
 	// Create new request
