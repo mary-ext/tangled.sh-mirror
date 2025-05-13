@@ -106,11 +106,32 @@ func (s *SignedClient) NewRepo(did, repoName, defaultBranch string) (*http.Respo
 	return s.client.Do(req)
 }
 
+func (s *SignedClient) RepoForkAheadBehind(ownerDid, source, name, branch, hiddenRef string) (*http.Response, error) {
+	const (
+		Method = "GET"
+	)
+	endpoint := fmt.Sprintf("/repo/fork/sync/%s", url.PathEscape(branch))
+
+	body, _ := json.Marshal(map[string]any{
+		"did":       ownerDid,
+		"source":    source,
+		"name":      name,
+		"hiddenref": hiddenRef,
+	})
+
+	req, err := s.newRequest(Method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req)
+}
+
 func (s *SignedClient) SyncRepoFork(ownerDid, source, name, branch string) (*http.Response, error) {
 	const (
-		Method   = "POST"
+		Method = "POST"
 	)
-	endpoint := fmt.Sprintf("/repo/fork/sync/%s", branch)
+	endpoint := fmt.Sprintf("/repo/fork/sync/%s", url.PathEscape(branch))
 
 	body, _ := json.Marshal(map[string]any{
 		"did":    ownerDid,

@@ -25,7 +25,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
-	"tangled.sh/tangled.sh/core/knotserver"
 	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/bluesky-social/indigo/atproto/data"
@@ -124,7 +123,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(s, user)
 
-	forkInfo, err := GetForkInfo(repoInfo, s, f, us, w, user)
+	forkInfo, err := getForkInfo(repoInfo, s, f, us, w, user)
 	if err != nil {
 		log.Printf("Failed to fetch fork information: %v", err)
 		return
@@ -144,17 +143,17 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func GetForkInfo(
+func getForkInfo(
 	repoInfo repoinfo.RepoInfo,
 	s *State,
 	f *FullyResolvedRepo,
 	us *knotclient.UnsignedClient,
 	w http.ResponseWriter,
 	user *oauth.User,
-) (*pages.ForkInfo, error) {
-	forkInfo := pages.ForkInfo{
+) (*types.ForkInfo, error) {
+	forkInfo := types.ForkInfo{
 		IsFork: repoInfo.Source != nil,
-		Status: pages.UpToDate,
+		Status: types.UpToDate,
 	}
 
 	secret, err := db.GetRegistrationKey(s.db, f.Knot)
@@ -187,16 +186,10 @@ func GetForkInfo(
 		return nil, err
 	}
 
-	var contains = false
-	for _, branch := range result.Branches {
-		if branch.Name == f.Ref {
-			contains = true
-			break
-		}
-	}
-
-	if contains == false {
-		forkInfo.Status = pages.MissingBranch
+	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
+		return branch.Name == f.Ref
+	}) {
+		forkInfo.Status = types.MissingBranch
 		return &forkInfo, nil
 	}
 
@@ -213,34 +206,20 @@ func GetForkInfo(
 	}
 
 	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
-	comparison, err := us.Compare(user.Did, repoInfo.Name, f.Ref, hiddenRef)
+
+	var status types.AncestorCheckResponse
+	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref, hiddenRef)
 	if err != nil {
-		log.Printf("failed to compare branches '%s' and '%s': %s", f.Ref, hiddenRef, err)
+		log.Printf("failed to check if fork is ahead/behind: %s", err)
 		return nil, err
 	}
 
-	if len(comparison.FormatPatch) == 0 {
-		return &forkInfo, nil
-	}
-
-	var isAncestor types.AncestorCheckResponse
-	forkSyncableResp, err := signedClient.RepoForkSyncable(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref, hiddenRef)
-	if err != nil {
-		log.Printf("failed to check if fork is syncable: %s", err)
+	if err := json.NewDecoder(forkSyncableResp.Body).Decode(&status); err != nil {
+		log.Printf("failed to decode fork status: %s", err)
 		return nil, err
 	}
 
-	if err := json.NewDecoder(forkSyncableResp.Body).Decode(&isAncestor); err != nil {
-		log.Printf("failed to decode 'isAncestor': %s", err)
-		return nil, err
-	}
-
-	if isAncestor.IsAncestor {
-		forkInfo.Status = pages.FastForwardable
-	} else {
-		forkInfo.Status = pages.Conflict
-	}
-
+	forkInfo.Status = status.Status
 	return &forkInfo, nil
 }
 
@@ -1916,33 +1895,29 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
-	user := s.auth.GetUser(r)
+	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Printf("failed to resolve source repo: %v", err)
 		return
 	}
 
-	params := r.URL.Query()
-	knot := params.Get("knot")
-	branch := params.Get("branch")
-
 	switch r.Method {
 	case http.MethodPost:
-		secret, err := db.GetRegistrationKey(s.db, knot)
+		secret, err := db.GetRegistrationKey(s.db, f.Knot)
 		if err != nil {
-			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", knot))
+			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", f.Knot))
 			return
 		}
 
-		client, err := NewSignedClient(knot, secret, s.config.Dev)
+		client, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to reach knot server.")
 			return
 		}
 
 		var uri string
-		if s.config.Dev {
+		if s.config.Core.Dev {
 			uri = "http"
 		} else {
 			uri = "https"
@@ -1950,7 +1925,7 @@ func (s *State) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 		forkName := fmt.Sprintf("%s", f.RepoName)
 		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
 
-		_, err = client.SyncRepoFork(user.Did, forkSourceUrl, forkName, branch)
+		_, err = client.SyncRepoFork(user.Did, forkSourceUrl, forkName, f.Ref)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to sync repository fork.")
 			return

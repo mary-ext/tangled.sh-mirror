@@ -113,7 +113,9 @@ func (s *State) UserRouter() http.Handler {
 				r.Use(middleware.AuthMiddleware(s.oauth))
 				r.Get("/", s.ForkRepo)
 				r.Post("/", s.ForkRepo)
-				r.Post("/sync", s.SyncRepoFork)
+				r.With(RepoPermissionMiddleware(s, "repo:owner")).Route("/sync", func(r chi.Router) {
+					r.Post("/", s.SyncRepoFork)
+				})
 			})
 
 			r.Route("/pulls", func(r chi.Router) {

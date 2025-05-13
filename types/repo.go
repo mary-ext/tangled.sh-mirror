@@ -91,6 +91,20 @@ type RepoBlobResponse struct {
 	SizeHint uint64 `json:"size_hint,omitempty"`
 }
 
+type ForkStatus int
+
+const (
+	UpToDate        ForkStatus = 0
+	FastForwardable            = 1
+	Conflict                   = 2
+	MissingBranch              = 3
+)
+
+type ForkInfo struct {
+	IsFork bool
+	Status ForkStatus
+}
+
 type AncestorCheckResponse struct {
-	IsAncestor bool `json:"isAncestor"`
+	Status ForkStatus `json:"status"`
 }

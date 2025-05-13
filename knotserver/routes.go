@@ -631,7 +631,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handle) RepoForkSyncable(w http.ResponseWriter, r *http.Request) {
+func (h *Handle) RepoForkAheadBehind(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "RepoForkSync")
 
 	data := struct {
@@ -689,14 +689,23 @@ func (h *Handle) RepoForkSyncable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAncestor, err := forkCommit.IsAncestor(sourceCommit)
-	if err != nil {
-		log.Printf("error resolving whether %s is ancestor of %s: %s", branch, data.HiddenRef, err)
-		return
+	status := types.UpToDate
+	if forkCommit.Hash.String() != sourceCommit.Hash.String() {
+		isAncestor, err := forkCommit.IsAncestor(sourceCommit)
+		if err != nil {
+			log.Printf("error resolving whether %s is ancestor of %s: %s", branch, data.HiddenRef, err)
+			return
+		}
+
+		if isAncestor {
+			status = types.FastForwardable
+		} else {
+			status = types.Conflict
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(types.AncestorCheckResponse{IsAncestor: isAncestor})
+	json.NewEncoder(w).Encode(types.AncestorCheckResponse{Status: status})
 }
 
 func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {
