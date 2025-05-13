@@ -25,6 +25,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
+	"tangled.sh/tangled.sh/core/knotserver"
 	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/bluesky-social/indigo/atproto/data"
@@ -123,32 +124,11 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(s, user)
 
-	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	forkInfo, err := GetForkInfo(repoInfo, s, f, us, w, user)
 	if err != nil {
-		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		log.Printf("Failed to fetch fork information: %v", err)
+		return
 	}
-
-	// update the hidden tracking branch to latest
-	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-	}
-
-	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)
-	if err != nil || newHiddenRefResp.StatusCode != http.StatusNoContent {
-		log.Printf("failed to update tracking branch: %s", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-	}
-
-	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
-	comparison, err := us.Compare(user.Did, repoInfo.Name, f.Ref, hiddenRef)
-	if err != nil {
-		log.Printf("failed to compare branches: %s", err)
-		s.pages.Notice(w, "resubmit-error", err.Error())
-	}
-	log.Println(comparison)
 
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:       user,
@@ -157,10 +137,111 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		RepoIndexResponse:  result,
 		CommitsTrunc:       commitsTrunc,
 		TagsTrunc:          tagsTrunc,
+		ForkInfo:           *forkInfo,
 		BranchesTrunc:      branchesTrunc,
 		EmailToDidOrHandle: EmailToDidOrHandle(s, emails),
 	})
 	return
+}
+
+func GetForkInfo(
+	repoInfo repoinfo.RepoInfo,
+	s *State,
+	f *FullyResolvedRepo,
+	us *knotclient.UnsignedClient,
+	w http.ResponseWriter,
+	user *oauth.User,
+) (*pages.ForkInfo, error) {
+	forkInfo := pages.ForkInfo{
+		IsFork: repoInfo.Source != nil,
+		Status: pages.UpToDate,
+	}
+
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	}
+
+	if !forkInfo.IsFork {
+		forkInfo.IsFork = false
+		return &forkInfo, nil
+	}
+
+	resp, err := us.Branches(repoInfo.Source.Did, repoInfo.Source.Name)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return nil, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading forkResponse forkBody: %v", err)
+		return nil, err
+	}
+
+	var result types.RepoBranchesResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Println("failed to parse forkResponse:", err)
+		return nil, err
+	}
+
+	var contains = false
+	for _, branch := range result.Branches {
+		if branch.Name == f.Ref {
+			contains = true
+			break
+		}
+	}
+
+	if contains == false {
+		forkInfo.Status = pages.MissingBranch
+		return &forkInfo, nil
+	}
+
+	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+		return nil, err
+	}
+
+	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)
+	if err != nil || newHiddenRefResp.StatusCode != http.StatusNoContent {
+		log.Printf("failed to update tracking branch: %s", err)
+		return nil, err
+	}
+
+	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
+	comparison, err := us.Compare(user.Did, repoInfo.Name, f.Ref, hiddenRef)
+	if err != nil {
+		log.Printf("failed to compare branches '%s' and '%s': %s", f.Ref, hiddenRef, err)
+		return nil, err
+	}
+
+	if len(comparison.FormatPatch) == 0 {
+		return &forkInfo, nil
+	}
+
+	var isAncestor types.AncestorCheckResponse
+	forkSyncableResp, err := signedClient.RepoForkSyncable(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref, hiddenRef)
+	if err != nil {
+		log.Printf("failed to check if fork is syncable: %s", err)
+		return nil, err
+	}
+
+	if err := json.NewDecoder(forkSyncableResp.Body).Decode(&isAncestor); err != nil {
+		log.Printf("failed to decode 'isAncestor': %s", err)
+		return nil, err
+	}
+
+	if isAncestor.IsAncestor {
+		forkInfo.Status = pages.FastForwardable
+	} else {
+		forkInfo.Status = pages.Conflict
+	}
+
+	return &forkInfo, nil
 }
 
 func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {

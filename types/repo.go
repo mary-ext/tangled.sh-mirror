@@ -90,3 +90,7 @@ type RepoBlobResponse struct {
 	Lines    int    `json:"lines,omitempty"`
 	SizeHint uint64 `json:"size_hint,omitempty"`
 }
+
+type AncestorCheckResponse struct {
+	IsAncestor bool `json:"isAncestor"`
+}

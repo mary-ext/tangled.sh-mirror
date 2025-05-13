@@ -424,6 +424,7 @@ type RepoIndexParams struct {
 	CommitsTrunc  []*object.Commit
 	TagsTrunc     []*types.TagReference
 	BranchesTrunc []types.Branch
+	ForkInfo      ForkInfo
 	types.RepoIndexResponse
 	HTMLReadme         template.HTML
 	Raw                bool
