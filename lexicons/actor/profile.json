@@ -8,10 +8,8 @@
       "key": "literal:self",
       "record": {
         "type": "object",
+        "required": ["bluesky"],
         "properties": {
-        "required": [
-          "bluesky",
-        ],
           "description": {
             "type": "string",
             "description": "Free-form profile description text.",
