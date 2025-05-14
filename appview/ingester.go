@@ -13,11 +13,12 @@ import (
 	"github.com/ipfs/go-cid"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/rbac"
 )
 
 type Ingester func(ctx context.Context, e *models.Event) error
 
-func Ingest(d db.DbWrapper) Ingester {
+func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer) Ingester {
 	return func(ctx context.Context, e *models.Event) error {
 		var err error
 		defer func() {
@@ -40,7 +41,7 @@ func Ingest(d db.DbWrapper) Ingester {
 		case tangled.PublicKeyNSID:
 			ingestPublicKey(&d, e)
 		case tangled.RepoArtifactNSID:
-			ingestArtifact(&d, e)
+			ingestArtifact(&d, e, enforcer)
 		case tangled.ActorProfileNSID:
 			ingestProfile(&d, e)
 		}
@@ -139,7 +140,7 @@ func ingestPublicKey(d *db.DbWrapper, e *models.Event) error {
 	return nil
 }
 
-func ingestArtifact(d *db.DbWrapper, e *models.Event) error {
+func ingestArtifact(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
 	did := e.Did
 	var err error
 
@@ -155,6 +156,16 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event) error {
 
 		repoAt, err := syntax.ParseATURI(record.Repo)
 		if err != nil {
+			return err
+		}
+
+		repo, err := db.GetRepoByAtUri(d, repoAt.String())
+		if err != nil {
+			return err
+		}
+
+		ok, err := enforcer.E.Enforce(did, repo.Knot, repo.DidSlashRepo(), "repo:push")
+		if err != nil || !ok {
 			return err
 		}
 

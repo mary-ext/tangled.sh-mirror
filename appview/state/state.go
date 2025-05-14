@@ -76,7 +76,7 @@ func Make(config *appview.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper))
+	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper, enforcer))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}

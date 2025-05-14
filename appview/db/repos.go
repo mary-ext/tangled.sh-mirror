@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"tangled.sh/tangled.sh/core/api/tangled"
 )
 
@@ -27,6 +28,11 @@ type Repo struct {
 
 func (r Repo) RepoAt() syntax.ATURI {
 	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", r.Did, tangled.RepoNSID, r.Rkey))
+}
+
+func (r Repo) DidSlashRepo() string {
+	p, _ := securejoin.SecureJoin(r.Did, r.Name)
+	return p
 }
 
 func GetAllRepos(e Execer, limit int) ([]Repo, error) {
