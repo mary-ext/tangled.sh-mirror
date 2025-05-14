@@ -38,7 +38,7 @@
             {{ end }}
             {{ if .IncludeBluesky }}
             <div class="flex items-center gap-2">
-              <span class="flex-shrink-0">{{ template "user/fragments/bluesky" "w-4 h-4 text-black dark:text-gray-300" }}</span>
+              <span class="flex-shrink-0">{{ template "user/fragments/bluesky" "w-4 h-4 text-black dark:text-white" }}</span>
               <a id="bluesky-link" href="https://bsky.app/profile/{{ $.UserDid }}">{{ didOrHandle $.UserDid $.UserHandle }}</a>
             </div>
             {{ end }}
