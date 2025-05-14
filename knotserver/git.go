@@ -2,6 +2,7 @@ package knotserver
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -14,20 +15,40 @@ import (
 func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
-	repo, _ := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
+	repoName, err := securejoin.SecureJoin(did, name)
+	if err != nil {
+		gitError(w, "repository not found", http.StatusNotFound)
+		d.l.Error("git: failed to secure join repo path", "handler", "InfoRefs", "error", err)
+		return
+	}
 
-	w.Header().Set("content-type", "application/x-git-upload-pack-advertisement")
-	w.WriteHeader(http.StatusOK)
+	repoPath, err := securejoin.SecureJoin(d.c.Repo.ScanPath, repoName)
+	if err != nil {
+		gitError(w, "repository not found", http.StatusNotFound)
+		d.l.Error("git: failed to secure join repo path", "handler", "InfoRefs", "error", err)
+		return
+	}
 
 	cmd := service.ServiceCommand{
-		Dir:    repo,
+		Dir:    repoPath,
 		Stdout: w,
 	}
 
-	if err := cmd.InfoRefs(); err != nil {
-		writeError(w, err.Error(), 500)
-		d.l.Error("git: failed to execute git-upload-pack (info/refs)", "handler", "InfoRefs", "error", err)
-		return
+	serviceName := r.URL.Query().Get("service")
+	switch serviceName {
+	case "git-upload-pack":
+		w.Header().Set("content-type", "application/x-git-upload-pack-advertisement")
+		w.WriteHeader(http.StatusOK)
+
+		if err := cmd.InfoRefs(); err != nil {
+			gitError(w, err.Error(), http.StatusInternalServerError)
+			d.l.Error("git: process failed", "handler", "InfoRefs", "service", serviceName, "error", err)
+			return
+		}
+	case "git-receive-pack":
+		d.RejectPush(w, r, name)
+	default:
+		gitError(w, fmt.Sprintf("service unsupported: '%s'", serviceName), http.StatusForbidden)
 	}
 }
 
@@ -70,4 +91,20 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 		d.l.Error("git: failed to execute git-upload-pack", "handler", "UploadPack", "error", err)
 		return
 	}
+}
+
+func (d *Handle) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedRepoName string) {
+	// A text/plain response will cause git to print each line of the body
+	// prefixed with "remote: ".
+	w.Header().Set("content-type", "text/plain; charset=UTF-8")
+	w.WriteHeader(http.StatusForbidden)
+
+	fmt.Fprintf(w, "Welcome to Tangled.sh!\n\nPushes are currently only supported over SSH.")
+	fmt.Fprintf(w, "\n\n")
+}
+
+func gitError(w http.ResponseWriter, msg string, status int) {
+	w.Header().Set("content-type", "text/plain; charset=UTF-8")
+	w.WriteHeader(status)
+	fmt.Fprintf(w, "%s\n", msg)
 }
