@@ -22,7 +22,6 @@
           },
           "name": {
             "type": "string",
-            "format": "string",
             "description": "human-readable name for this key"
           },
           "createdAt": {
