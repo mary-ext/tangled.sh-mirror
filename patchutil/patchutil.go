@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
@@ -202,4 +203,63 @@ func Unified(oldText, oldFile, newText, newFile string) (string, error) {
 	}
 
 	return string(output), nil
+}
+
+// are two patches identical
+func Equal(a, b []*gitdiff.File) bool {
+	return slices.EqualFunc(a, b, func(x, y *gitdiff.File) bool {
+		// same pointer
+		if x == y {
+			return true
+		}
+		if x == nil || y == nil {
+			return x == y
+		}
+
+		// compare file metadata
+		if x.OldName != y.OldName || x.NewName != y.NewName {
+			return false
+		}
+		if x.OldMode != y.OldMode || x.NewMode != y.NewMode {
+			return false
+		}
+		if x.IsNew != y.IsNew || x.IsDelete != y.IsDelete || x.IsCopy != y.IsCopy || x.IsRename != y.IsRename {
+			return false
+		}
+
+		if len(x.TextFragments) != len(y.TextFragments) {
+			return false
+		}
+
+		for i, xFrag := range x.TextFragments {
+			yFrag := y.TextFragments[i]
+
+			// Compare fragment headers
+			if xFrag.OldPosition != yFrag.OldPosition || xFrag.OldLines != yFrag.OldLines ||
+				xFrag.NewPosition != yFrag.NewPosition || xFrag.NewLines != yFrag.NewLines {
+				return false
+			}
+
+			// Compare fragment changes
+			if len(xFrag.Lines) != len(yFrag.Lines) {
+				return false
+			}
+
+			for j, xLine := range xFrag.Lines {
+				yLine := yFrag.Lines[j]
+				if xLine.Op != yLine.Op || xLine.Line != yLine.Line {
+					return false
+				}
+			}
+		}
+
+		return true
+	})
+}
+
+// sort patch files in alphabetical order
+func SortPatch(patch []*gitdiff.File) {
+	slices.SortFunc(patch, func(a, b *gitdiff.File) int {
+		return strings.Compare(bestName(a), bestName(b))
+	})
 }
