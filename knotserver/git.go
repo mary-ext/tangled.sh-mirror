@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
@@ -113,6 +114,18 @@ func (d *Handle) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedR
 	w.WriteHeader(http.StatusForbidden)
 
 	fmt.Fprintf(w, "Welcome to Tangled.sh!\n\nPushes are currently only supported over SSH.")
+
+	// If the appview gave us the repository owner's handle we can attempt to
+	// construct the correct ssh url.
+	ownerHandle := r.Header.Get("x-tangled-repo-owner-handle")
+	if ownerHandle != "" && !strings.ContainsAny(ownerHandle, ":") {
+		hostname := d.c.Server.Hostname
+		if strings.Contains(hostname, ":") {
+			hostname = strings.Split(hostname, ":")[0]
+		}
+
+		fmt.Fprintf(w, " Try:\ngit remote set-url --push origin git@%s:%s/%s\n\n... and push again.", hostname, ownerHandle, unqualifiedRepoName)
+	}
 	fmt.Fprintf(w, "\n\n")
 }
 

@@ -73,6 +73,9 @@ func (s *State) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL s
 	// Copy original headers
 	proxyReq.Header = r.Header
 
+	repoOwnerHandle := chi.URLParam(r, "user")
+	proxyReq.Header.Add("x-tangled-repo-owner-handle", repoOwnerHandle)
+
 	// Execute request
 	resp, err := client.Do(proxyReq)
 	if err != nil {
