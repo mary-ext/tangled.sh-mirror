@@ -93,6 +93,19 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (d *Handle) ReceivePack(w http.ResponseWriter, r *http.Request) {
+	did := chi.URLParam(r, "did")
+	name := chi.URLParam(r, "name")
+	_, err := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
+	if err != nil {
+		gitError(w, err.Error(), http.StatusForbidden)
+		d.l.Error("git: failed to secure join repo path", "handler", "ReceivePack", "error", err)
+		return
+	}
+
+	d.RejectPush(w, r, name)
+}
+
 func (d *Handle) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedRepoName string) {
 	// A text/plain response will cause git to print each line of the body
 	// prefixed with "remote: ".
