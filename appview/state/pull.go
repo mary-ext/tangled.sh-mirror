@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
@@ -21,6 +22,7 @@ import (
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -47,7 +49,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// can be nil  if this pull is not stacked
-		stack := r.Context().Value("stack").(db.Stack)
+		stack, _ := r.Context().Value("stack").(db.Stack)
 
 		roundNumberStr := chi.URLParam(r, "round")
 		roundNumber, err := strconv.Atoi(roundNumberStr)
@@ -63,7 +65,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 		mergeCheckResponse := s.mergeCheck(f, pull, stack)
 		resubmitResult := pages.Unknown
 		if user.Did == pull.OwnerDid {
-			resubmitResult = s.resubmitCheck(f, pull)
+			resubmitResult = s.resubmitCheck(f, pull, stack)
 		}
 
 		s.pages.PullActionsFragment(w, pages.PullActionsParams{
@@ -94,7 +96,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// can be nil  if this pull is not stacked
-	stack := r.Context().Value("stack").(db.Stack)
+	stack, _ := r.Context().Value("stack").(db.Stack)
 
 	totalIdents := 1
 	for _, submission := range pull.Submissions {
@@ -126,7 +128,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	mergeCheckResponse := s.mergeCheck(f, pull, stack)
 	resubmitResult := pages.Unknown
 	if user != nil && user.Did == pull.OwnerDid {
-		resubmitResult = s.resubmitCheck(f, pull)
+		resubmitResult = s.resubmitCheck(f, pull, stack)
 	}
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
@@ -169,14 +171,12 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stack) 
 		var mergeable db.Stack
 		for _, p := range subStack {
 			// stop at the first merged PR
-			if p.State == db.PullMerged {
+			if p.State == db.PullMerged || p.State == db.PullClosed {
 				break
 			}
 
-			// skip over closed PRs
-			//
-			// we will close PRs that are "removed" from a stack
-			if p.State != db.PullClosed {
+			// skip over deleted PRs
+			if p.State != db.PullDeleted {
 				mergeable = append(mergeable, p)
 			}
 		}
@@ -223,7 +223,7 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stack) 
 	return mergeCheckResponse
 }
 
-func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull) pages.ResubmitResult {
+func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
 	if pull.State == db.PullMerged || pull.PullSource == nil {
 		return pages.Unknown
 	}
@@ -273,9 +273,15 @@ func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull) pages.Resubmi
 		return pages.Unknown
 	}
 
-	latestSubmission := pull.Submissions[pull.LastRoundNumber()]
-	if latestSubmission.SourceRev != result.Branch.Hash {
-		fmt.Println(latestSubmission.SourceRev, result.Branch.Hash)
+	latestSourceRev := pull.Submissions[pull.LastRoundNumber()].SourceRev
+
+	if pull.IsStacked() && stack != nil {
+		top := stack[0]
+		latestSourceRev = top.Submissions[top.LastRoundNumber()].SourceRev
+	}
+
+	if latestSourceRev != result.Branch.Hash {
+		log.Println(latestSourceRev, result.Branch.Hash)
 		return pages.ShouldResubmit
 	}
 
@@ -650,6 +656,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			RepoInfo:     f.RepoInfo(s, user),
 			Branches:     result.Branches,
 		})
+
 	case http.MethodPost:
 		title := r.FormValue("title")
 		body := r.FormValue("body")
@@ -884,11 +891,10 @@ func (s *State) createPullRequest(
 			r,
 			f,
 			user,
-			title, body, targetBranch,
+			targetBranch,
 			patch,
 			sourceRev,
 			pullSource,
-			recordPullSource,
 		)
 		return
 	}
@@ -988,11 +994,10 @@ func (s *State) createStackedPulLRequest(
 	r *http.Request,
 	f *FullyResolvedRepo,
 	user *oauth.User,
-	title, body, targetBranch string,
+	targetBranch string,
 	patch string,
 	sourceRev string,
 	pullSource *db.PullSource,
-	recordPullSource *tangled.RepoPull_Source,
 ) {
 	// run some necessary checks for stacked-prs first
 
@@ -1005,87 +1010,25 @@ func (s *State) createStackedPulLRequest(
 
 	formatPatches, err := patchutil.ExtractPatches(patch)
 	if err != nil {
+		log.Println("failed to extract patches", err)
 		s.pages.Notice(w, "pull", fmt.Sprintf("Failed to extract patches: %v", err))
 		return
 	}
 
 	//  must have atleast 1 patch to begin with
 	if len(formatPatches) == 0 {
+		log.Println("empty patches")
 		s.pages.Notice(w, "pull", "No patches found in the generated format-patch.")
 		return
 	}
 
-	tx, err := s.db.BeginTx(r.Context(), nil)
-	if err != nil {
-		log.Println("failed to start tx")
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-		return
-	}
-	defer tx.Rollback()
-
-	// create a series of pull requests, and write records from them at once
-	var writes []*comatproto.RepoApplyWrites_Input_Writes_Elem
-
-	// the stack is identified by a UUID
+	// build a stack out of this patch
 	stackId := uuid.New()
-	parentChangeId := ""
-	for _, fp := range formatPatches {
-		//  all patches must have a jj change-id
-		changeId, err := fp.ChangeId()
-		if err != nil {
-			s.pages.Notice(w, "pull", "Stacking is only supported if all patches contain a change-id commit header.")
-			return
-		}
-
-		title = fp.Title
-		body = fp.Body
-		rkey := appview.TID()
-
-		// TODO: can we just use a format-patch string here?
-		initialSubmission := db.PullSubmission{
-			Patch:     fp.Raw,
-			SourceRev: sourceRev,
-		}
-		err = db.NewPull(tx, &db.Pull{
-			Title:        title,
-			Body:         body,
-			TargetBranch: targetBranch,
-			OwnerDid:     user.Did,
-			RepoAt:       f.RepoAt,
-			Rkey:         rkey,
-			Submissions: []*db.PullSubmission{
-				&initialSubmission,
-			},
-			PullSource: pullSource,
-
-			StackId:        stackId.String(),
-			ChangeId:       changeId,
-			ParentChangeId: parentChangeId,
-		})
-		if err != nil {
-			log.Println("failed to create pull request", err)
-			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-			return
-		}
-
-		record := tangled.RepoPull{
-			Title:        title,
-			TargetRepo:   string(f.RepoAt),
-			TargetBranch: targetBranch,
-			Patch:        fp.Raw,
-			Source:       recordPullSource,
-		}
-		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
-			RepoApplyWrites_Create: &comatproto.RepoApplyWrites_Create{
-				Collection: tangled.RepoPullNSID,
-				Rkey:       &rkey,
-				Value: &lexutil.LexiconTypeDecoder{
-					Val: &record,
-				},
-			},
-		})
-
-		parentChangeId = changeId
+	stack, err := newStack(f, user, targetBranch, patch, pullSource, stackId.String())
+	if err != nil {
+		log.Println("failed to create stack", err)
+		s.pages.Notice(w, "pull", fmt.Sprintf("Failed to create stack: %v", err))
+		return
 	}
 
 	client, err := s.oauth.AuthorizedClient(r)
@@ -1096,6 +1039,20 @@ func (s *State) createStackedPulLRequest(
 	}
 
 	// apply all record creations at once
+	var writes []*comatproto.RepoApplyWrites_Input_Writes_Elem
+	for _, p := range stack {
+		record := p.AsRecord()
+		write := comatproto.RepoApplyWrites_Input_Writes_Elem{
+			RepoApplyWrites_Create: &comatproto.RepoApplyWrites_Create{
+				Collection: tangled.RepoPullNSID,
+				Rkey:       &p.Rkey,
+				Value: &lexutil.LexiconTypeDecoder{
+					Val: &record,
+				},
+			},
+		}
+		writes = append(writes, &write)
+	}
 	_, err = client.RepoApplyWrites(r.Context(), &comatproto.RepoApplyWrites_Input{
 		Repo:   user.Did,
 		Writes: writes,
@@ -1107,6 +1064,23 @@ func (s *State) createStackedPulLRequest(
 	}
 
 	// create all pulls at once
+	tx, err := s.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Println("failed to start tx")
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	for _, p := range stack {
+		err = db.NewPull(tx, p)
+		if err != nil {
+			log.Println("failed to create pull request", err)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
+	}
+
 	if err = tx.Commit(); err != nil {
 		log.Println("failed to create pull request", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
@@ -1371,68 +1345,7 @@ func (s *State) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 
 	patch := r.FormValue("patch")
 
-	if err = validateResubmittedPatch(pull, patch); err != nil {
-		s.pages.Notice(w, "resubmit-error", err.Error())
-		return
-	}
-
-	tx, err := s.db.BeginTx(r.Context(), nil)
-	if err != nil {
-		log.Println("failed to start tx")
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-	defer tx.Rollback()
-
-	err = db.ResubmitPull(tx, pull, patch, "")
-	if err != nil {
-		log.Println("failed to resubmit pull request", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull request. Try again later.")
-		return
-	}
-	client, err := s.oauth.AuthorizedClient(r)
-	if err != nil {
-		log.Println("failed to get authorized client", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoPullNSID, user.Did, pull.Rkey)
-	if err != nil {
-		// failed to get record
-		s.pages.Notice(w, "resubmit-error", "Failed to update pull, no record found on PDS.")
-		return
-	}
-
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
-		Collection: tangled.RepoPullNSID,
-		Repo:       user.Did,
-		Rkey:       pull.Rkey,
-		SwapRecord: ex.Cid,
-		Record: &lexutil.LexiconTypeDecoder{
-			Val: &tangled.RepoPull{
-				Title:        pull.Title,
-				PullId:       int64(pull.PullId),
-				TargetRepo:   string(f.RepoAt),
-				TargetBranch: pull.TargetBranch,
-				Patch:        patch, // new patch
-			},
-		},
-	})
-	if err != nil {
-		log.Println("failed to update record", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to update pull request on the PDS. Try again later.")
-		return
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Println("failed to commit transaction", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull.")
-		return
-	}
-
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
-	return
+	s.resubmitPullHelper(w, r, f, user, pull, patch, "")
 }
 
 func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
@@ -1480,77 +1393,7 @@ func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 	sourceRev := comparison.Rev2
 	patch := comparison.Patch
 
-	if err = validateResubmittedPatch(pull, patch); err != nil {
-		s.pages.Notice(w, "resubmit-error", err.Error())
-		return
-	}
-
-	if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
-		s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
-		return
-	}
-
-	tx, err := s.db.BeginTx(r.Context(), nil)
-	if err != nil {
-		log.Println("failed to start tx")
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-	defer tx.Rollback()
-
-	err = db.ResubmitPull(tx, pull, patch, sourceRev)
-	if err != nil {
-		log.Println("failed to create pull request", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-	client, err := s.oauth.AuthorizedClient(r)
-	if err != nil {
-		log.Println("failed to authorize client")
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoPullNSID, user.Did, pull.Rkey)
-	if err != nil {
-		// failed to get record
-		s.pages.Notice(w, "resubmit-error", "Failed to update pull, no record found on PDS.")
-		return
-	}
-
-	recordPullSource := &tangled.RepoPull_Source{
-		Branch: pull.PullSource.Branch,
-	}
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
-		Collection: tangled.RepoPullNSID,
-		Repo:       user.Did,
-		Rkey:       pull.Rkey,
-		SwapRecord: ex.Cid,
-		Record: &lexutil.LexiconTypeDecoder{
-			Val: &tangled.RepoPull{
-				Title:        pull.Title,
-				PullId:       int64(pull.PullId),
-				TargetRepo:   string(f.RepoAt),
-				TargetBranch: pull.TargetBranch,
-				Patch:        patch, // new patch
-				Source:       recordPullSource,
-			},
-		},
-	})
-	if err != nil {
-		log.Println("failed to update record", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to update pull request on the PDS. Try again later.")
-		return
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Println("failed to commit transaction", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to resubmit pull.")
-		return
-	}
-
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
-	return
+	s.resubmitPullHelper(w, r, f, user, pull, patch, sourceRev)
 }
 
 func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
@@ -1623,14 +1466,52 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	sourceRev := comparison.Rev2
 	patch := comparison.Patch
 
-	if err = validateResubmittedPatch(pull, patch); err != nil {
+	s.resubmitPullHelper(w, r, f, user, pull, patch, sourceRev)
+}
+
+// validate a resubmission against a pull request
+func validateResubmittedPatch(pull *db.Pull, patch string) error {
+	if patch == "" {
+		return fmt.Errorf("Patch is empty.")
+	}
+
+	if patch == pull.LatestPatch() {
+		return fmt.Errorf("Patch is identical to previous submission.")
+	}
+
+	if !patchutil.IsPatchValid(patch) {
+		return fmt.Errorf("Invalid patch format. Please provide a valid diff.")
+	}
+
+	return nil
+}
+
+func (s *State) resubmitPullHelper(
+	w http.ResponseWriter,
+	r *http.Request,
+	f *FullyResolvedRepo,
+	user *oauth.User,
+	pull *db.Pull,
+	patch string,
+	sourceRev string,
+) {
+	if pull.IsStacked() {
+		log.Println("resubmitting stacked PR")
+		s.resubmitStackedPullHelper(w, r, f, user, pull, patch, pull.StackId)
+		return
+	}
+
+	if err := validateResubmittedPatch(pull, patch); err != nil {
 		s.pages.Notice(w, "resubmit-error", err.Error())
 		return
 	}
 
-	if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
-		s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
-		return
+	// validate sourceRev if branch/fork based
+	if pull.IsBranchBased() || pull.IsForkBased() {
+		if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
+			s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
+			return
+		}
 	}
 
 	tx, err := s.db.BeginTx(r.Context(), nil)
@@ -1649,7 +1530,7 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	}
 	client, err := s.oauth.AuthorizedClient(r)
 	if err != nil {
-		log.Println("failed to get client")
+		log.Println("failed to authorize client")
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
 		return
 	}
@@ -1661,11 +1542,20 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoAt := pull.PullSource.RepoAt.String()
-	recordPullSource := &tangled.RepoPull_Source{
-		Branch: pull.PullSource.Branch,
-		Repo:   &repoAt,
+	var recordPullSource *tangled.RepoPull_Source
+	if pull.IsBranchBased() {
+		recordPullSource = &tangled.RepoPull_Source{
+			Branch: pull.PullSource.Branch,
+		}
 	}
+	if pull.IsForkBased() {
+		repoAt := pull.PullSource.RepoAt.String()
+		recordPullSource = &tangled.RepoPull_Source{
+			Branch: pull.PullSource.Branch,
+			Repo:   &repoAt,
+		}
+	}
+
 	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoPullNSID,
 		Repo:       user.Did,
@@ -1698,21 +1588,201 @@ func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// validate a resubmission against a pull request
-func validateResubmittedPatch(pull *db.Pull, patch string) error {
-	if patch == "" {
-		return fmt.Errorf("Patch is empty.")
+func (s *State) resubmitStackedPullHelper(
+	w http.ResponseWriter,
+	r *http.Request,
+	f *FullyResolvedRepo,
+	user *oauth.User,
+	pull *db.Pull,
+	patch string,
+	stackId string,
+) {
+	targetBranch := pull.TargetBranch
+
+	origStack, _ := r.Context().Value("stack").(db.Stack)
+	newStack, err := newStack(f, user, targetBranch, patch, pull.PullSource, stackId)
+	if err != nil {
+		log.Println("failed to create resubmitted stack", err)
+		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		return
 	}
 
-	if patch == pull.LatestPatch() {
-		return fmt.Errorf("Patch is identical to previous submission.")
+	// find the diff between the stacks, first, map them by changeId
+	origById := make(map[string]*db.Pull)
+	newById := make(map[string]*db.Pull)
+	for _, p := range origStack {
+		origById[p.ChangeId] = p
+	}
+	for _, p := range newStack {
+		newById[p.ChangeId] = p
 	}
 
-	if !patchutil.IsPatchValid(patch) {
-		return fmt.Errorf("Invalid patch format. Please provide a valid diff.")
+	// commits that got deleted: corresponding pull is closed
+	// commits that got added: new pull is created
+	// commits that got updated: corresponding pull is resubmitted & new round begins
+	//
+	// for commits that were unchanged: no changes, parent-change-id is updated as necessary
+	additions := make(map[string]*db.Pull)
+	deletions := make(map[string]*db.Pull)
+	unchanged := make(map[string]struct{})
+	updated := make(map[string]struct{})
+
+	// pulls in orignal stack but not in new one
+	for _, op := range origStack {
+		if _, ok := newById[op.ChangeId]; !ok {
+			deletions[op.ChangeId] = op
+		}
 	}
 
-	return nil
+	// pulls in new stack but not in original one
+	for _, np := range newStack {
+		if _, ok := origById[np.ChangeId]; !ok {
+			additions[np.ChangeId] = np
+		}
+	}
+
+	// NOTE: this loop can be written in any of above blocks,
+	// but is written separately in the interest of simpler code
+	for _, np := range newStack {
+		if op, ok := origById[np.ChangeId]; ok {
+			// pull exists in both stacks
+			// TODO: can we avoid reparse?
+			origFiles, _, _ := gitdiff.Parse(strings.NewReader(op.LatestPatch()))
+			newFiles, _, _ := gitdiff.Parse(strings.NewReader(np.LatestPatch()))
+
+			patchutil.SortPatch(newFiles)
+			patchutil.SortPatch(origFiles)
+
+			if patchutil.Equal(newFiles, origFiles) {
+				unchanged[op.ChangeId] = struct{}{}
+			} else {
+				updated[op.ChangeId] = struct{}{}
+			}
+		}
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		log.Println("failed to start transaction", err)
+		s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	// pds updates to make
+	var writes []*comatproto.RepoApplyWrites_Input_Writes_Elem
+
+	// deleted pulls are marked as deleted in the DB
+	for _, p := range deletions {
+		err := db.DeletePull(tx, p.RepoAt, p.PullId)
+		if err != nil {
+			log.Println("failed to delete pull", err, p.PullId)
+			s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
+			return
+		}
+		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
+			RepoApplyWrites_Delete: &comatproto.RepoApplyWrites_Delete{
+				Collection: tangled.RepoPullNSID,
+				Rkey:       p.Rkey,
+			},
+		})
+	}
+
+	// new pulls are created
+	for _, p := range additions {
+		err := db.NewPull(tx, p)
+		if err != nil {
+			log.Println("failed to create pull", err, p.PullId)
+			s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
+			return
+		}
+
+		record := p.AsRecord()
+		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
+			RepoApplyWrites_Create: &comatproto.RepoApplyWrites_Create{
+				Collection: tangled.RepoPullNSID,
+				Rkey:       &p.Rkey,
+				Value: &lexutil.LexiconTypeDecoder{
+					Val: &record,
+				},
+			},
+		})
+	}
+
+	// updated pulls are, well, updated; to start a new round
+	for id := range updated {
+		op, _ := origById[id]
+		np, _ := newById[id]
+
+		submission := np.Submissions[np.LastRoundNumber()]
+
+		// resubmit the old pull
+		err := db.ResubmitPull(tx, op, submission.Patch, submission.SourceRev)
+
+		if err != nil {
+			log.Println("failed to update pull", err, op.PullId)
+			s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
+			return
+		}
+
+		record := op.AsRecord()
+		record.Patch = submission.Patch
+
+		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
+			RepoApplyWrites_Update: &comatproto.RepoApplyWrites_Update{
+				Collection: tangled.RepoPullNSID,
+				Rkey:       op.Rkey,
+				Value: &lexutil.LexiconTypeDecoder{
+					Val: &record,
+				},
+			},
+		})
+	}
+
+	// update parent-change-id relations for the entire stack
+	for _, p := range newStack {
+		err := db.SetPullParentChangeId(
+			tx,
+			p.ParentChangeId,
+			// these should be enough filters to be unique per-stack
+			db.Filter("repo_at", p.RepoAt.String()),
+			db.Filter("owner_did", p.OwnerDid),
+			db.Filter("change_id", p.ChangeId),
+		)
+
+		if err != nil {
+			log.Println("failed to update pull", err, p.PullId)
+			s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
+			return
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Println("failed to resubmit pull", err)
+		s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
+		return
+	}
+
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to authorize client")
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	_, err = client.RepoApplyWrites(r.Context(), &comatproto.RepoApplyWrites_Input{
+		Repo:   user.Did,
+		Writes: writes,
+	})
+	if err != nil {
+		log.Println("failed to create stacked pull request", err)
+		s.pages.Notice(w, "pull", "Failed to create stacked pull request. Try again later.")
+		return
+	}
+
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	return
 }
 
 func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
@@ -1745,16 +1815,13 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 
 		// collect the portion of the stack that is mergeable
 		for _, p := range subStack {
-			// stop at the first merged PR
-			if p.State == db.PullMerged {
+			// stop at the first merged/closed PR
+			if p.State == db.PullMerged || p.State == db.PullClosed {
 				break
 			}
 
-			// skip over closed PRs
-			//
-			// TODO: we need a "deleted" state for such PRs, but without losing discussions
-			// we will close PRs that are "removed" from a stack
-			if p.State == db.PullClosed {
+			// skip over deleted PRs
+			if p.State == db.PullDeleted {
 				continue
 			}
 
@@ -1806,10 +1873,11 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := s.db.Begin()
 	if err != nil {
-		log.Printf("failed to start transcation", err)
+		log.Println("failed to start transcation", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
 		return
 	}
+	defer tx.Rollback()
 
 	for _, p := range pullsToMerge {
 		err := db.MergePull(tx, f.RepoAt, p.PullId)
@@ -1865,6 +1933,7 @@ func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
 		s.pages.Notice(w, "pull-close", "Failed to close pull.")
 		return
 	}
+	defer tx.Rollback()
 
 	var pullsToClose []*db.Pull
 	pullsToClose = append(pullsToClose, pull)
@@ -1932,6 +2001,7 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		s.pages.Notice(w, "pull-reopen", "Failed to reopen pull.")
 		return
 	}
+	defer tx.Rollback()
 
 	var pullsToReopen []*db.Pull
 	pullsToReopen = append(pullsToReopen, pull)
@@ -1962,4 +2032,59 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
 	return
+}
+
+func newStack(f *FullyResolvedRepo, user *oauth.User, targetBranch, patch string, pullSource *db.PullSource, stackId string) (db.Stack, error) {
+	formatPatches, err := patchutil.ExtractPatches(patch)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to extract patches: %v", err)
+	}
+
+	//  must have atleast 1 patch to begin with
+	if len(formatPatches) == 0 {
+		return nil, fmt.Errorf("No patches found in the generated format-patch.")
+	}
+
+	// the stack is identified by a UUID
+	var stack db.Stack
+	parentChangeId := ""
+	for _, fp := range formatPatches {
+		//  all patches must have a jj change-id
+		changeId, err := fp.ChangeId()
+		if err != nil {
+			return nil, fmt.Errorf("Stacking is only supported if all patches contain a change-id commit header.")
+		}
+
+		title := fp.Title
+		body := fp.Body
+		rkey := appview.TID()
+
+		initialSubmission := db.PullSubmission{
+			Patch:     fp.Raw,
+			SourceRev: fp.SHA,
+		}
+		pull := db.Pull{
+			Title:        title,
+			Body:         body,
+			TargetBranch: targetBranch,
+			OwnerDid:     user.Did,
+			RepoAt:       f.RepoAt,
+			Rkey:         rkey,
+			Submissions: []*db.PullSubmission{
+				&initialSubmission,
+			},
+			PullSource: pullSource,
+			Created:    time.Now(),
+
+			StackId:        stackId,
+			ChangeId:       changeId,
+			ParentChangeId: parentChangeId,
+		}
+
+		stack = append(stack, &pull)
+
+		parentChangeId = changeId
+	}
+
+	return stack, nil
 }

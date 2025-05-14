@@ -22,6 +22,7 @@ const (
 	PullClosed PullState = iota
 	PullOpen
 	PullMerged
+	PullDeleted
 )
 
 func (p PullState) String() string {
@@ -32,6 +33,8 @@ func (p PullState) String() string {
 		return "merged"
 	case PullClosed:
 		return "closed"
+	case PullDeleted:
+		return "deleted"
 	default:
 		return "closed"
 	}
@@ -45,6 +48,9 @@ func (p PullState) IsMerged() bool {
 }
 func (p PullState) IsClosed() bool {
 	return p == PullClosed
+}
+func (p PullState) IsDelete() bool {
+	return p == PullDeleted
 }
 
 type Pull struct {
@@ -77,12 +83,45 @@ type Pull struct {
 	Repo *Repo
 }
 
+func (p Pull) AsRecord() tangled.RepoPull {
+	var source *tangled.RepoPull_Source
+	if p.PullSource != nil {
+		s := p.PullSource.AsRecord()
+		source = &s
+	}
+
+	record := tangled.RepoPull{
+		Title:        p.Title,
+		Body:         &p.Body,
+		CreatedAt:    p.Created.Format(time.RFC3339),
+		PullId:       int64(p.PullId),
+		TargetRepo:   p.RepoAt.String(),
+		TargetBranch: p.TargetBranch,
+		Patch:        p.LatestPatch(),
+		Source:       source,
+	}
+	return record
+}
+
 type PullSource struct {
 	Branch string
 	RepoAt *syntax.ATURI
 
 	// optionally populate this for reverse mappings
 	Repo *Repo
+}
+
+func (p PullSource) AsRecord() tangled.RepoPull_Source {
+	var repoAt *string
+	if p.RepoAt != nil {
+		s := p.RepoAt.String()
+		repoAt = &s
+	}
+	record := tangled.RepoPull_Source{
+		Branch: p.Branch,
+		Repo:   repoAt,
+	}
+	return record
 }
 
 type PullSubmission struct {
@@ -97,7 +136,7 @@ type PullSubmission struct {
 	RoundNumber int
 	Patch       string
 	Comments    []PullComment
-	SourceRev   string // include the rev that was used to create this submission: only for branch PRs
+	SourceRev   string // include the rev that was used to create this submission: only for branch/fork PRs
 
 	// meta
 	Created time.Time
@@ -434,7 +473,7 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
 	submissionsQuery := fmt.Sprintf(`
 		select
-			id, pull_id, round_number, patch
+			id, pull_id, round_number, patch, source_rev
 		from
 			pull_submissions
 		where
@@ -459,14 +498,20 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 
 	for submissionsRows.Next() {
 		var s PullSubmission
+		var sourceRev sql.NullString
 		err := submissionsRows.Scan(
 			&s.ID,
 			&s.PullId,
 			&s.RoundNumber,
 			&s.Patch,
+			&sourceRev,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		if sourceRev.Valid {
+			s.SourceRev = sourceRev.String
 		}
 
 		if p, ok := pulls[s.PullId]; ok {
@@ -839,7 +884,13 @@ func NewPullComment(e Execer, comment *PullComment) (int64, error) {
 }
 
 func SetPullState(e Execer, repoAt syntax.ATURI, pullId int, pullState PullState) error {
-	_, err := e.Exec(`update pulls set state = ? where repo_at = ? and pull_id = ?`, pullState, repoAt, pullId)
+	_, err := e.Exec(
+		`update pulls set state = ? where repo_at = ? and pull_id = ? and state <> ?`,
+		pullState,
+		repoAt,
+		pullId,
+		PullDeleted, // only update state of non-deleted pulls
+	)
 	return err
 }
 
@@ -858,6 +909,11 @@ func MergePull(e Execer, repoAt syntax.ATURI, pullId int) error {
 	return err
 }
 
+func DeletePull(e Execer, repoAt syntax.ATURI, pullId int) error {
+	err := SetPullState(e, repoAt, pullId, PullDeleted)
+	return err
+}
+
 func ResubmitPull(e Execer, pull *Pull, newPatch, sourceRev string) error {
 	newRoundNumber := len(pull.Submissions)
 	_, err := e.Exec(`
@@ -868,10 +924,33 @@ func ResubmitPull(e Execer, pull *Pull, newPatch, sourceRev string) error {
 	return err
 }
 
+func SetPullParentChangeId(e Execer, parentChangeId string, filters ...filter) error {
+	var conditions []string
+	var args []any
+
+	args = append(args, parentChangeId)
+
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.arg)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf("update pulls set parent_change_id = ? %s", whereClause)
+	_, err := e.Exec(query, args...)
+
+	return err
+}
+
 type PullCount struct {
-	Open   int
-	Merged int
-	Closed int
+	Open    int
+	Merged  int
+	Closed  int
+	Deleted int
 }
 
 func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
@@ -879,18 +958,20 @@ func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
 		select
 			count(case when state = ? then 1 end) as open_count,
 			count(case when state = ? then 1 end) as merged_count,
-			count(case when state = ? then 1 end) as closed_count
+			count(case when state = ? then 1 end) as closed_count,
+			count(case when state = ? then 1 end) as deleted_count
 		from pulls
 		where repo_at = ?`,
 		PullOpen,
 		PullMerged,
 		PullClosed,
+		PullDeleted,
 		repoAt,
 	)
 
 	var count PullCount
-	if err := row.Scan(&count.Open, &count.Merged, &count.Closed); err != nil {
-		return PullCount{0, 0, 0}, err
+	if err := row.Scan(&count.Open, &count.Merged, &count.Closed, &count.Deleted); err != nil {
+		return PullCount{0, 0, 0, 0}, err
 	}
 
 	return count, nil

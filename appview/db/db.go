@@ -386,6 +386,75 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	// disable foreign-keys for the next migration
+	// NOTE: this cannot be done in a transaction, so it is run outside [0]
+	//
+	// [0]: https://sqlite.org/pragma.html#pragma_foreign_keys
+	db.Exec("pragma foreign_keys = off;")
+	runMigration(db, "recreate-pulls-column-for-stacking-support", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			-- disable fk to not delete submissions table
+			pragma foreign_keys = off;
+
+			create table pulls_new (
+				-- identifiers
+				id integer primary key autoincrement,
+				pull_id integer not null,
+
+				-- at identifiers
+				repo_at text not null,
+				owner_did text not null,
+				rkey text not null,
+
+				-- content
+				title text not null,
+				body text not null,
+				target_branch text not null,
+				state integer not null default 0 check (state in (0, 1, 2, 3)), -- closed, open, merged, deleted
+
+				-- source info
+				source_branch text,
+				source_repo_at text,
+
+				-- stacking
+				stack_id text,
+				change_id text,
+				parent_change_id text,
+
+				-- meta
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+				-- constraints
+				unique(repo_at, pull_id),
+				foreign key (repo_at) references repos(at_uri) on delete cascade
+			);
+
+			insert into pulls_new (
+				id, pull_id,
+				repo_at, owner_did, rkey,
+				title, body, target_branch, state,
+				source_branch, source_repo_at,
+				created
+			)
+			select
+				id, pull_id,
+				repo_at, owner_did, rkey,
+				title, body, target_branch, state,
+				source_branch, source_repo_at,
+				created
+			FROM pulls;
+
+			drop table pulls;
+			alter table pulls_new rename to pulls;
+
+			-- reenable fk
+			pragma foreign_keys = on;
+		`)
+		return err
+	})
+	db.Exec("pragma foreign_keys = on;")
+
+>>>>>>> Conflict 1 of 1 ends
 	return &DB{db}, nil
 }
 

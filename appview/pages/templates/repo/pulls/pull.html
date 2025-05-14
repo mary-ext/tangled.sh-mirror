@@ -207,16 +207,23 @@
           {{ i "triangle-alert" "w-4 h-4" }}
           <span class="font-medium">merge conflicts detected</span>
         </div>
-        <ul class="space-y-1">
-          {{ range .MergeCheck.Conflicts }}
-            {{ if .Filename }}
-            <li class="flex items-center">
-              {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
-              <span class="font-mono">{{ slice .Filename 0 (sub (len .Filename) 2) }}</span>
-            </li>
+        {{ if gt (len .MergeCheck.Conflicts) 0 }}
+          <ul class="space-y-1">
+            {{ range .MergeCheck.Conflicts }}
+              {{ if .Filename }}
+              <li class="flex items-center">
+                {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
+                <span class="font-mono">{{ slice .Filename 0 (sub (len .Filename) 2) }}</span>
+              </li>
+              {{ else if .Reason }}
+              <li class="flex items-center">
+                {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
+                <span>{{.Reason}}</span>
+              </li>
+              {{ end }}
             {{ end }}
-          {{ end }}
-        </ul>
+          </ul>
+        {{ end }}
       </div>
     </div>
   {{ else if .MergeCheck }}
