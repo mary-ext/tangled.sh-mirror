@@ -3,7 +3,9 @@
     <div class="grid grid-cols-3 md:grid-cols-1 gap-1 items-center">
       <div id="avatar" class="col-span-1 flex justify-center items-center">
         {{ if .AvatarUri }}
-        <img class="w-3/4 rounded-full p-2" src="{{ .AvatarUri }}" />
+        <div class="w-3/4 aspect-square relative">
+          <img class="absolute inset-0 w-full h-full object-cover rounded-full p-2" src="{{ .AvatarUri }}" />
+        </div>
         {{ end }}
       </div>
       <div class="col-span-2">
