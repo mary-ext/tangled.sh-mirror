@@ -318,7 +318,7 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-    {{- if .HTMLReadme }}
+    {{- if .HTMLReadme -}}
         <section
             class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto overflow-auto {{ if not .Raw }}
                 prose dark:prose-invert dark:[&_pre]:bg-gray-900
@@ -326,17 +326,12 @@
                 dark:[&_pre]:border dark:[&_pre]:border-gray-700
             {{ end }}"
         >
-            <article class="{{ if .Raw }}whitespace-pre{{ end }}">
-                {{ if .Raw }}
-                    <pre
-                        class="dark:bg-gray-900 dark:text-gray-200 dark:border dark:border-gray-700 dark:p-4 dark:rounded"
-                    >
-{{ .HTMLReadme }}</pre
-                    >
-                {{ else }}
+            <article class="{{ if .Raw }}whitespace-pre{{ end }}">{{- if .Raw -}}<pre class="dark:bg-gray-900 dark:text-gray-200 dark:border dark:border-gray-700 dark:p-4 dark:rounded">
+                        {{- .HTMLReadme -}}
+                    </pre>
+                {{- else -}}
                     {{ .HTMLReadme }}
-                {{ end }}
-            </article>
+                {{- end -}}</article>
         </section>
     {{- end -}}
 
