@@ -23,12 +23,13 @@
       </a>
 
       <button
-        class="btn px-2 py-1 flex items-center gap-2 text-sm"
+        class="btn px-2 py-1 flex items-center gap-2 text-sm group"
         hx-post="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/edit"
         hx-include="#edit-textarea-{{ .CommentId }}"
         hx-target="#comment-container-{{ .CommentId }}"
         hx-swap="outerHTML">
         {{ i "check" "w-4 h-4" }}
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
       </button>
       <button
         class="btn px-2 py-1  flex items-center gap-2 text-sm"

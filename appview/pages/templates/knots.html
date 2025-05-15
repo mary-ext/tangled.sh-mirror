@@ -10,6 +10,7 @@
       <form 
         hx-post="/knots/key"
         class="max-w-2xl mb-8 space-y-4"
+        hx-indicator="#generate-knot-key-spinner"
       >
         <input
           type="text"
@@ -18,9 +19,12 @@
           placeholder="knot.example.com"
           required
           class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"
-        />
-        <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600" type="submit">
-          generate key
+        >
+        <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center" type="submit">
+          <span>generate key</span>
+          <span id="generate-knot-key-spinner" class="group">
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
         </button>
         <div id="settings-knots-error" class="error dark:text-red-400"></div>
       </form>
@@ -70,10 +74,12 @@
             </div>
             <div class="flex gap-2 items-center">
               <button
-                class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 gap-2"
-                hx-post="/knots/{{ .Domain }}/init">
+                class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center group"
+                hx-post="/knots/{{ .Domain }}/init"
+              >
                 {{ i "square-play" "w-5 h-5" }}
                 <span class="hidden md:inline">initialize</span>
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
               </button>
             </div>
           </div>

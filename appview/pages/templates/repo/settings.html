@@ -23,10 +23,13 @@
     </div>
 
     {{ if .RepoInfo.Roles.CollaboratorInviteAllowed }}
-        <form hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator">
-            <label for="collaborator" class="dark:text-white"
-                >add collaborator</label
-            >
+        <form
+            hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator"
+            class="group"
+        >
+            <label for="collaborator" class="dark:text-white">
+                add collaborator
+            </label>
             <input
                 type="text"
                 id="collaborator"
@@ -34,38 +37,57 @@
                 required
                 class="dark:bg-gray-700 dark:text-white"
                 placeholder="enter did or handle"
-            />
+            >
             <button
-                class="btn my-2 dark:text-white dark:hover:bg-gray-700"
+                class="btn my-2 flex gap-2 items-center dark:text-white dark:hover:bg-gray-700"
                 type="text"
             >
-                add
+                <span>add</span>
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </button>
         </form>
     {{ end }}
 
-    <form hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default" class="mt-6">
+    <form
+        hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default"
+        class="mt-6 group"
+    >
         <label for="branch">default branch</label>
-        <select id="branch" name="branch" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
-            {{ range .Branches }}
-                <option
-                    value="{{ . }}"
-                    class="py-1"
-                    {{ if eq . $.DefaultBranch }}
-                        selected
-                    {{ end }}
-                >
-                    {{ . }}
-                </option>
-            {{ end }}
-        </select>
-        <button class="btn my-2" type="text">save</button>
+        <div class="flex gap-2 items-center">
+            <select id="branch" name="branch" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                {{ range .Branches }}
+                    <option
+                        value="{{ . }}"
+                        class="py-1"
+                        {{ if eq . $.DefaultBranch }}
+                            selected
+                        {{ end }}
+                    >
+                        {{ . }}
+                    </option>
+                {{ end }}
+            </select>
+            <button class="btn my-2 flex gap-2 items-center" type="text">
+                <span>save</span>
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </button>
+        </div>
     </form>
 
     {{ if .RepoInfo.Roles.RepoDeleteAllowed }}
-    <form hx-confirm="Are you sure you want to delete this repository?" hx-delete="/{{ $.RepoInfo.FullName }}/settings/delete" class="mt-6">
+    <form
+        hx-confirm="Are you sure you want to delete this repository?"
+        hx-delete="/{{ $.RepoInfo.FullName }}/settings/delete"
+        class="mt-6"
+        hx-indicator="#delete-repo-spinner"
+    >
         <label for="branch">delete repository</label>
-        <button class="btn my-2" type="text">delete</button>
+        <button class="btn my-2 flex gap-2 items-center" type="text">
+            <span>delete</span>
+            <span id="delete-repo-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
+        </button>
         <span>
           Deleting a repository is irreversible and permanent.
         </span>

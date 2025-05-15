@@ -18,30 +18,43 @@
         <form 
           hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit" 
           hx-swap="none"
-          class="w-full flex flex-wrap gap-2">
+          class="w-full flex flex-wrap gap-2"
+          hx-indicator="#resubmit-spinner"
+        >
           <textarea
             name="patch"
             class="w-full p-2 mb-2"
             placeholder="Paste your updated patch here."
             rows="15"
-            >{{.Pull.LatestPatch}}</textarea>
+          >
+            {{.Pull.LatestPatch}}
+          </textarea>
           <button
               type="submit"
               class="btn flex items-center gap-2"
               {{ if or .Pull.State.IsClosed }}
               disabled
-              {{ end }}>
+              {{ end }}
+          >
             {{ i "rotate-ccw" "w-4 h-4" }}
             <span>resubmit</span>
+            <span id="resubmit-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
           </button>
-          <button 
-            type="button" 
-            class="btn flex items-center gap-2" 
+          <button
+            type="button"
+            class="btn flex items-center gap-2"
             hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Pull.LastRoundNumber }}/actions"
             hx-swap="outerHTML"
-            hx-target="#resubmit-pull-card">
+            hx-target="#resubmit-pull-card"
+            hx-indicator="#cancel-resubmit-spinner"
+          >
             {{ i "x" "w-4 h-4" }}
             <span>cancel</span>
+            <span id="cancel-resubmit-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
           </button>
         </form>
 

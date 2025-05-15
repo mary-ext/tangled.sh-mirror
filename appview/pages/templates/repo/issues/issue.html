@@ -85,15 +85,16 @@
     
     <div class="flex gap-2 mt-2">
         <button 
-            id="comment-button" 
-            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment" 
-            type="submit" 
+            id="comment-button"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+            type="submit"
             hx-disabled-elt="#comment-button"
-            class="btn p-2 flex items-center gap-2 no-underline hover:no-underline" 
+            class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group"
             disabled
         >
             {{ i "message-square-plus" "w-4 h-4" }}
             comment
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
 
         {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.OwnerDid) }}
@@ -103,10 +104,14 @@
             id="close-button"
             type="button" 
             class="btn flex items-center gap-2"
+            hx-indicator="#close-spinner"
             hx-trigger="click"
         >
             {{ i "ban" "w-4 h-4" }}
             close
+            <span id="close-spinner" class="group">
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
         </button>
         <div 
             id="close-with-comment" 
@@ -114,6 +119,7 @@
             hx-trigger="click from:#close-button" 
             hx-disabled-elt="#close-with-comment"
             hx-target="#issue-comment"
+            hx-indicator="#close-spinner"
             hx-vals="js:{body: document.getElementById('comment-textarea').value.trim() !== '' ? document.getElementById('comment-textarea').value : ''}"
             hx-swap="none"
         >
@@ -124,6 +130,7 @@
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/close" 
             hx-trigger="click from:#close-button" 
             hx-target="#issue-action"
+            hx-indicator="#close-spinner"
             hx-swap="none"
         >
         </div>
@@ -143,10 +150,14 @@
             type="button" 
             class="btn flex items-center gap-2"
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/reopen"
+            hx-indicator="#reopen-spinner"
             hx-swap="none"
         >
             {{ i "refresh-ccw-dot" "w-4 h-4" }}
             reopen
+            <span id="reopen-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
         </button>
         {{ end }}
 
@@ -164,9 +175,19 @@
 
             if (closeButton) {
                 if (textarea.value.trim() !== '') {
-                    closeButton.innerHTML = '{{ i "ban" "w-4 h-4" }} close with comment';
+                    closeButton.innerHTML = `
+{{ i "ban" "w-4 h-4" }}
+<span>close with comment</span>
+<span id="close-spinner" class="group">
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+</span>`;
                 } else {
-                    closeButton.innerHTML = '{{ i "ban" "w-4 h-4" }} close';
+                    closeButton.innerHTML = `
+{{ i "ban" "w-4 h-4" }}
+<span>close</span>
+<span id="close-spinner" class="group">
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+</span>`;
                 }
             }
         }

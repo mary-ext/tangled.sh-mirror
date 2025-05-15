@@ -45,18 +45,21 @@
         </div>
       </div>
       <button
-        class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2"
+        class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
         title="Delete key"
         hx-delete="/settings/keys?name={{urlquery .Name}}&rkey={{urlquery .Rkey}}&key={{urlquery .Key}}"
-        hx-confirm="Are you sure you want to delete the key '{{ .Name }}'?">
+        hx-confirm="Are you sure you want to delete the key '{{ .Name }}'?"
+      >
         {{ i "trash-2" "w-5 h-5" }}
         <span class="hidden md:inline">delete</span> 
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
       </button>
     </div>
     {{ end }}
   </div>
   <form
       hx-put="/settings/keys"
+      hx-indicator="#add-sshkey-spinner"
       hx-swap="none"
       class="max-w-2xl mb-8 space-y-4"
       >
@@ -75,7 +78,12 @@
           required
           class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"/>
 
-      <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600" type="submit">add key</button>
+      <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center" type="submit">
+          <span>add key</span>
+          <span id="add-sshkey-spinner" class="group">
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
+      </button>
 
       <div id="settings-keys" class="error dark:text-red-400"></div>
   </form>
@@ -129,14 +137,22 @@
         </a>
         {{ end }}
         {{ if not .Primary }}
-        <form hx-delete="/settings/emails" hx-confirm="Are you sure you wish to delete the email '{{ .Address }}'?">
+        <form
+          hx-delete="/settings/emails"
+          hx-confirm="Are you sure you wish to delete the email '{{ .Address }}'?"
+          hx-indicator="#delete-email-{{ .Address }}-spinner"
+        >
           <input type="hidden" name="email" value="{{ .Address }}">
           <button
-            class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex gap-2 items-center"
             title="Delete email"
-            type="submit">
+            type="submit"
+          >
             {{ i "trash-2" "w-5 h-5" }}
             <span class="hidden md:inline">delete</span> 
+            <span id="delete-email-{{ .Address }}-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
           </button>
         </form>
         {{ end }}
@@ -148,6 +164,7 @@
       hx-put="/settings/emails"
       hx-swap="none"
       class="max-w-2xl mb-8 space-y-4"
+      hx-indicator="#add-email-spinner"
       >
       <input
           type="email"
@@ -155,13 +172,21 @@
           name="email"
           placeholder="your@email.com"
           required
-          class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"/>
+          class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"
+      >
 
-      <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600" type="submit">add email</button>
+      <button
+        class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center"
+        type="submit"
+      >
+        <span>add email</span>
+        <span id="add-email-spinner" class="group">
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </span>
+      </button>
 
       <div id="settings-emails-error" class="error dark:text-red-400"></div>
       <div id="settings-emails-success" class="success dark:text-green-400"></div>
-
   </form>
 </section>
 {{ end }}

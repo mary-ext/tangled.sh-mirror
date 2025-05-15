@@ -4,6 +4,7 @@
     <form
         hx-post="/{{ .RepoInfo.FullName }}/pulls/new"
         class="mt-6 space-y-6"
+        hx-indicator="#create-pull-spinner"
         hx-swap="none"
     >
         <div class="flex flex-col gap-4">
@@ -105,6 +106,9 @@
                 <button type="submit" class="btn flex items-center gap-2">
                     {{ i "git-pull-request-create" "w-4 h-4" }}
                     create pull
+                    <span id="create-pull-spinner" class="group">
+                      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+                    </span>
                 </button>
             </div>
         </div>
