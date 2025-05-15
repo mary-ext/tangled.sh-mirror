@@ -8,6 +8,7 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -75,6 +76,17 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 			},
 		})
 
+		if !s.config.Core.Dev {
+			err = s.posthog.Enqueue(posthog.Capture{
+				DistinctId: currentUser.Did,
+				Event:      "star",
+				Properties: posthog.Properties{"repo_at": subjectUri.String()},
+			})
+			if err != nil {
+				log.Println("failed to enqueue posthog event:", err)
+			}
+		}
+
 		return
 	case http.MethodDelete:
 		// find the record in the db
@@ -114,6 +126,17 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 				StarCount: starCount,
 			},
 		})
+
+		if !s.config.Core.Dev {
+			err = s.posthog.Enqueue(posthog.Capture{
+				DistinctId: currentUser.Did,
+				Event:      "unstar",
+				Properties: posthog.Properties{"repo_at": subjectUri.String()},
+			})
+			if err != nil {
+				log.Println("failed to enqueue posthog event:", err)
+			}
+		}
 
 		return
 	}

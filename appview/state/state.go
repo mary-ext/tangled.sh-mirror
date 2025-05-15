@@ -17,6 +17,7 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
+	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -34,6 +35,7 @@ type State struct {
 	tidClock syntax.TIDClock
 	pages    *pages.Pages
 	resolver *appview.Resolver
+	posthog  posthog.Client
 	jc       *jetstream.JetstreamClient
 	config   *appview.Config
 }
@@ -56,6 +58,11 @@ func Make(config *appview.Config) (*State, error) {
 	resolver := appview.NewResolver()
 
 	oauth := oauth.NewOAuth(d, config)
+
+	posthog, err := posthog.NewWithConfig(config.Posthog.ApiKey, posthog.Config{Endpoint: config.Posthog.Endpoint})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create posthog client: %w", err)
+	}
 
 	wrapper := db.DbWrapper{d}
 	jc, err := jetstream.NewJetstreamClient(
@@ -88,6 +95,7 @@ func Make(config *appview.Config) (*State, error) {
 		clock,
 		pgs,
 		resolver,
+		posthog,
 		jc,
 		config,
 	}
@@ -98,82 +106,6 @@ func Make(config *appview.Config) (*State, error) {
 func TID(c *syntax.TIDClock) string {
 	return c.Next().String()
 }
-
-// func (s *State) Login(w http.ResponseWriter, r *http.Request) {
-// 	ctx := r.Context()
-
-// 	switch r.Method {
-// 	case http.MethodGet:
-// 		err := s.pages.Login(w, pages.LoginParams{})
-// 		if err != nil {
-// 			log.Printf("rendering login page: %s", err)
-// 		}
-
-// 		return
-// 	case http.MethodPost:
-// 		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
-// 		appPassword := r.FormValue("app_password")
-
-// 		resolved, err := s.resolver.ResolveIdent(ctx, handle)
-// 		if err != nil {
-// 			log.Println("failed to resolve handle:", err)
-// 			s.pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
-// 			return
-// 		}
-
-// 		atSession, err := s.oauth.CreateInitialSession(ctx, resolved, appPassword)
-// 		if err != nil {
-// 			s.pages.Notice(w, "login-msg", "Invalid handle or password.")
-// 			return
-// 		}
-// 		sessionish := auth.CreateSessionWrapper{ServerCreateSession_Output: atSession}
-
-// 		err = s.oauth.StoreSession(r, w, &sessionish, resolved.PDSEndpoint())
-// 		if err != nil {
-// 			s.pages.Notice(w, "login-msg", "Failed to login, try again later.")
-// 			return
-// 		}
-
-// 		log.Printf("successfully saved session for %s (%s)", atSession.Handle, atSession.Did)
-
-// 		did := resolved.DID.String()
-// 		defaultKnot := "knot1.tangled.sh"
-
-// 		go func() {
-// 			log.Printf("adding %s to default knot", did)
-// 			err = s.enforcer.AddMember(defaultKnot, did)
-// 			if err != nil {
-// 				log.Println("failed to add user to knot1.tangled.sh: ", err)
-// 				return
-// 			}
-// 			err = s.enforcer.E.SavePolicy()
-// 			if err != nil {
-// 				log.Println("failed to add user to knot1.tangled.sh: ", err)
-// 				return
-// 			}
-
-// 			secret, err := db.GetRegistrationKey(s.db, defaultKnot)
-// 			if err != nil {
-// 				log.Println("failed to get registration key for knot1.tangled.sh")
-// 				return
-// 			}
-// 			signedClient, err := NewSignedClient(defaultKnot, secret, s.config.Core.Dev)
-// 			resp, err := signedClient.AddMember(did)
-// 			if err != nil {
-// 				log.Println("failed to add user to knot1.tangled.sh: ", err)
-// 				return
-// 			}
-
-// 			if resp.StatusCode != http.StatusNoContent {
-// 				log.Println("failed to add user to knot1.tangled.sh: ", resp.StatusCode)
-// 				return
-// 			}
-// 		}()
-
-// 		s.pages.HxRedirect(w, "/")
-// 		return
-// 	}
-// }
 
 func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
 	s.oauth.ClearSession(r, w)
@@ -773,6 +705,17 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			log.Println("failed to update ACLs", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		if !s.config.Core.Dev {
+			err = s.posthog.Enqueue(posthog.Capture{
+				DistinctId: user.Did,
+				Event:      "new_repo",
+				Properties: posthog.Properties{"repo": repoName, "repo_at": repo.AtUri},
+			})
+			if err != nil {
+				log.Println("failed to enqueue posthog event:", err)
+			}
 		}
 
 		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Handle, repoName))

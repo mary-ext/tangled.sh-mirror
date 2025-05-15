@@ -33,6 +33,7 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/posthog/posthog-go"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -1875,6 +1876,17 @@ func (s *State) NewIssue(w http.ResponseWriter, r *http.Request) {
 			log.Println("failed to set issue at", err)
 			s.pages.Notice(w, "issues", "Failed to create issue.")
 			return
+		}
+
+		if !s.config.Core.Dev {
+			err = s.posthog.Enqueue(posthog.Capture{
+				DistinctId: user.Did,
+				Event:      "new_issue",
+				Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "issue_id": issueId},
+			})
+			if err != nil {
+				log.Println("failed to enqueue posthog event:", err)
+			}
 		}
 
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueId))

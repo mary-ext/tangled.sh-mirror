@@ -36,10 +36,16 @@ type AvatarConfig struct {
 	SharedSecret string `env:"SHARED_SECRET"`
 }
 
+type PosthogConfig struct {
+	ApiKey   string `env:"API_KEY"`
+	Endpoint string `env:"ENDPOINT, default=https://eu.i.posthog.com"`
+}
+
 type Config struct {
 	Core      CoreConfig      `env:",prefix=TANGLED_"`
 	Jetstream JetstreamConfig `env:",prefix=TANGLED_JETSTREAM_"`
 	Resend    ResendConfig    `env:",prefix=TANGLED_RESEND_"`
+	Posthog   PosthogConfig   `env:",prefix=TANGLED_POSTHOG_"`
 	Camo      CamoConfig      `env:",prefix=TANGLED_CAMO_"`
 	Avatar    AvatarConfig    `env:",prefix=TANGLED_AVATAR_"`
 	OAuth     OAuthConfig     `env:",prefix=TANGLED_OAUTH_"`

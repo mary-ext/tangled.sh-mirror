@@ -28,6 +28,7 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/posthog/posthog-go"
 )
 
 // htmx fragment
@@ -605,6 +606,17 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if !s.config.Core.Dev {
+			err = s.posthog.Enqueue(posthog.Capture{
+				DistinctId: user.Did,
+				Event:      "new_pull_comment",
+				Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "pull_id": pull.PullId},
+			})
+			if err != nil {
+				log.Println("failed to enqueue posthog event:", err)
+			}
+		}
+
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", f.OwnerSlashRepo(), pull.PullId, commentId))
 		return
 	}
@@ -980,6 +992,17 @@ func (s *State) createPullRequest(
 		log.Println("failed to create pull request", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
+	}
+
+	if !s.config.Core.Dev {
+		err = s.posthog.Enqueue(posthog.Capture{
+			DistinctId: user.Did,
+			Event:      "new_pull",
+			Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "pull_id": pullId},
+		})
+		if err != nil {
+			log.Println("failed to enqueue posthog event:", err)
+		}
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))

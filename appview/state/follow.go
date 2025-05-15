@@ -7,6 +7,7 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -70,6 +71,17 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			FollowStatus: db.IsFollowing,
 		})
 
+		if !s.config.Core.Dev {
+			err = s.posthog.Enqueue(posthog.Capture{
+				DistinctId: currentUser.Did,
+				Event:      "follow",
+				Properties: posthog.Properties{"subject": subjectIdent.DID.String()},
+			})
+			if err != nil {
+				log.Println("failed to enqueue posthog event:", err)
+			}
+		}
+
 		return
 	case http.MethodDelete:
 		// find the record in the db
@@ -100,6 +112,17 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			UserDid:      subjectIdent.DID.String(),
 			FollowStatus: db.IsNotFollowing,
 		})
+
+		if !s.config.Core.Dev {
+			err = s.posthog.Enqueue(posthog.Capture{
+				DistinctId: currentUser.Did,
+				Event:      "unfollow",
+				Properties: posthog.Properties{"subject": subjectIdent.DID.String()},
+			})
+			if err != nil {
+				log.Println("failed to enqueue posthog event:", err)
+			}
+		}
 
 		return
 	}
