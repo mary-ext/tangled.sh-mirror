@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/haileyok/atproto-oauth-golang/helpers"
 	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/knotclient"
@@ -34,6 +35,7 @@ type OAuthHandler struct {
 	Store    *sessions.CookieStore
 	OAuth    *oauth.OAuth
 	Enforcer *rbac.Enforcer
+	Posthog  posthog.Client
 }
 
 func (o *OAuthHandler) Router() http.Handler {
@@ -247,6 +249,16 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("session saved successfully")
 	go o.addToDefaultKnot(oauthRequest.Did)
+
+	if !o.Config.Core.Dev {
+		err = o.Posthog.Enqueue(posthog.Capture{
+			DistinctId: oauthRequest.Did,
+			Event:      "signin",
+		})
+		if err != nil {
+			log.Println("failed to enqueue posthog event:", err)
+		}
+	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }

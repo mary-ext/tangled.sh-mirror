@@ -269,6 +269,7 @@ func (s *State) OAuthRouter() http.Handler {
 		Store:    sessions.NewCookieStore([]byte(s.config.Core.CookieSecret)),
 		OAuth:    s.oauth,
 		Enforcer: s.enforcer,
+		Posthog:  s.posthog,
 	}
 
 	return oauth.Router()
