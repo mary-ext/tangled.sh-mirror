@@ -154,9 +154,9 @@ func (s *State) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifacts, err := db.GetArtifact(
 		s.db,
-		db.Filter("repo_at", f.RepoAt),
-		db.Filter("tag", tag.Tag.Hash[:]),
-		db.Filter("name", filename),
+		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("tag", tag.Tag.Hash[:]),
+		db.FilterEq("name", filename),
 	)
 	if err != nil {
 		log.Println("failed to get artifacts", err)
@@ -196,9 +196,9 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifacts, err := db.GetArtifact(
 		s.db,
-		db.Filter("repo_at", f.RepoAt),
-		db.Filter("tag", tag[:]),
-		db.Filter("name", filename),
+		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("tag", tag[:]),
+		db.FilterEq("name", filename),
 	)
 	if err != nil {
 		log.Println("failed to get artifacts", err)
@@ -238,9 +238,9 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	err = db.DeleteArtifact(tx,
-		db.Filter("repo_at", f.RepoAt),
-		db.Filter("tag", artifact.Tag[:]),
-		db.Filter("name", filename),
+		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("tag", artifact.Tag[:]),
+		db.FilterEq("name", filename),
 	)
 	if err != nil {
 		log.Println("failed to remove artifact record from db", err)

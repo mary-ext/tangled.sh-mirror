@@ -188,7 +188,7 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) e
 
 		err = db.AddArtifact(d, artifact)
 	case models.CommitOperationDelete:
-		err = db.DeleteArtifact(d, db.Filter("did", did), db.Filter("rkey", e.Commit.RKey))
+		err = db.DeleteArtifact(d, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
 	}
 
 	if err != nil {
@@ -276,7 +276,7 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 
 		err = db.UpsertProfile(tx, &profile)
 	case models.CommitOperationDelete:
-		err = db.DeleteArtifact(d, db.Filter("did", did), db.Filter("rkey", e.Commit.RKey))
+		err = db.DeleteArtifact(d, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
 	}
 
 	if err != nil {
