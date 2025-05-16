@@ -3,8 +3,11 @@ package markup
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"net/url"
 	"path"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
@@ -14,6 +17,7 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
+	htmlparse "golang.org/x/net/html"
 
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 )
@@ -61,7 +65,79 @@ func (rctx *RenderContext) RenderMarkdown(source string) string {
 	if err := md.Convert([]byte(source), &buf); err != nil {
 		return source
 	}
-	return buf.String()
+
+	var processed strings.Builder
+	if err := postProcess(rctx, strings.NewReader(buf.String()), &processed); err != nil {
+		return source
+	}
+
+	return processed.String()
+}
+
+func postProcess(ctx *RenderContext, input io.Reader, output io.Writer) error {
+	node, err := htmlparse.Parse(io.MultiReader(
+		strings.NewReader("<html><body>"),
+		input,
+		strings.NewReader("</body></html>"),
+	))
+	if err != nil {
+		return fmt.Errorf("failed to parse html: %w", err)
+	}
+
+	if node.Type == htmlparse.DocumentNode {
+		node = node.FirstChild
+	}
+
+	visitNode(ctx, node)
+
+	newNodes := make([]*htmlparse.Node, 0, 5)
+
+	if node.Data == "html" {
+		node = node.FirstChild
+		for node != nil && node.Data != "body" {
+			node = node.NextSibling
+		}
+	}
+	if node != nil {
+		if node.Data == "body" {
+			child := node.FirstChild
+			for child != nil {
+				newNodes = append(newNodes, child)
+				child = child.NextSibling
+			}
+		} else {
+			newNodes = append(newNodes, node)
+		}
+	}
+
+	for _, node := range newNodes {
+		if err := htmlparse.Render(output, node); err != nil {
+			return fmt.Errorf("failed to render processed html: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func visitNode(ctx *RenderContext, node *htmlparse.Node) {
+	switch node.Type {
+	case htmlparse.ElementNode:
+		if node.Data == "img" {
+			for i, attr := range node.Attr {
+				if attr.Key != "src" {
+					continue
+				}
+				attr.Val = ctx.imageFromKnotTransformer(attr.Val)
+				attr.Val = ctx.camoImageLinkTransformer(attr.Val)
+				node.Attr[i] = attr
+			}
+		}
+
+		for n := node.FirstChild; n != nil; n = n.NextSibling {
+			visitNode(ctx, n)
+		}
+	default:
+	}
 }
 
 func (rctx *RenderContext) Sanitize(html string) string {
@@ -101,14 +177,14 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 			case *ast.Link:
 				a.rctx.relativeLinkTransformer(n)
 			case *ast.Image:
-				a.rctx.imageFromKnotTransformer(n)
-				a.rctx.camoImageLinkTransformer(n)
+				a.rctx.imageFromKnotAstTransformer(n)
+				a.rctx.camoImageLinkAstTransformer(n)
 			}
 		case RendererTypeDefault:
 			switch n := n.(type) {
 			case *ast.Image:
-				a.rctx.imageFromKnotTransformer(n)
-				a.rctx.camoImageLinkTransformer(n)
+				a.rctx.imageFromKnotAstTransformer(n)
+				a.rctx.camoImageLinkAstTransformer(n)
 			}
 		}
 
@@ -130,11 +206,9 @@ func (rctx *RenderContext) relativeLinkTransformer(link *ast.Link) {
 	link.Destination = []byte(newPath)
 }
 
-func (rctx *RenderContext) imageFromKnotTransformer(img *ast.Image) {
-	dst := string(img.Destination)
-
+func (rctx *RenderContext) imageFromKnotTransformer(dst string) string {
 	if isAbsoluteUrl(dst) {
-		return
+		return dst
 	}
 
 	scheme := "https"
@@ -155,7 +229,12 @@ func (rctx *RenderContext) imageFromKnotTransformer(img *ast.Image) {
 			actualPath),
 	}
 	newPath := parsedURL.String()
-	img.Destination = []byte(newPath)
+	return newPath
+}
+
+func (rctx *RenderContext) imageFromKnotAstTransformer(img *ast.Image) {
+	dst := string(img.Destination)
+	img.Destination = []byte(rctx.imageFromKnotTransformer(dst))
 }
 
 // actualPath decides when to join the file path with the
