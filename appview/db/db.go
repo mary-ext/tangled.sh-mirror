@@ -504,15 +504,25 @@ func runMigration(d *sql.DB, name string, migrationFn migrationFn) error {
 type filter struct {
 	key string
 	arg any
+	cmp string
 }
 
-func Filter(key string, arg any) filter {
+func FilterEq(key string, arg any) filter {
 	return filter{
 		key: key,
 		arg: arg,
+		cmp: "=",
+	}
+}
+
+func FilterNotEq(key string, arg any) filter {
+	return filter{
+		key: key,
+		arg: arg,
+		cmp: "<>",
 	}
 }
 
 func (f filter) Condition() string {
-	return fmt.Sprintf("%s = ?", f.key)
+	return fmt.Sprintf("%s %s ?", f.key, f.cmp)
 }

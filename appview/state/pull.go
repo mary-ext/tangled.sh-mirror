@@ -455,8 +455,8 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 
 	pulls, err := db.GetPulls(
 		s.db,
-		db.Filter("repo_at", f.RepoAt),
-		db.Filter("state", state),
+		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("state", state),
 	)
 	if err != nil {
 		log.Println("failed to get pulls", err)
@@ -1745,9 +1745,9 @@ func (s *State) resubmitStackedPullHelper(
 			tx,
 			p.ParentChangeId,
 			// these should be enough filters to be unique per-stack
-			db.Filter("repo_at", p.RepoAt.String()),
-			db.Filter("owner_did", p.OwnerDid),
-			db.Filter("change_id", p.ChangeId),
+			db.FilterEq("repo_at", p.RepoAt.String()),
+			db.FilterEq("owner_did", p.OwnerDid),
+			db.FilterEq("change_id", p.ChangeId),
 		)
 
 		if err != nil {

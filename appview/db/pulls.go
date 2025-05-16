@@ -988,7 +988,11 @@ type Stack []*Pull
 //
 // `w` is parent of none, so it is the top of the stack
 func GetStack(e Execer, stackId string) (Stack, error) {
-	unorderedPulls, err := GetPulls(e, Filter("stack_id", stackId))
+	unorderedPulls, err := GetPulls(
+		e,
+		FilterEq("stack_id", stackId),
+		FilterNotEq("state", PullDeleted),
+	)
 	if err != nil {
 		return nil, err
 	}
