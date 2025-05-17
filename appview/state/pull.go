@@ -135,6 +135,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:      f.RepoInfo(s, user),
 		DidHandleMap:  didHandleMap,
 		Pull:          pull,
+		Stack:         stack,
 		MergeCheck:    mergeCheckResponse,
 		ResubmitCheck: resubmitResult,
 	})

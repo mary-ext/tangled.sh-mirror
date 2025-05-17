@@ -743,6 +743,7 @@ type RepoSinglePullParams struct {
 	Active        string
 	DidHandleMap  map[string]string
 	Pull          *db.Pull
+	Stack         db.Stack
 	MergeCheck    types.MergeCheckResponse
 	ResubmitCheck ResubmitResult
 }
