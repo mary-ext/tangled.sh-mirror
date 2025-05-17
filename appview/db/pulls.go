@@ -1063,6 +1063,28 @@ func (stack Stack) StrictlyBelow(pull *Pull) Stack {
 	return nil
 }
 
+// all pulls above this pull (including self) in this stack
+func (stack Stack) Above(pull *Pull) Stack {
+	position := stack.Position(pull)
+
+	if position < 0 {
+		return nil
+	}
+
+	return stack[:position+1]
+}
+
+// all pulls below this pull (excluding self) in this stack
+func (stack Stack) StrictlyAbove(pull *Pull) Stack {
+	above := stack.Above(pull)
+
+	if len(above) > 0 {
+		return above[:len(above)-1]
+	}
+
+	return nil
+}
+
 // the combined format-patches of all the newest submissions in this stack
 func (stack Stack) CombinedPatch() string {
 	// go in reverse order because the bottom of the stack is the last element in the slice

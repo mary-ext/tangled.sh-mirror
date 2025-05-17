@@ -743,6 +743,7 @@ type RepoSinglePullParams struct {
 	Active        string
 	DidHandleMap  map[string]string
 	Pull          *db.Pull
+	Stack         db.Stack
 	MergeCheck    types.MergeCheckResponse
 	ResubmitCheck ResubmitResult
 }
@@ -757,6 +758,7 @@ type RepoPullPatchParams struct {
 	DidHandleMap map[string]string
 	RepoInfo     repoinfo.RepoInfo
 	Pull         *db.Pull
+	Stack        db.Stack
 	Diff         *types.NiceDiff
 	Round        int
 	Submission   *db.PullSubmission

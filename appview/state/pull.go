@@ -136,6 +136,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:      f.RepoInfo(s, user),
 		DidHandleMap:  didHandleMap,
 		Pull:          pull,
+		Stack:         stack,
 		MergeCheck:    mergeCheckResponse,
 		ResubmitCheck: resubmitResult,
 	})
@@ -303,6 +304,8 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	stack, _ := r.Context().Value("stack").(db.Stack)
+
 	roundId := chi.URLParam(r, "round")
 	roundIdInt, err := strconv.Atoi(roundId)
 	if err != nil || roundIdInt >= len(pull.Submissions) {
@@ -329,6 +332,7 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		DidHandleMap: didHandleMap,
 		RepoInfo:     f.RepoInfo(s, user),
 		Pull:         pull,
+		Stack:        stack,
 		Round:        roundIdInt,
 		Submission:   pull.Submissions[roundIdInt],
 		Diff:         &diff,
@@ -1647,13 +1651,17 @@ func (s *State) resubmitStackedPullHelper(
 		if op, ok := origById[np.ChangeId]; ok {
 			// pull exists in both stacks
 			// TODO: can we avoid reparse?
-			origFiles, _, _ := gitdiff.Parse(strings.NewReader(op.LatestPatch()))
-			newFiles, _, _ := gitdiff.Parse(strings.NewReader(np.LatestPatch()))
+			origFiles, origHeaderStr, _ := gitdiff.Parse(strings.NewReader(op.LatestPatch()))
+			newFiles, newHeaderStr, _ := gitdiff.Parse(strings.NewReader(np.LatestPatch()))
+
+			origHeader, _ := gitdiff.ParsePatchHeader(origHeaderStr)
+			newHeader, _ := gitdiff.ParsePatchHeader(newHeaderStr)
 
 			patchutil.SortPatch(newFiles)
 			patchutil.SortPatch(origFiles)
 
-			if patchutil.Equal(newFiles, origFiles) {
+			// text content of patch may be identical, but a jj rebase might have forwarded it
+			if patchutil.Equal(newFiles, origFiles) && origHeader.SHA == newHeader.SHA {
 				unchanged[op.ChangeId] = struct{}{}
 			} else {
 				updated[op.ChangeId] = struct{}{}

@@ -1,0 +1,47 @@
+{{ define "repo/pulls/fragments/pullStack" }}
+  <div class="grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+    {{ range $pull := .Stack }}
+      {{ $isCurrent := false }}
+      {{ with $.Pull }}
+        {{ $isCurrent = eq $pull.PullId $.Pull.PullId }}
+      {{ end }}
+      <div class="flex gap-2 items-center p-2">
+        {{ block "summarizedHeader" (list $pull $) }} {{ end }}
+        {{ if $isCurrent }}
+          {{ i "arrow-left" "w-4 h-4" }}
+        {{ end }}
+      </div>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "summarizedHeader" }}
+  {{ $pull := index . 0 }}
+  {{ $root := index . 1 }}
+  <a href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}" class="no-underline hover:no-underline">
+    <div class="flex text-sm items-center gap-2">
+      {{ block "summarizedPullState" $pull }} {{ end }}
+      <span class="dark:text-white">
+        <span class="text-gray-500 dark:text-gray-400">#{{ $pull.PullId }}</span>
+        {{ $pull.Title }}
+      </span>
+    </div>
+  </a>
+{{ end }}
+
+{{ define "summarizedPullState" }}
+  {{ $fgColor := "text-gray-600 dark:text-gray-300" }}
+  {{ $icon := "ban" }}
+
+  {{ if .State.IsOpen }}
+    {{ $fgColor = "text-green-600 dark:text-green-500" }}
+    {{ $icon = "git-pull-request" }}
+  {{ else if .State.IsMerged }}
+    {{ $fgColor = "text-purple-600 dark:text-purple-500" }}
+    {{ $icon = "git-merge" }}
+  {{ end }}
+
+  {{ $style := printf "w-4 h-4 %s" $fgColor }}
+
+  {{ i $icon $style }}
+{{ end }}

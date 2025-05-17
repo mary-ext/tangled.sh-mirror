@@ -11,7 +11,14 @@
 
 
 {{ define "repoContent" }}
-    {{ template "repo/pulls/fragments/pullHeader" . }}
+  {{ template "repo/pulls/fragments/pullHeader" . }}
+
+  {{ if .Pull.IsStacked }}
+    <div class="mt-8">
+      <p class="text-sm font-bold p-2 dark:text-white">STACK</p>
+      {{ template "repo/pulls/fragments/pullStack" . }}
+    </div>
+  {{ end }}
 {{ end }}
 
 {{ define "repoAfter" }}
