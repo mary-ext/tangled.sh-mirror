@@ -5,11 +5,13 @@
       {{ with $.Pull }}
         {{ $isCurrent = eq $pull.PullId $.Pull.PullId }}
       {{ end }}
-      <div class="flex gap-2 items-center p-2">
-        {{ block "summarizedHeader" (list $pull $) }} {{ end }}
+      <div class="flex gap-2 items-center p-2 hover:bg-gray-100 hover:dark:bg-gray-700 {{ if $isCurrent }}bg-gray-100 dark:bg-gray-700{{ end }}">
         {{ if $isCurrent }}
-          {{ i "arrow-left" "w-4 h-4" }}
+          {{ i "arrow-right" "w-4 h-4" }}
         {{ end }}
+        <div {{ if not $isCurrent }} class="ml-6" {{ end }}>
+        {{ block "summarizedHeader" (list $pull $) }} {{ end }}
+        </div>
       </div>
     {{ end }}
   </div>
@@ -18,7 +20,7 @@
 {{ define "summarizedHeader" }}
   {{ $pull := index . 0 }}
   {{ $root := index . 1 }}
-  <a href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}" class="no-underline hover:no-underline">
+  <a href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}">
     <div class="flex text-sm items-center gap-2">
       {{ block "summarizedPullState" $pull }} {{ end }}
       <span class="dark:text-white">
