@@ -122,9 +122,9 @@ require (
 
 replace github.com/sergi/go-diff => github.com/sergi/go-diff v1.1.0
 
-replace github.com/go-git/go-git/v5 => /home/op/code/go-git
+replace github.com/go-git/go-git/v5 => github.com/oppiliappan/go-git/v5 v5.17.0
 
-replace github.com/bluekeyes/go-gitdiff => /home/op/code/go-gitdiff
+replace github.com/bluekeyes/go-gitdiff => tangled.sh/oppi.li/go-gitdiff v0.8.2
 
 // from bluesky-social/indigo
 replace github.com/gocql/gocql => github.com/scylladb/gocql v1.14.4
