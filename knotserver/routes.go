@@ -61,10 +61,20 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	gr, err := git.Open(path, ref)
 	if err != nil {
+		plain, err2 := git.PlainOpen(path)
+		if err2 != nil {
+			l.Error("opening repo", "error", err2.Error())
+			notFound(w)
+			return
+		}
+		branches, _ := plain.Branches()
+
 		log.Println(err)
+
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
 			resp := types.RepoIndexResponse{
-				IsEmpty: true,
+				IsEmpty:  true,
+				Branches: branches,
 			}
 			writeJSON(w, resp)
 			return
@@ -461,20 +471,14 @@ func (h *Handle) Tags(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handle) Branches(w http.ResponseWriter, r *http.Request) {
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
-	l := h.l.With("handler", "Branches")
 
-	gr, err := git.Open(path, "")
+	gr, err := git.PlainOpen(path)
 	if err != nil {
 		notFound(w)
 		return
 	}
 
-	branches, err := gr.Branches()
-	if err != nil {
-		l.Error("getting branches", "error", err.Error())
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	branches, _ := gr.Branches()
 
 	resp := types.RepoBranchesResponse{
 		Branches: branches,
@@ -1143,7 +1147,7 @@ func (h *Handle) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gr, err := git.Open(path, "")
+	gr, err := git.PlainOpen(path)
 	if err != nil {
 		notFound(w)
 		return
