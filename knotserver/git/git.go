@@ -261,9 +261,6 @@ func (g *GitRepo) Branches() ([]types.Branch, error) {
 	branches := []types.Branch{}
 
 	defaultBranch, err := g.FindMainBranch()
-	if err != nil {
-		return nil, fmt.Errorf("getting default branch", "error", err.Error())
-	}
 
 	_ = bi.ForEach(func(ref *plumbing.Reference) error {
 		b := types.Branch{}

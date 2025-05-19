@@ -49,9 +49,9 @@ type RepoTreeResponse struct {
 }
 
 type TagReference struct {
-	Reference `json:"ref,omitempty"`
-	Tag       *object.Tag `json:"tag,omitempty"`
-	Message   string      `json:"message,omitempty"`
+	Reference
+	Tag     *object.Tag `json:"tag,omitempty"`
+	Message string      `json:"message,omitempty"`
 }
 
 type Reference struct {
@@ -74,7 +74,7 @@ type RepoBranchesResponse struct {
 }
 
 type RepoBranchResponse struct {
-	Branch Branch `json:"branch,omitempty"`
+	Branch Branch
 }
 
 type RepoDefaultBranchResponse struct {
