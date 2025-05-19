@@ -1,5 +1,13 @@
 {{ define "title" }}{{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot; {{ .RepoInfo.FullName }}{{ end }}
 
+
+{{ define "extrameta" }}
+    {{ $title := printf "%s &middot; issue #%d &middot; %s" .Issue.Title .Issue.IssueId .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/issues/%d" .RepoInfo.FullName .Issue.IssueId }}
+    
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+{{ end }}
+
 {{ define "repoContent" }}
     <header class="pb-4">
       <h1 class="text-2xl">

@@ -1,5 +1,13 @@
 {{ define "title" }} commit {{ .Diff.Commit.This }} &middot; {{ .RepoInfo.FullName }} {{ end }}
 
+{{ define "extrameta" }}
+    {{ $title := printf "commit %s &middot; %s" .Diff.Commit.This .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/commit/%s" .RepoInfo.FullName .Diff.Commit.This }}
+    
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+{{ end }}
+
+
 {{ define "repoContent" }}
 
 {{ $repo := .RepoInfo.FullName }}

@@ -28,6 +28,7 @@ require (
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/whyrusleeping/cbor-gen v0.2.1-0.20241030202151-b7a6831be65e
 	github.com/yuin/goldmark v1.4.13
+	golang.org/x/net v0.39.0
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
 )
 
@@ -114,7 +115,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
