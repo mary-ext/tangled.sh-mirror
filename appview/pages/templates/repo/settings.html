@@ -55,19 +55,26 @@
         <label for="branch">default branch</label>
         <div class="flex gap-2 items-center">
             <select id="branch" name="branch" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                <option
+                    value=""
+                    disabled
+                    selected
+                >
+                Choose a default branch
+                </option>
                 {{ range .Branches }}
                     <option
-                        value="{{ . }}"
+                        value="{{ .Name }}"
                         class="py-1"
-                        {{ if eq . $.DefaultBranch }}
+                        {{ if .IsDefault }}
                             selected
                         {{ end }}
                     >
-                        {{ . }}
+                        {{ .Name }}
                     </option>
                 {{ end }}
             </select>
-            <button class="btn my-2 flex gap-2 items-center" type="text">
+            <button class="btn my-2 flex gap-2 items-center" type="submit">
                 <span>save</span>
                 {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </button>
