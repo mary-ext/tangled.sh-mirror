@@ -981,48 +981,36 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		var branchNames []string
-		var defaultBranch string
 		us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 		if err != nil {
 			log.Println("failed to create unsigned client", err)
-		} else {
-			resp, err := us.Branches(f.OwnerDid(), f.RepoName)
-			if err != nil {
-				log.Println("failed to reach knotserver", err)
-			} else {
-				defer resp.Body.Close()
-
-				body, err := io.ReadAll(resp.Body)
-				if err != nil {
-					log.Printf("Error reading response body: %v", err)
-				} else {
-					var result types.RepoBranchesResponse
-					err = json.Unmarshal(body, &result)
-					if err != nil {
-						log.Println("failed to parse response:", err)
-					} else {
-						for _, branch := range result.Branches {
-							branchNames = append(branchNames, branch.Name)
-						}
-					}
-				}
-			}
-
-			defaultBranchResp, err := us.DefaultBranch(f.OwnerDid(), f.RepoName)
-			if err != nil {
-				log.Println("failed to reach knotserver", err)
-			} else {
-				defaultBranch = defaultBranchResp.Branch
-			}
+			return
 		}
+
+		resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+		if err != nil {
+			log.Println("failed to reach knotserver", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Error reading response body: %v", err)
+		}
+
+		var result types.RepoBranchesResponse
+		err = json.Unmarshal(body, &result)
+		if err != nil {
+			log.Println("failed to parse response:", err)
+		}
+
 		s.pages.RepoSettings(w, pages.RepoSettingsParams{
 			LoggedInUser:                user,
 			RepoInfo:                    f.RepoInfo(s, user),
 			Collaborators:               repoCollaborators,
 			IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
-			Branches:                    branchNames,
-			DefaultBranch:               defaultBranch,
+			Branches:                    result.Branches,
 		})
 	}
 }
