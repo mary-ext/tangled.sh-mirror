@@ -5,30 +5,44 @@
       {{ with $.Pull }}
         {{ $isCurrent = eq $pull.PullId $.Pull.PullId }}
       {{ end }}
-      <div class="flex gap-2 items-center p-2 hover:bg-gray-100 hover:dark:bg-gray-700 {{ if $isCurrent }}bg-gray-100 dark:bg-gray-700{{ end }}">
-        {{ if $isCurrent }}
+      <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}" class="no-underline hover:no-underline hover:bg-gray-100 hover:dark:bg-gray-700">
+        <div class="flex gap-2 items-center px-2 {{ if $isCurrent }}bg-gray-100 dark:bg-gray-700{{ end }}">
+          {{ if $isCurrent }}
           {{ i "arrow-right" "w-4 h-4" }}
-        {{ end }}
-        <div {{ if not $isCurrent }} class="ml-6" {{ end }}>
-        {{ block "summarizedHeader" (list $pull $) }} {{ end }}
+          {{ end }}
+          <div class="{{ if not $isCurrent }} ml-6 {{ end }} w-full py-2">
+            {{ block "summarizedHeader" $pull }} {{ end }}
+          </div>
         </div>
-      </div>
+      </a>
     {{ end }}
   </div>
 {{ end }}
 
 {{ define "summarizedHeader" }}
-  {{ $pull := index . 0 }}
-  {{ $root := index . 1 }}
-  <a href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}">
-    <div class="flex text-sm items-center gap-2">
-      {{ block "summarizedPullState" $pull }} {{ end }}
-      <span class="dark:text-white">
-        <span class="text-gray-500 dark:text-gray-400">#{{ $pull.PullId }}</span>
-        {{ $pull.Title }}
+  <div class="flex text-sm items-center justify-between w-full">
+    <div class="flex items-center gap-2">
+      {{ block "summarizedPullState" . }} {{ end }}
+      <span>
+        <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
+        {{ .Title }}
       </span>
     </div>
-  </a>
+
+    <div>
+      {{ $latestRound := .LastRoundNumber }}
+      {{ $lastSubmission := index .Submissions $latestRound }}
+      {{ $commentCount := len $lastSubmission.Comments }}
+      <span>
+        <div class="inline-flex items-center gap-2">
+          {{ $commentCount }}
+          comment{{if ne $commentCount 1}}s{{end}}
+        </div>
+      </span>
+      <span class="mx-2 before:content-['·'] before:select-none"></span>
+      <span>round <span class="font-mono">#{{ $latestRound }}</span></span>
+    </div>
+  </div>
 {{ end }}
 
 {{ define "summarizedPullState" }}
