@@ -2,6 +2,14 @@
     {{ .Pull.Title }} &middot; pull #{{ .Pull.PullId }} &middot; {{ .RepoInfo.FullName }}
 {{ end }}
 
+{{ define "extrameta" }}
+    {{ $title := printf "%s &middot; pull #%d &middot; %s" .Pull.Title .Pull.PullId .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/pulls/%d" .RepoInfo.FullName .Pull.PullId }}
+    
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+{{ end }}
+
+
 {{ define "repoContent" }}
     {{ template "repo/pulls/fragments/pullHeader" . }}
 {{ end }}

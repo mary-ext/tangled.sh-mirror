@@ -2,12 +2,17 @@
 
 
 {{ define "extrameta" }}
-    <meta name="vcs:clone" content="https://tangled.sh/{{ .RepoInfo.FullName }}"/>
-    <meta name="forge:summary" content="https://tangled.sh/{{ .RepoInfo.FullName }}">
-    <meta name="forge:dir" content="https://tangled.sh/{{ .RepoInfo.FullName }}/tree/{ref}/{path}">
-    <meta name="forge:file" content="https://tangled.sh/{{ .RepoInfo.FullName }}/blob/{ref}/{path}">
-    <meta name="forge:line" content="https://tangled.sh/{{ .RepoInfo.FullName }}/blob/{ref}/{path}#L{line}">
-    <meta name="go-import" content="tangled.sh/{{ .RepoInfo.FullNameWithoutAt }} git https://tangled.sh/{{ .RepoInfo.FullName }}">
+
+    {{ $path := "" }}
+    {{ range .BreadCrumbs }}
+    {{ $path = printf "%s/%s" $path (index . 0) }}
+    {{ end }}
+
+    {{ template "repo/fragments/meta" . }}
+    {{ $title := printf "%s at %s &middot; %s" $path .Ref .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/tree/%s%s" .RepoInfo.FullName .Ref $path }}
+    
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
 

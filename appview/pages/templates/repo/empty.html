@@ -1,5 +1,10 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
+{{ define "extrameta" }}
+    {{ template "repo/fragments/meta" . }}
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
+{{ end }}
+
 {{ define "repoContent" }}
     <main>
         <p class="text-center pt-5 text-gray-400 dark:text-gray-500">

@@ -1,31 +1,12 @@
 {{ define "title" }}{{ .RepoInfo.FullName }} at {{ .Ref }}{{ end }}
 
+
 {{ define "extrameta" }}
-    <meta
-        name="vcs:clone"
-        content="https://tangled.sh/{{ .RepoInfo.FullName }}"
-    />
-    <meta
-        name="forge:summary"
-        content="https://tangled.sh/{{ .RepoInfo.FullName }}"
-    />
-    <meta
-        name="forge:dir"
-        content="https://tangled.sh/{{ .RepoInfo.FullName }}/tree/{ref}/{path}"
-    />
-    <meta
-        name="forge:file"
-        content="https://tangled.sh/{{ .RepoInfo.FullName }}/blob/{ref}/{path}"
-    />
-    <meta
-        name="forge:line"
-        content="https://tangled.sh/{{ .RepoInfo.FullName }}/blob/{ref}/{path}#L{line}"
-    />
-    <meta
-        name="go-import"
-        content="tangled.sh/{{ .RepoInfo.FullNameWithoutAt }} git https://tangled.sh/{{ .RepoInfo.FullName }}"
-    />
+    {{ template "repo/fragments/meta" . }}
+
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
 {{ end }}
+
 
 {{ define "repoContent" }}
     <main>

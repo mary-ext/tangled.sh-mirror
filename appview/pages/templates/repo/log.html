@@ -1,5 +1,12 @@
 {{ define "title" }}commits &middot; {{ .RepoInfo.FullName }}{{ end }}
 
+{{ define "extrameta" }}
+    {{ $title := printf "commits &middot; %s" .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/commits" .RepoInfo.FullName }}
+    
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+{{ end }}
+
 {{ define "repoContent" }}
 <section id="commit-table" class="overflow-x-auto">
     <h2 class="font-bold text-sm mb-4 uppercase dark:text-white">
