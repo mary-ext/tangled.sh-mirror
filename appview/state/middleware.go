@@ -178,8 +178,14 @@ func ResolvePull(s *State) middleware.Middleware {
 					log.Println("failed to get stack", err)
 					return
 				}
+				abandonedPulls, err := db.GetAbandonedPulls(s.db, pr.StackId)
+				if err != nil {
+					log.Println("failed to get abandoned pulls", err)
+					return
+				}
 
 				ctx = context.WithValue(ctx, "stack", stack)
+				ctx = context.WithValue(ctx, "abandonedPulls", abandonedPulls)
 			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))

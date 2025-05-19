@@ -15,7 +15,6 @@
 
   {{ if .Pull.IsStacked }}
     <div class="mt-8">
-      <p class="text-sm font-bold p-2 dark:text-white">STACK</p>
       {{ template "repo/pulls/fragments/pullStack" . }}
     </div>
   {{ end }}
@@ -85,7 +84,7 @@
             {{ end }}
           </div>
         </summary>
-        
+
         {{ if .IsFormatPatch }}
         {{ $patches := .AsFormatPatch }}
         {{ $round := .RoundNumber }}
@@ -169,7 +168,7 @@
           {{ end }}
 
           {{ if $.LoggedInUser }}
-            {{ template "repo/pulls/fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck) }}
+            {{ template "repo/pulls/fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck "Stack" $.Stack) }}
           {{ else }}
             <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm px-6 py-4 w-fit dark:text-white">
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
@@ -198,6 +197,13 @@
       {{ i "git-merge" "w-4 h-4" }}
       <span class="font-medium">pull request successfully merged</span
       >
+    </div>
+  </div>
+  {{ else if .Pull.State.IsDeleted }}
+  <div class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div class="flex items-center gap-2 text-red-500 dark:text-red-300">
+      {{ i "git-pull-request-closed" "w-4 h-4" }}
+      <span class="font-medium">This pull has been deleted (possibly by jj abandon or jj squash)</span>
     </div>
   </div>
   {{ else if and .MergeCheck .MergeCheck.Error }}

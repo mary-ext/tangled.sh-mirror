@@ -2,8 +2,8 @@
   <header class="flex items-center gap-2 pb-2">
       {{ block "pullState" .Pull }} {{ end }}
       <h1 class="text-2xl dark:text-white">
-          <span class="text-gray-500 dark:text-gray-400">#{{ .Pull.PullId }}</span>
           {{ .Pull.Title }}
+          <span class="text-gray-500 dark:text-gray-400">#{{ .Pull.PullId }}</span>
       </h1>
   </header>
 
@@ -96,6 +96,9 @@
   {{ else if .State.IsMerged }}
     {{ $bgColor = "bg-purple-600 dark:bg-purple-700" }}
     {{ $icon = "git-merge" }}
+  {{ else if .State.IsDeleted }}
+    {{ $bgColor = "bg-red-600 dark:bg-red-700" }}
+    {{ $icon = "git-pull-request-closed" }}
   {{ end }}
 
   <div id="state" class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}" >

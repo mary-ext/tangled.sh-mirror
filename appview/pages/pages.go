@@ -738,14 +738,15 @@ func (r ResubmitResult) Unknown() bool {
 }
 
 type RepoSinglePullParams struct {
-	LoggedInUser  *oauth.User
-	RepoInfo      repoinfo.RepoInfo
-	Active        string
-	DidHandleMap  map[string]string
-	Pull          *db.Pull
-	Stack         db.Stack
-	MergeCheck    types.MergeCheckResponse
-	ResubmitCheck ResubmitResult
+	LoggedInUser   *oauth.User
+	RepoInfo       repoinfo.RepoInfo
+	Active         string
+	DidHandleMap   map[string]string
+	Pull           *db.Pull
+	Stack          db.Stack
+	AbandonedPulls []*db.Pull
+	MergeCheck     types.MergeCheckResponse
+	ResubmitCheck  ResubmitResult
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
@@ -837,6 +838,7 @@ type PullActionsParams struct {
 	RoundNumber   int
 	MergeCheck    types.MergeCheckResponse
 	ResubmitCheck ResubmitResult
+	Stack         db.Stack
 }
 
 func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error {

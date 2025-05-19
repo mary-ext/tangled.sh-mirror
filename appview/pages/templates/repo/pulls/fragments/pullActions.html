@@ -1,6 +1,17 @@
 {{ define "repo/pulls/fragments/pullActions" }}
   {{ $lastIdx := sub (len .Pull.Submissions) 1 }}
   {{ $roundNumber := .RoundNumber }}
+  {{ $stack := .Stack }}
+
+  {{ $totalPulls := sub 0 1 }}
+  {{ $below := sub 0 1 }}
+  {{ $stackCount := "" }}
+  {{ if .Pull.IsStacked }}
+    {{ $totalPulls = len $stack }}
+    {{ $below = $stack.Below .Pull }}
+    {{ $mergeable := len $below.Mergeable }}
+    {{ $stackCount = printf "%d/%d" $mergeable $totalPulls }}
+  {{ end }}
 
   {{ $isPushAllowed := .RepoInfo.Roles.IsPushAllowed }}
   {{ $isMerged := .Pull.State.IsMerged }}
@@ -33,7 +44,7 @@
             hx-confirm="Are you sure you want to merge pull #{{ .Pull.PullId }} into the `{{ .Pull.TargetBranch }}` branch?"
             class="btn p-2 flex items-center gap-2 group" {{ $disabled }}>
             {{ i "git-merge" "w-4 h-4" }}
-            <span>merge</span>
+            <span>merge{{if $stackCount}} {{$stackCount}}{{end}}</span>
             {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </button>
         {{ end }}

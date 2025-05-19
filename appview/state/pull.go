@@ -75,6 +75,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 			RoundNumber:   roundNumber,
 			MergeCheck:    mergeCheckResponse,
 			ResubmitCheck: resubmitResult,
+			Stack:         stack,
 		})
 		return
 	}
@@ -97,6 +98,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 
 	// can be nil  if this pull is not stacked
 	stack, _ := r.Context().Value("stack").(db.Stack)
+	abandonedPulls, _ := r.Context().Value("abandonedPulls").([]*db.Pull)
 
 	totalIdents := 1
 	for _, submission := range pull.Submissions {
@@ -132,13 +134,14 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
-		LoggedInUser:  user,
-		RepoInfo:      f.RepoInfo(s, user),
-		DidHandleMap:  didHandleMap,
-		Pull:          pull,
-		Stack:         stack,
-		MergeCheck:    mergeCheckResponse,
-		ResubmitCheck: resubmitResult,
+		LoggedInUser:   user,
+		RepoInfo:       f.RepoInfo(s, user),
+		DidHandleMap:   didHandleMap,
+		Pull:           pull,
+		Stack:          stack,
+		AbandonedPulls: abandonedPulls,
+		MergeCheck:     mergeCheckResponse,
+		ResubmitCheck:  resubmitResult,
 	})
 }
 
@@ -167,21 +170,9 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stack) 
 	if pull.IsStacked() {
 		// combine patches of substack
 		subStack := stack.Below(pull)
-
 		// collect the portion of the stack that is mergeable
-		var mergeable db.Stack
-		for _, p := range subStack {
-			// stop at the first merged PR
-			if p.State == db.PullMerged || p.State == db.PullClosed {
-				break
-			}
-
-			// skip over deleted PRs
-			if p.State != db.PullDeleted {
-				mergeable = append(mergeable, p)
-			}
-		}
-
+		mergeable := subStack.Mergeable()
+		// combine each patch
 		patch = mergeable.CombinedPatch()
 	}
 
@@ -225,7 +216,7 @@ func (s *State) mergeCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stack) 
 }
 
 func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
-	if pull.State == db.PullMerged || pull.PullSource == nil {
+	if pull.State == db.PullMerged || pull.State == db.PullDeleted || pull.PullSource == nil {
 		return pages.Unknown
 	}
 
@@ -903,6 +894,13 @@ func (s *State) createPullRequest(
 		return
 	}
 
+	client, err := s.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get authorized client", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		return
+	}
+
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		log.Println("failed to start tx")
@@ -947,12 +945,6 @@ func (s *State) createPullRequest(
 	})
 	if err != nil {
 		log.Println("failed to create pull request", err)
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-		return
-	}
-	client, err := s.oauth.AuthorizedClient(r)
-	if err != nil {
-		log.Println("failed to get authorized client", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
@@ -1820,21 +1812,10 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 
 		// combine patches of substack
 		subStack := stack.Below(pull)
-
 		// collect the portion of the stack that is mergeable
-		for _, p := range subStack {
-			// stop at the first merged/closed PR
-			if p.State == db.PullMerged || p.State == db.PullClosed {
-				break
-			}
-
-			// skip over deleted PRs
-			if p.State == db.PullDeleted {
-				continue
-			}
-
-			pullsToMerge = append(pullsToMerge, p)
-		}
+		mergeable := subStack.Mergeable()
+		// add to total patch
+		pullsToMerge = append(pullsToMerge, mergeable...)
 	}
 
 	patch := pullsToMerge.CombinedPatch()
@@ -2014,10 +1995,10 @@ func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	var pullsToReopen []*db.Pull
 	pullsToReopen = append(pullsToReopen, pull)
 
-	// if this PR is stacked, then we want to reopen all PRs below this one on the stack
+	// if this PR is stacked, then we want to reopen all PRs above this one on the stack
 	if pull.IsStacked() {
 		stack := r.Context().Value("stack").(db.Stack)
-		subStack := stack.StrictlyBelow(pull)
+		subStack := stack.StrictlyAbove(pull)
 		pullsToReopen = append(pullsToReopen, subStack...)
 	}
 

@@ -49,7 +49,7 @@ func (p PullState) IsMerged() bool {
 func (p PullState) IsClosed() bool {
 	return p == PullClosed
 }
-func (p PullState) IsDelete() bool {
+func (p PullState) IsDeleted() bool {
 	return p == PullDeleted
 }
 
@@ -885,11 +885,12 @@ func NewPullComment(e Execer, comment *PullComment) (int64, error) {
 
 func SetPullState(e Execer, repoAt syntax.ATURI, pullId int, pullState PullState) error {
 	_, err := e.Exec(
-		`update pulls set state = ? where repo_at = ? and pull_id = ? and state <> ?`,
+		`update pulls set state = ? where repo_at = ? and pull_id = ? and (state <> ? or state <> ?)`,
 		pullState,
 		repoAt,
 		pullId,
 		PullDeleted, // only update state of non-deleted pulls
+		PullMerged,  // only update state of non-merged pulls
 	)
 	return err
 }
@@ -1032,6 +1033,19 @@ func GetStack(e Execer, stackId string) (Stack, error) {
 	return pulls, nil
 }
 
+func GetAbandonedPulls(e Execer, stackId string) ([]*Pull, error) {
+	pulls, err := GetPulls(
+		e,
+		FilterEq("stack_id", stackId),
+		FilterEq("state", PullDeleted),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return pulls, nil
+}
+
 // position of this pull in the stack
 func (stack Stack) Position(pull *Pull) int {
 	return slices.IndexFunc(stack, func(p *Pull) bool {
@@ -1095,4 +1109,25 @@ func (stack Stack) CombinedPatch() string {
 		combined.WriteString("\n")
 	}
 	return combined.String()
+}
+
+// filter out PRs that are "active"
+//
+// PRs that are still open are active
+func (stack Stack) Mergeable() Stack {
+	var mergeable Stack
+
+	for _, p := range stack {
+		// stop at the first merged PR
+		if p.State == PullMerged || p.State == PullClosed {
+			break
+		}
+
+		// skip over deleted PRs
+		if p.State != PullDeleted {
+			mergeable = append(mergeable, p)
+		}
+	}
+
+	return mergeable
 }

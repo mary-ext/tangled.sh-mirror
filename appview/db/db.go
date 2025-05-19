@@ -393,9 +393,6 @@ func Make(dbPath string) (*DB, error) {
 	db.Exec("pragma foreign_keys = off;")
 	runMigration(db, "recreate-pulls-column-for-stacking-support", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
-			-- disable fk to not delete submissions table
-			pragma foreign_keys = off;
-
 			create table pulls_new (
 				-- identifiers
 				id integer primary key autoincrement,
@@ -446,15 +443,11 @@ func Make(dbPath string) (*DB, error) {
 
 			drop table pulls;
 			alter table pulls_new rename to pulls;
-
-			-- reenable fk
-			pragma foreign_keys = on;
 		`)
 		return err
 	})
 	db.Exec("pragma foreign_keys = on;")
 
->>>>>>> Conflict 1 of 1 ends
 	return &DB{db}, nil
 }
 
