@@ -93,7 +93,7 @@ func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*types.RepoInde
 	return do[types.RepoIndexResponse](us, req)
 }
 
-func (us *UnsignedClient) Log(ownerDid, repoName, ref string, page int) (*http.Response, error) {
+func (us *UnsignedClient) Log(ownerDid, repoName, ref string, page int) (*types.RepoLogResponse, error) {
 	const (
 		Method = "GET"
 	)
@@ -109,7 +109,7 @@ func (us *UnsignedClient) Log(ownerDid, repoName, ref string, page int) (*http.R
 		return nil, err
 	}
 
-	return us.client.Do(req)
+	return do[types.RepoLogResponse](us, req)
 }
 
 func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, error) {
