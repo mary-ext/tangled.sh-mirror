@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -991,9 +992,22 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	branches := result.Branches
+	sort.Slice(branches, func(i int, j int) bool {
+		return branches[i].Commit.Committer.When.After(branches[j].Commit.Committer.When)
+	})
+
+	withoutDefault := []types.Branch{}
+	for _, b := range branches {
+		if b.IsDefault {
+			continue
+		}
+		withoutDefault = append(withoutDefault, b)
+	}
+
 	s.pages.PullCompareBranchesFragment(w, pages.PullCompareBranchesParams{
 		RepoInfo: f.RepoInfo(s, user),
-		Branches: result.Branches,
+		Branches: withoutDefault,
 	})
 }
 
@@ -1088,6 +1102,11 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		log.Println("failed to parse target branches response:", err)
 		return
 	}
+
+	sourceBranches := sourceResult.Branches
+	sort.Slice(sourceBranches, func(i int, j int) bool {
+		return sourceBranches[i].Commit.Committer.When.After(sourceBranches[j].Commit.Committer.When)
+	})
 
 	s.pages.PullCompareForkBranchesFragment(w, pages.PullCompareForkBranchesParams{
 		RepoInfo:       f.RepoInfo(s, user),
