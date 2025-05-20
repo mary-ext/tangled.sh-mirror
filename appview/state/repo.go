@@ -2054,3 +2054,87 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
+	f, err := s.fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", f.Knot)
+		s.pages.Error503(w)
+		return
+	}
+
+	branches, err := us.Branches(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	tags, err := us.Tags(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	forks, err := db.GetForksByDid(s.db, user.Did)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to get forks", err)
+		return
+	}
+
+	s.pages.RepoCompare(w, pages.RepoCompareParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(s, user),
+		Forks:        forks,
+		Branches:     branches.Branches,
+		Tags:         tags.Tags,
+	})
+}
+
+func (s *State) RepoCompareDiff(w http.ResponseWriter, r *http.Request) {
+	f, err := s.fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+	user := s.oauth.GetUser(r)
+
+	rest := chi.URLParam(r, "*") // master...feature/xyz
+	parts := strings.SplitN(rest, "...", 2)
+	if len(parts) != 2 {
+		s.pages.Notice(w, "compare-error", "Invalid ref format.")
+		return
+	}
+
+	ref1 := parts[0]
+	ref2 := parts[1]
+
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	formatPatch, err := us.Compare(f.OwnerDid(), f.RepoName, ref1, ref2)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to compare", err)
+		return
+	}
+
+	s.pages.RepoCompareDiff(w, pages.RepoCompareDiffParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(s, user),
+		FormatPatch:  *formatPatch,
+	})
+}
