@@ -113,7 +113,7 @@ func (d *Handle) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedR
 	w.Header().Set("content-type", "text/plain; charset=UTF-8")
 	w.WriteHeader(http.StatusForbidden)
 
-	fmt.Fprintf(w, "Welcome to Tangled.sh!\n\nPushes are currently only supported over SSH.")
+	fmt.Fprintf(w, "Pushes are only supported over SSH.")
 
 	// If the appview gave us the repository owner's handle we can attempt to
 	// construct the correct ssh url.
