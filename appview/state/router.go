@@ -118,6 +118,17 @@ func (s *State) UserRouter() http.Handler {
 				})
 			})
 
+			r.Route("/compare", func(r chi.Router) {
+				r.Get("/", s.RepoCompare)
+
+				// we have to wildcard here since we want to support GitHub's compare syntax
+				//   /compare/{ref1}...{ref2}
+				// for example:
+				//   /compare/master...some/feature
+				//   /compare/master...example.com:another/feature <- this is a fork
+				r.Get("/*", s.RepoCompareDiff)
+			})
+
 			r.Route("/pulls", func(r chi.Router) {
 				r.Get("/", s.RepoPulls)
 				r.With(middleware.AuthMiddleware(s.oauth)).Route("/new", func(r chi.Router) {

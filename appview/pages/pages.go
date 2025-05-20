@@ -857,6 +857,34 @@ func (p *Pages) PullNewCommentFragment(w io.Writer, params PullNewCommentParams)
 	return p.executePlain("repo/pulls/fragments/pullNewComment", w, params)
 }
 
+type RepoCompareParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Forks        []db.Repo
+	Branches     []types.Branch
+	Tags         []*types.TagReference
+
+	Active string
+}
+
+func (p *Pages) RepoCompare(w io.Writer, params RepoCompareParams) error {
+	params.Active = "overview"
+	return p.executeRepo("repo/compare/new", w, params)
+}
+
+type RepoCompareDiffParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	FormatPatch  types.RepoFormatPatchResponse
+
+	Active string
+}
+
+func (p *Pages) RepoCompareDiff(w io.Writer, params RepoCompareDiffParams) error {
+	params.Active = "overview"
+	return p.executeRepo("repo/compare/new", w, params)
+}
+
 func (p *Pages) Static() http.Handler {
 	if p.dev {
 		return http.StripPrefix("/static/", http.FileServer(http.Dir("appview/pages/static")))
