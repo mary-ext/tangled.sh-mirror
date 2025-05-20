@@ -247,22 +247,9 @@ func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stac
 		return pages.Unknown
 	}
 
-	resp, err := us.Branch(ownerDid, repoName, pull.PullSource.Branch)
+	result, err := us.Branch(ownerDid, repoName, pull.PullSource.Branch)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
-		return pages.Unknown
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("error reading response body: %v", err)
-		return pages.Unknown
-	}
-	defer resp.Body.Close()
-
-	var result types.RepoBranchResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		log.Println("failed to parse response:", err)
 		return pages.Unknown
 	}
 
