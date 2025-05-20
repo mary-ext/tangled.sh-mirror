@@ -122,7 +122,7 @@ func postProcess(ctx *RenderContext, input io.Reader, output io.Writer) error {
 func visitNode(ctx *RenderContext, node *htmlparse.Node) {
 	switch node.Type {
 	case htmlparse.ElementNode:
-		if node.Data == "img" {
+		if node.Data == "img" || node.Data == "source" {
 			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
@@ -142,7 +142,14 @@ func visitNode(ctx *RenderContext, node *htmlparse.Node) {
 
 func (rctx *RenderContext) Sanitize(html string) string {
 	policy := bluemonday.UGCPolicy()
-	policy.AllowAttrs("align", "style").Globally()
+
+	// video
+	policy.AllowElements("video")
+	policy.AllowAttrs("controls").OnElements("video")
+	policy.AllowElements("source")
+	policy.AllowAttrs("src", "type").OnElements("source")
+
+	policy.AllowAttrs("align", "style", "width", "height").Globally()
 	policy.AllowStyles(
 		"margin",
 		"padding",
