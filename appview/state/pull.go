@@ -305,7 +305,8 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	diff := pull.Submissions[roundIdInt].AsNiceDiff(pull.TargetBranch)
+	patch := pull.Submissions[roundIdInt].Patch
+	diff := patchutil.AsNiceDiff(patch, pull.TargetBranch)
 
 	s.pages.RepoPullPatchPage(w, pages.RepoPullPatchParams{
 		LoggedInUser: user,
@@ -361,14 +362,14 @@ func (s *State) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	currentPatch, err := pull.Submissions[roundIdInt].AsDiff(pull.TargetBranch)
+	currentPatch, err := patchutil.AsDiff(pull.Submissions[roundIdInt].Patch)
 	if err != nil {
 		log.Println("failed to interdiff; current patch malformed")
 		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; current patch is invalid.")
 		return
 	}
 
-	previousPatch, err := pull.Submissions[roundIdInt-1].AsDiff(pull.TargetBranch)
+	previousPatch, err := patchutil.AsDiff(pull.Submissions[roundIdInt-1].Patch)
 	if err != nil {
 		log.Println("failed to interdiff; previous patch malformed")
 		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; previous patch is invalid.")
@@ -1143,7 +1144,7 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
- 	branches := result.Branches
+	branches := result.Branches
 	sort.Slice(branches, func(i int, j int) bool {
 		return branches[i].Commit.Committer.When.After(branches[j].Commit.Committer.When)
 	})
@@ -1233,7 +1234,7 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 
 	s.pages.PullCompareForkBranchesFragment(w, pages.PullCompareForkBranchesParams{
 		RepoInfo:       f.RepoInfo(s, user),
-		SourceBranches: sourceResult.Branches,
+		SourceBranches: sourceBranches,
 		TargetBranches: targetResult.Branches,
 	})
 }

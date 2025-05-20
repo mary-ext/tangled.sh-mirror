@@ -2084,11 +2084,15 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	forks, err := db.GetForksByDid(s.db, user.Did)
-	if err != nil {
-		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to get forks", err)
-		return
+	var forks []db.Repo
+	if user != nil {
+		var err error
+		forks, err = db.GetForksByDid(s.db, user.Did)
+		if err != nil {
+			s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+			log.Println("failed to get forks", err)
+			return
+		}
 	}
 
 	s.pages.RepoCompare(w, pages.RepoCompareParams{

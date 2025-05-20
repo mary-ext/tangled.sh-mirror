@@ -2,6 +2,7 @@ package patchutil
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -9,25 +10,13 @@ import (
 	"strings"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"tangled.sh/tangled.sh/core/types"
 )
 
-type FormatPatch struct {
-	Files []*gitdiff.File
-	*gitdiff.PatchHeader
-	Raw string
-}
-
-func (f FormatPatch) ChangeId() (string, error) {
-	if vals, ok := f.RawHeaders["Change-Id"]; ok && len(vals) == 1 {
-		return vals[0], nil
-	}
-	return "", fmt.Errorf("no change-id found")
-}
-
-func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
+func ExtractPatches(formatPatch string) ([]types.FormatPatch, error) {
 	patches := splitFormatPatch(formatPatch)
 
-	result := []FormatPatch{}
+	result := []types.FormatPatch{}
 
 	for _, patch := range patches {
 		files, headerStr, err := gitdiff.Parse(strings.NewReader(patch))
@@ -40,7 +29,7 @@ func ExtractPatches(formatPatch string) ([]FormatPatch, error) {
 			return nil, fmt.Errorf("failed to parse patch header: %w", err)
 		}
 
-		result = append(result, FormatPatch{
+		result = append(result, types.FormatPatch{
 			Files:       files,
 			PatchHeader: header,
 			Raw:         patch,
@@ -262,4 +251,68 @@ func SortPatch(patch []*gitdiff.File) {
 	slices.SortFunc(patch, func(a, b *gitdiff.File) int {
 		return strings.Compare(bestName(a), bestName(b))
 	})
+}
+
+func AsDiff(patch string) ([]*gitdiff.File, error) {
+	// if format-patch; then extract each patch
+	var diffs []*gitdiff.File
+	if IsFormatPatch(patch) {
+		patches, err := ExtractPatches(patch)
+		if err != nil {
+			return nil, err
+		}
+		var ps [][]*gitdiff.File
+		for _, p := range patches {
+			ps = append(ps, p.Files)
+		}
+
+		diffs = CombineDiff(ps...)
+	} else {
+		d, _, err := gitdiff.Parse(strings.NewReader(patch))
+		if err != nil {
+			return nil, err
+		}
+		diffs = d
+	}
+
+	return diffs, nil
+}
+
+func AsNiceDiff(patch, targetBranch string) types.NiceDiff {
+	diffs, err := AsDiff(patch)
+	if err != nil {
+		log.Println(err)
+	}
+
+	nd := types.NiceDiff{}
+	nd.Commit.Parent = targetBranch
+
+	for _, d := range diffs {
+		ndiff := types.Diff{}
+		ndiff.Name.New = d.NewName
+		ndiff.Name.Old = d.OldName
+		ndiff.IsBinary = d.IsBinary
+		ndiff.IsNew = d.IsNew
+		ndiff.IsDelete = d.IsDelete
+		ndiff.IsCopy = d.IsCopy
+		ndiff.IsRename = d.IsRename
+
+		for _, tf := range d.TextFragments {
+			ndiff.TextFragments = append(ndiff.TextFragments, *tf)
+			for _, l := range tf.Lines {
+				switch l.Op {
+				case gitdiff.OpAdd:
+					nd.Stat.Insertions += 1
+				case gitdiff.OpDelete:
+					nd.Stat.Deletions += 1
+				}
+			}
+		}
+
+		nd.Diff = append(nd.Diff, ndiff)
+	}
+
+	nd.Stat.FilesChanged = len(diffs)
+
+	return nd
 }
