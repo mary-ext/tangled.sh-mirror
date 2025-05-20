@@ -252,22 +252,9 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := us.Log(f.OwnerDid(), f.RepoName, ref, page)
+	repolog, err := us.Log(f.OwnerDid(), f.RepoName, ref, page)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
-		return
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("error reading response body: %v", err)
-		return
-	}
-
-	var repolog types.RepoLogResponse
-	err = json.Unmarshal(body, &repolog)
-	if err != nil {
-		log.Println("failed to parse json response", err)
 		return
 	}
 
@@ -291,7 +278,7 @@ func (s *State) RepoLog(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:       user,
 		TagMap:             tagMap,
 		RepoInfo:           f.RepoInfo(s, user),
-		RepoLogResponse:    repolog,
+		RepoLogResponse:    *repolog,
 		EmailToDidOrHandle: EmailToDidOrHandle(s, uniqueEmails(repolog.Commits)),
 	})
 	return
