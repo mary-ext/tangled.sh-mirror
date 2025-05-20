@@ -15,11 +15,11 @@ import (
 	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
