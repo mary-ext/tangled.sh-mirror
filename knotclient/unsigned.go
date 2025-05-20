@@ -52,6 +52,29 @@ func (us *UnsignedClient) newRequest(method, endpoint string, query url.Values, 
 	return http.NewRequest(method, reqUrl.String(), bytes.NewReader(body))
 }
 
+func do[T any](us *UnsignedClient, req *http.Request) (*T, error) {
+	resp, err := us.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %v", err)
+		return nil, err
+	}
+
+	var result T
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Printf("Error unmarshalling response body: %v", err)
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*http.Response, error) {
 	const (
 		Method = "GET"
