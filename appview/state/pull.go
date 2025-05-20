@@ -639,22 +639,9 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+		result, err := us.Branches(f.OwnerDid(), f.RepoName)
 		if err != nil {
 			log.Println("failed to reach knotserver", err)
-			return
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("Error reading response body: %v", err)
-			return
-		}
-
-		var result types.RepoBranchesResponse
-		err = json.Unmarshal(body, &result)
-		if err != nil {
-			log.Println("failed to parse response:", err)
 			return
 		}
 
@@ -1162,22 +1149,9 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+	result, err := us.Branches(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
-		return
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %v", err)
-		return
-	}
-
-	var result types.RepoBranchesResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse response:", err)
 		return
 	}
 
@@ -1245,23 +1219,9 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	sourceResp, err := sourceBranchesClient.Branches(user.Did, repo.Name)
+	sourceResult, err := sourceBranchesClient.Branches(user.Did, repo.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver for source branches", err)
-		return
-	}
-
-	sourceBody, err := io.ReadAll(sourceResp.Body)
-	if err != nil {
-		log.Println("failed to read source response body", err)
-		return
-	}
-	defer sourceResp.Body.Close()
-
-	var sourceResult types.RepoBranchesResponse
-	err = json.Unmarshal(sourceBody, &sourceResult)
-	if err != nil {
-		log.Println("failed to parse source branches response:", err)
 		return
 	}
 
@@ -1272,23 +1232,9 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	targetResp, err := targetBranchesClient.Branches(f.OwnerDid(), f.RepoName)
+	targetResult, err := targetBranchesClient.Branches(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver for target branches", err)
-		return
-	}
-
-	targetBody, err := io.ReadAll(targetResp.Body)
-	if err != nil {
-		log.Println("failed to read target response body", err)
-		return
-	}
-	defer targetResp.Body.Close()
-
-	var targetResult types.RepoBranchesResponse
-	err = json.Unmarshal(targetBody, &targetResult)
-	if err != nil {
-		log.Println("failed to parse target branches response:", err)
 		return
 	}
 
