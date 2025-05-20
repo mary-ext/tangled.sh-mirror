@@ -16,9 +16,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/knotclient"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
+	"tangled.sh/tangled.sh/core/knotclient"
 )
 
 func (s *State) fullyResolvedRepo(r *http.Request) (*FullyResolvedRepo, error) {
