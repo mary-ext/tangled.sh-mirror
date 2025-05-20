@@ -124,7 +124,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(s, user)
 
-	forkInfo, err := getForkInfo(repoInfo, s, f, us, w, user)
+	forkInfo, err := getForkInfo(repoInfo, s, f, w, user)
 	if err != nil {
 		log.Printf("Failed to fetch fork information: %v", err)
 		return
@@ -148,7 +148,6 @@ func getForkInfo(
 	repoInfo repoinfo.RepoInfo,
 	s *State,
 	f *FullyResolvedRepo,
-	us *knotclient.UnsignedClient,
 	w http.ResponseWriter,
 	user *oauth.User,
 ) (*types.ForkInfo, error) {
@@ -166,6 +165,12 @@ func getForkInfo(
 	if !forkInfo.IsFork {
 		forkInfo.IsFork = false
 		return &forkInfo, nil
+	}
+
+	us, err := knotclient.NewUnsignedClient(repoInfo.Source.Knot, s.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", repoInfo.Source.Knot)
+		return nil, err
 	}
 
 	resp, err := us.Branches(repoInfo.Source.Did, repoInfo.Source.Name)
