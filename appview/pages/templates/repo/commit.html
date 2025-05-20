@@ -34,7 +34,7 @@
             <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ $commit.Author.Name }}</a>
           {{ end }}
           <span class="px-1 select-none before:content-['\00B7']"></span>
-          {{ timeFmt $commit.Author.When }}
+          {{ timeFmt $commit.Committer.When }}
           <span class="px-1 select-none before:content-['\00B7']"></span>
       </p>
 
