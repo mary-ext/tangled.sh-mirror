@@ -54,24 +54,10 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := us.Index(f.OwnerDid(), f.RepoName, ref)
+	result, err := us.Index(f.OwnerDid(), f.RepoName, ref)
 	if err != nil {
 		s.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %v", err)
-		return
-	}
-
-	var result types.RepoIndexResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Printf("Error unmarshalling response body: %v", err)
 		return
 	}
 
@@ -155,7 +141,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:       user,
 		RepoInfo:           repoInfo,
 		TagMap:             tagMap,
-		RepoIndexResponse:  result,
+		RepoIndexResponse:  *result,
 		CommitsTrunc:       commitsTrunc,
 		TagsTrunc:          tagsTrunc,
 		ForkInfo:           forkInfo,
