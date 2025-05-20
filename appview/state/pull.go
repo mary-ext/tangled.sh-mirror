@@ -629,7 +629,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 
 		result, err := us.Branches(f.OwnerDid(), f.RepoName)
 		if err != nil {
-			log.Println("failed to reach knotserver", err)
+			log.Println("failed to fetch branches", err)
 			return
 		}
 
@@ -1143,7 +1143,7 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	branches := result.Branches
+ 	branches := result.Branches
 	sort.Slice(branches, func(i int, j int) bool {
 		return branches[i].Commit.Committer.When.After(branches[j].Commit.Committer.When)
 	})

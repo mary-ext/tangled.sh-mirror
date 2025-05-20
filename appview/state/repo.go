@@ -185,7 +185,7 @@ func getForkInfo(
 		return nil, err
 	}
 
-	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
+ 	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
 		return branch.Name == f.Ref
 	}) {
 		forkInfo.Status = types.MissingBranch
@@ -556,7 +556,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
+ 	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
 		if a.IsDefault {
 			return -1
 		}
