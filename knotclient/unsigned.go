@@ -112,7 +112,7 @@ func (us *UnsignedClient) Log(ownerDid, repoName, ref string, page int) (*types.
 	return do[types.RepoLogResponse](us, req)
 }
 
-func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, error) {
+func (us *UnsignedClient) Branches(ownerDid, repoName string) (*types.RepoBranchesResponse, error) {
 	const (
 		Method = "GET"
 	)
@@ -124,7 +124,7 @@ func (us *UnsignedClient) Branches(ownerDid, repoName string) (*http.Response, e
 		return nil, err
 	}
 
-	return us.client.Do(req)
+	return do[types.RepoBranchesResponse](us, req)
 }
 
 func (us *UnsignedClient) Tags(ownerDid, repoName string) (*types.RepoTagsResponse, error) {

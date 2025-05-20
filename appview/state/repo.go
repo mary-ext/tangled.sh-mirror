@@ -179,22 +179,9 @@ func getForkInfo(
 		return nil, err
 	}
 
-	resp, err := us.Branches(repoInfo.Source.Did, repoInfo.Source.Name)
+	result, err := us.Branches(repoInfo.Source.Did, repoInfo.Source.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
-		return nil, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading forkResponse forkBody: %v", err)
-		return nil, err
-	}
-
-	var result types.RepoBranchesResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse forkResponse:", err)
 		return nil, err
 	}
 
@@ -563,22 +550,9 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+	result, err := us.Branches(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
-		return
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %v", err)
-		return
-	}
-
-	var result types.RepoBranchesResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse response:", err)
 		return
 	}
 
@@ -603,7 +577,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 	s.pages.RepoBranches(w, pages.RepoBranchesParams{
 		LoggedInUser:         user,
 		RepoInfo:             f.RepoInfo(s, user),
-		RepoBranchesResponse: result,
+		RepoBranchesResponse: *result,
 	})
 	return
 }
@@ -980,22 +954,10 @@ func (s *State) RepoSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+		result, err := us.Branches(f.OwnerDid(), f.RepoName)
 		if err != nil {
 			log.Println("failed to reach knotserver", err)
 			return
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("Error reading response body: %v", err)
-		}
-
-		var result types.RepoBranchesResponse
-		err = json.Unmarshal(body, &result)
-		if err != nil {
-			log.Println("failed to parse response:", err)
 		}
 
 		s.pages.RepoSettings(w, pages.RepoSettingsParams{
@@ -1136,26 +1098,13 @@ func (f *FullyResolvedRepo) RepoInfo(s *State, u *oauth.User) repoinfo.RepoInfo 
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s: %v", knot, err)
 	} else {
-		resp, err := us.Branches(f.OwnerDid(), f.RepoName)
+		result, err := us.Branches(f.OwnerDid(), f.RepoName)
 		if err != nil {
 			log.Printf("failed to get branches for %s/%s: %v", f.OwnerDid(), f.RepoName, err)
-		} else {
-			defer resp.Body.Close()
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				log.Printf("error reading branch response body: %v", err)
-			} else {
-				var branchesResp types.RepoBranchesResponse
-				if err := json.Unmarshal(body, &branchesResp); err != nil {
-					log.Printf("error parsing branch response: %v", err)
-				} else {
-					disableFork = false
-				}
+		}
 
-				if len(branchesResp.Branches) == 0 {
-					disableFork = true
-				}
-			}
+		if len(result.Branches) == 0 {
+			disableFork = true
 		}
 	}
 
