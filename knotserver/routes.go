@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-enry/go-enry/v2"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -710,6 +712,106 @@ func (h *Handle) RepoForkAheadBehind(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(types.AncestorCheckResponse{Status: status})
+}
+
+func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "RepoForkSync")
+
+	data := struct {
+		Did    string `json:"did"`
+		Source string `json:"source"`
+		Name   string `json:"name,omitempty"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	did := data.Did
+	source := data.Source
+
+	if did == "" || source == "" {
+		l.Error("invalid request body, empty did or name")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var name string
+	if data.Name != "" {
+		name = data.Name
+	} else {
+		name = filepath.Base(source)
+	}
+
+	branch := chi.URLParam(r, "branch")
+	branch, _ = url.PathUnescape(branch)
+
+	relativeRepoPath := filepath.Join(did, name)
+	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
+
+	gr, err := git.Open(repoPath, branch)
+	if err != nil {
+		log.Println(err)
+		notFound(w)
+		return
+	}
+
+	languageFileCount := make(map[string]int)
+	languagePercentage := make(map[string]float64)
+
+	err = recurseEntireTree(gr, func(absPath string) {
+		lang, safe := enry.GetLanguageByExtension(absPath)
+		if len(lang) == 0 || !safe {
+			content, _ := gr.FileContentN(absPath, 1024)
+			if !safe {
+				lang = enry.GetLanguage(absPath, content)
+			} else {
+				lang, _ = enry.GetLanguageByContent(absPath, content)
+				if len(lang) == 0 {
+					return
+				}
+			}
+		}
+
+		v, ok := languageFileCount[lang]
+		if ok {
+			languageFileCount[lang] = v + 1
+		} else {
+			languageFileCount[lang] = 1
+		}
+	}, "")
+	if err != nil {
+		log.Println(err)
+		writeError(w, err.Error(), http.StatusNoContent)
+		return
+	}
+
+	for path, fileCount := range languageFileCount {
+		percentage := float64(fileCount) / float64(len(languageFileCount)) * 100.0
+		languagePercentage[path] = percentage
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(types.RepoLanguageResponse{Languages: languagePercentage})
+}
+
+func recurseEntireTree(git *git.GitRepo, callback func(absPath string), filePath string) error {
+	files, err := git.FileTree(filePath)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	for _, file := range files {
+		absPath := path.Join(filePath, file.Name)
+		if !file.IsFile {
+			return recurseEntireTree(git, callback, absPath)
+		}
+		callback(absPath)
+	}
+
+	return nil
 }
 
 func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {

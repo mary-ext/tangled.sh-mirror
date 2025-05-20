@@ -126,6 +126,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	r.Route("/repo", func(r chi.Router) {
 		r.Use(h.VerifySignature)
 		r.Put("/new", h.NewRepo)
+		r.Get("/languages/{branch}", h.RepoLanguages)
 		r.Delete("/", h.RemoveRepo)
 		r.Route("/fork", func(r chi.Router) {
 			r.Post("/", h.RepoFork)

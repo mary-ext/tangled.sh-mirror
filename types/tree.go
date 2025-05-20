@@ -8,6 +8,7 @@ import (
 
 // A nicer git tree representation.
 type NiceTree struct {
+	// Relative path
 	Name      string `json:"name"`
 	Mode      string `json:"mode"`
 	Size      int64  `json:"size"`

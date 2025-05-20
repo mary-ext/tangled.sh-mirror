@@ -169,6 +169,42 @@ func (g *GitRepo) LastCommit() (*object.Commit, error) {
 	return c, nil
 }
 
+func (g *GitRepo) FileContentN(path string, cap int64) ([]byte, error) {
+	buf := []byte{}
+
+	c, err := g.r.CommitObject(g.h)
+	if err != nil {
+		return nil, fmt.Errorf("commit object: %w", err)
+	}
+
+	tree, err := c.Tree()
+	if err != nil {
+		return nil, fmt.Errorf("file tree: %w", err)
+	}
+
+	file, err := tree.File(path)
+	if err != nil {
+		return nil, err
+	}
+
+	isbin, _ := file.IsBinary()
+
+	if !isbin {
+		reader, err := file.Reader()
+		if err != nil {
+			return nil, err
+		}
+		bufReader := io.LimitReader(reader, cap)
+		_, err = bufReader.Read(buf)
+		if err != nil {
+			return nil, err
+		}
+		return buf, nil
+	} else {
+		return nil, ErrBinaryFile
+	}
+}
+
 func (g *GitRepo) FileContent(path string) (string, error) {
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
