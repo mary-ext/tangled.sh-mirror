@@ -10,15 +10,17 @@
 
 {{ define "summarizedHeader" }}
   <div class="flex text-sm items-center justify-between w-full">
-    <div class="flex items-center gap-2 text-ellipsis">
-      {{ block "summarizedPullState" . }} {{ end }}
-      <span>
+    <div class="flex items-center gap-2 min-w-0 flex-1 pr-2">
+      <div class="flex-shrink-0">
+        {{ block "summarizedPullState" . }} {{ end }}
+      </div>
+      <span class="truncate text-sm text-gray-800 dark:text-gray-200">
         <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
         {{ .Title }}
       </span>
     </div>
 
-    <div>
+    <div class="flex-shrink-0">
       {{ $latestRound := .LastRoundNumber }}
       {{ $lastSubmission := index .Submissions $latestRound }}
       {{ $commentCount := len $lastSubmission.Comments }}
@@ -72,7 +74,7 @@
           {{ if $isCurrent }}
           {{ i "arrow-right" "w-4 h-4" }}
           {{ end }}
-          <div class="{{ if not $isCurrent }} ml-6 {{ end }} w-full py-2">
+          <div class="{{ if not $isCurrent }} pl-6 {{ end }} w-full py-2">
             {{ block "summarizedHeader" $pull }} {{ end }}
           </div>
         </div>
