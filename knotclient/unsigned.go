@@ -75,7 +75,7 @@ func do[T any](us *UnsignedClient, req *http.Request) (*T, error) {
 	return &result, nil
 }
 
-func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*http.Response, error) {
+func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*types.RepoIndexResponse, error) {
 	const (
 		Method = "GET"
 	)
@@ -90,7 +90,7 @@ func (us *UnsignedClient) Index(ownerDid, repoName, ref string) (*http.Response,
 		return nil, err
 	}
 
-	return us.client.Do(req)
+	return do[types.RepoIndexResponse](us, req)
 }
 
 func (us *UnsignedClient) Log(ownerDid, repoName, ref string, page int) (*http.Response, error) {
