@@ -139,23 +139,7 @@ func (us *UnsignedClient) Tags(ownerDid, repoName string) (*types.RepoTagsRespon
 		return nil, err
 	}
 
-	resp, err := us.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var result types.RepoTagsResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
+	return do[types.RepoTagsResponse](us, req)
 }
 
 func (us *UnsignedClient) Branch(ownerDid, repoName, branch string) (*http.Response, error) {
