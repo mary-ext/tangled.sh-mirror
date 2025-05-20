@@ -41,5 +41,6 @@
   "image/x-rgb",
   "image/x-xbitmap",
   "image/x-xpixmap",
-  "image/x-xwindowdump"
+  "image/x-xwindowdump",
+  "video/mp4"
 ]
