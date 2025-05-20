@@ -124,25 +124,44 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(s, user)
 
+	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	if err != nil {
+		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	}
+
+	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+		return
+	}
+
 	var forkInfo *types.ForkInfo
 	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
-		forkInfo, err = getForkInfo(repoInfo, s, f, w, user)
+	forkInfo, err = getForkInfo(repoInfo, s, f, w, user, signedClient)
 		if err != nil {
 			log.Printf("Failed to fetch fork information: %v", err)
 			return
 		}
 	}
 
+	repoLanguages, err := signedClient.RepoLanguages(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref)
+	if err != nil {
+		log.Printf("failed to compute language percentages: %s", err)
+		return
+	}
+
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
-		LoggedInUser:       user,
-		RepoInfo:           repoInfo,
-		TagMap:             tagMap,
-		RepoIndexResponse:  result,
-		CommitsTrunc:       commitsTrunc,
-		TagsTrunc:          tagsTrunc,
-		ForkInfo:           forkInfo,
-		BranchesTrunc:      branchesTrunc,
-		EmailToDidOrHandle: EmailToDidOrHandle(s, emails),
+		LoggedInUser:        user,
+		RepoInfo:            repoInfo,
+		TagMap:              tagMap,
+		RepoIndexResponse:   result,
+		CommitsTrunc:        commitsTrunc,
+		TagsTrunc:           tagsTrunc,
+		ForkInfo:            forkInfo,
+		BranchesTrunc:       branchesTrunc,
+		EmailToDidOrHandle:  EmailToDidOrHandle(s, emails),
+		LanguagePercentages: repoLanguages.Languages,
 	})
 	return
 }
@@ -153,6 +172,7 @@ func getForkInfo(
 	f *FullyResolvedRepo,
 	w http.ResponseWriter,
 	user *oauth.User,
+	signedClient *knotclient.SignedClient,
 ) (*types.ForkInfo, error) {
 	if user == nil {
 		return nil, nil
@@ -161,12 +181,6 @@ func getForkInfo(
 	forkInfo := types.ForkInfo{
 		IsFork: repoInfo.Source != nil,
 		Status: types.UpToDate,
-	}
-
-	secret, err := db.GetRegistrationKey(s.db, f.Knot)
-	if err != nil {
-		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
 	}
 
 	if !forkInfo.IsFork {
@@ -204,12 +218,6 @@ func getForkInfo(
 	}) {
 		forkInfo.Status = types.MissingBranch
 		return &forkInfo, nil
-	}
-
-	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
-		return nil, err
 	}
 
 	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)

@@ -106,6 +106,37 @@ func (s *SignedClient) NewRepo(did, repoName, defaultBranch string) (*http.Respo
 	return s.client.Do(req)
 }
 
+func (s *SignedClient) RepoLanguages(ownerDid, source, name, branch string) (*types.RepoLanguageResponse, error) {
+	const (
+		Method = "GET"
+	)
+	endpoint := fmt.Sprintf("/repo/languages/%s", url.PathEscape(branch))
+
+	body, _ := json.Marshal(map[string]any{
+		"did":    ownerDid,
+		"source": source,
+		"name":   name,
+	})
+
+	req, err := s.newRequest(Method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var languagePercentages types.RepoLanguageResponse
+	if err := json.NewDecoder(resp.Body).Decode(&languagePercentages); err != nil {
+		log.Printf("failed to decode fork status: %s", err)
+		return nil, err
+	}
+
+	return &languagePercentages, nil
+}
+
 func (s *SignedClient) RepoForkAheadBehind(ownerDid, source, name, branch, hiddenRef string) (*http.Response, error) {
 	const (
 		Method = "GET"

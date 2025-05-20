@@ -412,9 +412,10 @@ type RepoIndexParams struct {
 	BranchesTrunc []types.Branch
 	ForkInfo      *types.ForkInfo
 	types.RepoIndexResponse
-	HTMLReadme         template.HTML
-	Raw                bool
-	EmailToDidOrHandle map[string]string
+	HTMLReadme          template.HTML
+	Raw                 bool
+	EmailToDidOrHandle  map[string]string
+	LanguagePercentages map[string]float64
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
