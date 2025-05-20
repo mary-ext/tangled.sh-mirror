@@ -228,7 +228,7 @@ func (h *Handle) BlobRaw(w http.ResponseWriter, r *http.Request) {
 	mimeType := http.DetectContentType(contents)
 
 	// exception for svg
-	if strings.HasPrefix(mimeType, "text/xml") && filepath.Ext(treePath) == ".svg" {
+	if filepath.Ext(treePath) == ".svg" {
 		mimeType = "image/svg+xml"
 	}
 
