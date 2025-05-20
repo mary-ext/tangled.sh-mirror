@@ -127,7 +127,7 @@ func (g *GitRepo) DiffTree(commit1, commit2 *object.Commit) (*types.DiffTree, er
 
 // FormatPatch generates a git-format-patch output between two commits,
 // and returns the raw format-patch series, a parsed FormatPatch and an error.
-func (g *GitRepo) formatSinglePatch(base, commit2 plumbing.Hash, extraArgs ...string) (string, *patchutil.FormatPatch, error) {
+func (g *GitRepo) formatSinglePatch(base, commit2 plumbing.Hash, extraArgs ...string) (string, *types.FormatPatch, error) {
 	var stdout bytes.Buffer
 
 	args := []string{
@@ -222,7 +222,7 @@ func (g *GitRepo) commitsBetween(newCommit, oldCommit *object.Commit) ([]*object
 	return commits, nil
 }
 
-func (g *GitRepo) FormatPatch(base, commit2 *object.Commit) (string, []patchutil.FormatPatch, error) {
+func (g *GitRepo) FormatPatch(base, commit2 *object.Commit) (string, []types.FormatPatch, error) {
 	// get list of commits between commir2 and base
 	commits, err := g.commitsBetween(commit2, base)
 	if err != nil {
@@ -233,7 +233,7 @@ func (g *GitRepo) FormatPatch(base, commit2 *object.Commit) (string, []patchutil
 	slices.Reverse(commits)
 
 	var allPatchesContent strings.Builder
-	var allPatches []patchutil.FormatPatch
+	var allPatches []types.FormatPatch
 
 	for _, commit := range commits {
 		changeId := ""

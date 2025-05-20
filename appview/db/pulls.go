@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/patchutil"
@@ -203,81 +202,15 @@ func (p *Pull) IsStacked() bool {
 	return p.StackId != ""
 }
 
-func (s PullSubmission) AsDiff(targetBranch string) ([]*gitdiff.File, error) {
-	patch := s.Patch
-
-	// if format-patch; then extract each patch
-	var diffs []*gitdiff.File
-	if patchutil.IsFormatPatch(patch) {
-		patches, err := patchutil.ExtractPatches(patch)
-		if err != nil {
-			return nil, err
-		}
-		var ps [][]*gitdiff.File
-		for _, p := range patches {
-			ps = append(ps, p.Files)
-		}
-
-		diffs = patchutil.CombineDiff(ps...)
-	} else {
-		d, _, err := gitdiff.Parse(strings.NewReader(patch))
-		if err != nil {
-			return nil, err
-		}
-		diffs = d
-	}
-
-	return diffs, nil
-}
-
-func (s PullSubmission) AsNiceDiff(targetBranch string) types.NiceDiff {
-	diffs, err := s.AsDiff(targetBranch)
-	if err != nil {
-		log.Println(err)
-	}
-
-	nd := types.NiceDiff{}
-	nd.Commit.Parent = targetBranch
-
-	for _, d := range diffs {
-		ndiff := types.Diff{}
-		ndiff.Name.New = d.NewName
-		ndiff.Name.Old = d.OldName
-		ndiff.IsBinary = d.IsBinary
-		ndiff.IsNew = d.IsNew
-		ndiff.IsDelete = d.IsDelete
-		ndiff.IsCopy = d.IsCopy
-		ndiff.IsRename = d.IsRename
-
-		for _, tf := range d.TextFragments {
-			ndiff.TextFragments = append(ndiff.TextFragments, *tf)
-			for _, l := range tf.Lines {
-				switch l.Op {
-				case gitdiff.OpAdd:
-					nd.Stat.Insertions += 1
-				case gitdiff.OpDelete:
-					nd.Stat.Deletions += 1
-				}
-			}
-		}
-
-		nd.Diff = append(nd.Diff, ndiff)
-	}
-
-	nd.Stat.FilesChanged = len(diffs)
-
-	return nd
-}
-
 func (s PullSubmission) IsFormatPatch() bool {
 	return patchutil.IsFormatPatch(s.Patch)
 }
 
-func (s PullSubmission) AsFormatPatch() []patchutil.FormatPatch {
+func (s PullSubmission) AsFormatPatch() []types.FormatPatch {
 	patches, err := patchutil.ExtractPatches(s.Patch)
 	if err != nil {
 		log.Println("error extracting patches from submission:", err)
-		return []patchutil.FormatPatch{}
+		return []types.FormatPatch{}
 	}
 
 	return patches
