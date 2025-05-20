@@ -99,7 +99,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			return 1
 		}
 		if a.Commit != nil {
-			if a.Commit.Author.When.Before(b.Commit.Author.When) {
+			if a.Commit.Committer.When.Before(b.Commit.Committer.When) {
 				return 1
 			} else {
 				return -1
@@ -597,7 +597,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 			return 1
 		}
 		if a.Commit != nil {
-			if a.Commit.Author.When.Before(b.Commit.Author.When) {
+			if a.Commit.Committer.When.Before(b.Commit.Committer.When) {
 				return 1
 			} else {
 				return -1

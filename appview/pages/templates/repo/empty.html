@@ -17,7 +17,7 @@
           <a href="/{{ $.RepoInfo.FullName }}/tree/{{$br.Name}}" class="no-underline hover:no-underline">
             <div class="flex items-center justify-between p-2">
               {{ $br.Name }}
-              <time class="text-gray-500 dark:text-gray-400">{{ timeFmt $br.Commit.Author.When }}</time>
+              <time class="text-gray-500 dark:text-gray-400">{{ timeFmt $br.Commit.Committer.When }}</time>
             </div>
           </a>
           {{ end }}

@@ -237,7 +237,7 @@
             <div
               class="inline-block px-1 select-none after:content-['·']"
               ></div>
-            <span>{{ timeFmt .Author.When }}</span>
+            <span>{{ timeFmt .Committer.When }}</span>
             {{ $tagsForCommit := index $.TagMap .Hash.String }}
             {{ if gt (len $tagsForCommit) 0 }}
             <div
@@ -278,7 +278,7 @@
           </a>
           {{ if .Commit }}
           <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
-          <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .Commit.Author.When }}</time>
+          <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .Commit.Committer.When }}</time>
           {{ end }}
           {{ if .IsDefault }}
           <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
