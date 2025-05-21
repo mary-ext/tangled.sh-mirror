@@ -154,6 +154,9 @@ func (rctx *RenderContext) Sanitize(html string) string {
 	policy.AllowElements("source")
 	policy.AllowAttrs("src", "type").OnElements("source")
 
+	// centering content
+	policy.AllowElements("center")
+
 	policy.AllowAttrs("align", "style", "width", "height").Globally()
 	policy.AllowStyles(
 		"margin",
