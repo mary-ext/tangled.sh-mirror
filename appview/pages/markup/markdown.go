@@ -127,9 +127,14 @@ func visitNode(ctx *RenderContext, node *htmlparse.Node) {
 				if attr.Key != "src" {
 					continue
 				}
-				attr.Val = ctx.imageFromKnotTransformer(attr.Val)
-				attr.Val = ctx.camoImageLinkTransformer(attr.Val)
-				node.Attr[i] = attr
+
+				camoUrl, _ := url.Parse(ctx.CamoUrl)
+				dstUrl, _ := url.Parse(attr.Val)
+				if dstUrl.Host != camoUrl.Host {
+					attr.Val = ctx.imageFromKnotTransformer(attr.Val)
+					attr.Val = ctx.camoImageLinkTransformer(attr.Val)
+					node.Attr[i] = attr
+				}
 			}
 		}
 
