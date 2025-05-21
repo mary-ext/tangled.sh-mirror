@@ -137,7 +137,7 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		RepoIndexResponse:  result,
 		CommitsTrunc:       commitsTrunc,
 		TagsTrunc:          tagsTrunc,
-		ForkInfo:           *forkInfo,
+		ForkInfo:           forkInfo,
 		BranchesTrunc:      branchesTrunc,
 		EmailToDidOrHandle: EmailToDidOrHandle(s, emails),
 	})
@@ -151,6 +151,10 @@ func getForkInfo(
 	w http.ResponseWriter,
 	user *oauth.User,
 ) (*types.ForkInfo, error) {
+	if user == nil {
+		return nil, nil
+	}
+
 	forkInfo := types.ForkInfo{
 		IsFork: repoInfo.Source != nil,
 		Status: types.UpToDate,

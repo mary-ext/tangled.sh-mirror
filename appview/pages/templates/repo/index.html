@@ -66,7 +66,7 @@
             {{ end }}
         </optgroup>
     </select>
-    {{ if .ForkInfo.IsFork }}
+    {{ if and .ForkInfo .ForkInfo.IsFork }}
         {{ $disabled := "" }}
         {{ $title := "" }}
         {{ if eq .ForkInfo.Status 0 }}
