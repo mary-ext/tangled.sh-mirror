@@ -124,10 +124,13 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(s, user)
 
-	forkInfo, err := getForkInfo(repoInfo, s, f, w, user)
-	if err != nil {
-		log.Printf("Failed to fetch fork information: %v", err)
-		return
+	var forkInfo *types.ForkInfo
+	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
+		forkInfo, err = getForkInfo(repoInfo, s, f, w, user)
+		if err != nil {
+			log.Printf("Failed to fetch fork information: %v", err)
+			return
+		}
 	}
 
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
