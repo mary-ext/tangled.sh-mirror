@@ -260,8 +260,9 @@ func (s *State) resubmitCheck(f *FullyResolvedRepo, pull *db.Pull, stack db.Stac
 		latestSourceRev = top.Submissions[top.LastRoundNumber()].SourceRev
 	}
 
+	log.Println(latestSourceRev, result.Branch.Hash)
+
 	if latestSourceRev != result.Branch.Hash {
-		log.Println(latestSourceRev, result.Branch.Hash)
 		return pages.ShouldResubmit
 	}
 
@@ -1609,7 +1610,11 @@ func (s *State) resubmitStackedPullHelper(
 			patchutil.SortPatch(origFiles)
 
 			// text content of patch may be identical, but a jj rebase might have forwarded it
-			if patchutil.Equal(newFiles, origFiles) && origHeader.SHA == newHeader.SHA {
+			//
+			// we still need to update the hash in submission.Patch and submission.SourceRev
+			if patchutil.Equal(newFiles, origFiles) &&
+				origHeader.Title == newHeader.Title &&
+				origHeader.Body == newHeader.Body {
 				unchanged[op.ChangeId] = struct{}{}
 			} else {
 				updated[op.ChangeId] = struct{}{}
@@ -1683,6 +1688,45 @@ func (s *State) resubmitStackedPullHelper(
 
 		record := op.AsRecord()
 		record.Patch = submission.Patch
+
+		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
+			RepoApplyWrites_Update: &comatproto.RepoApplyWrites_Update{
+				Collection: tangled.RepoPullNSID,
+				Rkey:       op.Rkey,
+				Value: &lexutil.LexiconTypeDecoder{
+					Val: &record,
+				},
+			},
+		})
+	}
+
+	// unchanged pulls are edited without starting a new round
+	//
+	// update source-revs & patches without advancing rounds
+	for changeId := range unchanged {
+		op, _ := origById[changeId]
+		np, _ := newById[changeId]
+
+		origSubmission := op.Submissions[op.LastRoundNumber()]
+		newSubmission := np.Submissions[np.LastRoundNumber()]
+
+		log.Println("moving unchanged change id : ", changeId)
+
+		err := db.UpdatePull(
+			tx,
+			newSubmission.Patch,
+			newSubmission.SourceRev,
+			db.FilterEq("id", origSubmission.ID),
+		)
+
+		if err != nil {
+			log.Println("failed to update pull", err, op.PullId)
+			s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
+			return
+		}
+
+		record := op.AsRecord()
+		record.Patch = newSubmission.Patch
 
 		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
 			RepoApplyWrites_Update: &comatproto.RepoApplyWrites_Update{

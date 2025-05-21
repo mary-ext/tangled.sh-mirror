@@ -947,6 +947,31 @@ func SetPullParentChangeId(e Execer, parentChangeId string, filters ...filter) e
 	return err
 }
 
+// Only used when stacking to update contents in the event of a rebase (the interdiff should be empty).
+// otherwise submissions are immutable
+func UpdatePull(e Execer, newPatch, sourceRev string, filters ...filter) error {
+	var conditions []string
+	var args []any
+
+	args = append(args, sourceRev)
+	args = append(args, newPatch)
+
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.arg)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf("update pull_submissions set source_rev = ?, patch = ? %s", whereClause)
+	_, err := e.Exec(query, args...)
+
+	return err
+}
+
 type PullCount struct {
 	Open    int
 	Merged  int
