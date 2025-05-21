@@ -25,6 +25,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/knotclient"
+	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/bluesky-social/indigo/atproto/data"
@@ -185,7 +186,7 @@ func getForkInfo(
 		return nil, err
 	}
 
- 	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
+	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
 		return branch.Name == f.Ref
 	}) {
 		forkInfo.Status = types.MissingBranch
@@ -556,7 +557,7 @@ func (s *State) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
- 	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
+	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
 		if a.IsDefault {
 			return -1
 		}
@@ -2063,6 +2064,20 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if user is navigating to one of
+	//   /compare/{base}/{head}
+	//   /compare/{base}...{head}
+	base := chi.URLParam(r, "base")
+	head := chi.URLParam(r, "head")
+	if base == "" && head == "" {
+		rest := chi.URLParam(r, "*") // master...feature/xyz
+		parts := strings.SplitN(rest, "...", 2)
+		if len(parts) == 2 {
+			base = parts[0]
+			head = parts[1]
+		}
+	}
+
 	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s", f.Knot)
@@ -2101,10 +2116,12 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		Forks:        forks,
 		Branches:     branches.Branches,
 		Tags:         tags.Tags,
+		Base:         base,
+		Head:         head,
 	})
 }
 
-func (s *State) RepoCompareDiff(w http.ResponseWriter, r *http.Request) {
+func (s *State) RepoCompareDiffFragment(w http.ResponseWriter, r *http.Request) {
 	f, err := s.fullyResolvedRepo(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -2112,15 +2129,13 @@ func (s *State) RepoCompareDiff(w http.ResponseWriter, r *http.Request) {
 	}
 	user := s.oauth.GetUser(r)
 
-	rest := chi.URLParam(r, "*") // master...feature/xyz
-	parts := strings.SplitN(rest, "...", 2)
-	if len(parts) != 2 {
+	base := chi.URLParam(r, "base")
+	head := chi.URLParam(r, "head")
+
+	if base == "" || head == "" {
 		s.pages.Notice(w, "compare-error", "Invalid ref format.")
 		return
 	}
-
-	ref1 := parts[0]
-	ref2 := parts[1]
 
 	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
@@ -2129,16 +2144,18 @@ func (s *State) RepoCompareDiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	formatPatch, err := us.Compare(f.OwnerDid(), f.RepoName, ref1, ref2)
+	formatPatch, err := us.Compare(f.OwnerDid(), f.RepoName, base, head)
 	if err != nil {
 		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		log.Println("failed to compare", err)
 		return
 	}
+	diff := patchutil.AsNiceDiff(formatPatch.Patch, base)
 
+	w.Header().Add("Hx-Push-Url", fmt.Sprintf("/%s/compare/%s...%s", f.OwnerSlashRepo(), base, head))
 	s.pages.RepoCompareDiff(w, pages.RepoCompareDiffParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(s, user),
-		FormatPatch:  *formatPatch,
+		Diff:         diff,
 	})
 }
