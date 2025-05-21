@@ -106,19 +106,13 @@ func (s *SignedClient) NewRepo(did, repoName, defaultBranch string) (*http.Respo
 	return s.client.Do(req)
 }
 
-func (s *SignedClient) RepoLanguages(ownerDid, source, name, branch string) (*types.RepoLanguageResponse, error) {
+func (s *SignedClient) RepoLanguages(ownerDid, repoName, ref string) (*types.RepoLanguageResponse, error) {
 	const (
 		Method = "GET"
 	)
-	endpoint := fmt.Sprintf("/repo/languages/%s", url.PathEscape(branch))
+	endpoint := fmt.Sprintf("/%s/%s/languages/%s", ownerDid, repoName, url.PathEscape(ref))
 
-	body, _ := json.Marshal(map[string]any{
-		"did":    ownerDid,
-		"source": source,
-		"name":   name,
-	})
-
-	req, err := s.newRequest(Method, endpoint, body)
+	req, err := s.newRequest(Method, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -128,13 +122,23 @@ func (s *SignedClient) RepoLanguages(ownerDid, source, name, branch string) (*ty
 		return nil, err
 	}
 
-	var languagePercentages types.RepoLanguageResponse
-	if err := json.NewDecoder(resp.Body).Decode(&languagePercentages); err != nil {
-		log.Printf("failed to decode fork status: %s", err)
+	var result types.RepoLanguageResponse
+	if resp.StatusCode != http.StatusOK {
+		log.Println("failed to calculate languages", resp.Status)
+		return &types.RepoLanguageResponse{}, nil
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
 	}
 
-	return &languagePercentages, nil
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 func (s *SignedClient) RepoForkAheadBehind(ownerDid, source, name, branch, hiddenRef string) (*http.Response, error) {

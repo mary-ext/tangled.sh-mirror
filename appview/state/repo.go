@@ -138,30 +138,30 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	var forkInfo *types.ForkInfo
 	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
-	forkInfo, err = getForkInfo(repoInfo, s, f, w, user, signedClient)
+		forkInfo, err = getForkInfo(repoInfo, s, f, user, signedClient)
 		if err != nil {
 			log.Printf("Failed to fetch fork information: %v", err)
 			return
 		}
 	}
 
-	repoLanguages, err := signedClient.RepoLanguages(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref)
+	repoLanguages, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoName, ref)
 	if err != nil {
 		log.Printf("failed to compute language percentages: %s", err)
-		return
+		// non-fatal
 	}
 
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
-		LoggedInUser:        user,
-		RepoInfo:            repoInfo,
-		TagMap:              tagMap,
-		RepoIndexResponse:   result,
-		CommitsTrunc:        commitsTrunc,
-		TagsTrunc:           tagsTrunc,
-		ForkInfo:            forkInfo,
-		BranchesTrunc:       branchesTrunc,
-		EmailToDidOrHandle:  EmailToDidOrHandle(s, emails),
-		LanguagePercentages: repoLanguages.Languages,
+		LoggedInUser:       user,
+		RepoInfo:           repoInfo,
+		TagMap:             tagMap,
+		RepoIndexResponse:  result,
+		CommitsTrunc:       commitsTrunc,
+		TagsTrunc:          tagsTrunc,
+		ForkInfo:           forkInfo,
+		BranchesTrunc:      branchesTrunc,
+		EmailToDidOrHandle: EmailToDidOrHandle(s, emails),
+		Languages:          repoLanguages,
 	})
 	return
 }
@@ -170,7 +170,6 @@ func getForkInfo(
 	repoInfo repoinfo.RepoInfo,
 	s *State,
 	f *FullyResolvedRepo,
-	w http.ResponseWriter,
 	user *oauth.User,
 	signedClient *knotclient.SignedClient,
 ) (*types.ForkInfo, error) {

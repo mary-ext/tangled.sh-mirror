@@ -80,6 +80,12 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 				r.Post("/add", h.AddRepoCollaborator)
 			})
 
+			r.Route("/languages", func(r chi.Router) {
+				r.With(h.VerifySignature)
+				r.Get("/", h.RepoLanguages)
+				r.Get("/{ref}", h.RepoLanguages)
+			})
+
 			r.Get("/", h.RepoIndex)
 			r.Get("/info/refs", h.InfoRefs)
 			r.Post("/git-upload-pack", h.UploadPack)
@@ -126,7 +132,6 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	r.Route("/repo", func(r chi.Router) {
 		r.Use(h.VerifySignature)
 		r.Put("/new", h.NewRepo)
-		r.Get("/languages/{branch}", h.RepoLanguages)
 		r.Delete("/", h.RemoveRepo)
 		r.Route("/fork", func(r chi.Router) {
 			r.Post("/", h.RepoFork)
