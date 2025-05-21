@@ -403,19 +403,19 @@ func (p *Pages) RepoDescriptionFragment(w io.Writer, params RepoDescriptionParam
 }
 
 type RepoIndexParams struct {
-	LoggedInUser  *oauth.User
-	RepoInfo      repoinfo.RepoInfo
-	Active        string
-	TagMap        map[string][]string
-	CommitsTrunc  []*object.Commit
-	TagsTrunc     []*types.TagReference
-	BranchesTrunc []types.Branch
-	ForkInfo      *types.ForkInfo
+	LoggedInUser       *oauth.User
+	RepoInfo           repoinfo.RepoInfo
+	Active             string
+	TagMap             map[string][]string
+	CommitsTrunc       []*object.Commit
+	TagsTrunc          []*types.TagReference
+	BranchesTrunc      []types.Branch
+	ForkInfo           *types.ForkInfo
+	HTMLReadme         template.HTML
+	Raw                bool
+	EmailToDidOrHandle map[string]string
+	Languages          *types.RepoLanguageResponse
 	types.RepoIndexResponse
-	HTMLReadme          template.HTML
-	Raw                 bool
-	EmailToDidOrHandle  map[string]string
-	LanguagePercentages map[string]float64
 }
 
 func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {

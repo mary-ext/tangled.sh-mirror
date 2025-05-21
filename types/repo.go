@@ -112,5 +112,5 @@ type AncestorCheckResponse struct {
 
 type RepoLanguageResponse struct {
 	// Language: Percentage
-	Languages map[string]float64 `json:"languages"`
+	Languages map[string]int `json:"languages"`
 }

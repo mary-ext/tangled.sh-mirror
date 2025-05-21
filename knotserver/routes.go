@@ -715,50 +715,20 @@ func (h *Handle) RepoForkAheadBehind(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
-	l := h.l.With("handler", "RepoForkSync")
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
-	data := struct {
-		Did    string `json:"did"`
-		Source string `json:"source"`
-		Name   string `json:"name,omitempty"`
-	}{}
+	l := h.l.With("handler", "RepoLanguages")
 
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		writeError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	did := data.Did
-	source := data.Source
-
-	if did == "" || source == "" {
-		l.Error("invalid request body, empty did or name")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	var name string
-	if data.Name != "" {
-		name = data.Name
-	} else {
-		name = filepath.Base(source)
-	}
-
-	branch := chi.URLParam(r, "branch")
-	branch, _ = url.PathUnescape(branch)
-
-	relativeRepoPath := filepath.Join(did, name)
-	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
-
-	gr, err := git.Open(repoPath, branch)
+	gr, err := git.Open(path, ref)
 	if err != nil {
-		log.Println(err)
+		l.Error("opening repo", "error", err.Error())
 		notFound(w)
 		return
 	}
 
 	languageFileCount := make(map[string]int)
-	languagePercentage := make(map[string]float64)
 
 	err = recurseEntireTree(gr, func(absPath string) {
 		lang, safe := enry.GetLanguageByExtension(absPath)
@@ -782,18 +752,15 @@ func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
 		}
 	}, "")
 	if err != nil {
-		log.Println(err)
+		l.Error("failed to recurse file tree", "error", err.Error())
 		writeError(w, err.Error(), http.StatusNoContent)
 		return
 	}
 
-	for path, fileCount := range languageFileCount {
-		percentage := float64(fileCount) / float64(len(languageFileCount)) * 100.0
-		languagePercentage[path] = percentage
-	}
+	resp := types.RepoLanguageResponse{Languages: languageFileCount}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(types.RepoLanguageResponse{Languages: languagePercentage})
+	writeJSON(w, resp)
+	return
 }
 
 func recurseEntireTree(git *git.GitRepo, callback func(absPath string), filePath string) error {
