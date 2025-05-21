@@ -1834,7 +1834,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// combine patches of substack
-		subStack := stack.Below(pull)
+		subStack := stack.StrictlyBelow(pull)
 		// collect the portion of the stack that is mergeable
 		mergeable := subStack.Mergeable()
 		// add to total patch
