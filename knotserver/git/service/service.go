@@ -15,19 +15,20 @@ import (
 // Mostly from charmbracelet/soft-serve and sosedoff/gitkit.
 
 type ServiceCommand struct {
-	Dir    string
-	Stdin  io.Reader
-	Stdout http.ResponseWriter
+	GitProtocol string
+	Dir         string
+	Stdin       io.Reader
+	Stdout      http.ResponseWriter
 }
 
 func (c *ServiceCommand) InfoRefs() error {
 	cmd := exec.Command("git", []string{
 		"upload-pack",
 		"--stateless-rpc",
-		"--advertise-refs",
+		"--http-backend-info-refs",
 		".",
 	}...)
-
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_PROTOCOL=%s", c.GitProtocol))
 	cmd.Dir = c.Dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	stdoutPipe, _ := cmd.StdoutPipe()
@@ -38,14 +39,16 @@ func (c *ServiceCommand) InfoRefs() error {
 		return err
 	}
 
-	if err := packLine(c.Stdout, "# service=git-upload-pack\n"); err != nil {
-		log.Printf("git: failed to write pack line: %s", err)
-		return err
-	}
+	if !strings.Contains(c.GitProtocol, "version=2") {
+		if err := packLine(c.Stdout, "# service=git-upload-pack\n"); err != nil {
+			log.Printf("git: failed to write pack line: %s", err)
+			return err
+		}
 
-	if err := packFlush(c.Stdout); err != nil {
-		log.Printf("git: failed to flush pack: %s", err)
-		return err
+		if err := packFlush(c.Stdout); err != nil {
+			log.Printf("git: failed to flush pack: %s", err)
+			return err
+		}
 	}
 
 	buf := bytes.Buffer{}
@@ -71,10 +74,16 @@ func (c *ServiceCommand) InfoRefs() error {
 func (c *ServiceCommand) UploadPack() error {
 	var stderr bytes.Buffer
 
-	cmd := exec.Command("git", "-c", "uploadpack.allowFilter=true",
-		"upload-pack", "--stateless-rpc", ".")
+	cmd := exec.Command("git", []string{
+		"-c", "uploadpack.allowFilter=true",
+		"upload-pack",
+		"--stateless-rpc",
+		".",
+	}...)
+
 	cmd.Dir = c.Dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_PROTOCOL=%s", c.GitProtocol))
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {

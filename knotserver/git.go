@@ -31,8 +31,9 @@ func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := service.ServiceCommand{
-		Dir:    repoPath,
-		Stdout: w,
+		GitProtocol: r.Header.Get("Git-Protocol"),
+		Dir:         repoPath,
+		Stdout:      w,
 	}
 
 	serviceName := r.URL.Query().Get("service")
@@ -81,9 +82,10 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 	d.l.Info("git: executing git-upload-pack", "handler", "UploadPack", "repo", repo)
 
 	cmd := service.ServiceCommand{
-		Dir:    repo,
-		Stdout: w,
-		Stdin:  bodyReader,
+		GitProtocol: r.Header.Get("Git-Protocol"),
+		Dir:         repo,
+		Stdout:      w,
+		Stdin:       bodyReader,
 	}
 
 	w.WriteHeader(http.StatusOK)
