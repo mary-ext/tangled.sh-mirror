@@ -127,28 +127,31 @@ func (s *State) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	secret, err := db.GetRegistrationKey(s.db, f.Knot)
 	if err != nil {
 		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		s.pages.Error500(w)
+		return
 	}
 
 	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
 	if err != nil {
 		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+		s.pages.Error500(w)
 		return
 	}
 
 	var forkInfo *types.ForkInfo
 	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
-	forkInfo, err = getForkInfo(repoInfo, s, f, w, user, signedClient)
+		forkInfo, err = getForkInfo(repoInfo, s, f, w, user, signedClient)
 		if err != nil {
-			log.Printf("Failed to fetch fork information: %v", err)
+			log.Printf("failed to fetch fork information: %v", err)
+			s.pages.Error500(w)
 			return
 		}
 	}
 
-	repoLanguages, err := signedClient.RepoLanguages(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref)
+	repoLanguages, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoAt.String(), repoInfo.Name, f.Ref)
 	if err != nil {
+		// non-fatal
 		log.Printf("failed to compute language percentages: %s", err)
-		return
 	}
 
 	s.pages.RepoIndexPage(w, pages.RepoIndexParams{
