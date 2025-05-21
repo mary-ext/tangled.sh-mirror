@@ -863,26 +863,25 @@ type RepoCompareParams struct {
 	Forks        []db.Repo
 	Branches     []types.Branch
 	Tags         []*types.TagReference
+	Base         string
+	Head         string
 
 	Active string
 }
 
 func (p *Pages) RepoCompare(w io.Writer, params RepoCompareParams) error {
 	params.Active = "overview"
-	return p.executeRepo("repo/compare/new", w, params)
+	return p.executeRepo("repo/compare", w, params)
 }
 
 type RepoCompareDiffParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	FormatPatch  types.RepoFormatPatchResponse
-
-	Active string
+	Diff         types.NiceDiff
 }
 
 func (p *Pages) RepoCompareDiff(w io.Writer, params RepoCompareDiffParams) error {
-	params.Active = "overview"
-	return p.executeRepo("repo/compare/new", w, params)
+	return p.executePlain("repo/fragments/diff", w, []any{params.RepoInfo.FullName, &params.Diff})
 }
 
 func (p *Pages) Static() http.Handler {
