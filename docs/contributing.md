@@ -4,13 +4,13 @@
 
 We follow a commit style similar to the Go project. Please keep commits:
 
-* **atomic**: each commit should represent one logical change  
+* **atomic**: each commit should represent one logical change
 * **descriptive**: the commit message should clearly describe what the
 change does and why it's needed
 
 ### message format
 
-``` 
+```
 <service/top-level directory>: <affected package/directory>: <short summary of change>
 
 
@@ -26,12 +26,16 @@ Here are some examples:
 appview: state: fix token expiry check in middleware
 
 The previous check did not account for clock drift, leading to premature
-token invalidation. 
+token invalidation.
 ```
 
 ```
 knotserver: git/service: improve error checking in upload-pack
 ```
+
+The affected package/directory can be truncated down to just the relevant dir
+should it be far too long. For example `pages/templates/repo/fragments` can
+simply be `repo/fragments`.
 
 ### general notes
 
@@ -52,17 +56,16 @@ before submitting if necessary.
 Small fixes like typos, minor bugs, or trivial refactors can be
 submitted directly as PRs.
 
-For larger changes—especially those introducing new features,
-significant refactoring, or altering system behavior—please open a
-proposal first. This helps us evaluate the scope, design, and potential
-impact before implementation.
+For larger changes—especially those introducing new features, significant
+refactoring, or altering system behavior—please open a proposal first. This
+helps us evaluate the scope, design, and potential impact before implementation.
 
 ### proposal format
 
 Create a new issue titled:
 
-``` 
-proposal: <affected scope>: <summary of change> 
+```
+proposal: <affected scope>: <summary of change>
 ```
 
 In the description, explain:
