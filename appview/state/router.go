@@ -127,8 +127,9 @@ func (s *State) UserRouter() http.Handler {
 				//   /compare/master...some/feature
 				//   /compare/master...example.com:another/feature <- this is a fork
 				r.Get("/{base}/{head}", s.RepoCompare)
-				r.Get("/*", s.RepoCompare)
 				r.Get("/diff/{base}/{head}", s.RepoCompareDiffFragment)
+				r.Get("/allow-pull/{base}/{head}", s.RepoCompareAllowPullFragment)
+				r.Get("/*", s.RepoCompare)
 			})
 
 			r.Route("/pulls", func(r chi.Router) {

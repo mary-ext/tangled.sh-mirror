@@ -1,4 +1,11 @@
-{{ define "title" }}new comparison{{ end }}
+{{ define "title" }}
+    {{ if and .Head .Base }}
+        comparing {{ .Base }} and
+        {{ .Head }}
+    {{ else }}
+        new comparison
+    {{ end }}
+{{ end }}
 
 {{ define "repoContent" }}
     <section>
@@ -104,7 +111,6 @@
             </div>
         </form>
     </section>
-    <section class="hidden"></section>
 
   <script>
     var templatedBase = `{{ .Base }}`;
@@ -147,9 +153,19 @@
         if (baseToUse && headToUse) {
             const url = `/{{ .RepoInfo.FullName }}/compare/diff/${baseToUse}/${headToUse}`;
             htmx.ajax('GET', url, { target: '#compare-diff' });
+            document.title = `comparing ${baseToUse} and ${headToUse}`;
+
+            const allowPull = `{{ .AllowPull }}`
+            if (allowPull) {
+              htmx.ajax('GET',
+                `/{{ .RepoInfo.FullName }}/compare/allow-pull/${baseToUse}/${headToUse}`,
+                { target: '#allow-pull'},
+              )
+            }
         }
     }
     </script>
+    <section id="allow-pull" class="pt-4"></section>
 {{ end }}
 
 {{ define "repoAfter" }}
