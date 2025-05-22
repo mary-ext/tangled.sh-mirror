@@ -110,6 +110,7 @@
                 </div>
             </div>
         </form>
+        <div id="allow-pull"></div>
     </section>
 
   <script>
@@ -152,20 +153,11 @@
 
         if (baseToUse && headToUse) {
             const url = `/{{ .RepoInfo.FullName }}/compare/diff/${baseToUse}/${headToUse}`;
-            htmx.ajax('GET', url, { target: '#compare-diff' });
+            htmx.ajax('GET', url, { target: '#compare-diff', swap: 'innerHTML' });
             document.title = `comparing ${baseToUse} and ${headToUse}`;
-
-            const allowPull = `{{ .AllowPull }}`
-            if (allowPull) {
-              htmx.ajax('GET',
-                `/{{ .RepoInfo.FullName }}/compare/allow-pull/${baseToUse}/${headToUse}`,
-                { target: '#allow-pull'},
-              )
-            }
         }
     }
     </script>
-    <section id="allow-pull" class="pt-4"></section>
 {{ end }}
 
 {{ define "repoAfter" }}

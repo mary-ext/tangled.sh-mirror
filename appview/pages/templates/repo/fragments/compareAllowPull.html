@@ -1,5 +1,9 @@
 {{ define "repo/fragments/compareAllowPull" }}
-    <div class="flex items-baseline justify-normal gap-4">
+    <div
+        id="allow-pull"
+        class="flex items-baseline justify-normal gap-4 pt-4"
+        hx-oob-swap="#allow-pull"
+    >
         <p>
             This comparison can be turned into a pull request to be reviewed and
             discussed.

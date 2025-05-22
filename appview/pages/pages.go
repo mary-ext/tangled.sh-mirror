@@ -871,7 +871,6 @@ type RepoCompareParams struct {
 	Tags         []*types.TagReference
 	Base         string
 	Head         string
-	AllowPull    bool
 
 	Active string
 }

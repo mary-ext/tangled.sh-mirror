@@ -66,6 +66,7 @@
             {{ end }}
         </optgroup>
     </select>
+    <div class="flex items-center gap-2">
     {{ $isOwner := and .LoggedInUser .RepoInfo.Roles.IsOwner }}
     {{ $isCollaborator := and .LoggedInUser .RepoInfo.Roles.IsCollaborator }}
     {{ if and (or $isOwner $isCollaborator) .ForkInfo .ForkInfo.IsFork }}
@@ -99,7 +100,15 @@
           <span>sync</span>
         </button>
     {{ end }}
-  </div>
+        <a
+            href="/{{ .RepoInfo.FullName }}/compare"
+            class="btn flex items-center gap-2 no-underline hover:no-underline"
+            title="Compare branches or tags"
+        >
+            {{ i "git-compare" "w-4 h-4" }}
+        </a>
+    </div>
+</div>
 {{ end }}
 
 {{ define "fileTree" }}
