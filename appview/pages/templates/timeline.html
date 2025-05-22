@@ -8,10 +8,7 @@
 {{ end }}
 
 {{ define "topbar" }}
-    {{ with .LoggedInUser }}
-        {{ template "layouts/topbar" $ }}
-    {{ else }}
-    {{ end }}
+  {{ template "layouts/topbar" $ }}
 {{ end }}
 
 {{ define "content" }}
@@ -24,23 +21,24 @@
 {{ end }}
 
 {{ define "hero" }}
-    <div
-        class="flex flex-col items-center justify-center text-center rounded drop-shadow bg-white dark:bg-gray-800 text-black dark:text-white py-4 px-10"
-    >
-        <div class="font-bold italic text-4xl mb-4">tangled</div>
-        <div class="italic text-lg">
-            tightly-knit social coding,
-            <a href="/login" class="underline inline-flex gap-1 items-center"
-                >join now {{ i "arrow-right" "w-4 h-4" }}</a
-            >
-            <p class="pt-5 px-10 text-sm text-gray-500 dark:text-gray-400">
-                Join our <a href="https://chat.tangled.sh">Discord</a> or IRC
-                channel:
-                <a href="https://web.libera.chat/#tangled"
-                    ><code>#tangled</code> on Libera Chat</a
-                >. Read an introduction to Tangled
-                <a href="https://blog.tangled.sh/intro">here</a>.
-            </p>
+    <div class="flex flex-col text-black dark:text-white p-6 gap-6 max-w-xl">
+        <div class="font-bold text-4xl">tightly-knit<br>social coding.</div>
+
+        <p class="text-lg">
+          tangled is new social-enabled git collaboration platform built on <a class="underline" href="https://atproto.com/">atproto</a>.
+        </p>
+        <p class="text-lg">
+          we envision a place where developers have complete ownership of their
+          code, open source communities can freely self-govern and most
+          importantly, coding can be social and fun again.
+        </p>
+
+        <div class="flex gap-6 items-center">
+          <a href="/login" class="no-underline hover:no-underline ">
+            <button class="btn flex gap-2 px-4 items-center">
+              join now {{ i "arrow-right" "size-4" }}
+            </button>
+          </a>
         </div>
     </div>
 {{ end }}
