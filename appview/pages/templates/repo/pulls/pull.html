@@ -226,7 +226,7 @@
               {{ if .Filename }}
               <li class="flex items-center">
                 {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
-                <span class="font-mono">{{ slice .Filename 0 (sub (len .Filename) 2) }}</span>
+                <span class="font-mono">{{ .Filename }}</span>
               </li>
               {{ else if .Reason }}
               <li class="flex items-center">
