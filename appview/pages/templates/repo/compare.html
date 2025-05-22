@@ -8,7 +8,7 @@
 {{ end }}
 
 {{ define "repoContent" }}
-    <section>
+    <section id="compare-select">
         <h2 class="font-bold text-sm mb-4 uppercase dark:text-white">
             Compare changes
         </h2>
@@ -152,22 +152,15 @@
 
         if (baseToUse && headToUse) {
             const url = `/{{ .RepoInfo.FullName }}/compare/diff/${baseToUse}/${headToUse}`;
-            htmx.ajax('GET', url, { target: '#compare-diff' });
-            document.title = `comparing ${baseToUse} and ${headToUse}`;
 
-            const allowPull = `{{ .AllowPull }}`
-            if (allowPull) {
-              htmx.ajax('GET',
-                `/{{ .RepoInfo.FullName }}/compare/allow-pull/${baseToUse}/${headToUse}`,
-                { target: '#allow-pull'},
-              )
-            }
+            // htmx.ajax('GET', url, { target: '#compare-diff' })
+            document.title = `comparing ${baseToUse} and ${headToUse}`;
         }
     }
     </script>
-    <section id="allow-pull" class="pt-4"></section>
 {{ end }}
 
 {{ define "repoAfter" }}
+    <div id="allow-pull"></div>
     <div id="compare-diff"></div>
 {{ end }}

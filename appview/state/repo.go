@@ -2110,24 +2110,16 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var allowPull bool = false
-	if user != nil {
-		if slices.ContainsFunc(branches.Branches, func(branch types.Branch) bool {
-			return branch.Name == head || branch.Name == base
-		}) {
-			allowPull = true
-		}
-	}
+	repoinfo := f.RepoInfo(s, user)
 
 	s.pages.RepoCompare(w, pages.RepoCompareParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(s, user),
+		RepoInfo:     repoinfo,
 		Forks:        forks,
 		Branches:     branches.Branches,
 		Tags:         tags.Tags,
 		Base:         base,
 		Head:         head,
-		AllowPull:    allowPull,
 	})
 
 }
@@ -2179,10 +2171,37 @@ func (s *State) RepoCompareDiffFragment(w http.ResponseWriter, r *http.Request) 
 	}
 	diff := patchutil.AsNiceDiff(formatPatch.Patch, base)
 
+	branches, err := us.Branches(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to fetch branches", err)
+		return
+	}
+
+	repoinfo := f.RepoInfo(s, user)
+
 	w.Header().Add("Hx-Push-Url", fmt.Sprintf("/%s/compare/%s...%s", f.OwnerSlashRepo(), base, head))
+	w.Header().Add("Content-Type", "text/html")
 	s.pages.RepoCompareDiff(w, pages.RepoCompareDiffParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(s, user),
+		RepoInfo:     repoinfo,
 		Diff:         diff,
 	})
+
+	// checks if pull is allowed and performs an htmx oob-swap
+	// by writing to the same http.ResponseWriter
+	if user != nil {
+		if slices.ContainsFunc(branches.Branches, func(branch types.Branch) bool {
+			return branch.Name == head || branch.Name == base
+		}) {
+			if repoinfo.Roles.IsPushAllowed() {
+				s.pages.RepoCompareAllowPullFragment(w, pages.RepoCompareAllowPullParams{
+					LoggedInUser: user,
+					RepoInfo:     repoinfo,
+					Base:         base,
+					Head:         head,
+				})
+			}
+		}
+	}
 }
