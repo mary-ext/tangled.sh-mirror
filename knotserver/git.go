@@ -39,7 +39,9 @@ func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	serviceName := r.URL.Query().Get("service")
 	switch serviceName {
 	case "git-upload-pack":
-		w.Header().Set("content-type", "application/x-git-upload-pack-advertisement")
+		w.Header().Set("Content-Type", "application/x-git-upload-pack-advertisement")
+		w.Header().Set("Connection", "Keep-Alive")
+		w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 		w.WriteHeader(http.StatusOK)
 
 		if err := cmd.InfoRefs(); err != nil {
@@ -59,16 +61,22 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	repo, err := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
 	if err != nil {
-		writeError(w, err.Error(), 500)
+		gitError(w, err.Error(), http.StatusInternalServerError)
 		d.l.Error("git: failed to secure join repo path", "handler", "UploadPack", "error", err)
 		return
+	}
+
+	const expectedContentType = "application/x-git-upload-pack-request"
+	contentType := r.Header.Get("Content-Type")
+	if contentType != expectedContentType {
+		gitError(w, fmt.Sprintf("Expected Content-Type: '%s', but received '%s'.", expectedContentType, contentType), http.StatusUnsupportedMediaType)
 	}
 
 	var bodyReader io.ReadCloser = r.Body
 	if r.Header.Get("Content-Encoding") == "gzip" {
 		gzipReader, err := gzip.NewReader(r.Body)
 		if err != nil {
-			writeError(w, err.Error(), 500)
+			gitError(w, err.Error(), http.StatusInternalServerError)
 			d.l.Error("git: failed to create gzip reader", "handler", "UploadPack", "error", err)
 			return
 		}
@@ -78,6 +86,7 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/x-git-upload-pack-result")
 	w.Header().Set("Connection", "Keep-Alive")
+	w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 
 	d.l.Info("git: executing git-upload-pack", "handler", "UploadPack", "repo", repo)
 
