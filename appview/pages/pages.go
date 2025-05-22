@@ -865,6 +865,7 @@ type RepoCompareParams struct {
 	Tags         []*types.TagReference
 	Base         string
 	Head         string
+	AllowPull    bool
 
 	Active string
 }
@@ -872,6 +873,17 @@ type RepoCompareParams struct {
 func (p *Pages) RepoCompare(w io.Writer, params RepoCompareParams) error {
 	params.Active = "overview"
 	return p.executeRepo("repo/compare", w, params)
+}
+
+type RepoCompareAllowPullParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Base         string
+	Head         string
+}
+
+func (p *Pages) RepoCompareAllowPullFragment(w io.Writer, params RepoCompareAllowPullParams) error {
+	return p.executePlain("repo/fragments/compareAllowPull", w, params)
 }
 
 type RepoCompareDiffParams struct {

@@ -2110,6 +2110,15 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var allowPull bool = false
+	if user != nil {
+		if slices.ContainsFunc(branches.Branches, func(branch types.Branch) bool {
+			return branch.Name == head || branch.Name == base
+		}) {
+			allowPull = true
+		}
+	}
+
 	s.pages.RepoCompare(w, pages.RepoCompareParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(s, user),
@@ -2118,6 +2127,24 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		Tags:         tags.Tags,
 		Base:         base,
 		Head:         head,
+		AllowPull:    allowPull,
+	})
+
+}
+
+func (s *State) RepoCompareAllowPullFragment(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
+	f, err := s.fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	s.pages.RepoCompareAllowPullFragment(w, pages.RepoCompareAllowPullParams{
+		Head:         chi.URLParam(r, "head"),
+		Base:         chi.URLParam(r, "base"),
+		RepoInfo:     f.RepoInfo(s, user),
+		LoggedInUser: user,
 	})
 }
 
