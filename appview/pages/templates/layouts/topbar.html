@@ -6,6 +6,19 @@
                   tangled<sub>alpha</sub>
                 </a>
             </div>
+            <div class="hidden md:flex gap-4 items-center">
+              <a href="https://chat.tangled.sh" class="inline-flex gap-1 items-center">
+                {{ i "message-circle" "size-4" }} discord
+              </a>
+
+              <a href="https://web.libera.chat/#tangled" class="inline-flex gap-1 items-center">
+                {{ i "hash" "size-4" }} irc
+              </a>
+
+              <a href="https://tangled.sh/@tangled.sh/core" class="inline-flex gap-1 items-center">
+                {{ i "code" "size-4" }} source
+              </a>
+            </div>
             <div id="right-items" class="flex gap-2">
                 {{ with .LoggedInUser }}
                     <a href="/repo/new" hx-boost="true">
