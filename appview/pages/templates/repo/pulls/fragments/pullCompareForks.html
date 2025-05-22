@@ -3,6 +3,7 @@
         <label for="forkSelect" class="dark:text-white"
             >select a fork to compare</label
         >
+        selected: {{ .Selected }}
         <div class="flex flex-wrap gap-4 items-center">
             <div class="flex flex-wrap gap-2 items-center">
                 <select
@@ -18,7 +19,7 @@
                 >
                     <option disabled selected>select a fork</option>
                     {{ range .Forks }}
-                        <option value="{{ .Name }}" class="py-1">
+                        <option value="{{ .Name }}" {{ if eq .Name $.Selected }}selected{{ end }} class="py-1">
                             {{ .Name }}
                         </option>
                     {{ end }}

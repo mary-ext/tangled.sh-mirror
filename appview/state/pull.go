@@ -634,10 +634,21 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// can be one of "patch", "branch" or "fork"
+		strategy := r.URL.Query().Get("strategy")
+		// ignored if strategy is "patch"
+		sourceBranch := r.URL.Query().Get("sourceBranch")
+		targetBranch := r.URL.Query().Get("targetBranch")
+
 		s.pages.RepoNewPull(w, pages.RepoNewPullParams{
 			LoggedInUser: user,
 			RepoInfo:     f.RepoInfo(s, user),
 			Branches:     result.Branches,
+			Strategy:     strategy,
+			SourceBranch: sourceBranch,
+			TargetBranch: targetBranch,
+			Title:        r.URL.Query().Get("title"),
+			Body:         r.URL.Query().Get("body"),
 		})
 
 	case http.MethodPost:
@@ -1180,6 +1191,7 @@ func (s *State) CompareForksFragment(w http.ResponseWriter, r *http.Request) {
 	s.pages.PullCompareForkFragment(w, pages.PullCompareForkParams{
 		RepoInfo: f.RepoInfo(s, user),
 		Forks:    forks,
+		Selected: r.URL.Query().Get("fork"),
 	})
 }
 

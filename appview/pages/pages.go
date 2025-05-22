@@ -698,6 +698,11 @@ type RepoNewPullParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Branches     []types.Branch
+	Strategy     string
+	SourceBranch string
+	TargetBranch string
+	Title        string
+	Body         string
 	Active       string
 }
 
@@ -805,6 +810,7 @@ func (p *Pages) PullCompareBranchesFragment(w io.Writer, params PullCompareBranc
 type PullCompareForkParams struct {
 	RepoInfo repoinfo.RepoInfo
 	Forks    []db.Repo
+	Selected string
 }
 
 func (p *Pages) PullCompareForkFragment(w io.Writer, params PullCompareForkParams) error {

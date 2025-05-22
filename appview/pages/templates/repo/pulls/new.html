@@ -1,6 +1,10 @@
 {{ define "title" }}new pull &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "repoContent" }}
+    <h2 class="font-bold text-sm mb-4 uppercase dark:text-white">
+        Create new pull request
+    </h2>
+
     <form
         hx-post="/{{ .RepoInfo.FullName }}/pulls/new"
         hx-indicator="#create-pull-spinner"
@@ -16,8 +20,18 @@
                   class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   >
                   <option disabled selected>target branch</option>
+
+
                   {{ range .Branches }}
-                  <option value="{{ .Reference.Name }}" class="py-1" {{if .IsDefault}}selected{{end}}>
+
+                  {{ $preset := false }}
+                  {{ if $.TargetBranch }}
+                    {{ $preset = eq .Reference.Name $.TargetBranch }}
+                  {{ else }}
+                    {{ $preset = .IsDefault }}
+                  {{ end }}
+
+                  <option value="{{ .Reference.Name }}" class="py-1" {{if $preset}}selected{{end}}>
                   {{ .Reference.Name }}
                   </option>
                   {{ end }}
@@ -26,7 +40,9 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <p>Next, choose a pull strategy.</p>
+              <h2 class="font-bold text-sm mb-4 uppercase dark:text-white">
+                  Choose pull strategy
+              </h2>
               <nav class="flex space-x-4 items-center">
                   <button
                       type="button"
@@ -57,18 +73,41 @@
                   <span class="text-sm text-gray-500 dark:text-gray-400">
                       or
                   </span>
+                  <script>
+                    function getQueryParams() {
+                      return Object.fromEntries(new URLSearchParams(window.location.search));
+                    }
+                  </script>
+                  <!--
+                  since compare-forks need the server to load forks, we
+                  hx-get this button; unlike simply loading the pullCompareForks template
+                  as we do for the rest of the gang below. the hx-vals thing just populates
+                  the query params so the forks page gets it.
+                  -->
                   <button
                       type="button"
                       class="btn"
                       hx-get="/{{ .RepoInfo.FullName }}/pulls/new/compare-forks"
                       hx-target="#patch-strategy"
                       hx-swap="innerHTML"
+                      {{ if eq .Strategy "fork" }}
+                      hx-trigger="click, load"
+                      hx-vals='js:{...getQueryParams()}'
+                      {{ end }}
                   >
                       compare forks
                   </button>
+
+
               </nav>
               <section id="patch-strategy" class="flex flex-col gap-2">
-                  {{ template "repo/pulls/fragments/pullPatchUpload" . }}
+                  {{ if eq .Strategy "patch" }}
+                    {{ template "repo/pulls/fragments/pullPatchUpload" . }}
+                  {{ else if eq .Strategy "branch" }}
+                    {{ template "repo/pulls/fragments/pullCompareBranches" . }}
+                  {{ else }}
+                    {{ template "repo/pulls/fragments/pullPatchUpload" . }}
+                  {{ end }}
               </section>
 
               <div id="patch-error" class="error dark:text-red-300"></div>
@@ -81,6 +120,7 @@
                     type="text"
                     name="title"
                     id="title"
+                    value="{{ .Title }}"
                     class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
                     placeholder="One-line summary of your change."
                 />
@@ -97,7 +137,7 @@
                     rows="6"
                     class="w-full resize-y dark:bg-gray-700 dark:text-white dark:border-gray-600"
                     placeholder="Describe your change. Markdown is supported."
-                ></textarea>
+                >{{ .Body }}</textarea>
             </div>
 
             <div class="flex justify-start items-center gap-2 mt-4">
