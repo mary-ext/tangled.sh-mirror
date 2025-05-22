@@ -21,6 +21,57 @@ type ServiceCommand struct {
 	Stdout      http.ResponseWriter
 }
 
+func (c *ServiceCommand) RunService(cmd *exec.Cmd) error {
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Dir = c.Dir
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_PROTOCOL=%s", c.GitProtocol))
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start '%s': %w", cmd.String(), err)
+	}
+
+	var wg sync.WaitGroup
+
+	if c.Stdin != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer stdinPipe.Close()
+			io.Copy(stdinPipe, c.Stdin)
+		}()
+	}
+
+	if c.Stdout != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			io.Copy(newWriteFlusher(c.Stdout), stdoutPipe)
+			stdoutPipe.Close()
+		}()
+	}
+
+	wg.Wait()
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("'%s' failed: %w, stderr: %s", cmd.String(), err, stderr.String())
+	}
+
+	return nil
+}
+
 func (c *ServiceCommand) InfoRefs() error {
 	cmd := exec.Command("git", []string{
 		"upload-pack",
@@ -28,16 +79,6 @@ func (c *ServiceCommand) InfoRefs() error {
 		"--http-backend-info-refs",
 		".",
 	}...)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_PROTOCOL=%s", c.GitProtocol))
-	cmd.Dir = c.Dir
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	stdoutPipe, _ := cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
-
-	if err := cmd.Start(); err != nil {
-		log.Printf("git: failed to start git-upload-pack (info/refs): %s", err)
-		return err
-	}
 
 	if !strings.Contains(c.GitProtocol, "version=2") {
 		if err := packLine(c.Stdout, "# service=git-upload-pack\n"); err != nil {
@@ -51,29 +92,10 @@ func (c *ServiceCommand) InfoRefs() error {
 		}
 	}
 
-	buf := bytes.Buffer{}
-	if _, err := io.Copy(&buf, stdoutPipe); err != nil {
-		log.Printf("git: failed to copy stdout to tmp buffer: %s", err)
-		return err
-	}
-
-	if err := cmd.Wait(); err != nil {
-		out := strings.Builder{}
-		_, _ = io.Copy(&out, &buf)
-		log.Printf("git: failed to run git-upload-pack; err: %s; output: %s", err, out.String())
-		return err
-	}
-
-	if _, err := io.Copy(c.Stdout, &buf); err != nil {
-		log.Printf("git: failed to copy stdout: %s", err)
-	}
-
-	return nil
+	return c.RunService(cmd)
 }
 
 func (c *ServiceCommand) UploadPack() error {
-	var stderr bytes.Buffer
-
 	cmd := exec.Command("git", []string{
 		"-c", "uploadpack.allowFilter=true",
 		"upload-pack",
@@ -81,49 +103,11 @@ func (c *ServiceCommand) UploadPack() error {
 		".",
 	}...)
 
-	cmd.Dir = c.Dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_PROTOCOL=%s", c.GitProtocol))
+	cmd.Dir = c.Dir
 
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("failed to create stdout pipe: %w", err)
-	}
-
-	cmd.Stderr = &stderr
-
-	stdinPipe, err := cmd.StdinPipe()
-	if err != nil {
-		return fmt.Errorf("failed to create stdin pipe: %w", err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start git-upload-pack: %w", err)
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer stdinPipe.Close()
-		io.Copy(stdinPipe, c.Stdin)
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		io.Copy(newWriteFlusher(c.Stdout), stdoutPipe)
-		stdoutPipe.Close()
-	}()
-
-	wg.Wait()
-
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("git-upload-pack failed: %w, stderr: %s", err, stderr.String())
-	}
-
-	return nil
+	return c.RunService(cmd)
 }
 
 func packLine(w io.Writer, s string) error {
