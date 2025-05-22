@@ -129,5 +129,7 @@ replace github.com/go-git/go-git/v5 => github.com/oppiliappan/go-git/v5 v5.17.0
 
 replace github.com/bluekeyes/go-gitdiff => tangled.sh/oppi.li/go-gitdiff v0.8.2
 
+replace github.com/alecthomas/chroma/v2 => github.com/oppiliappan/chroma/v2 v2.17.0
+
 // from bluesky-social/indigo
 replace github.com/gocql/gocql => github.com/scylladb/gocql v1.14.4
