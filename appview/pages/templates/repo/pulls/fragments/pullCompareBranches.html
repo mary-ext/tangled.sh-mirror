@@ -1,6 +1,6 @@
 {{ define "repo/pulls/fragments/pullCompareBranches" }}
     <div id="patch-upload">
-        <label for="targetBranch" class="dark:text-white">select a branch</label>
+        <label for="targetBranch" class="dark:text-white">select a source branch</label>
         <div class="flex flex-wrap gap-2 items-center">
             <select
                 name="sourceBranch"
@@ -11,9 +11,16 @@
                 {{ $recent := index .Branches 0 }}
                 {{ range .Branches }}
                     {{ $isRecent := eq .Reference.Name $recent.Reference.Name }}
+                    {{ $preset := false }}
+                    {{ if $.SourceBranch }}
+                        {{ $preset = eq .Reference.Name $.SourceBranch }}
+                    {{ else }}
+                        {{ $preset = $isRecent }}
+                    {{ end }}
+                    
                     <option
                         value="{{ .Reference.Name }}"
-                        {{ if $isRecent }}
+                        {{ if $preset }}
                             selected
                         {{ end }}
                         class="py-1"
