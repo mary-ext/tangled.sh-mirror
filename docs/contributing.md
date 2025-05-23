@@ -77,3 +77,57 @@ In the description, explain:
 
 We'll use the issue thread to discuss and refine the idea before moving
 forward.
+
+## developer certificate of origin (DCO)
+
+We require all contributors to certify that they have the right to
+submit the code they're contributing. To do this, we follow the
+[Developer Certificate of Origin
+(DCO)](https://developercertificate.org/).
+
+By signing your commits, you're stating that the contribution is your
+own work, or that you have the right to submit it under the project's
+license. This helps us keep things clean and legally sound.
+
+To sign your commit, just add the `-s` flag when committing:
+
+```sh
+git commit -s -m "your commit message"
+```
+
+This appends a line like:
+
+```
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+We won't merge commits if they aren't signed off. If you forget, you can
+amend the last commit like this:
+
+```sh
+git commit --amend -s
+```
+
+If you're submitting a PR with multiple commits, make sure each one is
+signed.
+
+For [jj](https://jj-vcs.github.io/jj/latest/) users, you can add this to
+your jj config:
+
+```
+ui.should-sign-off = true
+```
+
+and to your `templates.draft_commit_description`, add the following `if`
+block:
+
+```
+  if(
+    config("ui.should-sign-off").as_boolean() && !description.contains("Signed-off-by: " ++ author.name()),
+    "\nSigned-off-by: " ++ author.name() ++ " <" ++ author.email() ++ ">",
+  ),
+```
+
+Refer to the [jj
+documentation](https://jj-vcs.github.io/jj/latest/config/#default-description)
+for more information.
