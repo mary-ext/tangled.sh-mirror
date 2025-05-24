@@ -23,21 +23,23 @@ import (
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
 type State struct {
-	db       *db.DB
-	oauth    *oauth.OAuth
-	enforcer *rbac.Enforcer
-	tidClock syntax.TIDClock
-	pages    *pages.Pages
-	resolver *appview.Resolver
-	posthog  posthog.Client
-	jc       *jetstream.JetstreamClient
-	config   *appview.Config
+	db           *db.DB
+	oauth        *oauth.OAuth
+	enforcer     *rbac.Enforcer
+	tidClock     syntax.TIDClock
+	pages        *pages.Pages
+	resolver     *appview.Resolver
+	posthog      posthog.Client
+	jc           *jetstream.JetstreamClient
+	config       *appview.Config
+	repoResolver *reporesolver.RepoResolver
 }
 
 func Make(config *appview.Config) (*State, error) {
@@ -67,6 +69,8 @@ func Make(config *appview.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create posthog client: %w", err)
 	}
+
+	repoResolver := reporesolver.New(config, enforcer, resolver, d)
 
 	wrapper := db.DbWrapper{d}
 	jc, err := jetstream.NewJetstreamClient(
@@ -102,6 +106,7 @@ func Make(config *appview.Config) (*State, error) {
 		posthog,
 		jc,
 		config,
+		repoResolver,
 	}
 
 	return state, nil

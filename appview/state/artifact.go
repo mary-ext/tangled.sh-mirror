@@ -17,6 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/types"
 )
@@ -25,7 +26,7 @@ import (
 func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	tagParam := chi.URLParam(r, "tag")
-	f, err := s.fullyResolvedRepo(r)
+	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		s.pages.Notice(w, "upload", "failed to upload artifact, error in repo resolution")
@@ -124,7 +125,7 @@ func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.RepoArtifactFragment(w, pages.RepoArtifactParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(s, user),
+		RepoInfo:     f.RepoInfo(user),
 		Artifact:     artifact,
 	})
 }
@@ -133,7 +134,7 @@ func (s *State) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 func (s *State) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 	tagParam := chi.URLParam(r, "tag")
 	filename := chi.URLParam(r, "file")
-	f, err := s.fullyResolvedRepo(r)
+	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -184,7 +185,7 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	tagParam := chi.URLParam(r, "tag")
 	filename := chi.URLParam(r, "file")
-	f, err := s.fullyResolvedRepo(r)
+	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
 		return
@@ -258,7 +259,7 @@ func (s *State) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte{})
 }
 
-func (s *State) resolveTag(f *FullyResolvedRepo, tagParam string) (*types.TagReference, error) {
+func (s *State) resolveTag(f *reporesolver.ResolvedRepo, tagParam string) (*types.TagReference, error) {
 	tagParam, err := url.QueryUnescape(tagParam)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package state
+package pulls
 
 import (
 	"database/sql"
@@ -32,8 +32,22 @@ import (
 	"github.com/posthog/posthog-go"
 )
 
+type Pulls struct {
+	oauth        *oauth.OAuth
+	repoResolver *reporesolver.RepoResolver
+	pages        *pages.Pages
+	resolver     *appview.Resolver
+	db           *db.DB
+	config       *appview.Config
+	posthog      posthog.Client
+}
+
+func New(oauth *oauth.OAuth, repoResolver *reporesolver.RepoResolver, pages *pages.Pages, resolver *appview.Resolver, db *db.DB, config *appview.Config) *Pulls {
+	return &Pulls{oauth: oauth, repoResolver: repoResolver, pages: pages, resolver: resolver, db: db, config: config}
+}
+
 // htmx fragment
-func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		user := s.oauth.GetUser(r)
@@ -83,7 +97,7 @@ func (s *State) PullActions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -147,7 +161,7 @@ func (s *State) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *State) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) types.MergeCheckResponse {
+func (s *Pulls) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) types.MergeCheckResponse {
 	if pull.State == db.PullMerged {
 		return types.MergeCheckResponse{}
 	}
@@ -217,7 +231,7 @@ func (s *State) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db
 	return mergeCheckResponse
 }
 
-func (s *State) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
+func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
 	if pull.State == db.PullMerged || pull.State == db.PullDeleted || pull.PullSource == nil {
 		return pages.Unknown
 	}
@@ -270,7 +284,7 @@ func (s *State) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack
 	return pages.ShouldNotResubmit
 }
 
-func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -322,7 +336,7 @@ func (s *State) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s *State) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
 	f, err := s.repoResolver.Resolve(r)
@@ -390,7 +404,7 @@ func (s *State) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *State) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {
 	pull, ok := r.Context().Value("pull").(*db.Pull)
 	if !ok {
 		log.Println("failed to get pull")
@@ -421,7 +435,7 @@ func (s *State) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(pull.Submissions[roundIdInt].Patch))
 }
 
-func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	params := r.URL.Query()
 
@@ -489,7 +503,7 @@ func (s *State) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -612,7 +626,7 @@ func (s *State) PullComment(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -734,7 +748,7 @@ func (s *State) NewPull(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *State) handleBranchBasedPull(
+func (s *Pulls) handleBranchBasedPull(
 	w http.ResponseWriter,
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
@@ -778,7 +792,7 @@ func (s *State) handleBranchBasedPull(
 	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, pullSource, recordPullSource, isStacked)
 }
 
-func (s *State) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, title, body, targetBranch, patch string, isStacked bool) {
+func (s *Pulls) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, title, body, targetBranch, patch string, isStacked bool) {
 	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
@@ -787,7 +801,7 @@ func (s *State) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *
 	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, "", nil, nil, isStacked)
 }
 
-func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string, isStacked bool) {
+func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string, isStacked bool) {
 	fork, err := db.GetForkByDid(s.db, user.Did, forkRepo)
 	if errors.Is(err, sql.ErrNoRows) {
 		s.pages.Notice(w, "pull", "No such fork.")
@@ -867,7 +881,7 @@ func (s *State) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 	}, &tangled.RepoPull_Source{Branch: sourceBranch, Repo: &fork.AtUri}, isStacked)
 }
 
-func (s *State) createPullRequest(
+func (s *Pulls) createPullRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
@@ -996,7 +1010,7 @@ func (s *State) createPullRequest(
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
 }
 
-func (s *State) createStackedPulLRequest(
+func (s *Pulls) createStackedPulLRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
@@ -1097,7 +1111,7 @@ func (s *State) createStackedPulLRequest(
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls", f.OwnerSlashRepo()))
 }
 
-func (s *State) ValidatePatch(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) ValidatePatch(w http.ResponseWriter, r *http.Request) {
 	_, err := s.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -1122,7 +1136,7 @@ func (s *State) ValidatePatch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *State) PatchUploadFragment(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) PatchUploadFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -1135,7 +1149,7 @@ func (s *State) PatchUploadFragment(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -1175,7 +1189,7 @@ func (s *State) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-func (s *State) CompareForksFragment(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) CompareForksFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -1196,7 +1210,7 @@ func (s *State) CompareForksFragment(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
 	f, err := s.repoResolver.Resolve(r)
@@ -1252,7 +1266,7 @@ func (s *State) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -1288,7 +1302,7 @@ func (s *State) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *State) resubmitPatch(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
 	pull, ok := r.Context().Value("pull").(*db.Pull)
@@ -1315,7 +1329,7 @@ func (s *State) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 	s.resubmitPullHelper(w, r, f, user, pull, patch, "")
 }
 
-func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
 	pull, ok := r.Context().Value("pull").(*db.Pull)
@@ -1363,7 +1377,7 @@ func (s *State) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 	s.resubmitPullHelper(w, r, f, user, pull, patch, sourceRev)
 }
 
-func (s *State) resubmitFork(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
 	pull, ok := r.Context().Value("pull").(*db.Pull)
@@ -1453,7 +1467,7 @@ func validateResubmittedPatch(pull *db.Pull, patch string) error {
 	return nil
 }
 
-func (s *State) resubmitPullHelper(
+func (s *Pulls) resubmitPullHelper(
 	w http.ResponseWriter,
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
@@ -1555,7 +1569,7 @@ func (s *State) resubmitPullHelper(
 	return
 }
 
-func (s *State) resubmitStackedPullHelper(
+func (s *Pulls) resubmitStackedPullHelper(
 	w http.ResponseWriter,
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
@@ -1799,7 +1813,7 @@ func (s *State) resubmitStackedPullHelper(
 	return
 }
 
-func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to resolve repo:", err)
@@ -1902,7 +1916,7 @@ func (s *State) MergePull(w http.ResponseWriter, r *http.Request) {
 	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pull.PullId))
 }
 
-func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
 	f, err := s.repoResolver.Resolve(r)
@@ -1969,7 +1983,7 @@ func (s *State) ClosePull(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *State) ReopenPull(w http.ResponseWriter, r *http.Request) {
+func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
 	f, err := s.repoResolver.Resolve(r)
