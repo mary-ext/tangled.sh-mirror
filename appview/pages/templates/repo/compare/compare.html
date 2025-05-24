@@ -1,0 +1,15 @@
+{{ define "title" }}
+  comparing {{ .Base }} and {{ .Head }} on {{ .RepoInfo.FullName }}
+{{ end }}
+
+{{ define "repoContent" }}
+  {{ template "repo/fragments/compareForm" . }}
+  {{ $isPushAllowed := and .LoggedInUser .RepoInfo.Roles.IsPushAllowed }}
+  {{ if $isPushAllowed }}
+    {{ template "repo/fragments/compareAllowPull" . }}
+  {{ end }}
+{{ end }}
+
+{{ define "repoAfter" }}
+  {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
+{{ end }}

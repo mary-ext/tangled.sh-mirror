@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"path"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -2056,6 +2057,71 @@ func (s *State) ForkRepo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *State) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
+	f, err := s.fullyResolvedRepo(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", f.Knot)
+		s.pages.Error503(w)
+		return
+	}
+
+	result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+	branches := result.Branches
+	sort.Slice(branches, func(i int, j int) bool {
+		return branches[i].Commit.Committer.When.After(branches[j].Commit.Committer.When)
+	})
+
+	var defaultBranch string
+	for _, b := range branches {
+		if b.IsDefault {
+			defaultBranch = b.Name
+		}
+	}
+
+	base := defaultBranch
+	head := defaultBranch
+
+	params := r.URL.Query()
+	queryBase := params.Get("base")
+	queryHead := params.Get("head")
+	if queryBase != "" {
+		base = queryBase
+	}
+	if queryHead != "" {
+		head = queryHead
+	}
+
+	tags, err := us.Tags(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	repoinfo := f.RepoInfo(s, user)
+
+	s.pages.RepoCompareNew(w, pages.RepoCompareNewParams{
+		LoggedInUser: user,
+		RepoInfo:     repoinfo,
+		Branches:     branches,
+		Tags:         tags.Tags,
+		Base:         base,
+		Head:         head,
+	})
+}
+
 func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	f, err := s.fullyResolvedRepo(r)
@@ -2076,6 +2142,12 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 			base = parts[0]
 			head = parts[1]
 		}
+	}
+
+	if base == "" || head == "" {
+		log.Printf("invalid comparison")
+		s.pages.Error404(w)
+		return
 	}
 
 	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
@@ -2099,70 +2171,6 @@ func (s *State) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var forks []db.Repo
-	if user != nil {
-		var err error
-		forks, err = db.GetForksByDid(s.db, user.Did)
-		if err != nil {
-			s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-			log.Println("failed to get forks", err)
-			return
-		}
-	}
-
-	repoinfo := f.RepoInfo(s, user)
-
-	s.pages.RepoCompare(w, pages.RepoCompareParams{
-		LoggedInUser: user,
-		RepoInfo:     repoinfo,
-		Forks:        forks,
-		Branches:     branches.Branches,
-		Tags:         tags.Tags,
-		Base:         base,
-		Head:         head,
-	})
-
-}
-
-func (s *State) RepoCompareAllowPullFragment(w http.ResponseWriter, r *http.Request) {
-	user := s.oauth.GetUser(r)
-	f, err := s.fullyResolvedRepo(r)
-	if err != nil {
-		log.Println("failed to get repo and knot", err)
-		return
-	}
-
-	s.pages.RepoCompareAllowPullFragment(w, pages.RepoCompareAllowPullParams{
-		Head:         chi.URLParam(r, "head"),
-		Base:         chi.URLParam(r, "base"),
-		RepoInfo:     f.RepoInfo(s, user),
-		LoggedInUser: user,
-	})
-}
-
-func (s *State) RepoCompareDiffFragment(w http.ResponseWriter, r *http.Request) {
-	f, err := s.fullyResolvedRepo(r)
-	if err != nil {
-		log.Println("failed to get repo and knot", err)
-		return
-	}
-	user := s.oauth.GetUser(r)
-
-	base := chi.URLParam(r, "base")
-	head := chi.URLParam(r, "head")
-
-	if base == "" || head == "" {
-		s.pages.Notice(w, "compare-error", "Invalid ref format.")
-		return
-	}
-
-	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
-	if err != nil {
-		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to reach knotserver", err)
-		return
-	}
-
 	formatPatch, err := us.Compare(f.OwnerDid(), f.RepoName, base, head)
 	if err != nil {
 		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
@@ -2170,38 +2178,18 @@ func (s *State) RepoCompareDiffFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	diff := patchutil.AsNiceDiff(formatPatch.Patch, base)
-
-	branches, err := us.Branches(f.OwnerDid(), f.RepoName)
-	if err != nil {
-		s.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to fetch branches", err)
-		return
-	}
+	log.Println(formatPatch)
 
 	repoinfo := f.RepoInfo(s, user)
 
-	w.Header().Add("Hx-Push-Url", fmt.Sprintf("/%s/compare/%s...%s", f.OwnerSlashRepo(), base, head))
-	w.Header().Add("Content-Type", "text/html")
-	s.pages.RepoCompareDiff(w, pages.RepoCompareDiffParams{
+	s.pages.RepoCompare(w, pages.RepoCompareParams{
 		LoggedInUser: user,
 		RepoInfo:     repoinfo,
-		Diff:         diff,
+		Branches:     branches.Branches,
+		Tags:         tags.Tags,
+		Base:         base,
+		Head:         head,
+		Diff:         &diff,
 	})
 
-	// checks if pull is allowed and performs an htmx oob-swap
-	// by writing to the same http.ResponseWriter
-	if user != nil {
-		if slices.ContainsFunc(branches.Branches, func(branch types.Branch) bool {
-			return branch.Name == head || branch.Name == base
-		}) {
-			if repoinfo.Roles.IsPushAllowed() {
-				s.pages.RepoCompareAllowPullFragment(w, pages.RepoCompareAllowPullParams{
-					LoggedInUser: user,
-					RepoInfo:     repoinfo,
-					Base:         base,
-					Head:         head,
-				})
-			}
-		}
-	}
 }

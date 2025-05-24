@@ -133,16 +133,18 @@ func funcMap() template.FuncMap {
 		"sequence": func(n int) []struct{} {
 			return make([]struct{}, n)
 		},
-		"subslice": func(slice any, start, end int) any {
+		// take atmost N items from this slice
+		"take": func(slice any, n int) any {
 			v := reflect.ValueOf(slice)
 			if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 				return nil
 			}
-			if start < 0 || start > v.Len() || end > v.Len() || start > end {
+			if v.Len() == 0 {
 				return nil
 			}
-			return v.Slice(start, end).Interface()
+			return v.Slice(0, min(n, v.Len()-1)).Interface()
 		},
+
 		"markdown": func(text string) template.HTML {
 			rctx := &markup.RenderContext{RendererType: markup.RendererTypeDefault}
 			return template.HTML(bluemonday.UGCPolicy().Sanitize(rctx.RenderMarkdown(text)))

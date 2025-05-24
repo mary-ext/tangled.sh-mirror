@@ -1,0 +1,73 @@
+{{ define "repo/fragments/compareForm" }}
+<div id="compare-select">
+  <h2 class="font-bold text-sm mb-2 uppercase dark:text-white">
+    Compare changes
+  </h2>
+  <p>Choose any two refs to compare.</p>
+
+  <form id="compare-form" class="flex items-center gap-2 py-4">
+    <div>
+      <span class="hidden md:inline">base:</span>
+      {{ block "dropdown" (list $ "base" $.Base) }} {{ end }}
+    </div>
+    <span class="flex-shrink-0">
+      {{ i "arrow-left" "w-4 h-4" }}
+    </span>
+    <div>
+      <span class="hidden md:inline">compare:</span>
+      {{ block "dropdown" (list $ "head" $.Head) }} {{ end }}
+    </div>
+    <button
+      id="compare-button"
+      class="btn disabled:opacity-50 disabled:cursor-not-allowed"
+      type="button"
+      hx-boost="true"
+      onclick="
+        const base = document.getElementById('base-select').value;
+        const head = document.getElementById('head-select').value;
+        window.location.href = `/{{$.RepoInfo.FullName}}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}`;
+       ">
+      go
+    </button>
+  </form>
+</div>
+<script>
+  const baseSelect = document.getElementById('base-select');
+  const headSelect = document.getElementById('head-select');
+  const compareButton = document.getElementById('compare-button');
+
+  function toggleButtonState() {
+    compareButton.disabled = baseSelect.value === headSelect.value;
+  }
+
+  baseSelect.addEventListener('change', toggleButtonState);
+  headSelect.addEventListener('change', toggleButtonState);
+
+  // Run once on page load
+  toggleButtonState();
+</script>
+{{ end }}
+
+{{ define "dropdown" }}
+{{ $root := index . 0 }}
+{{ $name := index . 1 }}
+{{ $default := index . 2 }}
+  <select name="{{$name}}" id="{{$name}}-select" class="p-1 border max-w-32 md:max-w-64 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+    <optgroup label="branches ({{ len $root.Branches }})" class="bold text-sm">
+      {{ range $root.Branches }}
+        <option value="{{ .Reference.Name }}" class="py-1" {{if eq .Reference.Name $default}}selected{{end}}>
+          {{ .Reference.Name }}
+        </option>
+      {{ end }}
+    </optgroup>
+      <optgroup label="tags ({{ len $root.Tags }})" class="bold text-sm">
+        {{ range $root.Tags }}
+          <option value="{{ .Reference.Name }}" class="py-1" {{if eq .Reference.Name $default}}selected{{end}}>
+            {{ .Reference.Name }}
+          </option>
+        {{ else }}
+          <option class="py-1" disabled>no tags found</option>
+        {{ end }}
+      </optgroup>
+  </select>
+{{ end }}
