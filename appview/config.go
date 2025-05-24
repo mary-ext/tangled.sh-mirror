@@ -2,6 +2,8 @@ package appview
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 
 	"github.com/sethvargo/go-envconfig"
 )
@@ -41,6 +43,26 @@ type PosthogConfig struct {
 	Endpoint string `env:"ENDPOINT, default=https://eu.i.posthog.com"`
 }
 
+type RedisConfig struct {
+	Addr     string `env:"ADDR, default=localhost:6379"`
+	Password string `env:"PASS"`
+	DB       int    `env:"DB, default=0"`
+}
+
+func (cfg RedisConfig) ToURL() string {
+	u := &url.URL{
+		Scheme: "redis",
+		Host:   cfg.Addr,
+		Path:   fmt.Sprintf("/%d", cfg.DB),
+	}
+
+	if cfg.Password != "" {
+		u.User = url.UserPassword("", cfg.Password)
+	}
+
+	return u.String()
+}
+
 type Config struct {
 	Core      CoreConfig      `env:",prefix=TANGLED_"`
 	Jetstream JetstreamConfig `env:",prefix=TANGLED_JETSTREAM_"`
@@ -49,6 +71,7 @@ type Config struct {
 	Camo      CamoConfig      `env:",prefix=TANGLED_CAMO_"`
 	Avatar    AvatarConfig    `env:",prefix=TANGLED_AVATAR_"`
 	OAuth     OAuthConfig     `env:",prefix=TANGLED_OAUTH_"`
+	Redis     RedisConfig     `env:",prefix=TANGLED_REDIS_"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {
