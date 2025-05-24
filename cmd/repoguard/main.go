@@ -135,7 +135,7 @@ func main() {
 }
 
 func resolveToDid(didOrHandle string) string {
-	resolver := appview.NewResolver()
+	resolver := appview.DefaultResolver()
 	ident, err := resolver.ResolveIdent(context.Background(), didOrHandle)
 	if err != nil {
 		exitWithLog(fmt.Sprintf("error resolving handle: %v", err))

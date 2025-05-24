@@ -55,7 +55,11 @@ func Make(config *appview.Config) (*State, error) {
 
 	pgs := pages.NewPages(config)
 
-	resolver := appview.NewResolver()
+	resolver, err := appview.RedisResolver(config.Redis)
+	if err != nil {
+		log.Printf("failed to create redis resolver: %v", err)
+		resolver = appview.DefaultResolver()
+	}
 
 	oauth := oauth.NewOAuth(d, config)
 
