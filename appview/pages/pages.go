@@ -871,13 +871,31 @@ type RepoCompareParams struct {
 	Tags         []*types.TagReference
 	Base         string
 	Head         string
+	Diff         *types.NiceDiff
 
 	Active string
 }
 
 func (p *Pages) RepoCompare(w io.Writer, params RepoCompareParams) error {
 	params.Active = "overview"
-	return p.executeRepo("repo/compare", w, params)
+	return p.executeRepo("repo/compare/compare", w, params)
+}
+
+type RepoCompareNewParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Forks        []db.Repo
+	Branches     []types.Branch
+	Tags         []*types.TagReference
+	Base         string
+	Head         string
+
+	Active string
+}
+
+func (p *Pages) RepoCompareNew(w io.Writer, params RepoCompareNewParams) error {
+	params.Active = "overview"
+	return p.executeRepo("repo/compare/new", w, params)
 }
 
 type RepoCompareAllowPullParams struct {

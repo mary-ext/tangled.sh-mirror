@@ -119,7 +119,7 @@ func (s *State) UserRouter() http.Handler {
 			})
 
 			r.Route("/compare", func(r chi.Router) {
-				r.Get("/", s.RepoCompare)
+				r.Get("/", s.RepoCompareNew) // start an new comparison
 
 				// we have to wildcard here since we want to support GitHub's compare syntax
 				//   /compare/{ref1}...{ref2}
@@ -127,8 +127,6 @@ func (s *State) UserRouter() http.Handler {
 				//   /compare/master...some/feature
 				//   /compare/master...example.com:another/feature <- this is a fork
 				r.Get("/{base}/{head}", s.RepoCompare)
-				r.Get("/diff/{base}/{head}", s.RepoCompareDiffFragment)
-				r.Get("/allow-pull/{base}/{head}", s.RepoCompareAllowPullFragment)
 				r.Get("/*", s.RepoCompare)
 			})
 

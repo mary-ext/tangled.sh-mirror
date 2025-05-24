@@ -101,7 +101,7 @@
         </button>
     {{ end }}
         <a
-            href="/{{ .RepoInfo.FullName }}/compare"
+            href="/{{ .RepoInfo.FullName }}/compare?base={{ $.Ref | urlquery }}"
             class="btn flex items-center gap-2 no-underline hover:no-underline"
             title="Compare branches or tags"
         >
