@@ -24,13 +24,13 @@ import (
 type Middleware struct {
 	oauth        *oauth.OAuth
 	db           *db.DB
-	enforcer     rbac.Enforcer
+	enforcer     *rbac.Enforcer
 	repoResolver *reporesolver.RepoResolver
 	resolver     *appview.Resolver
 	pages        *pages.Pages
 }
 
-func New(oauth *oauth.OAuth, db *db.DB, enforcer rbac.Enforcer, repoResolver *reporesolver.RepoResolver, resolver *appview.Resolver, pages *pages.Pages) Middleware {
+func New(oauth *oauth.OAuth, db *db.DB, enforcer *rbac.Enforcer, repoResolver *reporesolver.RepoResolver, resolver *appview.Resolver, pages *pages.Pages) Middleware {
 	return Middleware{
 		oauth:        oauth,
 		db:           db,
