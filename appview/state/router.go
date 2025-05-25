@@ -14,11 +14,19 @@ import (
 
 func (s *State) Router() http.Handler {
 	router := chi.NewRouter()
+	middleware := middleware.New(
+		s.oauth,
+		s.db,
+		s.enforcer,
+		s.repoResolver,
+		s.resolver,
+		s.pages,
+	)
 
 	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		pat := chi.URLParam(r, "*")
 		if strings.HasPrefix(pat, "did:") || strings.HasPrefix(pat, "@") {
-			s.UserRouter().ServeHTTP(w, r)
+			s.UserRouter(&middleware).ServeHTTP(w, r)
 		} else {
 			// Check if the first path element is a valid handle without '@' or a flattened DID
 			pathParts := strings.SplitN(pat, "/", 2)
@@ -41,24 +49,24 @@ func (s *State) Router() http.Handler {
 					return
 				}
 			}
-			s.StandardRouter().ServeHTTP(w, r)
+			s.StandardRouter(&middleware).ServeHTTP(w, r)
 		}
 	})
 
 	return router
 }
 
-func (s *State) UserRouter() http.Handler {
+func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 
 	// strip @ from user
-	r.Use(StripLeadingAt)
+	r.Use(middleware.StripLeadingAt)
 
-	r.With(ResolveIdent(s)).Route("/{user}", func(r chi.Router) {
+	r.With(mw.ResolveIdent()).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.Profile)
 
-		r.With(ResolveRepo(s)).Route("/{repo}", func(r chi.Router) {
-			r.Use(GoImport(s))
+		r.With(mw.ResolveRepo()).Route("/{repo}", func(r chi.Router) {
+			r.Use(mw.GoImport())
 
 			r.Get("/", s.RepoIndex)
 			r.Get("/commits/{ref}", s.RepoLog)
@@ -80,7 +88,7 @@ func (s *State) UserRouter() http.Handler {
 					// additionally: only the uploader can truly delete an artifact
 					// (record+blob will live on their pds)
 					r.Group(func(r chi.Router) {
-						r.With(RepoPermissionMiddleware(s, "repo:push"))
+						r.With(mw.RepoPermissionMiddleware("repo:push"))
 						r.Post("/upload", s.AttachArtifact)
 						r.Delete("/{file}", s.DeleteArtifact)
 					})
@@ -113,7 +121,7 @@ func (s *State) UserRouter() http.Handler {
 				r.Use(middleware.AuthMiddleware(s.oauth))
 				r.Get("/", s.ForkRepo)
 				r.Post("/", s.ForkRepo)
-				r.With(RepoPermissionMiddleware(s, "repo:owner")).Route("/sync", func(r chi.Router) {
+				r.With(mw.RepoPermissionMiddleware("repo:owner")).Route("/sync", func(r chi.Router) {
 					r.Post("/", s.SyncRepoFork)
 				})
 			})
@@ -143,7 +151,7 @@ func (s *State) UserRouter() http.Handler {
 				})
 
 				r.Route("/{pull}", func(r chi.Router) {
-					r.Use(ResolvePull(s))
+					r.Use(mw.ResolvePull())
 					r.Get("/", s.RepoSinglePull)
 
 					r.Route("/round/{round}", func(r chi.Router) {
@@ -170,7 +178,7 @@ func (s *State) UserRouter() http.Handler {
 						r.Post("/reopen", s.ReopenPull)
 						// collaborators only
 						r.Group(func(r chi.Router) {
-							r.Use(RepoPermissionMiddleware(s, "repo:push"))
+							r.Use(mw.RepoPermissionMiddleware("repo:push"))
 							r.Post("/merge", s.MergePull)
 							// maybe lock, etc.
 						})
@@ -187,15 +195,15 @@ func (s *State) UserRouter() http.Handler {
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.AuthMiddleware(s.oauth))
 				// repo description can only be edited by owner
-				r.With(RepoPermissionMiddleware(s, "repo:owner")).Route("/description", func(r chi.Router) {
+				r.With(mw.RepoPermissionMiddleware("repo:owner")).Route("/description", func(r chi.Router) {
 					r.Put("/", s.RepoDescription)
 					r.Get("/", s.RepoDescription)
 					r.Get("/edit", s.RepoDescriptionEdit)
 				})
-				r.With(RepoPermissionMiddleware(s, "repo:settings")).Route("/settings", func(r chi.Router) {
+				r.With(mw.RepoPermissionMiddleware("repo:settings")).Route("/settings", func(r chi.Router) {
 					r.Get("/", s.RepoSettings)
-					r.With(RepoPermissionMiddleware(s, "repo:invite")).Put("/collaborator", s.AddCollaborator)
-					r.With(RepoPermissionMiddleware(s, "repo:delete")).Delete("/delete", s.DeleteRepo)
+					r.With(mw.RepoPermissionMiddleware("repo:invite")).Put("/collaborator", s.AddCollaborator)
+					r.With(mw.RepoPermissionMiddleware("repo:delete")).Delete("/delete", s.DeleteRepo)
 					r.Put("/branches/default", s.SetDefaultBranch)
 				})
 			})
@@ -209,7 +217,7 @@ func (s *State) UserRouter() http.Handler {
 	return r
 }
 
-func (s *State) StandardRouter() http.Handler {
+func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 
 	r.Handle("/static/*", s.pages.Static())
@@ -227,7 +235,7 @@ func (s *State) StandardRouter() http.Handler {
 			r.Post("/init", s.InitKnotServer)
 			r.Get("/", s.KnotServerInfo)
 			r.Route("/member", func(r chi.Router) {
-				r.Use(KnotOwner(s))
+				r.Use(mw.KnotOwner())
 				r.Get("/", s.ListMembers)
 				r.Put("/", s.AddMember)
 				r.Delete("/", s.RemoveMember)
