@@ -1,4 +1,4 @@
-// adapted from https://github.com/haileyok/atproto-oauth-golang
+// adapted from https://tangled.sh/icyphox.sh/atproto-oauth
 
 package main
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
-	oauth "github.com/haileyok/atproto-oauth-golang"
+	oauth "tangled.sh/icyphox.sh/atproto-oauth"
 )
 
 type Client struct {

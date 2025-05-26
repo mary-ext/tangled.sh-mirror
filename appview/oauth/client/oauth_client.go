@@ -1,8 +1,8 @@
 package client
 
 import (
-	oauth "github.com/haileyok/atproto-oauth-golang"
-	"github.com/haileyok/atproto-oauth-golang/helpers"
+	oauth "tangled.sh/icyphox.sh/atproto-oauth"
+	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
 )
 
 type OAuthClient struct {
