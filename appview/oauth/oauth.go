@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/sessions"
 	oauth "tangled.sh/icyphox.sh/atproto-oauth"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
@@ -44,15 +43,15 @@ func NewOAuth(db *db.DB, config *config.Config) *OAuth {
 
 func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq db.OAuthRequest, oresp *oauth.TokenResponse) error {
 	// first we save the did in the user session
-	userSession, err := o.Store.Get(r, appview.SessionName)
+	userSession, err := o.Store.Get(r, SessionName)
 	if err != nil {
 		return err
 	}
 
-	userSession.Values[appview.SessionDid] = oreq.Did
-	userSession.Values[appview.SessionHandle] = oreq.Handle
-	userSession.Values[appview.SessionPds] = oreq.PdsUrl
-	userSession.Values[appview.SessionAuthenticated] = true
+	userSession.Values[SessionDid] = oreq.Did
+	userSession.Values[SessionHandle] = oreq.Handle
+	userSession.Values[SessionPds] = oreq.PdsUrl
+	userSession.Values[SessionAuthenticated] = true
 	err = userSession.Save(r, w)
 	if err != nil {
 		return fmt.Errorf("error saving user session: %w", err)
@@ -75,12 +74,12 @@ func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq db.OAut
 }
 
 func (o *OAuth) ClearSession(r *http.Request, w http.ResponseWriter) error {
-	userSession, err := o.Store.Get(r, appview.SessionName)
+	userSession, err := o.Store.Get(r, SessionName)
 	if err != nil || userSession.IsNew {
 		return fmt.Errorf("error getting user session (or new session?): %w", err)
 	}
 
-	did := userSession.Values[appview.SessionDid].(string)
+	did := userSession.Values[SessionDid].(string)
 
 	err = db.DeleteOAuthSessionByDid(o.Db, did)
 	if err != nil {
@@ -93,13 +92,13 @@ func (o *OAuth) ClearSession(r *http.Request, w http.ResponseWriter) error {
 }
 
 func (o *OAuth) GetSession(r *http.Request) (*db.OAuthSession, bool, error) {
-	userSession, err := o.Store.Get(r, appview.SessionName)
+	userSession, err := o.Store.Get(r, SessionName)
 	if err != nil || userSession.IsNew {
 		return nil, false, fmt.Errorf("error getting user session (or new session?): %w", err)
 	}
 
-	did := userSession.Values[appview.SessionDid].(string)
-	auth := userSession.Values[appview.SessionAuthenticated].(bool)
+	did := userSession.Values[SessionDid].(string)
+	auth := userSession.Values[SessionAuthenticated].(bool)
 
 	session, err := db.GetOAuthSessionByDid(o.Db, did)
 	if err != nil {
@@ -156,27 +155,27 @@ type User struct {
 }
 
 func (a *OAuth) GetUser(r *http.Request) *User {
-	clientSession, err := a.Store.Get(r, appview.SessionName)
+	clientSession, err := a.Store.Get(r, SessionName)
 
 	if err != nil || clientSession.IsNew {
 		return nil
 	}
 
 	return &User{
-		Handle: clientSession.Values[appview.SessionHandle].(string),
-		Did:    clientSession.Values[appview.SessionDid].(string),
-		Pds:    clientSession.Values[appview.SessionPds].(string),
+		Handle: clientSession.Values[SessionHandle].(string),
+		Did:    clientSession.Values[SessionDid].(string),
+		Pds:    clientSession.Values[SessionPds].(string),
 	}
 }
 
 func (a *OAuth) GetDid(r *http.Request) string {
-	clientSession, err := a.Store.Get(r, appview.SessionName)
+	clientSession, err := a.Store.Get(r, SessionName)
 
 	if err != nil || clientSession.IsNew {
 		return ""
 	}
 
-	return clientSession.Values[appview.SessionDid].(string)
+	return clientSession.Values[SessionDid].(string)
 }
 
 func (o *OAuth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
