@@ -22,6 +22,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/resolver"
 )
 
 type ResolvedRepo struct {
@@ -40,11 +41,11 @@ type ResolvedRepo struct {
 type RepoResolver struct {
 	config   *appview.Config
 	enforcer *rbac.Enforcer
-	resolver *appview.Resolver
+	resolver *resolver.Resolver
 	execer   db.Execer
 }
 
-func New(config *appview.Config, enforcer *rbac.Enforcer, resolver *appview.Resolver, execer db.Execer) *RepoResolver {
+func New(config *appview.Config, enforcer *rbac.Enforcer, resolver *resolver.Resolver, execer db.Execer) *RepoResolver {
 	return &RepoResolver{config: config, enforcer: enforcer, resolver: resolver, execer: execer}
 }
 

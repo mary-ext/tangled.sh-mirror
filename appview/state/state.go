@@ -27,6 +27,7 @@ import (
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/resolver"
 )
 
 type State struct {
@@ -35,7 +36,7 @@ type State struct {
 	enforcer     *rbac.Enforcer
 	tidClock     syntax.TIDClock
 	pages        *pages.Pages
-	resolver     *appview.Resolver
+	resolver     *resolver.Resolver
 	posthog      posthog.Client
 	jc           *jetstream.JetstreamClient
 	config       *appview.Config
@@ -57,10 +58,10 @@ func Make(config *appview.Config) (*State, error) {
 
 	pgs := pages.NewPages(config)
 
-	resolver, err := appview.RedisResolver(config.Redis)
+	res, err := resolver.RedisResolver(config.Redis.ToURL())
 	if err != nil {
 		log.Printf("failed to create redis resolver: %v", err)
-		resolver = appview.DefaultResolver()
+		res = resolver.DefaultResolver()
 	}
 
 	oauth := oauth.NewOAuth(d, config)
@@ -70,7 +71,7 @@ func Make(config *appview.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to create posthog client: %w", err)
 	}
 
-	repoResolver := reporesolver.New(config, enforcer, resolver, d)
+	repoResolver := reporesolver.New(config, enforcer, res, d)
 
 	wrapper := db.DbWrapper{d}
 	jc, err := jetstream.NewJetstreamClient(
@@ -102,7 +103,7 @@ func Make(config *appview.Config) (*State, error) {
 		enforcer,
 		clock,
 		pgs,
-		resolver,
+		res,
 		posthog,
 		jc,
 		config,

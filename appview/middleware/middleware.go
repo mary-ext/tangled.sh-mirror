@@ -12,13 +12,13 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/resolver"
 )
 
 type Middleware struct {
@@ -26,11 +26,11 @@ type Middleware struct {
 	db           *db.DB
 	enforcer     *rbac.Enforcer
 	repoResolver *reporesolver.RepoResolver
-	resolver     *appview.Resolver
+	resolver     *resolver.Resolver
 	pages        *pages.Pages
 }
 
-func New(oauth *oauth.OAuth, db *db.DB, enforcer *rbac.Enforcer, repoResolver *reporesolver.RepoResolver, resolver *appview.Resolver, pages *pages.Pages) Middleware {
+func New(oauth *oauth.OAuth, db *db.DB, enforcer *rbac.Enforcer, repoResolver *reporesolver.RepoResolver, resolver *resolver.Resolver, pages *pages.Pages) Middleware {
 	return Middleware{
 		oauth:        oauth,
 		db:           db,

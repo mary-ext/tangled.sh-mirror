@@ -21,6 +21,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/resolver"
 )
 
 const (
@@ -30,7 +31,7 @@ const (
 type OAuthHandler struct {
 	Config   *appview.Config
 	Pages    *pages.Pages
-	Resolver *appview.Resolver
+	Resolver *resolver.Resolver
 	Db       *db.DB
 	Store    *sessions.CookieStore
 	OAuth    *oauth.OAuth

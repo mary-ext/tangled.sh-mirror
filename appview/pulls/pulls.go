@@ -21,6 +21,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/patchutil"
+	"tangled.sh/tangled.sh/core/resolver"
 	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
@@ -36,13 +37,13 @@ type Pulls struct {
 	oauth        *oauth.OAuth
 	repoResolver *reporesolver.RepoResolver
 	pages        *pages.Pages
-	resolver     *appview.Resolver
+	resolver     *resolver.Resolver
 	db           *db.DB
 	config       *appview.Config
 	posthog      posthog.Client
 }
 
-func New(oauth *oauth.OAuth, repoResolver *reporesolver.RepoResolver, pages *pages.Pages, resolver *appview.Resolver, db *db.DB, config *appview.Config) *Pulls {
+func New(oauth *oauth.OAuth, repoResolver *reporesolver.RepoResolver, pages *pages.Pages, resolver *resolver.Resolver, db *db.DB, config *appview.Config) *Pulls {
 	return &Pulls{oauth: oauth, repoResolver: repoResolver, pages: pages, resolver: resolver, db: db, config: config}
 }
 

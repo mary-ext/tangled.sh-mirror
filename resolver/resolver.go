@@ -1,4 +1,4 @@
-package appview
+package resolver
 
 import (
 	"context"
@@ -52,8 +52,8 @@ func DefaultResolver() *Resolver {
 	}
 }
 
-func RedisResolver(config RedisConfig) (*Resolver, error) {
-	directory, err := RedisDirectory(config.ToURL())
+func RedisResolver(url string) (*Resolver, error) {
+	directory, err := RedisDirectory(url)
 	if err != nil {
 		return nil, err
 	}
