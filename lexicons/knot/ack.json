@@ -1,0 +1,43 @@
+{
+  "lexicon": 1,
+  "id": "sh.tangled.knot.ack",
+  "needsCbor": true,
+  "needsType": true,
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "host",
+          "aturi",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "the host of the knot that is acking this at-uri"
+          },
+          "aturi": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "the at-uri to ack"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACK",
+              "NAK"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

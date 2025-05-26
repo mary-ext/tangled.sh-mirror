@@ -29,6 +29,7 @@ func main() {
 		tangled.RepoArtifact{},
 		tangled.ActorProfile{},
 		tangled.Knot{},
+		tangled.KnotAck{},
 	); err != nil {
 		panic(err)
 	}
