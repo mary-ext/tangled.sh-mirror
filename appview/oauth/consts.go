@@ -1,4 +1,4 @@
-package appview
+package oauth
 
 const (
 	SessionName          = "appview-session"

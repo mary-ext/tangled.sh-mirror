@@ -29,14 +29,36 @@ const (
 )
 
 type OAuthHandler struct {
-	Config     *config.Config
-	Pages      *pages.Pages
-	Idresolver *idresolver.Resolver
-	Db         *db.DB
-	Store      *sessions.CookieStore
-	OAuth      *oauth.OAuth
-	Enforcer   *rbac.Enforcer
-	Posthog    posthog.Client
+	config     *config.Config
+	pages      *pages.Pages
+	idResolver *idresolver.Resolver
+	db         *db.DB
+	store      *sessions.CookieStore
+	oauth      *oauth.OAuth
+	enforcer   *rbac.Enforcer
+	posthog    posthog.Client
+}
+
+func New(
+	config *config.Config,
+	pages *pages.Pages,
+	idResolver *idresolver.Resolver,
+	db *db.DB,
+	store *sessions.CookieStore,
+	oauth *oauth.OAuth,
+	enforcer *rbac.Enforcer,
+	posthog posthog.Client,
+) *OAuthHandler {
+	return &OAuthHandler{
+		config:     config,
+		pages:      pages,
+		idResolver: idResolver,
+		db:         db,
+		store:      store,
+		oauth:      oauth,
+		enforcer:   enforcer,
+		posthog:    posthog,
+	}
 }
 
 func (o *OAuthHandler) Router() http.Handler {
@@ -45,7 +67,7 @@ func (o *OAuthHandler) Router() http.Handler {
 	r.Get("/login", o.login)
 	r.Post("/login", o.login)
 
-	r.With(middleware.AuthMiddleware(o.OAuth)).Post("/logout", o.logout)
+	r.With(middleware.AuthMiddleware(o.oauth)).Post("/logout", o.logout)
 
 	r.Get("/oauth/client-metadata.json", o.clientMetadata)
 	r.Get("/oauth/jwks.json", o.jwks)
@@ -56,11 +78,11 @@ func (o *OAuthHandler) Router() http.Handler {
 func (o *OAuthHandler) clientMetadata(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(o.OAuth.ClientMetadata())
+	json.NewEncoder(w).Encode(o.oauth.ClientMetadata())
 }
 
 func (o *OAuthHandler) jwks(w http.ResponseWriter, r *http.Request) {
-	jwks := o.Config.OAuth.Jwks
+	jwks := o.config.OAuth.Jwks
 	pubKey, err := pubKeyFromJwk(jwks)
 	if err != nil {
 		log.Printf("error parsing public key: %v", err)
@@ -78,65 +100,65 @@ func (o *OAuthHandler) jwks(w http.ResponseWriter, r *http.Request) {
 func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		o.Pages.Login(w, pages.LoginParams{})
+		o.pages.Login(w, pages.LoginParams{})
 	case http.MethodPost:
 		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
 
-		resolved, err := o.Idresolver.ResolveIdent(r.Context(), handle)
+		resolved, err := o.idResolver.ResolveIdent(r.Context(), handle)
 		if err != nil {
 			log.Println("failed to resolve handle:", err)
-			o.Pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
+			o.pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))
 			return
 		}
-		self := o.OAuth.ClientMetadata()
+		self := o.oauth.ClientMetadata()
 		oauthClient, err := client.NewClient(
 			self.ClientID,
-			o.Config.OAuth.Jwks,
+			o.config.OAuth.Jwks,
 			self.RedirectURIs[0],
 		)
 
 		if err != nil {
 			log.Println("failed to create oauth client:", err)
-			o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+			o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 			return
 		}
 
 		authServer, err := oauthClient.ResolvePdsAuthServer(r.Context(), resolved.PDSEndpoint())
 		if err != nil {
 			log.Println("failed to resolve auth server:", err)
-			o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+			o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 			return
 		}
 
 		authMeta, err := oauthClient.FetchAuthServerMetadata(r.Context(), authServer)
 		if err != nil {
 			log.Println("failed to fetch auth server metadata:", err)
-			o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+			o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 			return
 		}
 
 		dpopKey, err := helpers.GenerateKey(nil)
 		if err != nil {
 			log.Println("failed to generate dpop key:", err)
-			o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+			o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 			return
 		}
 
 		dpopKeyJson, err := json.Marshal(dpopKey)
 		if err != nil {
 			log.Println("failed to marshal dpop key:", err)
-			o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+			o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 			return
 		}
 
 		parResp, err := oauthClient.SendParAuthRequest(r.Context(), authServer, authMeta, handle, oauthScope, dpopKey)
 		if err != nil {
 			log.Println("failed to send par auth request:", err)
-			o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+			o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 			return
 		}
 
-		err = db.SaveOAuthRequest(o.Db, db.OAuthRequest{
+		err = db.SaveOAuthRequest(o.db, db.OAuthRequest{
 			Did:                 resolved.DID.String(),
 			PdsUrl:              resolved.PDSEndpoint(),
 			Handle:              handle,
@@ -148,7 +170,7 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			log.Println("failed to save oauth request:", err)
-			o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+			o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 			return
 		}
 
@@ -157,22 +179,22 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		query.Add("client_id", self.ClientID)
 		query.Add("request_uri", parResp.RequestUri)
 		u.RawQuery = query.Encode()
-		o.Pages.HxRedirect(w, u.String())
+		o.pages.HxRedirect(w, u.String())
 	}
 }
 
 func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 	state := r.FormValue("state")
 
-	oauthRequest, err := db.GetOAuthRequestByState(o.Db, state)
+	oauthRequest, err := db.GetOAuthRequestByState(o.db, state)
 	if err != nil {
 		log.Println("failed to get oauth request:", err)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
 	defer func() {
-		err := db.DeleteOAuthRequestByState(o.Db, state)
+		err := db.DeleteOAuthRequestByState(o.db, state)
 		if err != nil {
 			log.Println("failed to delete oauth request for state:", state, err)
 		}
@@ -182,42 +204,42 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 	errorDescription := r.FormValue("error_description")
 	if error != "" || errorDescription != "" {
 		log.Printf("error: %s, %s", error, errorDescription)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
 	code := r.FormValue("code")
 	if code == "" {
 		log.Println("missing code for state: ", state)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
 	iss := r.FormValue("iss")
 	if iss == "" {
 		log.Println("missing iss for state: ", state)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
-	self := o.OAuth.ClientMetadata()
+	self := o.oauth.ClientMetadata()
 
 	oauthClient, err := client.NewClient(
 		self.ClientID,
-		o.Config.OAuth.Jwks,
+		o.config.OAuth.Jwks,
 		self.RedirectURIs[0],
 	)
 
 	if err != nil {
 		log.Println("failed to create oauth client:", err)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
 	jwk, err := helpers.ParseJWKFromBytes([]byte(oauthRequest.DpopPrivateJwk))
 	if err != nil {
 		log.Println("failed to parse jwk:", err)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
@@ -231,28 +253,28 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		log.Println("failed to get token:", err)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
 	if tokenResp.Scope != oauthScope {
 		log.Println("scope doesn't match:", tokenResp.Scope)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
-	err = o.OAuth.SaveSession(w, r, oauthRequest, tokenResp)
+	err = o.oauth.SaveSession(w, r, oauthRequest, tokenResp)
 	if err != nil {
 		log.Println("failed to save session:", err)
-		o.Pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
 		return
 	}
 
 	log.Println("session saved successfully")
 	go o.addToDefaultKnot(oauthRequest.Did)
 
-	if !o.Config.Core.Dev {
-		err = o.Posthog.Enqueue(posthog.Capture{
+	if !o.config.Core.Dev {
+		err = o.posthog.Enqueue(posthog.Capture{
 			DistinctId: oauthRequest.Did,
 			Event:      "signin",
 		})
@@ -265,7 +287,7 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OAuthHandler) logout(w http.ResponseWriter, r *http.Request) {
-	err := o.OAuth.ClearSession(r, w)
+	err := o.oauth.ClearSession(r, w)
 	if err != nil {
 		log.Println("failed to clear session:", err)
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -292,23 +314,23 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 	defaultKnot := "knot1.tangled.sh"
 
 	log.Printf("adding %s to default knot", did)
-	err := o.Enforcer.AddMember(defaultKnot, did)
+	err := o.enforcer.AddMember(defaultKnot, did)
 	if err != nil {
 		log.Println("failed to add user to knot1.tangled.sh: ", err)
 		return
 	}
-	err = o.Enforcer.E.SavePolicy()
+	err = o.enforcer.E.SavePolicy()
 	if err != nil {
 		log.Println("failed to add user to knot1.tangled.sh: ", err)
 		return
 	}
 
-	secret, err := db.GetRegistrationKey(o.Db, defaultKnot)
+	secret, err := db.GetRegistrationKey(o.db, defaultKnot)
 	if err != nil {
 		log.Println("failed to get registration key for knot1.tangled.sh")
 		return
 	}
-	signedClient, err := knotclient.NewSignedClient(defaultKnot, secret, o.Config.Core.Dev)
+	signedClient, err := knotclient.NewSignedClient(defaultKnot, secret, o.config.Core.Dev)
 	resp, err := signedClient.AddMember(did)
 	if err != nil {
 		log.Println("failed to add user to knot1.tangled.sh: ", err)

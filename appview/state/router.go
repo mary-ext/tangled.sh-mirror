@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"tangled.sh/tangled.sh/core/appview/middleware"
-	oauthhandler "tangled.sh/tangled.sh/core/appview/oauth/handler"
+	oauth "tangled.sh/tangled.sh/core/appview/oauth/handler"
 	"tangled.sh/tangled.sh/core/appview/pulls"
 	"tangled.sh/tangled.sh/core/appview/repo"
 	"tangled.sh/tangled.sh/core/appview/settings"
@@ -154,17 +154,8 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 }
 
 func (s *State) OAuthRouter() http.Handler {
-	oauth := &oauthhandler.OAuthHandler{
-		Config:     s.config,
-		Pages:      s.pages,
-		Idresolver: s.idResolver,
-		Db:         s.db,
-		Store:      sessions.NewCookieStore([]byte(s.config.Core.CookieSecret)),
-		OAuth:      s.oauth,
-		Enforcer:   s.enforcer,
-		Posthog:    s.posthog,
-	}
-
+	store := sessions.NewCookieStore([]byte(s.config.Core.CookieSecret))
+	oauth := oauth.New(s.config, s.pages, s.idResolver, s.db, store, s.oauth, s.enforcer, s.posthog)
 	return oauth.Router()
 }
 
