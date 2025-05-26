@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "sh.tangled.knot",
+  "needsCbor": true,
+  "needsType": true,
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "host",
+          "createdAt"
+        ],
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "publicly reachable host of the knot"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}
