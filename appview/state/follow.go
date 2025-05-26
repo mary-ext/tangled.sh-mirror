@@ -23,7 +23,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subjectIdent, err := s.resolver.ResolveIdent(r.Context(), subject)
+	subjectIdent, err := s.idResolver.ResolveIdent(r.Context(), subject)
 	if err != nil {
 		log.Println("failed to follow, invalid did")
 	}

@@ -15,6 +15,7 @@ import (
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
@@ -28,14 +29,14 @@ const (
 )
 
 type OAuthHandler struct {
-	Config   *appview.Config
-	Pages    *pages.Pages
-	Resolver *appview.Resolver
-	Db       *db.DB
-	Store    *sessions.CookieStore
-	OAuth    *oauth.OAuth
-	Enforcer *rbac.Enforcer
-	Posthog  posthog.Client
+	Config     *appview.Config
+	Pages      *pages.Pages
+	Idresolver *idresolver.Resolver
+	Db         *db.DB
+	Store      *sessions.CookieStore
+	OAuth      *oauth.OAuth
+	Enforcer   *rbac.Enforcer
+	Posthog    posthog.Client
 }
 
 func (o *OAuthHandler) Router() http.Handler {
@@ -81,7 +82,7 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
 
-		resolved, err := o.Resolver.ResolveIdent(r.Context(), handle)
+		resolved, err := o.Idresolver.ResolveIdent(r.Context(), handle)
 		if err != nil {
 			log.Println("failed to resolve handle:", err)
 			o.Pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle.", handle))

@@ -12,8 +12,8 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pagination"
@@ -26,17 +26,17 @@ type Middleware struct {
 	db           *db.DB
 	enforcer     *rbac.Enforcer
 	repoResolver *reporesolver.RepoResolver
-	resolver     *appview.Resolver
+	idResolver   *idresolver.Resolver
 	pages        *pages.Pages
 }
 
-func New(oauth *oauth.OAuth, db *db.DB, enforcer *rbac.Enforcer, repoResolver *reporesolver.RepoResolver, resolver *appview.Resolver, pages *pages.Pages) Middleware {
+func New(oauth *oauth.OAuth, db *db.DB, enforcer *rbac.Enforcer, repoResolver *reporesolver.RepoResolver, idResolver *idresolver.Resolver, pages *pages.Pages) Middleware {
 	return Middleware{
 		oauth:        oauth,
 		db:           db,
 		enforcer:     enforcer,
 		repoResolver: repoResolver,
-		resolver:     resolver,
+		idResolver:   idResolver,
 		pages:        pages,
 	}
 }
@@ -188,7 +188,7 @@ func (mw Middleware) ResolveIdent() middlewareFunc {
 				return
 			}
 
-			id, err := mw.resolver.ResolveIdent(req.Context(), didOrHandle)
+			id, err := mw.idResolver.ResolveIdent(req.Context(), didOrHandle)
 			if err != nil {
 				// invalid did or handle
 				log.Println("failed to resolve did/handle:", err)

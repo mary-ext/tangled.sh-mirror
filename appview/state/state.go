@@ -21,6 +21,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
@@ -35,7 +36,7 @@ type State struct {
 	enforcer     *rbac.Enforcer
 	tidClock     syntax.TIDClock
 	pages        *pages.Pages
-	resolver     *appview.Resolver
+	idResolver   *idresolver.Resolver
 	posthog      posthog.Client
 	jc           *jetstream.JetstreamClient
 	config       *appview.Config
@@ -57,10 +58,10 @@ func Make(config *appview.Config) (*State, error) {
 
 	pgs := pages.NewPages(config)
 
-	resolver, err := appview.RedisResolver(config.Redis)
+	res, err := idresolver.RedisResolver(config.Redis)
 	if err != nil {
 		log.Printf("failed to create redis resolver: %v", err)
-		resolver = appview.DefaultResolver()
+		res = idresolver.DefaultResolver()
 	}
 
 	oauth := oauth.NewOAuth(d, config)
@@ -70,7 +71,7 @@ func Make(config *appview.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to create posthog client: %w", err)
 	}
 
-	repoResolver := reporesolver.New(config, enforcer, resolver, d)
+	repoResolver := reporesolver.New(config, enforcer, res, d)
 
 	wrapper := db.DbWrapper{d}
 	jc, err := jetstream.NewJetstreamClient(
@@ -102,7 +103,7 @@ func Make(config *appview.Config) (*State, error) {
 		enforcer,
 		clock,
 		pgs,
-		resolver,
+		res,
 		posthog,
 		jc,
 		config,
@@ -147,7 +148,7 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -211,7 +212,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := s.resolver.ResolveIdent(r.Context(), user)
+	id, err := s.idResolver.ResolveIdent(r.Context(), user)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -381,7 +382,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 		didsToResolve = append(didsToResolve, m)
 	}
 	didsToResolve = append(didsToResolve, reg.ByDid)
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -453,7 +454,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subjectIdentity, err := s.resolver.ResolveIdent(r.Context(), subjectIdentifier)
+	subjectIdentity, err := s.idResolver.ResolveIdent(r.Context(), subjectIdentifier)
 	if err != nil {
 		w.Write([]byte("failed to resolve member did to a handle"))
 		return

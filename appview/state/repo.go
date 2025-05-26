@@ -699,7 +699,7 @@ func (s *State) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collaboratorIdent, err := s.resolver.ResolveIdent(r.Context(), collaborator)
+	collaboratorIdent, err := s.idResolver.ResolveIdent(r.Context(), collaborator)
 	if err != nil {
 		w.Write([]byte("failed to resolve collaborator did to a handle"))
 		return
@@ -993,7 +993,7 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issueOwnerIdent, err := s.resolver.ResolveIdent(r.Context(), issue.OwnerDid)
+	issueOwnerIdent, err := s.idResolver.ResolveIdent(r.Context(), issue.OwnerDid)
 	if err != nil {
 		log.Println("failed to resolve issue owner", err)
 	}
@@ -1002,7 +1002,7 @@ func (s *State) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 	for i, comment := range comments {
 		identsToResolve[i] = comment.OwnerDid
 	}
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -1269,7 +1269,7 @@ func (s *State) IssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identity, err := s.resolver.ResolveIdent(r.Context(), comment.OwnerDid)
+	identity, err := s.idResolver.ResolveIdent(r.Context(), comment.OwnerDid)
 	if err != nil {
 		log.Println("failed to resolve did")
 		return
@@ -1550,7 +1550,7 @@ func (s *State) RepoIssues(w http.ResponseWriter, r *http.Request) {
 	for i, issue := range issues {
 		identsToResolve[i] = issue.OwnerDid
 	}
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
