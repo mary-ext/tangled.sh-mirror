@@ -157,6 +157,9 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	// Health check. Used for two-way verification with appview.
 	r.With(h.VerifySignature).Get("/health", h.Health)
 
+	// Return did of the owner of this knot
+	r.Get("/owner", h.Owner)
+
 	// All public keys on the knot.
 	r.Get("/keys", h.Keys)
 
@@ -241,7 +244,7 @@ func (h *Handle) Publish() error {
 		return err
 	}
 
-	err = h.db.SetOwner(ownerDid)
+	err = h.db.SetOwner(ownerDid, rkey)
 	if err != nil {
 		return err
 	}

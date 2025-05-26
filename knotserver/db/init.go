@@ -29,6 +29,7 @@ func Setup(dbPath string) (*DB, error) {
 		create table if not exists owner (
 			id integer primary key check (id = 0),
 			did text not null,
+			rkey text not null,
 			createdAt text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 		);
 

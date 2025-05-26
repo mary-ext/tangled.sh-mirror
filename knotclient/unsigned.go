@@ -248,3 +248,17 @@ func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*types
 
 	return &formatPatchResponse, nil
 }
+
+func (us *UnsignedClient) Owner() (*types.KnotOwnerResponse, error) {
+	const (
+		Method   = "GET"
+		Endpoint = "/owner"
+	)
+
+	req, err := us.newRequest(Method, Endpoint, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return do[types.KnotOwnerResponse](us, req)
+}

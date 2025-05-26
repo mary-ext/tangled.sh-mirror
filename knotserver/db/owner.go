@@ -1,8 +1,8 @@
 package db
 
-func (d *DB) SetOwner(did string) error {
-	query := `insert into owner (id, did) values (?, ?)`
-	_, err := d.db.Exec(query, 0, did)
+func (d *DB) SetOwner(did, rkey string) error {
+	query := `insert into owner (id, did, rkey) values (?, ?, ?)`
+	_, err := d.db.Exec(query, 0, did, rkey)
 	return err
 }
 

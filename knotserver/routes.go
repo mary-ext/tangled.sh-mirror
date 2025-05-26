@@ -1287,6 +1287,18 @@ func (h *Handle) Health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
+func (h *Handle) Owner(w http.ResponseWriter, r *http.Request) {
+	owner, err := h.db.Owner()
+	if err != nil {
+		writeError(w, "no owner", http.StatusNotFound)
+		return
+	}
+
+	writeJSON(w, types.KnotOwnerResponse{
+		OwnerDid: owner,
+	})
+}
+
 func validateRepoName(name string) error {
 	// check for path traversal attempts
 	if name == "." || name == ".." ||

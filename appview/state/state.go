@@ -83,6 +83,7 @@ func Make(config *appview.Config) (*State, error) {
 			tangled.PublicKeyNSID,
 			tangled.RepoArtifactNSID,
 			tangled.ActorProfileNSID,
+			tangled.KnotNSID,
 		},
 		nil,
 		slog.Default(),
@@ -92,7 +93,7 @@ func Make(config *appview.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper, enforcer))
+	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper, enforcer, config.Core.Dev))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
@@ -408,7 +409,6 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 
 // get knots registered by this user
 func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
-	// for now, this is just pubkeys
 	user := s.oauth.GetUser(r)
 	registrations, err := db.RegistrationsByDid(s.db, user.Did)
 	if err != nil {

@@ -161,3 +161,16 @@ func Register(e Execer, domain string) error {
 
 	return err
 }
+
+func RegisterV2(e Execer, domain, did string) error {
+	// TODO: this secret is useless because it is never used
+	// all comms happen through authenticated records on the firehose
+	secret := genSecret()
+	_, err := e.Exec(`
+		insert into registrations (domain, did, secret)
+		values (?, ?, ?)
+		on conflict(domain) do update set did = excluded.did, created = excluded.created, registered = excluded.created
+		`, domain, did, secret)
+
+	return err
+}

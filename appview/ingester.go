@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -13,12 +14,13 @@ import (
 	"github.com/ipfs/go-cid"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
 type Ingester func(ctx context.Context, e *models.Event) error
 
-func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer) Ingester {
+func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer, dev bool) Ingester {
 	return func(ctx context.Context, e *models.Event) error {
 		var err error
 		defer func() {
@@ -44,6 +46,8 @@ func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer) Ingester {
 			ingestArtifact(&d, e, enforcer)
 		case tangled.ActorProfileNSID:
 			ingestProfile(&d, e)
+		case tangled.KnotNSID:
+			ingestKnot(&d, e, dev)
 		}
 
 		return err
@@ -281,6 +285,55 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to %s profile record: %w", e.Commit.Operation, err)
+	}
+
+	return nil
+}
+
+func ingestKnot(d *db.DbWrapper, e *models.Event, dev bool) error {
+	did := e.Did
+	var err error
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate:
+		log.Println("processing knot creation")
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.Knot{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			log.Printf("invalid record: %s", err)
+			return err
+		}
+
+		host := record.Host
+
+		if strings.HasPrefix(host, "localhost") && !dev {
+			// localhost knots are not ingested except in dev mode
+			return fmt.Errorf("localhost knots not registered this appview: %s", host)
+		}
+
+		// two-way confirmation that this knot is owned by this did
+		us, err := knotclient.NewUnsignedClient(host, dev)
+		if err != nil {
+			return err
+		}
+
+		resp, err := us.Owner()
+		if err != nil {
+			return err
+		}
+
+		if resp.OwnerDid != did {
+			return fmt.Errorf("incorrect owner reported from knot %s: wanted: %s, got: %s", host, resp.OwnerDid, did)
+		}
+
+		err = db.RegisterV2(d, host, resp.OwnerDid)
+	default:
+		log.Println("this operation is not yet handled", e.Commit.Operation)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to %s knot record: %w", e.Commit.Operation, err)
 	}
 
 	return nil
