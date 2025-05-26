@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
@@ -45,7 +45,7 @@ type Pages struct {
 	rctx        *markup.RenderContext
 }
 
-func NewPages(config *appview.Config) *Pages {
+func NewPages(config *config.Config) *Pages {
 	// initialized with safe defaults, can be overriden per use
 	rctx := &markup.RenderContext{
 		IsDev:      config.Core.Dev,

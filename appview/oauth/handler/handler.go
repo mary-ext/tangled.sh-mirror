@@ -13,7 +13,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
-	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/middleware"
@@ -29,7 +29,7 @@ const (
 )
 
 type OAuthHandler struct {
-	Config     *appview.Config
+	Config     *config.Config
 	Pages      *pages.Pages
 	Idresolver *idresolver.Resolver
 	Db         *db.DB

@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/email"
 	"tangled.sh/tangled.sh/core/appview/middleware"
@@ -29,7 +30,7 @@ type Settings struct {
 	Db     *db.DB
 	OAuth  *oauth.OAuth
 	Pages  *pages.Pages
-	Config *appview.Config
+	Config *config.Config
 }
 
 func (s *Settings) Router() http.Handler {

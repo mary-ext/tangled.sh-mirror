@@ -15,7 +15,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/oauth"
@@ -39,13 +39,13 @@ type ResolvedRepo struct {
 }
 
 type RepoResolver struct {
-	config     *appview.Config
+	config     *config.Config
 	enforcer   *rbac.Enforcer
 	idResolver *idresolver.Resolver
 	execer     db.Execer
 }
 
-func New(config *appview.Config, enforcer *rbac.Enforcer, resolver *idresolver.Resolver, execer db.Execer) *RepoResolver {
+func New(config *config.Config, enforcer *rbac.Enforcer, resolver *idresolver.Resolver, execer db.Execer) *RepoResolver {
 	return &RepoResolver{config: config, enforcer: enforcer, idResolver: resolver, execer: execer}
 }
 
