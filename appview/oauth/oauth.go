@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/sessions"
-	oauth "github.com/haileyok/atproto-oauth-golang"
-	"github.com/haileyok/atproto-oauth-golang/helpers"
+	oauth "tangled.sh/icyphox.sh/atproto-oauth"
+	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"

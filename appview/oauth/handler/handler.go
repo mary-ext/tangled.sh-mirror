@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
-	"github.com/haileyok/atproto-oauth-golang/helpers"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
+	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/middleware"
