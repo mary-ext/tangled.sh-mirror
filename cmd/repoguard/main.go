@@ -13,7 +13,7 @@ import (
 	"time"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
 )
 
 var (
@@ -135,7 +135,7 @@ func main() {
 }
 
 func resolveToDid(didOrHandle string) string {
-	resolver := appview.DefaultResolver()
+	resolver := idresolver.DefaultResolver()
 	ident, err := resolver.ResolveIdent(context.Background(), didOrHandle)
 	if err != nil {
 		exitWithLog(fmt.Sprintf("error resolving handle: %v", err))

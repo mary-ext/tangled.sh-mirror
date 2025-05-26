@@ -105,7 +105,7 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -415,7 +415,7 @@ func (s *State) EditPinsFragment(w http.ResponseWriter, r *http.Request) {
 	for _, r := range allRepos {
 		didsToResolve = append(didsToResolve, r.Did)
 	}
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), didsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {

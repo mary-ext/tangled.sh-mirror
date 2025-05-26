@@ -16,6 +16,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
@@ -36,14 +37,14 @@ type Pulls struct {
 	oauth        *oauth.OAuth
 	repoResolver *reporesolver.RepoResolver
 	pages        *pages.Pages
-	resolver     *appview.Resolver
+	idResolver   *idresolver.Resolver
 	db           *db.DB
 	config       *appview.Config
 	posthog      posthog.Client
 }
 
-func New(oauth *oauth.OAuth, repoResolver *reporesolver.RepoResolver, pages *pages.Pages, resolver *appview.Resolver, db *db.DB, config *appview.Config) *Pulls {
-	return &Pulls{oauth: oauth, repoResolver: repoResolver, pages: pages, resolver: resolver, db: db, config: config}
+func New(oauth *oauth.OAuth, repoResolver *reporesolver.RepoResolver, pages *pages.Pages, resolver *idresolver.Resolver, db *db.DB, config *appview.Config) *Pulls {
+	return &Pulls{oauth: oauth, repoResolver: repoResolver, pages: pages, idResolver: resolver, db: db, config: config}
 }
 
 // htmx fragment
@@ -133,7 +134,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -310,7 +311,7 @@ func (s *Pulls) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	identsToResolve := []string{pull.OwnerDid}
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -367,7 +368,7 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 	}
 
 	identsToResolve := []string{pull.OwnerDid}
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -421,7 +422,7 @@ func (s *Pulls) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	identsToResolve := []string{pull.OwnerDid}
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -483,7 +484,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	for i, pull := range pulls {
 		identsToResolve[i] = pull.OwnerDid
 	}
-	resolvedIds := s.resolver.ResolveIdents(r.Context(), identsToResolve)
+	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
 		if !identity.Handle.IsInvalidHandle() {
@@ -1855,7 +1856,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ident, err := s.resolver.ResolveIdent(r.Context(), pull.OwnerDid)
+	ident, err := s.idResolver.ResolveIdent(r.Context(), pull.OwnerDid)
 	if err != nil {
 		log.Printf("resolving identity: %s", err)
 		w.WriteHeader(http.StatusNotFound)

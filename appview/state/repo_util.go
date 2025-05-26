@@ -67,7 +67,7 @@ func EmailToDidOrHandle(s *State, emails []string) map[string]string {
 	for _, v := range emailToDid {
 		dids = append(dids, v)
 	}
-	resolvedIdents := s.resolver.ResolveIdents(context.Background(), dids)
+	resolvedIdents := s.idResolver.ResolveIdents(context.Background(), dids)
 
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIdents {

@@ -17,6 +17,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
@@ -38,14 +39,14 @@ type ResolvedRepo struct {
 }
 
 type RepoResolver struct {
-	config   *appview.Config
-	enforcer *rbac.Enforcer
-	resolver *appview.Resolver
-	execer   db.Execer
+	config     *appview.Config
+	enforcer   *rbac.Enforcer
+	idResolver *idresolver.Resolver
+	execer     db.Execer
 }
 
-func New(config *appview.Config, enforcer *rbac.Enforcer, resolver *appview.Resolver, execer db.Execer) *RepoResolver {
-	return &RepoResolver{config: config, enforcer: enforcer, resolver: resolver, execer: execer}
+func New(config *appview.Config, enforcer *rbac.Enforcer, resolver *idresolver.Resolver, execer db.Execer) *RepoResolver {
+	return &RepoResolver{config: config, enforcer: enforcer, idResolver: resolver, execer: execer}
 }
 
 func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
@@ -169,7 +170,7 @@ func (f *ResolvedRepo) Collaborators(ctx context.Context) ([]pages.Collaborator,
 		identsToResolve[i] = collab.Did
 	}
 
-	resolvedIdents := f.rr.resolver.ResolveIdents(ctx, identsToResolve)
+	resolvedIdents := f.rr.idResolver.ResolveIdents(ctx, identsToResolve)
 	for i, resolved := range resolvedIdents {
 		if resolved != nil {
 			collaborators[i].Handle = resolved.Handle.String()
@@ -216,7 +217,7 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 
 	var sourceHandle *identity.Identity
 	if sourceRepo != nil {
-		sourceHandle, err = f.rr.resolver.ResolveIdent(context.Background(), sourceRepo.Did)
+		sourceHandle, err = f.rr.idResolver.ResolveIdent(context.Background(), sourceRepo.Did)
 		if err != nil {
 			log.Println("failed to resolve source repo", err)
 		}

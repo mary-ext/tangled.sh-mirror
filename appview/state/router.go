@@ -20,7 +20,7 @@ func (s *State) Router() http.Handler {
 		s.db,
 		s.enforcer,
 		s.repoResolver,
-		s.resolver,
+		s.idResolver,
 		s.pages,
 	)
 
@@ -238,14 +238,14 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 func (s *State) OAuthRouter() http.Handler {
 	oauth := &oauthhandler.OAuthHandler{
-		Config:   s.config,
-		Pages:    s.pages,
-		Resolver: s.resolver,
-		Db:       s.db,
-		Store:    sessions.NewCookieStore([]byte(s.config.Core.CookieSecret)),
-		OAuth:    s.oauth,
-		Enforcer: s.enforcer,
-		Posthog:  s.posthog,
+		Config:     s.config,
+		Pages:      s.pages,
+		Idresolver: s.idResolver,
+		Db:         s.db,
+		Store:      sessions.NewCookieStore([]byte(s.config.Core.CookieSecret)),
+		OAuth:      s.oauth,
+		Enforcer:   s.enforcer,
+		Posthog:    s.posthog,
 	}
 
 	return oauth.Router()
@@ -263,6 +263,6 @@ func (s *State) SettingsRouter() http.Handler {
 }
 
 func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {
-	pulls := pulls.New(s.oauth, s.repoResolver, s.pages, s.resolver, s.db, s.config)
+	pulls := pulls.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config)
 	return pulls.Router(mw)
 }
