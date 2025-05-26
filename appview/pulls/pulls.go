@@ -15,6 +15,7 @@ import (
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/oauth"
@@ -39,7 +40,7 @@ type Pulls struct {
 	pages        *pages.Pages
 	idResolver   *idresolver.Resolver
 	db           *db.DB
-	config       *appview.Config
+	config       *config.Config
 	posthog      posthog.Client
 }
 
@@ -49,7 +50,7 @@ func New(
 	pages *pages.Pages,
 	resolver *idresolver.Resolver,
 	db *db.DB,
-	config *appview.Config,
+	config *config.Config,
 ) *Pulls {
 	return &Pulls{
 		oauth:        oauth,

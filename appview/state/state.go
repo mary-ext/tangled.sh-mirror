@@ -20,6 +20,7 @@ import (
 	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/oauth"
@@ -39,11 +40,11 @@ type State struct {
 	idResolver   *idresolver.Resolver
 	posthog      posthog.Client
 	jc           *jetstream.JetstreamClient
-	config       *appview.Config
+	config       *config.Config
 	repoResolver *reporesolver.RepoResolver
 }
 
-func Make(config *appview.Config) (*State, error) {
+func Make(config *config.Config) (*State, error) {
 	d, err := db.Make(config.Core.DbPath)
 	if err != nil {
 		return nil, err

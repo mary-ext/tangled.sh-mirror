@@ -1,4 +1,4 @@
-package appview
+package config
 
 import (
 	"context"

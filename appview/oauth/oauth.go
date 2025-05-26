@@ -11,6 +11,7 @@ import (
 	oauth "tangled.sh/icyphox.sh/atproto-oauth"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
 	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
 	xrpc "tangled.sh/tangled.sh/core/appview/xrpcclient"
@@ -30,10 +31,10 @@ type OAuthRequest struct {
 type OAuth struct {
 	Store  *sessions.CookieStore
 	Db     *db.DB
-	Config *appview.Config
+	Config *config.Config
 }
 
-func NewOAuth(db *db.DB, config *appview.Config) *OAuth {
+func NewOAuth(db *db.DB, config *config.Config) *OAuth {
 	return &OAuth{
 		Store:  sessions.NewCookieStore([]byte(config.Core.CookieSecret)),
 		Db:     db,
