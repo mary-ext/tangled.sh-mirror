@@ -24,9 +24,15 @@ type Server struct {
 	Dev bool `env:"DEV, default=false"`
 }
 
+type Owner struct {
+	Did         string `env:"DID, required"`
+	AppPassword string `env:"APP_PASSWORD, required"`
+}
+
 type Config struct {
 	Repo            Repo   `env:",prefix=KNOT_REPO_"`
 	Server          Server `env:",prefix=KNOT_SERVER_"`
+	Owner           Owner  `env:",prefix=KNOT_OWNER_"`
 	AppViewEndpoint string `env:"APPVIEW_ENDPOINT, default=https://tangled.sh"`
 }
 
