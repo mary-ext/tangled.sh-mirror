@@ -26,6 +26,12 @@ func Setup(dbPath string) (*DB, error) {
 		pragma auto_vacuum = incremental;
 		pragma busy_timeout = 5000;
 
+		create table if not exists owner (
+			id integer primary key check (id = 0),
+			did text not null,
+			createdAt text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+		);
+
 		create table if not exists known_dids (
 			did text primary key
 		);

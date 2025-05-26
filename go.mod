@@ -29,7 +29,7 @@ require (
 	github.com/posthog/posthog-go v1.5.5
 	github.com/resend/resend-go/v2 v2.15.0
 	github.com/sethvargo/go-envconfig v1.1.0
-	github.com/whyrusleeping/cbor-gen v0.2.1-0.20241030202151-b7a6831be65e
+	github.com/whyrusleeping/cbor-gen v0.3.1
 	github.com/yuin/goldmark v1.4.13
 	golang.org/x/net v0.39.0
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028

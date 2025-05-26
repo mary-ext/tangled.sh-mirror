@@ -1236,7 +1236,7 @@ func (h *Handle) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "Init")
 
-	if h.knotInitialized {
+	if _, err := h.db.Owner(); err == nil {
 		writeError(w, "knot already initialized", http.StatusConflict)
 		return
 	}
@@ -1275,8 +1275,6 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	close(h.init)
 
 	mac := hmac.New(sha256.New, []byte(h.c.Server.Secret))
 	mac.Write([]byte("ok"))

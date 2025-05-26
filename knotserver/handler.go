@@ -6,12 +6,19 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"time"
 
+	"github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/resolver"
 )
 
 const (
@@ -19,28 +26,21 @@ const (
 )
 
 type Handle struct {
-	c  *config.Config
-	db *db.DB
-	jc *jetstream.JetstreamClient
-	e  *rbac.Enforcer
-	l  *slog.Logger
-
-	// init is a channel that is closed when the knot has been initailized
-	// i.e. when the first user (knot owner) has been added.
-	init            chan struct{}
-	knotInitialized bool
+	c     *config.Config
+	db    *db.DB
+	jc    *jetstream.JetstreamClient
+	e     *rbac.Enforcer
+	l     *slog.Logger
+	clock syntax.TIDClock
 }
 
 func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger) (http.Handler, error) {
-	r := chi.NewRouter()
-
 	h := Handle{
-		c:    c,
-		db:   db,
-		e:    e,
-		l:    l,
-		jc:   jc,
-		init: make(chan struct{}),
+		c:  c,
+		db: db,
+		e:  e,
+		l:  l,
+		jc: jc,
 	}
 
 	err := e.AddDomain(ThisServer)
@@ -48,26 +48,32 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
 	}
 
+	// if this knot does not already have an owner, publish it
+	if _, err := h.db.Owner(); err != nil {
+		l.Info("publishing this knot ...", "owner", h.c.Owner.Did)
+		err = h.Publish()
+		if err != nil {
+			return nil, fmt.Errorf("failed to announce knot: %w", err)
+		}
+	}
+
+	l.Info("this knot has been published", "owner", h.c.Owner.Did)
+
 	err = h.jc.StartJetstream(ctx, h.processMessages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
-	// Check if the knot knows about any Dids;
-	// if it does, it is already initialized and we can repopulate the
-	// Jetstream subscriptions.
 	dids, err := db.GetAllDids()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all Dids: %w", err)
 	}
 
-	if len(dids) > 0 {
-		h.knotInitialized = true
-		close(h.init)
-		for _, d := range dids {
-			h.jc.AddDid(d)
-		}
+	for _, d := range dids {
+		h.jc.AddDid(d)
 	}
+
+	r := chi.NewRouter()
 
 	r.Get("/", h.Index)
 	r.Get("/capabilities", h.Capabilities)
@@ -183,4 +189,71 @@ func (h *Handle) Version(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintf(w, "knotserver/%s", version)
+}
+
+func (h *Handle) Publish() error {
+	ownerDid := h.c.Owner.Did
+	appPassword := h.c.Owner.AppPassword
+
+	res := resolver.DefaultResolver()
+	ident, err := res.ResolveIdent(context.Background(), ownerDid)
+	if err != nil {
+		return err
+	}
+
+	client := xrpc.Client{
+		Host: ident.PDSEndpoint(),
+	}
+
+	resp, err := atproto.ServerCreateSession(context.Background(), &client, &atproto.ServerCreateSession_Input{
+		Identifier: ownerDid,
+		Password:   appPassword,
+	})
+	if err != nil {
+		return err
+	}
+
+	authClient := xrpc.Client{
+		Host: ident.PDSEndpoint(),
+		Auth: &xrpc.AuthInfo{
+			AccessJwt:  resp.AccessJwt,
+			RefreshJwt: resp.RefreshJwt,
+			Handle:     resp.Handle,
+			Did:        resp.Did,
+		},
+	}
+
+	rkey := h.TID()
+
+	// write a "knot" record to the owners's pds
+	_, err = atproto.RepoPutRecord(context.Background(), &authClient, &atproto.RepoPutRecord_Input{
+		Collection: tangled.KnotNSID,
+		Repo:       ownerDid,
+		Rkey:       rkey,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.Knot{
+				CreatedAt: time.Now().Format(time.RFC3339),
+				Host:      h.c.Server.Hostname,
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = h.db.SetOwner(ownerDid)
+	if err != nil {
+		return err
+	}
+
+	err = h.db.AddDid(ownerDid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Handle) TID() string {
+	return h.clock.Next().String()
 }
