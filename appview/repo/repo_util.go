@@ -1,4 +1,4 @@
-package state
+package repo
 
 import (
 	"context"
@@ -56,8 +56,8 @@ func balanceIndexItems(commitCount, branchCount, tagCount, fileCount int) (commi
 	return
 }
 
-func EmailToDidOrHandle(s *State, emails []string) map[string]string {
-	emailToDid, err := db.GetEmailToDid(s.db, emails, true) // only get verified emails for mapping
+func EmailToDidOrHandle(r *Repo, emails []string) map[string]string {
+	emailToDid, err := db.GetEmailToDid(r.db, emails, true) // only get verified emails for mapping
 	if err != nil {
 		log.Printf("error fetching dids for emails: %v", err)
 		return nil
@@ -67,7 +67,7 @@ func EmailToDidOrHandle(s *State, emails []string) map[string]string {
 	for _, v := range emailToDid {
 		dids = append(dids, v)
 	}
-	resolvedIdents := s.idResolver.ResolveIdents(context.Background(), dids)
+	resolvedIdents := r.idResolver.ResolveIdents(context.Background(), dids)
 
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIdents {

@@ -43,8 +43,22 @@ type Pulls struct {
 	posthog      posthog.Client
 }
 
-func New(oauth *oauth.OAuth, repoResolver *reporesolver.RepoResolver, pages *pages.Pages, resolver *idresolver.Resolver, db *db.DB, config *appview.Config) *Pulls {
-	return &Pulls{oauth: oauth, repoResolver: repoResolver, pages: pages, idResolver: resolver, db: db, config: config}
+func New(
+	oauth *oauth.OAuth,
+	repoResolver *reporesolver.RepoResolver,
+	pages *pages.Pages,
+	resolver *idresolver.Resolver,
+	db *db.DB,
+	config *appview.Config,
+) *Pulls {
+	return &Pulls{
+		oauth:        oauth,
+		repoResolver: repoResolver,
+		pages:        pages,
+		idResolver:   resolver,
+		db:           db,
+		config:       config,
+	}
 }
 
 // htmx fragment
