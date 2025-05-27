@@ -1,4 +1,4 @@
-{{ define "title"}}{{ range .BreadCrumbs }}{{ index . 0}}/{{ end }} at {{ .Ref }} &middot; {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title"}}{{ range .BreadCrumbs }}{{ pathUnescape (index . 0)}}/{{ end }} at {{ .Ref }} &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 
 {{ define "extrameta" }}
@@ -26,7 +26,7 @@
       <div class="flex flex-col md:flex-row md:justify-between gap-2">
         <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap text-gray-400 dark:text-gray-500">
           {{ range .BreadCrumbs }}
-            <a href="{{ index . 1}}" class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}">{{ index . 0 }}</a> /
+            <a href="{{ index . 1}}" class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}">{{ pathUnescape (index . 0) }}</a> /
           {{ end }}
         </div>
         <div id="dir-info" class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">

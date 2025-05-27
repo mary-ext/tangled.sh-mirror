@@ -24,12 +24,12 @@
                         <a
                             href="{{ index . 1 }}"
                             class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}"
-                            >{{ index . 0 }}</a
+                            >{{ pathUnescape (index . 0) }}</a
                         >
                         /
                     {{ else }}
                         <span class="text-bold text-black dark:text-white"
-                            >{{ index . 0 }}</span
+                            >{{ pathUnescape (index . 0) }}</span
                         >
                     {{ end }}
                 {{ end }}

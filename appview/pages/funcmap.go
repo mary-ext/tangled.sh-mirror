@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"math"
+	"net/url"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -180,6 +181,10 @@ func funcMap() template.FuncMap {
 		},
 		"cssContentHash": CssContentHash,
 		"fileTree":       filetree.FileTree,
+		"pathUnescape": func(s string) string {
+			u, _ := url.PathUnescape(s)
+			return u
+		},
 	}
 }
 
