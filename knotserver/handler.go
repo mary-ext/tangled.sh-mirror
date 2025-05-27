@@ -11,6 +11,7 @@ import (
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
@@ -24,6 +25,7 @@ type Handle struct {
 	jc *jetstream.JetstreamClient
 	e  *rbac.Enforcer
 	l  *slog.Logger
+	n  *notifier.Notifier
 
 	// init is a channel that is closed when the knot has been initailized
 	// i.e. when the first user (knot owner) has been added.
@@ -31,7 +33,7 @@ type Handle struct {
 	knotInitialized bool
 }
 
-func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger) (http.Handler, error) {
+func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger, n *notifier.Notifier) (http.Handler, error) {
 	r := chi.NewRouter()
 
 	h := Handle{
@@ -40,6 +42,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		e:    e,
 		l:    l,
 		jc:   jc,
+		n:    n,
 		init: make(chan struct{}),
 	}
 

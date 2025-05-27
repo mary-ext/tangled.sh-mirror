@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
@@ -20,6 +21,7 @@ type InternalHandle struct {
 	c  *config.Config
 	e  *rbac.Enforcer
 	l  *slog.Logger
+	n  *notifier.Notifier
 }
 
 func (h *InternalHandle) PushAllowed(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +101,7 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 	}
 
 	for _, op := range ops {
-		err := h.db.InsertOp(op)
+		err := h.db.InsertOp(op, h.n)
 		if err != nil {
 			l.Error("failed to insert op", "err", err, "op", op)
 			continue
@@ -109,7 +111,7 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 	return
 }
 
-func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l *slog.Logger) http.Handler {
+func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l *slog.Logger, n *notifier.Notifier) http.Handler {
 	r := chi.NewRouter()
 
 	h := InternalHandle{
@@ -117,6 +119,7 @@ func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer
 		c,
 		e,
 		l,
+		n,
 	}
 
 	r.Get("/push-allowed", h.PushAllowed)
