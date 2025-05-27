@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+
+	"tangled.sh/tangled.sh/core/knotserver/notifier"
 )
 
 type Op struct {
@@ -13,7 +15,7 @@ type Op struct {
 	Ref    string // the reference being updated
 }
 
-func (d *DB) InsertOp(op Op) error {
+func (d *DB) InsertOp(op Op, notifier *notifier.Notifier) error {
 	_, err := d.db.Exec(
 		`insert into oplog (tid, did, repo, old_sha, new_sha, ref) values (?, ?, ?, ?, ?, ?)`,
 		op.Tid,
@@ -23,7 +25,12 @@ func (d *DB) InsertOp(op Op) error {
 		op.NewSha,
 		op.Ref,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+
+	notifier.NotifyAll()
+	return nil
 }
 
 func (d *DB) GetOps(cursor string) ([]Op, error) {

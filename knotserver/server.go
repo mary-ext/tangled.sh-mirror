@@ -11,6 +11,7 @@ import (
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
 )
@@ -79,11 +80,14 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 		logger.Error("failed to setup jetstream", "error", err)
 	}
 
-	mux, err := Setup(ctx, c, db, e, jc, logger)
+	notifier := notifier.New()
+
+	mux, err := Setup(ctx, c, db, e, jc, logger, &notifier)
 	if err != nil {
 		return fmt.Errorf("failed to setup server: %w", err)
 	}
-	imux := Internal(ctx, c, db, e, iLogger)
+
+	imux := Internal(ctx, c, db, e, iLogger, &notifier)
 
 	logger.Info("starting internal server", "address", c.Server.InternalListenAddr)
 	go http.ListenAndServe(c.Server.InternalListenAddr, imux)
