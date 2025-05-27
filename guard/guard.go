@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/bluesky-social/indigo/atproto/identity"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/urfave/cli/v3"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -113,7 +114,8 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	didOrHandle := components[0]
-	did := resolveToDid(ctx, l, didOrHandle)
+	identity := resolveIdentity(ctx, l, didOrHandle)
+	did := identity.DID.String()
 	repoName := components[1]
 	qualifiedRepoName, _ := securejoin.SecureJoin(did, repoName)
 
@@ -173,7 +175,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func resolveToDid(ctx context.Context, l *slog.Logger, didOrHandle string) string {
+func resolveIdentity(ctx context.Context, l *slog.Logger, didOrHandle string) *identity.Identity {
 	resolver := idresolver.DefaultResolver()
 	ident, err := resolver.ResolveIdent(ctx, didOrHandle)
 	if err != nil {
@@ -181,9 +183,12 @@ func resolveToDid(ctx context.Context, l *slog.Logger, didOrHandle string) strin
 		fmt.Fprintf(os.Stderr, "error resolving handle: %v\n", err)
 		os.Exit(1)
 	}
-
-	// did:plc:foobarbaz/repo
-	return ident.DID.String()
+	if ident.Handle.IsInvalidHandle() {
+		l.Error("Error resolving handle", "invalid handle", didOrHandle)
+		fmt.Fprintf(os.Stderr, "error resolving handle: invalid handle\n")
+		os.Exit(1)
+	}
+	return ident
 }
 
 func isPushPermitted(l *slog.Logger, user, qualifiedRepoName, endpoint string) bool {
