@@ -73,7 +73,7 @@ You can't use this directly unforunately since all requests are signed and may o
 			response = new Response(avatarData, {
 				headers: {
 					'Content-Type': contentType,
-					'Cache-Control': 'public, max-age=3600',
+					'Cache-Control': 'public, max-age=43200', // 12 h
 				},
 			});
 
