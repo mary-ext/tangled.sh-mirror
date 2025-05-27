@@ -28,6 +28,7 @@ require (
 	github.com/posthog/posthog-go v1.5.5
 	github.com/resend/resend-go/v2 v2.15.0
 	github.com/sethvargo/go-envconfig v1.1.0
+	github.com/urfave/cli/v3 v3.3.3
 	github.com/whyrusleeping/cbor-gen v0.3.1
 	github.com/yuin/goldmark v1.4.13
 	golang.org/x/net v0.39.0
