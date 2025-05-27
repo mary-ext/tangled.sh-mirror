@@ -41,6 +41,7 @@
     @layer base {
         html {
             font-size: 14px;
+            scrollbar-gutter: stable;
         }
         @supports (font-variation-settings: normal) {
             html {
