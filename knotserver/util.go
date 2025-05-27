@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/microcosm-cc/bluemonday"
@@ -42,4 +43,10 @@ func setGZipMIME(w http.ResponseWriter) {
 
 func setMIME(w http.ResponseWriter, mime string) {
 	w.Header().Add("Content-Type", mime)
+}
+
+var TIDClock = syntax.NewTIDClock(0)
+
+func TID() string {
+	return TIDClock.Next().String()
 }
