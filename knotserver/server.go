@@ -83,7 +83,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to setup server: %w", err)
 	}
-	imux := Internal(ctx, db, e, iLogger)
+	imux := Internal(ctx, c, db, e, iLogger)
 
 	logger.Info("starting internal server", "address", c.Server.InternalListenAddr)
 	go http.ListenAndServe(c.Server.InternalListenAddr, imux)
