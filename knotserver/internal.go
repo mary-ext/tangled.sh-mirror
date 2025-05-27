@@ -7,12 +7,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
 type InternalHandle struct {
 	db *db.DB
+	c  *config.Config
 	e  *rbac.Enforcer
 	l  *slog.Logger
 }
@@ -52,11 +54,12 @@ func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func Internal(ctx context.Context, db *db.DB, e *rbac.Enforcer, l *slog.Logger) http.Handler {
+func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	h := InternalHandle{
 		db,
+		c,
 		e,
 		l,
 	}
