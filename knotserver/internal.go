@@ -2,6 +2,7 @@ package knotserver
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -13,6 +14,7 @@ import (
 type InternalHandle struct {
 	db *db.DB
 	e  *rbac.Enforcer
+	l  *slog.Logger
 }
 
 func (h *InternalHandle) PushAllowed(w http.ResponseWriter, r *http.Request) {
@@ -50,12 +52,13 @@ func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func Internal(ctx context.Context, db *db.DB, e *rbac.Enforcer) http.Handler {
+func Internal(ctx context.Context, db *db.DB, e *rbac.Enforcer, l *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	h := InternalHandle{
 		db,
 		e,
+		l,
 	}
 
 	r.Get("/push-allowed", h.PushAllowed)

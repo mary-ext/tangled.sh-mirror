@@ -38,7 +38,8 @@ Environment variables:
 }
 
 func Run(ctx context.Context, cmd *cli.Command) error {
-	l := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
+	iLogger := log.New("knotserver/internal")
 
 	c, err := config.Load(ctx)
 	if err != nil {
@@ -52,10 +53,10 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to setup hooks: %w", err)
 	}
-	l.Info("successfully finished setting up hooks")
+	logger.Info("successfully finished setting up hooks")
 
 	if c.Server.Dev {
-		l.Info("running in dev mode, signature verification is disabled")
+		logger.Info("running in dev mode, signature verification is disabled")
 	}
 
 	db, err := db.Setup(c.Server.DBPath)
@@ -73,22 +74,22 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	jc, err := jetstream.NewJetstreamClient(c.Server.JetstreamEndpoint, "knotserver", []string{
 		tangled.PublicKeyNSID,
 		tangled.KnotMemberNSID,
-	}, nil, l, db, true)
+	}, nil, logger, db, true)
 	if err != nil {
-		l.Error("failed to setup jetstream", "error", err)
+		logger.Error("failed to setup jetstream", "error", err)
 	}
 
-	mux, err := Setup(ctx, c, db, e, jc, l)
+	mux, err := Setup(ctx, c, db, e, jc, logger)
 	if err != nil {
 		return fmt.Errorf("failed to setup server: %w", err)
 	}
-	imux := Internal(ctx, db, e)
+	imux := Internal(ctx, db, e, iLogger)
 
-	l.Info("starting internal server", "address", c.Server.InternalListenAddr)
+	logger.Info("starting internal server", "address", c.Server.InternalListenAddr)
 	go http.ListenAndServe(c.Server.InternalListenAddr, imux)
 
-	l.Info("starting main server", "address", c.Server.ListenAddr)
-	l.Error("server error", "error", http.ListenAndServe(c.Server.ListenAddr, mux))
+	logger.Info("starting main server", "address", c.Server.ListenAddr)
+	logger.Error("server error", "error", http.ListenAndServe(c.Server.ListenAddr, mux))
 
 	return nil
 }
