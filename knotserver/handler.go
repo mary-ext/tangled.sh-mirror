@@ -148,6 +148,9 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		r.Put("/add", h.AddMember)
 	})
 
+	// Socket that streams git oplogs
+	r.Get("/oplog", h.OpLog)
+
 	// Initialize the knot with an owner and public key.
 	r.With(h.VerifySignature).Post("/init", h.Init)
 
