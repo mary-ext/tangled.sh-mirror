@@ -6,8 +6,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
+	"tangled.sh/tangled.sh/core/appview/issues"
 	"tangled.sh/tangled.sh/core/appview/middleware"
-	oauth "tangled.sh/tangled.sh/core/appview/oauth/handler"
+	oauthhandler "tangled.sh/tangled.sh/core/appview/oauth/handler"
 	"tangled.sh/tangled.sh/core/appview/pulls"
 	"tangled.sh/tangled.sh/core/appview/repo"
 	"tangled.sh/tangled.sh/core/appview/settings"
@@ -71,7 +72,7 @@ func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 			r.Use(mw.GoImport())
 
 			r.Mount("/", s.RepoRouter(mw))
-
+			r.Mount("/issues", s.IssuesRouter(mw))
 			r.Mount("/pulls", s.PullsRouter(mw))
 
 			// These routes get proxied to the knot
@@ -155,7 +156,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 func (s *State) OAuthRouter() http.Handler {
 	store := sessions.NewCookieStore([]byte(s.config.Core.CookieSecret))
-	oauth := oauth.New(s.config, s.pages, s.idResolver, s.db, store, s.oauth, s.enforcer, s.posthog)
+	oauth := oauthhandler.New(s.config, s.pages, s.idResolver, s.db, store, s.oauth, s.enforcer, s.posthog)
 	return oauth.Router()
 }
 
@@ -168,6 +169,12 @@ func (s *State) SettingsRouter() http.Handler {
 	}
 
 	return settings.Router()
+}
+
+func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
+	issues := issues.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.posthog)
+	return issues.Router(mw)
+
 }
 
 func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {

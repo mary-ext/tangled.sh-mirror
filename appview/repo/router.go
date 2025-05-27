@@ -38,26 +38,6 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	r.Get("/blob/{ref}/*", rp.RepoBlob)
 	r.Get("/raw/{ref}/*", rp.RepoBlobRaw)
 
-	r.Route("/issues", func(r chi.Router) {
-		r.With(middleware.Paginate).Get("/", rp.RepoIssues)
-		r.Get("/{issue}", rp.RepoSingleIssue)
-
-		r.Group(func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware(rp.oauth))
-			r.Get("/new", rp.NewIssue)
-			r.Post("/new", rp.NewIssue)
-			r.Post("/{issue}/comment", rp.NewIssueComment)
-			r.Route("/{issue}/comment/{comment_id}/", func(r chi.Router) {
-				r.Get("/", rp.IssueComment)
-				r.Delete("/", rp.DeleteIssueComment)
-				r.Get("/edit", rp.EditIssueComment)
-				r.Post("/edit", rp.EditIssueComment)
-			})
-			r.Post("/{issue}/close", rp.CloseIssue)
-			r.Post("/{issue}/reopen", rp.ReopenIssue)
-		})
-	})
-
 	r.Route("/fork", func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(rp.oauth))
 		r.Get("/", rp.ForkRepo)
