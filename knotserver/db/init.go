@@ -43,6 +43,15 @@ func Setup(dbPath string) (*DB, error) {
 			id integer primary key autoincrement,
 			last_time_us integer not null
 		);
+
+		create table if not exists oplog (
+			tid     text primary key,
+			did     text not null,
+			repo    text not null,
+			old_sha text not null,
+			new_sha text not null,
+			ref     text not null
+		);
 	`)
 	if err != nil {
 		return nil, err
