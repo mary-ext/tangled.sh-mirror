@@ -33,9 +33,6 @@ token invalidation.
 knotserver: git/service: improve error checking in upload-pack
 ```
 
-The affected package/directory can be truncated down to just the relevant dir
-should it be far too long. For example `pages/templates/repo/fragments` can
-simply be `repo/fragments`.
 
 ### general notes
 
@@ -43,10 +40,17 @@ simply be `repo/fragments`.
 using `git am`. At present, there is no squashing -- so please author
 your commits as they would appear on `master`, following the above
 guidelines.
+- If there is a lot of nesting, for example "appview:
+pages/templates/repo/fragments: ...", these can be truncated down to
+just "appview: repo/fragments: ...". If the change affects a lot of
+subdirectories, you may abbreviate to just the top-level names, e.g.
+"appview: ..." or "knotserver: ...".
+- Keep commits lowercased with no trailing period.
 - Use the imperative mood in the summary line (e.g., "fix bug" not
 "fixed bug" or "fixes bug").
 - Try to keep the summary line under 72 characters, but we aren't too
 fussed about this.
+- Follow the same formatting for PR titles if filled manually.
 - Don't include unrelated changes in the same commit.
 - Avoid noisy commit messages like "wip" or "final fix"—rewrite history
 before submitting if necessary.
