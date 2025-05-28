@@ -142,19 +142,59 @@ func PlainOpen(path string) (*GitRepo, error) {
 	return &g, nil
 }
 
-func (g *GitRepo) Commits() ([]*object.Commit, error) {
-	ci, err := g.r.Log(&git.LogOptions{From: g.h})
+func (g *GitRepo) Commits(offset, limit int) ([]*object.Commit, error) {
+	commits := []*object.Commit{}
+
+	output, err := g.revList(
+		fmt.Sprintf("--skip=%d", offset),
+		fmt.Sprintf("--max-count=%d", limit),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("commits from ref: %w", err)
 	}
 
-	commits := []*object.Commit{}
-	ci.ForEach(func(c *object.Commit) error {
-		commits = append(commits, c)
-		return nil
-	})
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) == 1 && lines[0] == "" {
+		return commits, nil
+	}
+
+	for _, item := range lines {
+		obj, err := g.r.CommitObject(plumbing.NewHash(item))
+		if err != nil {
+			continue
+		}
+		commits = append(commits, obj)
+	}
 
 	return commits, nil
+}
+
+func (g *GitRepo) TotalCommits() (int, error) {
+	output, err := g.revList(
+		fmt.Sprintf("--count"),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to run rev-list", err)
+	}
+
+	count, err := strconv.Atoi(strings.TrimSpace(string(output)))
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (g *GitRepo) revList(extraArgs ...string) ([]byte, error) {
+	var args []string
+	args = append(args, "rev-list")
+	args = append(args, g.h.String())
+	args = append(args, extraArgs...)
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = g.path
+
+	return cmd.Output()
 }
 
 func (g *GitRepo) Commit(h plumbing.Hash) (*object.Commit, error) {

@@ -87,15 +87,18 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	commits, err := gr.Commits()
-	total := len(commits)
+	commits, err := gr.Commits(0, 60) // a good preview of commits in this repo
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		l.Error("fetching commits", "error", err.Error())
 		return
 	}
-	if len(commits) > 10 {
-		commits = commits[:10]
+
+	total, err := gr.TotalCommits()
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		l.Error("fetching commits", "error", err.Error())
+		return
 	}
 
 	branches, err := gr.Branches()
@@ -349,13 +352,6 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	commits, err := gr.Commits()
-	if err != nil {
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		l.Error("fetching commits", "error", err.Error())
-		return
-	}
-
 	// Get page parameters
 	page := 1
 	pageSize := 30
@@ -372,19 +368,18 @@ func (h *Handle) Log(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Calculate pagination
-	start := (page - 1) * pageSize
-	end := start + pageSize
-	total := len(commits)
+	// convert to offset/limit
+	offset := (page - 1) * pageSize
+	limit := pageSize
 
-	if start >= total {
-		commits = []*object.Commit{}
-	} else {
-		if end > total {
-			end = total
-		}
-		commits = commits[start:end]
+	commits, err := gr.Commits(offset, limit)
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		l.Error("fetching commits", "error", err.Error())
+		return
 	}
+
+	total := len(commits)
 
 	resp := types.RepoLogResponse{
 		Commits:     commits,
