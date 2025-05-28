@@ -133,9 +133,11 @@
                             </div>
                         </a>
 
+                        {{ if .LastCommit }}
                         <time class="text-xs text-gray-500 dark:text-gray-400"
                             >{{ timeFmt .LastCommit.When }}</time
                         >
+                        {{ end }}
                     </div>
                 </div>
             {{ end }}
@@ -154,9 +156,11 @@
                             </div>
                         </a>
 
+                        {{ if .LastCommit }}
                         <time class="text-xs text-gray-500 dark:text-gray-400"
                             >{{ timeFmt .LastCommit.When }}</time
                         >
+                        {{ end }}
                     </div>
                 </div>
             {{ end }}

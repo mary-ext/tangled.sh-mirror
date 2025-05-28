@@ -1,14 +1,16 @@
 package git
 
 import (
+	"context"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/types"
 )
 
-func (g *GitRepo) FileTree(path string) ([]types.NiceTree, error) {
+func (g *GitRepo) FileTree(ctx context.Context, path string) ([]types.NiceTree, error) {
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
 		return nil, fmt.Errorf("commit object: %w", err)
@@ -21,7 +23,7 @@ func (g *GitRepo) FileTree(path string) ([]types.NiceTree, error) {
 	}
 
 	if path == "" {
-		files = g.makeNiceTree(tree, "")
+		files = g.makeNiceTree(ctx, tree, "")
 	} else {
 		o, err := tree.FindEntry(path)
 		if err != nil {
@@ -34,35 +36,33 @@ func (g *GitRepo) FileTree(path string) ([]types.NiceTree, error) {
 				return nil, err
 			}
 
-			files = g.makeNiceTree(subtree, path)
+			files = g.makeNiceTree(ctx, subtree, path)
 		}
 	}
 
 	return files, nil
 }
 
-func (g *GitRepo) makeNiceTree(t *object.Tree, parent string) []types.NiceTree {
+func (g *GitRepo) makeNiceTree(ctx context.Context, subtree *object.Tree, parent string) []types.NiceTree {
 	nts := []types.NiceTree{}
 
-	for _, e := range t.Entries {
-		mode, _ := e.Mode.ToOSFileMode()
-		sz, _ := t.Size(e.Name)
+	times, err := g.calculateCommitTimeIn(ctx, subtree, parent, 2*time.Second)
+	if err != nil {
+		return nts
+	}
 
-		var fpath string
-		if parent != "" {
-			fpath = fmt.Sprintf("%s/%s", parent, e.Name)
-		} else {
-			fpath = e.Name
-		}
-		lastCommit, err := g.LastCommitForPath(fpath)
-		if err != nil {
-			fmt.Println("error getting last commit time:", err)
-			// We don't want to skip the file, so worst case lets just
-			// populate it with "defaults".
+	for _, e := range subtree.Entries {
+		mode, _ := e.Mode.ToOSFileMode()
+		sz, _ := subtree.Size(e.Name)
+
+		fpath := path.Join(parent, e.Name)
+
+		var lastCommit *types.LastCommitInfo
+		if t, ok := times[fpath]; ok {
 			lastCommit = &types.LastCommitInfo{
-				Hash:    g.h,
-				Message: "",
-				When:    time.Now(),
+				Hash:    t.hash,
+				Message: t.message,
+				When:    t.when,
 			}
 		}
 

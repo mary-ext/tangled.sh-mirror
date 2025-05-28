@@ -2,7 +2,6 @@ package git
 
 import (
 	"archive/tar"
-	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -11,30 +10,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/dgraph-io/ristretto"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/types"
 )
-
-var (
-	commitCache *ristretto.Cache
-	cacheMu     sync.RWMutex
-)
-
-func init() {
-	cache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters:            1e7,
-		MaxCost:                1 << 30,
-		BufferItems:            64,
-		TtlTickerDurationInSec: 120,
-	})
-	commitCache = cache
-}
 
 var (
 	ErrBinaryFile    = fmt.Errorf("binary file")
@@ -448,57 +430,6 @@ func (g *GitRepo) WriteTar(w io.Writer, prefix string) error {
 	}
 
 	return nil
-}
-
-func (g *GitRepo) LastCommitForPath(path string) (*types.LastCommitInfo, error) {
-	cacheKey := fmt.Sprintf("%s:%s", g.h.String(), path)
-	cacheMu.RLock()
-	if commitInfo, found := commitCache.Get(cacheKey); found {
-		cacheMu.RUnlock()
-		return commitInfo.(*types.LastCommitInfo), nil
-	}
-	cacheMu.RUnlock()
-
-	cmd := exec.Command("git", "-C", g.path, "log", g.h.String(), "-1", "--format=%H %ct", "--", path)
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to get commit hash: %w", err)
-	}
-
-	output := strings.TrimSpace(out.String())
-	if output == "" {
-		return nil, fmt.Errorf("no commits found for path: %s", path)
-	}
-
-	parts := strings.SplitN(output, " ", 2)
-	if len(parts) < 2 {
-		return nil, fmt.Errorf("unexpected commit log format")
-	}
-
-	commitHash := parts[0]
-	commitTimeUnix, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("parsing commit time: %w", err)
-	}
-	commitTime := time.Unix(commitTimeUnix, 0)
-
-	hash := plumbing.NewHash(commitHash)
-
-	commitInfo := &types.LastCommitInfo{
-		Hash:    hash,
-		Message: "",
-		When:    commitTime,
-	}
-
-	cacheMu.Lock()
-	commitCache.Set(cacheKey, commitInfo, 1)
-	cacheMu.Unlock()
-
-	return commitInfo, nil
 }
 
 func newInfoWrapper(

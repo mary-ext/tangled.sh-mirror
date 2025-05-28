@@ -2,6 +2,7 @@ package knotserver
 
 import (
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -142,7 +143,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	files, err := gr.FileTree("")
+	files, err := gr.FileTree(r.Context(), "")
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		l.Error("file tree", "error", err.Error())
@@ -190,7 +191,7 @@ func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	files, err := gr.FileTree(treePath)
+	files, err := gr.FileTree(r.Context(), treePath)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		l.Error("file tree", "error", err.Error())
@@ -725,7 +726,7 @@ func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
 
 	languageFileCount := make(map[string]int)
 
-	err = recurseEntireTree(gr, func(absPath string) {
+	err = recurseEntireTree(r.Context(), gr, func(absPath string) {
 		lang, safe := enry.GetLanguageByExtension(absPath)
 		if len(lang) == 0 || !safe {
 			content, _ := gr.FileContentN(absPath, 1024)
@@ -758,8 +759,8 @@ func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func recurseEntireTree(git *git.GitRepo, callback func(absPath string), filePath string) error {
-	files, err := git.FileTree(filePath)
+func recurseEntireTree(ctx context.Context, git *git.GitRepo, callback func(absPath string), filePath string) error {
+	files, err := git.FileTree(ctx, filePath)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -768,7 +769,7 @@ func recurseEntireTree(git *git.GitRepo, callback func(absPath string), filePath
 	for _, file := range files {
 		absPath := path.Join(filePath, file.Name)
 		if !file.IsFile {
-			return recurseEntireTree(git, callback, absPath)
+			return recurseEntireTree(ctx, git, callback, absPath)
 		}
 		callback(absPath)
 	}
