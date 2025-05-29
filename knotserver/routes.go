@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/gliderlabs/ssh"
@@ -88,31 +89,80 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	commits, err := gr.Commits(0, 60) // a good preview of commits in this repo
-	if err != nil {
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		l.Error("fetching commits", "error", err.Error())
-		return
-	}
+	var (
+		commits  []*object.Commit
+		total    int
+		branches []types.Branch
+		files    []types.NiceTree
+		tags     []*git.TagReference
+	)
 
-	total, err := gr.TotalCommits()
-	if err != nil {
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		l.Error("fetching commits", "error", err.Error())
-		return
-	}
+	var wg sync.WaitGroup
+	errorsCh := make(chan error, 5)
 
-	branches, err := gr.Branches()
-	if err != nil {
-		l.Error("getting branches", "error", err.Error())
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cs, err := gr.Commits(0, 60)
+		if err != nil {
+			errorsCh <- fmt.Errorf("commits: %w", err)
+			return
+		}
+		commits = cs
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		t, err := gr.TotalCommits()
+		if err != nil {
+			errorsCh <- fmt.Errorf("calculating total: %w", err)
+			return
+		}
+		total = t
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		bs, err := gr.Branches()
+		if err != nil {
+			errorsCh <- fmt.Errorf("fetching branches: %w", err)
+			return
+		}
+		branches = bs
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ts, err := gr.Tags()
+		if err != nil {
+			errorsCh <- fmt.Errorf("fetching tags: %w", err)
+			return
+		}
+		tags = ts
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		fs, err := gr.FileTree(r.Context(), "")
+		if err != nil {
+			errorsCh <- fmt.Errorf("fetching filetree: %w", err)
+			return
+		}
+		files = fs
+	}()
+
+	wg.Wait()
+	close(errorsCh)
+
+	// show any errors
+	for err := range errorsCh {
+		l.Error("loading repo", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	tags, err := gr.Tags()
-	if err != nil {
-		// Non-fatal, we *should* have at least one branch to show.
-		l.Warn("getting tags", "error", err.Error())
 	}
 
 	rtags := []*types.TagReference{}
@@ -141,13 +191,6 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 			readmeContent = string(content)
 			readmeFile = readme
 		}
-	}
-
-	files, err := gr.FileTree(r.Context(), "")
-	if err != nil {
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		l.Error("file tree", "error", err.Error())
-		return
 	}
 
 	if ref == "" {
