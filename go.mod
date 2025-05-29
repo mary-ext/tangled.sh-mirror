@@ -21,6 +21,7 @@ require (
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/sessions v1.4.0
+	github.com/hiddeco/sshsig v0.2.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/mattn/go-sqlite3 v1.14.24
@@ -31,6 +32,7 @@ require (
 	github.com/urfave/cli/v3 v3.3.3
 	github.com/whyrusleeping/cbor-gen v0.3.1
 	github.com/yuin/goldmark v1.4.13
+	golang.org/x/crypto v0.38.0
 	golang.org/x/net v0.39.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	tangled.sh/icyphox.sh/atproto-oauth v0.0.0-20250526154904-3906c5336421
@@ -122,7 +124,6 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
