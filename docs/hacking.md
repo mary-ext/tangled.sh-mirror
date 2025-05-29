@@ -32,15 +32,15 @@ TANGLED_DEV=true nix run .#watch-appview
 nix run .#watch-tailwind
 ```
 
-## running a knotserver
+## running a knot
 
-An end-to-end knotserver setup requires setting up a machine
-with `sshd`, `repoguard`, `keyfetch`, a git user, which is
-quite cumbersome and so the nix flake provides a
+An end-to-end knot setup requires setting up a machine with
+`sshd`, `AuthorizedKeysCommand`, and git user, which is
+quite cumbersome. So the nix flake provides a
 `nixosConfiguration` to do so.
 
 To begin, head to `http://localhost:3000` in the browser and
-generate a knotserver secret. Replace the existing secret in
+generate a knot secret. Replace the existing secret in
 `flake.nix` with the newly generated secret.
 
 You can now start a lightweight NixOS VM using
@@ -52,9 +52,9 @@ QEMU_NET_OPTS="hostfwd=tcp::6000-:6000,hostfwd=tcp::2222-:22" nixos-shell --flak
 # hit Ctrl-a + c + q to exit the VM
 ```
 
-This starts a knotserver on port 6000 with `ssh` exposed on
-port 2222. You can push repositories to this VM with this
-ssh config block on your main machine:
+This starts a knot on port 6000 with `ssh` exposed on port
+2222. You can push repositories to this VM with this ssh
+config block on your main machine:
 
 ```bash
 Host nixos-shell
