@@ -35,9 +35,20 @@
                             <a href="mailto:{{ $commit.Author.Email }}" class="text-gray-700 dark:text-gray-300 no-underline hover:underline">{{ $commit.Author.Name }}</a>
                         {{ end }}
                     </td>
-                    <td class=" py-3 align-top font-mono flex items-end">
-                        <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" class="text-gray-700 dark:text-gray-300 no-underline hover:underline">{{ slice $commit.Hash.String 0 8 }}</a>
-                        <div class="inline-flex">
+                    <td class="py-3 align-top font-mono flex items-center">
+                        {{ $verified := false }}
+                        {{ $verified = index $.VerifiedCommits $commit.Hash.String }}
+                        {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
+                        {{ if $verified }}
+                            {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}
+                        {{ end }}
+                        <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" class="no-underline hover:underline {{ $hashStyle }} px-2 py-1/2 rounded flex items-center gap-2">
+                            {{ slice $commit.Hash.String 0 8 }}
+                            {{ if $verified }}
+                            {{ i "shield-check" "w-4 h-4" }}
+                            {{ end }}
+                        </a>
+                        <div class="{{ if not $verified }} ml-6 {{ end }}inline-flex">
                             <button class="p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
                                 title="Copy SHA"
                                 onclick="navigator.clipboard.writeText('{{ $commit.Hash.String }}'); this.innerHTML=`{{ i "copy-check" "w-4 h-4" }}`; setTimeout(() => this.innerHTML=`{{ i "copy" "w-4 h-4" }}`, 1500)">
@@ -80,7 +91,7 @@
     <!-- mobile view (visible only on small screens) -->
     <div class="md:hidden">
         {{ range $index, $commit := .Commits }}
-            <div class="relative p-2 {{ if ne $index (sub (len $.Commits) 1) }}border-b border-gray-200 dark:border-gray-700{{ end }}">
+            <div class="relative p-2 mb-2 {{ if ne $index (sub (len $.Commits) 1) }}border-b border-gray-200 dark:border-gray-700{{ end }}">
                 <div id="commit-message">
                     {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
                     <div class="text-base cursor-pointer">
@@ -125,11 +136,20 @@
                     </div>
                 </div>
 
-                <div class="text-xs text-gray-500 dark:text-gray-400">
+                <div class="text-xs mt-2 text-gray-500 dark:text-gray-400 flex items-center">
+                    {{ $verified := false }}
+                    {{ $verified = index $.VerifiedCommits $commit.Hash.String }}
+                    {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
+                    {{ if $verified }}
+                        {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}
+                    {{ end }}
                     <span class="font-mono">
                         <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}"
-                           class="text-gray-500 dark:text-gray-400 no-underline hover:underline">
+                           class="no-underline hover:underline {{ $hashStyle }} px-2 py-1 rounded flex items-center gap-2">
                            {{ slice $commit.Hash.String 0 8 }}
+                           {{ if $verified }}
+                           {{ i "shield-check" "w-3 h-3" }}
+                           {{ end }}
                         </a>
                     </span>
                     <span class="mx-2 before:content-['·'] before:select-none"></span>

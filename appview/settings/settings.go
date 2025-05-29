@@ -58,7 +58,7 @@ func (s *Settings) Router() http.Handler {
 
 func (s *Settings) settings(w http.ResponseWriter, r *http.Request) {
 	user := s.OAuth.GetUser(r)
-	pubKeys, err := db.GetPublicKeys(s.Db, user.Did)
+	pubKeys, err := db.GetPublicKeysForDid(s.Db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}

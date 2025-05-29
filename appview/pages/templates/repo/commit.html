@@ -3,7 +3,7 @@
 {{ define "extrameta" }}
     {{ $title := printf "commit %s &middot; %s" .Diff.Commit.This .RepoInfo.FullName }}
     {{ $url := printf "https://tangled.sh/%s/commit/%s" .RepoInfo.FullName .Diff.Commit.This }}
-    
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
@@ -24,7 +24,7 @@
     </div>
   </div>
 
-  <div class="flex items-center">
+  <div class="flex items-center space-x-2">
       <p class="text-sm text-gray-500 dark:text-gray-300">
           {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
 
@@ -45,6 +45,15 @@
           <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.Parent 0 8 }}</a>
           {{ end }}
       </p>
+
+      {{ if .Verified }}
+      <span class="text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">
+          <div class="flex items-center gap-2">
+          {{ i "shield-check" "w-4 h-4" }}
+          verified
+          </div>
+      </span>
+      {{ end }}
   </div>
 
 </section>

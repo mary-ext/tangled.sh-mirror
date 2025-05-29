@@ -77,3 +77,33 @@ func (d *NiceDiff) ChangedFiles() []string {
 
 	return files
 }
+
+// ObjectCommitToNiceDiff is a compatibility function to convert a
+// commit object into a NiceDiff structure.
+func ObjectCommitToNiceDiff(c *object.Commit) NiceDiff {
+	var niceDiff NiceDiff
+
+	// set commit information
+	niceDiff.Commit.Message = c.Message
+	niceDiff.Commit.Author = c.Author
+	niceDiff.Commit.This = c.Hash.String()
+	niceDiff.Commit.Committer = c.Committer
+	niceDiff.Commit.Tree = c.TreeHash.String()
+	niceDiff.Commit.PGPSignature = c.PGPSignature
+
+	changeId, ok := c.ExtraHeaders["change-id"]
+	if ok {
+		niceDiff.Commit.ChangedId = string(changeId)
+	}
+
+	// set parent hash if available
+	if len(c.ParentHashes) > 0 {
+		niceDiff.Commit.Parent = c.ParentHashes[0].String()
+	}
+
+	// XXX: Stats and Diff fields are typically populated
+	// after fetching the actual diff information, which isn't
+	// directly available in the commit object itself.
+
+	return niceDiff
+}

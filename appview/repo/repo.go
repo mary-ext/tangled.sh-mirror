@@ -138,6 +138,15 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	branchesTrunc := result.Branches[:min(branchCount, len(result.Branches))]
 
 	emails := uniqueEmails(commitsTrunc)
+	emailToDidMap, err := db.GetEmailToDid(rp.db, emails, true)
+	if err != nil {
+		log.Println("failed to get email to did map", err)
+	}
+
+	vc, err := verifiedObjectCommits(rp, emailToDidMap, commitsTrunc)
+	if err != nil {
+		log.Println(err)
+	}
 
 	user := rp.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(user)
@@ -178,7 +187,8 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		TagsTrunc:          tagsTrunc,
 		ForkInfo:           forkInfo,
 		BranchesTrunc:      branchesTrunc,
-		EmailToDidOrHandle: EmailToDidOrHandle(rp, emails),
+		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
+		VerifiedCommits:    vc,
 		Languages:          repoLanguages,
 	})
 	return
@@ -293,12 +303,24 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := rp.oauth.GetUser(r)
+
+	emailToDidMap, err := db.GetEmailToDid(rp.db, uniqueEmails(repolog.Commits), true)
+	if err != nil {
+		log.Println("failed to fetch email to did mapping", err)
+	}
+
+	vc, err := verifiedObjectCommits(rp, emailToDidMap, repolog.Commits)
+	if err != nil {
+		log.Println(err)
+	}
+
 	rp.pages.RepoLog(w, pages.RepoLogParams{
 		LoggedInUser:       user,
 		TagMap:             tagMap,
 		RepoInfo:           f.RepoInfo(user),
 		RepoLogResponse:    *repolog,
-		EmailToDidOrHandle: EmailToDidOrHandle(rp, uniqueEmails(repolog.Commits)),
+		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
+		VerifiedCommits:    vc,
 	})
 	return
 }
@@ -438,12 +460,23 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	emailToDidMap, err := db.GetEmailToDid(rp.db, []string{result.Diff.Commit.Author.Email}, true)
+	if err != nil {
+		log.Println("failed to get email to did mapping:", err)
+	}
+
+	vc, err := verifiedCommits(rp, emailToDidMap, []types.NiceDiff{*result.Diff})
+	if err != nil {
+		log.Println(err)
+	}
+
 	user := rp.oauth.GetUser(r)
 	rp.pages.RepoCommit(w, pages.RepoCommitParams{
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(user),
 		RepoCommitResponse: result,
-		EmailToDidOrHandle: EmailToDidOrHandle(rp, []string{result.Diff.Commit.Author.Email}),
+		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
+		Verified:           vc[result.Diff.Commit.This],
 	})
 	return
 }
