@@ -79,6 +79,9 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 
 	nd.Stat.FilesChanged = len(diffs)
 	nd.Commit.This = c.Hash.String()
+	nd.Commit.PGPSignature = c.PGPSignature
+	nd.Commit.Committer = c.Committer
+	nd.Commit.Tree = c.TreeHash.String()
 
 	if parent.Hash.IsZero() {
 		nd.Commit.Parent = ""
@@ -87,6 +90,10 @@ func (g *GitRepo) Diff() (*types.NiceDiff, error) {
 	}
 	nd.Commit.Author = c.Author
 	nd.Commit.Message = c.Message
+
+	if v, ok := c.ExtraHeaders["change-id"]; ok {
+		nd.Commit.ChangedId = string(v)
+	}
 
 	return &nd, nil
 }
