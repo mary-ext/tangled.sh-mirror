@@ -49,16 +49,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-H/sKps9um8vvv/WAZ1hEN+ZVhmXlddRNSVWVRBK1zEo=";
-      buildCmdPackage = name:
-        final.buildGoModule {
-          pname = name;
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/${name}"];
-          vendorHash = goModHash;
-          env.CGO_ENABLED = 0;
-        };
+      goModHash = "sha256-H2gBkkuJaZtHlvW33aWZu0pS9vsS/A2ojeEUbp6o7Go=";
     in {
       indigo-lexgen = final.buildGoModule {
         pname = "indigo-lexgen";
@@ -92,48 +83,51 @@
           stdenv = pkgsStatic.stdenv;
         };
 
-      knotserver = with final;
+      knot = with final;
         final.pkgsStatic.buildGoModule {
-          pname = "knotserver";
+          pname = "knot";
           version = "0.1.0";
           src = gitignoreSource ./.;
           nativeBuildInputs = [final.makeWrapper];
-          subPackages = ["cmd/knotserver"];
+          subPackages = ["cmd/knot"];
           vendorHash = goModHash;
           installPhase = ''
             runHook preInstall
 
             mkdir -p $out/bin
-            cp $GOPATH/bin/knotserver $out/bin/knotserver
+            cp $GOPATH/bin/knot $out/bin/knot
 
-            wrapProgram $out/bin/knotserver \
+            wrapProgram $out/bin/knot \
             --prefix PATH : ${pkgs.git}/bin
 
             runHook postInstall
           '';
           env.CGO_ENABLED = 1;
         };
-      knotserver-unwrapped = final.pkgsStatic.buildGoModule {
-        pname = "knotserver";
+      knot-unwrapped = final.pkgsStatic.buildGoModule {
+        pname = "knot";
         version = "0.1.0";
         src = gitignoreSource ./.;
-        subPackages = ["cmd/knotserver"];
+        subPackages = ["cmd/knot"];
         vendorHash = goModHash;
         env.CGO_ENABLED = 1;
       };
-      repoguard = buildCmdPackage "repoguard";
-      keyfetch = buildCmdPackage "keyfetch";
-      genjwks = buildCmdPackage "genjwks";
+      genjwks = final.pkgsStatic.buildGoModule {
+          pname =  "genjwks";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          subPackages = ["cmd/genjwks"];
+          vendorHash = goModHash;
+          env.CGO_ENABLED = 0;
+      };
     };
     packages = forAllSystems (system: {
       inherit
         (nixpkgsFor."${system}")
         indigo-lexgen
         appview
-        knotserver
-        knotserver-unwrapped
-        repoguard
-        keyfetch
+        knot
+        knot-unwrapped
         genjwks
         ;
     });
@@ -172,12 +166,12 @@
     });
     apps = forAllSystems (system: let
       pkgs = nixpkgsFor."${system}";
-      air-watcher = name:
+      air-watcher = name: arg:
         pkgs.writeShellScriptBin "run"
         ''
           ${pkgs.air}/bin/air -c /dev/null \
           -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" \
-          -build.bin "./out/${name}.out" \
+          -build.bin "./out/${name}.out ${arg}" \
           -build.stop_on_error "true" \
           -build.include_ext "go"
         '';
@@ -189,11 +183,11 @@
     in {
       watch-appview = {
         type = "app";
-        program = ''${air-watcher "appview"}/bin/run'';
+        program = ''${air-watcher "appview" ""}/bin/run'';
       };
-      watch-knotserver = {
+      watch-knot = {
         type = "app";
-        program = ''${air-watcher "knotserver"}/bin/run'';
+        program = ''${air-watcher "knot" "server"}/bin/run'';
       };
       watch-tailwind = {
         type = "app";
@@ -247,21 +241,21 @@
         };
       };
 
-    nixosModules.knotserver = {
+    nixosModules.knot = {
       config,
       pkgs,
       lib,
       ...
     }: let
-      cfg = config.services.tangled-knotserver;
+      cfg = config.services.tangled-knot;
     in
       with lib; {
         options = {
-          services.tangled-knotserver = {
+          services.tangled-knot = {
             enable = mkOption {
               type = types.bool;
               default = false;
-              description = "Enable a tangled knotserver";
+              description = "Enable a tangled knot";
             };
 
             appviewEndpoint = mkOption {
@@ -383,16 +377,16 @@
             mode = "0555";
             text = ''
               #!${pkgs.stdenv.shell}
-              ${self.packages.${pkgs.system}.keyfetch}/bin/keyfetch \
-                -repoguard-path ${self.packages.${pkgs.system}.repoguard}/bin/repoguard \
+              ${self.packages.${pkgs.system}.knot}/bin/knot keys \
+                -output authorized-keys \
                 -internal-api "http://${cfg.server.internalListenAddr}" \
                 -git-dir "${cfg.repo.scanPath}" \
-                -log-path /tmp/repoguard.log
+                -log-path /tmp/knotguard.log
             '';
           };
 
-          systemd.services.knotserver = {
-            description = "knotserver service";
+          systemd.services.knot = {
+            description = "knot service";
             after = ["network.target" "sshd.service"];
             wantedBy = ["multi-user.target"];
             serviceConfig = {
@@ -408,7 +402,7 @@
                 "KNOT_SERVER_HOSTNAME=${cfg.server.hostname}"
               ];
               EnvironmentFile = cfg.server.secretFile;
-              ExecStart = "${self.packages.${pkgs.system}.knotserver}/bin/knotserver";
+              ExecStart = "${self.packages.${pkgs.system}.knot}/bin/knot server";
               Restart = "always";
             };
           };
@@ -420,7 +414,7 @@
     nixosConfigurations.knotVM = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        self.nixosModules.knotserver
+        self.nixosModules.knot
         ({
           config,
           pkgs,
@@ -432,16 +426,16 @@
           services.getty.autologinUser = "root";
           environment.systemPackages = with pkgs; [curl vim git];
           systemd.tmpfiles.rules = let
-            u = config.services.tangled-knotserver.gitUser;
-            g = config.services.tangled-knotserver.gitUser;
+            u = config.services.tangled-knot.gitUser;
+            g = config.services.tangled-knot.gitUser;
           in [
-            "d /var/lib/knotserver 0770 ${u} ${g} - -" # Create the directory first
-            "f+ /var/lib/knotserver/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=38a7c3237c2a585807e06a5bcfac92eb39442063f3da306b7acb15cfdc51d19d"
+            "d /var/lib/knot 0770 ${u} ${g} - -" # Create the directory first
+            "f+ /var/lib/knot/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=38a7c3237c2a585807e06a5bcfac92eb39442063f3da306b7acb15cfdc51d19d"
           ];
-          services.tangled-knotserver = {
+          services.tangled-knot = {
             enable = true;
             server = {
-              secretFile = "/var/lib/knotserver/secret";
+              secretFile = "/var/lib/knot/secret";
               hostname = "localhost:6000";
               listenAddr = "0.0.0.0:6000";
             };
