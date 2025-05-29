@@ -24,7 +24,10 @@ func VerifySignature(pubKey, signature, payload []byte) (error, bool) {
 	}
 
 	buf := bytes.NewBuffer(payload)
-	sshsig.Verify(buf, sig, pub, sshsig.HashSHA256, "git")
+	// we use sha-512 because ed25519 keys require it internally; rsa keys support
+	// multiple algorithms but sha-512 is most secure, and git's ssh signing defaults
+	// to sha-512 for all key types anyway.
+	err = sshsig.Verify(buf, sig, pub, sshsig.HashSHA512, "git")
 	return err, err == nil
 }
 
