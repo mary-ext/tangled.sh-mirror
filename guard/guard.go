@@ -87,7 +87,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	if sshCommand == "" {
 		l.Error("access denied: no interactive shells", "user", incomingUser)
 		fmt.Fprintln(os.Stderr, "access denied: we don't serve interactive shells :)")
-		return fmt.Errorf("access denied: no interactive shells")
+		os.Exit(-1)
 	}
 
 	cmdParts := strings.Fields(sshCommand)
