@@ -6,6 +6,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 	"tangled.sh/tangled.sh/core/guard"
+	"tangled.sh/tangled.sh/core/hook"
 	"tangled.sh/tangled.sh/core/keyfetch"
 	"tangled.sh/tangled.sh/core/knotserver"
 	"tangled.sh/tangled.sh/core/log"
@@ -19,6 +20,7 @@ func main() {
 			guard.Command(),
 			knotserver.Command(),
 			keyfetch.Command(),
+			hook.Command(),
 		},
 	}
 
