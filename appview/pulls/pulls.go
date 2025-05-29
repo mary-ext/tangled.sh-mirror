@@ -605,7 +605,6 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 		defer tx.Rollback()
 
 		createdAt := time.Now().Format(time.RFC3339)
-		ownerDid := user.Did
 
 		pullAt, err := db.GetPullAt(s.db, f.RepoAt(), pull.PullId)
 		if err != nil {
@@ -614,7 +613,6 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		atUri := f.RepoAt().String()
 		client, err := s.oauth.AuthorizedClient(r)
 		if err != nil {
 			log.Println("failed to get authorized client", err)
@@ -627,9 +625,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			Rkey:       tid.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoPullComment{
-					Repo:      &atUri,
 					Pull:      string(pullAt),
-					Owner:     &ownerDid,
 					Body:      body,
 					CreatedAt: createdAt,
 				},

@@ -6944,21 +6944,8 @@ func (t *RepoPullComment) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 7
 
-	if t.CommentId == nil {
-		fieldCount--
-	}
-
-	if t.Owner == nil {
-		fieldCount--
-	}
-
-	if t.Repo == nil {
-		fieldCount--
-	}
-
-	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
+	if _, err := cw.Write([]byte{164}); err != nil {
 		return err
 	}
 
@@ -7008,38 +6995,6 @@ func (t *RepoPullComment) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Repo (string) (string)
-	if t.Repo != nil {
-
-		if len("repo") > 1000000 {
-			return xerrors.Errorf("Value in field \"repo\" was too long")
-		}
-
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("repo"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("repo")); err != nil {
-			return err
-		}
-
-		if t.Repo == nil {
-			if _, err := cw.Write(cbg.CborNull); err != nil {
-				return err
-			}
-		} else {
-			if len(*t.Repo) > 1000000 {
-				return xerrors.Errorf("Value in field t.Repo was too long")
-			}
-
-			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Repo))); err != nil {
-				return err
-			}
-			if _, err := cw.WriteString(string(*t.Repo)); err != nil {
-				return err
-			}
-		}
-	}
-
 	// t.LexiconTypeID (string) (string)
 	if len("$type") > 1000000 {
 		return xerrors.Errorf("Value in field \"$type\" was too long")
@@ -7057,70 +7012,6 @@ func (t *RepoPullComment) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string("sh.tangled.repo.pull.comment")); err != nil {
 		return err
-	}
-
-	// t.Owner (string) (string)
-	if t.Owner != nil {
-
-		if len("owner") > 1000000 {
-			return xerrors.Errorf("Value in field \"owner\" was too long")
-		}
-
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("owner"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("owner")); err != nil {
-			return err
-		}
-
-		if t.Owner == nil {
-			if _, err := cw.Write(cbg.CborNull); err != nil {
-				return err
-			}
-		} else {
-			if len(*t.Owner) > 1000000 {
-				return xerrors.Errorf("Value in field t.Owner was too long")
-			}
-
-			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Owner))); err != nil {
-				return err
-			}
-			if _, err := cw.WriteString(string(*t.Owner)); err != nil {
-				return err
-			}
-		}
-	}
-
-	// t.CommentId (int64) (int64)
-	if t.CommentId != nil {
-
-		if len("commentId") > 1000000 {
-			return xerrors.Errorf("Value in field \"commentId\" was too long")
-		}
-
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("commentId"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("commentId")); err != nil {
-			return err
-		}
-
-		if t.CommentId == nil {
-			if _, err := cw.Write(cbg.CborNull); err != nil {
-				return err
-			}
-		} else {
-			if *t.CommentId >= 0 {
-				if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(*t.CommentId)); err != nil {
-					return err
-				}
-			} else {
-				if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-*t.CommentId-1)); err != nil {
-					return err
-				}
-			}
-		}
-
 	}
 
 	// t.CreatedAt (string) (string)
@@ -7211,27 +7102,6 @@ func (t *RepoPullComment) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Pull = string(sval)
 			}
-			// t.Repo (string) (string)
-		case "repo":
-
-			{
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-
-					sval, err := cbg.ReadStringWithMax(cr, 1000000)
-					if err != nil {
-						return err
-					}
-
-					t.Repo = (*string)(&sval)
-				}
-			}
 			// t.LexiconTypeID (string) (string)
 		case "$type":
 
@@ -7242,63 +7112,6 @@ func (t *RepoPullComment) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.LexiconTypeID = string(sval)
-			}
-			// t.Owner (string) (string)
-		case "owner":
-
-			{
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-
-					sval, err := cbg.ReadStringWithMax(cr, 1000000)
-					if err != nil {
-						return err
-					}
-
-					t.Owner = (*string)(&sval)
-				}
-			}
-			// t.CommentId (int64) (int64)
-		case "commentId":
-			{
-
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-					maj, extra, err := cr.ReadHeader()
-					if err != nil {
-						return err
-					}
-					var extraI int64
-					switch maj {
-					case cbg.MajUnsignedInt:
-						extraI = int64(extra)
-						if extraI < 0 {
-							return fmt.Errorf("int64 positive overflow")
-						}
-					case cbg.MajNegativeInt:
-						extraI = int64(extra)
-						if extraI < 0 {
-							return fmt.Errorf("int64 negative overflow")
-						}
-						extraI = -1 - extraI
-					default:
-						return fmt.Errorf("wrong type for int64 field: %d", maj)
-					}
-
-					t.CommentId = (*int64)(&extraI)
-				}
 			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":

@@ -17,11 +17,8 @@ func init() {
 } //
 // RECORDTYPE: RepoPullComment
 type RepoPullComment struct {
-	LexiconTypeID string  `json:"$type,const=sh.tangled.repo.pull.comment" cborgen:"$type,const=sh.tangled.repo.pull.comment"`
-	Body          string  `json:"body" cborgen:"body"`
-	CommentId     *int64  `json:"commentId,omitempty" cborgen:"commentId,omitempty"`
-	CreatedAt     string  `json:"createdAt" cborgen:"createdAt"`
-	Owner         *string `json:"owner,omitempty" cborgen:"owner,omitempty"`
-	Pull          string  `json:"pull" cborgen:"pull"`
-	Repo          *string `json:"repo,omitempty" cborgen:"repo,omitempty"`
+	LexiconTypeID string `json:"$type,const=sh.tangled.repo.pull.comment" cborgen:"$type,const=sh.tangled.repo.pull.comment"`
+	Body          string `json:"body" cborgen:"body"`
+	CreatedAt     string `json:"createdAt" cborgen:"createdAt"`
+	Pull          string `json:"pull" cborgen:"pull"`
 }
