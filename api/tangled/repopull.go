@@ -21,7 +21,6 @@ type RepoPull struct {
 	Body          *string          `json:"body,omitempty" cborgen:"body,omitempty"`
 	CreatedAt     string           `json:"createdAt" cborgen:"createdAt"`
 	Patch         string           `json:"patch" cborgen:"patch"`
-	PullId        int64            `json:"pullId" cborgen:"pullId"`
 	Source        *RepoPull_Source `json:"source,omitempty" cborgen:"source,omitempty"`
 	TargetBranch  string           `json:"targetBranch" cborgen:"targetBranch"`
 	TargetRepo    string           `json:"targetRepo" cborgen:"targetRepo"`

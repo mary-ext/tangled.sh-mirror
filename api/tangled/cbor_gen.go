@@ -6529,7 +6529,7 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 9
+	fieldCount := 8
 
 	if t.Body == nil {
 		fieldCount--
@@ -6638,28 +6638,6 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string(t.Title)); err != nil {
 		return err
-	}
-
-	// t.PullId (int64) (int64)
-	if len("pullId") > 1000000 {
-		return xerrors.Errorf("Value in field \"pullId\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("pullId"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("pullId")); err != nil {
-		return err
-	}
-
-	if t.PullId >= 0 {
-		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.PullId)); err != nil {
-			return err
-		}
-	} else {
-		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.PullId-1)); err != nil {
-			return err
-		}
 	}
 
 	// t.Source (tangled.RepoPull_Source) (struct)
@@ -6846,32 +6824,6 @@ func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Title = string(sval)
-			}
-			// t.PullId (int64) (int64)
-		case "pullId":
-			{
-				maj, extra, err := cr.ReadHeader()
-				if err != nil {
-					return err
-				}
-				var extraI int64
-				switch maj {
-				case cbg.MajUnsignedInt:
-					extraI = int64(extra)
-					if extraI < 0 {
-						return fmt.Errorf("int64 positive overflow")
-					}
-				case cbg.MajNegativeInt:
-					extraI = int64(extra)
-					if extraI < 0 {
-						return fmt.Errorf("int64 negative overflow")
-					}
-					extraI = -1 - extraI
-				default:
-					return fmt.Errorf("wrong type for int64 field: %d", maj)
-				}
-
-				t.PullId = int64(extraI)
 			}
 			// t.Source (tangled.RepoPull_Source) (struct)
 		case "source":

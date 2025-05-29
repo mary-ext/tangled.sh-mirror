@@ -12,7 +12,6 @@
         "required": [
           "targetRepo",
           "targetBranch",
-          "pullId",
           "title",
           "patch",
           "createdAt"
@@ -24,9 +23,6 @@
           },
           "targetBranch": {
             "type": "string"
-          },
-          "pullId": {
-            "type": "integer"
           },
           "title": {
             "type": "string"
