@@ -222,14 +222,22 @@
         </div>
       </div>
 
-      <div class="text-xs text-gray-500 dark:text-gray-400">
-        <span class="font-mono">
-          <a
-            href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
-            class="text-gray-500 dark:text-gray-400 no-underline hover:underline"
-            >{{ slice .Hash.String 0 8 }}</a
-          ></span
-        >
+      <div class="text-xs mt-2 text-gray-500 dark:text-gray-400 flex items-center">
+          {{ $verified := false }}
+          {{ $verified = index $.VerifiedCommits .Hash.String }}
+          {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
+          {{ if $verified }}
+              {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}
+          {{ end }}
+          <span class="font-mono">
+              <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
+                 class="no-underline hover:underline {{ $hashStyle }} px-2 py-1 rounded flex items-center gap-2">
+                 {{ slice .Hash.String 0 8 }}
+                 {{ if $verified }}
+                 {{ i "shield-check" "w-3 h-3" }}
+                 {{ end }}
+              </a>
+          </span>
         <span
           class="mx-2 before:content-['·'] before:select-none"
           ></span>

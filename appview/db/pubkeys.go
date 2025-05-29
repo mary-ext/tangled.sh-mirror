@@ -15,7 +15,7 @@ func AddPublicKey(e Execer, did, name, key, rkey string) error {
 
 func DeletePublicKey(e Execer, did, name, key string) error {
 	_, err := e.Exec(`
-		delete from public_keys 
+		delete from public_keys
 		where did = ? and name = ? and key = ?`,
 		did, name, key)
 	return err
@@ -23,7 +23,7 @@ func DeletePublicKey(e Execer, did, name, key string) error {
 
 func DeletePublicKeyByRkey(e Execer, did, rkey string) error {
 	_, err := e.Exec(`
-		delete from public_keys 
+		delete from public_keys
 		where did = ? and rkey = ?`,
 		did, rkey)
 	return err
@@ -75,7 +75,7 @@ func GetAllPublicKeys(e Execer) ([]PublicKey, error) {
 	return keys, nil
 }
 
-func GetPublicKeys(e Execer, did string) ([]PublicKey, error) {
+func GetPublicKeysForDid(e Execer, did string) ([]PublicKey, error) {
 	var keys []PublicKey
 
 	rows, err := e.Query(`select did, key, name, rkey, created from public_keys where did = ?`, did)
