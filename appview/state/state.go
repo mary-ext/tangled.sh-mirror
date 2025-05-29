@@ -219,7 +219,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pubKeys, err := db.GetPublicKeys(s.db, id.DID.String())
+	pubKeys, err := db.GetPublicKeysForDid(s.db, id.DID.String())
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return

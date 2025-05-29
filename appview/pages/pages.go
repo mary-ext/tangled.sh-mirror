@@ -414,6 +414,7 @@ type RepoIndexParams struct {
 	HTMLReadme         template.HTML
 	Raw                bool
 	EmailToDidOrHandle map[string]string
+	VerifiedCommits    map[string]bool
 	Languages          *types.RepoLanguageResponse
 	types.RepoIndexResponse
 }
@@ -452,6 +453,7 @@ type RepoLogParams struct {
 	types.RepoLogResponse
 	Active             string
 	EmailToDidOrHandle map[string]string
+	VerifiedCommits    map[string]bool
 }
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
@@ -464,6 +466,7 @@ type RepoCommitParams struct {
 	RepoInfo           repoinfo.RepoInfo
 	Active             string
 	EmailToDidOrHandle map[string]string
+	Verified           bool
 
 	types.RepoCommitResponse
 }
