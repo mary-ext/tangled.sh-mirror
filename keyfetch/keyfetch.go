@@ -31,11 +31,6 @@ func Command() *cli.Command {
 				Value: "http://localhost:5444",
 			},
 			&cli.StringFlag{
-				Name:  "repoguard-path",
-				Usage: "path to the repoguard binary",
-				Value: "/home/git/repoguard",
-			},
-			&cli.StringFlag{
 				Name:  "git-dir",
 				Usage: "base directory for git repos",
 				Value: "/home/git",
@@ -50,13 +45,18 @@ func Command() *cli.Command {
 }
 
 func Run(ctx context.Context, cmd *cli.Command) error {
+	l := log.FromContext(ctx)
+
 	internalApi := cmd.String("internal-api")
-	repoguardPath := cmd.String("repoguard-path")
 	gitDir := cmd.String("git-dir")
 	logPath := cmd.String("log-path")
 	output := cmd.String("output")
 
-	l := log.FromContext(ctx)
+	executablePath, err := os.Executable()
+	if err != nil {
+		l.Error("error getting path of executable", "error", err)
+		return err
+	}
 
 	resp, err := http.Get(internalApi + "/keys")
 	if err != nil {
@@ -91,7 +91,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 			return err
 		}
 	case "authorized-keys":
-		formatted := formatKeyData(repoguardPath, gitDir, logPath, internalApi, data)
+		formatted := formatKeyData(executablePath, gitDir, logPath, internalApi, data)
 		_, err := os.Stdout.Write([]byte(formatted))
 		if err != nil {
 			l.Error("error writing to stdout", "error", err)
@@ -110,12 +110,12 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func formatKeyData(repoguardPath, gitDir, logPath, endpoint string, data []map[string]any) string {
+func formatKeyData(executablePath, gitDir, logPath, endpoint string, data []map[string]any) string {
 	var result string
 	for _, entry := range data {
 		result += fmt.Sprintf(
-			`command="%s -base-dir %s -user %s -log-path %s -internal-api %s",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s`+"\n",
-			repoguardPath, gitDir, entry["did"], logPath, endpoint, entry["key"])
+			`command="%s guard -git-dir %s -user %s -log-path %s -internal-api %s",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s`+"\n",
+			executablePath, gitDir, entry["did"], logPath, endpoint, entry["key"])
 	}
 	return result
 }
