@@ -40,10 +40,14 @@ func (d *Diff) Stats() DiffStat {
 // A nicer git diff representation.
 type NiceDiff struct {
 	Commit struct {
-		Message string           `json:"message"`
-		Author  object.Signature `json:"author"`
-		This    string           `json:"this"`
-		Parent  string           `json:"parent"`
+		Message      string           `json:"message"`
+		Author       object.Signature `json:"author"`
+		This         string           `json:"this"`
+		Parent       string           `json:"parent"`
+		PGPSignature string           `json:"pgp_signature"`
+		Committer    object.Signature `json:"committer"`
+		Tree         string           `json:"tree"`
+		ChangedId    string           `json:"change_id"`
 	} `json:"commit"`
 	Stat struct {
 		FilesChanged int `json:"files_changed"`
