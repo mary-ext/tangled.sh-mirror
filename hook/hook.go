@@ -58,7 +58,7 @@ func postRecieve(ctx context.Context, cmd *cli.Command) error {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("POST", endpoint+"/hooks/post-receive", strings.NewReader(payload))
+	req, err := http.NewRequest("POST", "http://"+endpoint+"/hooks/post-receive", strings.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

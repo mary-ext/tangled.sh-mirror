@@ -7,6 +7,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/hook"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
@@ -43,6 +44,15 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
+
+	err = hook.Setup(
+		hook.WithScanPath(c.Repo.ScanPath),
+		hook.WithInternalApi(c.Server.InternalListenAddr),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to setup hooks: %w", err)
+	}
+	l.Info("successfully finished setting up hooks")
 
 	if c.Server.Dev {
 		l.Info("running in dev mode, signature verification is disabled")
