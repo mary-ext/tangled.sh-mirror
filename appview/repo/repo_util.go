@@ -44,7 +44,7 @@ func balanceIndexItems(commitCount, branchCount, tagCount, fileCount int) (commi
 
 	// clamp branchcount
 	if branchCount > 0 {
-		branchesTrunc = min(max(branchCount, 1), 2)
+		branchesTrunc = min(max(branchCount, 1), 3)
 		availableSpace -= branchesTrunc // an extra subtracted for headers etc.
 	}
 
