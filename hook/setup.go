@@ -103,7 +103,7 @@ func setup(config *config, path string) error {
 		return fmt.Errorf("%s: %w", path, ErrNoGitRepo)
 	}
 
-	preReceiveD := filepath.Join(path, "hooks", "pre-receive.d")
+	preReceiveD := filepath.Join(path, "hooks", "post-receive.d")
 	if err := os.MkdirAll(preReceiveD, 0755); err != nil {
 		return fmt.Errorf("%s: %w", preReceiveD, ErrCreatingHookDir)
 	}
@@ -113,7 +113,7 @@ func setup(config *config, path string) error {
 		return fmt.Errorf("%s: %w", notify, ErrCreatingHook)
 	}
 
-	delegate := filepath.Join(path, "hooks", "pre-receive")
+	delegate := filepath.Join(path, "hooks", "post-receive")
 	if err := mkDelegate(delegate); err != nil {
 		return fmt.Errorf("%s: %w", delegate, ErrCreatingDelegate)
 	}
