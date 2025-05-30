@@ -799,8 +799,9 @@ func (p *Pages) PullPatchUploadFragment(w io.Writer, params PullPatchUploadParam
 }
 
 type PullCompareBranchesParams struct {
-	RepoInfo repoinfo.RepoInfo
-	Branches []types.Branch
+	RepoInfo     repoinfo.RepoInfo
+	Branches     []types.Branch
+	SourceBranch string
 }
 
 func (p *Pages) PullCompareBranchesFragment(w io.Writer, params PullCompareBranchesParams) error {

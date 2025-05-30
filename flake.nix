@@ -112,7 +112,7 @@
         vendorHash = goModHash;
         env.CGO_ENABLED = 1;
       };
-      genjwks = final.pkgsStatic.buildGoModule {
+      genjwks = final.buildGoModule {
           pname =  "genjwks";
           version = "0.1.0";
           src = gitignoreSource ./.;
