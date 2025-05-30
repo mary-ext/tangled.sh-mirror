@@ -74,7 +74,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	if incomingUser == "" {
 		l.Error("access denied: no user specified")
 		fmt.Fprintln(os.Stderr, "access denied: no user specified")
-		return fmt.Errorf("access denied: no user specified")
+		os.Exit(-1)
 	}
 
 	sshCommand := os.Getenv("SSH_ORIGINAL_COMMAND")
@@ -94,7 +94,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	if len(cmdParts) < 2 {
 		l.Error("invalid command format", "command", sshCommand)
 		fmt.Fprintln(os.Stderr, "invalid command format")
-		return fmt.Errorf("invalid command format")
+		os.Exit(-1)
 	}
 
 	gitCommand := cmdParts[0]
@@ -109,7 +109,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	if len(components) != 2 {
 		l.Error("invalid repo format", "components", components)
 		fmt.Fprintln(os.Stderr, "invalid repo format, needs <user>/<repo> or /<user>/<repo>")
-		return fmt.Errorf("invalid repo format, needs <user>/<repo> or /<user>/<repo>")
+		os.Exit(-1)
 	}
 
 	didOrHandle := components[0]
@@ -134,7 +134,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 				"did", incomingUser,
 				"reponame", qualifiedRepoName)
 			fmt.Fprintln(os.Stderr, "access denied: user not allowed")
-			return fmt.Errorf("access denied: user not allowed")
+			os.Exit(-1)
 		}
 	}
 
