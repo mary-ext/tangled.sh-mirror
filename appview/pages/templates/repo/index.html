@@ -32,7 +32,7 @@
 {{ end }}
 
 {{ define "branchSelector" }}
-  <div class="flex gap-4 items-center justify-center">
+  <div class="flex gap-2 items-center items-stretch justify-center">
     <select
         onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
         class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -294,19 +294,28 @@
       </a>
       <div class="flex flex-col gap-1">
         {{ range .BranchesTrunc }}
-        <div class="text-base flex items-center gap-2">
-          <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Reference.Name | urlquery }}"
-            class="inline no-underline hover:underline dark:text-white">
-            {{ .Reference.Name }}
-          </a>
-          {{ if .Commit }}
-          <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
-          <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .Commit.Committer.When }}</time>
-          {{ end }}
-          {{ if .IsDefault }}
-          <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
-          <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono">default</span>
-          {{ end }}
+        <div class="text-base flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Reference.Name | urlquery }}"
+              class="inline no-underline hover:underline dark:text-white">
+              {{ .Reference.Name }}
+            </a>
+            {{ if .Commit }}
+            <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
+            <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .Commit.Committer.When }}</time>
+            {{ end }}
+            {{ if .IsDefault }}
+            <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
+            <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono">default</span>
+            {{ end }}
+          </div>
+          {{ if ne $.Ref .Reference.Name }}
+            <a href="/{{ $.RepoInfo.FullName }}/compare/{{ $.Ref | urlquery }}...{{ .Reference.Name | urlquery }}"
+              class="text-xs flex gap-2 items-center"
+              title="Compare branches or tags">
+              {{ i "git-compare" "w-3 h-3" }} compare
+            </a>
+          {{end}}
         </div>
         {{ end }}
       </div>
@@ -339,11 +348,11 @@
           </div>
           <div>
             {{ with .Tag }}
-            <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .Tagger.When }}</time>
+              <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .Tagger.When }}</time>
             {{ end }}
             {{ if eq $idx 0 }}
-            <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
-            <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono">latest</span>
+              {{ with .Tag }}<span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>{{ end }}
+              <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono">latest</span>
             {{ end }}
           </div>
         </div>
