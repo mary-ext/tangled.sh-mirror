@@ -95,10 +95,7 @@ func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		mergeCheckResponse := s.mergeCheck(f, pull, stack)
-		resubmitResult := pages.Unknown
-		if user.Did == pull.OwnerDid {
-			resubmitResult = s.resubmitCheck(f, pull, stack)
-		}
+		resubmitResult := s.resubmitCheck(f, pull, stack)
 
 		s.pages.PullActionsFragment(w, pages.PullActionsParams{
 			LoggedInUser:  user,
@@ -160,10 +157,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mergeCheckResponse := s.mergeCheck(f, pull, stack)
-	resubmitResult := pages.Unknown
-	if user != nil && user.Did == pull.OwnerDid {
-		resubmitResult = s.resubmitCheck(f, pull, stack)
-	}
+	resubmitResult := s.resubmitCheck(f, pull, stack)
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
 		LoggedInUser:   user,
@@ -290,8 +284,6 @@ func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack
 		top := stack[0]
 		latestSourceRev = top.Submissions[top.LastRoundNumber()].SourceRev
 	}
-
-	log.Println(latestSourceRev, result.Branch.Hash)
 
 	if latestSourceRev != result.Branch.Hash {
 		return pages.ShouldResubmit

@@ -250,11 +250,12 @@
 {{ end }}
 
 {{ define "resubmitStatus" }}
+  {{ $isAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Pull.OwnerDid) }}
   {{ if .ResubmitCheck.Yes }}
   <div class="bg-amber-50 dark:bg-amber-900 border border-amber-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
     <div class="flex items-center gap-2 text-amber-500 dark:text-amber-300">
       {{ i "triangle-alert" "w-4 h-4" }}
-      <span class="font-medium">this branch has been updated, consider resubmitting</span>
+      <span class="font-medium">this branch has been updated<span class="{{if not $isAuthor}}hidden{{end}}">, consider resubmitting<span></span>
     </div>
   </div>
   {{ end }}
