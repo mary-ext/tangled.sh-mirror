@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path"
 	"slices"
 	"sort"
@@ -1308,6 +1309,9 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 			head = parts[1]
 		}
 	}
+
+	base, _ = url.PathUnescape(base)
+	head, _ = url.PathUnescape(head)
 
 	if base == "" || head == "" {
 		log.Printf("invalid comparison")
