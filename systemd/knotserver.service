@@ -4,7 +4,7 @@ After=network.target
 
 
 [Service]
-ExecStart=/usr/local/bin/knotserver
+ExecStart=/usr/local/bin/knot server
 Restart=always
 User=git
 WorkingDirectory=/home/git
