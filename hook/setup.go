@@ -141,7 +141,7 @@ func mkDelegate(path string) error {
 data=$(cat)
 exitcodes=""
 hookname=$(basename $0)
-GIT_DIR=${GIT_DIR:-$(dirname $0)/..}
+GIT_DIR="$PWD"
 
 for hook in ${GIT_DIR}/hooks/${hookname}.d/*; do
   test -x "${hook}" && test -f "${hook}" || continue
