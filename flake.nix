@@ -49,7 +49,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-H2gBkkuJaZtHlvW33aWZu0pS9vsS/A2ojeEUbp6o7Go=";
+      goModHash = "sha256-HkmfHtnuixvDsLPthcguXToOFQo4eliZKQA2ibytdsE=";
     in {
       indigo-lexgen = final.buildGoModule {
         pname = "indigo-lexgen";
@@ -83,6 +83,41 @@
           stdenv = pkgsStatic.stdenv;
         };
 
+      appview-cross = with final;
+        final.pkgsCross.gnu64.pkgsStatic.buildGoModule {
+          pname = "appview";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          postUnpack = ''
+            pushd source
+            mkdir -p appview/pages/static/{fonts,icons}
+            cp -f ${htmx-src} appview/pages/static/htmx.min.js
+            cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
+            cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
+            cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
+            cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
+            ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
+            popd
+          '';
+          doCheck = false;
+          subPackages = ["cmd/appview"];
+          vendorHash = goModHash;
+          env.CGO_ENABLED = 1;
+          stdenv = pkgsStatic.stdenv;
+        };
+
+      # cross-compile on darwin to x86_64-linux
+      knot-cross = with final;
+        final.pkgsCross.gnu64.pkgsStatic.buildGoModule {
+          pname = "knot";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          subPackages = ["cmd/knot"];
+          vendorHash = goModHash;
+
+          env.CGO_ENABLED = 1;
+        };
+
       knot = with final;
         final.pkgsStatic.buildGoModule {
           pname = "knot";
@@ -113,12 +148,12 @@
         env.CGO_ENABLED = 1;
       };
       genjwks = final.buildGoModule {
-          pname =  "genjwks";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/genjwks"];
-          vendorHash = goModHash;
-          env.CGO_ENABLED = 0;
+        pname = "genjwks";
+        version = "0.1.0";
+        src = gitignoreSource ./.;
+        subPackages = ["cmd/genjwks"];
+        vendorHash = goModHash;
+        env.CGO_ENABLED = 0;
       };
     };
     packages = forAllSystems (system: {
@@ -126,7 +161,9 @@
         (nixpkgsFor."${system}")
         indigo-lexgen
         appview
+        appview-cross
         knot
+        knot-cross
         knot-unwrapped
         genjwks
         ;
