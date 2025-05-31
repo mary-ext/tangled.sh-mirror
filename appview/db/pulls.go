@@ -94,8 +94,10 @@ func (p Pull) AsRecord() tangled.RepoPull {
 		Title:        p.Title,
 		Body:         &p.Body,
 		CreatedAt:    p.Created.Format(time.RFC3339),
-		TargetRepo:   p.RepoAt.String(),
-		TargetBranch: p.TargetBranch,
+		Target: &tangled.RepoPull_Target{
+			Repo:   p.RepoAt.String(),
+			Branch: p.TargetBranch,
+		},
 		Patch:        p.LatestPatch(),
 		Source:       source,
 	}

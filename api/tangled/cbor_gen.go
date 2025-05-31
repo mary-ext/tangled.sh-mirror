@@ -6522,6 +6522,140 @@ func (t *RepoIssueState) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
+func (t *RepoPull_Target) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+
+	if _, err := cw.Write([]byte{162}); err != nil {
+		return err
+	}
+
+	// t.Repo (string) (string)
+	if len("repo") > 1000000 {
+		return xerrors.Errorf("Value in field \"repo\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("repo"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("repo")); err != nil {
+		return err
+	}
+
+	if len(t.Repo) > 1000000 {
+		return xerrors.Errorf("Value in field t.Repo was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Repo))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Repo)); err != nil {
+		return err
+	}
+
+	// t.Branch (string) (string)
+	if len("branch") > 1000000 {
+		return xerrors.Errorf("Value in field \"branch\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("branch"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("branch")); err != nil {
+		return err
+	}
+
+	if len(t.Branch) > 1000000 {
+		return xerrors.Errorf("Value in field t.Branch was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Branch))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Branch)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *RepoPull_Target) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = RepoPull_Target{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("RepoPull_Target: map struct too large (%d)", extra)
+	}
+
+	n := extra
+
+	nameBuf := make([]byte, 6)
+	for i := uint64(0); i < n; i++ {
+		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		switch string(nameBuf[:nameLen]) {
+		// t.Repo (string) (string)
+		case "repo":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Repo = string(sval)
+			}
+			// t.Branch (string) (string)
+		case "branch":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Branch = string(sval)
+			}
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
 func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
@@ -6529,7 +6663,7 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 8
+	fieldCount := 7
 
 	if t.Body == nil {
 		fieldCount--
@@ -6659,6 +6793,22 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 		}
 	}
 
+	// t.Target (tangled.RepoPull_Target) (struct)
+	if len("target") > 1000000 {
+		return xerrors.Errorf("Value in field \"target\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("target"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("target")); err != nil {
+		return err
+	}
+
+	if err := t.Target.MarshalCBOR(cw); err != nil {
+		return err
+	}
+
 	// t.CreatedAt (string) (string)
 	if len("createdAt") > 1000000 {
 		return xerrors.Errorf("Value in field \"createdAt\" was too long")
@@ -6679,52 +6829,6 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 	if _, err := cw.WriteString(string(t.CreatedAt)); err != nil {
-		return err
-	}
-
-	// t.TargetRepo (string) (string)
-	if len("targetRepo") > 1000000 {
-		return xerrors.Errorf("Value in field \"targetRepo\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("targetRepo"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("targetRepo")); err != nil {
-		return err
-	}
-
-	if len(t.TargetRepo) > 1000000 {
-		return xerrors.Errorf("Value in field t.TargetRepo was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.TargetRepo))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.TargetRepo)); err != nil {
-		return err
-	}
-
-	// t.TargetBranch (string) (string)
-	if len("targetBranch") > 1000000 {
-		return xerrors.Errorf("Value in field \"targetBranch\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("targetBranch"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("targetBranch")); err != nil {
-		return err
-	}
-
-	if len(t.TargetBranch) > 1000000 {
-		return xerrors.Errorf("Value in field t.TargetBranch was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.TargetBranch))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.TargetBranch)); err != nil {
 		return err
 	}
 	return nil
@@ -6755,7 +6859,7 @@ func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
 
 	n := extra
 
-	nameBuf := make([]byte, 12)
+	nameBuf := make([]byte, 9)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -6845,6 +6949,26 @@ func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 			}
+			// t.Target (tangled.RepoPull_Target) (struct)
+		case "target":
+
+			{
+
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+					t.Target = new(RepoPull_Target)
+					if err := t.Target.UnmarshalCBOR(cr); err != nil {
+						return xerrors.Errorf("unmarshaling t.Target pointer: %w", err)
+					}
+				}
+
+			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":
 
@@ -6855,28 +6979,6 @@ func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.CreatedAt = string(sval)
-			}
-			// t.TargetRepo (string) (string)
-		case "targetRepo":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.TargetRepo = string(sval)
-			}
-			// t.TargetBranch (string) (string)
-		case "targetBranch":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.TargetBranch = string(sval)
 			}
 
 		default:

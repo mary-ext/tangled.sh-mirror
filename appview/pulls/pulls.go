@@ -1035,8 +1035,10 @@ func (s *Pulls) createPullRequest(
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.RepoPull{
 				Title:        title,
-				TargetRepo:   string(f.RepoAt()),
-				TargetBranch: targetBranch,
+				Target: &tangled.RepoPull_Target{
+					Repo:   string(f.RepoAt()),
+					Branch: targetBranch,
+				},
 				Patch:        patch,
 				Source:       recordPullSource,
 			},
@@ -1605,8 +1607,10 @@ func (s *Pulls) resubmitPullHelper(
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.RepoPull{
 				Title:        pull.Title,
-				TargetRepo:   string(f.RepoAt()),
-				TargetBranch: pull.TargetBranch,
+				Target: &tangled.RepoPull_Target{
+					Repo:   string(f.RepoAt()),
+					Branch: pull.TargetBranch,
+				},
 				Patch:        patch, // new patch
 				Source:       recordPullSource,
 			},

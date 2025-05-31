@@ -22,8 +22,7 @@ type RepoPull struct {
 	CreatedAt     string           `json:"createdAt" cborgen:"createdAt"`
 	Patch         string           `json:"patch" cborgen:"patch"`
 	Source        *RepoPull_Source `json:"source,omitempty" cborgen:"source,omitempty"`
-	TargetBranch  string           `json:"targetBranch" cborgen:"targetBranch"`
-	TargetRepo    string           `json:"targetRepo" cborgen:"targetRepo"`
+	Target        *RepoPull_Target `json:"target" cborgen:"target"`
 	Title         string           `json:"title" cborgen:"title"`
 }
 
@@ -32,4 +31,10 @@ type RepoPull_Source struct {
 	Branch string  `json:"branch" cborgen:"branch"`
 	Repo   *string `json:"repo,omitempty" cborgen:"repo,omitempty"`
 	Sha    string  `json:"sha" cborgen:"sha"`
+}
+
+// RepoPull_Target is a "target" in the sh.tangled.repo.pull schema.
+type RepoPull_Target struct {
+	Branch string `json:"branch" cborgen:"branch"`
+	Repo   string `json:"repo" cborgen:"repo"`
 }
