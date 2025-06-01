@@ -50,6 +50,37 @@
   in {
     overlays.default = final: prev: let
       goModHash = "sha256-HkmfHtnuixvDsLPthcguXToOFQo4eliZKQA2ibytdsE=";
+      appviewBuildAttrs = final:
+        with final; {
+          pname = "appview";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          postUnpack = ''
+            pushd source
+            mkdir -p appview/pages/static/{fonts,icons}
+            cp -f ${htmx-src} appview/pages/static/htmx.min.js
+            cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
+            cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
+            cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
+            cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
+            ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
+            popd
+          '';
+          doCheck = false;
+          subPackages = ["cmd/appview"];
+          vendorHash = goModHash;
+          env.CGO_ENABLED = 1;
+          stdenv = pkgsStatic.stdenv;
+        };
+      knotBuildAttrs = final:
+        with final; {
+          pname = "knot";
+          version = "0.1.0";
+          src = gitignoreSource ./.;
+          subPackages = ["cmd/knot"];
+          vendorHash = goModHash;
+          env.CGO_ENABLED = 1;
+        };
     in {
       indigo-lexgen = final.buildGoModule {
         pname = "indigo-lexgen";
@@ -60,93 +91,30 @@
         doCheck = false;
       };
 
-      appview = with final;
-        final.pkgsStatic.buildGoModule {
-          pname = "appview";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          postUnpack = ''
-            pushd source
-            mkdir -p appview/pages/static/{fonts,icons}
-            cp -f ${htmx-src} appview/pages/static/htmx.min.js
-            cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
-            cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
-            cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
-            cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
-            ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
-            popd
-          '';
-          doCheck = false;
-          subPackages = ["cmd/appview"];
-          vendorHash = goModHash;
-          env.CGO_ENABLED = 1;
-          stdenv = pkgsStatic.stdenv;
-        };
+      # appview packages
+      appview = final.pkgsStatic.buildGoModule (appviewBuildAttrs final);
+      appview-cross = final.pkgsCross.gnu64.pkgsStatic.buildGoModule (appviewBuildAttrs final);
 
-      appview-cross = with final;
-        final.pkgsCross.gnu64.pkgsStatic.buildGoModule {
-          pname = "appview";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          postUnpack = ''
-            pushd source
-            mkdir -p appview/pages/static/{fonts,icons}
-            cp -f ${htmx-src} appview/pages/static/htmx.min.js
-            cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
-            cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
-            cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
-            cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
-            ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
-            popd
-          '';
-          doCheck = false;
-          subPackages = ["cmd/appview"];
-          vendorHash = goModHash;
-          env.CGO_ENABLED = 1;
-          stdenv = pkgsStatic.stdenv;
-        };
-
-      # cross-compile on darwin to x86_64-linux
-      knot-cross = with final;
-        final.pkgsCross.gnu64.pkgsStatic.buildGoModule {
-          pname = "knot";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/knot"];
-          vendorHash = goModHash;
-
-          env.CGO_ENABLED = 1;
-        };
-
+      # knot packages
       knot = with final;
-        final.pkgsStatic.buildGoModule {
-          pname = "knot";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          nativeBuildInputs = [final.makeWrapper];
-          subPackages = ["cmd/knot"];
-          vendorHash = goModHash;
-          installPhase = ''
-            runHook preInstall
+        final.pkgsStatic.buildGoModule ((knotBuildAttrs final)
+          // {
+            nativeBuildInputs = [final.makeWrapper];
+            installPhase = ''
+              runHook preInstall
 
-            mkdir -p $out/bin
-            cp $GOPATH/bin/knot $out/bin/knot
+              mkdir -p $out/bin
+              cp $GOPATH/bin/knot $out/bin/knot
 
-            wrapProgram $out/bin/knot \
-            --prefix PATH : ${pkgs.git}/bin
+              wrapProgram $out/bin/knot \
+              --prefix PATH : ${pkgs.git}/bin
 
-            runHook postInstall
-          '';
-          env.CGO_ENABLED = 1;
-        };
-      knot-unwrapped = final.pkgsStatic.buildGoModule {
-        pname = "knot";
-        version = "0.1.0";
-        src = gitignoreSource ./.;
-        subPackages = ["cmd/knot"];
-        vendorHash = goModHash;
-        env.CGO_ENABLED = 1;
-      };
+              runHook postInstall
+            '';
+          });
+      knot-cross = final.pkgsCross.gnu64.pkgsStatic.buildGoModule (knotBuildAttrs final); # cross-compile on darwin to x86_64-linux
+      knot-unwrapped = final.pkgsStatic.buildGoModule (knotBuildAttrs final);
+
       genjwks = final.buildGoModule {
         pname = "genjwks";
         version = "0.1.0";
