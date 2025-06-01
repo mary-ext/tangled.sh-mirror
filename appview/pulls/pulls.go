@@ -495,6 +495,28 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// we want to group all stacked PRs into just one list
+	stacks := make(map[string]db.Stack)
+	n := 0
+	for _, p := range pulls {
+		// this PR is stacked
+		if p.StackId != "" {
+			// we have already seen this PR stack
+			if _, seen := stacks[p.StackId]; seen {
+				stacks[p.StackId] = append(stacks[p.StackId], p)
+				// skip this PR
+			} else {
+				stacks[p.StackId] = nil
+				pulls[n] = p
+				n++
+			}
+		} else {
+			pulls[n] = p
+			n++
+		}
+	}
+	pulls = pulls[:n]
+
 	identsToResolve := make([]string, len(pulls))
 	for i, pull := range pulls {
 		identsToResolve[i] = pull.OwnerDid
@@ -515,6 +537,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		Pulls:        pulls,
 		DidHandleMap: didHandleMap,
 		FilteringBy:  state,
+		Stacks:       stacks,
 	})
 	return
 }
