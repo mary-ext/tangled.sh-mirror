@@ -178,7 +178,7 @@ func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
 }
 
 func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {
-	pulls := pulls.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config)
+	pulls := pulls.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.posthog)
 	return pulls.Router(mw)
 }
 
