@@ -3,14 +3,14 @@
 {{ define "extrameta" }}
     {{ $title := printf "commits &middot; %s" .RepoInfo.FullName }}
     {{ $url := printf "https://tangled.sh/%s/commits" .RepoInfo.FullName }}
-    
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
 {{ define "repoContent" }}
 <section id="commit-table" class="overflow-x-auto">
     <h2 class="font-bold text-sm mb-4 uppercase dark:text-white">
-       commits 
+       commits
     </h2>
 
     <!-- desktop view (hidden on small screens) -->
@@ -36,8 +36,7 @@
                         {{ end }}
                     </td>
                     <td class="py-3 align-top font-mono flex items-center">
-                        {{ $verified := false }}
-                        {{ $verified = index $.VerifiedCommits $commit.Hash.String }}
+                        {{ $verified := $.VerifiedCommits.IsVerified $commit.Hash.String }}
                         {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
                         {{ if $verified }}
                             {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}
@@ -49,7 +48,7 @@
                             {{ end }}
                         </a>
                         <div class="{{ if not $verified }} ml-6 {{ end }}inline-flex">
-                            <button class="p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
+                            <button class="p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                                 title="Copy SHA"
                                 onclick="navigator.clipboard.writeText('{{ $commit.Hash.String }}'); this.innerHTML=`{{ i "copy-check" "w-4 h-4" }}`; setTimeout(() => this.innerHTML=`{{ i "copy" "w-4 h-4" }}`, 1500)">
                                     {{ i "copy" "w-4 h-4" }}
@@ -63,11 +62,11 @@
                       <div>
                           <div class="flex items-center justify-start">
                               <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" class="dark:text-white no-underline hover:underline">{{ index $messageParts 0 }}</a>
-                              {{ if gt (len $messageParts) 1 }} 
+                              {{ if gt (len $messageParts) 1 }}
                               <button class="ml-2 py-1/2 px-1 bg-gray-200 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 rounded" hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')">{{ i "ellipsis" "w-3 h-3" }}</button>
                               {{ end }}
 
-                              
+
                               {{ if index $.TagMap $commit.Hash.String }}
                                 {{ range $tag := index $.TagMap $commit.Hash.String }}
                                   <span class="ml-2 text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 inline-flex items-center">
@@ -75,9 +74,9 @@
                                   </span>
                                 {{ end }}
                               {{ end }}
-                  
+
                           </div>
-                          
+
                           {{ if gt (len $messageParts) 1 }}
                           <p class="hidden mt-1 text-sm text-gray-600 dark:text-gray-400">{{ nl2br (index $messageParts 1) }}</p>
                           {{ end }}
@@ -99,12 +98,12 @@
                             <div class="flex items-center justify-between">
                                 <div class="flex-1">
                                     <div class="inline">
-                                        <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}" 
+                                        <a href="/{{ $.RepoInfo.FullName }}/commit/{{ $commit.Hash.String }}"
                                            class="inline no-underline hover:underline dark:text-white">
                                            {{ index $messageParts 0 }}
                                         </a>
                                         {{ if gt (len $messageParts) 1 }}
-                                            <button 
+                                            <button
                                                 class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600 ml-2"
                                                 hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')">
                                                 {{ i "ellipsis" "w-3 h-3" }}
@@ -126,8 +125,8 @@
                                         </p>
                                     {{ end }}
                                 </div>
-                                <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $commit.Hash.String }}" 
-                                   class="p-1 mr-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" 
+                                <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $commit.Hash.String }}"
+                                   class="p-1 mr-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                                    title="Browse repository at this commit">
                                     {{ i "folder-code" "w-4 h-4" }}
                                 </a>
@@ -137,8 +136,7 @@
                 </div>
 
                 <div class="text-xs mt-2 text-gray-500 dark:text-gray-400 flex items-center">
-                    {{ $verified := false }}
-                    {{ $verified = index $.VerifiedCommits $commit.Hash.String }}
+                    {{ $verified := $.VerifiedCommits.IsVerified $commit.Hash.String }}
                     {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
                     {{ if $verified }}
                         {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}

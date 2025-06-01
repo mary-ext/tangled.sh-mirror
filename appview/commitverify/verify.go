@@ -1,7 +1,6 @@
 package commitverify
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -74,7 +73,6 @@ func GetVerifiedCommits(e db.Execer, emailToDid map[string]string, ndCommits []t
 					if err != nil {
 						log.Println("error computing ssh fingerprint:", err)
 					}
-					fmt.Println(fp)
 
 					vc := verifiedCommit{fingerprint: fp, hash: c.This}
 					vcs[vc] = struct{}{}

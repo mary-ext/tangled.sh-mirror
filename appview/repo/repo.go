@@ -18,6 +18,7 @@ import (
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -144,7 +145,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to get email to did map", err)
 	}
 
-	vc, err := verifiedObjectCommits(rp, emailToDidMap, commitsTrunc)
+	vc, err := commitverify.GetVerifiedObjectCommits(rp.db, emailToDidMap, commitsTrunc)
 	if err != nil {
 		log.Println(err)
 	}
@@ -310,7 +311,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to fetch email to did mapping", err)
 	}
 
-	vc, err := verifiedObjectCommits(rp, emailToDidMap, repolog.Commits)
+	vc, err := commitverify.GetVerifiedObjectCommits(rp.db, emailToDidMap, repolog.Commits)
 	if err != nil {
 		log.Println(err)
 	}
@@ -466,7 +467,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to get email to did mapping:", err)
 	}
 
-	vc, err := verifiedCommits(rp, emailToDidMap, []types.NiceDiff{*result.Diff})
+	vc, err := commitverify.GetVerifiedCommits(rp.db, emailToDidMap, []types.NiceDiff{*result.Diff})
 	if err != nil {
 		log.Println(err)
 	}
@@ -477,7 +478,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:           f.RepoInfo(user),
 		RepoCommitResponse: result,
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
-		Verified:           vc[result.Diff.Commit.This],
+		VerifiedCommit:     vc,
 	})
 	return
 }
