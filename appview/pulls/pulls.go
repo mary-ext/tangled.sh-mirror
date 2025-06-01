@@ -51,6 +51,7 @@ func New(
 	resolver *idresolver.Resolver,
 	db *db.DB,
 	config *config.Config,
+	posthog posthog.Client,
 ) *Pulls {
 	return &Pulls{
 		oauth:        oauth,
@@ -59,6 +60,7 @@ func New(
 		idResolver:   resolver,
 		db:           db,
 		config:       config,
+		posthog:      posthog,
 	}
 }
 
