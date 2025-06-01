@@ -46,13 +46,26 @@
           {{ end }}
       </p>
 
-      {{ if .Verified }}
-      <span class="text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">
-          <div class="flex items-center gap-2">
-          {{ i "shield-check" "w-4 h-4" }}
-          verified
+      {{ if .VerifiedCommit.IsVerified $commit.This }}
+      <div class="group relative inline-block text-sm">
+          <div class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded cursor-pointer">
+              <div class="flex items-center gap-2">
+                  {{ i "shield-check" "w-4 h-4" }}
+                  verified
+              </div>
           </div>
-      </span>
+          <div class="absolute z-[9999] hidden group-hover:block bg-white dark:bg-gray-900 text-sm text-black dark:text-white rounded-md shadow-md p-4 w-80 top-full mt-2">
+              <div class="mb-1">This commit was signed with the committer's <span class="text-green-600 font-semibold">known signature</span>.</div>
+              <div class="flex items-center gap-2 my-2">
+                  {{ i "user" "w-4 h-4" }}
+                  <a href="/{{ $didOrHandle }}">{{ $didOrHandle }}</a>
+              </div>
+              <div class="my-1 pt-2 text-xs border-t">
+                  <div class="text-gray-600 dark:text-gray-300">SSH Key Fingerprint:</div>
+                  <div class="break-all">{{ .VerifiedCommit.Fingerprint $commit.This }}</div>
+              </div>
+          </div>
+      </div>
       {{ end }}
   </div>
 
@@ -61,5 +74,7 @@
 {{end}}
 
 {{ define "repoAfter" }}
+<div class="-z-[9999]">
 {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
+</div>
 {{end}}

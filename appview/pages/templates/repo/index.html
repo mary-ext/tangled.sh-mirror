@@ -223,8 +223,7 @@
       </div>
 
       <div class="text-xs mt-2 text-gray-500 dark:text-gray-400 flex items-center">
-          {{ $verified := false }}
-          {{ $verified = index $.VerifiedCommits .Hash.String }}
+          {{ $verified := $.VerifiedCommits.IsVerified .Hash.String }}
           {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
           {{ if $verified }}
               {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}

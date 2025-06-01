@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth"
@@ -414,7 +415,7 @@ type RepoIndexParams struct {
 	HTMLReadme         template.HTML
 	Raw                bool
 	EmailToDidOrHandle map[string]string
-	VerifiedCommits    map[string]bool
+	VerifiedCommits    commitverify.VerifiedCommits
 	Languages          *types.RepoLanguageResponse
 	types.RepoIndexResponse
 }
@@ -453,7 +454,7 @@ type RepoLogParams struct {
 	types.RepoLogResponse
 	Active             string
 	EmailToDidOrHandle map[string]string
-	VerifiedCommits    map[string]bool
+	VerifiedCommits    commitverify.VerifiedCommits
 }
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
@@ -466,7 +467,9 @@ type RepoCommitParams struct {
 	RepoInfo           repoinfo.RepoInfo
 	Active             string
 	EmailToDidOrHandle map[string]string
-	Verified           bool
+
+	// singular because it's always going to be just one
+	VerifiedCommit commitverify.VerifiedCommits
 
 	types.RepoCommitResponse
 }
