@@ -1,0 +1,20 @@
+{{ define "repo/pulls/fragments/summarizedPullState" }}
+  {{ $fgColor := "text-gray-600 dark:text-gray-300" }}
+  {{ $icon := "ban" }}
+
+  {{ if .IsOpen }}
+    {{ $fgColor = "text-green-600 dark:text-green-500" }}
+    {{ $icon = "git-pull-request" }}
+  {{ else if .IsMerged }}
+    {{ $fgColor = "text-purple-600 dark:text-purple-500" }}
+    {{ $icon = "git-merge" }}
+  {{ else if .IsDeleted }}
+    {{ $fgColor = "text-red-600 dark:text-red-500" }}
+    {{ $icon = "git-pull-request-closed" }}
+  {{ end }}
+
+  {{ $style := printf "w-4 h-4 %s" $fgColor }}
+
+  {{ i $icon $style }}
+{{ end }}
+
