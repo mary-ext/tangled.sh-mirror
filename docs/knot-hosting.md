@@ -34,56 +34,53 @@ First, clone this repository:
 git clone https://tangled.sh/@tangled.sh/core
 ```
 
-Then, build our binaries (you need to have Go installed):
-* `knotserver`: the main server program
-* `keyfetch`: utility to fetch ssh pubkeys
-* `repoguard`: enforces repository access control
+Then, build the `knot` CLI. This is the knot administration and operation tool.
+For the purpose of this guide, we're only concerned with these subcommands:
+
+* `knot server`: the main knot server process, typically run as a
+supervised service
+* `knot guard`: handles role-based access control for git over SSH
+(you'll never have to run this yourself)
+* `knot keys`: fetches SSH keys associated with your knot; we'll use
+this to generate the SSH `AuthorizedKeysCommand`
 
 ```
 cd core
 export CGO_ENABLED=1
-go build -o knot ./cmd/knotserver
-go build -o keyfetch ./cmd/keyfetch
-go build -o repoguard ./cmd/repoguard
+go build -o knot ./cmd/knot
 ```
 
-Next, move the `keyfetch` binary to a location owned by `root` --
-`/usr/local/libexec/tangled-keyfetch` is a good choice:
+Next, move the `knot` binary to a location owned by `root` --
+`/usr/local/bin/knot` is a good choice:
 
 ```
-sudo mv keyfetch /usr/local/libexec/tangled-keyfetch
-sudo chown root:root /usr/local/libexec/tangled-keyfetch
-sudo chmod 755 /usr/local/libexec/tangled-keyfetch
+sudo mv knot /usr/local/bin/knot
 ```
 
-This is necessary because SSH `AuthorizedKeysCommand` requires [really specific
-permissions](https://stackoverflow.com/a/27638306). Let's set that up:
+This is necessary because SSH `AuthorizedKeysCommand` requires [really
+specific permissions](https://stackoverflow.com/a/27638306). The
+`AuthorizedKeysCommand` specifies a command that is run by `sshd` to
+retrieve a user's public SSH keys dynamically for authentication. Let's
+set that up.
 
 ```
 sudo tee /etc/ssh/sshd_config.d/authorized_keys_command.conf <<EOF
 Match User git
-  AuthorizedKeysCommand /usr/local/libexec/tangled-keyfetch
+  AuthorizedKeysCommand /usr/local/bin/knot keys -o authorized-keys
   AuthorizedKeysCommandUser nobody
 EOF
 ```
 
-Next, create the `git` user:
+Next, create the `git` user. We'll use the `git` user's home directory
+to store repositories:
 
 ```
 sudo adduser git
 ```
 
-Copy the `repoguard` binary to the `git` user's home directory:
-
-```
-sudo cp repoguard /home/git
-sudo chown git:git /home/git/repoguard
-```
-
-Now, let's set up the server. Copy the `knot` binary to
-`/usr/local/bin/knotserver`. Then, create `/home/git/.knot.env` with the
-following, updating the values as necessary. The `KNOT_SERVER_SECRET` can be
-obtaind from the [/knots](/knots) page on Tangled.
+Create `/home/git/.knot.env` with the following, updating the values as
+necessary. The `KNOT_SERVER_SECRET` can be obtaind from the
+[/knots](/knots) page on Tangled.
 
 ```
 KNOT_REPO_SCAN_PATH=/home/git
@@ -96,7 +93,7 @@ KNOT_SERVER_LISTEN_ADDR=127.0.0.1:5555
 
 If you run a Linux distribution that uses systemd, you can use the provided
 service file to run the server. Copy
-[`knotserver.service`](https://tangled.sh/did:plc:wshs7t2adsemcrrd4snkeqli/core/blob/master/systemd/knotserver.service)
+[`knotserver.service`](/systemd/knotserver.service)
 to `/etc/systemd/system/`. Then, run:
 
 ```
@@ -161,30 +158,15 @@ to the new directory:
 KNOT_REPO_SCAN_PATH=/home/git/repositories
 ```
 
-In your SSH config (e.g. `/etc/ssh/sshd_config.d/authorized_keys_command.conf`),
-update the `AuthorizedKeysCommand` line to use the new folder. For example:
+Similarly, update your `sshd` `AuthorizedKeysCommand` to use the updated
+repository path:
 
 ```
+sudo tee /etc/ssh/sshd_config.d/authorized_keys_command.conf <<EOF
 Match User git
-  AuthorizedKeysCommand /usr/local/libexec/tangled-keyfetch -git-dir /home/git/repositories
+  AuthorizedKeysCommand /usr/local/bin/knot keys -o authorized-keys -git-dir /home/git/repositories
   AuthorizedKeysCommandUser nobody
-```
-
-Make sure to restart your SSH server!
-
-#### git
-
-The keyfetch executable takes multiple arguments to change certain paths. You
-can view a full list by running `/usr/local/libexec/tangled-keyfetch -h`.
-
-As an example, if you wanted to change the path to the repoguard executable,
-you would edit your SSH config (e.g. `/etc/ssh/sshd_config.d/authorized_keys_command.conf`)
-and update the `AuthorizedKeysCommand` line:
-
-```
-Match User git
-  AuthorizedKeysCommand /usr/local/libexec/tangled-keyfetch -repoguard-path /path/to/repoguard
-  AuthorizedKeysCommandUser nobody
+EOF
 ```
 
 Make sure to restart your SSH server!
