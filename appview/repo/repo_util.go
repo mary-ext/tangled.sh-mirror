@@ -4,13 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"log"
 	"math/big"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/crypto"
-	"tangled.sh/tangled.sh/core/types"
 )
 
 func uniqueEmails(commits []*object.Commit) []string {
@@ -89,54 +85,6 @@ func emailToDidOrHandle(r *Repo, emailToDidMap map[string]string) map[string]str
 	}
 
 	return emailToDidOrHandle
-}
-
-func verifiedObjectCommits(r *Repo, emailToDid map[string]string, commits []*object.Commit) (map[string]bool, error) {
-	ndCommits := []types.NiceDiff{}
-	for _, commit := range commits {
-		ndCommits = append(ndCommits, types.ObjectCommitToNiceDiff(commit))
-	}
-	return verifiedCommits(r, emailToDid, ndCommits)
-}
-
-func verifiedCommits(r *Repo, emailToDid map[string]string, ndCommits []types.NiceDiff) (map[string]bool, error) {
-	hashToVerified := make(map[string]bool)
-
-	didPubkeyCache := make(map[string][]db.PublicKey)
-
-	for _, commit := range ndCommits {
-		c := commit.Commit
-
-		committerEmail := c.Committer.Email
-		if did, exists := emailToDid[committerEmail]; exists {
-			// check if we've already fetched public keys for this did
-			pubKeys, ok := didPubkeyCache[did]
-			if !ok {
-				// fetch and cache public keys
-				keys, err := db.GetPublicKeysForDid(r.db, did)
-				if err != nil {
-					log.Printf("failed to fetch pubkey for %s: %v", committerEmail, err)
-					continue
-				}
-				pubKeys = keys
-				didPubkeyCache[did] = pubKeys
-			}
-
-			verified := false
-
-			// try to verify with any associated pubkeys
-			for _, pk := range pubKeys {
-				if _, ok := crypto.VerifyCommitSignature(pk.Key, commit); ok {
-					verified = true
-					break
-				}
-			}
-
-			hashToVerified[c.This] = verified
-		}
-	}
-
-	return hashToVerified, nil
 }
 
 func randomString(n int) string {
