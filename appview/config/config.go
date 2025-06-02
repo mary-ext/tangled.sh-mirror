@@ -25,7 +25,8 @@ type JetstreamConfig struct {
 }
 
 type ResendConfig struct {
-	ApiKey string `env:"API_KEY"`
+	ApiKey   string `env:"API_KEY"`
+	SentFrom string `env:"SENT_FROM, default=noreply@notifs.tangled.sh"`
 }
 
 type CamoConfig struct {

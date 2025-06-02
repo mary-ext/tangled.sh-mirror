@@ -81,7 +81,7 @@ func (s *Settings) buildVerificationEmail(emailAddr, did, code string) email.Ema
 
 	return email.Email{
 		APIKey:  s.Config.Resend.ApiKey,
-		From:    "noreply@notifs.tangled.sh",
+		From:    s.Config.Resend.SentFrom,
 		To:      emailAddr,
 		Subject: "Verify your Tangled email",
 		Text: `Click the link below (or copy and paste it into your browser) to verify your email address.
