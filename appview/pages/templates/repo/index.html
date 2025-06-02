@@ -7,9 +7,23 @@
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
 {{ end }}
 
+{{ define "repoLanguages" }}
+    <div class="flex gap-[3px] -m-6 mb-6 overflow-hidden rounded-t">
+        {{ range $value := .Languages }}
+            <div
+                title="{{ $value.Name }} {{ printf "%.1f" $value.Percentage }}%"
+                class="h-2"
+                style="background-color: {{ $value.Color }}; width: {{ $value.Percentage }}%"
+            ></div>
+        {{ end }}
+    </div>
+{{ end }}
 
 {{ define "repoContent" }}
     <main>
+        {{ if .Languages }}
+            {{ block "repoLanguages" . }}{{ end }}
+        {{ end }}
         <div class="flex items-center justify-between pb-5">
           {{ block "branchSelector" . }}{{ end }}
           <div class="flex md:hidden items-center gap-4">
