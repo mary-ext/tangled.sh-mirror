@@ -784,10 +784,13 @@ func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
 			content, _ := gr.FileContentN(absPath, 1024)
 			if !safe {
 				lang = enry.GetLanguage(absPath, content)
+				if len(lang) == 0 {
+					lang = "Other"
+				}
 			} else {
 				lang, _ = enry.GetLanguageByContent(absPath, content)
 				if len(lang) == 0 {
-					return
+					lang = "Other"
 				}
 			}
 		}

@@ -109,7 +109,13 @@ type AncestorCheckResponse struct {
 	Status ForkStatus `json:"status"`
 }
 
+type RepoLanguageDetails struct {
+	Name       string
+	Percentage float32
+	Color      string
+}
+
 type RepoLanguageResponse struct {
-	// Language: Percentage
+	// Language: File count
 	Languages map[string]int `json:"languages"`
 }

@@ -35,6 +35,7 @@ import (
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-enry/go-enry/v2"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/posthog/posthog-go"
 

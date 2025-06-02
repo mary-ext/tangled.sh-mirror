@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"slices"
+	"sort"
 	"strings"
 
 	"tangled.sh/tangled.sh/core/appview/commitverify"
@@ -18,6 +19,7 @@ import (
 	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-enry/go-enry/v2"
 )
 
 func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +123,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	repoLanguages, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoName, ref)
+	languageInfo, err := getLanguageInfo(repoInfo, rp, f, user, signedClient, ref)
 	if err != nil {
 		log.Printf("failed to compute language percentages: %s", err)
 		// non-fatal
@@ -148,10 +150,70 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		BranchesTrunc:      branchesTrunc,
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
 		VerifiedCommits:    vc,
-		Languages:          repoLanguages,
+		Languages:          languageInfo,
 		Pipelines:          pipelines,
 	})
 	return
+}
+
+func getLanguageInfo(
+	repoInfo repoinfo.RepoInfo,
+	rp *Repo,
+	f *reporesolver.ResolvedRepo,
+	user *oauth.User,
+	signedClient *knotclient.SignedClient,
+	ref string,
+) ([]types.RepoLanguageDetails, error) {
+	repoLanguages, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoName, ref)
+	if err != nil {
+		return []types.RepoLanguageDetails{}, err
+	}
+	if repoLanguages == nil {
+		repoLanguages = &types.RepoLanguageResponse{Languages: make(map[string]int)}
+	}
+
+	totalLanguageFileCount := 0
+	for _, fileCount := range repoLanguages.Languages {
+		totalLanguageFileCount += fileCount
+	}
+
+	var languageStats []types.RepoLanguageDetails
+	var otherLanguageStat *types.RepoLanguageDetails
+	var otherPercentage float32 = 0
+
+	for fileType, fileCount := range repoLanguages.Languages {
+		percentage := (float32(fileCount) / float32(totalLanguageFileCount)) * 100
+
+		if percentage <= 0.1 {
+			otherPercentage += percentage
+			continue
+		}
+
+		// Exclude languages
+		if fileType == "Text" {
+			otherPercentage += percentage
+			continue
+		}
+
+		color := enry.GetColor(fileType)
+
+		if fileType == "Other" {
+			otherLanguageStat = &types.RepoLanguageDetails{Name: fileType, Percentage: percentage, Color: color}
+		} else {
+			languageStats = append(languageStats, types.RepoLanguageDetails{Name: fileType, Percentage: percentage, Color: color})
+		}
+	}
+
+	sort.Slice(languageStats, func(i, j int) bool {
+		return languageStats[i].Percentage > languageStats[j].Percentage
+	})
+
+	if otherLanguageStat != nil {
+		otherLanguageStat.Percentage += otherPercentage
+		languageStats = append(languageStats, *otherLanguageStat)
+	}
+
+	return languageStats, nil
 }
 
 func getForkInfo(
