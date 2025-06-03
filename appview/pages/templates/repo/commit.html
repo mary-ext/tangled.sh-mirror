@@ -58,7 +58,8 @@
               <div class="mb-1">This commit was signed with the committer's <span class="text-green-600 font-semibold">known signature</span>.</div>
               <div class="flex items-center gap-2 my-2">
                   {{ i "user" "w-4 h-4" }}
-                  <a href="/{{ $didOrHandle }}">{{ $didOrHandle }}</a>
+                  {{ $committerDidOrHandle := index $.EmailToDidOrHandle $commit.Committer.Email }}
+                  <a href="/{{ $committerDidOrHandle }}">{{ $committerDidOrHandle }}</a>
               </div>
               <div class="my-1 pt-2 text-xs border-t">
                   <div class="text-gray-600 dark:text-gray-300">SSH Key Fingerprint:</div>

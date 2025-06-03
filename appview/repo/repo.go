@@ -462,7 +462,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	emailToDidMap, err := db.GetEmailToDid(rp.db, []string{result.Diff.Commit.Author.Email}, true)
+	emailToDidMap, err := db.GetEmailToDid(rp.db, []string{result.Diff.Commit.Committer.Email, result.Diff.Commit.Author.Email}, true)
 	if err != nil {
 		log.Println("failed to get email to did mapping:", err)
 	}
