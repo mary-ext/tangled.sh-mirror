@@ -49,7 +49,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-HkmfHtnuixvDsLPthcguXToOFQo4eliZKQA2ibytdsE=";
+      goModHash = "sha256-ZckpIPqFk7/XBiEJUbmrAzdjAxV62hv896xqAXF2aZs=";
       appviewBuildAttrs = final:
         with final; {
           pname = "appview";

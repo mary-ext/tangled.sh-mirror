@@ -21,6 +21,7 @@ require (
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/sessions v1.4.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/hiddeco/sshsig v0.2.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/lestrrat-go/jwx/v2 v2.1.6
@@ -66,7 +67,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
@@ -139,7 +139,7 @@ replace github.com/go-git/go-git/v5 => github.com/oppiliappan/go-git/v5 v5.17.0
 
 replace github.com/bluekeyes/go-gitdiff => tangled.sh/oppi.li/go-gitdiff v0.8.2
 
-replace github.com/alecthomas/chroma/v2 => github.com/oppiliappan/chroma/v2 v2.17.0
+replace github.com/alecthomas/chroma/v2 => github.com/oppiliappan/chroma/v2 v2.19.0
 
 // from bluesky-social/indigo
 replace github.com/gocql/gocql => github.com/scylladb/gocql v1.14.4
