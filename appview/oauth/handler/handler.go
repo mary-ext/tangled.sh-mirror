@@ -102,7 +102,25 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		o.pages.Login(w, pages.LoginParams{})
 	case http.MethodPost:
-		handle := strings.TrimPrefix(r.FormValue("handle"), "@")
+		handle := r.FormValue("handle")
+
+		// when users copy their handle from bsky.app, it tends to have these characters around it:
+		//
+		// @nelind.dk:
+		//   \u202a ensures that the handle is always rendered left to right and
+		//   \u202c reverts that so the rest of the page renders however it should
+		handle = strings.TrimPrefix(handle, "\u202a")
+		handle = strings.TrimSuffix(handle, "\u202c")
+
+		// `@` is harmless
+		handle = strings.TrimPrefix(handle, "@")
+
+		// basic handle validation
+		if !strings.Contains(handle, ".") {
+			log.Println("invalid handle format", "raw", handle)
+			o.pages.Notice(w, "login-msg", fmt.Sprintf("\"%s\" is an invalid handle. Did you mean %s.bsky.social?", handle, handle))
+			return
+		}
 
 		resolved, err := o.idResolver.ResolveIdent(r.Context(), handle)
 		if err != nil {
