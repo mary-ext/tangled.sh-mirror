@@ -102,7 +102,7 @@ func (s *SessionStore) GetSession(ctx context.Context, did string) (*OAuthSessio
 }
 
 func (s *SessionStore) GetRequestByState(ctx context.Context, state string) (*OAuthRequest, error) {
-	didKey, err := s.getRequestKey(ctx, state)
+	didKey, err := s.getRequestKeyFromState(ctx, state)
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +127,12 @@ func (s *SessionStore) DeleteSession(ctx context.Context, did string) error {
 }
 
 func (s *SessionStore) DeleteRequestByState(ctx context.Context, state string) error {
-	didKey, err := s.getRequestKey(ctx, state)
+	didKey, err := s.getRequestKeyFromState(ctx, state)
 	if err != nil {
 		return err
 	}
 
-	err = s.cache.Del(ctx, fmt.Sprintf(stateKey, "state")).Err()
+	err = s.cache.Del(ctx, fmt.Sprintf(stateKey, state)).Err()
 	if err != nil {
 		return err
 	}

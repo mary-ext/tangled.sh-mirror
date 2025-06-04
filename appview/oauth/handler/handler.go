@@ -13,6 +13,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
+	sessioncache "tangled.sh/tangled.sh/core/appview/cache/session"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -32,6 +33,7 @@ type OAuthHandler struct {
 	config     *config.Config
 	pages      *pages.Pages
 	idResolver *idresolver.Resolver
+	sess       *sessioncache.SessionStore
 	db         *db.DB
 	store      *sessions.CookieStore
 	oauth      *oauth.OAuth
@@ -44,6 +46,7 @@ func New(
 	pages *pages.Pages,
 	idResolver *idresolver.Resolver,
 	db *db.DB,
+	sess *sessioncache.SessionStore,
 	store *sessions.CookieStore,
 	oauth *oauth.OAuth,
 	enforcer *rbac.Enforcer,
@@ -54,6 +57,7 @@ func New(
 		pages:      pages,
 		idResolver: idResolver,
 		db:         db,
+		sess:       sess,
 		store:      store,
 		oauth:      oauth,
 		enforcer:   enforcer,
@@ -176,7 +180,7 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.SaveOAuthRequest(o.db, db.OAuthRequest{
+		err = o.sess.SaveRequest(r.Context(), sessioncache.OAuthRequest{
 			Did:                 resolved.DID.String(),
 			PdsUrl:              resolved.PDSEndpoint(),
 			Handle:              handle,
@@ -204,7 +208,7 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 	state := r.FormValue("state")
 
-	oauthRequest, err := db.GetOAuthRequestByState(o.db, state)
+	oauthRequest, err := o.sess.GetRequestByState(r.Context(), state)
 	if err != nil {
 		log.Println("failed to get oauth request:", err)
 		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
@@ -212,7 +216,7 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		err := db.DeleteOAuthRequestByState(o.db, state)
+		err := o.sess.DeleteRequestByState(r.Context(), state)
 		if err != nil {
 			log.Println("failed to delete oauth request for state:", state, err)
 		}
@@ -281,7 +285,7 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = o.oauth.SaveSession(w, r, oauthRequest, tokenResp)
+	err = o.oauth.SaveSession(w, r, *oauthRequest, tokenResp)
 	if err != nil {
 		log.Println("failed to save session:", err)
 		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
@@ -313,7 +317,7 @@ func (o *OAuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("session cleared successfully")
-	http.Redirect(w, r, "/", http.StatusFound)
+	o.pages.HxRedirect(w, "/login")
 }
 
 func pubKeyFromJwk(jwks string) (jwk.Key, error) {
