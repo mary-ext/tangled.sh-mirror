@@ -15,6 +15,7 @@ func main() {
 		"api/tangled/cbor_gen.go",
 		"tangled",
 		tangled.FeedStar{},
+		tangled.GitRefUpdate{},
 		tangled.GraphFollow{},
 		tangled.KnotMember{},
 		tangled.PublicKey{},
