@@ -55,28 +55,6 @@
   in {
     overlays.default = final: prev: let
       goModHash = "sha256-ZckpIPqFk7/XBiEJUbmrAzdjAxV62hv896xqAXF2aZs=";
-      appviewBuildAttrs = final:
-        with final; {
-          pname = "appview";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          postUnpack = ''
-            pushd source
-            mkdir -p appview/pages/static/{fonts,icons}
-            cp -f ${htmx-src} appview/pages/static/htmx.min.js
-            cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
-            cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
-            cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
-            cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
-            ${pkgs.tailwindcss}/bin/tailwindcss -i input.css -o appview/pages/static/tw.css
-            popd
-          '';
-          doCheck = false;
-          subPackages = ["cmd/appview"];
-          vendorHash = goModHash;
-          env.CGO_ENABLED = 1;
-          stdenv = pkgsStatic.stdenv;
-        };
       knotBuildAttrs = final:
         with final; {
           pname = "knot";
@@ -86,16 +64,17 @@
           vendorHash = goModHash;
           env.CGO_ENABLED = 1;
         };
+      appviewDeps = {
+        inherit htmx-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
+      };
     in {
       lexgen = final.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
+      appview = final.pkgsStatic.callPackage ./nix/pkgs/appview.nix appviewDeps;
+      appview-cross = final.pkgsCross.gnu64.pkgsStatic.callPackage ./nix/pkgs/appview.nix appviewDeps;
       sqlite-lib = final.pkgsStatic.callPackage ./nix/pkgs/sqlite-lib.nix {
         inherit (final.pkgsStatic) gcc;
         inherit sqlite-lib-src;
       };
-
-      # appview packages
-      appview = final.pkgsStatic.buildGoModule (appviewBuildAttrs final);
-      appview-cross = final.pkgsCross.gnu64.pkgsStatic.buildGoModule (appviewBuildAttrs final);
 
       # knot packages
       knot = with final;
@@ -119,6 +98,7 @@
 
       genjwks = final.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
     };
+
     packages = forAllSystems (system: {
       inherit
         (nixpkgsFor."${system}")
@@ -129,6 +109,7 @@
         knot-cross
         knot-unwrapped
         genjwks
+        sqlite-lib
         ;
     });
     defaultPackage = forAllSystems (system: nixpkgsFor.${system}.appview);
