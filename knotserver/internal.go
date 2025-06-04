@@ -2,12 +2,14 @@ package knotserver
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/knotserver/git"
@@ -67,6 +69,15 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 		l.Error("failed to calculate relative git dir", "scanPath", h.c.Repo.ScanPath, "gitAbsoluteDir", gitAbsoluteDir)
 		return
 	}
+
+	parts := strings.SplitN(gitRelativeDir, "/", 2)
+	if len(parts) != 2 {
+		l.Error("invalid git dir", "gitRelativeDir", gitRelativeDir)
+		return
+	}
+	repoDid := parts[0]
+	repoName := parts[1]
+
 	gitUserDid := r.Header.Get("X-Git-User-Did")
 
 	lines, err := git.ParsePostReceive(r.Body)
@@ -76,25 +87,35 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 	}
 
 	for _, line := range lines {
-		err := h.updateOpLog(line, gitUserDid, gitRelativeDir)
+		err := h.insertRefUpdate(line, gitUserDid, repoDid, repoName)
 		if err != nil {
 			l.Error("failed to insert op", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
+			// non-fatal
 		}
 	}
-
-	return
 }
 
-func (h *InternalHandle) updateOpLog(line git.PostReceiveLine, did, repo string) error {
-	op := db.Op{
-		Tid:    TID(),
-		Did:    did,
-		Repo:   repo,
-		OldSha: line.OldSha,
-		NewSha: line.NewSha,
-		Ref:    line.Ref,
+func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
+	refUpdate := tangled.GitRefUpdate{
+		OldSha:       line.OldSha,
+		NewSha:       line.NewSha,
+		Ref:          line.Ref,
+		CommitterDid: gitUserDid,
+		RepoDid:      repoDid,
+		RepoName:     repoName,
 	}
-	return h.db.InsertOp(op, h.n)
+	eventJson, err := json.Marshal(refUpdate)
+	if err != nil {
+		return err
+	}
+
+	event := db.Event{
+		Rkey:      TID(),
+		Nsid:      tangled.GitRefUpdateNSID,
+		EventJson: string(eventJson),
+	}
+
+	return h.db.InsertEvent(event, h.n)
 }
 
 func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l *slog.Logger, n *notifier.Notifier) http.Handler {
