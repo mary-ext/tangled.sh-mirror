@@ -97,8 +97,6 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 	r.Get("/", s.Timeline)
 
-	r.With(middleware.AuthMiddleware(s.oauth)).Post("/logout", s.Logout)
-
 	r.Route("/knots", func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(s.oauth))
 		r.Get("/", s.Knots)
@@ -156,7 +154,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 func (s *State) OAuthRouter() http.Handler {
 	store := sessions.NewCookieStore([]byte(s.config.Core.CookieSecret))
-	oauth := oauthhandler.New(s.config, s.pages, s.idResolver, s.db, store, s.oauth, s.enforcer, s.posthog)
+	oauth := oauthhandler.New(s.config, s.pages, s.idResolver, s.db, s.sess, store, s.oauth, s.enforcer, s.posthog)
 	return oauth.Router()
 }
 

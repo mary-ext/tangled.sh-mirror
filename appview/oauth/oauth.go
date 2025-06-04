@@ -10,40 +10,33 @@ import (
 	"github.com/gorilla/sessions"
 	oauth "tangled.sh/icyphox.sh/atproto-oauth"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
+	sessioncache "tangled.sh/tangled.sh/core/appview/cache/session"
 	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
 	xrpc "tangled.sh/tangled.sh/core/appview/xrpcclient"
 )
 
-type OAuthRequest struct {
-	ID                  uint
-	AuthserverIss       string
-	State               string
-	Did                 string
-	PdsUrl              string
-	PkceVerifier        string
-	DpopAuthserverNonce string
-	DpopPrivateJwk      string
-}
-
 type OAuth struct {
-	Store  *sessions.CookieStore
-	Db     *db.DB
-	Config *config.Config
+	store  *sessions.CookieStore
+	config *config.Config
+	sess   *sessioncache.SessionStore
 }
 
-func NewOAuth(db *db.DB, config *config.Config) *OAuth {
+func NewOAuth(config *config.Config, sess *sessioncache.SessionStore) *OAuth {
 	return &OAuth{
-		Store:  sessions.NewCookieStore([]byte(config.Core.CookieSecret)),
-		Db:     db,
-		Config: config,
+		store:  sessions.NewCookieStore([]byte(config.Core.CookieSecret)),
+		config: config,
+		sess:   sess,
 	}
 }
 
-func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq db.OAuthRequest, oresp *oauth.TokenResponse) error {
+func (o *OAuth) Stores() *sessions.CookieStore {
+	return o.store
+}
+
+func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq sessioncache.OAuthRequest, oresp *oauth.TokenResponse) error {
 	// first we save the did in the user session
-	userSession, err := o.Store.Get(r, SessionName)
+	userSession, err := o.store.Get(r, SessionName)
 	if err != nil {
 		return err
 	}
@@ -58,7 +51,7 @@ func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq db.OAut
 	}
 
 	// then save the whole thing in the db
-	session := db.OAuthSession{
+	session := sessioncache.OAuthSession{
 		Did:                 oreq.Did,
 		Handle:              oreq.Handle,
 		PdsUrl:              oreq.PdsUrl,
@@ -70,18 +63,18 @@ func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq db.OAut
 		Expiry:              time.Now().Add(time.Duration(oresp.ExpiresIn) * time.Second).Format(time.RFC3339),
 	}
 
-	return db.SaveOAuthSession(o.Db, session)
+	return o.sess.SaveSession(r.Context(), session)
 }
 
 func (o *OAuth) ClearSession(r *http.Request, w http.ResponseWriter) error {
-	userSession, err := o.Store.Get(r, SessionName)
+	userSession, err := o.store.Get(r, SessionName)
 	if err != nil || userSession.IsNew {
 		return fmt.Errorf("error getting user session (or new session?): %w", err)
 	}
 
 	did := userSession.Values[SessionDid].(string)
 
-	err = db.DeleteOAuthSessionByDid(o.Db, did)
+	err = o.sess.DeleteSession(r.Context(), did)
 	if err != nil {
 		return fmt.Errorf("error deleting oauth session: %w", err)
 	}
@@ -91,8 +84,8 @@ func (o *OAuth) ClearSession(r *http.Request, w http.ResponseWriter) error {
 	return userSession.Save(r, w)
 }
 
-func (o *OAuth) GetSession(r *http.Request) (*db.OAuthSession, bool, error) {
-	userSession, err := o.Store.Get(r, SessionName)
+func (o *OAuth) GetSession(r *http.Request) (*sessioncache.OAuthSession, bool, error) {
+	userSession, err := o.store.Get(r, SessionName)
 	if err != nil || userSession.IsNew {
 		return nil, false, fmt.Errorf("error getting user session (or new session?): %w", err)
 	}
@@ -100,7 +93,7 @@ func (o *OAuth) GetSession(r *http.Request) (*db.OAuthSession, bool, error) {
 	did := userSession.Values[SessionDid].(string)
 	auth := userSession.Values[SessionAuthenticated].(bool)
 
-	session, err := db.GetOAuthSessionByDid(o.Db, did)
+	session, err := o.sess.GetSession(r.Context(), did)
 	if err != nil {
 		return nil, false, fmt.Errorf("error getting oauth session: %w", err)
 	}
@@ -119,7 +112,7 @@ func (o *OAuth) GetSession(r *http.Request) (*db.OAuthSession, bool, error) {
 
 		oauthClient, err := client.NewClient(
 			self.ClientID,
-			o.Config.OAuth.Jwks,
+			o.config.OAuth.Jwks,
 			self.RedirectURIs[0],
 		)
 
@@ -133,7 +126,7 @@ func (o *OAuth) GetSession(r *http.Request) (*db.OAuthSession, bool, error) {
 		}
 
 		newExpiry := time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second).Format(time.RFC3339)
-		err = db.RefreshOAuthSession(o.Db, did, resp.AccessToken, resp.RefreshToken, newExpiry)
+		err = o.sess.RefreshSession(r.Context(), did, resp.AccessToken, resp.RefreshToken, newExpiry)
 		if err != nil {
 			return nil, false, fmt.Errorf("error refreshing oauth session: %w", err)
 		}
@@ -155,7 +148,7 @@ type User struct {
 }
 
 func (a *OAuth) GetUser(r *http.Request) *User {
-	clientSession, err := a.Store.Get(r, SessionName)
+	clientSession, err := a.store.Get(r, SessionName)
 
 	if err != nil || clientSession.IsNew {
 		return nil
@@ -169,7 +162,7 @@ func (a *OAuth) GetUser(r *http.Request) *User {
 }
 
 func (a *OAuth) GetDid(r *http.Request) string {
-	clientSession, err := a.Store.Get(r, SessionName)
+	clientSession, err := a.store.Get(r, SessionName)
 
 	if err != nil || clientSession.IsNew {
 		return ""
@@ -189,7 +182,7 @@ func (o *OAuth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
 
 	client := &oauth.XrpcClient{
 		OnDpopPdsNonceChanged: func(did, newNonce string) {
-			err := db.UpdateDpopPdsNonce(o.Db, did, newNonce)
+			err := o.sess.UpdateNonce(r.Context(), did, newNonce)
 			if err != nil {
 				log.Printf("error updating dpop pds nonce: %v", err)
 			}
@@ -234,11 +227,11 @@ func (o *OAuth) ClientMetadata() ClientMetadata {
 		return []string{fmt.Sprintf("%s/oauth/callback", c)}
 	}
 
-	clientURI := o.Config.Core.AppviewHost
+	clientURI := o.config.Core.AppviewHost
 	clientID := fmt.Sprintf("%s/oauth/client-metadata.json", clientURI)
 	redirectURIs := makeRedirectURIs(clientURI)
 
-	if o.Config.Core.Dev {
+	if o.config.Core.Dev {
 		clientURI = fmt.Sprintf("http://127.0.0.1:3000")
 		redirectURIs = makeRedirectURIs(clientURI)
 

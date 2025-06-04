@@ -20,6 +20,8 @@ import (
 	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
+	"tangled.sh/tangled.sh/core/appview/cache"
+	"tangled.sh/tangled.sh/core/appview/cache/session"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -37,6 +39,7 @@ type State struct {
 	enforcer     *rbac.Enforcer
 	tidClock     syntax.TIDClock
 	pages        *pages.Pages
+	sess         *session.SessionStore
 	idResolver   *idresolver.Resolver
 	posthog      posthog.Client
 	jc           *jetstream.JetstreamClient
@@ -65,7 +68,10 @@ func Make(config *config.Config) (*State, error) {
 		res = idresolver.DefaultResolver()
 	}
 
-	oauth := oauth.NewOAuth(d, config)
+	cache := cache.New(config.Redis.Addr)
+	sess := session.New(cache)
+
+	oauth := oauth.NewOAuth(config, sess)
 
 	posthog, err := posthog.NewWithConfig(config.Posthog.ApiKey, posthog.Config{Endpoint: config.Posthog.Endpoint})
 	if err != nil {
@@ -104,6 +110,7 @@ func Make(config *config.Config) (*State, error) {
 		enforcer,
 		clock,
 		pgs,
+		sess,
 		res,
 		posthog,
 		jc,
@@ -116,12 +123,6 @@ func Make(config *config.Config) (*State, error) {
 
 func TID(c *syntax.TIDClock) string {
 	return c.Next().String()
-}
-
-func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
-	s.oauth.ClearSession(r, w)
-	w.Header().Set("HX-Redirect", "/login")
-	w.WriteHeader(http.StatusSeeOther)
 }
 
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +177,7 @@ func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
 
 		return
 	case http.MethodPost:
-		session, err := s.oauth.Store.Get(r, oauth.SessionName)
+		session, err := s.oauth.Stores().Get(r, oauth.SessionName)
 		if err != nil || session.IsNew {
 			log.Println("unauthorized attempt to generate registration key")
 			http.Error(w, "Forbidden", http.StatusUnauthorized)
