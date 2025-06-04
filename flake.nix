@@ -55,47 +55,23 @@
   in {
     overlays.default = final: prev: let
       goModHash = "sha256-ZckpIPqFk7/XBiEJUbmrAzdjAxV62hv896xqAXF2aZs=";
-      knotBuildAttrs = final:
-        with final; {
-          pname = "knot";
-          version = "0.1.0";
-          src = gitignoreSource ./.;
-          subPackages = ["cmd/knot"];
-          vendorHash = goModHash;
-          env.CGO_ENABLED = 1;
-        };
       appviewDeps = {
         inherit htmx-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
+      };
+      knotDeps = {
+        inherit goModHash gitignoreSource;
       };
     in {
       lexgen = final.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
       appview = final.pkgsStatic.callPackage ./nix/pkgs/appview.nix appviewDeps;
       appview-cross = final.pkgsCross.gnu64.pkgsStatic.callPackage ./nix/pkgs/appview.nix appviewDeps;
+      knot = final.pkgsStatic.callPackage ./nix/pkgs/knot.nix {};
+      knot-unwrapped = final.pkgsStatic.callPackage ./nix/pkgs/knot-unwrapped.nix knotDeps;
+      knot-cross = final.pkgsCross.gnu64.pkgsStatic.callPackage ./nix/pkgs/knot.nix knotDeps;
       sqlite-lib = final.pkgsStatic.callPackage ./nix/pkgs/sqlite-lib.nix {
         inherit (final.pkgsStatic) gcc;
         inherit sqlite-lib-src;
       };
-
-      # knot packages
-      knot = with final;
-        final.pkgsStatic.buildGoModule ((knotBuildAttrs final)
-          // {
-            nativeBuildInputs = [final.makeWrapper];
-            installPhase = ''
-              runHook preInstall
-
-              mkdir -p $out/bin
-              cp $GOPATH/bin/knot $out/bin/knot
-
-              wrapProgram $out/bin/knot \
-              --prefix PATH : ${pkgs.git}/bin
-
-              runHook postInstall
-            '';
-          });
-      knot-cross = final.pkgsCross.gnu64.pkgsStatic.buildGoModule (knotBuildAttrs final); # cross-compile on darwin to x86_64-linux
-      knot-unwrapped = final.pkgsStatic.buildGoModule (knotBuildAttrs final);
-
       genjwks = final.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
     };
 
