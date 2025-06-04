@@ -1,0 +1,56 @@
+{
+  "lexicon": 1,
+  "id": "sh.tangled.git.refUpdate",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An update to a git repository, emitted by knots.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "ref",
+          "committerDid",
+          "repoDid",
+          "repoName",
+          "oldSha",
+          "newSha"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "description": "Ref being updated",
+            "maxGraphemes": 256,
+            "maxLength": 2560
+          },
+          "committerDid": {
+            "type": "string",
+            "description": "did of the user that pushed this ref",
+            "format": "did"
+          },
+          "repoDid": {
+            "type": "string",
+            "description": "did of the owner of the repo",
+            "format": "did"
+          },
+          "repoName": {
+            "type": "string",
+            "description": "name of the repo"
+          },
+          "oldSha": {
+            "type": "string",
+            "description": "old SHA of this ref",
+            "minLength": 40,
+            "maxLength": 40
+          },
+          "newSha": {
+            "type": "string",
+            "description": "new SHA of this ref",
+            "minLength": 40,
+            "maxLength": 40
+          }
+        }
+      }
+    }
+  }
+}
