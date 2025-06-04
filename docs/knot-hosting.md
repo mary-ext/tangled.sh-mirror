@@ -7,24 +7,12 @@ So you want to run your own knot server? Great! Here are a few prerequisites:
 3. A valid SSL certificate for your domain.
 
 There's a couple of ways to get started:
-* NixOS: refer to [flake.nix](https://tangled.sh/@tangled.sh/core/blob/master/flake.nix)
-* Docker: Documented below.
+* NixOS: refer to
+[flake.nix](https://tangled.sh/@tangled.sh/core/blob/master/flake.nix)
+* Docker: Documented at
+[@tangled.sh/knot-docker](https://tangled.sh/@tangled.sh/knot-docker)
+(community maintained: support is not guaranteed!)
 * Manual: Documented below.
-
-## docker setup
-
-Clone this repository:
-
-```
-git clone https://tangled.sh/@tangled.sh/core
-```
-
-Modify the `docker/docker-compose.yml`, specifically the
-`KNOT_SERVER_SECRET` and `KNOT_SERVER_HOSTNAME` env vars. Then run:
-
-```
-docker compose -f docker/docker-compose.yml up
-```
 
 ## manual setup
 
