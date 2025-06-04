@@ -119,7 +119,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		if b.IsDefault {
 			return 1
 		}
-		if a.Commit != nil {
+		if a.Commit != nil && b.Commit != nil {
 			if a.Commit.Committer.When.Before(b.Commit.Committer.When) {
 				return 1
 			} else {
@@ -630,7 +630,7 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		if b.IsDefault {
 			return 1
 		}
-		if a.Commit != nil {
+		if a.Commit != nil && b.Commit != nil {
 			if a.Commit.Committer.When.Before(b.Commit.Committer.When) {
 				return 1
 			} else {
