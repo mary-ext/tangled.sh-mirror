@@ -30,12 +30,14 @@ require (
 	github.com/posthog/posthog-go v1.5.5
 	github.com/resend/resend-go/v2 v2.15.0
 	github.com/sethvargo/go-envconfig v1.1.0
+	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v3 v3.3.3
 	github.com/whyrusleeping/cbor-gen v0.3.1
 	github.com/yuin/goldmark v1.4.13
 	golang.org/x/crypto v0.38.0
 	golang.org/x/net v0.39.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
+	gopkg.in/yaml.v3 v3.0.1
 	tangled.sh/icyphox.sh/atproto-oauth v0.0.0-20250526154904-3906c5336421
 )
 
@@ -50,6 +52,7 @@ require (
 	github.com/casbin/govaluate v1.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.0 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
@@ -102,6 +105,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pjbgf/sha1cd v0.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polydawn/refmt v0.89.1-0.20221221234430-40501e09de1f // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect

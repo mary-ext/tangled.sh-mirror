@@ -13,7 +13,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (h *Handle) OpLog(w http.ResponseWriter, r *http.Request) {
+func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "OpLog")
 	l.Info("received new connection")
 
@@ -74,19 +74,19 @@ func (h *Handle) OpLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) streamOps(conn *websocket.Conn, cursor *string) error {
-	ops, err := h.db.GetOps(*cursor)
+	events, err := h.db.GetEvents(*cursor)
 	if err != nil {
 		h.l.Debug("err", "err", err)
 		return err
 	}
-	h.l.Debug("ops", "ops", ops)
+	h.l.Debug("ops", "ops", events)
 
-	for _, op := range ops {
-		if err := conn.WriteJSON(op); err != nil {
+	for _, event := range events {
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(event.EventJson)); err != nil {
 			h.l.Debug("err", "err", err)
 			return err
 		}
-		*cursor = op.Tid
+		*cursor = event.Rkey
 	}
 
 	return nil

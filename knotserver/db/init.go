@@ -44,13 +44,11 @@ func Setup(dbPath string) (*DB, error) {
 			last_time_us integer not null
 		);
 
-		create table if not exists oplog (
-			tid     text primary key,
-			did     text not null,
-			repo    text not null,
-			old_sha text not null,
-			new_sha text not null,
-			ref     text not null
+		create table if not exists events (
+			rkey text not null,
+			nsid text not null,
+			event text not null, -- json
+			primary key (rkey, nsid)
 		);
 	`)
 	if err != nil {
