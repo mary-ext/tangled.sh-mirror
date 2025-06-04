@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"strings"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"tangled.sh/tangled.sh/core/api/tangled"
@@ -15,6 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/workflow"
 )
 
 type InternalHandle struct {
@@ -92,6 +95,12 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 			l.Error("failed to insert op", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
 			// non-fatal
 		}
+
+		err = h.triggerPipeline(line, gitUserDid, repoDid, repoName)
+		if err != nil {
+			l.Error("failed to trigger pipeline", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
+			// non-fatal
+		}
 	}
 }
 
@@ -112,6 +121,86 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 	event := db.Event{
 		Rkey:      TID(),
 		Nsid:      tangled.GitRefUpdateNSID,
+		EventJson: string(eventJson),
+	}
+
+	return h.db.InsertEvent(event, h.n)
+}
+
+func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
+	const (
+		WorkflowDir = ".tangled/workflows"
+	)
+
+	didSlashRepo, err := securejoin.SecureJoin(repoDid, repoName)
+	if err != nil {
+		return err
+	}
+
+	repoPath, err := securejoin.SecureJoin(h.c.Repo.ScanPath, didSlashRepo)
+	if err != nil {
+		return err
+	}
+
+	gr, err := git.Open(repoPath, line.Ref)
+	if err != nil {
+		return err
+	}
+
+	workflowDir, err := gr.FileTree(context.Background(), WorkflowDir)
+	if err != nil {
+		return err
+	}
+
+	var pipeline workflow.Pipeline
+	for _, e := range workflowDir {
+		if !e.IsFile {
+			continue
+		}
+
+		fpath := filepath.Join(WorkflowDir, e.Name)
+		contents, err := gr.RawContent(fpath)
+		if err != nil {
+			continue
+		}
+
+		wf, err := workflow.FromFile(e.Name, contents)
+		if err != nil {
+			// TODO: log here, respond to client that is pushing
+			continue
+		}
+
+		pipeline = append(pipeline, wf)
+	}
+
+	trigger := tangled.Pipeline_PushTriggerData{
+		Ref:    line.Ref,
+		OldSha: line.OldSha,
+		NewSha: line.NewSha,
+	}
+
+	compiler := workflow.Compiler{
+		Trigger: tangled.Pipeline_TriggerMetadata{
+			Kind: string(workflow.TriggerKindPush),
+			Push: &trigger,
+			Repo: &tangled.Pipeline_TriggerRepo{
+				Did:  repoDid,
+				Knot: h.c.Server.Hostname,
+				Repo: repoName,
+			},
+		},
+	}
+
+	// TODO: send the diagnostics back to the user here via stderr
+	cp := compiler.Compile(pipeline)
+	eventJson, err := json.Marshal(cp)
+	if err != nil {
+		return err
+	}
+
+	event := db.Event{
+		Rkey:      TID(),
+		Nsid:      tangled.PipelineNSID,
 		EventJson: string(eventJson),
 	}
 
