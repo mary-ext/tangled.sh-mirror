@@ -82,13 +82,7 @@
           env.CGO_ENABLED = 1;
         };
     in {
-      indigo-lexgen = final.buildGoModule {
-        pname = "indigo-lexgen";
-        version = "0.1.0";
-        src = indigo;
-        subPackages = ["cmd/lexgen"];
-        vendorHash = "sha256-pGc29fgJFq8LP7n/pY1cv6ExZl88PAeFqIbFEhB3xXs=";
-        doCheck = false;
+      lexgen = final.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
       };
 
       # appview packages
@@ -120,7 +114,7 @@
     packages = forAllSystems (system: {
       inherit
         (nixpkgsFor."${system}")
-        indigo-lexgen
+        lexgen
         appview
         appview-cross
         knot
@@ -143,7 +137,7 @@
           pkgs.air
           pkgs.gopls
           pkgs.httpie
-          pkgs.indigo-lexgen
+          pkgs.lexgen
           pkgs.litecli
           pkgs.websocat
           pkgs.tailwindcss
