@@ -23,6 +23,10 @@
       url = "https://github.com/IBM/plex/releases/download/%40ibm%2Fplex-mono%401.1.0/ibm-plex-mono.zip";
       flake = false;
     };
+    sqlite-lib-src = {
+      url = "https://sqlite.org/2024/sqlite-amalgamation-3450100.zip";
+      flake = false;
+    };
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,6 +41,7 @@
     lucide-src,
     gitignore,
     inter-fonts-src,
+    sqlite-lib-src,
     ibm-plex-mono-src,
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
@@ -83,6 +88,9 @@
         };
     in {
       lexgen = final.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
+      sqlite-lib = final.pkgsStatic.callPackage ./nix/pkgs/sqlite-lib.nix {
+        inherit (final.pkgsStatic) gcc;
+        inherit sqlite-lib-src;
       };
 
       # appview packages
