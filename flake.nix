@@ -115,14 +115,7 @@
       knot-cross = final.pkgsCross.gnu64.pkgsStatic.buildGoModule (knotBuildAttrs final); # cross-compile on darwin to x86_64-linux
       knot-unwrapped = final.pkgsStatic.buildGoModule (knotBuildAttrs final);
 
-      genjwks = final.buildGoModule {
-        pname = "genjwks";
-        version = "0.1.0";
-        src = gitignoreSource ./.;
-        subPackages = ["cmd/genjwks"];
-        vendorHash = goModHash;
-        env.CGO_ENABLED = 0;
-      };
+      genjwks = final.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
     };
     packages = forAllSystems (system: {
       inherit
