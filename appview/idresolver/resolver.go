@@ -44,7 +44,10 @@ func BaseDirectory() identity.Directory {
 }
 
 func RedisDirectory(url string) (identity.Directory, error) {
-	return redisdir.NewRedisDirectory(BaseDirectory(), url, time.Hour*24, time.Hour*1, time.Hour*1, 10000)
+	hitTTL := time.Hour * 24
+	errTTL := time.Second * 30
+	invalidHandleTTL := time.Minute * 5
+	return redisdir.NewRedisDirectory(BaseDirectory(), url, hitTTL, errTTL, invalidHandleTTL, 10000)
 }
 
 func DefaultResolver() *Resolver {
