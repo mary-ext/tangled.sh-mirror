@@ -58,7 +58,7 @@ func AuthMiddleware(a *oauth.OAuth) middlewareFunc {
 
 			_, auth, err := a.GetSession(r)
 			if err != nil {
-				log.Printf("not logged in, redirecting")
+				log.Println("not logged in, redirecting", "err", err)
 				redirectFunc(w, r)
 				return
 			}

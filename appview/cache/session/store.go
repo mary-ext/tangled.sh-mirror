@@ -54,9 +54,8 @@ func (s *SessionStore) SaveSession(ctx context.Context, session OAuthSession) er
 		return err
 	}
 
-	// set with ttl (expires in + buffer)
-	expiry, _ := time.Parse(time.RFC3339, session.Expiry)
-	ttl := time.Until(expiry) + time.Minute
+	// set with ttl (7 days)
+	ttl := 7 * 24 * time.Hour
 
 	return s.cache.Set(ctx, key, data, ttl).Err()
 }
