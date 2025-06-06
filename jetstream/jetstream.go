@@ -29,6 +29,7 @@ type JetstreamClient struct {
 	ident  string
 	l      *slog.Logger
 
+	logDids    bool
 	wantedDids Set[string]
 	db         DB
 	waitForDid bool
@@ -43,7 +44,9 @@ func (j *JetstreamClient) AddDid(did string) {
 		return
 	}
 
-	j.l.Info("adding did to in-memory filter", "did", did)
+	if j.logDids {
+		j.l.Info("adding did to in-memory filter", "did", did)
+	}
 	j.mu.Lock()
 	j.wantedDids[did] = struct{}{}
 	j.mu.Unlock()
@@ -67,7 +70,7 @@ func (j *JetstreamClient) withDidFilter(processFunc processor) processor {
 	}
 }
 
-func NewJetstreamClient(endpoint, ident string, collections []string, cfg *client.ClientConfig, logger *slog.Logger, db DB, waitForDid bool) (*JetstreamClient, error) {
+func NewJetstreamClient(endpoint, ident string, collections []string, cfg *client.ClientConfig, logger *slog.Logger, db DB, waitForDid, logDids bool) (*JetstreamClient, error) {
 	if cfg == nil {
 		cfg = client.DefaultClientConfig()
 		cfg.WebsocketURL = endpoint
@@ -80,6 +83,8 @@ func NewJetstreamClient(endpoint, ident string, collections []string, cfg *clien
 		db:         db,
 		l:          logger,
 		wantedDids: make(map[string]struct{}),
+
+		logDids: logDids,
 
 		// This will make the goroutine in StartJetstream wait until
 		// j.wantedDids has been populated, typically using addDids.
