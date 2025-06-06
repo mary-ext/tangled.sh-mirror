@@ -75,7 +75,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	jc, err := jetstream.NewJetstreamClient(c.Server.JetstreamEndpoint, "knotserver", []string{
 		tangled.PublicKeyNSID,
 		tangled.KnotMemberNSID,
-	}, nil, logger, db, true)
+	}, nil, logger, db, true, c.Server.LogDids)
 	if err != nil {
 		logger.Error("failed to setup jetstream", "error", err)
 	}

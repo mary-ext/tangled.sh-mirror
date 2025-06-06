@@ -95,6 +95,10 @@ func Make(config *config.Config) (*State, error) {
 		slog.Default(),
 		wrapper,
 		false,
+
+		// in-memory filter is inapplicalble to appview so
+		// we'll never log dids anyway.
+		false,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
