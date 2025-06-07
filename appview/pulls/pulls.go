@@ -203,7 +203,7 @@ func (s *Pulls) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db
 	patch := pull.LatestPatch()
 	if pull.IsStacked() {
 		// combine patches of substack
-		subStack := stack.Below(pull)
+		subStack := stack.StrictlyBelow(pull)
 		// collect the portion of the stack that is mergeable
 		mergeable := subStack.Mergeable()
 		// combine each patch
@@ -292,8 +292,6 @@ func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack
 		top := stack[0]
 		latestSourceRev = top.Submissions[top.LastRoundNumber()].SourceRev
 	}
-
-	log.Println(latestSourceRev, result.Branch.Hash)
 
 	if latestSourceRev != result.Branch.Hash {
 		return pages.ShouldResubmit
