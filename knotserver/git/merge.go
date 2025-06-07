@@ -2,16 +2,75 @@ package git
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"tangled.sh/tangled.sh/core/patchutil"
 )
+
+type MergeCheckCache struct {
+	cache *ristretto.Cache
+}
+
+var (
+	mergeCheckCache MergeCheckCache
+)
+
+func init() {
+	cache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters:            1e7,
+		MaxCost:                1 << 30,
+		BufferItems:            64,
+		TtlTickerDurationInSec: 60 * 60 * 24 * 2, // 2 days
+	})
+	mergeCheckCache = MergeCheckCache{cache}
+}
+
+func (m *MergeCheckCache) cacheKey(g *GitRepo, patch []byte, targetBranch string) string {
+	sep := byte(':')
+	hash := sha256.Sum256(fmt.Append([]byte{}, g.path, sep, g.h.String(), sep, patch, sep, targetBranch))
+	return fmt.Sprintf("%x", hash)
+}
+
+// we can't cache "mergeable" in risetto, nil is not cacheable
+//
+// we use the sentinel value instead
+func (m *MergeCheckCache) cacheVal(check error) any {
+	if check == nil {
+		return struct{}{}
+	} else {
+		return check
+	}
+}
+
+func (m *MergeCheckCache) Set(g *GitRepo, patch []byte, targetBranch string, mergeCheck error) {
+	key := m.cacheKey(g, patch, targetBranch)
+	val := m.cacheVal(mergeCheck)
+	m.cache.Set(key, val, 0)
+}
+
+func (m *MergeCheckCache) Get(g *GitRepo, patch []byte, targetBranch string) (error, bool) {
+	key := m.cacheKey(g, patch, targetBranch)
+	if val, ok := m.cache.Get(key); ok {
+		if val == struct{}{} {
+			// cache hit for mergeable
+			return nil, true
+		} else if e, ok := val.(error); ok {
+			// cache hit for merge conflict
+			return e, true
+		}
+	}
+
+	// cache miss
+	return nil, false
+}
 
 type ErrMerge struct {
 	Message     string
@@ -165,6 +224,10 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, checkOnly bool, opts *Mer
 }
 
 func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
+	if val, ok := mergeCheckCache.Get(g, patchData, targetBranch); ok {
+		return val
+	}
+
 	var opts MergeOptions
 	opts.FormatPatch = patchutil.IsFormatPatch(string(patchData))
 
@@ -186,7 +249,9 @@ func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	return g.applyPatch(tmpDir, patchFile, true, &opts)
+	result := g.applyPatch(tmpDir, patchFile, true, &opts)
+	mergeCheckCache.Set(g, patchData, targetBranch, result)
+	return result
 }
 
 func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
