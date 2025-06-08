@@ -48,7 +48,7 @@ type State struct {
 	knotstream   *knotclient.EventConsumer
 }
 
-func Make(config *config.Config) (*State, error) {
+func Make(ctx context.Context, config *config.Config) (*State, error) {
 	d, err := db.Make(config.Core.DbPath)
 	if err != nil {
 		return nil, err
@@ -104,16 +104,16 @@ func Make(config *config.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(context.Background(), appview.Ingest(wrapper, enforcer))
+	err = jc.StartJetstream(ctx, appview.Ingest(wrapper, enforcer))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
 
-	knotstream, err := KnotstreamConsumer(config, d, enforcer, posthog)
+	knotstream, err := KnotstreamConsumer(ctx, config, d, enforcer, posthog)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start knotstream consumer: %w", err)
 	}
-	knotstream.Start(context.Background())
+	knotstream.Start(ctx)
 
 	state := &State{
 		d,

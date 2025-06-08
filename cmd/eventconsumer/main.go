@@ -24,19 +24,18 @@ func main() {
 		return
 	}
 
-	var srcs []knotclient.EventSource
-	for k := range strings.SplitSeq(*knots, ",") {
-		srcs = append(srcs, knotclient.EventSource{k})
-	}
-
-	consumer := knotclient.NewEventConsumer(knotclient.ConsumerConfig{
-		Sources:          srcs,
+	ccfg := knotclient.ConsumerConfig{
 		ProcessFunc:      processEvent,
 		RetryInterval:    *retryFlag,
 		MaxRetryInterval: *maxRetryFlag,
 		WorkerCount:      *workerCount,
 		Dev:              true,
-	})
+	}
+	for k := range strings.SplitSeq(*knots, ",") {
+		ccfg.AddEventSource(knotclient.NewEventSource(k))
+	}
+
+	consumer := knotclient.NewEventConsumer(ccfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	consumer.Start(ctx)
@@ -45,7 +44,7 @@ func main() {
 	consumer.Stop()
 }
 
-func processEvent(source knotclient.EventSource, msg knotclient.Message) error {
+func processEvent(_ context.Context, source knotclient.EventSource, msg knotclient.Message) error {
 	fmt.Printf("From %s (%s, %s): %s\n", source.Knot, msg.Rkey, msg.Nsid, string(msg.EventJson))
 	return nil
 }

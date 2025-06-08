@@ -50,12 +50,12 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// complete backfill first before going to live data
+	l.Info("going through backfill", "cursor", cursor)
 	l.Debug("going through backfill", "cursor", cursor)
 	if err := h.streamOps(conn, &cursor); err != nil {
 		l.Error("failed to backfill", "err", err)
 		return
 	}
-
 	for {
 		// wait for new data or timeout
 		select {

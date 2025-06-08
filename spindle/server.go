@@ -1,6 +1,7 @@
 package spindle
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -68,11 +69,14 @@ func Run(ctx context.Context) error {
 
 	go func() {
 		logger.Info("starting event consumer")
-		ec := knotclient.NewEventConsumer(knotclient.ConsumerConfig{
-			Sources:     []string{"ws://localhost:5555/events"},
+		knotEventSource := knotclient.NewEventSource("localhost:5555")
+		ccfg := knotclient.ConsumerConfig{
 			Logger:      logger,
 			ProcessFunc: spindle.exec,
-		})
+		}
+		ccfg.AddEventSource(knotEventSource)
+
+		ec := knotclient.NewEventConsumer(ccfg)
 
 		ec.Start(ctx)
 	}()
@@ -88,4 +92,26 @@ func (s *Spindle) Router() http.Handler {
 
 	mux.HandleFunc("/events", s.Events)
 	return mux
+}
+
+func (s *Spindle) exec(ctx context.Context, src knotclient.EventSource, msg knotclient.Message) error {
+	pipeline := tangled.Pipeline{}
+	err := json.Unmarshal(msg.EventJson, &pipeline)
+	if err != nil {
+		fmt.Println("error unmarshalling", err)
+		return err
+	}
+
+	if msg.Nsid == tangled.PipelineNSID {
+		err = s.eng.SetupPipeline(ctx, &pipeline, msg.Rkey)
+		if err != nil {
+			return err
+		}
+		err = s.eng.StartWorkflows(ctx, &pipeline, msg.Rkey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

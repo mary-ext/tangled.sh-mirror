@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -17,7 +18,7 @@ import (
 	"github.com/posthog/posthog-go"
 )
 
-func KnotstreamConsumer(c *config.Config, d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client) (*kc.EventConsumer, error) {
+func KnotstreamConsumer(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client) (*kc.EventConsumer, error) {
 	knots, err := db.GetCompletedRegistrations(d)
 	if err != nil {
 		return nil, err
@@ -35,7 +36,7 @@ func KnotstreamConsumer(c *config.Config, d *db.DB, enforcer *rbac.Enforcer, pos
 
 	cfg := kc.ConsumerConfig{
 		Sources:           srcs,
-		ProcessFunc:       knotstreamIngester(d, enforcer, posthog, c.Core.Dev),
+		ProcessFunc:       knotstreamIngester(ctx, d, enforcer, posthog, c.Core.Dev),
 		RetryInterval:     c.Knotstream.RetryInterval,
 		MaxRetryInterval:  c.Knotstream.MaxRetryInterval,
 		ConnectionTimeout: c.Knotstream.ConnectionTimeout,
@@ -49,8 +50,8 @@ func KnotstreamConsumer(c *config.Config, d *db.DB, enforcer *rbac.Enforcer, pos
 	return kc.NewEventConsumer(cfg), nil
 }
 
-func knotstreamIngester(d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client, dev bool) kc.ProcessFunc {
-	return func(source kc.EventSource, msg kc.Message) error {
+func knotstreamIngester(ctx context.Context, d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client, dev bool) kc.ProcessFunc {
+	return func(ctx context.Context, source kc.EventSource, msg kc.Message) error {
 		switch msg.Nsid {
 		case tangled.GitRefUpdateNSID:
 			return ingestRefUpdate(d, enforcer, posthog, dev, source, msg)
