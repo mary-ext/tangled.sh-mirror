@@ -205,25 +205,27 @@ func (g *GitRepo) ResolveRevision(revStr string) (*object.Commit, error) {
 
 func (g *GitRepo) commitsBetween(newCommit, oldCommit *object.Commit) ([]*object.Commit, error) {
 	var commits []*object.Commit
-	current := newCommit
 
-	for {
-		if current.Hash == oldCommit.Hash {
-			break
-		}
+	output, err := g.revList(
+		"--no-merges", // format-patch explicitly prepares only non-merges
+		fmt.Sprintf("%s..%s", oldCommit.Hash.String(), newCommit.Hash.String()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("revlist: %w", err)
+	}
 
-		commits = append(commits, current)
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) == 1 && lines[0] == "" {
+		return commits, nil
+	}
 
-		if len(current.ParentHashes) == 0 {
-			return nil, fmt.Errorf("old commit %s not found in history of new commit %s", oldCommit.Hash, newCommit.Hash)
-		}
-
-		parent, err := current.Parents().Next()
+	for _, item := range lines {
+		obj, err := g.r.CommitObject(plumbing.NewHash(item))
 		if err != nil {
-			return nil, fmt.Errorf("error getting parent: %w", err)
+			continue
 		}
 
-		current = parent
+		commits = append(commits, obj)
 	}
 
 	return commits, nil
