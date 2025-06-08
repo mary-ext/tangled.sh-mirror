@@ -1,6 +1,10 @@
 package db
 
-import "database/sql"
+import (
+	"database/sql"
+
+	_ "github.com/mattn/go-sqlite3"
+)
 
 type DB struct {
 	*sql.DB
@@ -27,9 +31,18 @@ func Make(dbPath string) (*DB, error) {
 		);
 
 		create table if not exists pipelines (
-			rkey text not null,
-			pipeline text not null, -- json
-			primary key rkey
+			at_uri text not null,
+			status text not null,
+
+			-- only set if status is 'failed'
+			error text,
+			exit_code integer,
+
+			started_at timestamp not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			updated_at timestamp not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			finished_at timestamp,
+
+			primary key (at_uri)
 		);
 	`)
 	if err != nil {
