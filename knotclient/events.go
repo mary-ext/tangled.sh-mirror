@@ -17,7 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ProcessFunc func(source EventSource, message Message) error
+type ProcessFunc func(ctx context.Context, source EventSource, message Message) error
 
 type Message struct {
 	Rkey string
@@ -39,6 +39,16 @@ type ConsumerConfig struct {
 	CursorStore       CursorStore
 }
 
+func NewConsumerConfig() *ConsumerConfig {
+	return &ConsumerConfig{
+		Sources: make(map[EventSource]struct{}),
+	}
+}
+
+func (cc *ConsumerConfig) AddEventSource(es EventSource) {
+	cc.Sources[es] = struct{}{}
+}
+
 type EventSource struct {
 	Knot string
 }
@@ -50,7 +60,6 @@ func NewEventSource(knot string) EventSource {
 }
 
 type EventConsumer struct {
-	cfg        ConsumerConfig
 	wg         sync.WaitGroup
 	dialer     *websocket.Dialer
 	connMap    sync.Map
@@ -58,8 +67,9 @@ type EventConsumer struct {
 	logger     *slog.Logger
 	randSource *rand.Rand
 
-	// rw lock over edits to consumer config
-	mu sync.RWMutex
+	// rw lock over edits to ConsumerConfig
+	cfgMu sync.RWMutex
+	cfg   ConsumerConfig
 }
 
 type CursorStore interface {
@@ -202,11 +212,11 @@ func (c *EventConsumer) Stop() {
 }
 
 func (c *EventConsumer) AddSource(ctx context.Context, s EventSource) {
-	c.mu.Lock()
+	c.cfgMu.Lock()
 	c.cfg.Sources[s] = struct{}{}
 	c.wg.Add(1)
 	go c.startConnectionLoop(ctx, s)
-	c.mu.Unlock()
+	c.cfgMu.Unlock()
 }
 
 func (c *EventConsumer) worker(ctx context.Context) {
@@ -230,7 +240,7 @@ func (c *EventConsumer) worker(ctx context.Context) {
 			// update cursor
 			c.cfg.CursorStore.Set(j.source.Knot, time.Now().Unix())
 
-			if err := c.cfg.ProcessFunc(j.source, msg); err != nil {
+			if err := c.cfg.ProcessFunc(ctx, j.source, msg); err != nil {
 				c.logger.Error("error processing message", "source", j.source, "err", err)
 			}
 		}
