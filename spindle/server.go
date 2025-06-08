@@ -8,19 +8,22 @@ import (
 	"golang.org/x/net/context"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/jetstream"
+	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/spindle/config"
 	"tangled.sh/tangled.sh/core/spindle/db"
+	"tangled.sh/tangled.sh/core/spindle/engine"
 )
 
 type Spindle struct {
-	jc *jetstream.JetstreamClient
-	db *db.DB
-	e  *rbac.Enforcer
-	l  *slog.Logger
-	n  *notifier.Notifier
+	jc  *jetstream.JetstreamClient
+	db  *db.DB
+	e   *rbac.Enforcer
+	l   *slog.Logger
+	n   *notifier.Notifier
+	eng *engine.Engine
 }
 
 func Run(ctx context.Context) error {
@@ -49,13 +52,30 @@ func Run(ctx context.Context) error {
 
 	n := notifier.New()
 
-	spindle := Spindle{
-		jc: jc,
-		e:  e,
-		db: d,
-		l:  logger,
-		n:  &n,
+	eng, err := engine.New(ctx, d)
+	if err != nil {
+		return err
 	}
+
+	spindle := Spindle{
+		jc:  jc,
+		e:   e,
+		db:  d,
+		l:   logger,
+		n:   &n,
+		eng: eng,
+	}
+
+	go func() {
+		logger.Info("starting event consumer")
+		ec := knotclient.NewEventConsumer(knotclient.ConsumerConfig{
+			Sources:     []string{"ws://localhost:5555/events"},
+			Logger:      logger,
+			ProcessFunc: spindle.exec,
+		})
+
+		ec.Start(ctx)
+	}()
 
 	logger.Info("starting spindle server", "address", cfg.Server.ListenAddr)
 	logger.Error("server error", "error", http.ListenAndServe(cfg.Server.ListenAddr, spindle.Router()))
