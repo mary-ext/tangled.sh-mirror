@@ -134,14 +134,15 @@ func (g *GitRepo) DiffTree(commit1, commit2 *object.Commit) (*types.DiffTree, er
 
 // FormatPatch generates a git-format-patch output between two commits,
 // and returns the raw format-patch series, a parsed FormatPatch and an error.
-func (g *GitRepo) formatSinglePatch(base, commit2 plumbing.Hash, extraArgs ...string) (string, *types.FormatPatch, error) {
+func (g *GitRepo) formatSinglePatch(commit plumbing.Hash, extraArgs ...string) (string, *types.FormatPatch, error) {
 	var stdout bytes.Buffer
 
 	args := []string{
 		"-C",
 		g.path,
 		"format-patch",
-		fmt.Sprintf("%s..%s", base.String(), commit2.String()),
+		"-1",
+		commit.String(),
 		"--stdout",
 	}
 	args = append(args, extraArgs...)
@@ -227,19 +228,12 @@ func (g *GitRepo) FormatPatch(base, commit2 *object.Commit) (string, []types.For
 			changeId = string(val)
 		}
 
-		var parentHash plumbing.Hash
-		if len(commit.ParentHashes) > 0 {
-			parentHash = commit.ParentHashes[0]
-		} else {
-			parentHash = plumbing.NewHash("4b825dc642cb6eb9a060e54bf8d69288fbee4904") // git empty tree hash
-		}
-
 		var additionalArgs []string
 		if changeId != "" {
 			additionalArgs = append(additionalArgs, "--add-header", fmt.Sprintf("Change-Id: %s", changeId))
 		}
 
-		stdout, patch, err := g.formatSinglePatch(parentHash, commit.Hash, additionalArgs...)
+		stdout, patch, err := g.formatSinglePatch(commit.Hash, additionalArgs...)
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to format patch for commit %s: %w", commit.Hash.String(), err)
 		}
