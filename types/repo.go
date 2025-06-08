@@ -36,7 +36,7 @@ type RepoFormatPatchResponse struct {
 	Rev1        string        `json:"rev1,omitempty"`
 	Rev2        string        `json:"rev2,omitempty"`
 	FormatPatch []FormatPatch `json:"format_patch,omitempty"`
-	MergeBase   string        `json:"merge_base,omitempty"`
+	MergeBase   string        `json:"merge_base,omitempty"` // deprecated
 	Patch       string        `json:"patch,omitempty"`
 }
 

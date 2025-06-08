@@ -1096,14 +1096,7 @@ func (h *Handle) Compare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mergeBase, err := gr.MergeBase(commit1, commit2)
-	if err != nil {
-		l.Error("failed to find merge-base", "msg", err.Error())
-		writeError(w, "failed to calculate diff", http.StatusBadRequest)
-		return
-	}
-
-	rawPatch, formatPatch, err := gr.FormatPatch(mergeBase, commit2)
+	rawPatch, formatPatch, err := gr.FormatPatch(commit1, commit2)
 	if err != nil {
 		l.Error("error comparing revisions", "msg", err.Error())
 		writeError(w, "error comparing revisions", http.StatusBadRequest)
@@ -1114,7 +1107,6 @@ func (h *Handle) Compare(w http.ResponseWriter, r *http.Request) {
 		Rev1:        commit1.Hash.String(),
 		Rev2:        commit2.Hash.String(),
 		FormatPatch: formatPatch,
-		MergeBase:   mergeBase.Hash.String(),
 		Patch:       rawPatch,
 	})
 	return

@@ -166,28 +166,6 @@ func (g *GitRepo) formatSinglePatch(base, commit2 plumbing.Hash, extraArgs ...st
 	return stdout.String(), &formatPatch[0], nil
 }
 
-func (g *GitRepo) MergeBase(commit1, commit2 *object.Commit) (*object.Commit, error) {
-	isAncestor, err := commit1.IsAncestor(commit2)
-	if err != nil {
-		return nil, err
-	}
-
-	if isAncestor {
-		return commit1, nil
-	}
-
-	mergeBase, err := commit1.MergeBase(commit2)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(mergeBase) == 0 {
-		return nil, fmt.Errorf("failed to find a merge-base")
-	}
-
-	return mergeBase[0], nil
-}
-
 func (g *GitRepo) ResolveRevision(revStr string) (*object.Commit, error) {
 	rev, err := g.r.ResolveRevision(plumbing.Revision(revStr))
 	if err != nil {
@@ -224,7 +202,6 @@ func (g *GitRepo) commitsBetween(newCommit, oldCommit *object.Commit) ([]*object
 		if err != nil {
 			continue
 		}
-
 		commits = append(commits, obj)
 	}
 
@@ -232,7 +209,7 @@ func (g *GitRepo) commitsBetween(newCommit, oldCommit *object.Commit) ([]*object
 }
 
 func (g *GitRepo) FormatPatch(base, commit2 *object.Commit) (string, []types.FormatPatch, error) {
-	// get list of commits between commir2 and base
+	// get list of commits between commit2 and base
 	commits, err := g.commitsBetween(commit2, base)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get commits: %w", err)
