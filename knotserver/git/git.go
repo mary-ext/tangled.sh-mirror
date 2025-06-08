@@ -128,6 +128,7 @@ func (g *GitRepo) Commits(offset, limit int) ([]*object.Commit, error) {
 	commits := []*object.Commit{}
 
 	output, err := g.revList(
+		g.h.String(),
 		fmt.Sprintf("--skip=%d", offset),
 		fmt.Sprintf("--max-count=%d", limit),
 	)
@@ -153,6 +154,7 @@ func (g *GitRepo) Commits(offset, limit int) ([]*object.Commit, error) {
 
 func (g *GitRepo) TotalCommits() (int, error) {
 	output, err := g.revList(
+		g.h.String(),
 		fmt.Sprintf("--count"),
 	)
 	if err != nil {
@@ -170,13 +172,20 @@ func (g *GitRepo) TotalCommits() (int, error) {
 func (g *GitRepo) revList(extraArgs ...string) ([]byte, error) {
 	var args []string
 	args = append(args, "rev-list")
-	args = append(args, g.h.String())
 	args = append(args, extraArgs...)
 
 	cmd := exec.Command("git", args...)
 	cmd.Dir = g.path
 
-	return cmd.Output()
+	out, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("%w, stderr: %s", err, string(exitErr.Stderr))
+		}
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func (g *GitRepo) Commit(h plumbing.Hash) (*object.Commit, error) {
