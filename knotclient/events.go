@@ -3,12 +3,14 @@ package knotclient
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"math/rand"
 	"net/url"
 	"sync"
 	"time"
 
+	"tangled.sh/tangled.sh/core/appview/cache"
 	"tangled.sh/tangled.sh/core/log"
 
 	"github.com/gorilla/websocket"
@@ -20,7 +22,7 @@ type Message struct {
 	Rkey string
 	Nsid string
 	// do not full deserialize this portion of the message, processFunc can do that
-	EventJson json.RawMessage
+	EventJson json.RawMessage `json:"event"`
 }
 
 type ConsumerConfig struct {
@@ -33,6 +35,7 @@ type ConsumerConfig struct {
 	QueueSize         int
 	Logger            *slog.Logger
 	Dev               bool
+	CursorStore       CursorStore
 }
 
 type EventSource struct {
@@ -56,6 +59,58 @@ type EventConsumer struct {
 
 	// rw lock over edits to consumer config
 	mu sync.RWMutex
+}
+
+type CursorStore interface {
+	Set(knot, cursor string)
+	Get(knot string) (cursor string)
+}
+
+type RedisCursorStore struct {
+	rdb *cache.Cache
+}
+
+func NewRedisCursorStore(cache *cache.Cache) RedisCursorStore {
+	return RedisCursorStore{
+		rdb: cache,
+	}
+}
+
+const (
+	cursorKey = "cursor:%s"
+)
+
+func (r *RedisCursorStore) Set(knot, cursor string) {
+	key := fmt.Sprintf(cursorKey, knot)
+	r.rdb.Set(context.Background(), key, cursor, 0)
+}
+
+func (r *RedisCursorStore) Get(knot string) (cursor string) {
+	key := fmt.Sprintf(cursorKey, knot)
+	val, err := r.rdb.Get(context.Background(), key).Result()
+	if err != nil {
+		return ""
+	}
+
+	return val
+}
+
+type MemoryCursorStore struct {
+	store sync.Map
+}
+
+func (m *MemoryCursorStore) Set(knot, cursor string) {
+	m.store.Store(knot, cursor)
+}
+
+func (m *MemoryCursorStore) Get(knot string) (cursor string) {
+	if result, ok := m.store.Load(knot); ok {
+		if val, ok := result.(string); ok {
+			return val
+		}
+	}
+
+	return ""
 }
 
 func (e *EventConsumer) buildUrl(s EventSource, cursor string) (*url.URL, error) {
@@ -101,6 +156,9 @@ func NewEventConsumer(cfg ConsumerConfig) *EventConsumer {
 	if cfg.QueueSize == 0 {
 		cfg.QueueSize = 100
 	}
+	if cfg.CursorStore == nil {
+		cfg.CursorStore = &MemoryCursorStore{}
+	}
 	return &EventConsumer{
 		cfg:        cfg,
 		dialer:     websocket.DefaultDialer,
@@ -111,6 +169,8 @@ func NewEventConsumer(cfg ConsumerConfig) *EventConsumer {
 }
 
 func (c *EventConsumer) Start(ctx context.Context) {
+	c.cfg.Logger.Info("starting consumer", "config", c.cfg)
+
 	// start workers
 	for range c.cfg.WorkerCount {
 		c.wg.Add(1)
@@ -160,6 +220,10 @@ func (c *EventConsumer) worker(ctx context.Context) {
 				c.logger.Error("error deserializing message", "source", j.source.Knot, "err", err)
 				return
 			}
+
+			// update cursor
+			c.cfg.CursorStore.Set(j.source.Knot, msg.Rkey)
+
 			if err := c.cfg.ProcessFunc(j.source, msg); err != nil {
 				c.logger.Error("error processing message", "source", j.source, "err", err)
 			}
@@ -204,7 +268,7 @@ func (c *EventConsumer) runConnection(ctx context.Context, source EventSource) e
 	connCtx, cancel := context.WithTimeout(ctx, c.cfg.ConnectionTimeout)
 	defer cancel()
 
-	u, err := url.Parse(source)
+	cursor := c.cfg.CursorStore.Get(source.Knot)
 
 	u, err := c.buildUrl(source, cursor)
 	if err != nil {
