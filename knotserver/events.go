@@ -42,7 +42,7 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	cursor := ""
+	cursor := r.URL.Query().Get("cursor")
 
 	// complete backfill first before going to live data
 	l.Info("going through backfill", "cursor", cursor)
