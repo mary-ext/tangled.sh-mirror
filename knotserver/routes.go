@@ -26,6 +26,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"tangled.sh/tangled.sh/core/hook"
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/patchutil"
@@ -669,6 +670,18 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	err = h.e.AddRepo(did, ThisServer, relativeRepoPath)
 	if err != nil {
 		l.Error("adding repo permissions", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = hook.SetupRepo(hook.Config(
+		hook.WithScanPath(h.c.Repo.ScanPath),
+		hook.WithInternalApi(h.c.Server.InternalListenAddr),
+	),
+		repoPath,
+	)
+	if err != nil {
+		l.Error("setting up hooks", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -47,10 +47,10 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	err = hook.Setup(
+	err = hook.Setup(hook.Config(
 		hook.WithScanPath(c.Repo.ScanPath),
 		hook.WithInternalApi(c.Server.InternalListenAddr),
-	)
+	))
 	if err != nil {
 		return fmt.Errorf("failed to setup hooks: %w", err)
 	}
