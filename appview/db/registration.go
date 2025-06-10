@@ -152,6 +152,31 @@ func GetRegistrationKey(e Execer, domain string) (string, error) {
 	return secret, nil
 }
 
+func GetCompletedRegistrations(e Execer) ([]string, error) {
+	rows, err := e.Query(`select domain from registrations where registered not null`)
+	if err != nil {
+		return nil, err
+	}
+
+	var domains []string
+	for rows.Next() {
+		var domain string
+		err = rows.Scan(&domain)
+
+		if err != nil {
+			log.Println(err)
+		} else {
+			domains = append(domains, domain)
+		}
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return domains, nil
+}
+
 func Register(e Execer, domain string) error {
 	_, err := e.Exec(`
 		update registrations
