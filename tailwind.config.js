@@ -67,6 +67,10 @@ module.exports = {
 					},
 				},
 			},
+			gridTemplateColumns: {
+				'14': 'repeat(14, minmax(0, 1fr))',
+				'28': 'repeat(28, minmax(0, 1fr))',
+			}
 		},
 	},
 	plugins: [require("@tailwindcss/typography")],

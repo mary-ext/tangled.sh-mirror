@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"
@@ -126,6 +127,18 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
 	}
 
+	now := time.Now()
+	startOfYear := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+	punchcard, err := db.MakePunchcard(
+		s.db,
+		db.FilterEq("did", ident.DID.String()),
+		db.FilterGte("date", startOfYear.Format(time.DateOnly)),
+		db.FilterLte("date", now.Format(time.DateOnly)),
+	)
+	if err != nil {
+		log.Println("failed to get punchcard for did", "did", ident.DID.String(), "err", err)
+	}
+
 	profileAvatarUri := s.GetAvatarUri(ident.Handle.String())
 	s.pages.ProfilePage(w, pages.ProfilePageParams{
 		LoggedInUser:       loggedInUser,
@@ -141,6 +154,7 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 			Followers:    followers,
 			Following:    following,
 		},
+		Punchcard:       punchcard,
 		ProfileTimeline: timeline,
 	})
 }

@@ -8,13 +8,18 @@
 {{ end }}
 
 {{ define "content" }}
-<div class="grid grid-cols-1 md:grid-cols-8 gap-6">
+<div class="grid grid-cols-1 md:grid-cols-8 gap-4">
     <div class="md:col-span-2 order-1 md:order-1">
+      <div class="grid grid-cols-1 gap-4">
         {{ template "user/fragments/profileCard" .Card }}
+        {{ block "punchcard" .Punchcard }} {{ end }}
+      </div>
     </div>
     <div id="all-repos" class="md:col-span-3 order-2 md:order-2">
+      <div class="grid grid-cols-1 gap-4">
         {{ block "ownRepos" . }}{{ end }}
         {{ block "collaboratingRepos" . }}{{ end }}
+      </div>
     </div>
     <div class="md:col-span-3 order-3 md:order-3">
         {{ block "profileTimeline" . }}{{ end }}
@@ -24,7 +29,7 @@
 
 {{ define "profileTimeline" }}
   <p class="text-sm font-bold p-2 dark:text-white">ACTIVITY</p>
-  <div class="flex flex-col gap-6 relative">
+  <div class="flex flex-col gap-4 relative">
     {{ with .ProfileTimeline }}
       {{ range $idx, $byMonth := .ByMonth }}
         {{ with $byMonth }}
@@ -233,67 +238,35 @@
 {{ end }}
 
 {{ define "ownRepos" }}
-  <div class="text-sm font-bold p-2 pr-0 dark:text-white flex items-center justify-between gap-2">
-    <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}?tab=repos"
-      class="flex text-black dark:text-white items-center gap-4 no-underline hover:no-underline group">
-      <span>PINNED REPOS</span>
-      <span class="flex md:hidden group-hover:flex gap-2 items-center font-normal text-sm text-gray-500 dark:text-gray-400 ">
-        view all {{ i "chevron-right" "w-4 h-4" }}
-      </span>
-    </a>
-    {{ if and .LoggedInUser (eq .LoggedInUser.Did .Card.UserDid) }}
-      <button 
-        hx-get="profile/edit-pins"
-        hx-target="#all-repos"
-        class="btn font-normal text-sm flex gap-2 items-center group">
-        {{ i "pencil" "w-3 h-3" }}
-        edit
-        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-      </button>
-    {{ end }}
-  </div>
-  <div id="repos" class="grid grid-cols-1 gap-4 mb-6">
-    {{ range .Repos }}
-      <div
-          id="repo-card"
-          class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
-          <div id="repo-card-name" class="font-medium">
-              <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}/{{ .Name }}"
-                  >{{ .Name }}</a
-              >
-          </div>
-          {{ if .Description }}
-              <div class="text-gray-600 dark:text-gray-300 text-sm">
-                  {{ .Description }}
-              </div>
-          {{ end }}
-          <div class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto">
-            {{ if .RepoStats.StarCount }}
-                <div class="flex gap-1 items-center text-sm">
-                    {{ i "star" "w-3 h-3 fill-current" }}
-                    <span>{{ .RepoStats.StarCount }}</span>
-                </div>
-            {{ end }}
-          </div>
-      </div>
-    {{ else }}
-        <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
-    {{ end }}
-  </div>
-{{ end }}
-
-{{ define "collaboratingRepos" }}
-  {{ if gt (len .CollaboratingRepos) 0 }}
-    <p class="text-sm font-bold p-2 dark:text-white">COLLABORATING ON</p>
-    <div id="collaborating" class="grid grid-cols-1 gap-4 mb-6">
-      {{ range .CollaboratingRepos }}
+  <div>
+    <div class="text-sm font-bold p-2 pr-0 dark:text-white flex items-center justify-between gap-2">
+      <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}?tab=repos"
+        class="flex text-black dark:text-white items-center gap-2 no-underline hover:no-underline group">
+        <span>PINNED REPOS</span>
+        <span class="flex gap-1 items-center font-normal text-sm text-gray-500 dark:text-gray-400 ">
+          view all {{ i "chevron-right" "w-4 h-4" }}
+        </span>
+      </a>
+      {{ if and .LoggedInUser (eq .LoggedInUser.Did .Card.UserDid) }}
+        <button 
+          hx-get="profile/edit-pins"
+          hx-target="#all-repos"
+          class="btn py-0 font-normal text-sm flex gap-2 items-center group">
+          {{ i "pencil" "w-3 h-3" }}
+          edit
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </button>
+      {{ end }}
+    </div>
+    <div id="repos" class="grid grid-cols-1 gap-4">
+      {{ range .Repos }}
         <div
             id="repo-card"
-            class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800 flex flex-col">
-            <div id="repo-card-name" class="font-medium dark:text-white">
-                <a href="/{{ index $.DidHandleMap .Did }}/{{ .Name }}">
-                    {{ index $.DidHandleMap .Did }}/{{ .Name }}
-                </a>
+            class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
+            <div id="repo-card-name" class="font-medium">
+                <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}/{{ .Name }}"
+                    >{{ .Name }}</a
+                >
             </div>
             {{ if .Description }}
                 <div class="text-gray-600 dark:text-gray-300 text-sm">
@@ -301,18 +274,94 @@
                 </div>
             {{ end }}
             <div class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto">
+              {{ if .RepoStats.StarCount }}
+                  <div class="flex gap-1 items-center text-sm">
+                      {{ i "star" "w-3 h-3 fill-current" }}
+                      <span>{{ .RepoStats.StarCount }}</span>
+                  </div>
+              {{ end }}
+            </div>
+        </div>
+      {{ else }}
+          <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
+      {{ end }}
+    </div>
+  </div>
+{{ end }}
 
+{{ define "collaboratingRepos" }}
+  {{ if gt (len .CollaboratingRepos) 0 }}
+    <div>
+      <p class="text-sm font-bold p-2 dark:text-white">COLLABORATING ON</p>
+      <div id="collaborating" class="grid grid-cols-1 gap-4">
+        {{ range .CollaboratingRepos }}
+          <div
+              id="repo-card"
+              class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
+              <div id="repo-card-name" class="font-medium dark:text-white">
+                  <a href="/{{ index $.DidHandleMap .Did }}/{{ .Name }}">
+                      {{ index $.DidHandleMap .Did }}/{{ .Name }}
+                  </a>
+              </div>
+              {{ if .Description }}
+                  <div class="text-gray-600 dark:text-gray-300 text-sm">
+                      {{ .Description }}
+                  </div>
+              {{ end }}
+              <div class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto">
                 {{ if .RepoStats.StarCount }}
                     <div class="flex gap-1 items-center text-sm">
                         {{ i "star" "w-3 h-3 fill-current" }}
                         <span>{{ .RepoStats.StarCount }}</span>
                     </div>
                 {{ end }}
-            </div>
-        </div>
-      {{ else }}
-          <p class="px-6 dark:text-white">This user is not collaborating.</p>
-      {{ end }}
+              </div>
+          </div>
+        {{ else }}
+            <p class="px-6 dark:text-white">This user is not collaborating.</p>
+        {{ end }}
+      </div>
     </div>
   {{ end }}
+{{ end }}
+
+{{ define "punchcard" }}
+  {{ $now := now }}
+  <div>
+    <p class="p-2 flex gap-2 text-sm font-bold dark:text-white">
+      PUNCHCARD
+      <span class="font-normal text-sm text-gray-500 dark:text-gray-400 ">
+        {{ .Total | int64 | commaFmt }} commits
+      </span>
+    </p>
+    <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm">
+      <div class="grid grid-cols-28 md:grid-cols-14 gap-y-2 w-full h-full">
+        {{ range .Punches }}
+          {{ $count := .Count }}
+          {{ $theme := "bg-gray-200 dark:bg-gray-700 size-[4px]" }}
+          {{ if lt $count 1 }}
+            {{ $theme = "bg-gray-200 dark:bg-gray-700 size-[4px]" }}
+          {{ else if lt $count 2 }}
+            {{ $theme = "bg-green-200 dark:bg-green-900 size-[5px]" }}
+          {{ else if lt $count 4 }}
+            {{ $theme = "bg-green-300 dark:bg-green-800 size-[5px]" }}
+          {{ else if lt $count 8 }}
+            {{ $theme = "bg-green-400 dark:bg-green-700 size-[6px]" }}
+          {{ else }}
+            {{ $theme = "bg-green-500 dark:bg-green-600 size-[7px]" }}
+          {{ end }}
+
+          {{ if .Date.After $now }}
+            {{ $theme = "border border-gray-200 dark:border-gray-700 size-[4px]" }}
+          {{ end }}
+          <div class="w-full h-full flex justify-center items-center">
+            <div
+              class="aspect-square rounded-full transition-all duration-300 {{ $theme }} max-w-full max-h-full"
+              title="{{ .Date.Format "2006-01-02" }}: {{ .Count }} commits">
+            </div>
+          </div>
+        {{ end }}
+      </div>
+    </div>
+  </div>
 {{ end }}
