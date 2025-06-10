@@ -54,7 +54,7 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-ZckpIPqFk7/XBiEJUbmrAzdjAxV62hv896xqAXF2aZs=";
+      goModHash = "sha256-QPyeKKr7YMblwicQNemu3OamXwg7fVie6/IY10vQCl4=";
       appviewDeps = {
         inherit htmx-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
       };
