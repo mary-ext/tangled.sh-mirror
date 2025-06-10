@@ -50,7 +50,9 @@ func VerifyCommitSignature(pubKey string, commit types.NiceDiff) (error, bool) {
 	payload := strings.Builder{}
 
 	fmt.Fprintf(&payload, "tree %s\n", commit.Commit.Tree)
-	fmt.Fprintf(&payload, "parent %s\n", commit.Commit.Parent)
+	if commit.Commit.Parent != "" {
+		fmt.Fprintf(&payload, "parent %s\n", commit.Commit.Parent)
+	}
 	fmt.Fprintf(&payload, "author %s\n", author.String())
 	fmt.Fprintf(&payload, "committer %s\n", committer.String())
 	if commit.Commit.ChangedId != "" {
