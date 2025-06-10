@@ -36,6 +36,14 @@ func WithInternalApi(api string) setupOpt {
 	}
 }
 
+func Config(opts ...setupOpt) config {
+	config := config{}
+	for _, o := range opts {
+		o(&config)
+	}
+	return config
+}
+
 // setup hooks for all users
 //
 // directory structure is typically like so:
@@ -43,11 +51,7 @@ func WithInternalApi(api string) setupOpt {
 //	did:plc:foobar/repo1
 //	did:plc:foobar/repo2
 //	did:web:barbaz/repo1
-func Setup(opts ...setupOpt) error {
-	config := config{}
-	for _, o := range opts {
-		o(&config)
-	}
+func Setup(config config) error {
 	// iterate over all directories in current directory:
 	userDirs, err := os.ReadDir(config.scanPath)
 	if err != nil {
@@ -65,7 +69,7 @@ func Setup(opts ...setupOpt) error {
 		}
 
 		userPath := filepath.Join(config.scanPath, did)
-		if err := setupUser(&config, userPath); err != nil {
+		if err := SetupUser(config, userPath); err != nil {
 			return err
 		}
 	}
@@ -74,7 +78,7 @@ func Setup(opts ...setupOpt) error {
 }
 
 // setup hooks in /scanpath/did:plc:user
-func setupUser(config *config, userPath string) error {
+func SetupUser(config config, userPath string) error {
 	repos, err := os.ReadDir(userPath)
 	if err != nil {
 		return err
@@ -86,7 +90,7 @@ func setupUser(config *config, userPath string) error {
 		}
 
 		path := filepath.Join(userPath, repo.Name())
-		if err := setup(config, path); err != nil {
+		if err := SetupRepo(config, path); err != nil {
 			if errors.Is(err, ErrNoGitRepo) {
 				continue
 			}
@@ -98,7 +102,7 @@ func setupUser(config *config, userPath string) error {
 }
 
 // setup hook in /scanpath/did:plc:user/repo
-func setup(config *config, path string) error {
+func SetupRepo(config config, path string) error {
 	if _, err := git.PlainOpen(path); err != nil {
 		return fmt.Errorf("%s: %w", path, ErrNoGitRepo)
 	}
@@ -121,7 +125,7 @@ func setup(config *config, path string) error {
 	return nil
 }
 
-func mkHook(config *config, hookPath string) error {
+func mkHook(config config, hookPath string) error {
 	executablePath, err := os.Executable()
 	if err != nil {
 		return err
