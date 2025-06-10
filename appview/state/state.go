@@ -45,6 +45,7 @@ type State struct {
 	jc           *jetstream.JetstreamClient
 	config       *config.Config
 	repoResolver *reporesolver.RepoResolver
+	knotstream   *knotclient.EventConsumer
 }
 
 func Make(config *config.Config) (*State, error) {
@@ -108,6 +109,12 @@ func Make(config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
 
+	knotstream, err := KnotstreamConsumer(config, d, enforcer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start knotstream consumer: %w", err)
+	}
+	knotstream.Start(context.Background())
+
 	state := &State{
 		d,
 		oauth,
@@ -120,6 +127,7 @@ func Make(config *config.Config) (*State, error) {
 		jc,
 		config,
 		repoResolver,
+		knotstream,
 	}
 
 	return state, nil
@@ -356,6 +364,9 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// add this knot to knotstream
+	go s.knotstream.AddSource(context.Background(), knotclient.EventSource{domain})
 
 	w.Write([]byte("check success"))
 }
