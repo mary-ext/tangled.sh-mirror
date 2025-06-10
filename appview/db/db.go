@@ -314,6 +314,13 @@ func Make(dbPath string) (*DB, error) {
 			expiry text not null
 		);
 
+		create table if not exists punchcard (
+			did text not null,
+			date text not null, -- yyyy-mm-dd
+			count integer,
+			primary key (did, date)
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
@@ -513,6 +520,22 @@ func FilterNotEq(key string, arg any) filter {
 		key: key,
 		arg: arg,
 		cmp: "<>",
+	}
+}
+
+func FilterGte(key string, arg any) filter {
+	return filter{
+		key: key,
+		arg: arg,
+		cmp: ">=",
+	}
+}
+
+func FilterLte(key string, arg any) filter {
+	return filter{
+		key: key,
+		arg: arg,
+		cmp: "<=",
 	}
 }
 
