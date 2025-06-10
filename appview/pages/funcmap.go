@@ -33,8 +33,14 @@ func funcMap() template.FuncMap {
 		"splitOn": func(s, sep string) []string {
 			return strings.Split(s, sep)
 		},
+		"int64": func(a int) int64 {
+			return int64(a)
+		},
 		"add": func(a, b int) int {
 			return a + b
+		},
+		"now": func() time.Time {
+			return time.Now()
 		},
 		// the absolute state of go templates
 		"add64": func(a, b int64) int64 {
@@ -79,6 +85,7 @@ func funcMap() template.FuncMap {
 		"longTimeFmt": func(t time.Time) string {
 			return t.Format("2006-01-02 * 3:04 PM")
 		},
+		"commaFmt": humanize.Comma,
 		"shortTimeFmt": func(t time.Time) string {
 			return humanize.CustomRelTime(t, time.Now(), "", "", []humanize.RelTimeMagnitude{
 				{time.Second, "now", time.Second},

@@ -316,6 +316,7 @@ type ProfilePageParams struct {
 	CollaboratingRepos []db.Repo
 	ProfileTimeline    *db.ProfileTimeline
 	Card               ProfileCard
+	Punchcard          db.Punchcard
 
 	DidHandleMap map[string]string
 }
