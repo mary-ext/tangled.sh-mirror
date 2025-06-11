@@ -1,0 +1,58 @@
+{
+  "lexicon": 1,
+  "id": "sh.tangled.pipeline.status",
+  "needsCbor": true,
+  "needsType": true,
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["pipeline", "status", "startedAt", "updatedAt"],
+        "properties": {
+          "pipeline": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "pipeline at ref"
+          },
+          "status": {
+            "type": "string",
+            "description": "Pipeline status",
+            "enum": [
+              "pending",
+              "running",
+              "failed",
+              "timeout",
+              "cancelled",
+              "success"
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "error message if failed"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "exit code if failed"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "pipeline start time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "pipeline last updated time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "pipeline finish time, if finished"
+          }
+        }
+      }
+    }
+  }
+}

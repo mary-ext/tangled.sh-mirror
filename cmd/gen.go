@@ -22,6 +22,7 @@ func main() {
 		tangled.GitRefUpdate{},
 		tangled.GraphFollow{},
 		tangled.KnotMember{},
+		tangled.PipelineStatus{},
 		tangled.Pipeline_CloneOpts{},
 		tangled.Pipeline_Dependencies_Elem{},
 		tangled.Pipeline_ManualTriggerData_Inputs_Elem{},
