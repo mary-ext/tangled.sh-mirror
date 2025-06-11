@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -62,8 +63,8 @@ type EventConsumer struct {
 }
 
 type CursorStore interface {
-	Set(knot, cursor string)
-	Get(knot string) (cursor string)
+	Set(knot string, cursor int64)
+	Get(knot string) (cursor int64)
 }
 
 type RedisCursorStore struct {
@@ -80,40 +81,45 @@ const (
 	cursorKey = "cursor:%s"
 )
 
-func (r *RedisCursorStore) Set(knot, cursor string) {
+func (r *RedisCursorStore) Set(knot string, cursor int64) {
 	key := fmt.Sprintf(cursorKey, knot)
 	r.rdb.Set(context.Background(), key, cursor, 0)
 }
 
-func (r *RedisCursorStore) Get(knot string) (cursor string) {
+func (r *RedisCursorStore) Get(knot string) (cursor int64) {
 	key := fmt.Sprintf(cursorKey, knot)
 	val, err := r.rdb.Get(context.Background(), key).Result()
 	if err != nil {
-		return ""
+		return 0
 	}
 
-	return val
+	cursor, err = strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0 // optionally log parsing error
+	}
+
+	return cursor
 }
 
 type MemoryCursorStore struct {
 	store sync.Map
 }
 
-func (m *MemoryCursorStore) Set(knot, cursor string) {
+func (m *MemoryCursorStore) Set(knot string, cursor int64) {
 	m.store.Store(knot, cursor)
 }
 
-func (m *MemoryCursorStore) Get(knot string) (cursor string) {
+func (m *MemoryCursorStore) Get(knot string) (cursor int64) {
 	if result, ok := m.store.Load(knot); ok {
-		if val, ok := result.(string); ok {
+		if val, ok := result.(int64); ok {
 			return val
 		}
 	}
 
-	return ""
+	return 0
 }
 
-func (e *EventConsumer) buildUrl(s EventSource, cursor string) (*url.URL, error) {
+func (e *EventConsumer) buildUrl(s EventSource, cursor int64) (*url.URL, error) {
 	scheme := "wss"
 	if e.cfg.Dev {
 		scheme = "ws"
@@ -124,9 +130,9 @@ func (e *EventConsumer) buildUrl(s EventSource, cursor string) (*url.URL, error)
 		return nil, err
 	}
 
-	if cursor != "" {
+	if cursor != 0 {
 		query := url.Values{}
-		query.Add("cursor", cursor)
+		query.Add("cursor", fmt.Sprintf("%d", cursor))
 		u.RawQuery = query.Encode()
 	}
 	return u, nil
@@ -222,7 +228,7 @@ func (c *EventConsumer) worker(ctx context.Context) {
 			}
 
 			// update cursor
-			c.cfg.CursorStore.Set(j.source.Knot, msg.Rkey)
+			c.cfg.CursorStore.Set(j.source.Knot, time.Now().Unix())
 
 			if err := c.cfg.ProcessFunc(j.source, msg); err != nil {
 				c.logger.Error("error processing message", "source", j.source, "err", err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -42,7 +43,11 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	cursor := r.URL.Query().Get("cursor")
+	cursorStr := r.URL.Query().Get("cursor")
+	cursor, err := strconv.ParseInt(cursorStr, 10, 64)
+	if err != nil {
+		l.Error("empty or invalid cursor, defaulting to zero", "invalidCursor", cursorStr)
+	}
 
 	// complete backfill first before going to live data
 	l.Debug("going through backfill", "cursor", cursor)
@@ -74,7 +79,7 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handle) streamOps(conn *websocket.Conn, cursor *string) error {
+func (h *Handle) streamOps(conn *websocket.Conn, cursor *int64) error {
 	events, err := h.db.GetEvents(*cursor)
 	if err != nil {
 		h.l.Error("failed to fetch events from db", "err", err, "cursor", cursor)
@@ -105,7 +110,7 @@ func (h *Handle) streamOps(conn *websocket.Conn, cursor *string) error {
 			h.l.Debug("err", "err", err)
 			return err
 		}
-		*cursor = event.Rkey
+		*cursor = event.Created
 	}
 
 	return nil

@@ -10,9 +10,11 @@ type Event struct {
 	Rkey      string `json:"rkey"`
 	Nsid      string `json:"nsid"`
 	EventJson string `json:"event"`
+	Created   int64  `json:"created"`
 }
 
 func (d *DB) InsertEvent(event Event, notifier *notifier.Notifier) error {
+
 	_, err := d.db.Exec(
 		`insert into events (rkey, nsid, event) values (?, ?, ?)`,
 		event.Rkey,
@@ -25,19 +27,19 @@ func (d *DB) InsertEvent(event Event, notifier *notifier.Notifier) error {
 	return err
 }
 
-func (d *DB) GetEvents(cursor string) ([]Event, error) {
+func (d *DB) GetEvents(cursor int64) ([]Event, error) {
 	whereClause := ""
 	args := []any{}
-	if cursor != "" {
-		whereClause = "where rkey > ?"
+	if cursor > 0 {
+		whereClause = "where created > ?"
 		args = append(args, cursor)
 	}
 
 	query := fmt.Sprintf(`
-		select rkey, nsid, event
+		select rkey, nsid, event, created
 		from events
 		%s
-		order by rkey asc
+		order by created asc
 		limit 100
 	`, whereClause)
 
@@ -50,7 +52,9 @@ func (d *DB) GetEvents(cursor string) ([]Event, error) {
 	var evts []Event
 	for rows.Next() {
 		var ev Event
-		rows.Scan(&ev.Rkey, &ev.Nsid, &ev.EventJson)
+		if err := rows.Scan(&ev.Rkey, &ev.Nsid, &ev.EventJson, &ev.Created); err != nil {
+			return nil, err
+		}
 		evts = append(evts, ev)
 	}
 

@@ -48,6 +48,7 @@ func Setup(dbPath string) (*DB, error) {
 			rkey text not null,
 			nsid text not null,
 			event text not null, -- json
+			created integer not null default (strftime('%s', 'now')),
 			primary key (rkey, nsid)
 		);
 	`)
