@@ -674,17 +674,13 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hook.SetupRepo(hook.Config(
-		hook.WithScanPath(h.c.Repo.ScanPath),
-		hook.WithInternalApi(h.c.Server.InternalListenAddr),
-	),
+	hook.SetupRepo(
+		hook.Config(
+			hook.WithScanPath(h.c.Repo.ScanPath),
+			hook.WithInternalApi(h.c.Server.InternalListenAddr),
+		),
 		repoPath,
 	)
-	if err != nil {
-		l.Error("setting up hooks", "error", err.Error())
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -933,6 +929,14 @@ func (h *Handle) RepoFork(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	hook.SetupRepo(
+		hook.Config(
+			hook.WithScanPath(h.c.Repo.ScanPath),
+			hook.WithInternalApi(h.c.Server.InternalListenAddr),
+		),
+		repoPath,
+	)
 
 	w.WriteHeader(http.StatusNoContent)
 }
