@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"context"
+
 	"github.com/gorilla/websocket"
-	"golang.org/x/net/context"
 )
 
 var upgrader = websocket.Upgrader{
@@ -74,7 +75,7 @@ func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *string) error {
-	ops, err := s.db.GetPipelines(*cursor)
+	ops, err := s.db.GetPipelineStatusAsRecords(*cursor)
 	if err != nil {
 		s.l.Debug("err", "err", err)
 		return err

@@ -11,6 +11,7 @@ type Server struct {
 	DBPath            string `env:"DB_PATH, default=spindle.db"`
 	Hostname          string `env:"HOSTNAME, required"`
 	JetstreamEndpoint string `env:"JETSTREAM_ENDPOINT, default=wss://jetstream1.us-west.bsky.network/subscribe"`
+	Dev               bool   `env:"DEV, default=false"`
 }
 
 type Config struct {

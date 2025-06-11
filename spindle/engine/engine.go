@@ -47,7 +47,7 @@ func New(ctx context.Context, db *db.DB, n *notifier.Notifier) (*Engine, error) 
 
 // SetupPipeline sets up a new network for the pipeline, and possibly volumes etc.
 // in the future. In here also goes other setup steps.
-func (e *Engine) SetupPipeline(ctx context.Context, pipeline *tangled.Pipeline, id string) error {
+func (e *Engine) SetupPipeline(ctx context.Context, pipeline *tangled.Pipeline, atUri, id string) error {
 	e.l.Info("setting up pipeline", "pipeline", id)
 
 	_, err := e.docker.VolumeCreate(ctx, volume.CreateOptions{
@@ -73,7 +73,7 @@ func (e *Engine) SetupPipeline(ctx context.Context, pipeline *tangled.Pipeline, 
 		return err
 	}
 
-	err = e.db.CreatePipeline(id, e.n)
+	err = e.db.CreatePipeline(id, atUri, e.n)
 	return err
 }
 

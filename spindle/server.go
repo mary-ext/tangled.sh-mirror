@@ -70,13 +70,14 @@ func Run(ctx context.Context) error {
 	go func() {
 		logger.Info("starting event consumer")
 		knotEventSource := knotclient.NewEventSource("localhost:5555")
-		ccfg := knotclient.ConsumerConfig{
-			Logger:      logger,
-			ProcessFunc: spindle.exec,
-		}
+
+		ccfg := knotclient.NewConsumerConfig()
+		ccfg.Logger = logger
+		ccfg.Dev = cfg.Server.Dev
+		ccfg.ProcessFunc = spindle.exec
 		ccfg.AddEventSource(knotEventSource)
 
-		ec := knotclient.NewEventConsumer(ccfg)
+		ec := knotclient.NewEventConsumer(*ccfg)
 
 		ec.Start(ctx)
 	}()
@@ -95,19 +96,23 @@ func (s *Spindle) Router() http.Handler {
 }
 
 func (s *Spindle) exec(ctx context.Context, src knotclient.EventSource, msg knotclient.Message) error {
-	pipeline := tangled.Pipeline{}
-	err := json.Unmarshal(msg.EventJson, &pipeline)
-	if err != nil {
-		fmt.Println("error unmarshalling", err)
-		return err
-	}
-
 	if msg.Nsid == tangled.PipelineNSID {
-		err = s.eng.SetupPipeline(ctx, &pipeline, msg.Rkey)
+		pipeline := tangled.Pipeline{}
+		err := json.Unmarshal(msg.EventJson, &pipeline)
+		if err != nil {
+			fmt.Println("error unmarshalling", err)
+			return err
+		}
+
+		// this is a "fake" at uri for now
+		pipelineAtUri := fmt.Sprintf("at://%s/did:web:%s/%s", tangled.PipelineNSID, pipeline.TriggerMetadata.Repo.Knot, msg.Rkey)
+
+		rkey := TID()
+		err = s.eng.SetupPipeline(ctx, &pipeline, pipelineAtUri, rkey)
 		if err != nil {
 			return err
 		}
-		err = s.eng.StartWorkflows(ctx, &pipeline, msg.Rkey)
+		err = s.eng.StartWorkflows(ctx, &pipeline, rkey)
 		if err != nil {
 			return err
 		}

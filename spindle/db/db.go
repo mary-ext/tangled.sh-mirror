@@ -30,8 +30,9 @@ func Make(dbPath string) (*DB, error) {
 			did text primary key
 		);
 
-		create table if not exists pipelines (
-			at_uri text not null,
+		create table if not exists pipeline_status (
+			rkey text not null,
+			pipeline text not null,
 			status text not null,
 
 			-- only set if status is 'failed'
@@ -42,7 +43,7 @@ func Make(dbPath string) (*DB, error) {
 			updated_at timestamp not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 			finished_at timestamp,
 
-			primary key (at_uri)
+			primary key (rkey)
 		);
 	`)
 	if err != nil {
