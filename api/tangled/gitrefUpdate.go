@@ -4,22 +4,23 @@ package tangled
 
 // schema: sh.tangled.git.refUpdate
 
-//import (
-//	"github.com/bluesky-social/indigo/lex/util"
-//)
+import (
+	"github.com/bluesky-social/indigo/lex/util"
+)
 
 const (
 	GitRefUpdateNSID = "sh.tangled.git.refUpdate"
 )
 
-//func init() {
-//	util.RegisterType("sh.tangled.git.refUpdate", &GitRefUpdate{})
-//} //
+func init() {
+	util.RegisterType("sh.tangled.git.refUpdate", &GitRefUpdate{})
+} //
 // RECORDTYPE: GitRefUpdate
 type GitRefUpdate struct {
 	LexiconTypeID string `json:"$type,const=sh.tangled.git.refUpdate" cborgen:"$type,const=sh.tangled.git.refUpdate"`
 	// committerDid: did of the user that pushed this ref
-	CommitterDid string `json:"committerDid" cborgen:"committerDid"`
+	CommitterDid string             `json:"committerDid" cborgen:"committerDid"`
+	Meta         *GitRefUpdate_Meta `json:"meta" cborgen:"meta"`
 	// newSha: new SHA of this ref
 	NewSha string `json:"newSha" cborgen:"newSha"`
 	// oldSha: old SHA of this ref
@@ -30,4 +31,18 @@ type GitRefUpdate struct {
 	RepoDid string `json:"repoDid" cborgen:"repoDid"`
 	// repoName: name of the repo
 	RepoName string `json:"repoName" cborgen:"repoName"`
+}
+
+type GitRefUpdate_Meta struct {
+	CommitCount  *GitRefUpdate_Meta_CommitCount `json:"commitCount" cborgen:"commitCount"`
+	IsDefaultRef bool                           `json:"isDefaultRef" cborgen:"isDefaultRef"`
+}
+
+type GitRefUpdate_Meta_CommitCount struct {
+	ByEmail []*GitRefUpdate_Meta_CommitCount_ByEmail_Elem `json:"byEmail,omitempty" cborgen:"byEmail,omitempty"`
+}
+
+type GitRefUpdate_Meta_CommitCount_ByEmail_Elem struct {
+	Count int64  `json:"count" cborgen:"count"`
+	Email string `json:"email" cborgen:"email"`
 }

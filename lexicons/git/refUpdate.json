@@ -14,7 +14,8 @@
           "repoDid",
           "repoName",
           "oldSha",
-          "newSha"
+          "newSha",
+          "meta"
         ],
         "properties": {
           "ref": {
@@ -48,6 +49,43 @@
             "description": "new SHA of this ref",
             "minLength": 40,
             "maxLength": 40
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "isDefaultRef",
+              "commitCount"
+            ],
+            "properties": {
+              "isDefaultRef": {
+                "type": "boolean",
+                "default": "false"
+              },
+              "commitCount": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "byEmail": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "email",
+                        "count"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

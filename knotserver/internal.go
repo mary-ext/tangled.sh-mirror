@@ -105,13 +105,32 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
+	didSlashRepo, err := securejoin.SecureJoin(repoDid, repoName)
+	if err != nil {
+		return err
+	}
+
+	repoPath, err := securejoin.SecureJoin(h.c.Repo.ScanPath, didSlashRepo)
+	if err != nil {
+		return err
+	}
+
+	gr, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return err
+	}
+
+	meta := gr.RefUpdateMeta(line)
+	metaRecord := meta.AsRecord()
+
 	refUpdate := tangled.GitRefUpdate{
-		OldSha:       line.OldSha,
-		NewSha:       line.NewSha,
+		OldSha:       line.OldSha.String(),
+		NewSha:       line.NewSha.String(),
 		Ref:          line.Ref,
 		CommitterDid: gitUserDid,
 		RepoDid:      repoDid,
 		RepoName:     repoName,
+		Meta:         &metaRecord,
 	}
 	eventJson, err := json.Marshal(refUpdate)
 	if err != nil {
@@ -175,8 +194,8 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 
 	trigger := tangled.Pipeline_PushTriggerData{
 		Ref:    line.Ref,
-		OldSha: line.OldSha,
-		NewSha: line.NewSha,
+		OldSha: line.OldSha.String(),
+		NewSha: line.NewSha.String(),
 	}
 
 	compiler := workflow.Compiler{

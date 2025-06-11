@@ -4,17 +4,17 @@ package tangled
 
 // schema: sh.tangled.pipeline
 
-//import (
-//	"github.com/bluesky-social/indigo/lex/util"
-//)
+import (
+	"github.com/bluesky-social/indigo/lex/util"
+)
 
 const (
 	PipelineNSID = "sh.tangled.pipeline"
 )
 
-//func init() {
-//	util.RegisterType("sh.tangled.pipeline", &Pipeline{})
-//} //
+func init() {
+	util.RegisterType("sh.tangled.pipeline", &Pipeline{})
+} //
 // RECORDTYPE: Pipeline
 type Pipeline struct {
 	LexiconTypeID   string                    `json:"$type,const=sh.tangled.pipeline" cborgen:"$type,const=sh.tangled.pipeline"`
