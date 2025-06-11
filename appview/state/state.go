@@ -109,7 +109,7 @@ func Make(config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
 
-	knotstream, err := KnotstreamConsumer(config, d, enforcer)
+	knotstream, err := KnotstreamConsumer(config, d, enforcer, posthog)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start knotstream consumer: %w", err)
 	}

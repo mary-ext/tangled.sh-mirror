@@ -13,9 +13,11 @@ import (
 	kc "tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
+
+	"github.com/posthog/posthog-go"
 )
 
-func KnotstreamConsumer(c *config.Config, d *db.DB, enforcer *rbac.Enforcer) (*kc.EventConsumer, error) {
+func KnotstreamConsumer(c *config.Config, d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client) (*kc.EventConsumer, error) {
 	knots, err := db.GetCompletedRegistrations(d)
 	if err != nil {
 		return nil, err
@@ -33,7 +35,7 @@ func KnotstreamConsumer(c *config.Config, d *db.DB, enforcer *rbac.Enforcer) (*k
 
 	cfg := kc.ConsumerConfig{
 		Sources:           srcs,
-		ProcessFunc:       knotstreamIngester(d, enforcer),
+		ProcessFunc:       knotstreamIngester(d, enforcer, posthog, c.Core.Dev),
 		RetryInterval:     c.Knotstream.RetryInterval,
 		MaxRetryInterval:  c.Knotstream.MaxRetryInterval,
 		ConnectionTimeout: c.Knotstream.ConnectionTimeout,
@@ -47,11 +49,11 @@ func KnotstreamConsumer(c *config.Config, d *db.DB, enforcer *rbac.Enforcer) (*k
 	return kc.NewEventConsumer(cfg), nil
 }
 
-func knotstreamIngester(d *db.DB, enforcer *rbac.Enforcer) kc.ProcessFunc {
+func knotstreamIngester(d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client, dev bool) kc.ProcessFunc {
 	return func(source kc.EventSource, msg kc.Message) error {
 		switch msg.Nsid {
 		case tangled.GitRefUpdateNSID:
-			return ingestRefUpdate(d, enforcer, source, msg)
+			return ingestRefUpdate(d, enforcer, posthog, dev, source, msg)
 		case tangled.PipelineNSID:
 			// TODO
 		}
@@ -60,7 +62,7 @@ func knotstreamIngester(d *db.DB, enforcer *rbac.Enforcer) kc.ProcessFunc {
 	}
 }
 
-func ingestRefUpdate(d *db.DB, enforcer *rbac.Enforcer, source kc.EventSource, msg kc.Message) error {
+func ingestRefUpdate(d *db.DB, enforcer *rbac.Enforcer, pc posthog.Client, dev bool, source kc.EventSource, msg kc.Message) error {
 	var record tangled.GitRefUpdate
 	err := json.Unmarshal(msg.EventJson, &record)
 	if err != nil {
@@ -104,6 +106,16 @@ func ingestRefUpdate(d *db.DB, enforcer *rbac.Enforcer, source kc.EventSource, m
 	}
 	if err := db.AddPunch(d, punch); err != nil {
 		return err
+	}
+
+	if !dev {
+		err = pc.Enqueue(posthog.Capture{
+			DistinctId: record.CommitterDid,
+			Event:      "git_ref_update",
+		})
+		if err != nil {
+			// non-fatal, TODO: log this
+		}
 	}
 
 	return nil
