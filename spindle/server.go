@@ -53,7 +53,7 @@ func Run(ctx context.Context) error {
 
 	n := notifier.New()
 
-	eng, err := engine.New(ctx, d)
+	eng, err := engine.New(ctx, d, &n)
 	if err != nil {
 		return err
 	}

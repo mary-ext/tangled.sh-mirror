@@ -18,6 +18,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"golang.org/x/sync/errgroup"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/spindle/db"
 )
@@ -30,9 +31,10 @@ type Engine struct {
 	docker client.APIClient
 	l      *slog.Logger
 	db     *db.DB
+	n      *notifier.Notifier
 }
 
-func New(ctx context.Context, db *db.DB) (*Engine, error) {
+func New(ctx context.Context, db *db.DB, n *notifier.Notifier) (*Engine, error) {
 	dcli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
@@ -40,7 +42,7 @@ func New(ctx context.Context, db *db.DB) (*Engine, error) {
 
 	l := log.FromContext(ctx).With("component", "spindle")
 
-	return &Engine{docker: dcli, l: l, db: db}, nil
+	return &Engine{docker: dcli, l: l, db: db, n: n}, nil
 }
 
 // SetupPipeline sets up a new network for the pipeline, and possibly volumes etc.
@@ -71,14 +73,14 @@ func (e *Engine) SetupPipeline(ctx context.Context, pipeline *tangled.Pipeline, 
 		return err
 	}
 
-	err = e.db.CreatePipeline(id)
+	err = e.db.CreatePipeline(id, e.n)
 	return err
 }
 
 func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline, id string) error {
 	e.l.Info("starting all workflows in parallel", "pipeline", id)
 
-	err := e.db.MarkPipelineRunning(id)
+	err := e.db.MarkPipelineRunning(id, e.n)
 	if err != nil {
 		return err
 	}
@@ -101,7 +103,7 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline,
 			reader, err := e.docker.ImagePull(ctx, cimg, image.PullOptions{})
 			if err != nil {
 				e.l.Error("pipeline failed!", "id", id, "error", err.Error())
-				err := e.db.MarkPipelineFailed(id, -1, err.Error())
+				err := e.db.MarkPipelineFailed(id, -1, err.Error(), e.n)
 				if err != nil {
 					return err
 				}
@@ -113,7 +115,7 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline,
 			err = e.StartSteps(ctx, w.Steps, id, cimg)
 			if err != nil {
 				e.l.Error("pipeline failed!", "id", id, "error", err.Error())
-				return e.db.MarkPipelineFailed(id, -1, err.Error())
+				return e.db.MarkPipelineFailed(id, -1, err.Error(), e.n)
 			}
 
 			return nil
@@ -123,11 +125,11 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline,
 	err = g.Wait()
 	if err != nil {
 		e.l.Error("pipeline failed!", "id", id, "error", err.Error())
-		return e.db.MarkPipelineFailed(id, -1, err.Error())
+		return e.db.MarkPipelineFailed(id, -1, err.Error(), e.n)
 	}
 
 	e.l.Info("pipeline success!", "id", id)
-	return e.db.MarkPipelineSuccess(id)
+	return e.db.MarkPipelineSuccess(id, e.n)
 }
 
 // StartSteps starts all steps sequentially with the same base image.
@@ -181,7 +183,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step,
 
 		if state.ExitCode != 0 {
 			e.l.Error("pipeline failed!", "id", id, "error", state.Error, "exit_code", state.ExitCode)
-			return e.db.MarkPipelineFailed(id, state.ExitCode, state.Error)
+			return e.db.MarkPipelineFailed(id, state.ExitCode, state.Error, e.n)
 		}
 	}
 
