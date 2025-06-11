@@ -71,15 +71,36 @@ func ingestRefUpdate(d *db.DB, enforcer *rbac.Enforcer, source kc.EventSource, m
 	if err != nil {
 		return err
 	}
-
 	if !slices.Contains(knownKnots, source.Knot) {
 		return fmt.Errorf("%s does not belong to %s, something is fishy", record.CommitterDid, source.Knot)
+	}
+
+	knownEmails, err := db.GetAllEmails(d, record.CommitterDid)
+	if err != nil {
+		return err
+	}
+	count := 0
+	for _, ke := range knownEmails {
+		if record.Meta == nil {
+			continue
+		}
+		if record.Meta.CommitCount == nil {
+			continue
+		}
+		for _, ce := range record.Meta.CommitCount.ByEmail {
+			if ce == nil {
+				continue
+			}
+			if ce.Email == ke.Address {
+				count += int(ce.Count)
+			}
+		}
 	}
 
 	punch := db.Punch{
 		Did:   record.CommitterDid,
 		Date:  time.Now(),
-		Count: 1,
+		Count: count,
 	}
 	if err := db.AddPunch(d, punch); err != nil {
 		return err
