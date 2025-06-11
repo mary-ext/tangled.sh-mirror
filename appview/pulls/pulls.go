@@ -203,7 +203,7 @@ func (s *Pulls) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db
 	patch := pull.LatestPatch()
 	if pull.IsStacked() {
 		// combine patches of substack
-		subStack := stack.StrictlyBelow(pull)
+		subStack := stack.Below(pull)
 		// collect the portion of the stack that is mergeable
 		mergeable := subStack.Mergeable()
 		// combine each patch
