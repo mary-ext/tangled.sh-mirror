@@ -16,7 +16,7 @@ var upgrader = websocket.Upgrader{
 
 func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "OpLog")
-	l.Info("received new connection")
+	l.Debug("received new connection")
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -25,7 +25,7 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	l.Info("upgraded http to wss")
+	l.Debug("upgraded http to wss")
 
 	ch := h.n.Subscribe()
 	defer h.n.Unsubscribe(ch)
@@ -45,7 +45,7 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 	cursor := r.URL.Query().Get("cursor")
 
 	// complete backfill first before going to live data
-	l.Info("going through backfill", "cursor", cursor)
+	l.Debug("going through backfill", "cursor", cursor)
 	if err := h.streamOps(conn, &cursor); err != nil {
 		l.Error("failed to backfill", "err", err)
 		return
@@ -55,18 +55,18 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 		// wait for new data or timeout
 		select {
 		case <-ctx.Done():
-			l.Info("stopping stream: client closed connection")
+			l.Debug("stopping stream: client closed connection")
 			return
 		case <-ch:
 			// we have been notified of new data
-			l.Info("going through live data", "cursor", cursor)
+			l.Debug("going through live data", "cursor", cursor)
 			if err := h.streamOps(conn, &cursor); err != nil {
 				l.Error("failed to stream", "err", err)
 				return
 			}
 		case <-time.After(30 * time.Second):
 			// send a keep-alive
-			l.Info("sent keepalive")
+			l.Debug("sent keepalive")
 			if err = conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
 				l.Error("failed to write control", "err", err)
 			}
