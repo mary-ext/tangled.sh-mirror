@@ -43,10 +43,14 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	defaultCursor := time.Now().UnixNano()
 	cursorStr := r.URL.Query().Get("cursor")
 	cursor, err := strconv.ParseInt(cursorStr, 10, 64)
 	if err != nil {
-		l.Error("empty or invalid cursor, defaulting to zero", "invalidCursor", cursorStr)
+		l.Error("empty or invalid cursor", "invalidCursor", cursorStr, "default", defaultCursor)
+	}
+	if cursor == 0 {
+		cursor = defaultCursor
 	}
 
 	// complete backfill first before going to live data

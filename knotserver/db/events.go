@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"tangled.sh/tangled.sh/core/notifier"
 )
@@ -16,10 +17,11 @@ type Event struct {
 func (d *DB) InsertEvent(event Event, notifier *notifier.Notifier) error {
 
 	_, err := d.db.Exec(
-		`insert into events (rkey, nsid, event) values (?, ?, ?)`,
+		`insert into events (rkey, nsid, event, created) values (?, ?, ?, ?)`,
 		event.Rkey,
 		event.Nsid,
 		event.EventJson,
+		time.Now().UnixNano(),
 	)
 
 	notifier.NotifyAll()
