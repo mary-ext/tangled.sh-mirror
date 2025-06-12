@@ -17,6 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/spindle/config"
 	"tangled.sh/tangled.sh/core/spindle/db"
 	"tangled.sh/tangled.sh/core/spindle/engine"
+	"tangled.sh/tangled.sh/core/spindle/queue"
 )
 
 type Spindle struct {
@@ -26,6 +27,7 @@ type Spindle struct {
 	l   *slog.Logger
 	n   *notifier.Notifier
 	eng *engine.Engine
+	jq  *queue.Queue
 }
 
 func Run(ctx context.Context) error {
@@ -58,6 +60,11 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
+	jq := queue.NewQueue(100)
+
+	// starts a job queue runner in the background
+	jq.StartRunner()
+
 	spindle := Spindle{
 		jc:  jc,
 		e:   e,
@@ -65,8 +72,12 @@ func Run(ctx context.Context) error {
 		l:   logger,
 		n:   &n,
 		eng: eng,
+		jq:  jq,
 	}
 
+	// for each incoming sh.tangled.pipeline, we execute
+	// spindle.processPipeline, which in turn enqueues the pipeline
+	// job in the above registered queue.
 	go func() {
 		logger.Info("starting event consumer")
 		knotEventSource := knotclient.NewEventSource("localhost:5555")
@@ -74,7 +85,7 @@ func Run(ctx context.Context) error {
 		ccfg := knotclient.NewConsumerConfig()
 		ccfg.Logger = logger
 		ccfg.Dev = cfg.Server.Dev
-		ccfg.ProcessFunc = spindle.exec
+		ccfg.ProcessFunc = spindle.processPipeline
 		ccfg.AddEventSource(knotEventSource)
 
 		ec := knotclient.NewEventConsumer(*ccfg)
@@ -96,7 +107,7 @@ func (s *Spindle) Router() http.Handler {
 	return mux
 }
 
-func (s *Spindle) exec(ctx context.Context, src knotclient.EventSource, msg knotclient.Message) error {
+func (s *Spindle) processPipeline(ctx context.Context, src knotclient.EventSource, msg knotclient.Message) error {
 	if msg.Nsid == tangled.PipelineNSID {
 		pipeline := tangled.Pipeline{}
 		err := json.Unmarshal(msg.EventJson, &pipeline)
@@ -105,17 +116,26 @@ func (s *Spindle) exec(ctx context.Context, src knotclient.EventSource, msg knot
 			return err
 		}
 
-		// this is a "fake" at uri for now
-		pipelineAtUri := fmt.Sprintf("at://%s/did:web:%s/%s", tangled.PipelineNSID, pipeline.TriggerMetadata.Repo.Knot, msg.Rkey)
+		ok := s.jq.Enqueue(queue.Job{
+			Run: func() error {
+				// this is a "fake" at uri for now
+				pipelineAtUri := fmt.Sprintf("at://%s/did:web:%s/%s", tangled.PipelineNSID, pipeline.TriggerMetadata.Repo.Knot, msg.Rkey)
 
-		rkey := TID()
-		err = s.eng.SetupPipeline(ctx, &pipeline, pipelineAtUri, rkey)
-		if err != nil {
-			return err
-		}
-		err = s.eng.StartWorkflows(ctx, &pipeline, rkey)
-		if err != nil {
-			return err
+				rkey := TID()
+				err = s.eng.SetupPipeline(ctx, &pipeline, pipelineAtUri, rkey)
+				if err != nil {
+					return err
+				}
+				return s.eng.StartWorkflows(ctx, &pipeline, rkey)
+			},
+			OnFail: func(error) {
+				s.l.Error("pipeline setup failed", "error", err)
+			},
+		})
+		if ok {
+			s.l.Info("pipeline enqueued successfully", "id", msg.Rkey)
+		} else {
+			s.l.Error("failed to enqueue pipeline: queue is full")
 		}
 	}
 
