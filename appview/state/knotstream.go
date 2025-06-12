@@ -12,6 +12,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	kc "tangled.sh/tangled.sh/core/knotclient"
+	"tangled.sh/tangled.sh/core/knotclient/cursor"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
 
@@ -32,7 +33,7 @@ func KnotstreamConsumer(ctx context.Context, c *config.Config, d *db.DB, enforce
 
 	logger := log.New("knotstream")
 	cache := cache.New(c.Redis.Addr)
-	cursorStore := kc.NewRedisCursorStore(cache)
+	cursorStore := cursor.NewRedisCursorStore(cache)
 
 	cfg := kc.ConsumerConfig{
 		Sources:           srcs,

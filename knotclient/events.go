@@ -7,11 +7,10 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/url"
-	"strconv"
 	"sync"
 	"time"
 
-	"tangled.sh/tangled.sh/core/appview/cache"
+	"tangled.sh/tangled.sh/core/knotclient/cursor"
 	"tangled.sh/tangled.sh/core/log"
 
 	"github.com/gorilla/websocket"
@@ -36,7 +35,7 @@ type ConsumerConfig struct {
 	QueueSize         int
 	Logger            *slog.Logger
 	Dev               bool
-	CursorStore       CursorStore
+	CursorStore       cursor.Store
 }
 
 func NewConsumerConfig() *ConsumerConfig {
@@ -70,63 +69,6 @@ type EventConsumer struct {
 	// rw lock over edits to ConsumerConfig
 	cfgMu sync.RWMutex
 	cfg   ConsumerConfig
-}
-
-type CursorStore interface {
-	Set(knot string, cursor int64)
-	Get(knot string) (cursor int64)
-}
-
-type RedisCursorStore struct {
-	rdb *cache.Cache
-}
-
-func NewRedisCursorStore(cache *cache.Cache) RedisCursorStore {
-	return RedisCursorStore{
-		rdb: cache,
-	}
-}
-
-const (
-	cursorKey = "cursor:%s"
-)
-
-func (r *RedisCursorStore) Set(knot string, cursor int64) {
-	key := fmt.Sprintf(cursorKey, knot)
-	r.rdb.Set(context.Background(), key, cursor, 0)
-}
-
-func (r *RedisCursorStore) Get(knot string) (cursor int64) {
-	key := fmt.Sprintf(cursorKey, knot)
-	val, err := r.rdb.Get(context.Background(), key).Result()
-	if err != nil {
-		return 0
-	}
-
-	cursor, err = strconv.ParseInt(val, 10, 64)
-	if err != nil {
-		return 0 // optionally log parsing error
-	}
-
-	return cursor
-}
-
-type MemoryCursorStore struct {
-	store sync.Map
-}
-
-func (m *MemoryCursorStore) Set(knot string, cursor int64) {
-	m.store.Store(knot, cursor)
-}
-
-func (m *MemoryCursorStore) Get(knot string) (cursor int64) {
-	if result, ok := m.store.Load(knot); ok {
-		if val, ok := result.(int64); ok {
-			return val
-		}
-	}
-
-	return 0
 }
 
 func (e *EventConsumer) buildUrl(s EventSource, cursor int64) (*url.URL, error) {
@@ -173,7 +115,7 @@ func NewEventConsumer(cfg ConsumerConfig) *EventConsumer {
 		cfg.QueueSize = 100
 	}
 	if cfg.CursorStore == nil {
-		cfg.CursorStore = &MemoryCursorStore{}
+		cfg.CursorStore = &cursor.MemoryStore{}
 	}
 	return &EventConsumer{
 		cfg:        cfg,
