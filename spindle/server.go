@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"golang.org/x/net/context"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/jetstream"
@@ -52,7 +53,6 @@ func Run(ctx context.Context) error {
 	}
 
 	n := notifier.New()
-
 	eng, err := engine.New(ctx, d, &n)
 	if err != nil {
 		return err
@@ -89,9 +89,10 @@ func Run(ctx context.Context) error {
 }
 
 func (s *Spindle) Router() http.Handler {
-	mux := &http.ServeMux{}
+	mux := chi.NewRouter()
 
 	mux.HandleFunc("/events", s.Events)
+	mux.HandleFunc("/logs/{pipelineID}", s.Logs)
 	return mux
 }
 

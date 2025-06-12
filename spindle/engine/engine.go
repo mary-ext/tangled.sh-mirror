@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -32,6 +33,10 @@ type Engine struct {
 	l      *slog.Logger
 	db     *db.DB
 	n      *notifier.Notifier
+
+	chanMu      sync.RWMutex
+	stdoutChans map[string]chan string
+	stderrChans map[string]chan string
 }
 
 func New(ctx context.Context, db *db.DB, n *notifier.Notifier) (*Engine, error) {
@@ -42,7 +47,17 @@ func New(ctx context.Context, db *db.DB, n *notifier.Notifier) (*Engine, error) 
 
 	l := log.FromContext(ctx).With("component", "spindle")
 
-	return &Engine{docker: dcli, l: l, db: db, n: n}, nil
+	e := &Engine{
+		docker: dcli,
+		l:      l,
+		db:     db,
+		n:      n,
+	}
+
+	e.stdoutChans = make(map[string]chan string, 100)
+	e.stderrChans = make(map[string]chan string, 100)
+
+	return e, nil
 }
 
 // SetupPipeline sets up a new network for the pipeline, and possibly volumes etc.
@@ -136,6 +151,22 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline,
 // ONLY marks pipeline as failed if container's exit code is non-zero.
 // All other errors are bubbled up.
 func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step, id, image string) error {
+	// set up logging channels
+	e.chanMu.Lock()
+	if _, exists := e.stdoutChans[id]; !exists {
+		e.stdoutChans[id] = make(chan string, 100)
+	}
+	if _, exists := e.stderrChans[id]; !exists {
+		e.stderrChans[id] = make(chan string, 100)
+	}
+	e.chanMu.Unlock()
+
+	// close channels after all steps are complete
+	defer func() {
+		close(e.stdoutChans[id])
+		close(e.stderrChans[id])
+	}()
+
 	for _, step := range steps {
 		hostConfig := hostConfig(id)
 		resp, err := e.docker.ContainerCreate(ctx, &container.Config{
@@ -166,7 +197,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step,
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := e.TailStep(ctx, resp.ID)
+			err := e.TailStep(ctx, resp.ID, id)
 			if err != nil {
 				e.l.Error("failed to tail container", "container", resp.ID)
 				return
@@ -211,7 +242,7 @@ func (e *Engine) WaitStep(ctx context.Context, containerID string) (*container.S
 	return info.State, nil
 }
 
-func (e *Engine) TailStep(ctx context.Context, containerID string) error {
+func (e *Engine) TailStep(ctx context.Context, containerID, pipelineID string) error {
 	logs, err := e.docker.ContainerLogs(ctx, containerID, container.LogsOptions{
 		Follow:     true,
 		ShowStdout: true,
@@ -223,11 +254,73 @@ func (e *Engine) TailStep(ctx context.Context, containerID string) error {
 		return err
 	}
 
+	// using StdCopy we demux logs and stream stdout and stderr to different
+	// channels.
+	//
+	//    stdout w||r stdoutCh
+	//    stderr w||r stderrCh
+	//
+
+	rpipeOut, wpipeOut := io.Pipe()
+	rpipeErr, wpipeErr := io.Pipe()
+
 	go func() {
-		_, _ = stdcopy.StdCopy(os.Stdout, os.Stdout, logs)
-		_ = logs.Close()
+		defer wpipeOut.Close()
+		defer wpipeErr.Close()
+		_, err := stdcopy.StdCopy(wpipeOut, wpipeErr, logs)
+		if err != nil && err != io.EOF {
+			e.l.Error("failed to copy logs", "error", err)
+		}
 	}()
+
+	// read from stdout and send to stdout pipe
+	// NOTE: the stdoutCh channnel is closed further up in StartSteps
+	// once all steps are done.
+	go func() {
+		e.chanMu.RLock()
+		stdoutCh := e.stdoutChans[pipelineID]
+		e.chanMu.RUnlock()
+
+		scanner := bufio.NewScanner(rpipeOut)
+		for scanner.Scan() {
+			stdoutCh <- scanner.Text()
+		}
+		if err := scanner.Err(); err != nil {
+			e.l.Error("failed to scan stdout", "error", err)
+		}
+	}()
+
+	// read from stderr and send to stderr pipe
+	// NOTE: the stderrCh channnel is closed further up in StartSteps
+	// once all steps are done.
+	go func() {
+		e.chanMu.RLock()
+		stderrCh := e.stderrChans[pipelineID]
+		e.chanMu.RUnlock()
+
+		scanner := bufio.NewScanner(rpipeErr)
+		for scanner.Scan() {
+			stderrCh <- scanner.Text()
+		}
+		if err := scanner.Err(); err != nil {
+			e.l.Error("failed to scan stderr", "error", err)
+		}
+	}()
+
 	return nil
+}
+
+func (e *Engine) LogChannels(pipelineID string) (stdout <-chan string, stderr <-chan string, ok bool) {
+	e.chanMu.RLock()
+	defer e.chanMu.RUnlock()
+
+	stdoutCh, ok1 := e.stdoutChans[pipelineID]
+	stderrCh, ok2 := e.stderrChans[pipelineID]
+
+	if !ok1 || !ok2 {
+		return nil, nil, false
+	}
+	return stdoutCh, stderrCh, true
 }
 
 func workspaceVolume(id string) string {
