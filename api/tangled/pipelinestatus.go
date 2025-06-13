@@ -18,18 +18,16 @@ func init() {
 // RECORDTYPE: PipelineStatus
 type PipelineStatus struct {
 	LexiconTypeID string `json:"$type,const=sh.tangled.pipeline.status" cborgen:"$type,const=sh.tangled.pipeline.status"`
+	// createdAt: time of creation of this status update
+	CreatedAt string `json:"createdAt" cborgen:"createdAt"`
 	// error: error message if failed
 	Error *string `json:"error,omitempty" cborgen:"error,omitempty"`
 	// exitCode: exit code if failed
 	ExitCode *int64 `json:"exitCode,omitempty" cborgen:"exitCode,omitempty"`
-	// finishedAt: pipeline finish time, if finished
-	FinishedAt *string `json:"finishedAt,omitempty" cborgen:"finishedAt,omitempty"`
-	// pipeline: pipeline at ref
+	// pipeline: ATURI of the pipeline
 	Pipeline string `json:"pipeline" cborgen:"pipeline"`
-	// startedAt: pipeline start time
-	StartedAt string `json:"startedAt" cborgen:"startedAt"`
-	// status: Pipeline status
+	// status: status of the workflow
 	Status string `json:"status" cborgen:"status"`
-	// updatedAt: pipeline last updated time
-	UpdatedAt string `json:"updatedAt" cborgen:"updatedAt"`
+	// workflow: name of the workflow within this pipeline
+	Workflow string `json:"workflow" cborgen:"workflow"`
 }

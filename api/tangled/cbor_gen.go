@@ -1816,10 +1816,6 @@ func (t *PipelineStatus) MarshalCBOR(w io.Writer) error {
 		fieldCount--
 	}
 
-	if t.FinishedAt == nil {
-		fieldCount--
-	}
-
 	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
 		return err
 	}
@@ -1930,82 +1926,73 @@ func (t *PipelineStatus) MarshalCBOR(w io.Writer) error {
 
 	}
 
-	// t.StartedAt (string) (string)
-	if len("startedAt") > 1000000 {
-		return xerrors.Errorf("Value in field \"startedAt\" was too long")
+	// t.Pipeline (string) (string)
+	if len("pipeline") > 1000000 {
+		return xerrors.Errorf("Value in field \"pipeline\" was too long")
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("startedAt"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("pipeline"))); err != nil {
 		return err
 	}
-	if _, err := cw.WriteString(string("startedAt")); err != nil {
-		return err
-	}
-
-	if len(t.StartedAt) > 1000000 {
-		return xerrors.Errorf("Value in field t.StartedAt was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.StartedAt))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.StartedAt)); err != nil {
+	if _, err := cw.WriteString(string("pipeline")); err != nil {
 		return err
 	}
 
-	// t.UpdatedAt (string) (string)
-	if len("updatedAt") > 1000000 {
-		return xerrors.Errorf("Value in field \"updatedAt\" was too long")
+	if len(t.Pipeline) > 1000000 {
+		return xerrors.Errorf("Value in field t.Pipeline was too long")
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("updatedAt"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Pipeline))); err != nil {
 		return err
 	}
-	if _, err := cw.WriteString(string("updatedAt")); err != nil {
-		return err
-	}
-
-	if len(t.UpdatedAt) > 1000000 {
-		return xerrors.Errorf("Value in field t.UpdatedAt was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.UpdatedAt))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.UpdatedAt)); err != nil {
+	if _, err := cw.WriteString(string(t.Pipeline)); err != nil {
 		return err
 	}
 
-	// t.FinishedAt (string) (string)
-	if t.FinishedAt != nil {
+	// t.Workflow (string) (string)
+	if len("workflow") > 1000000 {
+		return xerrors.Errorf("Value in field \"workflow\" was too long")
+	}
 
-		if len("finishedAt") > 1000000 {
-			return xerrors.Errorf("Value in field \"finishedAt\" was too long")
-		}
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("workflow"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("workflow")); err != nil {
+		return err
+	}
 
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("finishedAt"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("finishedAt")); err != nil {
-			return err
-		}
+	if len(t.Workflow) > 1000000 {
+		return xerrors.Errorf("Value in field t.Workflow was too long")
+	}
 
-		if t.FinishedAt == nil {
-			if _, err := cw.Write(cbg.CborNull); err != nil {
-				return err
-			}
-		} else {
-			if len(*t.FinishedAt) > 1000000 {
-				return xerrors.Errorf("Value in field t.FinishedAt was too long")
-			}
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Workflow))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Workflow)); err != nil {
+		return err
+	}
 
-			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.FinishedAt))); err != nil {
-				return err
-			}
-			if _, err := cw.WriteString(string(*t.FinishedAt)); err != nil {
-				return err
-			}
-		}
+	// t.CreatedAt (string) (string)
+	if len("createdAt") > 1000000 {
+		return xerrors.Errorf("Value in field \"createdAt\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("createdAt"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("createdAt")); err != nil {
+		return err
+	}
+
+	if len(t.CreatedAt) > 1000000 {
+		return xerrors.Errorf("Value in field t.CreatedAt was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.CreatedAt))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.CreatedAt)); err != nil {
+		return err
 	}
 	return nil
 }
@@ -2035,7 +2022,7 @@ func (t *PipelineStatus) UnmarshalCBOR(r io.Reader) (err error) {
 
 	n := extra
 
-	nameBuf := make([]byte, 10)
+	nameBuf := make([]byte, 9)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -2130,8 +2117,8 @@ func (t *PipelineStatus) UnmarshalCBOR(r io.Reader) (err error) {
 					t.ExitCode = (*int64)(&extraI)
 				}
 			}
-			// t.StartedAt (string) (string)
-		case "startedAt":
+			// t.Pipeline (string) (string)
+		case "pipeline":
 
 			{
 				sval, err := cbg.ReadStringWithMax(cr, 1000000)
@@ -2139,10 +2126,10 @@ func (t *PipelineStatus) UnmarshalCBOR(r io.Reader) (err error) {
 					return err
 				}
 
-				t.StartedAt = string(sval)
+				t.Pipeline = string(sval)
 			}
-			// t.UpdatedAt (string) (string)
-		case "updatedAt":
+			// t.Workflow (string) (string)
+		case "workflow":
 
 			{
 				sval, err := cbg.ReadStringWithMax(cr, 1000000)
@@ -2150,28 +2137,18 @@ func (t *PipelineStatus) UnmarshalCBOR(r io.Reader) (err error) {
 					return err
 				}
 
-				t.UpdatedAt = string(sval)
+				t.Workflow = string(sval)
 			}
-			// t.FinishedAt (string) (string)
-		case "finishedAt":
+			// t.CreatedAt (string) (string)
+		case "createdAt":
 
 			{
-				b, err := cr.ReadByte()
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
 				if err != nil {
 					return err
 				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
 
-					sval, err := cbg.ReadStringWithMax(cr, 1000000)
-					if err != nil {
-						return err
-					}
-
-					t.FinishedAt = (*string)(&sval)
-				}
+				t.CreatedAt = string(sval)
 			}
 
 		default:

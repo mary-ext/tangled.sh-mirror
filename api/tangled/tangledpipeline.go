@@ -85,7 +85,7 @@ type Pipeline_TriggerRepo struct {
 // Pipeline_Workflow is a "workflow" in the sh.tangled.pipeline schema.
 type Pipeline_Workflow struct {
 	Clone        *Pipeline_CloneOpts                   `json:"clone" cborgen:"clone"`
-	Dependencies []Pipeline_Dependencies_Elem              `json:"dependencies" cborgen:"dependencies"`
+	Dependencies []Pipeline_Dependencies_Elem          `json:"dependencies" cborgen:"dependencies"`
 	Environment  []*Pipeline_Workflow_Environment_Elem `json:"environment" cborgen:"environment"`
 	Name         string                                `json:"name" cborgen:"name"`
 	Steps        []*Pipeline_Step                      `json:"steps" cborgen:"steps"`

@@ -1,4 +1,4 @@
-package spindle
+package tid
 
 import "github.com/bluesky-social/indigo/atproto/syntax"
 

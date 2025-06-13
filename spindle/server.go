@@ -18,6 +18,7 @@ import (
 	"tangled.sh/tangled.sh/core/spindle/config"
 	"tangled.sh/tangled.sh/core/spindle/db"
 	"tangled.sh/tangled.sh/core/spindle/engine"
+	"tangled.sh/tangled.sh/core/spindle/models"
 	"tangled.sh/tangled.sh/core/spindle/queue"
 )
 
@@ -61,10 +62,11 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	jq := queue.NewQueue(100)
+	jq := queue.NewQueue(100, 2)
 
 	// starts a job queue runner in the background
-	jq.StartRunner()
+	jq.Start()
+	defer jq.Stop()
 
 	spindle := Spindle{
 		jc:  jc,
@@ -109,7 +111,7 @@ func (s *Spindle) Router() http.Handler {
 	mux := chi.NewRouter()
 
 	mux.HandleFunc("/events", s.Events)
-	mux.HandleFunc("/logs/{pipelineID}", s.Logs)
+	mux.HandleFunc("/logs/{knot}/{rkey}/{name}", s.Logs)
 	return mux
 }
 
@@ -122,22 +124,30 @@ func (s *Spindle) processPipeline(ctx context.Context, src knotclient.EventSourc
 			return err
 		}
 
-		ok := s.jq.Enqueue(queue.Job{
-			Run: func() error {
-				// this is a "fake" at uri for now
-				pipelineAtUri := fmt.Sprintf("at://%s/did:web:%s/%s", tangled.PipelineNSID, pipeline.TriggerMetadata.Repo.Knot, msg.Rkey)
+		pipelineId := models.PipelineId{
+			Knot: src.Knot,
+			Rkey: msg.Rkey,
+		}
 
-				rkey := TID()
-
-				err = s.db.CreatePipeline(rkey, pipelineAtUri, s.n)
+		for _, w := range pipeline.Workflows {
+			if w != nil {
+				err := s.db.StatusPending(models.WorkflowId{
+					PipelineId: pipelineId,
+					Name:       w.Name,
+				}, s.n)
 				if err != nil {
 					return err
 				}
+			}
+		}
 
-				return s.eng.StartWorkflows(ctx, &pipeline, rkey)
+		ok := s.jq.Enqueue(queue.Job{
+			Run: func() error {
+				s.eng.StartWorkflows(ctx, &pipeline, pipelineId)
+				return nil
 			},
-			OnFail: func(error) {
-				s.l.Error("pipeline run failed", "error", err)
+			OnFail: func(jobError error) {
+				s.l.Error("pipeline run failed", "error", jobError)
 			},
 		})
 		if ok {

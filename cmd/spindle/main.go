@@ -6,6 +6,7 @@ import (
 
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/spindle"
+	_ "tangled.sh/tangled.sh/core/tid"
 )
 
 func main() {

@@ -1,11 +1,13 @@
 package spindle
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
-	"context"
+	"tangled.sh/tangled.sh/core/spindle/models"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -18,7 +20,7 @@ var upgrader = websocket.Upgrader{
 
 func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 	l := s.l.With("handler", "Events")
-	l.Info("received new connection")
+	l.Debug("received new connection")
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -27,7 +29,7 @@ func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	l.Info("upgraded http to wss")
+	l.Debug("upgraded http to wss")
 
 	ch := s.n.Subscribe()
 	defer s.n.Unsubscribe(ch)
@@ -44,10 +46,18 @@ func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	cursor := ""
+	defaultCursor := time.Now().UnixNano()
+	cursorStr := r.URL.Query().Get("cursor")
+	cursor, err := strconv.ParseInt(cursorStr, 10, 64)
+	if err != nil {
+		l.Error("empty or invalid cursor", "invalidCursor", cursorStr, "default", defaultCursor)
+	}
+	if cursor == 0 {
+		cursor = defaultCursor
+	}
 
 	// complete backfill first before going to live data
-	l.Info("going through backfill", "cursor", cursor)
+	l.Debug("going through backfill", "cursor", cursor)
 	if err := s.streamPipelines(conn, &cursor); err != nil {
 		l.Error("failed to backfill", "err", err)
 		return
@@ -57,18 +67,18 @@ func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 		// wait for new data or timeout
 		select {
 		case <-ctx.Done():
-			l.Info("stopping stream: client closed connection")
+			l.Debug("stopping stream: client closed connection")
 			return
 		case <-ch:
 			// we have been notified of new data
-			l.Info("going through live data", "cursor", cursor)
+			l.Debug("going through live data", "cursor", cursor)
 			if err := s.streamPipelines(conn, &cursor); err != nil {
 				l.Error("failed to stream", "err", err)
 				return
 			}
 		case <-time.After(30 * time.Second):
 			// send a keep-alive
-			l.Info("sent keepalive")
+			l.Debug("sent keepalive")
 			if err = conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
 				l.Error("failed to write control", "err", err)
 			}
@@ -79,12 +89,33 @@ func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
 	l := s.l.With("handler", "Logs")
 
-	pipelineID := chi.URLParam(r, "pipelineID")
-	if pipelineID == "" {
-		http.Error(w, "pipelineID required", http.StatusBadRequest)
+	knot := chi.URLParam(r, "knot")
+	if knot == "" {
+		http.Error(w, "knot required", http.StatusBadRequest)
 		return
 	}
-	l = l.With("pipelineID", pipelineID)
+
+	rkey := chi.URLParam(r, "rkey")
+	if rkey == "" {
+		http.Error(w, "rkey required", http.StatusBadRequest)
+		return
+	}
+
+	name := chi.URLParam(r, "name")
+	if name == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+
+	wid := models.WorkflowId{
+		PipelineId: models.PipelineId{
+			Knot: knot,
+			Rkey: rkey,
+		},
+		Name: name,
+	}
+
+	l = l.With("knot", knot, "rkey", rkey, "name", name)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -93,7 +124,7 @@ func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	l.Info("upgraded http to wss")
+	l.Debug("upgraded http to wss")
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -101,25 +132,25 @@ func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for {
 			if _, _, err := conn.NextReader(); err != nil {
-				l.Info("client disconnected", "err", err)
+				l.Debug("client disconnected", "err", err)
 				cancel()
 				return
 			}
 		}
 	}()
 
-	if err := s.streamLogs(ctx, conn, pipelineID); err != nil {
+	if err := s.streamLogs(ctx, conn, wid); err != nil {
 		l.Error("streamLogs failed", "err", err)
 	}
-	l.Info("logs connection closed")
+	l.Debug("logs connection closed")
 }
 
-func (s *Spindle) streamLogs(ctx context.Context, conn *websocket.Conn, pipelineID string) error {
-	l := s.l.With("pipelineID", pipelineID)
+func (s *Spindle) streamLogs(ctx context.Context, conn *websocket.Conn, wid models.WorkflowId) error {
+	l := s.l.With("workflow_id", wid.String())
 
-	stdoutCh, stderrCh, ok := s.eng.LogChannels(pipelineID)
+	stdoutCh, stderrCh, ok := s.eng.LogChannels(wid)
 	if !ok {
-		return fmt.Errorf("pipelineID %q not found", pipelineID)
+		return fmt.Errorf("workflow_id %q not found", wid.String())
 	}
 
 	done := make(chan struct{})
@@ -174,8 +205,8 @@ func (s *Spindle) streamLogs(ctx context.Context, conn *websocket.Conn, pipeline
 	return nil
 }
 
-func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *string) error {
-	ops, err := s.db.GetPipelineStatusAsRecords(*cursor)
+func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *int64) error {
+	ops, err := s.db.GetEvents(*cursor)
 	if err != nil {
 		s.l.Debug("err", "err", err)
 		return err
@@ -187,7 +218,7 @@ func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *string) error {
 			s.l.Debug("err", "err", err)
 			return err
 		}
-		*cursor = op.Rkey
+		*cursor = op.Created
 	}
 
 	return nil

@@ -30,20 +30,12 @@ func Make(dbPath string) (*DB, error) {
 			did text primary key
 		);
 
-		create table if not exists pipeline_status (
+		-- status event for a single workflow
+		create table if not exists events (
 			rkey text not null,
-			pipeline text not null,
-			status text not null,
-
-			-- only set if status is 'failed'
-			error text,
-			exit_code integer,
-
-			started_at timestamp not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-			updated_at timestamp not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-			finished_at timestamp,
-
-			primary key (rkey)
+			nsid text not null,
+			event text not null, -- json
+			created integer not null -- unix nanos
 		);
 	`)
 	if err != nil {

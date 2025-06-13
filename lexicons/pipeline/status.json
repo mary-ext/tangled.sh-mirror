@@ -9,16 +9,21 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["pipeline", "status", "startedAt", "updatedAt"],
+        "required": ["pipeline", "workflow", "status", "createdAt"],
         "properties": {
           "pipeline": {
             "type": "string",
             "format": "at-uri",
-            "description": "pipeline at ref"
+            "description": "ATURI of the pipeline"
+          },
+          "workflow": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "name of the workflow within this pipeline"
           },
           "status": {
             "type": "string",
-            "description": "Pipeline status",
+            "description": "status of the workflow",
             "enum": [
               "pending",
               "running",
@@ -28,6 +33,11 @@
               "success"
             ]
           },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "time of creation of this status update"
+          },
           "error": {
             "type": "string",
             "description": "error message if failed"
@@ -35,21 +45,6 @@
           "exitCode": {
             "type": "integer",
             "description": "exit code if failed"
-          },
-          "startedAt": {
-            "type": "string",
-            "format": "datetime",
-            "description": "pipeline start time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "datetime",
-            "description": "pipeline last updated time"
-          },
-          "finishedAt": {
-            "type": "string",
-            "format": "datetime",
-            "description": "pipeline finish time, if finished"
           }
         }
       }
