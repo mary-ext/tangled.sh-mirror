@@ -11,6 +11,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotclient"
+	"tangled.sh/tangled.sh/core/knotclient/cursor"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
@@ -78,14 +79,19 @@ func Run(ctx context.Context) error {
 	// for each incoming sh.tangled.pipeline, we execute
 	// spindle.processPipeline, which in turn enqueues the pipeline
 	// job in the above registered queue.
+	cursorStore, err := cursor.NewSQLiteStore(cfg.Server.DBPath)
+	if err != nil {
+		return fmt.Errorf("failed to setup sqlite3 cursor store: %w", err)
+	}
 	go func() {
 		logger.Info("starting event consumer")
-		knotEventSource := knotclient.NewEventSource("localhost:5555")
+		knotEventSource := knotclient.NewEventSource("localhost:6000")
 
 		ccfg := knotclient.NewConsumerConfig()
 		ccfg.Logger = logger
 		ccfg.Dev = cfg.Server.Dev
 		ccfg.ProcessFunc = spindle.processPipeline
+		ccfg.CursorStore = cursorStore
 		ccfg.AddEventSource(knotEventSource)
 
 		ec := knotclient.NewEventConsumer(*ccfg)
