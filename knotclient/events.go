@@ -180,7 +180,7 @@ func (c *EventConsumer) worker(ctx context.Context) {
 			}
 
 			// update cursor
-			c.cfg.CursorStore.Set(j.source.Knot, time.Now().Unix())
+			c.cfg.CursorStore.Set(j.source.Knot, time.Now().UnixNano())
 
 			if err := c.cfg.ProcessFunc(ctx, j.source, msg); err != nil {
 				c.logger.Error("error processing message", "source", j.source, "err", err)
