@@ -122,14 +122,16 @@ func (s *Spindle) processPipeline(ctx context.Context, src knotclient.EventSourc
 				pipelineAtUri := fmt.Sprintf("at://%s/did:web:%s/%s", tangled.PipelineNSID, pipeline.TriggerMetadata.Repo.Knot, msg.Rkey)
 
 				rkey := TID()
-				err = s.eng.SetupPipeline(ctx, &pipeline, pipelineAtUri, rkey)
+
+				err = s.db.CreatePipeline(rkey, pipelineAtUri, s.n)
 				if err != nil {
 					return err
 				}
+
 				return s.eng.StartWorkflows(ctx, &pipeline, rkey)
 			},
 			OnFail: func(error) {
-				s.l.Error("pipeline setup failed", "error", err)
+				s.l.Error("pipeline run failed", "error", err)
 			},
 		})
 		if ok {
