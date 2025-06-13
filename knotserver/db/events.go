@@ -3,7 +3,7 @@ package db
 import (
 	"fmt"
 
-	"tangled.sh/tangled.sh/core/knotserver/notifier"
+	"tangled.sh/tangled.sh/core/notifier"
 )
 
 type Event struct {

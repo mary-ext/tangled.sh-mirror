@@ -19,8 +19,8 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"golang.org/x/sync/errgroup"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/log"
+	"tangled.sh/tangled.sh/core/notifier"
 	"tangled.sh/tangled.sh/core/spindle/db"
 )
 

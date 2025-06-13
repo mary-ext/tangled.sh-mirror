@@ -11,8 +11,8 @@ import (
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
-	"tangled.sh/tangled.sh/core/knotserver/notifier"
 	"tangled.sh/tangled.sh/core/log"
+	"tangled.sh/tangled.sh/core/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 

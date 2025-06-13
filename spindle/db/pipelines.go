@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/knotserver/notifier"
+	"tangled.sh/tangled.sh/core/notifier"
 )
 
 type PipelineRunStatus string
