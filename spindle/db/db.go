@@ -26,6 +26,11 @@ func Make(dbPath string) (*DB, error) {
 		pragma auto_vacuum = incremental;
 		pragma busy_timeout = 5000;
 
+		create table if not exists _jetstream (
+			id integer primary key autoincrement,
+			last_time_us integer not null
+		);
+
 		create table if not exists known_dids (
 			did text primary key
 		);
