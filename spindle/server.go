@@ -35,6 +35,7 @@ type Spindle struct {
 	eng *engine.Engine
 	jq  *queue.Queue
 	cfg *config.Config
+	ks  *knotclient.EventConsumer
 }
 
 func Run(ctx context.Context) error {
@@ -82,7 +83,7 @@ func Run(ctx context.Context) error {
 		cfg: cfg,
 	}
 
-	err = e.AddDomain(rbacDomain)
+	err = e.AddKnot(rbacDomain)
 	if err != nil {
 		return fmt.Errorf("failed to set rbac domain: %w", err)
 	}
@@ -109,21 +110,24 @@ func Run(ctx context.Context) error {
 	// for each incoming sh.tangled.pipeline, we execute
 	// spindle.processPipeline, which in turn enqueues the pipeline
 	// job in the above registered queue.
-
 	ccfg := knotclient.NewConsumerConfig()
 	ccfg.Logger = logger
 	ccfg.Dev = cfg.Server.Dev
 	ccfg.ProcessFunc = spindle.processPipeline
 	ccfg.CursorStore = cursorStore
-	for _, knot := range spindle.cfg.Knots {
-		kes := knotclient.NewEventSource(knot)
-		ccfg.AddEventSource(kes)
+	knotstream := knotclient.NewEventConsumer(*ccfg)
+	knownKnots, err := d.Knots()
+	if err != nil {
+		return err
 	}
-	ec := knotclient.NewEventConsumer(*ccfg)
+	for _, knot := range knownKnots {
+		knotstream.AddSource(ctx, knotclient.NewEventSource(knot))
+	}
+	spindle.ks = knotstream
 
 	go func() {
-		logger.Info("starting knot event consumer", "knots", spindle.cfg.Knots)
-		ec.Start(ctx)
+		logger.Info("starting knot event consumer", "knots")
+		knotstream.Start(ctx)
 	}()
 
 	logger.Info("starting spindle server", "address", cfg.Server.ListenAddr)
@@ -193,7 +197,7 @@ func (s *Spindle) configureOwner() error {
 	}
 
 	if len(serverOwner) == 0 {
-		s.e.AddOwner(rbacDomain, cfgOwner)
+		s.e.AddKnotOwner(rbacDomain, cfgOwner)
 	} else {
 		if serverOwner[0] != cfgOwner {
 			return fmt.Errorf("server owner mismatch: %s != %s", cfgOwner, serverOwner[0])
