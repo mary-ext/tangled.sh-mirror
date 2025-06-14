@@ -16,8 +16,7 @@ type Server struct {
 }
 
 type Config struct {
-	Server Server   `env:",prefix=SPINDLE_SERVER_"`
-	Knots  []string `env:"SPINDLE_SUBSCRIBED_KNOTS,required"`
+	Server Server `env:",prefix=SPINDLE_SERVER_"`
 }
 
 func Load(ctx context.Context) (*Config, error) {
