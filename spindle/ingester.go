@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/bluesky-social/jetstream/pkg/models"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/knotclient"
+
+	"github.com/bluesky-social/jetstream/pkg/models"
 )
 
 type Ingester func(ctx context.Context, e *models.Event) error
@@ -29,6 +31,8 @@ func (s *Spindle) ingest() Ingester {
 		switch e.Commit.Collection {
 		case tangled.SpindleMemberNSID:
 			s.ingestMember(ctx, e)
+		case tangled.RepoNSID:
+			s.ingestRepo(ctx, e)
 		}
 
 		return err
@@ -68,7 +72,7 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 			return fmt.Errorf("failed to enforce permissions: %w", err)
 		}
 
-		if err := s.e.AddMember(rbacDomain, record.Subject); err != nil {
+		if err := s.e.AddKnotMember(rbacDomain, record.Subject); err != nil {
 			l.Error("failed to add member", "error", err)
 			return fmt.Errorf("failed to add member: %w", err)
 		}
@@ -79,6 +83,52 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 			return fmt.Errorf("failed to add did: %w", err)
 		}
 		s.jc.AddDid(did)
+
+		return nil
+
+	}
+	return nil
+}
+
+func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
+	var err error
+
+	l := s.l.With("component", "ingester", "record", tangled.RepoNSID)
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		raw := e.Commit.Record
+		record := tangled.Repo{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			l.Error("invalid record", "error", err)
+			return err
+		}
+
+		domain := s.cfg.Server.Hostname
+		if s.cfg.Server.Dev {
+			domain = s.cfg.Server.ListenAddr
+		}
+
+		// no spindle configured for this repo
+		if record.Spindle == nil {
+			return nil
+		}
+
+		// this repo did not want this spindle
+		if *record.Spindle != domain {
+			return nil
+		}
+
+		// add this repo to the watch list
+		if err := s.db.AddRepo(record.Knot, record.Owner, record.Name); err != nil {
+			l.Error("failed to add repo", "error", err)
+			return fmt.Errorf("failed to add repo: %w", err)
+		}
+
+		// add this knot to the event consumer
+		src := knotclient.NewEventSource(record.Knot)
+		s.ks.AddSource(context.Background(), src)
 
 		return nil
 

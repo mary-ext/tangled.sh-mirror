@@ -35,6 +35,16 @@ func Make(dbPath string) (*DB, error) {
 			did text primary key
 		);
 
+		create table if not exists repos (
+			id integer primary key autoincrement,
+			knot text not null,
+			owner text not null,
+			name text not null,
+			addedAt text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			unique(owner, name)
+		);
+
 		-- status event for a single workflow
 		create table if not exists events (
 			rkey text not null,
