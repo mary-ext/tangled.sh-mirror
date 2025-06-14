@@ -20,6 +20,6 @@ type SpindleMember struct {
 	LexiconTypeID string `json:"$type,const=sh.tangled.spindle.member" cborgen:"$type,const=sh.tangled.spindle.member"`
 	CreatedAt     string `json:"createdAt" cborgen:"createdAt"`
 	// instance: spindle instance that the subject is now a member of
-	Instance *string `json:"instance,omitempty" cborgen:"instance,omitempty"`
-	Subject  string  `json:"subject" cborgen:"subject"`
+	Instance string `json:"instance" cborgen:"instance"`
+	Subject  string `json:"subject" cborgen:"subject"`
 }

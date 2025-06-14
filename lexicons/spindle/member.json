@@ -11,7 +11,7 @@
         "type": "object",
         "required": [
           "subject",
-          "domain",
+          "instance",
           "createdAt"
         ],
         "properties": {

@@ -6967,13 +6967,17 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 7
+	fieldCount := 8
 
 	if t.Description == nil {
 		fieldCount--
 	}
 
 	if t.Source == nil {
+		fieldCount--
+	}
+
+	if t.Spindle == nil {
 		fieldCount--
 	}
 
@@ -7096,6 +7100,38 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 				return err
 			}
 			if _, err := cw.WriteString(string(*t.Source)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// t.Spindle (string) (string)
+	if t.Spindle != nil {
+
+		if len("spindle") > 1000000 {
+			return xerrors.Errorf("Value in field \"spindle\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("spindle"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("spindle")); err != nil {
+			return err
+		}
+
+		if t.Spindle == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if len(*t.Spindle) > 1000000 {
+				return xerrors.Errorf("Value in field t.Spindle was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Spindle))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(*t.Spindle)); err != nil {
 				return err
 			}
 		}
@@ -7264,6 +7300,27 @@ func (t *Repo) UnmarshalCBOR(r io.Reader) (err error) {
 					t.Source = (*string)(&sval)
 				}
 			}
+			// t.Spindle (string) (string)
+		case "spindle":
+
+			{
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+
+					sval, err := cbg.ReadStringWithMax(cr, 1000000)
+					if err != nil {
+						return err
+					}
+
+					t.Spindle = (*string)(&sval)
+				}
+			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":
 
@@ -7314,13 +7371,8 @@ func (t *SpindleMember) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 4
 
-	if t.Instance == nil {
-		fieldCount--
-	}
-
-	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
+	if _, err := cw.Write([]byte{164}); err != nil {
 		return err
 	}
 
@@ -7367,35 +7419,26 @@ func (t *SpindleMember) MarshalCBOR(w io.Writer) error {
 	}
 
 	// t.Instance (string) (string)
-	if t.Instance != nil {
+	if len("instance") > 1000000 {
+		return xerrors.Errorf("Value in field \"instance\" was too long")
+	}
 
-		if len("instance") > 1000000 {
-			return xerrors.Errorf("Value in field \"instance\" was too long")
-		}
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("instance"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("instance")); err != nil {
+		return err
+	}
 
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("instance"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("instance")); err != nil {
-			return err
-		}
+	if len(t.Instance) > 1000000 {
+		return xerrors.Errorf("Value in field t.Instance was too long")
+	}
 
-		if t.Instance == nil {
-			if _, err := cw.Write(cbg.CborNull); err != nil {
-				return err
-			}
-		} else {
-			if len(*t.Instance) > 1000000 {
-				return xerrors.Errorf("Value in field t.Instance was too long")
-			}
-
-			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Instance))); err != nil {
-				return err
-			}
-			if _, err := cw.WriteString(string(*t.Instance)); err != nil {
-				return err
-			}
-		}
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Instance))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Instance)); err != nil {
+		return err
 	}
 
 	// t.CreatedAt (string) (string)
@@ -7490,22 +7533,12 @@ func (t *SpindleMember) UnmarshalCBOR(r io.Reader) (err error) {
 		case "instance":
 
 			{
-				b, err := cr.ReadByte()
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
 				if err != nil {
 					return err
 				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
 
-					sval, err := cbg.ReadStringWithMax(cr, 1000000)
-					if err != nil {
-						return err
-					}
-
-					t.Instance = (*string)(&sval)
-				}
+				t.Instance = string(sval)
 			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":

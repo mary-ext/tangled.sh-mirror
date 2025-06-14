@@ -27,4 +27,6 @@ type Repo struct {
 	Owner string `json:"owner" cborgen:"owner"`
 	// source: source of the repo
 	Source *string `json:"source,omitempty" cborgen:"source,omitempty"`
+	// spindle: CI runner to send jobs to and receive results from
+	Spindle *string `json:"spindle,omitempty" cborgen:"spindle,omitempty"`
 }
