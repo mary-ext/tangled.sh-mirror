@@ -44,6 +44,8 @@ func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer) Ingester {
 			ingestArtifact(&d, e, enforcer)
 		case tangled.ActorProfileNSID:
 			ingestProfile(&d, e)
+		case tangled.SpindleMemberNSID:
+			ingestSpindleMember(&d, e, enforcer)
 		}
 
 		return err
@@ -281,6 +283,35 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to %s profile record: %w", e.Commit.Operation, err)
+	}
+
+	return nil
+}
+
+func ingestSpindleMember(_ *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
+	did := e.Did
+	var err error
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.SpindleMember{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			log.Printf("invalid record: %s", err)
+			return err
+		}
+
+		// only spindle owner can invite to spindles
+		ok, err := enforcer.IsSpindleInviteAllowed(did, record.Instance)
+		if err != nil || !ok {
+			return fmt.Errorf("failed to enforce permissions: %w", err)
+		}
+
+		err = enforcer.AddSpindleMember(record.Instance, record.Subject)
+		if err != nil {
+			return fmt.Errorf("failed to add member: %w", err)
+		}
 	}
 
 	return nil
