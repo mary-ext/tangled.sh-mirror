@@ -22,6 +22,10 @@ import (
 	"tangled.sh/tangled.sh/core/spindle/queue"
 )
 
+const (
+	rbacDomain = "thisserver"
+)
+
 type Spindle struct {
 	jc  *jetstream.JetstreamClient
 	db  *db.DB
@@ -30,9 +34,12 @@ type Spindle struct {
 	n   *notifier.Notifier
 	eng *engine.Engine
 	jq  *queue.Queue
+	cfg *config.Config
 }
 
 func Run(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+
 	cfg, err := config.Load(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -47,16 +54,10 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to setup rbac enforcer: %w", err)
 	}
-
-	logger := log.FromContext(ctx)
-
-	collections := []string{tangled.SpindleMemberNSID}
-	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, logger, d, true, false)
-	if err != nil {
-		return fmt.Errorf("failed to setup jetstream client: %w", err)
-	}
+	e.E.EnableAutoSave(true)
 
 	n := notifier.New()
+
 	eng, err := engine.New(ctx, d, &n)
 	if err != nil {
 		return err
@@ -64,9 +65,11 @@ func Run(ctx context.Context) error {
 
 	jq := queue.NewQueue(100, 2)
 
-	// starts a job queue runner in the background
-	jq.Start()
-	defer jq.Stop()
+	collections := []string{tangled.SpindleMemberNSID}
+	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, logger, d, false, false)
+	if err != nil {
+		return fmt.Errorf("failed to setup jetstream client: %w", err)
+	}
 
 	spindle := Spindle{
 		jc:  jc,
@@ -76,28 +79,50 @@ func Run(ctx context.Context) error {
 		n:   &n,
 		eng: eng,
 		jq:  jq,
+		cfg: cfg,
+	}
+
+	err = e.AddDomain(rbacDomain)
+	if err != nil {
+		return fmt.Errorf("failed to set rbac domain: %w", err)
+	}
+	err = spindle.configureOwner()
+	if err != nil {
+		return err
+	}
+	logger.Info("owner set", "did", cfg.Server.Owner)
+
+	// starts a job queue runner in the background
+	jq.Start()
+	defer jq.Stop()
+
+	cursorStore, err := cursor.NewSQLiteStore(cfg.Server.DBPath)
+	if err != nil {
+		return fmt.Errorf("failed to setup sqlite3 cursor store: %w", err)
+	}
+
+	err = jc.StartJetstream(ctx, spindle.ingest())
+	if err != nil {
+		return fmt.Errorf("failed to start jetstream consumer: %w", err)
 	}
 
 	// for each incoming sh.tangled.pipeline, we execute
 	// spindle.processPipeline, which in turn enqueues the pipeline
 	// job in the above registered queue.
-	cursorStore, err := cursor.NewSQLiteStore(cfg.Server.DBPath)
-	if err != nil {
-		return fmt.Errorf("failed to setup sqlite3 cursor store: %w", err)
+
+	ccfg := knotclient.NewConsumerConfig()
+	ccfg.Logger = logger
+	ccfg.Dev = cfg.Server.Dev
+	ccfg.ProcessFunc = spindle.processPipeline
+	ccfg.CursorStore = cursorStore
+	for _, knot := range spindle.cfg.Knots {
+		kes := knotclient.NewEventSource(knot)
+		ccfg.AddEventSource(kes)
 	}
+	ec := knotclient.NewEventConsumer(*ccfg)
+
 	go func() {
-		logger.Info("starting event consumer")
-		knotEventSource := knotclient.NewEventSource("localhost:6000")
-
-		ccfg := knotclient.NewConsumerConfig()
-		ccfg.Logger = logger
-		ccfg.Dev = cfg.Server.Dev
-		ccfg.ProcessFunc = spindle.processPipeline
-		ccfg.CursorStore = cursorStore
-		ccfg.AddEventSource(knotEventSource)
-
-		ec := knotclient.NewEventConsumer(*ccfg)
-
+		logger.Info("starting knot event consumer", "knots", spindle.cfg.Knots)
 		ec.Start(ctx)
 	}()
 
@@ -157,5 +182,22 @@ func (s *Spindle) processPipeline(ctx context.Context, src knotclient.EventSourc
 		}
 	}
 
+	return nil
+}
+
+func (s *Spindle) configureOwner() error {
+	cfgOwner := s.cfg.Server.Owner
+	serverOwner, err := s.e.GetUserByRole("server:owner", rbacDomain)
+	if err != nil {
+		return fmt.Errorf("failed to fetch server:owner: %w", err)
+	}
+
+	if len(serverOwner) == 0 {
+		s.e.AddOwner(rbacDomain, cfgOwner)
+	} else {
+		if serverOwner[0] != cfgOwner {
+			return fmt.Errorf("server owner mismatch: %s != %s", cfgOwner, serverOwner[0])
+		}
+	}
 	return nil
 }
