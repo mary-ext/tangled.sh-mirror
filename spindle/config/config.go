@@ -12,10 +12,12 @@ type Server struct {
 	Hostname          string `env:"HOSTNAME, required"`
 	JetstreamEndpoint string `env:"JETSTREAM_ENDPOINT, default=wss://jetstream1.us-west.bsky.network/subscribe"`
 	Dev               bool   `env:"DEV, default=false"`
+	Owner             string `env:"OWNER, required"`
 }
 
 type Config struct {
-	Server Server `env:",prefix=SPINDLE_SERVER_"`
+	Server Server   `env:",prefix=SPINDLE_SERVER_"`
+	Knots  []string `env:"SPINDLE_SUBSCRIBED_KNOTS,required"`
 }
 
 func Load(ctx context.Context) (*Config, error) {
