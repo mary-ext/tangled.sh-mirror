@@ -336,7 +336,7 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 	defaultKnot := "knot1.tangled.sh"
 
 	log.Printf("adding %s to default knot", did)
-	err := o.enforcer.AddMember(defaultKnot, did)
+	err := o.enforcer.AddKnotMember(defaultKnot, did)
 	if err != nil {
 		log.Println("failed to add user to knot1.tangled.sh: ", err)
 		return

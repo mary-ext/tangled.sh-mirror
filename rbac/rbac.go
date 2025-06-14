@@ -2,7 +2,7 @@ package rbac
 
 import (
 	"database/sql"
-	"fmt"
+	"slices"
 	"strings"
 
 	adapter "github.com/Blank-Xu/sql-adapter"
@@ -59,33 +59,63 @@ func NewEnforcer(path string) (*Enforcer, error) {
 	return &Enforcer{e}, nil
 }
 
-func (e *Enforcer) AddDomain(domain string) error {
+func (e *Enforcer) AddKnot(knot string) error {
 	// Add policies with patterns
 	_, err := e.E.AddPolicies([][]string{
-		{"server:owner", domain, domain, "server:invite"},
-		{"server:member", domain, domain, "repo:create"},
+		{"server:owner", knot, knot, "server:invite"},
+		{"server:member", knot, knot, "repo:create"},
 	})
 	if err != nil {
 		return err
 	}
 
 	// all owners are also members
-	_, err = e.E.AddGroupingPolicy("server:owner", "server:member", domain)
+	_, err = e.E.AddGroupingPolicy("server:owner", "server:member", knot)
 	return err
 }
 
-func (e *Enforcer) GetDomainsForUser(did string) ([]string, error) {
-	return e.E.GetDomainsForUser(did)
-}
+func (e *Enforcer) AddSpindle(spindle string) error {
+	// the internal repr for spindles is spindle:foo.com
+	spindle = intoSpindle(spindle)
 
-func (e *Enforcer) AddOwner(domain, owner string) error {
-	_, err := e.E.AddGroupingPolicy(owner, "server:owner", domain)
+	_, err := e.E.AddPolicies([][]string{
+		{"server:owner", spindle, spindle, "server:invite"},
+	})
+	if err != nil {
+		return err
+	}
+
+	// all owners are also members
+	_, err = e.E.AddGroupingPolicy("server:owner", "server:member", spindle)
 	return err
 }
 
-func (e *Enforcer) AddMember(domain, member string) error {
-	_, err := e.E.AddGroupingPolicy(member, "server:member", domain)
-	return err
+func (e *Enforcer) GetKnotsForUser(did string) ([]string, error) {
+	keepFunc := isNotSpindle
+	stripFunc := unSpindle
+	return e.getDomainsForUser(did, keepFunc, stripFunc)
+}
+
+func (e *Enforcer) GetSpindlesForUser(did string) ([]string, error) {
+	keepFunc := isSpindle
+	stripFunc := unSpindle
+	return e.getDomainsForUser(did, keepFunc, stripFunc)
+}
+
+func (e *Enforcer) AddKnotOwner(domain, owner string) error {
+	return e.addOwner(domain, owner)
+}
+
+func (e *Enforcer) AddKnotMember(domain, member string) error {
+	return e.addMember(domain, member)
+}
+
+func (e *Enforcer) AddSpindleOwner(domain, owner string) error {
+	return e.addOwner(intoSpindle(domain), owner)
+}
+
+func (e *Enforcer) AddSpindleMember(domain, member string) error {
+	return e.addMember(intoSpindle(domain), member)
 }
 
 func repoPolicies(member, domain, repo string) [][]string {
@@ -162,19 +192,50 @@ func (e *Enforcer) GetUserByRole(role, domain string) ([]string, error) {
 		return nil, err
 	}
 
-	return membersWithoutRoles, nil
+	slices.Sort(membersWithoutRoles)
+	return slices.Compact(membersWithoutRoles), nil
 }
 
-func (e *Enforcer) isRole(user, role, domain string) (bool, error) {
-	return e.E.HasGroupingPolicy(user, role, domain)
+func (e *Enforcer) GetUserByRoleInRepo(role, domain, repo string) ([]string, error) {
+	var users []string
+
+	policies, err := e.E.GetImplicitUsersForResourceByDomain(repo, domain)
+	for _, p := range policies {
+		user := p[0]
+		if strings.HasPrefix(user, "did:") {
+			users = append(users, user)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	slices.Sort(users)
+	return slices.Compact(users), nil
 }
 
-func (e *Enforcer) IsServerOwner(user, domain string) (bool, error) {
+func (e *Enforcer) IsKnotOwner(user, domain string) (bool, error) {
 	return e.isRole(user, "server:owner", domain)
 }
 
-func (e *Enforcer) IsServerMember(user, domain string) (bool, error) {
+func (e *Enforcer) IsKnotMember(user, domain string) (bool, error) {
 	return e.isRole(user, "server:member", domain)
+}
+
+func (e *Enforcer) IsSpindleOwner(user, domain string) (bool, error) {
+	return e.isRole(user, "server:owner", intoSpindle(domain))
+}
+
+func (e *Enforcer) IsSpindleMember(user, domain string) (bool, error) {
+	return e.isRole(user, "server:member", intoSpindle(domain))
+}
+
+func (e *Enforcer) IsKnotInviteAllowed(user, domain string) (bool, error) {
+	return e.isInviteAllowed(user, domain)
+}
+
+func (e *Enforcer) IsSpindleInviteAllowed(user, domain string) (bool, error) {
+	return e.isInviteAllowed(user, intoSpindle(domain))
 }
 
 func (e *Enforcer) IsPushAllowed(user, domain, repo string) (bool, error) {
@@ -201,13 +262,4 @@ func (e *Enforcer) GetPermissionsInRepo(user, domain, repo string) []string {
 	}
 
 	return permissions
-}
-
-func checkRepoFormat(repo string) error {
-	// sanity check, repo must be of the form ownerDid/repo
-	if parts := strings.SplitN(repo, "/", 2); !strings.HasPrefix(parts[0], "did:") {
-		return fmt.Errorf("invalid repo: %s", repo)
-	}
-
-	return nil
 }
