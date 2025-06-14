@@ -1090,7 +1090,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		user := rp.oauth.GetUser(r)
-		knots, err := rp.enforcer.GetDomainsForUser(user.Did)
+		knots, err := rp.enforcer.GetKnotsForUser(user.Did)
 		if err != nil {
 			rp.pages.Notice(w, "repo", "Invalid user account.")
 			return

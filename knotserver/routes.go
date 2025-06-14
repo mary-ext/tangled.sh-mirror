@@ -1177,7 +1177,7 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 	h.jc.AddDid(did)
 
-	if err := h.e.AddMember(ThisServer, did); err != nil {
+	if err := h.e.AddKnotMember(ThisServer, did); err != nil {
 		l.Error("adding member", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1312,7 +1312,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 	h.jc.AddDid(data.Did)
 
-	if err := h.e.AddOwner(ThisServer, data.Did); err != nil {
+	if err := h.e.AddKnotOwner(ThisServer, data.Did); err != nil {
 		l.Error("adding owner", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return

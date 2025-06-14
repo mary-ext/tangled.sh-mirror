@@ -44,10 +44,6 @@ func NewConsumerConfig() *ConsumerConfig {
 	}
 }
 
-func (cc *ConsumerConfig) AddEventSource(es EventSource) {
-	cc.Sources[es] = struct{}{}
-}
-
 type EventSource struct {
 	Knot string
 }

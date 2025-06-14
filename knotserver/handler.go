@@ -46,7 +46,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		init: make(chan struct{}),
 	}
 
-	err := e.AddDomain(ThisServer)
+	err := e.AddKnot(ThisServer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
 	}

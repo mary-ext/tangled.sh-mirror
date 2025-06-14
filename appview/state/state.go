@@ -336,7 +336,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// add basic acls for this domain
-	err = s.enforcer.AddDomain(domain)
+	err = s.enforcer.AddKnot(domain)
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -344,7 +344,7 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// add this did as owner of this domain
-	err = s.enforcer.AddOwner(domain, reg.ByDid)
+	err = s.enforcer.AddKnotOwner(domain, reg.ByDid)
 	if err != nil {
 		log.Println("failed to setup owner of domain", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -409,7 +409,7 @@ func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ok, err := s.enforcer.IsServerOwner(user.Did, domain)
+	ok, err := s.enforcer.IsKnotOwner(user.Did, domain)
 	isOwner := err == nil && ok
 
 	p := pages.KnotParams{
@@ -528,7 +528,7 @@ func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.enforcer.AddMember(domain, subjectIdentity.DID.String())
+	err = s.enforcer.AddKnotMember(domain, subjectIdentity.DID.String())
 	if err != nil {
 		w.Write([]byte(fmt.Sprint("failed to add member: ", err)))
 		return
@@ -576,7 +576,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		user := s.oauth.GetUser(r)
-		knots, err := s.enforcer.GetDomainsForUser(user.Did)
+		knots, err := s.enforcer.GetKnotsForUser(user.Did)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Invalid user account.")
 			return

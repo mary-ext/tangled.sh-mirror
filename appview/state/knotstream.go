@@ -71,7 +71,7 @@ func ingestRefUpdate(d *db.DB, enforcer *rbac.Enforcer, pc posthog.Client, dev b
 		return err
 	}
 
-	knownKnots, err := enforcer.GetDomainsForUser(record.CommitterDid)
+	knownKnots, err := enforcer.GetKnotsForUser(record.CommitterDid)
 	if err != nil {
 		return err
 	}
