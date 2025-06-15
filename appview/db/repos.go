@@ -18,6 +18,7 @@ type Repo struct {
 	Created     time.Time
 	AtUri       string
 	Description string
+	Spindle     string
 
 	// optionally, populate this when querying for reverse mappings
 	RepoStats *RepoStats
@@ -138,21 +139,30 @@ func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
 
 func GetRepo(e Execer, did, name string) (*Repo, error) {
 	var repo Repo
-	var nullableDescription sql.NullString
+	var description, spindle sql.NullString
 
-	row := e.QueryRow(`select did, name, knot, created, at_uri, description from repos where did = ? and name = ?`, did, name)
+	row := e.QueryRow(`
+		select did, name, knot, created, at_uri, description, spindle 
+		from repos
+		where did = ? and name = ?
+		`,
+		did,
+		name,
+	)
 
 	var createdAt string
-	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &nullableDescription); err != nil {
+	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &description, &spindle); err != nil {
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
 	repo.Created = createdAtTime
 
-	if nullableDescription.Valid {
-		repo.Description = nullableDescription.String
-	} else {
-		repo.Description = ""
+	if description.Valid {
+		repo.Description = description.String
+	}
+
+	if spindle.Valid {
+		repo.Spindle = spindle.String
 	}
 
 	return &repo, nil
@@ -302,6 +312,12 @@ func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot st
 func UpdateDescription(e Execer, repoAt, newDescription string) error {
 	_, err := e.Exec(
 		`update repos set description = ? where at_uri = ?`, newDescription, repoAt)
+	return err
+}
+
+func UpdateSpindle(e Execer, repoAt, spindle string) error {
+	_, err := e.Exec(
+		`update repos set spindle = ? where at_uri = ?`, spindle, repoAt)
 	return err
 }
 

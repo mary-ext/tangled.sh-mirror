@@ -70,6 +70,7 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 		})
 		r.With(mw.RepoPermissionMiddleware("repo:settings")).Route("/settings", func(r chi.Router) {
 			r.Get("/", rp.RepoSettings)
+			r.With(mw.RepoPermissionMiddleware("repo:owner")).Post("/spindle", rp.EditSpindle)
 			r.With(mw.RepoPermissionMiddleware("repo:invite")).Put("/collaborator", rp.AddCollaborator)
 			r.With(mw.RepoPermissionMiddleware("repo:delete")).Delete("/delete", rp.DeleteRepo)
 			r.Put("/branches/default", rp.SetDefaultBranch)

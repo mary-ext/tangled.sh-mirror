@@ -81,6 +81,41 @@
         </div>
     </form>
 
+    {{ if .RepoInfo.Roles.IsOwner }}
+    <form
+        hx-put="/{{ $.RepoInfo.FullName }}/settings/spindle"
+        class="mt-6 group"
+    >
+        <label for="spindle">spindle</label>
+        <div class="flex gap-2 items-center">
+            <select id="spindle" name="spindle" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                <option
+                    value=""
+                    disabled
+                    selected
+                >
+                Choose a spindle
+                </option>
+                {{ range .Spindles }}
+                    <option
+                        value="{{ . }}"
+                        class="py-1"
+                        {{ if .eq . $.Repo.Spindle }}
+                            selected
+                        {{ end }}
+                    >
+                        {{ . }}
+                    </option>
+                {{ end }}
+            </select>
+            <button class="btn my-2 flex gap-2 items-center" type="submit">
+                <span>save</span>
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </button>
+        </div>
+    </form>
+    {{ end }}
+
     {{ if .RepoInfo.Roles.RepoDeleteAllowed }}
     <form
         hx-confirm="Are you sure you want to delete this repository?"
@@ -89,10 +124,10 @@
         hx-indicator="#delete-repo-spinner"
     >
         <label for="branch">delete repository</label>
-        <button class="btn my-2 flex gap-2 items-center" type="text">
+        <button class="btn my-2 flex items-center" type="text">
             <span>delete</span>
             <span id="delete-repo-spinner" class="group">
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+              {{ i "loader-circle" "pl-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </span>
         </button>
         <span>

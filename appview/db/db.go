@@ -455,6 +455,14 @@ func Make(dbPath string) (*DB, error) {
 	})
 	db.Exec("pragma foreign_keys = on;")
 
+	// run migrations
+	runMigration(db, "add-spindle-to-repos", func(tx *sql.Tx) error {
+		tx.Exec(`
+			alter table repos add column spindle text;
+		`)
+		return nil
+	})
+
 	return &DB{db}, nil
 }
 
