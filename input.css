@@ -94,6 +94,13 @@
             dark:active:before:shadow-[inset_0_2px_2px_0_rgba(0,0,0,0.3)]
             dark:disabled:hover:before:bg-gray-800 dark:disabled:hover:before:border-gray-700;
         }
+
+        .prose img {
+            display: inline;
+            margin-left: 0;
+            margin-right: 0;
+            vertical-align: middle;
+        }
     }
     @layer utilities {
         .error {
