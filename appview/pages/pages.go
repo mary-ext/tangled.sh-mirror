@@ -616,11 +616,13 @@ type Collaborator struct {
 }
 
 type RepoSettingsParams struct {
-	LoggedInUser  *oauth.User
-	RepoInfo      repoinfo.RepoInfo
-	Collaborators []Collaborator
-	Active        string
-	Branches      []types.Branch
+	LoggedInUser   *oauth.User
+	RepoInfo       repoinfo.RepoInfo
+	Collaborators  []Collaborator
+	Active         string
+	Branches       []types.Branch
+	Spindles       []string
+	CurrentSpindle string
 	// TODO: use repoinfo.roles
 	IsCollaboratorInviteAllowed bool
 }

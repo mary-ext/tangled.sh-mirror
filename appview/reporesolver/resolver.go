@@ -31,6 +31,7 @@ type ResolvedRepo struct {
 	RepoName    string
 	RepoAt      syntax.ATURI
 	Description string
+	Spindle     string
 	CreatedAt   string
 	Ref         string
 	CurrentDir  string
@@ -95,6 +96,7 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 	// pass through values from the middleware
 	description, ok := r.Context().Value("repoDescription").(string)
 	addedAt, ok := r.Context().Value("repoAddedAt").(string)
+	spindle, ok := r.Context().Value("repoSpindle").(string)
 
 	return &ResolvedRepo{
 		Knot:        knot,
@@ -105,6 +107,7 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 		CreatedAt:   addedAt,
 		Ref:         ref,
 		CurrentDir:  currentDir,
+		Spindle:     spindle,
 
 		rr: rr,
 	}, nil

@@ -367,7 +367,6 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	case http.MethodPut:
-		user := rp.oauth.GetUser(r)
 		newDescription := r.FormValue("description")
 		client, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
@@ -753,6 +752,88 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// modify the spindle configured for this repo
+func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	repoAt := f.RepoAt
+	rkey := repoAt.RecordKey().String()
+	if rkey == "" {
+		log.Println("invalid aturi for repo", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	user := rp.oauth.GetUser(r)
+
+	newSpindle := r.FormValue("spindle")
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get client")
+		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		return
+	}
+
+	// ensure that this is a valid spindle for this user
+	validSpindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
+	if err != nil {
+		log.Println("failed to get valid spindles")
+		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		return
+	}
+
+	if !slices.Contains(validSpindles, newSpindle) {
+		log.Println("newSpindle not present in validSpindles", "newSpindle", newSpindle, "validSpindles", validSpindles)
+		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		return
+	}
+
+	// optimistic update
+	err = db.UpdateSpindle(rp.db, string(repoAt), newSpindle)
+	if err != nil {
+		log.Println("failed to perform update-spindle query", err)
+		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		return
+	}
+
+	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, user.Did, rkey)
+	if err != nil {
+		// failed to get record
+		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, no record found on PDS.")
+		return
+	}
+	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoNSID,
+		Repo:       user.Did,
+		Rkey:       rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.Repo{
+				Knot:        f.Knot,
+				Name:        f.RepoName,
+				Owner:       user.Did,
+				CreatedAt:   f.CreatedAt,
+				Description: &f.Description,
+				Spindle:     &newSpindle,
+			},
+		},
+	})
+
+	if err != nil {
+		log.Println("failed to perform update-spindle query", err)
+		// failed to get record
+		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, unable to save to PDS.")
+		return
+	}
+
+	w.Write(fmt.Append(nil, "spindle set to: ", newSpindle))
+}
+
 func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -794,14 +875,14 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ksResp.StatusCode != http.StatusNoContent {
-		w.Write([]byte(fmt.Sprint("knotserver failed to add collaborator: ", err)))
+		w.Write(fmt.Append(nil, "knotserver failed to add collaborator: ", err))
 		return
 	}
 
 	tx, err := rp.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		log.Println("failed to start tx")
-		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
 		return
 	}
 	defer func() {
@@ -814,13 +895,13 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 
 	err = rp.enforcer.AddCollaborator(collaboratorIdent.DID.String(), f.Knot, f.DidSlashRepo())
 	if err != nil {
-		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
 		return
 	}
 
 	err = db.AddCollaborator(rp.db, collaboratorIdent.DID.String(), f.OwnerDid(), f.RepoName, f.Knot)
 	if err != nil {
-		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
 		return
 	}
 
@@ -838,7 +919,7 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(fmt.Sprint("added collaborator: ", collaboratorIdent.Handle.String())))
+	w.Write(fmt.Append(nil, "added collaborator: ", collaboratorIdent.Handle.String()))
 
 }
 
@@ -897,7 +978,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	tx, err := rp.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		log.Println("failed to start tx")
-		w.Write([]byte(fmt.Sprint("failed to add collaborator: ", err)))
+		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
 		return
 	}
 	defer func() {
@@ -988,7 +1069,7 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(fmt.Sprint("default branch set to: ", branch)))
+	w.Write(fmt.Append(nil, "default branch set to: ", branch))
 }
 
 func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
@@ -1027,12 +1108,20 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		spindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
+		if err != nil {
+			log.Println("failed to fetch spindles", err)
+			return
+		}
+
 		rp.pages.RepoSettings(w, pages.RepoSettingsParams{
 			LoggedInUser:                user,
 			RepoInfo:                    f.RepoInfo(user),
 			Collaborators:               repoCollaborators,
 			IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
 			Branches:                    result.Branches,
+			Spindles:                    spindles,
+			CurrentSpindle:              f.Spindle,
 		})
 	}
 }
@@ -1049,7 +1138,7 @@ func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		secret, err := db.GetRegistrationKey(rp.db, f.Knot)
 		if err != nil {
-			rp.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %rp.", f.Knot))
+			rp.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", f.Knot))
 			return
 		}
 
@@ -1135,7 +1224,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		secret, err := db.GetRegistrationKey(rp.db, knot)
 		if err != nil {
-			rp.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %rp.", knot))
+			rp.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", knot))
 			return
 		}
 
