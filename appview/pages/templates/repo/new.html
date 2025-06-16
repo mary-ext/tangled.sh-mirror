@@ -60,10 +60,10 @@
     </fieldset>
 
     <div class="space-y-2">
-      <button type="submit" class="btn flex gap-2 items-center">
+      <button type="submit" class="btn flex items-center">
         create repo
         <span id="spinner" class="group">
-          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </span>
       </button>
       <div id="repo" class="error"></div>

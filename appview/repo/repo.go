@@ -1108,6 +1108,7 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// all spindles that this user is a member of
 		spindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
 		if err != nil {
 			log.Println("failed to fetch spindles", err)

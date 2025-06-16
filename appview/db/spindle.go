@@ -51,7 +51,7 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 	for rows.Next() {
 		var spindle Spindle
 		var createdAt string
-		var verified sql.NullTime
+		var verified sql.NullString
 
 		if err := rows.Scan(
 			&spindle.Id,
@@ -69,7 +69,12 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 		}
 
 		if verified.Valid {
-			spindle.Verified = &verified.Time
+			t, err := time.Parse(time.RFC3339, verified.String)
+			if err != nil {
+				now := time.Now()
+				spindle.Verified = &now
+			}
+			spindle.Verified = &t
 		}
 
 		spindles = append(spindles, spindle)
