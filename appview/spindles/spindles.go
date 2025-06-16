@@ -54,6 +54,8 @@ func (s *Spindles) spindles(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		s.Logger.Error("failed to fetch spindles", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	s.Pages.Spindles(w, pages.SpindlesParams{
@@ -146,6 +148,45 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 	if expectedOwner != user.Did {
 		// verification failed
 		l.Error("verification failed", "expectedOwner", expectedOwner, "observedOwner", user.Did)
+		s.Pages.HxRefresh(w)
+		return
+	}
+
+	tx, err = s.Db.Begin()
+	if err != nil {
+		l.Error("failed to commit verification info", "err", err)
+		s.Pages.HxRefresh(w)
+		return
+	}
+	defer func() {
+		tx.Rollback()
+		s.Enforcer.E.LoadPolicy()
+	}()
+
+	// mark this spindle as verified in the db
+	_, err = db.VerifySpindle(
+		tx,
+		db.FilterEq("owner", user.Did),
+		db.FilterEq("instance", instance),
+	)
+
+	err = s.Enforcer.AddSpindleOwner(instance, user.Did)
+	if err != nil {
+		l.Error("failed to update ACL", "err", err)
+		s.Pages.HxRefresh(w)
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		l.Error("failed to commit verification info", "err", err)
+		s.Pages.HxRefresh(w)
+		return
+	}
+
+	err = s.Enforcer.E.SavePolicy()
+	if err != nil {
+		l.Error("failed to update ACL", "err", err)
 		s.Pages.HxRefresh(w)
 		return
 	}
@@ -255,6 +296,11 @@ func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 		db.FilterEq("owner", user.Did),
 		db.FilterEq("instance", instance),
 	)
+	if err != nil {
+		l.Error("verification failed", "err", err)
+		fail()
+		return
+	}
 
 	verifiedSpindle := db.Spindle{
 		Id:       int(rowId),

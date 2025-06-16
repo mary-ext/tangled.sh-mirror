@@ -66,7 +66,10 @@ func Run(ctx context.Context) error {
 
 	jq := queue.NewQueue(100, 2)
 
-	collections := []string{tangled.SpindleMemberNSID}
+	collections := []string{
+		tangled.SpindleMemberNSID,
+		tangled.RepoNSID,
+	}
 	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, logger, d, false, false)
 	if err != nil {
 		return fmt.Errorf("failed to setup jetstream client: %w", err)
@@ -140,6 +143,9 @@ func (s *Spindle) Router() http.Handler {
 	mux := chi.NewRouter()
 
 	mux.HandleFunc("/events", s.Events)
+	mux.HandleFunc("/owner", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(s.cfg.Server.Owner))
+	})
 	mux.HandleFunc("/logs/{knot}/{rkey}/{name}", s.Logs)
 	return mux
 }

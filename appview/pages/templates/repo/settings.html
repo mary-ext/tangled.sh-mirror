@@ -83,7 +83,7 @@
 
     {{ if .RepoInfo.Roles.IsOwner }}
     <form
-        hx-put="/{{ $.RepoInfo.FullName }}/settings/spindle"
+        hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle"
         class="mt-6 group"
     >
         <label for="spindle">spindle</label>
@@ -100,7 +100,7 @@
                     <option
                         value="{{ . }}"
                         class="py-1"
-                        {{ if .eq . $.Repo.Spindle }}
+                        {{ if eq . $.CurrentSpindle }}
                             selected
                         {{ end }}
                     >
@@ -127,7 +127,7 @@
         <button class="btn my-2 flex items-center" type="text">
             <span>delete</span>
             <span id="delete-repo-spinner" class="group">
-              {{ i "loader-circle" "pl-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+              {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </span>
         </button>
         <span>

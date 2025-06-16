@@ -59,11 +59,11 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 		if s.cfg.Server.Dev {
 			domain = s.cfg.Server.ListenAddr
 		}
-		recordInstance := *record.Instance
+		recordInstance := record.Instance
 
 		if recordInstance != domain {
 			l.Error("domain mismatch", "domain", recordInstance, "expected", domain)
-			return fmt.Errorf("domain mismatch: %s != %s", *record.Instance, domain)
+			return fmt.Errorf("domain mismatch: %s != %s", record.Instance, domain)
 		}
 
 		ok, err := s.e.E.Enforce(did, rbacDomain, rbacDomain, "server:invite")
@@ -95,6 +95,8 @@ func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
 
 	l := s.l.With("component", "ingester", "record", tangled.RepoNSID)
 
+	l.Info("ingesting repo record")
+
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate, models.CommitOperationUpdate:
 		raw := e.Commit.Record
@@ -106,17 +108,16 @@ func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
 		}
 
 		domain := s.cfg.Server.Hostname
-		if s.cfg.Server.Dev {
-			domain = s.cfg.Server.ListenAddr
-		}
 
 		// no spindle configured for this repo
 		if record.Spindle == nil {
+			l.Info("no spindle configured", "did", record.Owner, "name", record.Name)
 			return nil
 		}
 
 		// this repo did not want this spindle
 		if *record.Spindle != domain {
+			l.Info("different spindle configured", "did", record.Owner, "name", record.Name, "spindle", *record.Spindle, "domain", domain)
 			return nil
 		}
 
