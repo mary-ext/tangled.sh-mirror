@@ -2,21 +2,17 @@ package engine
 
 import (
 	"fmt"
-
-	"tangled.sh/tangled.sh/core/api/tangled"
 )
 
 type EnvVars []string
 
 // ConstructEnvs converts a tangled.Pipeline_Step_Environment_Elem.{Key,Value}
 // representation into a docker-friendly []string{"KEY=value", ...} slice.
-func ConstructEnvs(envs []*tangled.Pipeline_Step_Environment_Elem) EnvVars {
+func ConstructEnvs(envs map[string]string) EnvVars {
 	var dockerEnvs EnvVars
-	for _, env := range envs {
-		if env != nil {
-			ev := fmt.Sprintf("%s=%s", env.Key, env.Value)
-			dockerEnvs = append(dockerEnvs, ev)
-		}
+	for k, v := range envs {
+		ev := fmt.Sprintf("%s=%s", k, v)
+		dockerEnvs = append(dockerEnvs, ev)
 	}
 	return dockerEnvs
 }

@@ -59,7 +59,7 @@ func Run(ctx context.Context) error {
 
 	n := notifier.New()
 
-	eng, err := engine.New(ctx, d, &n)
+	eng, err := engine.New(ctx, cfg, d, &n)
 	if err != nil {
 		return err
 	}
@@ -153,26 +153,26 @@ func (s *Spindle) Router() http.Handler {
 
 func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source, msg eventconsumer.Message) error {
 	if msg.Nsid == tangled.PipelineNSID {
-		pipeline := tangled.Pipeline{}
-		err := json.Unmarshal(msg.EventJson, &pipeline)
+		tpl := tangled.Pipeline{}
+		err := json.Unmarshal(msg.EventJson, &tpl)
 		if err != nil {
 			fmt.Println("error unmarshalling", err)
 			return err
 		}
 
-		if pipeline.TriggerMetadata == nil {
+		if tpl.TriggerMetadata == nil {
 			return fmt.Errorf("no trigger metadata found")
 		}
 
-		if pipeline.TriggerMetadata.Repo == nil {
+		if tpl.TriggerMetadata.Repo == nil {
 			return fmt.Errorf("no repo data found")
 		}
 
 		// filter by repos
 		_, err = s.db.GetRepo(
-			pipeline.TriggerMetadata.Repo.Knot,
-			pipeline.TriggerMetadata.Repo.Did,
-			pipeline.TriggerMetadata.Repo.Repo,
+			tpl.TriggerMetadata.Repo.Knot,
+			tpl.TriggerMetadata.Repo.Did,
+			tpl.TriggerMetadata.Repo.Repo,
 		)
 		if err != nil {
 			return err
@@ -183,7 +183,7 @@ func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source,
 			Rkey: msg.Rkey,
 		}
 
-		for _, w := range pipeline.Workflows {
+		for _, w := range tpl.Workflows {
 			if w != nil {
 				err := s.db.StatusPending(models.WorkflowId{
 					PipelineId: pipelineId,
@@ -195,9 +195,11 @@ func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source,
 			}
 		}
 
+		spl := models.ToPipeline(tpl, *s.cfg)
+
 		ok := s.jq.Enqueue(queue.Job{
 			Run: func() error {
-				s.eng.StartWorkflows(ctx, &pipeline, pipelineId)
+				s.eng.StartWorkflows(ctx, spl, pipelineId)
 				return nil
 			},
 			OnFail: func(jobError error) {

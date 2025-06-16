@@ -3,43 +3,28 @@ package engine
 import (
 	"reflect"
 	"testing"
-
-	"tangled.sh/tangled.sh/core/api/tangled"
 )
 
 func TestConstructEnvs(t *testing.T) {
 	tests := []struct {
 		name string
-		in   []*tangled.Pipeline_Step_Environment_Elem
+		in   map[string]string
 		want EnvVars
 	}{
 		{
 			name: "empty input",
-			in:   []*tangled.Pipeline_Step_Environment_Elem{},
+			in:   make(map[string]string),
 			want: EnvVars{},
 		},
 		{
 			name: "single env var",
-			in: []*tangled.Pipeline_Step_Environment_Elem{
-				{Key: "FOO", Value: "bar"},
-			},
+			in:   map[string]string{"FOO": "bar"},
 			want: EnvVars{"FOO=bar"},
 		},
 		{
 			name: "multiple env vars",
-			in: []*tangled.Pipeline_Step_Environment_Elem{
-				{Key: "FOO", Value: "bar"},
-				{Key: "BAZ", Value: "qux"},
-			},
+			in:   map[string]string{"FOO": "bar", "BAZ": "qux"},
 			want: EnvVars{"FOO=bar", "BAZ=qux"},
-		},
-		{
-			name: "nil entries are skipped",
-			in: []*tangled.Pipeline_Step_Environment_Elem{
-				nil,
-				{Key: "FOO", Value: "bar"},
-			},
-			want: EnvVars{"FOO=bar"},
 		},
 	}
 
