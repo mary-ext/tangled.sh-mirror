@@ -203,6 +203,10 @@ func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step,
 	}()
 
 	for _, step := range steps {
+		envs := ConstructEnvs(step.Environment)
+		envs.AddEnv("HOME", workspaceDir)
+		e.l.Debug("envs for step", "step", step.Name, "envs", envs.Slice())
+
 		hostConfig := hostConfig(wid)
 		resp, err := e.docker.ContainerCreate(ctx, &container.Config{
 			Image:      image,
@@ -210,7 +214,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step,
 			WorkingDir: workspaceDir,
 			Tty:        false,
 			Hostname:   "spindle",
-			Env:        []string{"HOME=" + workspaceDir},
+			Env:        envs.Slice(),
 		}, hostConfig, nil, nil, "")
 		if err != nil {
 			return fmt.Errorf("creating container: %w", err)
