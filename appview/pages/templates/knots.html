@@ -20,10 +20,10 @@
           required
           class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"
         >
-        <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center" type="submit">
+        <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex items-center" type="submit">
           <span>generate key</span>
           <span id="generate-knot-key-spinner" class="group">
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            {{ i "loader-circle" "pl-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </span>
         </button>
         <div id="settings-knots-error" class="error dark:text-red-400"></div>

@@ -12,7 +12,9 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pulls"
 	"tangled.sh/tangled.sh/core/appview/repo"
 	"tangled.sh/tangled.sh/core/appview/settings"
+	"tangled.sh/tangled.sh/core/appview/spindles"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
+	"tangled.sh/tangled.sh/core/log"
 )
 
 func (s *State) Router() http.Handler {
@@ -142,6 +144,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	})
 
 	r.Mount("/settings", s.SettingsRouter())
+	r.Mount("/spindles", s.SpindlesRouter())
 	r.Mount("/", s.OAuthRouter())
 
 	r.Get("/keys/{user}", s.Keys)
@@ -167,6 +170,21 @@ func (s *State) SettingsRouter() http.Handler {
 	}
 
 	return settings.Router()
+}
+
+func (s *State) SpindlesRouter() http.Handler {
+	logger := log.New("spindles")
+
+	spindles := &spindles.Spindles{
+		Db:       s.db,
+		OAuth:    s.oauth,
+		Pages:    s.pages,
+		Config:   s.config,
+		Enforcer: s.enforcer,
+		Logger:   logger,
+	}
+
+	return spindles.Router()
 }
 
 func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {

@@ -291,6 +291,24 @@ func (p *Pages) Knot(w io.Writer, params KnotParams) error {
 	return p.execute("knot", w, params)
 }
 
+type SpindlesParams struct {
+	LoggedInUser *oauth.User
+	Spindles     []db.Spindle
+}
+
+func (p *Pages) Spindles(w io.Writer, params SpindlesParams) error {
+	return p.execute("spindles/index", w, params)
+}
+
+type SpindleListingParams struct {
+	LoggedInUser *oauth.User
+	Spindle      db.Spindle
+}
+
+func (p *Pages) SpindleListing(w io.Writer, params SpindleListingParams) error {
+	return p.execute("spindles/fragments/spindleListing", w, params)
+}
+
 type NewRepoParams struct {
 	LoggedInUser *oauth.User
 	Knots        []string
