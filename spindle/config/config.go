@@ -15,8 +15,14 @@ type Server struct {
 	Owner             string `env:"OWNER, required"`
 }
 
+type Pipelines struct {
+	// TODO: change default to nixery.tangled.sh
+	Nixery string `env:"NIXERY, default=nixery.dev"`
+}
+
 type Config struct {
-	Server Server `env:",prefix=SPINDLE_SERVER_"`
+	Server    Server    `env:",prefix=SPINDLE_SERVER_"`
+	Pipelines Pipelines `env:",prefix=SPINDLE_PIPELINES_"`
 }
 
 func Load(ctx context.Context) (*Config, error) {

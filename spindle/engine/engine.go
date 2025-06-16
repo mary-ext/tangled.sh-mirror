@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path"
 	"strings"
 	"sync"
 
@@ -18,9 +17,9 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/notifier"
+	"tangled.sh/tangled.sh/core/spindle/config"
 	"tangled.sh/tangled.sh/core/spindle/db"
 	"tangled.sh/tangled.sh/core/spindle/models"
 )
@@ -36,6 +35,7 @@ type Engine struct {
 	l      *slog.Logger
 	db     *db.DB
 	n      *notifier.Notifier
+	cfg    *config.Config
 
 	chanMu      sync.RWMutex
 	stdoutChans map[string]chan string
@@ -45,7 +45,7 @@ type Engine struct {
 	cleanup   map[string][]cleanupFunc
 }
 
-func New(ctx context.Context, db *db.DB, n *notifier.Notifier) (*Engine, error) {
+func New(ctx context.Context, cfg *config.Config, db *db.DB, n *notifier.Notifier) (*Engine, error) {
 	dcli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
@@ -58,6 +58,7 @@ func New(ctx context.Context, db *db.DB, n *notifier.Notifier) (*Engine, error) 
 		l:      l,
 		db:     db,
 		n:      n,
+		cfg:    cfg,
 	}
 
 	e.stdoutChans = make(map[string]chan string, 100)
@@ -68,7 +69,7 @@ func New(ctx context.Context, db *db.DB, n *notifier.Notifier) (*Engine, error) 
 	return e, nil
 }
 
-func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline, pipelineId models.PipelineId) {
+func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, pipelineId models.PipelineId) {
 	e.l.Info("starting all workflows in parallel", "pipeline", pipelineId)
 
 	wg := sync.WaitGroup{}
@@ -93,19 +94,7 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline,
 			}
 			defer e.DestroyWorkflow(ctx, wid)
 
-			// TODO: actual checks for image/registry etc.
-			var deps string
-			for _, d := range w.Dependencies {
-				if d.Registry == "nixpkgs" {
-					deps = path.Join(d.Packages...)
-				}
-			}
-
-			// load defaults from somewhere else
-			deps = path.Join(deps, "bash", "git", "coreutils", "nix")
-
-			cimg := path.Join("nixery.dev", deps)
-			reader, err := e.docker.ImagePull(ctx, cimg, image.PullOptions{})
+			reader, err := e.docker.ImagePull(ctx, w.Image, image.PullOptions{})
 			if err != nil {
 				e.l.Error("pipeline failed!", "workflowId", wid, "error", err.Error())
 
@@ -119,13 +108,13 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline,
 			defer reader.Close()
 			io.Copy(os.Stdout, reader)
 
-			err = e.StartSteps(ctx, w.Steps, wid, cimg)
+			err = e.StartSteps(ctx, w.Steps, wid, w.Image)
 			if err != nil {
 				e.l.Error("workflow failed!", "wid", wid.String(), "error", err.Error())
 
-				err := e.db.StatusFailed(wid, err.Error(), -1, e.n)
-				if err != nil {
-					return err
+				dbErr := e.db.StatusFailed(wid, err.Error(), -1, e.n)
+				if dbErr != nil {
+					return dbErr
 				}
 
 				return fmt.Errorf("starting steps image: %w", err)
@@ -187,7 +176,7 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId) error
 // StartSteps starts all steps sequentially with the same base image.
 // ONLY marks pipeline as failed if container's exit code is non-zero.
 // All other errors are bubbled up.
-func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step, wid models.WorkflowId, image string) error {
+func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models.WorkflowId, image string) error {
 	// set up logging channels
 	e.chanMu.Lock()
 	if _, exists := e.stdoutChans[wid.String()]; !exists {
@@ -259,8 +248,12 @@ func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step,
 		}
 
 		if state.ExitCode != 0 {
-			e.l.Error("workflow failed!", "workflow_id", wid.String(), "error", state.Error, "exit_code", state.ExitCode)
-			return fmt.Errorf("%s", state.Error)
+			e.l.Error("workflow failed!", "workflow_id", wid.String(), "error", state.Error, "exit_code", state.ExitCode, "oom_killed", state.OOMKilled)
+			err := e.db.StatusFailed(wid, state.Error, int64(state.ExitCode), e.n)
+			if err != nil {
+				return err
+			}
+			return fmt.Errorf("error: %s, exit code: %d, oom: %s", state.Error, state.ExitCode, state.OOMKilled)
 		}
 	}
 
@@ -293,12 +286,19 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 		Follow:     true,
 		ShowStdout: true,
 		ShowStderr: true,
-		Details:    false,
+		Details:    true,
 		Timestamps: false,
 	})
 	if err != nil {
 		return err
 	}
+
+	var devOutput io.Writer = io.Discard
+	if e.cfg.Server.Dev {
+		devOutput = &ansiStrippingWriter{underlying: os.Stdout}
+	}
+
+	tee := io.TeeReader(logs, devOutput)
 
 	// using StdCopy we demux logs and stream stdout and stderr to different
 	// channels.
@@ -310,10 +310,14 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 	rpipeOut, wpipeOut := io.Pipe()
 	rpipeErr, wpipeErr := io.Pipe()
 
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		defer wpipeOut.Close()
 		defer wpipeErr.Close()
-		_, err := stdcopy.StdCopy(wpipeOut, wpipeErr, logs)
+		_, err := stdcopy.StdCopy(wpipeOut, wpipeErr, tee)
 		if err != nil && err != io.EOF {
 			e.l.Error("failed to copy logs", "error", err)
 		}
@@ -322,7 +326,9 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 	// read from stdout and send to stdout pipe
 	// NOTE: the stdoutCh channnel is closed further up in StartSteps
 	// once all steps are done.
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		e.chanMu.RLock()
 		stdoutCh := e.stdoutChans[wid.String()]
 		e.chanMu.RUnlock()
@@ -339,7 +345,9 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 	// read from stderr and send to stderr pipe
 	// NOTE: the stderrCh channnel is closed further up in StartSteps
 	// once all steps are done.
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		e.chanMu.RLock()
 		stderrCh := e.stderrChans[wid.String()]
 		e.chanMu.RUnlock()
@@ -352,6 +360,8 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 			e.l.Error("failed to scan stderr", "error", err)
 		}
 	}()
+
+	wg.Wait()
 
 	return nil
 }
@@ -435,10 +445,14 @@ func hostConfig(wid models.WorkflowId) *container.HostConfig {
 				Source: nixVolume(wid),
 				Target: "/nix",
 			},
+			{
+				Type:   mount.TypeTmpfs,
+				Target: "/tmp",
+			},
 		},
-		ReadonlyRootfs: true,
+		ReadonlyRootfs: false,
 		CapDrop:        []string{"ALL"},
-		SecurityOpt:    []string{"no-new-privileges"},
+		SecurityOpt:    []string{"seccomp=unconfined"},
 	}
 
 	return hostConfig

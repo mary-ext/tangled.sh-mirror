@@ -4,6 +4,7 @@ import (
 	"path"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/spindle/config"
 )
 
 type Pipeline struct {
@@ -35,7 +36,7 @@ func (ss *setupSteps) addStep(step Step) {
 // In the process, dependencies are resolved: nixpkgs deps
 // are constructed atop nixery and set as the Workflow.Image,
 // and ones from custom registries
-func ToPipeline(pl tangled.Pipeline, dev bool) *Pipeline {
+func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 	workflows := []Workflow{}
 
 	for _, twf := range pl.Workflows {
@@ -49,12 +50,12 @@ func ToPipeline(pl tangled.Pipeline, dev bool) *Pipeline {
 		}
 		swf.Name = twf.Name
 		swf.Environment = workflowEnvToMap(twf.Environment)
-		swf.Image = workflowImage(twf.Dependencies)
+		swf.Image = workflowImage(twf.Dependencies, cfg.Pipelines.Nixery)
 
 		swf.addNixProfileToPath()
 		setup := &setupSteps{}
 
-		setup.addStep(cloneStep(*twf, *pl.TriggerMetadata.Repo, dev))
+		setup.addStep(cloneStep(*twf, *pl.TriggerMetadata.Repo, cfg.Server.Dev))
 		setup.addStep(checkoutStep(*twf, *pl.TriggerMetadata))
 		setup.addStep(dependencyStep(*twf))
 
@@ -82,7 +83,7 @@ func stepEnvToMap(envs []*tangled.Pipeline_Step_Environment_Elem) map[string]str
 	return envMap
 }
 
-func workflowImage(deps []tangled.Pipeline_Dependencies_Elem) string {
+func workflowImage(deps []tangled.Pipeline_Dependencies_Elem, nixery string) string {
 	var dependencies string
 	for _, d := range deps {
 		if d.Registry == "nixpkgs" {
@@ -93,8 +94,7 @@ func workflowImage(deps []tangled.Pipeline_Dependencies_Elem) string {
 	// load defaults from somewhere else
 	dependencies = path.Join(dependencies, "bash", "git", "coreutils", "nix")
 
-	// TODO: this should use nixery from the config
-	return path.Join("nixery.dev", dependencies)
+	return path.Join(nixery, dependencies)
 }
 
 func (wf *Workflow) addNixProfileToPath() {
