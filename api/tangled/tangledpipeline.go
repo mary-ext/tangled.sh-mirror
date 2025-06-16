@@ -61,8 +61,14 @@ type Pipeline_PushTriggerData struct {
 
 // Pipeline_Step is a "step" in the sh.tangled.pipeline schema.
 type Pipeline_Step struct {
-	Command string `json:"command" cborgen:"command"`
-	Name    string `json:"name" cborgen:"name"`
+	Command     string                            `json:"command" cborgen:"command"`
+	Environment []*Pipeline_Step_Environment_Elem `json:"environment,omitempty" cborgen:"environment,omitempty"`
+	Name        string                            `json:"name" cborgen:"name"`
+}
+
+type Pipeline_Step_Environment_Elem struct {
+	Key   string `json:"key" cborgen:"key"`
+	Value string `json:"value" cborgen:"value"`
 }
 
 // Pipeline_TriggerMetadata is a "triggerMetadata" in the sh.tangled.pipeline schema.
@@ -85,7 +91,7 @@ type Pipeline_TriggerRepo struct {
 // Pipeline_Workflow is a "workflow" in the sh.tangled.pipeline schema.
 type Pipeline_Workflow struct {
 	Clone        *Pipeline_CloneOpts                   `json:"clone" cborgen:"clone"`
-	Dependencies []Pipeline_Dependencies_Elem          `json:"dependencies" cborgen:"dependencies"`
+	Dependencies []Pipeline_Dependencies_Elem               `json:"dependencies" cborgen:"dependencies"`
 	Environment  []*Pipeline_Workflow_Environment_Elem `json:"environment" cborgen:"environment"`
 	Name         string                                `json:"name" cborgen:"name"`
 	Steps        []*Pipeline_Step                      `json:"steps" cborgen:"steps"`

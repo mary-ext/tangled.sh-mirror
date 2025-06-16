@@ -29,6 +29,7 @@ func main() {
 		tangled.Pipeline_ManualTriggerData{},
 		tangled.Pipeline_PullRequestTriggerData{},
 		tangled.Pipeline_PushTriggerData{},
+		tangled.Pipeline_Step_Environment_Elem{},
 		tangled.Pipeline_Step{},
 		tangled.Pipeline_TriggerMetadata{},
 		tangled.Pipeline_TriggerRepo{},

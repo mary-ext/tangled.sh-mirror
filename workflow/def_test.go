@@ -105,6 +105,13 @@ clone:
 environment:
   HOME: /home/foo bar/baz
   CGO_ENABLED: 1
+
+steps:
+  - name: Something
+    command: echo "hello"
+    environment:
+      FOO: bar
+      BAZ: qux
 `
 
 	wf, err := FromFile("test.yml", []byte(yamlData))
@@ -113,4 +120,6 @@ environment:
 	assert.Len(t, wf.Environment, 2)
 	assert.Equal(t, "/home/foo bar/baz", wf.Environment["HOME"])
 	assert.Equal(t, "1", wf.Environment["CGO_ENABLED"])
+	assert.Equal(t, "bar", wf.Steps[0].Environment["FOO"])
+	assert.Equal(t, "qux", wf.Steps[0].Environment["BAZ"])
 }

@@ -45,8 +45,9 @@ type (
 	}
 
 	Step struct {
-		Name    string `yaml:"name"`
-		Command string `yaml:"command"`
+		Name        string            `yaml:"name"`
+		Command     string            `yaml:"command"`
+		Environment map[string]string `yaml:"environment"`
 	}
 
 	StringList []string
