@@ -3,8 +3,12 @@ package appview
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -46,6 +50,8 @@ func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer) Ingester {
 			ingestProfile(&d, e)
 		case tangled.SpindleMemberNSID:
 			ingestSpindleMember(&d, e, enforcer)
+		case tangled.SpindleNSID:
+			ingestSpindle(&d, e, true) // TODO: change this to dynamic
 		}
 
 		return err
@@ -288,7 +294,7 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 	return nil
 }
 
-func ingestSpindleMember(_ *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
+func ingestSpindleMember(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
 	did := e.Did
 	var err error
 
@@ -315,4 +321,73 @@ func ingestSpindleMember(_ *db.DbWrapper, e *models.Event, enforcer *rbac.Enforc
 	}
 
 	return nil
+}
+
+func ingestSpindle(d *db.DbWrapper, e *models.Event, dev bool) error {
+	did := e.Did
+	var err error
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.Spindle{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			log.Printf("invalid record: %s", err)
+			return err
+		}
+
+		// this is a special record whose rkey is the instance of the spindle itself
+		domain := e.Commit.RKey
+
+		owner, err := fetchOwner(context.TODO(), domain, true)
+		if err != nil {
+			log.Printf("failed to verify owner of %s: %w", domain, err)
+			return err
+		}
+
+		// verify that the spindle owner points back to this did
+		if owner != did {
+			log.Printf("incorrect owner for domain: %s, %s != %s", domain, owner, did)
+			return err
+		}
+
+		// mark this spindle as registered
+	}
+
+	return nil
+}
+
+func fetchOwner(ctx context.Context, domain string, dev bool) (string, error) {
+	scheme := "https"
+	if dev {
+		scheme = "http"
+	}
+
+	url := fmt.Sprintf("%s://%s/owner", scheme, domain)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	client := &http.Client{
+		Timeout: 1 * time.Second,
+	}
+
+	resp, err := client.Do(req.WithContext(ctx))
+	if err != nil || resp.StatusCode != 200 {
+		return "", errors.New("failed to fetch /owner")
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024)) // read atmost 1kb of data
+	if err != nil {
+		return "", fmt.Errorf("failed to read /owner response: %w", err)
+	}
+
+	did := strings.TrimSpace(string(body))
+	if did == "" {
+		return "", errors.New("empty DID in /owner response")
+	}
+
+	return did, nil
 }

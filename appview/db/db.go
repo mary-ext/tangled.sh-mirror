@@ -321,6 +321,16 @@ func Make(dbPath string) (*DB, error) {
 			primary key (did, date)
 		);
 
+		create table if not exists spindles (
+			id integer primary key autoincrement,
+			owner text not null,
+			instance text not null,
+			verified text, -- time of verification
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			unique(instance)
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
@@ -515,37 +525,20 @@ type filter struct {
 	cmp string
 }
 
-func FilterEq(key string, arg any) filter {
+func newFilter(key, cmp string, arg any) filter {
 	return filter{
 		key: key,
 		arg: arg,
-		cmp: "=",
+		cmp: cmp,
 	}
 }
 
-func FilterNotEq(key string, arg any) filter {
-	return filter{
-		key: key,
-		arg: arg,
-		cmp: "<>",
-	}
-}
-
-func FilterGte(key string, arg any) filter {
-	return filter{
-		key: key,
-		arg: arg,
-		cmp: ">=",
-	}
-}
-
-func FilterLte(key string, arg any) filter {
-	return filter{
-		key: key,
-		arg: arg,
-		cmp: "<=",
-	}
-}
+func FilterEq(key string, arg any) filter    { return newFilter(key, "=", arg) }
+func FilterNotEq(key string, arg any) filter { return newFilter(key, "<>", arg) }
+func FilterGte(key string, arg any) filter   { return newFilter(key, ">=", arg) }
+func FilterLte(key string, arg any) filter   { return newFilter(key, "<=", arg) }
+func FilterIs(key string, arg any) filter    { return newFilter(key, "is", arg) }
+func FilterIsNot(key string, arg any) filter { return newFilter(key, "is not", arg) }
 
 func (f filter) Condition() string {
 	return fmt.Sprintf("%s %s ?", f.key, f.cmp)

@@ -1,0 +1,51 @@
+{{ define "spindles/fragments/spindleListing" }}
+<div id="spindle-{{.Id}}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+  <div id="left-side" class="flex items-center gap-2 min-w-0 max-w-[60%]">
+    {{ i "hard-drive" "w-4 h-4" }}
+    {{ .Instance }}
+    <span class="text-gray-500">
+      {{ .Created | shortTimeFmt }} ago
+    </span>
+  </div>
+  <div id="right-side" class="flex gap-2">
+    {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2 text-sm" }}
+    {{ if .Verified }}
+      <span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{$style}}">{{ i "shield-check" "w-4 h-4" }} verified</span>
+    {{ else }}
+      <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} unverified</span>
+      {{ block "retryButton" . }} {{ end }}
+    {{ end }}
+    {{ block "deleteButton" . }} {{ end }}
+  </div>
+</div>
+{{ end }}
+
+{{ define "deleteButton" }}
+  <button
+    class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+    title="Delete spindle"
+    hx-delete="/spindles/{{ urlquery .Instance }}"
+    hx-swap="outerHTML"
+    hx-target="#spindle-{{.Id}}"
+    hx-confirm="Are you sure you want to delete the spindle '{{ .Instance }}'?"
+  >
+    {{ i "trash-2" "w-5 h-5" }}
+    <span class="hidden md:inline">delete</span> 
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+  </button>
+{{ end }}
+
+
+{{ define "retryButton" }}
+  <button
+    class="btn gap-2 group"
+    title="Retry spindle verification"
+    hx-post="/spindles/{{ urlquery .Instance }}/retry"
+    hx-swap="none"
+    hx-target="#spindle-{{.Id}}"
+  >
+    {{ i "rotate-ccw" "w-5 h-5" }}
+    <span class="hidden md:inline">retry</span> 
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+  </button>
+{{ end }}
