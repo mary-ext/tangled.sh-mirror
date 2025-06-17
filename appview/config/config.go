@@ -25,7 +25,7 @@ type JetstreamConfig struct {
 	Endpoint string `env:"ENDPOINT, default=wss://jetstream1.us-east.bsky.network/subscribe"`
 }
 
-type KnotstreamConfig struct {
+type ConsumerConfig struct {
 	RetryInterval     time.Duration `env:"RETRY_INTERVAL, default=60s"`
 	MaxRetryInterval  time.Duration `env:"MAX_RETRY_INTERVAL, default=120m"`
 	ConnectionTimeout time.Duration `env:"CONNECTION_TIMEOUT, default=5s"`
@@ -74,15 +74,16 @@ func (cfg RedisConfig) ToURL() string {
 }
 
 type Config struct {
-	Core       CoreConfig       `env:",prefix=TANGLED_"`
-	Jetstream  JetstreamConfig  `env:",prefix=TANGLED_JETSTREAM_"`
-	Knotstream KnotstreamConfig `env:",prefix=TANGLED_KNOTSTREAM_"`
-	Resend     ResendConfig     `env:",prefix=TANGLED_RESEND_"`
-	Posthog    PosthogConfig    `env:",prefix=TANGLED_POSTHOG_"`
-	Camo       CamoConfig       `env:",prefix=TANGLED_CAMO_"`
-	Avatar     AvatarConfig     `env:",prefix=TANGLED_AVATAR_"`
-	OAuth      OAuthConfig      `env:",prefix=TANGLED_OAUTH_"`
-	Redis      RedisConfig      `env:",prefix=TANGLED_REDIS_"`
+	Core          CoreConfig      `env:",prefix=TANGLED_"`
+	Jetstream     JetstreamConfig `env:",prefix=TANGLED_JETSTREAM_"`
+	Knotstream    ConsumerConfig  `env:",prefix=TANGLED_KNOTSTREAM_"`
+	Spindlestream ConsumerConfig  `env:",prefix=TANGLED_SPINDLESTREAM_"`
+	Resend        ResendConfig    `env:",prefix=TANGLED_RESEND_"`
+	Posthog       PosthogConfig   `env:",prefix=TANGLED_POSTHOG_"`
+	Camo          CamoConfig      `env:",prefix=TANGLED_CAMO_"`
+	Avatar        AvatarConfig    `env:",prefix=TANGLED_AVATAR_"`
+	OAuth         OAuthConfig     `env:",prefix=TANGLED_OAUTH_"`
+	Redis         RedisConfig     `env:",prefix=TANGLED_REDIS_"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {
