@@ -150,6 +150,12 @@ func (c *EventConsumer) Stop() {
 }
 
 func (c *EventConsumer) AddSource(ctx context.Context, s EventSource) {
+	// we are already listening to this source
+	if _, ok := c.cfg.Sources[s]; ok {
+		c.logger.Info("source already present", "source", s)
+		return
+	}
+
 	c.cfgMu.Lock()
 	c.cfg.Sources[s] = struct{}{}
 	c.wg.Add(1)

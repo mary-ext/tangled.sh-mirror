@@ -70,10 +70,11 @@ func Run(ctx context.Context) error {
 		tangled.SpindleMemberNSID,
 		tangled.RepoNSID,
 	}
-	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, logger, d, false, false)
+	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, logger, d, true, true)
 	if err != nil {
 		return fmt.Errorf("failed to setup jetstream client: %w", err)
 	}
+	jc.AddDid(cfg.Server.Owner)
 
 	spindle := Spindle{
 		jc:  jc,
@@ -118,19 +119,19 @@ func Run(ctx context.Context) error {
 	ccfg.Dev = cfg.Server.Dev
 	ccfg.ProcessFunc = spindle.processPipeline
 	ccfg.CursorStore = cursorStore
-	knotstream := knotclient.NewEventConsumer(*ccfg)
 	knownKnots, err := d.Knots()
 	if err != nil {
 		return err
 	}
 	for _, knot := range knownKnots {
-		knotstream.AddSource(ctx, knotclient.NewEventSource(knot))
+		logger.Info("adding source start", "knot", knot)
+		ccfg.Sources[knotclient.EventSource{knot}] = struct{}{}
 	}
-	spindle.ks = knotstream
+	spindle.ks = knotclient.NewEventConsumer(*ccfg)
 
 	go func() {
-		logger.Info("starting knot event consumer", "knots")
-		knotstream.Start(ctx)
+		logger.Info("starting knot event consumer")
+		spindle.ks.Start(ctx)
 	}()
 
 	logger.Info("starting spindle server", "address", cfg.Server.ListenAddr)
