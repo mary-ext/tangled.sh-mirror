@@ -331,10 +331,71 @@ func Make(dbPath string) (*DB, error) {
 			unique(instance)
 		);
 
+		create table if not exists pipelines (
+			-- identifiers
+			id integer primary key autoincrement,
+			knot text not null,
+			rkey text not null,
+
+			repo_owner text not null,
+			repo_name text not null,
+
+			-- every pipeline must be associated with exactly one commit
+			sha text not null check (length(sha) = 40),
+
+			-- trigger data
+			trigger_id integer not null,
+
+			unique(knot, rkey),
+			foreign key (trigger_id) references triggers(id) on delete cascade
+		);
+
+		create table if not exists triggers (
+			-- primary key
+			id integer primary key autoincrement,
+
+			-- top-level fields
+			kind text not null,
+
+			-- pushTriggerData fields
+			push_ref text,
+			push_new_sha text check (length(push_new_sha) = 40),
+			push_old_sha text check (length(push_old_sha) = 40),
+
+			-- pullRequestTriggerData fields
+			pr_source_branch text,
+			pr_target_branch text,
+			pr_source_sha text check (length(pr_source_sha) = 40),
+			pr_action text
+		);
+
+		create table if not exists pipeline_statuses (
+			-- identifiers
+			id integer primary key autoincrement,
+			spindle text not null,
+			rkey text not null,
+
+			-- referenced pipeline. these form the (did, rkey) pair
+			pipeline_knot text not null,
+			pipeline_rkey text not null,
+
+			-- content
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			workflow text not null,
+			status text not null,
+			error text,
+			exit_code integer not null default 0,
+
+			unique (spindle, rkey),
+			foreign key (pipeline_knot, pipeline_rkey)
+				references pipelines (knot, rkey)
+				on delete cascade
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
-		)
+		);
 	`)
 	if err != nil {
 		return nil, err
