@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/knotclient"
+	"tangled.sh/tangled.sh/core/eventconsumer"
 
 	"github.com/bluesky-social/jetstream/pkg/models"
 )
@@ -128,7 +128,7 @@ func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
 		}
 
 		// add this knot to the event consumer
-		src := knotclient.NewEventSource(record.Knot)
+		src := eventconsumer.NewKnotSource(record.Knot)
 		s.ks.AddSource(context.Background(), src)
 
 		return nil

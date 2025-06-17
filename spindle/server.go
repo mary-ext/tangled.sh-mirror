@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/eventconsumer"
+	"tangled.sh/tangled.sh/core/eventconsumer/cursor"
 	"tangled.sh/tangled.sh/core/jetstream"
-	"tangled.sh/tangled.sh/core/knotclient"
-	"tangled.sh/tangled.sh/core/knotclient/cursor"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
@@ -35,7 +35,7 @@ type Spindle struct {
 	eng *engine.Engine
 	jq  *queue.Queue
 	cfg *config.Config
-	ks  *knotclient.EventConsumer
+	ks  *eventconsumer.Consumer
 }
 
 func Run(ctx context.Context) error {
@@ -114,7 +114,7 @@ func Run(ctx context.Context) error {
 	// for each incoming sh.tangled.pipeline, we execute
 	// spindle.processPipeline, which in turn enqueues the pipeline
 	// job in the above registered queue.
-	ccfg := knotclient.NewConsumerConfig()
+	ccfg := eventconsumer.NewConsumerConfig()
 	ccfg.Logger = logger
 	ccfg.Dev = cfg.Server.Dev
 	ccfg.ProcessFunc = spindle.processPipeline
@@ -125,9 +125,9 @@ func Run(ctx context.Context) error {
 	}
 	for _, knot := range knownKnots {
 		logger.Info("adding source start", "knot", knot)
-		ccfg.Sources[knotclient.EventSource{knot}] = struct{}{}
+		ccfg.Sources[eventconsumer.NewKnotSource(knot)] = struct{}{}
 	}
-	spindle.ks = knotclient.NewEventConsumer(*ccfg)
+	spindle.ks = eventconsumer.NewConsumer(*ccfg)
 
 	go func() {
 		logger.Info("starting knot event consumer")
@@ -151,7 +151,7 @@ func (s *Spindle) Router() http.Handler {
 	return mux
 }
 
-func (s *Spindle) processPipeline(ctx context.Context, src knotclient.EventSource, msg knotclient.Message) error {
+func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source, msg eventconsumer.Message) error {
 	if msg.Nsid == tangled.PipelineNSID {
 		pipeline := tangled.Pipeline{}
 		err := json.Unmarshal(msg.EventJson, &pipeline)
@@ -179,7 +179,7 @@ func (s *Spindle) processPipeline(ctx context.Context, src knotclient.EventSourc
 		}
 
 		pipelineId := models.PipelineId{
-			Knot: src.Knot,
+			Knot: src.Key(),
 			Rkey: msg.Rkey,
 		}
 

@@ -1,22 +1,21 @@
-package knotclient
+package eventconsumer
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"math/rand"
 	"net/url"
 	"sync"
 	"time"
 
-	"tangled.sh/tangled.sh/core/knotclient/cursor"
+	"tangled.sh/tangled.sh/core/eventconsumer/cursor"
 	"tangled.sh/tangled.sh/core/log"
 
 	"github.com/gorilla/websocket"
 )
 
-type ProcessFunc func(ctx context.Context, source EventSource, message Message) error
+type ProcessFunc func(ctx context.Context, source Source, message Message) error
 
 type Message struct {
 	Rkey string
@@ -26,7 +25,7 @@ type Message struct {
 }
 
 type ConsumerConfig struct {
-	Sources           map[EventSource]struct{}
+	Sources           map[Source]struct{}
 	ProcessFunc       ProcessFunc
 	RetryInterval     time.Duration
 	MaxRetryInterval  time.Duration
@@ -40,21 +39,18 @@ type ConsumerConfig struct {
 
 func NewConsumerConfig() *ConsumerConfig {
 	return &ConsumerConfig{
-		Sources: make(map[EventSource]struct{}),
+		Sources: make(map[Source]struct{}),
 	}
 }
 
-type EventSource struct {
-	Knot string
+type Source interface {
+	// url to start streaming events from
+	Url(cursor int64, dev bool) (*url.URL, error)
+	// cache key for cursor storage
+	Key() string
 }
 
-func NewEventSource(knot string) EventSource {
-	return EventSource{
-		Knot: knot,
-	}
-}
-
-type EventConsumer struct {
+type Consumer struct {
 	wg         sync.WaitGroup
 	dialer     *websocket.Dialer
 	connMap    sync.Map
@@ -67,31 +63,12 @@ type EventConsumer struct {
 	cfg   ConsumerConfig
 }
 
-func (e *EventConsumer) buildUrl(s EventSource, cursor int64) (*url.URL, error) {
-	scheme := "wss"
-	if e.cfg.Dev {
-		scheme = "ws"
-	}
-
-	u, err := url.Parse(scheme + "://" + s.Knot + "/events")
-	if err != nil {
-		return nil, err
-	}
-
-	if cursor != 0 {
-		query := url.Values{}
-		query.Add("cursor", fmt.Sprintf("%d", cursor))
-		u.RawQuery = query.Encode()
-	}
-	return u, nil
-}
-
 type job struct {
-	source  EventSource
+	source  Source
 	message []byte
 }
 
-func NewEventConsumer(cfg ConsumerConfig) *EventConsumer {
+func NewConsumer(cfg ConsumerConfig) *Consumer {
 	if cfg.RetryInterval == 0 {
 		cfg.RetryInterval = 15 * time.Minute
 	}
@@ -105,7 +82,7 @@ func NewEventConsumer(cfg ConsumerConfig) *EventConsumer {
 		cfg.MaxRetryInterval = 1 * time.Hour
 	}
 	if cfg.Logger == nil {
-		cfg.Logger = log.New("eventconsumer")
+		cfg.Logger = log.New("consumer")
 	}
 	if cfg.QueueSize == 0 {
 		cfg.QueueSize = 100
@@ -113,7 +90,7 @@ func NewEventConsumer(cfg ConsumerConfig) *EventConsumer {
 	if cfg.CursorStore == nil {
 		cfg.CursorStore = &cursor.MemoryStore{}
 	}
-	return &EventConsumer{
+	return &Consumer{
 		cfg:        cfg,
 		dialer:     websocket.DefaultDialer,
 		jobQueue:   make(chan job, cfg.QueueSize), // buffered job queue
@@ -122,7 +99,7 @@ func NewEventConsumer(cfg ConsumerConfig) *EventConsumer {
 	}
 }
 
-func (c *EventConsumer) Start(ctx context.Context) {
+func (c *Consumer) Start(ctx context.Context) {
 	c.cfg.Logger.Info("starting consumer", "config", c.cfg)
 
 	// start workers
@@ -138,7 +115,7 @@ func (c *EventConsumer) Start(ctx context.Context) {
 	}
 }
 
-func (c *EventConsumer) Stop() {
+func (c *Consumer) Stop() {
 	c.connMap.Range(func(_, val any) bool {
 		if conn, ok := val.(*websocket.Conn); ok {
 			conn.Close()
@@ -149,7 +126,7 @@ func (c *EventConsumer) Stop() {
 	close(c.jobQueue)
 }
 
-func (c *EventConsumer) AddSource(ctx context.Context, s EventSource) {
+func (c *Consumer) AddSource(ctx context.Context, s Source) {
 	// we are already listening to this source
 	if _, ok := c.cfg.Sources[s]; ok {
 		c.logger.Info("source already present", "source", s)
@@ -163,7 +140,7 @@ func (c *EventConsumer) AddSource(ctx context.Context, s EventSource) {
 	c.cfgMu.Unlock()
 }
 
-func (c *EventConsumer) worker(ctx context.Context) {
+func (c *Consumer) worker(ctx context.Context) {
 	defer c.wg.Done()
 	for {
 		select {
@@ -177,12 +154,12 @@ func (c *EventConsumer) worker(ctx context.Context) {
 			var msg Message
 			err := json.Unmarshal(j.message, &msg)
 			if err != nil {
-				c.logger.Error("error deserializing message", "source", j.source.Knot, "err", err)
+				c.logger.Error("error deserializing message", "source", j.source.Key(), "err", err)
 				return
 			}
 
 			// update cursor
-			c.cfg.CursorStore.Set(j.source.Knot, time.Now().UnixNano())
+			c.cfg.CursorStore.Set(j.source.Key(), time.Now().UnixNano())
 
 			if err := c.cfg.ProcessFunc(ctx, j.source, msg); err != nil {
 				c.logger.Error("error processing message", "source", j.source, "err", err)
@@ -191,7 +168,7 @@ func (c *EventConsumer) worker(ctx context.Context) {
 	}
 }
 
-func (c *EventConsumer) startConnectionLoop(ctx context.Context, source EventSource) {
+func (c *Consumer) startConnectionLoop(ctx context.Context, source Source) {
 	defer c.wg.Done()
 	retryInterval := c.cfg.RetryInterval
 	for {
@@ -224,13 +201,13 @@ func (c *EventConsumer) startConnectionLoop(ctx context.Context, source EventSou
 	}
 }
 
-func (c *EventConsumer) runConnection(ctx context.Context, source EventSource) error {
+func (c *Consumer) runConnection(ctx context.Context, source Source) error {
 	connCtx, cancel := context.WithTimeout(ctx, c.cfg.ConnectionTimeout)
 	defer cancel()
 
-	cursor := c.cfg.CursorStore.Get(source.Knot)
+	cursor := c.cfg.CursorStore.Get(source.Key())
 
-	u, err := c.buildUrl(source, cursor)
+	u, err := source.Url(cursor, c.cfg.Dev)
 	if err != nil {
 		return err
 	}
