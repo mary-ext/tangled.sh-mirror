@@ -112,6 +112,13 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ex, _ := client.RepoGetRecord(r.Context(), "", tangled.SpindleNSID, user.Did, instance)
+	var exCid *string
+	if ex != nil {
+		exCid = ex.Cid
+	}
+
+	// re-announce by registering under same rkey
 	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 		Collection: tangled.SpindleNSID,
 		Repo:       user.Did,
@@ -121,7 +128,9 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 				CreatedAt: time.Now().Format(time.RFC3339),
 			},
 		},
+		SwapRecord: exCid,
 	})
+
 	if err != nil {
 		l.Error("failed to put record", "err", err)
 		fail()
