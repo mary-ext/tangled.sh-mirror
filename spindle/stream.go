@@ -2,6 +2,7 @@ package spindle
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -206,19 +207,37 @@ func (s *Spindle) streamLogs(ctx context.Context, conn *websocket.Conn, wid mode
 }
 
 func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *int64) error {
-	ops, err := s.db.GetEvents(*cursor)
+	events, err := s.db.GetEvents(*cursor)
 	if err != nil {
 		s.l.Debug("err", "err", err)
 		return err
 	}
-	s.l.Debug("ops", "ops", ops)
+	s.l.Debug("ops", "ops", events)
 
-	for _, op := range ops {
-		if err := conn.WriteJSON(op); err != nil {
+	for _, event := range events {
+		// first extract the inner json into a map
+		var eventJson map[string]any
+		err := json.Unmarshal([]byte(event.EventJson), &eventJson)
+		if err != nil {
+			s.l.Error("failed to unmarshal event", "err", err)
+			return err
+		}
+
+		jsonMsg, err := json.Marshal(map[string]any{
+			"rkey":  event.Rkey,
+			"nsid":  event.Nsid,
+			"event": eventJson,
+		})
+		if err != nil {
+			s.l.Error("failed to marshal record", "err", err)
+			return err
+		}
+
+		if err := conn.WriteMessage(websocket.TextMessage, jsonMsg); err != nil {
 			s.l.Debug("err", "err", err)
 			return err
 		}
-		*cursor = op.Created
+		*cursor = event.Created
 	}
 
 	return nil
