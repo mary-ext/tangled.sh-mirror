@@ -159,6 +159,24 @@ func (s *Spindle) processPipeline(ctx context.Context, src knotclient.EventSourc
 			return err
 		}
 
+		if pipeline.TriggerMetadata == nil {
+			return fmt.Errorf("no trigger metadata found")
+		}
+
+		if pipeline.TriggerMetadata.Repo == nil {
+			return fmt.Errorf("no repo data found")
+		}
+
+		// filter by repos
+		_, err = s.db.GetRepo(
+			pipeline.TriggerMetadata.Repo.Knot,
+			pipeline.TriggerMetadata.Repo.Did,
+			pipeline.TriggerMetadata.Repo.Repo,
+		)
+		if err != nil {
+			return err
+		}
+
 		pipelineId := models.PipelineId{
 			Knot: src.Knot,
 			Rkey: msg.Rkey,
