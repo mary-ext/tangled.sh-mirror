@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -27,6 +28,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/rbac"
@@ -42,20 +44,22 @@ import (
 )
 
 type Repo struct {
-	repoResolver *reporesolver.RepoResolver
-	idResolver   *idresolver.Resolver
-	config       *config.Config
-	oauth        *oauth.OAuth
-	pages        *pages.Pages
-	db           *db.DB
-	enforcer     *rbac.Enforcer
-	posthog      posthog.Client
+	repoResolver  *reporesolver.RepoResolver
+	idResolver    *idresolver.Resolver
+	config        *config.Config
+	oauth         *oauth.OAuth
+	pages         *pages.Pages
+	spindlestream *eventconsumer.Consumer
+	db            *db.DB
+	enforcer      *rbac.Enforcer
+	posthog       posthog.Client
 }
 
 func New(
 	oauth *oauth.OAuth,
 	repoResolver *reporesolver.RepoResolver,
 	pages *pages.Pages,
+	spindlestream *eventconsumer.Consumer,
 	idResolver *idresolver.Resolver,
 	db *db.DB,
 	config *config.Config,
@@ -63,13 +67,14 @@ func New(
 	enforcer *rbac.Enforcer,
 ) *Repo {
 	return &Repo{oauth: oauth,
-		repoResolver: repoResolver,
-		pages:        pages,
-		idResolver:   idResolver,
-		config:       config,
-		db:           db,
-		posthog:      posthog,
-		enforcer:     enforcer,
+		repoResolver:  repoResolver,
+		pages:         pages,
+		idResolver:    idResolver,
+		config:        config,
+		spindlestream: spindlestream,
+		db:            db,
+		posthog:       posthog,
+		enforcer:      enforcer,
 	}
 }
 
@@ -830,6 +835,12 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, unable to save to PDS.")
 		return
 	}
+
+	// add this spindle to spindle stream
+	rp.spindlestream.AddSource(
+		context.Background(),
+		eventconsumer.NewSpindleSource(newSpindle),
+	)
 
 	w.Write(fmt.Append(nil, "spindle set to: ", newSpindle))
 }

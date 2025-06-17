@@ -294,7 +294,7 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 	return nil
 }
 
-func ingestSpindleMember(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
+func ingestSpindleMember(_ *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
 	did := e.Did
 	var err error
 
@@ -338,21 +338,33 @@ func ingestSpindle(d *db.DbWrapper, e *models.Event, dev bool) error {
 		}
 
 		// this is a special record whose rkey is the instance of the spindle itself
-		domain := e.Commit.RKey
+		instance := e.Commit.RKey
 
-		owner, err := fetchOwner(context.TODO(), domain, true)
+		owner, err := fetchOwner(context.TODO(), instance, dev)
 		if err != nil {
-			log.Printf("failed to verify owner of %s: %w", domain, err)
+			log.Printf("failed to verify owner of %s: %s", instance, err)
 			return err
 		}
 
 		// verify that the spindle owner points back to this did
 		if owner != did {
-			log.Printf("incorrect owner for domain: %s, %s != %s", domain, owner, did)
+			log.Printf("incorrect owner for domain: %s, %s != %s", instance, owner, did)
 			return err
 		}
 
 		// mark this spindle as registered
+		ddb, ok := d.Execer.(*db.DB)
+		if !ok {
+			return fmt.Errorf("failed to index profile record, invalid db cast")
+		}
+
+		_, err = db.VerifySpindle(
+			ddb,
+			db.FilterEq("owner", did),
+			db.FilterEq("instance", instance),
+		)
+
+		return err
 	}
 
 	return nil
