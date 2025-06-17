@@ -28,24 +28,26 @@ import (
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
 type State struct {
-	db           *db.DB
-	oauth        *oauth.OAuth
-	enforcer     *rbac.Enforcer
-	tidClock     syntax.TIDClock
-	pages        *pages.Pages
-	sess         *session.SessionStore
-	idResolver   *idresolver.Resolver
-	posthog      posthog.Client
-	jc           *jetstream.JetstreamClient
-	config       *config.Config
-	repoResolver *reporesolver.RepoResolver
-	knotstream   *knotclient.EventConsumer
+	db            *db.DB
+	oauth         *oauth.OAuth
+	enforcer      *rbac.Enforcer
+	tidClock      syntax.TIDClock
+	pages         *pages.Pages
+	sess          *session.SessionStore
+	idResolver    *idresolver.Resolver
+	posthog       posthog.Client
+	jc            *jetstream.JetstreamClient
+	config        *config.Config
+	repoResolver  *reporesolver.RepoResolver
+	knotstream    *eventconsumer.Consumer
+	spindlestream *eventconsumer.Consumer
 }
 
 func Make(ctx context.Context, config *config.Config) (*State, error) {
@@ -109,11 +111,17 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}
 
-	knotstream, err := KnotstreamConsumer(ctx, config, d, enforcer, posthog)
+	knotstream, err := Knotstream(ctx, config, d, enforcer, posthog)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start knotstream consumer: %w", err)
 	}
 	knotstream.Start(ctx)
+
+	spindlestream, err := Spindlestream(ctx, config, d, enforcer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start spindlestream consumer: %w", err)
+	}
+	spindlestream.Start(ctx)
 
 	state := &State{
 		d,
@@ -128,6 +136,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		config,
 		repoResolver,
 		knotstream,
+		spindlestream,
 	}
 
 	return state, nil
@@ -366,7 +375,10 @@ func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// add this knot to knotstream
-	go s.knotstream.AddSource(context.Background(), knotclient.EventSource{domain})
+	go s.knotstream.AddSource(
+		context.Background(),
+		eventconsumer.NewKnotSource(domain),
+	)
 
 	w.Write([]byte("check success"))
 }

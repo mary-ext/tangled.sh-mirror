@@ -14,7 +14,7 @@
 {{ end }}
 
 {{ define "all" }}
-  <section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm w-full flex flex-col gap-2">
+  <section class="rounded w-full flex flex-col gap-2">
     <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">your spindles</h2>
     <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 w-full">
       {{ range $spindle := .Spindles }}
@@ -30,9 +30,9 @@
 {{ end }}
 
 {{ define "register" }}
-  <section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm w-full lg:w-fit flex flex-col gap-2">
+  <section class="rounded w-full lg:w-fit flex flex-col gap-2">
     <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">register a spindle</h2>
-    <p class="mb-2 dark:text-gray-300">Enter the hostname of your spindle to get started</p>
+    <p class="mb-2 dark:text-gray-300">Enter the hostname of your spindle to get started.</p>
     <form
       hx-post="/spindles/register"
       class="max-w-2xl mb-2 space-y-4"
