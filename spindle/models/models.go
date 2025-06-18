@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"regexp"
+	"slices"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 
@@ -34,4 +35,38 @@ func (wid WorkflowId) String() string {
 func normalize(name string) string {
 	normalized := re.ReplaceAllString(name, "-")
 	return normalized
+}
+
+type StatusKind string
+
+var (
+	StatusKindPending   StatusKind = "pending"
+	StatusKindRunning   StatusKind = "running"
+	StatusKindFailed    StatusKind = "failed"
+	StatusKindTimeout   StatusKind = "timeout"
+	StatusKindCancelled StatusKind = "cancelled"
+	StatusKindSuccess   StatusKind = "success"
+
+	StartStates [2]StatusKind = [2]StatusKind{
+		StatusKindPending,
+		StatusKindRunning,
+	}
+	FinishStates [4]StatusKind = [4]StatusKind{
+		StatusKindCancelled,
+		StatusKindFailed,
+		StatusKindSuccess,
+		StatusKindTimeout,
+	}
+)
+
+func (s StatusKind) String() string {
+	return string(s)
+}
+
+func (s StatusKind) IsStart() bool {
+	return slices.Contains(StartStates[:], s)
+}
+
+func (s StatusKind) IsFinish() bool {
+	return slices.Contains(FinishStates[:], s)
 }

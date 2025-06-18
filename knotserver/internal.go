@@ -217,6 +217,11 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 		return err
 	}
 
+	// do not run empty pipelines
+	if cp.Workflows == nil {
+		return nil
+	}
+
 	event := db.Event{
 		Rkey:      TID(),
 		Nsid:      tangled.PipelineNSID,
