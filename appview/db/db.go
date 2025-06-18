@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"reflect"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -342,6 +344,7 @@ func Make(dbPath string) (*DB, error) {
 
 			-- every pipeline must be associated with exactly one commit
 			sha text not null check (length(sha) = 40),
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 
 			-- trigger data
 			trigger_id integer not null,
@@ -600,7 +603,43 @@ func FilterGte(key string, arg any) filter   { return newFilter(key, ">=", arg) 
 func FilterLte(key string, arg any) filter   { return newFilter(key, "<=", arg) }
 func FilterIs(key string, arg any) filter    { return newFilter(key, "is", arg) }
 func FilterIsNot(key string, arg any) filter { return newFilter(key, "is not", arg) }
+func FilterIn(key string, arg any) filter    { return newFilter(key, "in", arg) }
 
 func (f filter) Condition() string {
+	rv := reflect.ValueOf(f.arg)
+	kind := rv.Kind()
+
+	// if we have `FilterIn(k, [1, 2, 3])`, compile it down to `k in (?, ?, ?)`
+	if kind == reflect.Slice || kind == reflect.Array {
+		if rv.Len() == 0 {
+			panic(fmt.Sprintf("empty slice passed to %q filter on %s", f.cmp, f.key))
+		}
+
+		placeholders := make([]string, rv.Len())
+		for i := range placeholders {
+			placeholders[i] = "?"
+		}
+
+		return fmt.Sprintf("%s %s (%s)", f.key, f.cmp, strings.Join(placeholders, ", "))
+	}
+
 	return fmt.Sprintf("%s %s ?", f.key, f.cmp)
+}
+
+func (f filter) Arg() []any {
+	rv := reflect.ValueOf(f.arg)
+	kind := rv.Kind()
+	if kind == reflect.Slice || kind == reflect.Array {
+		if rv.Len() == 0 {
+			panic(fmt.Sprintf("empty slice passed to %q filter on %s", f.cmp, f.key))
+		}
+
+		out := make([]any, rv.Len())
+		for i := range rv.Len() {
+			out[i] = rv.Index(i).Interface()
+		}
+		return out
+	}
+
+	return []any{f.arg}
 }

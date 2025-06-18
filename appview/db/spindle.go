@@ -24,7 +24,7 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 	var args []any
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""
@@ -98,7 +98,7 @@ func VerifySpindle(e Execer, filters ...filter) (int64, error) {
 	var args []any
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""
@@ -121,7 +121,7 @@ func DeleteSpindle(e Execer, filters ...filter) error {
 	var args []any
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""
