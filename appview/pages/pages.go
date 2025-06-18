@@ -436,6 +436,7 @@ type RepoIndexParams struct {
 	EmailToDidOrHandle map[string]string
 	VerifiedCommits    commitverify.VerifiedCommits
 	Languages          *types.RepoLanguageResponse
+	Pipelines          map[plumbing.Hash]db.Pipeline
 	types.RepoIndexResponse
 }
 

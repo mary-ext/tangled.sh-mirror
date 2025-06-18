@@ -127,6 +127,12 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		// non-fatal
 	}
 
+	pipelines, err := rp.getPipelineStatuses(repoInfo, commitsTrunc)
+	if err != nil {
+		log.Printf("failed to fetch pipeline statuses: %s", err)
+		// non-fatal
+	}
+
 	rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:       user,
 		RepoInfo:           repoInfo,
@@ -139,6 +145,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
 		VerifiedCommits:    vc,
 		Languages:          repoLanguages,
+		Pipelines:          pipelines,
 	})
 	return
 }

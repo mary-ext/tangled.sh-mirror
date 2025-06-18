@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -15,6 +16,7 @@ import (
 	"tangled.sh/tangled.sh/core/eventconsumer/cursor"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
+	spindle "tangled.sh/tangled.sh/core/spindle/models"
 )
 
 func Spindlestream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.Enforcer) (*ec.Consumer, error) {
@@ -77,14 +79,20 @@ func ingestPipelineStatus(ctx context.Context, logger *slog.Logger, d *db.DB, so
 		exitCode = int(*record.ExitCode)
 	}
 
+	// pick the record creation time if possible, or use time.Now
+	created := time.Now()
+	if t, err := time.Parse(time.RFC3339, record.CreatedAt); err == nil && created.After(t) {
+		created = t
+	}
+
 	status := db.PipelineStatus{
 		Spindle:      source.Key(),
 		Rkey:         msg.Rkey,
-		PipelineKnot: pipelineUri.Authority().String(),
+		PipelineKnot: strings.TrimPrefix(pipelineUri.Authority().String(), "did:web:"),
 		PipelineRkey: pipelineUri.RecordKey().String(),
-		Created:      time.Now(),
+		Created:      created,
 		Workflow:     record.Workflow,
-		Status:       record.Status,
+		Status:       spindle.StatusKind(record.Status),
 		Error:        record.Error,
 		ExitCode:     exitCode,
 	}
