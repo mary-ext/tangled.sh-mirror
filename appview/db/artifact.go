@@ -64,7 +64,7 @@ func GetArtifact(e Execer, filters ...filter) ([]Artifact, error) {
 	var args []any
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""
@@ -135,7 +135,7 @@ func DeleteArtifact(e Execer, filters ...filter) error {
 	var args []any
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""

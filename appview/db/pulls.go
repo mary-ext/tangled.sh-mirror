@@ -311,7 +311,7 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 	var args []any
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""
@@ -866,7 +866,7 @@ func SetPullParentChangeId(e Execer, parentChangeId string, filters ...filter) e
 
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""
@@ -891,7 +891,7 @@ func UpdatePull(e Execer, newPatch, sourceRev string, filters ...filter) error {
 
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""

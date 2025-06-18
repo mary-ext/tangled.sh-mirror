@@ -45,7 +45,7 @@ func MakePunchcard(e Execer, filters ...filter) (Punchcard, error) {
 	var args []any
 	for _, filter := range filters {
 		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.arg)
+		args = append(args, filter.Arg()...)
 	}
 
 	whereClause := ""
