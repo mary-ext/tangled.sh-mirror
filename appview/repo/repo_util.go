@@ -9,7 +9,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -108,17 +107,12 @@ func randomString(n int) string {
 // golang is so blessed that it requires 35 lines of imperative code for this
 func (rp *Repo) getPipelineStatuses(
 	repoInfo repoinfo.RepoInfo,
-	commits []*object.Commit,
-) (map[plumbing.Hash]db.Pipeline, error) {
-	m := make(map[plumbing.Hash]db.Pipeline)
+	shas []string,
+) (map[string]db.Pipeline, error) {
+	m := make(map[string]db.Pipeline)
 
-	if len(commits) == 0 {
+	if len(shas) == 0 {
 		return m, nil
-	}
-
-	shas := make([]string, len(commits))
-	for _, c := range commits {
-		shas = append(shas, c.Hash.String())
 	}
 
 	ps, err := db.GetPipelineStatuses(
@@ -133,8 +127,7 @@ func (rp *Repo) getPipelineStatuses(
 	}
 
 	for _, p := range ps {
-		hash := plumbing.NewHash(p.Sha)
-		m[hash] = p
+		m[p.Sha] = p
 	}
 
 	return m, nil

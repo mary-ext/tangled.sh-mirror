@@ -436,7 +436,7 @@ type RepoIndexParams struct {
 	EmailToDidOrHandle map[string]string
 	VerifiedCommits    commitverify.VerifiedCommits
 	Languages          *types.RepoLanguageResponse
-	Pipelines          map[plumbing.Hash]db.Pipeline
+	Pipelines          map[string]db.Pipeline
 	types.RepoIndexResponse
 }
 
@@ -475,6 +475,7 @@ type RepoLogParams struct {
 	Active             string
 	EmailToDidOrHandle map[string]string
 	VerifiedCommits    commitverify.VerifiedCommits
+	Pipelines          map[string]db.Pipeline
 }
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
@@ -487,6 +488,7 @@ type RepoCommitParams struct {
 	RepoInfo           repoinfo.RepoInfo
 	Active             string
 	EmailToDidOrHandle map[string]string
+	Pipeline           *db.Pipeline
 
 	// singular because it's always going to be just one
 	VerifiedCommit commitverify.VerifiedCommits
