@@ -127,6 +127,8 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *tangled.Pipeline,
 				if err != nil {
 					return err
 				}
+
+				return fmt.Errorf("starting steps image: %w", err)
 			}
 
 			err = e.db.StatusSuccess(wid, e.n)
@@ -258,7 +260,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []*tangled.Pipeline_Step,
 
 		if state.ExitCode != 0 {
 			e.l.Error("workflow failed!", "workflow_id", wid.String(), "error", state.Error, "exit_code", state.ExitCode)
-			// return e.db.MarkPipelineFailed(id, state.ExitCode, state.Error, e.n)
+			return fmt.Errorf("%s", state.Error)
 		}
 	}
 

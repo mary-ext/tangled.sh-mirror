@@ -86,20 +86,9 @@ func (d *DB) CreateStatusEvent(rkey string, s tangled.PipelineStatus, n *notifie
 	return d.InsertEvent(event, n)
 }
 
-type StatusKind string
-
-var (
-	StatusKindPending   StatusKind = "pending"
-	StatusKindRunning   StatusKind = "running"
-	StatusKindFailed    StatusKind = "failed"
-	StatusKindTimeout   StatusKind = "timeout"
-	StatusKindCancelled StatusKind = "cancelled"
-	StatusKindSuccess   StatusKind = "success"
-)
-
 func (d *DB) createStatusEvent(
 	workflowId models.WorkflowId,
-	statusKind StatusKind,
+	statusKind models.StatusKind,
 	workflowError *string,
 	exitCode *int64,
 	n *notifier.Notifier,
@@ -132,17 +121,17 @@ func (d *DB) createStatusEvent(
 }
 
 func (d *DB) StatusPending(workflowId models.WorkflowId, n *notifier.Notifier) error {
-	return d.createStatusEvent(workflowId, StatusKindPending, nil, nil, n)
+	return d.createStatusEvent(workflowId, models.StatusKindPending, nil, nil, n)
 }
 
 func (d *DB) StatusRunning(workflowId models.WorkflowId, n *notifier.Notifier) error {
-	return d.createStatusEvent(workflowId, StatusKindRunning, nil, nil, n)
+	return d.createStatusEvent(workflowId, models.StatusKindRunning, nil, nil, n)
 }
 
 func (d *DB) StatusFailed(workflowId models.WorkflowId, workflowError string, exitCode int64, n *notifier.Notifier) error {
-	return d.createStatusEvent(workflowId, StatusKindFailed, &workflowError, &exitCode, n)
+	return d.createStatusEvent(workflowId, models.StatusKindFailed, &workflowError, &exitCode, n)
 }
 
 func (d *DB) StatusSuccess(workflowId models.WorkflowId, n *notifier.Notifier) error {
-	return d.createStatusEvent(workflowId, StatusKindSuccess, nil, nil, n)
+	return d.createStatusEvent(workflowId, models.StatusKindSuccess, nil, nil, n)
 }
