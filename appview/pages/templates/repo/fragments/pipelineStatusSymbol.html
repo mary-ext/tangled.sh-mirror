@@ -15,7 +15,8 @@
 
   {{ if $allPass }}
     <div class="flex gap-1 items-center">
-      {{ i "check" "size-4 text-green-600 dark:text-green-400 " }} {{ $total }}/{{ $total }}
+      {{ i "check" "size-4 text-green-600 dark:text-green-400 " }} 
+      <span>{{ $total }}/{{ $total }}</span>
     </div>
   {{ else }}
     {{ $radius := f64 8 }}

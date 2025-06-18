@@ -127,7 +127,11 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		// non-fatal
 	}
 
-	pipelines, err := rp.getPipelineStatuses(repoInfo, commitsTrunc)
+	var shas []string
+	for _, c := range commitsTrunc {
+		shas = append(shas, c.Hash.String())
+	}
+	pipelines, err := rp.getPipelineStatuses(repoInfo, shas)
 	if err != nil {
 		log.Printf("failed to fetch pipeline statuses: %s", err)
 		// non-fatal

@@ -68,6 +68,12 @@
           </div>
       </div>
       {{ end }}
+
+      <div class="text-sm">
+        {{ if $.Pipeline }}
+          {{ template "repo/fragments/pipelineStatusSymbol" $.Pipeline }}
+        {{ end }}
+      </div>
   </div>
 
 </section>

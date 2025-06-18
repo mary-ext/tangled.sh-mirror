@@ -133,13 +133,26 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
+	repoInfo := f.RepoInfo(user)
+
+	var shas []string
+	for _, c := range repolog.Commits {
+		shas = append(shas, c.Hash.String())
+	}
+	pipelines, err := rp.getPipelineStatuses(repoInfo, shas)
+	if err != nil {
+		log.Println(err)
+		// non-fatal
+	}
+
 	rp.pages.RepoLog(w, pages.RepoLogParams{
 		LoggedInUser:       user,
 		TagMap:             tagMap,
-		RepoInfo:           f.RepoInfo(user),
+		RepoInfo:           repoInfo,
 		RepoLogResponse:    *repolog,
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
 		VerifiedCommits:    vc,
+		Pipelines:          pipelines,
 	})
 	return
 }
@@ -289,12 +302,24 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := rp.oauth.GetUser(r)
+	repoInfo := f.RepoInfo(user)
+	pipelines, err := rp.getPipelineStatuses(repoInfo, []string{result.Diff.Commit.This})
+	if err != nil {
+		log.Println(err)
+		// non-fatal
+	}
+	var pipeline *db.Pipeline
+	if p, ok := pipelines[result.Diff.Commit.This]; ok {
+		pipeline = &p
+	}
+
 	rp.pages.RepoCommit(w, pages.RepoCommitParams{
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(user),
 		RepoCommitResponse: result,
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
 		VerifiedCommit:     vc,
+		Pipeline:           pipeline,
 	})
 	return
 }
