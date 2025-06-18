@@ -1,0 +1,208 @@
+package repo
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"slices"
+	"strings"
+
+	"tangled.sh/tangled.sh/core/appview/commitverify"
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/oauth"
+	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
+	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/knotclient"
+	"tangled.sh/tangled.sh/core/types"
+
+	"github.com/go-chi/chi/v5"
+)
+
+func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
+	ref := chi.URLParam(r, "ref")
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		log.Println("failed to fully resolve repo", err)
+		return
+	}
+
+	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", f.Knot)
+		rp.pages.Error503(w)
+		return
+	}
+
+	result, err := us.Index(f.OwnerDid(), f.RepoName, ref)
+	if err != nil {
+		rp.pages.Error503(w)
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	tagMap := make(map[string][]string)
+	for _, tag := range result.Tags {
+		hash := tag.Hash
+		if tag.Tag != nil {
+			hash = tag.Tag.Target.String()
+		}
+		tagMap[hash] = append(tagMap[hash], tag.Name)
+	}
+
+	for _, branch := range result.Branches {
+		hash := branch.Hash
+		tagMap[hash] = append(tagMap[hash], branch.Name)
+	}
+
+	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
+		if a.Name == result.Ref {
+			return -1
+		}
+		if a.IsDefault {
+			return -1
+		}
+		if b.IsDefault {
+			return 1
+		}
+		if a.Commit != nil && b.Commit != nil {
+			if a.Commit.Committer.When.Before(b.Commit.Committer.When) {
+				return 1
+			} else {
+				return -1
+			}
+		}
+		return strings.Compare(a.Name, b.Name) * -1
+	})
+
+	commitCount := len(result.Commits)
+	branchCount := len(result.Branches)
+	tagCount := len(result.Tags)
+	fileCount := len(result.Files)
+
+	commitCount, branchCount, tagCount = balanceIndexItems(commitCount, branchCount, tagCount, fileCount)
+	commitsTrunc := result.Commits[:min(commitCount, len(result.Commits))]
+	tagsTrunc := result.Tags[:min(tagCount, len(result.Tags))]
+	branchesTrunc := result.Branches[:min(branchCount, len(result.Branches))]
+
+	emails := uniqueEmails(commitsTrunc)
+	emailToDidMap, err := db.GetEmailToDid(rp.db, emails, true)
+	if err != nil {
+		log.Println("failed to get email to did map", err)
+	}
+
+	vc, err := commitverify.GetVerifiedObjectCommits(rp.db, emailToDidMap, commitsTrunc)
+	if err != nil {
+		log.Println(err)
+	}
+
+	user := rp.oauth.GetUser(r)
+	repoInfo := f.RepoInfo(user)
+
+	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
+	if err != nil {
+		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
+		rp.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	}
+
+	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+		return
+	}
+
+	var forkInfo *types.ForkInfo
+	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
+		forkInfo, err = getForkInfo(repoInfo, rp, f, user, signedClient)
+		if err != nil {
+			log.Printf("Failed to fetch fork information: %v", err)
+			return
+		}
+	}
+
+	repoLanguages, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoName, ref)
+	if err != nil {
+		log.Printf("failed to compute language percentages: %s", err)
+		// non-fatal
+	}
+
+	rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
+		LoggedInUser:       user,
+		RepoInfo:           repoInfo,
+		TagMap:             tagMap,
+		RepoIndexResponse:  *result,
+		CommitsTrunc:       commitsTrunc,
+		TagsTrunc:          tagsTrunc,
+		ForkInfo:           forkInfo,
+		BranchesTrunc:      branchesTrunc,
+		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
+		VerifiedCommits:    vc,
+		Languages:          repoLanguages,
+	})
+	return
+}
+
+func getForkInfo(
+	repoInfo repoinfo.RepoInfo,
+	rp *Repo,
+	f *reporesolver.ResolvedRepo,
+	user *oauth.User,
+	signedClient *knotclient.SignedClient,
+) (*types.ForkInfo, error) {
+	if user == nil {
+		return nil, nil
+	}
+
+	forkInfo := types.ForkInfo{
+		IsFork: repoInfo.Source != nil,
+		Status: types.UpToDate,
+	}
+
+	if !forkInfo.IsFork {
+		forkInfo.IsFork = false
+		return &forkInfo, nil
+	}
+
+	us, err := knotclient.NewUnsignedClient(repoInfo.Source.Knot, rp.config.Core.Dev)
+	if err != nil {
+		log.Printf("failed to create unsigned client for %s", repoInfo.Source.Knot)
+		return nil, err
+	}
+
+	result, err := us.Branches(repoInfo.Source.Did, repoInfo.Source.Name)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return nil, err
+	}
+
+	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
+		return branch.Name == f.Ref
+	}) {
+		forkInfo.Status = types.MissingBranch
+		return &forkInfo, nil
+	}
+
+	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)
+	if err != nil || newHiddenRefResp.StatusCode != http.StatusNoContent {
+		log.Printf("failed to update tracking branch: %s", err)
+		return nil, err
+	}
+
+	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
+
+	var status types.AncestorCheckResponse
+	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref, hiddenRef)
+	if err != nil {
+		log.Printf("failed to check if fork is ahead/behind: %s", err)
+		return nil, err
+	}
+
+	if err := json.NewDecoder(forkSyncableResp.Body).Decode(&status); err != nil {
+		log.Printf("failed to decode fork status: %s", err)
+		return nil, err
+	}
+
+	forkInfo.Status = status.Status
+	return &forkInfo, nil
+}
