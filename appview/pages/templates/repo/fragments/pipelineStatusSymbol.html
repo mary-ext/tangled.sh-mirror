@@ -1,0 +1,118 @@
+{{ define "repo/fragments/pipelineStatusSymbol" }}
+  <div class="group relative inline-block">
+    {{ block "icon" $ }} {{ end }}
+    {{ block "tooltip" $ }} {{ end }}
+  </div>
+{{ end }}
+
+{{ define "icon" }}
+<div class="cursor-pointer">
+  {{ $c := .Counts }}
+  {{ $statuses := .Statuses }}
+  {{ $total := len $statuses }}
+  {{ $success := index $c "success" }}
+  {{ $allPass := eq $success $total }}
+
+  {{ if $allPass }}
+    <div class="flex gap-1 items-center">
+      {{ i "check" "size-4 text-green-600 dark:text-green-400 " }} {{ $total }}/{{ $total }}
+    </div>
+  {{ else }}
+    {{ $radius := f64 8 }}
+    {{ $circumference := mulf64 2.0 (mulf64 3.1416 $radius) }}
+    {{ $offset := 0.0 }}
+    <div class="flex gap-1 items-center">
+      <svg class="w-4 h-4 transform -rotate-90" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="{{ $radius }}" fill="none" stroke="#f3f4f633" stroke-width="2"/>
+
+        {{ range $kind, $count := $c }}
+          {{ $color := "" }}
+          {{ if or (eq $kind "pending") (eq $kind "running") }}
+            {{ $color = "#eab308" }}
+          {{ else if eq $kind "success" }}
+            {{ $color = "#10b981" }}
+          {{ else if eq $kind "cancelled" }}
+            {{ $color = "#6b7280" }}
+          {{ else }}
+            {{ $color = "#ef4444" }}
+          {{ end }}
+
+          {{ $percent := divf64 (f64 $count) (f64 $total) }}
+          {{ $length := mulf64 $percent $circumference }}
+
+          <circle
+            cx="10" cy="10" r="{{ $radius }}"
+            fill="none"
+            stroke="{{ $color }}"
+            stroke-width="2"
+            stroke-dasharray="{{ printf "%.2f %.2f" $length (subf64 $circumference $length) }}"
+            stroke-dashoffset="{{ printf "%.2f" (negf64 $offset) }}"
+          />
+          {{ $offset = addf64 $offset $length }}
+        {{ end }}
+      </svg>
+      <span>{{$success}}/{{ $total }}</span>
+    </div>
+  {{ end }}
+</div>
+{{ end }}
+
+{{ define "tooltip" }}
+<div class="absolute z-[9999] hidden group-hover:block bg-white dark:bg-gray-900 text-sm text-black dark:text-white rounded-md shadow p-2 w-80 top-full mt-2">
+  <div class="flex flex-col divide-y divide-gray-200 dark:divide-gray-700">
+    {{ range $name, $all := .Statuses }}
+    <div class="flex items-center justify-between p-1">
+      {{ $lastStatus := $all.Latest }}
+      {{ $kind := $lastStatus.Status.String }}
+
+      {{ $icon := "dot" }}
+      {{ $color := "text-gray-600 dark:text-gray-500" }}
+      {{ $text := "Failed" }}
+      {{ $time := "" }}
+
+      {{ if eq $kind "pending" }}
+        {{ $icon = "circle-dashed" }}
+        {{ $color = "text-yellow-600 dark:text-yellow-500" }}
+        {{ $text = "Queued" }}
+        {{ $time = timeFmt $lastStatus.Created }}
+      {{ else if eq $kind "running" }}
+        {{ $icon = "circle-dashed" }}
+        {{ $color = "text-yellow-600 dark:text-yellow-500" }}
+        {{ $text = "Running" }}
+        {{ $time = timeFmt $lastStatus.Created }}
+      {{ else if eq $kind "success" }}
+        {{ $icon = "check" }}
+        {{ $color = "text-green-600 dark:text-green-500" }}
+        {{ $text = "Success" }}
+        {{ with $all.TimeTaken }}
+          {{ $time = durationFmt . }}
+        {{ end }}
+      {{ else if eq $kind "cancelled" }}
+        {{ $icon = "circle-slash" }}
+        {{ $color = "text-gray-600 dark:text-gray-500" }}
+        {{ $text = "Cancelled" }}
+        {{ with $all.TimeTaken }}
+          {{ $time = durationFmt . }}
+        {{ end }}
+      {{ else }}
+        {{ $icon = "x" }}
+        {{ $color = "text-red-600 dark:text-red-500" }}
+        {{ $text = "Failed" }}
+        {{ with $all.TimeTaken }}
+          {{ $time = durationFmt . }}
+        {{ end }}
+      {{ end }}
+
+      <div id="left" class="flex items-center gap-2 flex-shrink-0">
+        {{ i $icon "size-4" $color }}
+        {{ $name }}
+      </div>
+      <div id="right" class="flex items-center gap-2 flex-shrink-0">
+        <span class="font-bold">{{ $text }}</span>
+        <time class="text-gray-400 dark:text-gray-600">{{ $time }}</time>
+      </div>
+    </div>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

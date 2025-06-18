@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
+
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -97,4 +101,41 @@ func randomString(n int) string {
 	}
 
 	return string(result)
+}
+
+// grab pipelines from DB and munge that into a hashmap with commit sha as key
+//
+// golang is so blessed that it requires 35 lines of imperative code for this
+func (rp *Repo) getPipelineStatuses(
+	repoInfo repoinfo.RepoInfo,
+	commits []*object.Commit,
+) (map[plumbing.Hash]db.Pipeline, error) {
+	m := make(map[plumbing.Hash]db.Pipeline)
+
+	if len(commits) == 0 {
+		return m, nil
+	}
+
+	shas := make([]string, len(commits))
+	for _, c := range commits {
+		shas = append(shas, c.Hash.String())
+	}
+
+	ps, err := db.GetPipelineStatuses(
+		rp.db,
+		db.FilterEq("repo_owner", repoInfo.OwnerDid),
+		db.FilterEq("repo_name", repoInfo.Name),
+		db.FilterEq("knot", repoInfo.Knot),
+		db.FilterIn("sha", shas),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range ps {
+		hash := plumbing.NewHash(p.Sha)
+		m[hash] = p
+	}
+
+	return m, nil
 }

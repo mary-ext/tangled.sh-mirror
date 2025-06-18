@@ -49,6 +49,27 @@ func funcMap() template.FuncMap {
 		"sub": func(a, b int) int {
 			return a - b
 		},
+		"f64": func(a int) float64 {
+			return float64(a)
+		},
+		"addf64": func(a, b float64) float64 {
+			return a + b
+		},
+		"subf64": func(a, b float64) float64 {
+			return a - b
+		},
+		"mulf64": func(a, b float64) float64 {
+			return a * b
+		},
+		"divf64": func(a, b float64) float64 {
+			if b == 0 {
+				return 0
+			}
+			return a / b
+		},
+		"negf64": func(a float64) float64 {
+			return -a
+		},
 		"cond": func(cond interface{}, a, b string) string {
 			if cond == nil {
 				return b
@@ -104,6 +125,32 @@ func funcMap() template.FuncMap {
 				{humanize.LongTime, "%dy %s", humanize.Year},
 				{math.MaxInt64, "a long while %s", 1},
 			})
+		},
+		"durationFmt": func(duration time.Duration) string {
+			days := int64(duration.Hours() / 24)
+			hours := int64(math.Mod(duration.Hours(), 24))
+			minutes := int64(math.Mod(duration.Minutes(), 60))
+			seconds := int64(math.Mod(duration.Seconds(), 60))
+
+			chunks := []struct {
+				name   string
+				amount int64
+			}{
+				{"d", days},
+				{"hr", hours},
+				{"min", minutes},
+				{"s", seconds},
+			}
+
+			parts := []string{}
+
+			for _, chunk := range chunks {
+				if chunk.amount != 0 {
+					parts = append(parts, fmt.Sprintf("%d%s", chunk.amount, chunk.name))
+				}
+			}
+
+			return strings.Join(parts, " ")
 		},
 		"byteFmt": humanize.Bytes,
 		"length": func(slice any) int {
