@@ -160,8 +160,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	gitCmd.Stderr = os.Stderr
 	gitCmd.Stdin = os.Stdin
 	gitCmd.Env = append(os.Environ(),
-		fmt.Sprintf("GIT_USER_DID=%s", identity.DID.String()),
-		fmt.Sprintf("GIT_USER_HANDLE=%s", identity.Handle.String()),
+		fmt.Sprintf("GIT_USER_DID=%s", incomingUser),
 		fmt.Sprintf("GIT_USER_PDS_ENDPOINT=%s", identity.PDSEndpoint()),
 	)
 
