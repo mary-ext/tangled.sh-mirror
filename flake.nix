@@ -54,39 +54,47 @@
     inherit (gitignore.lib) gitignoreSource;
   in {
     overlays.default = final: prev: let
-      goModHash = "sha256-PJd2UvQJ7HVp2+s+QZPwL2FcdbSsRDxQZHV9hGotB2Y=";
+      goModHash = "sha256-G+59ZwQwBbnO9ZjAB5zMEmWZbeG4k7ko/lPz+ceqYKs=";
       appviewDeps = {
         inherit htmx-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
       };
       knotDeps = {
         inherit goModHash gitignoreSource;
       };
-    in {
-      lexgen = final.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
-      appview = final.pkgsStatic.callPackage ./nix/pkgs/appview.nix appviewDeps;
-      appview-cross = final.pkgsCross.gnu64.pkgsStatic.callPackage ./nix/pkgs/appview.nix appviewDeps;
-      knot = final.pkgsStatic.callPackage ./nix/pkgs/knot.nix {};
-      knot-unwrapped = final.pkgsStatic.callPackage ./nix/pkgs/knot-unwrapped.nix knotDeps;
-      knot-cross = final.pkgsCross.gnu64.pkgsStatic.callPackage ./nix/pkgs/knot.nix knotDeps;
-      sqlite-lib = final.pkgsStatic.callPackage ./nix/pkgs/sqlite-lib.nix {
-        inherit (final.pkgsStatic) gcc;
-        inherit sqlite-lib-src;
+      mkPackageSet = pkgs: {
+        lexgen = pkgs.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
+        appview = pkgs.callPackage ./nix/pkgs/appview.nix appviewDeps;
+        knot = pkgs.callPackage ./nix/pkgs/knot.nix {};
+        knot-unwrapped = pkgs.callPackage ./nix/pkgs/knot-unwrapped.nix knotDeps;
+        sqlite-lib = pkgs.callPackage ./nix/pkgs/sqlite-lib.nix {
+          inherit (pkgs) gcc;
+          inherit sqlite-lib-src;
+        };
+        genjwks = pkgs.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
       };
-      genjwks = final.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
-    };
+    in
+      mkPackageSet final;
 
-    packages = forAllSystems (system: {
-      inherit
-        (nixpkgsFor."${system}")
-        lexgen
-        appview
-        appview-cross
-        knot
-        knot-cross
-        knot-unwrapped
-        genjwks
-        sqlite-lib
-        ;
+    packages = forAllSystems (system: let
+      pkgs = nixpkgsFor.${system};
+      staticPkgs = pkgs.pkgsStatic;
+      crossPkgs = pkgs.pkgsCross.gnu64.pkgsStatic;
+    in {
+      appview = pkgs.appview;
+      lexgen = pkgs.lexgen;
+      knot = pkgs.knot;
+      knot-unwrapped = pkgs.knot-unwrapped;
+      genjwks = pkgs.genjwks;
+      sqlite-lib = pkgs.sqlite-lib;
+
+      pkgsStatic-appview = staticPkgs.appview;
+      pkgsStatic-knot = staticPkgs.knot;
+      pkgsStatic-knot-unwrapped = staticPkgs.knot-unwrapped;
+      pkgsStatic-sqlite-lib = staticPkgs.sqlite-lib;
+
+      pkgsCross-gnu64-pkgsStatic-appview = crossPkgs.appview;
+      pkgsCross-gnu64-pkgsStatic-knot = crossPkgs.knot;
+      pkgsCross-gnu64-pkgsStatic-knot-unwrapped = crossPkgs.knot-unwrapped;
     });
     defaultPackage = forAllSystems (system: nixpkgsFor.${system}.appview);
     formatter = forAllSystems (system: nixpkgsFor."${system}".alejandra);
