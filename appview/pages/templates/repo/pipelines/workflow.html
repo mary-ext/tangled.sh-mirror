@@ -1,0 +1,52 @@
+{{ define "title" }} {{ .Workflow }} &middot; pipeline {{ .Pipeline.Id }} &middot; {{ .RepoInfo.FullName }}{{ end }}
+
+{{ define "extrameta" }}
+    {{ $title := "pipelines"}}
+    {{ $url := printf "https://tangled.sh/%s/pipelines" .RepoInfo.FullName }}
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+{{ end }}
+
+{{ define "repoContent" }}
+<section class="w-full grid grid-cols-1 md:grid-cols-4 gap-2 mt-2">
+  <div class="col-span-1">
+    {{ block "sidebar" . }} {{ end }}
+  </div>
+  <div class="col-span-1 md:col-span-3">
+    {{ block "logs" . }} {{ end }}
+  </div>
+</section>
+{{ end }}
+
+{{ define "repoAfter" }}
+{{ end }}
+
+{{ define "sidebar" }}
+  {{ $active := .Workflow }}
+  {{ with .Pipeline }}
+    <div class="rounded border border-gray-200 dark:border-gray-700">
+      {{ range $name, $all := .Statuses }}
+      <div class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700 {{if eq $name $active}}bg-gray-100/50 dark:bg-gray-700/50{{end}}">
+        {{ $lastStatus := $all.Latest }}
+        {{ $kind := $lastStatus.Status.String }}
+
+        {{ $t := .TimeTaken }}
+        {{ $time := "" }}
+        {{ if $t }}
+          {{ $time = durationFmt $t }}
+        {{ else }}
+          {{ $time = printf "%s ago" (shortTimeFmt $.Created) }}
+        {{ end }}
+
+        <div id="left" class="flex items-center gap-2 flex-shrink-0">
+          {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
+          {{ $name }}
+        </div>
+        <div id="right" class="flex items-center gap-2 flex-shrink-0">
+          <span class="font-bold">{{ $kind }}</span>
+          <time>{{ $time }}</time>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  {{ end }}
+{{ end }}

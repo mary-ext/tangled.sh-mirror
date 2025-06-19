@@ -963,6 +963,19 @@ func (p *Pages) Pipelines(w io.Writer, params PipelinesParams) error {
 	return p.executeRepo("repo/pipelines/pipelines", w, params)
 }
 
+type WorkflowParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Pipeline     db.Pipeline
+	Workflow     string
+	Active       string
+}
+
+func (p *Pages) Workflow(w io.Writer, params WorkflowParams) error {
+	params.Active = "pipelines"
+	return p.executeRepo("repo/pipelines/workflow", w, params)
+}
+
 func (p *Pages) Static() http.Handler {
 	if p.dev {
 		return http.StripPrefix("/static/", http.FileServer(http.Dir("appview/pages/static")))

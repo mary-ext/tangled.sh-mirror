@@ -86,3 +86,54 @@ func (p *Pipelines) Index(w http.ResponseWriter, r *http.Request) {
 		Pipelines:    ps,
 	})
 }
+
+func (p *Pipelines) Workflow(w http.ResponseWriter, r *http.Request) {
+	user := p.oauth.GetUser(r)
+	l := p.Logger.With("handler", "Workflow")
+
+	f, err := p.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	repoInfo := f.RepoInfo(user)
+
+	pipelineId := chi.URLParam(r, "pipeline")
+	if pipelineId == "" {
+		l.Error("empty pipeline ID")
+		return
+	}
+
+	workflow := chi.URLParam(r, "workflow")
+	if pipelineId == "" {
+		l.Error("empty workflow name")
+		return
+	}
+
+	ps, err := db.GetPipelineStatuses(
+		p.db,
+		db.FilterEq("repo_owner", repoInfo.OwnerDid),
+		db.FilterEq("repo_name", repoInfo.Name),
+		db.FilterEq("knot", repoInfo.Knot),
+		db.FilterEq("id", pipelineId),
+	)
+	if err != nil {
+		l.Error("failed to query db", "err", err)
+		return
+	}
+
+	if len(ps) != 1 {
+		l.Error("invalid number of pipelines", "len", len(ps))
+		return
+	}
+
+	singlePipeline := ps[0]
+
+	p.pages.Workflow(w, pages.WorkflowParams{
+		LoggedInUser: user,
+		RepoInfo:     repoInfo,
+		Pipeline:     singlePipeline,
+		Workflow:     workflow,
+	})
+}
