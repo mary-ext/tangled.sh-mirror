@@ -56,3 +56,33 @@ func New(
 		Logger:        logger,
 	}
 }
+
+func (p *Pipelines) Index(w http.ResponseWriter, r *http.Request) {
+	user := p.oauth.GetUser(r)
+	l := p.Logger.With("handler", "Index")
+
+	f, err := p.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	repoInfo := f.RepoInfo(user)
+
+	ps, err := db.GetPipelineStatuses(
+		p.db,
+		db.FilterEq("repo_owner", repoInfo.OwnerDid),
+		db.FilterEq("repo_name", repoInfo.Name),
+		db.FilterEq("knot", repoInfo.Knot),
+	)
+	if err != nil {
+		l.Error("failed to query db", "err", err)
+		return
+	}
+
+	p.pages.Pipelines(w, pages.PipelinesParams{
+		LoggedInUser: user,
+		RepoInfo:     repoInfo,
+		Pipelines:    ps,
+	})
+}

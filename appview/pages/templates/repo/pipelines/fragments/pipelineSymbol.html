@@ -1,0 +1,53 @@
+{{ define "repo/pipelines/fragments/pipelineSymbol" }}
+  <div class="cursor-pointer">
+    {{ $c := .Counts }}
+    {{ $statuses := .Statuses }}
+    {{ $total := len $statuses }}
+    {{ $success := index $c "success" }}
+    {{ $allPass := eq $success $total }}
+
+    {{ if $allPass }}
+      <div class="flex gap-1 items-center">
+        {{ i "check" "size-4 text-green-600 dark:text-green-400 " }} 
+        <span>{{ $total }}/{{ $total }}</span>
+      </div>
+    {{ else }}
+      {{ $radius := f64 8 }}
+      {{ $circumference := mulf64 2.0 (mulf64 3.1416 $radius) }}
+      {{ $offset := 0.0 }}
+      <div class="flex gap-1 items-center">
+        <svg class="w-4 h-4 transform -rotate-90" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="{{ $radius }}" fill="none" stroke="#f3f4f633" stroke-width="2"/>
+
+          {{ range $kind, $count := $c }}
+            {{ $color := "" }}
+            {{ if or (eq $kind "pending") (eq $kind "running") }}
+              {{ $color = "#eab308" }}
+            {{ else if eq $kind "success" }}
+              {{ $color = "#10b981" }}
+            {{ else if eq $kind "cancelled" }}
+              {{ $color = "#6b7280" }}
+            {{ else }}
+              {{ $color = "#ef4444" }}
+            {{ end }}
+
+            {{ $percent := divf64 (f64 $count) (f64 $total) }}
+            {{ $length := mulf64 $percent $circumference }}
+
+            <circle
+              cx="10" cy="10" r="{{ $radius }}"
+              fill="none"
+              stroke="{{ $color }}"
+              stroke-width="2"
+              stroke-dasharray="{{ printf "%.2f %.2f" $length (subf64 $circumference $length) }}"
+              stroke-dashoffset="{{ printf "%.2f" (negf64 $offset) }}"
+            />
+            {{ $offset = addf64 $offset $length }}
+          {{ end }}
+        </svg>
+        <span>{{ $success }}/{{ $total }}</span>
+      </div>
+    {{ end }}
+  </div>
+{{ end }}
+

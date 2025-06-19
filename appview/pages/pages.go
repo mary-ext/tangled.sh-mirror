@@ -951,6 +951,18 @@ func (p *Pages) RepoCompareDiff(w io.Writer, params RepoCompareDiffParams) error
 	return p.executePlain("repo/fragments/diff", w, []any{params.RepoInfo.FullName, &params.Diff})
 }
 
+type PipelinesParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Pipelines    []db.Pipeline
+	Active       string
+}
+
+func (p *Pages) Pipelines(w io.Writer, params PipelinesParams) error {
+	params.Active = "pipelines"
+	return p.executeRepo("repo/pipelines/pipelines", w, params)
+}
+
 func (p *Pages) Static() http.Handler {
 	if p.dev {
 		return http.StripPrefix("/static/", http.FileServer(http.Dir("appview/pages/static")))

@@ -225,6 +225,13 @@ func funcMap() template.FuncMap {
 			}
 			return dict, nil
 		},
+		"deref": func(v any) any {
+			val := reflect.ValueOf(v)
+			if val.Kind() == reflect.Ptr && !val.IsNil() {
+				return val.Elem().Interface()
+			}
+			return nil
+		},
 		"i": func(name string, classes ...string) template.HTML {
 			data, err := icon(name, classes)
 			if err != nil {

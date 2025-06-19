@@ -1,0 +1,30 @@
+{{ define "repo/pipelines/fragments/tooltip" }}
+  <div class="absolute z-[9999] hidden group-hover:block bg-white dark:bg-gray-900 text-black dark:text-white rounded-md shadow w-80 top-full mt-2">
+    <div class="flex flex-col divide-y divide-gray-200 dark:divide-gray-700">
+      {{ range $name, $all := .Statuses }}
+      <div class="flex items-center justify-between p-2">
+        {{ $lastStatus := $all.Latest }}
+        {{ $kind := $lastStatus.Status.String }}
+
+        {{ $t := .TimeTaken }}
+        {{ $time := "" }}
+        {{ if $t }}
+          {{ $time = durationFmt $t }}
+        {{ else }}
+          {{ $time = printf "%s ago" (shortTimeFmt $.Created) }}
+        {{ end }}
+
+        <div id="left" class="flex items-center gap-2 flex-shrink-0">
+          {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
+          {{ $name }}
+        </div>
+        <div id="right" class="flex items-center gap-2 flex-shrink-0">
+          <span class="font-bold">{{ $kind }}</span>
+          <time>{{ $time }}</time>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+{{ end }}
+

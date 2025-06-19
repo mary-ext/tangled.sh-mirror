@@ -1,0 +1,26 @@
+{{ define "repo/pipelines/fragments/workflowSymbol" }}
+  {{ $lastStatus := .Latest }}
+  {{ $kind := $lastStatus.Status.String }}
+
+  {{ $icon := "dot" }}
+  {{ $color := "text-gray-600 dark:text-gray-500" }}
+
+  {{ if eq $kind "pending" }}
+    {{ $icon = "circle-dashed" }}
+    {{ $color = "text-yellow-600 dark:text-yellow-500" }}
+  {{ else if eq $kind "running" }}
+    {{ $icon = "circle-dashed" }}
+    {{ $color = "text-yellow-600 dark:text-yellow-500" }}
+  {{ else if eq $kind "success" }}
+    {{ $icon = "check" }}
+    {{ $color = "text-green-600 dark:text-green-500" }}
+  {{ else if eq $kind "cancelled" }}
+    {{ $icon = "circle-slash" }}
+    {{ $color = "text-gray-600 dark:text-gray-500" }}
+  {{ else }}
+    {{ $icon = "x" }}
+    {{ $color = "text-red-600 dark:text-red-500" }}
+  {{ end }}
+
+  {{ i $icon "size-4" $color }}
+{{ end }}

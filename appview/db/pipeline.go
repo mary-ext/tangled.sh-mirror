@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/go-git/go-git/v5/plumbing"
 	spindle "tangled.sh/tangled.sh/core/spindle/models"
 )
 
@@ -60,6 +61,23 @@ func (p Pipeline) Counts() map[string]int {
 	return m
 }
 
+func (p Pipeline) TimeTaken() time.Duration {
+	var s time.Duration
+	for _, w := range p.Statuses {
+		s += w.TimeTaken()
+	}
+	return s
+}
+
+func (p Pipeline) Workflows() []string {
+	var ws []string
+	for v := range p.Statuses {
+		ws = append(ws, v)
+	}
+	slices.Sort(ws)
+	return ws
+}
+
 type Trigger struct {
 	Id   int
 	Kind string
@@ -74,6 +92,24 @@ type Trigger struct {
 	PRTargetBranch *string
 	PRSourceSha    *string
 	PRAction       *string
+}
+
+func (t *Trigger) IsPush() bool {
+	return t != nil && t.Kind == "push"
+}
+
+func (t *Trigger) IsPullRequest() bool {
+	return t != nil && t.Kind == "pull_request"
+}
+
+func (t *Trigger) TargetRef() string {
+	if t.IsPush() {
+		return plumbing.ReferenceName(*t.PushRef).Short()
+	} else if t.IsPullRequest() {
+		return *t.PRTargetBranch
+	}
+
+	return ""
 }
 
 type PipelineStatus struct {
@@ -262,14 +298,14 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 
 	query := fmt.Sprintf(`
 		select
-			p.id AS pipeline_id,
+			p.id,
 			p.knot,
 			p.rkey,
 			p.repo_owner,
 			p.repo_name,
 			p.sha,
 			p.created,
-			t.id AS trigger_id,
+			t.id,
 			t.kind,
 			t.push_ref,
 			t.push_new_sha,
@@ -283,7 +319,6 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 		join
 			triggers t ON p.trigger_id = t.id
 		%s
-		order by p.created desc
 	`, whereClause)
 
 	rows, err := e.Query(query, args...)
@@ -424,6 +459,14 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 		}
 		all = append(all, p)
 	}
+
+	// sort pipelines by date
+	slices.SortFunc(all, func(a, b Pipeline) int {
+		if a.Created.After(b.Created) {
+			return -1
+		}
+		return 1
+	})
 
 	return all, nil
 }

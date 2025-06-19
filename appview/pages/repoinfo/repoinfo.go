@@ -40,6 +40,7 @@ func (r RepoInfo) GetTabs() [][]string {
 		{"overview", "/", "square-chart-gantt"},
 		{"issues", "/issues", "circle-dot"},
 		{"pulls", "/pulls", "git-pull-request"},
+		{"pipelines", "/pipelines", "layers-2"},
 	}
 
 	if r.Roles.SettingsAllowed() {
