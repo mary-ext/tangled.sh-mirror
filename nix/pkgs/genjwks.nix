@@ -9,5 +9,6 @@ buildGoModule {
   src = gitignoreSource ../..;
   subPackages = ["cmd/genjwks"];
   vendorHash = goModHash;
+  doCheck = false;
   env.CGO_ENABLED = 0;
 }

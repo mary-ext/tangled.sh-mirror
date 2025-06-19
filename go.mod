@@ -28,6 +28,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/posthog/posthog-go v1.5.5
+	github.com/redis/go-redis/v9 v9.3.0
 	github.com/resend/resend-go/v2 v2.15.0
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/stretchr/testify v1.10.0
@@ -35,7 +36,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.3.1
 	github.com/yuin/goldmark v1.4.13
 	golang.org/x/crypto v0.38.0
-	golang.org/x/net v0.39.0
+	golang.org/x/net v0.40.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	gopkg.in/yaml.v3 v3.0.1
 	tangled.sh/icyphox.sh/atproto-oauth v0.0.0-20250526154904-3906c5336421
@@ -111,7 +112,6 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/redis/go-redis/v9 v9.3.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
