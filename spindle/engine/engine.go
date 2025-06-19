@@ -3,12 +3,14 @@ package engine
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -176,8 +178,16 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId) error
 // StartSteps starts all steps sequentially with the same base image.
 // ONLY marks pipeline as failed if container's exit code is non-zero.
 // All other errors are bubbled up.
+// Fixed version of the step execution logic
 func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models.WorkflowId, image string) error {
-	// set up logging channels
+	stepTimeoutStr := e.cfg.Pipelines.StepTimeout
+	stepTimeout, err := time.ParseDuration(stepTimeoutStr)
+	if err != nil {
+		e.l.Error("failed to parse step timeout", "error", err, "timeout", stepTimeoutStr)
+		stepTimeout = 5 * time.Minute
+	}
+	e.l.Info("using step timeout", "timeout", stepTimeout)
+
 	e.chanMu.Lock()
 	if _, exists := e.stdoutChans[wid.String()]; !exists {
 		e.stdoutChans[wid.String()] = make(chan string, 100)
@@ -216,30 +226,54 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 			return fmt.Errorf("connecting network: %w", err)
 		}
 
-		err = e.docker.ContainerStart(ctx, resp.ID, container.StartOptions{})
+		stepCtx, stepCancel := context.WithTimeout(ctx, stepTimeout)
+
+		err = e.docker.ContainerStart(stepCtx, resp.ID, container.StartOptions{})
 		if err != nil {
+			stepCancel()
 			return err
 		}
 		e.l.Info("started container", "name", resp.ID, "step", step.Name)
 
-		wg := sync.WaitGroup{}
-
-		wg.Add(1)
+		// start tailing logs in background
+		tailDone := make(chan error, 1)
 		go func() {
-			defer wg.Done()
-			err := e.TailStep(ctx, resp.ID, wid)
-			if err != nil {
-				e.l.Error("failed to tail container", "container", resp.ID)
-				return
-			}
+			tailDone <- e.TailStep(stepCtx, resp.ID, wid)
 		}()
 
-		// wait until all logs are piped
-		wg.Wait()
+		// wait for container completion or timeout
+		waitDone := make(chan struct{})
+		var state *container.State
+		var waitErr error
 
-		state, err := e.WaitStep(ctx, resp.ID)
-		if err != nil {
-			return err
+		go func() {
+			defer close(waitDone)
+			state, waitErr = e.WaitStep(stepCtx, resp.ID)
+		}()
+
+		select {
+		case <-waitDone:
+			// container finished normally
+			stepCancel()
+
+			// wait for tailing to complete
+			<-tailDone
+
+		case <-stepCtx.Done():
+			e.l.Warn("step timed out; killing container", "container", resp.ID, "timeout", stepTimeout)
+
+			_ = e.DestroyStep(ctx, resp.ID)
+
+			// wait for both goroutines to finish
+			<-waitDone
+			<-tailDone
+
+			stepCancel()
+			return fmt.Errorf("step timed out after %v", stepTimeout)
+		}
+
+		if waitErr != nil {
+			return waitErr
 		}
 
 		err = e.DestroyStep(ctx, resp.ID)
@@ -253,12 +287,11 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 			if err != nil {
 				return err
 			}
-			return fmt.Errorf("error: %s, exit code: %d, oom: %s", state.Error, state.ExitCode, state.OOMKilled)
+			return fmt.Errorf("error: %s, exit code: %d, oom: %t", state.Error, state.ExitCode, state.OOMKilled)
 		}
 	}
 
 	return nil
-
 }
 
 func (e *Engine) WaitStep(ctx context.Context, containerID string) (*container.State, error) {
@@ -318,7 +351,7 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 		defer wpipeOut.Close()
 		defer wpipeErr.Close()
 		_, err := stdcopy.StdCopy(wpipeOut, wpipeErr, tee)
-		if err != nil && err != io.EOF {
+		if err != nil && err != io.EOF && !errors.Is(context.DeadlineExceeded, err) {
 			e.l.Error("failed to copy logs", "error", err)
 		}
 	}()
@@ -393,7 +426,7 @@ func (e *Engine) DestroyWorkflow(ctx context.Context, wid models.WorkflowId) err
 
 	for _, fn := range fns {
 		if err := fn(ctx); err != nil {
-			e.l.Error("failed to cleanup workflow resource", "workflowId", wid)
+			e.l.Error("failed to cleanup workflow resource", "workflowId", wid, "error", err)
 		}
 	}
 	return nil
