@@ -9,6 +9,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/issues"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	oauthhandler "tangled.sh/tangled.sh/core/appview/oauth/handler"
+	"tangled.sh/tangled.sh/core/appview/pipelines"
 	"tangled.sh/tangled.sh/core/appview/pulls"
 	"tangled.sh/tangled.sh/core/appview/repo"
 	"tangled.sh/tangled.sh/core/appview/settings"
@@ -76,6 +77,7 @@ func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 			r.Mount("/", s.RepoRouter(mw))
 			r.Mount("/issues", s.IssuesRouter(mw))
 			r.Mount("/pulls", s.PullsRouter(mw))
+			r.Mount("/pipelines", s.PipelinesRouter(mw))
 
 			// These routes get proxied to the knot
 			r.Get("/info/refs", s.InfoRefs)
@@ -201,4 +203,9 @@ func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {
 func (s *State) RepoRouter(mw *middleware.Middleware) http.Handler {
 	repo := repo.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.posthog, s.enforcer)
 	return repo.Router(mw)
+}
+
+func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
+	pipes := pipelines.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.posthog, s.enforcer)
+	return pipes.Router(mw)
 }
