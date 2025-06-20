@@ -251,6 +251,7 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		Ref:         f.Ref,
 		IsStarred:   isStarred,
 		Knot:        knot,
+		Spindle:     f.Spindle,
 		Roles:       f.RolesInRepo(user),
 		Stats: db.RepoStats{
 			StarCount:  starCount,

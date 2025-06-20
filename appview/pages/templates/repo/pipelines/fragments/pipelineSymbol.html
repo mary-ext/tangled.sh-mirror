@@ -4,12 +4,25 @@
     {{ $statuses := .Statuses }}
     {{ $total := len $statuses }}
     {{ $success := index $c "success" }}
+    {{ $fail := index $c "failed" }}
+    {{ $empty := eq $total 0 }}
     {{ $allPass := eq $success $total }}
+    {{ $allFail := eq $fail $total }}
 
-    {{ if $allPass }}
+    {{ if $empty }}
       <div class="flex gap-1 items-center">
-        {{ i "check" "size-4 text-green-600 dark:text-green-400 " }} 
+        {{ i "hourglass" "size-4 text-gray-600 dark:text-gray-400 " }}
+        <span>0/{{ $total }}</span>
+      </div>
+    {{ else if $allPass }}
+      <div class="flex gap-1 items-center">
+        {{ i "check" "size-4 text-green-600" }} 
         <span>{{ $total }}/{{ $total }}</span>
+      </div>
+    {{ else if $allFail }}
+      <div class="flex gap-1 items-center">
+        {{ i "x" "size-4 text-red-600" }} 
+        <span>0/{{ $total }}</span>
       </div>
     {{ else }}
       {{ $radius := f64 8 }}

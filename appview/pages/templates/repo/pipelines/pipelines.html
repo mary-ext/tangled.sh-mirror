@@ -41,15 +41,17 @@
   {{ $root := index . 0 }}
   {{ $p := index . 1 }}
   {{ with $p }}
-      <div class="grid grid-cols-4 md:grid-cols-8 gap-2 items-center w-full">
-        <div class="col-span-1 md:col-span-5 flex items-center gap-4">
+      <div class="grid grid-cols-6 md:grid-cols-12 gap-2 items-center w-full">
+        <div class="col-span-2 md:col-span-8 flex items-center gap-4">
           {{ $target := .Trigger.TargetRef }}
           {{ $workflows := .Workflows }}
+          {{ $link := "" }}
+          {{ if .IsResponding }}
+            {{ $link = printf "/%s/pipelines/%s/workflow/%d" $root.RepoInfo.FullName .Id (index $workflows 0) }}
+          {{ end }}
           {{ if .Trigger.IsPush }}
-            <a href="/{{ $root.RepoInfo.FullName }}/pipelines/{{ .Id }}/workflow/{{ index $workflows 0 }}" class="block">
-              <span class="font-bold">{{ $target }}</span>
-              <span>push</span>
-            </a>
+            <span class="font-bold">{{ $target }}</span>
+            <span>push</span>
             <span class="hidden md:inline-flex gap-2 items-center font-mono text-sm">
               {{ $old := deref .Trigger.PushOldSha }}
               {{ $new := deref .Trigger.PushNewSha }}
@@ -70,24 +72,36 @@
           {{ end }}
         </div>
 
-        <div class="col-span-1 pl-4">
+        <div class="text-sm md:text-base col-span-1">
           {{ template "repo/pipelines/fragments/pipelineSymbolLong" . }}
         </div>
 
-        <div class="col-span-1 text-right">
+        <div class="text-sm md:text-base col-span-1 text-right">
           <time title="{{ .Created | longTimeFmt }}">
             {{ .Created | shortTimeFmt }} ago
           </time>
         </div>
 
         {{ $t := .TimeTaken }}
-        <div class="col-span-1 text-right">
+        <div class="text-sm md:text-base col-span-1 text-right">
           {{ if $t }}
             <time title="{{ $t }}">{{ $t | durationFmt }}</time>
           {{ else }}
             <time>--</time>
           {{ end }}
         </div>
+
+        <div class="col-span-1 flex justify-end">
+          {{ if $link }}
+            <a class="md:hidden" href="/{{ $root.RepoInfo.FullName }}/pipelines/{{ .Id }}/workflow/{{ index $workflows 0 }}">
+              {{ i "arrow-up-right" "size-4" }}
+            </a>
+            <a class="hidden md:inline underline" href="/{{ $root.RepoInfo.FullName }}/pipelines/{{ .Id }}/workflow/{{ index $workflows 0 }}">
+              view
+            </a>
+          {{ end }}
+        </div>
+
       </div>
   {{ end }}
 {{ end }}

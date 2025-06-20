@@ -968,6 +968,7 @@ type WorkflowParams struct {
 	RepoInfo     repoinfo.RepoInfo
 	Pipeline     db.Pipeline
 	Workflow     string
+	LogUrl       string
 	Active       string
 }
 

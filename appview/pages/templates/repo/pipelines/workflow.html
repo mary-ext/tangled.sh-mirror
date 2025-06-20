@@ -23,30 +23,47 @@
 {{ define "sidebar" }}
   {{ $active := .Workflow }}
   {{ with .Pipeline }}
-    <div class="rounded border border-gray-200 dark:border-gray-700">
+    {{ $id := .Id }}
+    <div class="grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
       {{ range $name, $all := .Statuses }}
-      <div class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700 {{if eq $name $active}}bg-gray-100/50 dark:bg-gray-700/50{{end}}">
-        {{ $lastStatus := $all.Latest }}
-        {{ $kind := $lastStatus.Status.String }}
+      <a href="/{{ $.RepoInfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
+        <div
+          class="flex gap-2 items-center justify-between p-2 {{ if eq $name $active }}bg-gray-100/50 dark:bg-gray-700/50{{ end }}">
+          {{ $lastStatus := $all.Latest }}
+          {{ $kind := $lastStatus.Status.String }}
 
-        {{ $t := .TimeTaken }}
-        {{ $time := "" }}
-        {{ if $t }}
+          {{ $t := .TimeTaken }}
+          {{ $time := "" }}
+
+          {{ if $t }}
           {{ $time = durationFmt $t }}
-        {{ else }}
-          {{ $time = printf "%s ago" (shortTimeFmt $.Created) }}
-        {{ end }}
+          {{ else }}
+          {{ $time = printf "%s ago" (shortTimeFmt $lastStatus.Created) }}
+          {{ end }}
 
-        <div id="left" class="flex items-center gap-2 flex-shrink-0">
-          {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
-          {{ $name }}
+          <div id="left" class="flex items-center gap-2 flex-shrink-0">
+            {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
+            {{ $name }}
+          </div>
+          <div id="right" class="flex items-center gap-2 flex-shrink-0">
+            <span class="font-bold">{{ $kind }}</span>
+            <time>{{ $time }}</time>
+          </div>
         </div>
-        <div id="right" class="flex items-center gap-2 flex-shrink-0">
-          <span class="font-bold">{{ $kind }}</span>
-          <time>{{ $time }}</time>
-        </div>
-      </div>
+      </a>
       {{ end }}
     </div>
   {{ end }}
+{{ end }}
+
+{{ define "logs" }}
+  <div id="log-stream"
+       class="p-2 bg-gray-100 dark:bg-gray-900 font-mono text-sm min-h-96 max-h-screen overflow-auto flex flex-col-reverse [overflow-anchor:auto_!important]"
+       hx-ext="ws"
+       ws-connect="/{{ $.RepoInfo.FullName }}/pipelines/{{ .Pipeline.Id }}/workflow/{{ .Workflow }}/logs">
+    <div id="lines">
+      <!-- Each log line should be rendered with class="item" like below -->
+      <!-- <div class="item">[INFO] Log line here</div> -->
+    </div>
+  </div>
 {{ end }}

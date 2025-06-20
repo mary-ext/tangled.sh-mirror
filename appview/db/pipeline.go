@@ -27,17 +27,17 @@ type Pipeline struct {
 }
 
 type WorkflowStatus struct {
-	data []PipelineStatus
+	Data []PipelineStatus
 }
 
 func (w WorkflowStatus) Latest() PipelineStatus {
-	return w.data[len(w.data)-1]
+	return w.Data[len(w.Data)-1]
 }
 
 // time taken by this workflow to reach an "end state"
 func (w WorkflowStatus) TimeTaken() time.Duration {
 	var start, end *time.Time
-	for _, s := range w.data {
+	for _, s := range w.Data {
 		if s.Status.IsStart() {
 			start = &s.Created
 		}
@@ -76,6 +76,11 @@ func (p Pipeline) Workflows() []string {
 	}
 	slices.Sort(ws)
 	return ws
+}
+
+// if we know that a spindle has picked up this pipeline, then it is Responding
+func (p Pipeline) IsResponding() bool {
+	return len(p.Statuses) != 0
 }
 
 type Trigger struct {
@@ -256,6 +261,7 @@ func AddPipelineStatus(e Execer, status PipelineStatus) error {
 		status.Status,
 		status.Error,
 		status.ExitCode,
+		status.Created.Format(time.RFC3339),
 	}
 
 	placeholders := make([]string, len(args))
@@ -272,7 +278,8 @@ func AddPipelineStatus(e Execer, status PipelineStatus) error {
 		workflow,
 		status,
 		error,
-		exit_code
+		exit_code,
+		created
 	) values (%s)
 	`, strings.Join(placeholders, ","))
 
@@ -355,13 +362,11 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 			return nil, err
 		}
 
-		// Parse created time manually
 		p.Created, err = time.Parse(time.RFC3339, created)
 		if err != nil {
 			return nil, fmt.Errorf("invalid pipeline created timestamp %q: %w", created, err)
 		}
 
-		// Link trigger to pipeline
 		t.Id = p.TriggerId
 		p.Trigger = &t
 		p.Statuses = make(map[string]WorkflowStatus)
@@ -440,7 +445,7 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 		}
 
 		// append
-		statuses.data = append(statuses.data, ps)
+		statuses.Data = append(statuses.Data, ps)
 
 		// reassign
 		pipeline.Statuses[ps.Workflow] = statuses
@@ -450,11 +455,20 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 	var all []Pipeline
 	for _, p := range pipelines {
 		for _, s := range p.Statuses {
-			slices.SortFunc(s.data, func(a, b PipelineStatus) int {
+			slices.SortFunc(s.Data, func(a, b PipelineStatus) int {
 				if a.Created.After(b.Created) {
 					return 1
 				}
-				return -1
+				if a.Created.Before(b.Created) {
+					return -1
+				}
+				if a.ID > b.ID {
+					return 1
+				}
+				if a.ID < b.ID {
+					return -1
+				}
+				return 0
 			})
 		}
 		all = append(all, p)

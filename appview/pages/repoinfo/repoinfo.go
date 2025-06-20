@@ -56,6 +56,7 @@ type RepoInfo struct {
 	OwnerHandle  string
 	Description  string
 	Knot         string
+	Spindle      string
 	RepoAt       syntax.ATURI
 	IsStarred    bool
 	Stats        db.RepoStats

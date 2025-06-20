@@ -23,6 +23,11 @@
           <time>{{ $time }}</time>
         </div>
       </div>
+      {{ else }}
+      <div class="flex items-center gap-2 p-2 italic text-gray-600 dark:text-gray-400 ">
+        {{ i "hourglass" "size-4" }}
+        Waiting for spindle ...
+      </div>
       {{ end }}
     </div>
   </div>
