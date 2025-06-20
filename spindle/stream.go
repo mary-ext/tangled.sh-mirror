@@ -1,13 +1,16 @@
 package spindle
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"tangled.sh/tangled.sh/core/spindle/engine"
 	"tangled.sh/tangled.sh/core/spindle/models"
 
 	"github.com/go-chi/chi/v5"
@@ -88,35 +91,42 @@ func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
+	wid, err := getWorkflowID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.handleLogStream(w, r, func(ctx context.Context, conn *websocket.Conn) error {
+		return s.streamLogs(ctx, conn, wid)
+	})
+}
+
+func (s *Spindle) StepLogs(w http.ResponseWriter, r *http.Request) {
+	wid, err := getWorkflowID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	idxStr := chi.URLParam(r, "idx")
+	if idxStr == "" {
+		http.Error(w, "step index required", http.StatusBadRequest)
+		return
+	}
+	idx, err := strconv.Atoi(idxStr)
+	if err != nil {
+		http.Error(w, "bad step index", http.StatusBadRequest)
+		return
+	}
+
+	s.handleLogStream(w, r, func(ctx context.Context, conn *websocket.Conn) error {
+		return s.streamLogFromDisk(ctx, conn, wid, idx)
+	})
+}
+
+func (s *Spindle) handleLogStream(w http.ResponseWriter, r *http.Request, streamFn func(ctx context.Context, conn *websocket.Conn) error) {
 	l := s.l.With("handler", "Logs")
-
-	knot := chi.URLParam(r, "knot")
-	if knot == "" {
-		http.Error(w, "knot required", http.StatusBadRequest)
-		return
-	}
-
-	rkey := chi.URLParam(r, "rkey")
-	if rkey == "" {
-		http.Error(w, "rkey required", http.StatusBadRequest)
-		return
-	}
-
-	name := chi.URLParam(r, "name")
-	if name == "" {
-		http.Error(w, "name required", http.StatusBadRequest)
-		return
-	}
-
-	wid := models.WorkflowId{
-		PipelineId: models.PipelineId{
-			Knot: knot,
-			Rkey: rkey,
-		},
-		Name: name,
-	}
-
-	l = l.With("knot", knot, "rkey", rkey, "name", name)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -140,8 +150,8 @@ func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if err := s.streamLogs(ctx, conn, wid); err != nil {
-		l.Error("streamLogs failed", "err", err)
+	if err := streamFn(ctx, conn); err != nil {
+		l.Error("log stream failed", "err", err)
 	}
 	l.Debug("logs connection closed")
 }
@@ -206,6 +216,41 @@ func (s *Spindle) streamLogs(ctx context.Context, conn *websocket.Conn, wid mode
 	return nil
 }
 
+func (s *Spindle) streamLogFromDisk(ctx context.Context, conn *websocket.Conn, wid models.WorkflowId, stepIdx int) error {
+	streams := []string{"stdout", "stderr"}
+
+	for _, stream := range streams {
+		data, err := engine.ReadStepLog(s.cfg.Pipelines.LogDir, wid.String(), stream, stepIdx)
+		if err != nil {
+			// log but continue to next stream
+			s.l.Error("failed to read step log", "stream", stream, "step", stepIdx, "wid", wid.String(), "err", err)
+			continue
+		}
+
+		scanner := bufio.NewScanner(strings.NewReader(data))
+		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				msg := map[string]string{
+					"type": stream,
+					"data": scanner.Text(),
+				}
+				if err := conn.WriteJSON(msg); err != nil {
+					return err
+				}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error scanning %s log: %w", stream, err)
+		}
+	}
+
+	return nil
+}
+
 func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *int64) error {
 	events, err := s.db.GetEvents(*cursor)
 	if err != nil {
@@ -241,4 +286,22 @@ func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *int64) error {
 	}
 
 	return nil
+}
+
+func getWorkflowID(r *http.Request) (models.WorkflowId, error) {
+	knot := chi.URLParam(r, "knot")
+	rkey := chi.URLParam(r, "rkey")
+	name := chi.URLParam(r, "name")
+
+	if knot == "" || rkey == "" || name == "" {
+		return models.WorkflowId{}, fmt.Errorf("missing required parameters")
+	}
+
+	return models.WorkflowId{
+		PipelineId: models.PipelineId{
+			Knot: knot,
+			Rkey: rkey,
+		},
+		Name: name,
+	}, nil
 }
