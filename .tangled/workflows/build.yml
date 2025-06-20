@@ -1,10 +1,21 @@
 when:
   - event: ["push", "pull_request"]
-    branch: ["main", "master", "develop"]
+    branch: ["master"]
 
 dependencies:
+  nixpkgs:
+    - go
+    - gcc
+
+env:
+  CGO_ENABLED: 1
 
 steps:
-  - name: "build"
+  - name: patch static dir
     command: |
-       nix build .#appview
+       mkdir -p appview/pages/static; touch appview/pages/static/x
+
+  - name: test all
+    command: |
+       go test -v ./...
+

@@ -91,7 +91,6 @@
       pkgsStatic-knot = staticPkgs.knot;
       pkgsStatic-knot-unwrapped = staticPkgs.knot-unwrapped;
       pkgsStatic-sqlite-lib = staticPkgs.sqlite-lib;
-
       pkgsCross-gnu64-pkgsStatic-appview = crossPkgs.appview;
       pkgsCross-gnu64-pkgsStatic-knot = crossPkgs.knot;
       pkgsCross-gnu64-pkgsStatic-knot-unwrapped = crossPkgs.knot-unwrapped;
