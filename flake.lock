@@ -32,6 +32,18 @@
         "url": "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
       }
     },
+    "htmx-ws-src": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-XbUFiv94ZPB6VVULoTWOsje5Gq1I+IT72lMc4CpUYrY=",
+        "type": "file",
+        "url": "https://unpkg.com/htmx.org@2.0.4/dist/ext/ws.js"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://unpkg.com/htmx.org@2.0.4/dist/ext/ws.js"
+      }
+    },
     "ibm-plex-mono-src": {
       "flake": false,
       "locked": {
@@ -107,6 +119,7 @@
       "inputs": {
         "gitignore": "gitignore",
         "htmx-src": "htmx-src",
+        "htmx-ws-src": "htmx-ws-src",
         "ibm-plex-mono-src": "ibm-plex-mono-src",
         "indigo": "indigo",
         "inter-fonts-src": "inter-fonts-src",

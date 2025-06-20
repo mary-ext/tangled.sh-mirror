@@ -11,6 +11,10 @@
       url = "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js";
       flake = false;
     };
+    htmx-ws-src = {
+      url = "https://unpkg.com/htmx.org@2.0.4/dist/ext/ws.js";
+      flake = false;
+    };
     lucide-src = {
       url = "https://github.com/lucide-icons/lucide/releases/download/0.483.0/lucide-icons-0.483.0.zip";
       flake = false;
@@ -38,6 +42,7 @@
     nixpkgs,
     indigo,
     htmx-src,
+    htmx-ws-src,
     lucide-src,
     gitignore,
     inter-fonts-src,
@@ -56,7 +61,7 @@
     overlays.default = final: prev: let
       goModHash = "sha256-G+59ZwQwBbnO9ZjAB5zMEmWZbeG4k7ko/lPz+ceqYKs=";
       appviewDeps = {
-        inherit htmx-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
+        inherit htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
       };
       knotDeps = {
         inherit goModHash gitignoreSource;
@@ -119,7 +124,7 @@
         ];
         shellHook = ''
           mkdir -p appview/pages/static/{fonts,icons}
-          cp -f ${htmx-src} appview/pages/static/htmx.min.js
+          ${pkgs.uglify-js}/bin/uglifyjs ${htmx-src} ${htmx-ws-src} -c -m > appview/pages/static/htmx.min.js
           cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
           cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
           cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
