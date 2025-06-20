@@ -203,7 +203,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 		close(e.stderrChans[wid.String()])
 	}()
 
-	for _, step := range steps {
+	for stepIdx, step := range steps {
 		envs := ConstructEnvs(step.Environment)
 		envs.AddEnv("HOME", workspaceDir)
 		e.l.Debug("envs for step", "step", step.Name, "envs", envs.Slice())
@@ -238,7 +238,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 		// start tailing logs in background
 		tailDone := make(chan error, 1)
 		go func() {
-			tailDone <- e.TailStep(stepCtx, resp.ID, wid)
+			tailDone <- e.TailStep(stepCtx, resp.ID, wid, stepIdx)
 		}()
 
 		// wait for container completion or timeout
@@ -314,7 +314,7 @@ func (e *Engine) WaitStep(ctx context.Context, containerID string) (*container.S
 	return info.State, nil
 }
 
-func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.WorkflowId) error {
+func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.WorkflowId, stepIdx int) error {
 	logs, err := e.docker.ContainerLogs(ctx, containerID, container.LogsOptions{
 		Follow:     true,
 		ShowStdout: true,
@@ -326,12 +326,18 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 		return err
 	}
 
-	var devOutput io.Writer = io.Discard
-	if e.cfg.Server.Dev {
-		devOutput = &ansiStrippingWriter{underlying: os.Stdout}
+	stepLogger, err := NewStepLogger(e.cfg.Pipelines.LogDir, wid.String(), stepIdx)
+	if err != nil {
+		e.l.Warn("failed to setup step logger; logs will not be persisted", "error", err)
 	}
 
-	tee := io.TeeReader(logs, devOutput)
+	var logOutput io.Writer = io.Discard
+
+	if e.cfg.Server.Dev {
+		logOutput = &ansiStrippingWriter{underlying: os.Stdout}
+	}
+
+	tee := io.TeeReader(logs, logOutput)
 
 	// using StdCopy we demux logs and stream stdout and stderr to different
 	// channels.
@@ -343,6 +349,11 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 	rpipeOut, wpipeOut := io.Pipe()
 	rpipeErr, wpipeErr := io.Pipe()
 
+	// sets up a io.MultiWriter to write to both the pipe
+	// and the file-based logger.
+	multiOut := io.MultiWriter(wpipeOut, stepLogger.Stdout())
+	multiErr := io.MultiWriter(wpipeErr, stepLogger.Stderr())
+
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
@@ -350,7 +361,8 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 		defer wg.Done()
 		defer wpipeOut.Close()
 		defer wpipeErr.Close()
-		_, err := stdcopy.StdCopy(wpipeOut, wpipeErr, tee)
+		defer stepLogger.Close()
+		_, err := stdcopy.StdCopy(multiOut, multiErr, tee)
 		if err != nil && err != io.EOF && !errors.Is(context.DeadlineExceeded, err) {
 			e.l.Error("failed to copy logs", "error", err)
 		}
