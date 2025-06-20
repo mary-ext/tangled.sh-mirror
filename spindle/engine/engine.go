@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -39,10 +38,6 @@ type Engine struct {
 	n      *notifier.Notifier
 	cfg    *config.Config
 
-	chanMu      sync.RWMutex
-	stdoutChans map[string]chan string
-	stderrChans map[string]chan string
-
 	cleanupMu sync.Mutex
 	cleanup   map[string][]cleanupFunc
 }
@@ -62,9 +57,6 @@ func New(ctx context.Context, cfg *config.Config, db *db.DB, n *notifier.Notifie
 		n:      n,
 		cfg:    cfg,
 	}
-
-	e.stdoutChans = make(map[string]chan string, 100)
-	e.stderrChans = make(map[string]chan string, 100)
 
 	e.cleanup = make(map[string][]cleanupFunc)
 
@@ -188,21 +180,6 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 	}
 	e.l.Info("using step timeout", "timeout", stepTimeout)
 
-	e.chanMu.Lock()
-	if _, exists := e.stdoutChans[wid.String()]; !exists {
-		e.stdoutChans[wid.String()] = make(chan string, 100)
-	}
-	if _, exists := e.stderrChans[wid.String()]; !exists {
-		e.stderrChans[wid.String()] = make(chan string, 100)
-	}
-	e.chanMu.Unlock()
-
-	// close channels after all steps are complete
-	defer func() {
-		close(e.stdoutChans[wid.String()])
-		close(e.stderrChans[wid.String()])
-	}()
-
 	for stepIdx, step := range steps {
 		envs := ConstructEnvs(step.Environment)
 		envs.AddEnv("HOME", workspaceDir)
@@ -282,10 +259,6 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 
 		if state.ExitCode != 0 {
 			e.l.Error("workflow failed!", "workflow_id", wid.String(), "error", state.Error, "exit_code", state.ExitCode, "oom_killed", state.OOMKilled)
-			err := e.db.StatusFailed(wid, state.Error, int64(state.ExitCode), e.n)
-			if err != nil {
-				return err
-			}
 			return fmt.Errorf("error: %s, exit code: %d, oom: %t", state.Error, state.ExitCode, state.OOMKilled)
 		}
 	}
@@ -318,94 +291,24 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 		Follow:     true,
 		ShowStdout: true,
 		ShowStderr: true,
-		Details:    true,
+		Details:    false,
 		Timestamps: false,
 	})
 	if err != nil {
 		return err
 	}
 
-	stepLogger, err := NewStepLogger(e.cfg.Pipelines.LogDir, wid.String(), stepIdx)
+	wfLogger, err := NewWorkflowLogger(e.cfg.Pipelines.LogDir, wid)
 	if err != nil {
 		e.l.Warn("failed to setup step logger; logs will not be persisted", "error", err)
+		return err
 	}
+	defer wfLogger.Close()
 
-	var logOutput io.Writer = io.Discard
-
-	if e.cfg.Server.Dev {
-		logOutput = &ansiStrippingWriter{underlying: os.Stdout}
+	_, err = stdcopy.StdCopy(wfLogger.Stdout(), wfLogger.Stderr(), logs)
+	if err != nil && err != io.EOF && !errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("failed to copy logs: %w", err)
 	}
-
-	tee := io.TeeReader(logs, logOutput)
-
-	// using StdCopy we demux logs and stream stdout and stderr to different
-	// channels.
-	//
-	//    stdout w||r stdoutCh
-	//    stderr w||r stderrCh
-	//
-
-	rpipeOut, wpipeOut := io.Pipe()
-	rpipeErr, wpipeErr := io.Pipe()
-
-	// sets up a io.MultiWriter to write to both the pipe
-	// and the file-based logger.
-	multiOut := io.MultiWriter(wpipeOut, stepLogger.Stdout())
-	multiErr := io.MultiWriter(wpipeErr, stepLogger.Stderr())
-
-	wg := sync.WaitGroup{}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer wpipeOut.Close()
-		defer wpipeErr.Close()
-		defer stepLogger.Close()
-		_, err := stdcopy.StdCopy(multiOut, multiErr, tee)
-		if err != nil && err != io.EOF && !errors.Is(context.DeadlineExceeded, err) {
-			e.l.Error("failed to copy logs", "error", err)
-		}
-	}()
-
-	// read from stdout and send to stdout pipe
-	// NOTE: the stdoutCh channnel is closed further up in StartSteps
-	// once all steps are done.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		e.chanMu.RLock()
-		stdoutCh := e.stdoutChans[wid.String()]
-		e.chanMu.RUnlock()
-
-		scanner := bufio.NewScanner(rpipeOut)
-		for scanner.Scan() {
-			stdoutCh <- scanner.Text()
-		}
-		if err := scanner.Err(); err != nil {
-			e.l.Error("failed to scan stdout", "error", err)
-		}
-	}()
-
-	// read from stderr and send to stderr pipe
-	// NOTE: the stderrCh channnel is closed further up in StartSteps
-	// once all steps are done.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		e.chanMu.RLock()
-		stderrCh := e.stderrChans[wid.String()]
-		e.chanMu.RUnlock()
-
-		scanner := bufio.NewScanner(rpipeErr)
-		for scanner.Scan() {
-			stderrCh <- scanner.Text()
-		}
-		if err := scanner.Err(); err != nil {
-			e.l.Error("failed to scan stderr", "error", err)
-		}
-	}()
-
-	wg.Wait()
 
 	return nil
 }
@@ -441,19 +344,6 @@ func (e *Engine) DestroyWorkflow(ctx context.Context, wid models.WorkflowId) err
 		}
 	}
 	return nil
-}
-
-func (e *Engine) LogChannels(wid models.WorkflowId) (stdout <-chan string, stderr <-chan string, ok bool) {
-	e.chanMu.RLock()
-	defer e.chanMu.RUnlock()
-
-	stdoutCh, ok1 := e.stdoutChans[wid.String()]
-	stderrCh, ok2 := e.stderrChans[wid.String()]
-
-	if !ok1 || !ok2 {
-		return nil, nil, false
-	}
-	return stdoutCh, stderrCh, true
 }
 
 func (e *Engine) registerCleanup(wid models.WorkflowId, fn cleanupFunc) {
@@ -507,6 +397,7 @@ func hostConfig(wid models.WorkflowId) *container.HostConfig {
 		CapDrop:        []string{"ALL"},
 		CapAdd:         []string{"CAP_DAC_OVERRIDE"},
 		SecurityOpt:    []string{"no-new-privileges"},
+		ExtraHosts:     []string{"host.docker.internal:host-gateway"},
 	}
 
 	return hostConfig

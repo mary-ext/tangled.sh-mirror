@@ -70,3 +70,8 @@ func (s StatusKind) IsStart() bool {
 func (s StatusKind) IsFinish() bool {
 	return slices.Contains(FinishStates[:], s)
 }
+
+type LogLine struct {
+	Stream string `json:"s"`
+	Data   string `json:"d"`
+}

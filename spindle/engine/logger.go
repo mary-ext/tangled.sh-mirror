@@ -1,72 +1,88 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"tangled.sh/tangled.sh/core/spindle/models"
 )
 
-type StepLogger struct {
-	stderr *os.File
-	stdout *os.File
+type WorkflowLogger struct {
+	file    *os.File
+	encoder *json.Encoder
 }
 
-func NewStepLogger(baseDir, workflowID string, stepIdx int) (*StepLogger, error) {
-	dir := filepath.Join(baseDir, workflowID)
+func NewWorkflowLogger(baseDir string, wid models.WorkflowId) (*WorkflowLogger, error) {
+	dir := filepath.Join(baseDir, wid.String())
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, fmt.Errorf("creating log dir: %w", err)
 	}
 
-	stdoutPath := logFilePath(baseDir, workflowID, "stdout", stepIdx)
-	stderrPath := logFilePath(baseDir, workflowID, "stderr", stepIdx)
+	path := LogFilePath(baseDir, wid)
 
-	stdoutFile, err := os.Create(stdoutPath)
+	file, err := os.Create(path)
 	if err != nil {
-		return nil, fmt.Errorf("creating stdout log file: %w", err)
+		return nil, fmt.Errorf("creating log file: %w", err)
 	}
 
-	stderrFile, err := os.Create(stderrPath)
-	if err != nil {
-		stdoutFile.Close()
-		return nil, fmt.Errorf("creating stderr log file: %w", err)
-	}
-
-	return &StepLogger{
-		stdout: stdoutFile,
-		stderr: stderrFile,
+	return &WorkflowLogger{
+		file:    file,
+		encoder: json.NewEncoder(file),
 	}, nil
 }
 
-func (l *StepLogger) Stdout() io.Writer {
-	return l.stdout
+func (l *WorkflowLogger) Write(p []byte) (n int, err error) {
+	return l.file.Write(p)
 }
 
-func (l *StepLogger) Stderr() io.Writer {
-	return l.stderr
+func (l *WorkflowLogger) Close() error {
+	return l.file.Close()
 }
 
-func (l *StepLogger) Close() error {
-	err1 := l.stdout.Close()
-	err2 := l.stderr.Close()
-	if err1 != nil {
-		return err1
-	}
-	return err2
-}
+func OpenLogFile(baseDir string, workflowID models.WorkflowId) (*os.File, error) {
+	logPath := LogFilePath(baseDir, workflowID)
 
-func ReadStepLog(baseDir, workflowID, stream string, stepIdx int) (string, error) {
-	logPath := logFilePath(baseDir, workflowID, stream, stepIdx)
-
-	data, err := os.ReadFile(logPath)
+	file, err := os.Open(logPath)
 	if err != nil {
-		return "", fmt.Errorf("error reading log file: %w", err)
+		return nil, fmt.Errorf("error opening log file: %w", err)
 	}
 
-	return string(data), nil
+	return file, nil
 }
 
-func logFilePath(baseDir, workflowID, stream string, stepIdx int) string {
-	logFilePath := filepath.Join(baseDir, workflowID, fmt.Sprintf("%d-%s.log", stepIdx, stream))
+func LogFilePath(baseDir string, workflowID models.WorkflowId) string {
+	logFilePath := filepath.Join(baseDir, fmt.Sprintf("%s.log", workflowID.String()))
 	return logFilePath
+}
+
+func (l *WorkflowLogger) Stdout() io.Writer {
+	return &jsonWriter{logger: l, stream: "stdout"}
+}
+
+func (l *WorkflowLogger) Stderr() io.Writer {
+	return &jsonWriter{logger: l, stream: "stderr"}
+}
+
+type jsonWriter struct {
+	logger *WorkflowLogger
+	stream string
+}
+
+func (w *jsonWriter) Write(p []byte) (int, error) {
+	line := strings.TrimRight(string(p), "\r\n")
+
+	entry := models.LogLine{
+		Stream: w.stream,
+		Data:   line,
+	}
+
+	if err := w.logger.encoder.Encode(entry); err != nil {
+		return 0, err
+	}
+
+	return len(p), nil
 }

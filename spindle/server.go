@@ -148,7 +148,6 @@ func (s *Spindle) Router() http.Handler {
 		w.Write([]byte(s.cfg.Server.Owner))
 	})
 	mux.HandleFunc("/logs/{knot}/{rkey}/{name}", s.Logs)
-	mux.HandleFunc("/logs/{knot}/{rkey}/{name}/{idx}", s.StepLogs)
 	return mux
 }
 

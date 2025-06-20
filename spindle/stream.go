@@ -1,13 +1,11 @@
 package spindle
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"tangled.sh/tangled.sh/core/spindle/engine"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
+	"github.com/hpcloud/tail"
 )
 
 var upgrader = websocket.Upgrader{
@@ -97,36 +96,8 @@ func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.handleLogStream(w, r, func(ctx context.Context, conn *websocket.Conn) error {
-		return s.streamLogs(ctx, conn, wid)
-	})
-}
-
-func (s *Spindle) StepLogs(w http.ResponseWriter, r *http.Request) {
-	wid, err := getWorkflowID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	idxStr := chi.URLParam(r, "idx")
-	if idxStr == "" {
-		http.Error(w, "step index required", http.StatusBadRequest)
-		return
-	}
-	idx, err := strconv.Atoi(idxStr)
-	if err != nil {
-		http.Error(w, "bad step index", http.StatusBadRequest)
-		return
-	}
-
-	s.handleLogStream(w, r, func(ctx context.Context, conn *websocket.Conn) error {
-		return s.streamLogFromDisk(ctx, conn, wid, idx)
-	})
-}
-
-func (s *Spindle) handleLogStream(w http.ResponseWriter, r *http.Request, streamFn func(ctx context.Context, conn *websocket.Conn) error) {
 	l := s.l.With("handler", "Logs")
+	l = s.l.With("wid", wid)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -150,105 +121,47 @@ func (s *Spindle) handleLogStream(w http.ResponseWriter, r *http.Request, stream
 		}
 	}()
 
-	if err := streamFn(ctx, conn); err != nil {
+	if err := s.streamLogsFromDisk(ctx, conn, wid); err != nil {
 		l.Error("log stream failed", "err", err)
 	}
 	l.Debug("logs connection closed")
 }
 
-func (s *Spindle) streamLogs(ctx context.Context, conn *websocket.Conn, wid models.WorkflowId) error {
-	l := s.l.With("workflow_id", wid.String())
+func (s *Spindle) streamLogsFromDisk(ctx context.Context, conn *websocket.Conn, wid models.WorkflowId) error {
+	filePath := engine.LogFilePath(s.cfg.Pipelines.LogDir, wid)
 
-	stdoutCh, stderrCh, ok := s.eng.LogChannels(wid)
-	if !ok {
-		return fmt.Errorf("workflow_id %q not found", wid.String())
+	config := tail.Config{
+		Follow:    true,
+		ReOpen:    true,
+		MustExist: false,
+		Location:  &tail.SeekInfo{Offset: 0, Whence: 0},
+		Logger:    tail.DiscardingLogger,
 	}
 
-	done := make(chan struct{})
-
-	go func() {
-		for {
-			select {
-			case line, ok := <-stdoutCh:
-				if !ok {
-					done <- struct{}{}
-					return
-				}
-				msg := map[string]string{"type": "stdout", "data": line}
-				if err := conn.WriteJSON(msg); err != nil {
-					l.Error("write stdout failed", "err", err)
-					done <- struct{}{}
-					return
-				}
-			case <-ctx.Done():
-				done <- struct{}{}
-				return
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case line, ok := <-stderrCh:
-				if !ok {
-					done <- struct{}{}
-					return
-				}
-				msg := map[string]string{"type": "stderr", "data": line}
-				if err := conn.WriteJSON(msg); err != nil {
-					l.Error("write stderr failed", "err", err)
-					done <- struct{}{}
-					return
-				}
-			case <-ctx.Done():
-				done <- struct{}{}
-				return
-			}
-		}
-	}()
-
-	select {
-	case <-done:
-	case <-ctx.Done():
+	t, err := tail.TailFile(filePath, config)
+	if err != nil {
+		return fmt.Errorf("failed to tail log file: %w", err)
 	}
+	defer t.Stop()
 
-	return nil
-}
-
-func (s *Spindle) streamLogFromDisk(ctx context.Context, conn *websocket.Conn, wid models.WorkflowId, stepIdx int) error {
-	streams := []string{"stdout", "stderr"}
-
-	for _, stream := range streams {
-		data, err := engine.ReadStepLog(s.cfg.Pipelines.LogDir, wid.String(), stream, stepIdx)
-		if err != nil {
-			// log but continue to next stream
-			s.l.Error("failed to read step log", "stream", stream, "step", stepIdx, "wid", wid.String(), "err", err)
-			continue
-		}
-
-		scanner := bufio.NewScanner(strings.NewReader(data))
-		for scanner.Scan() {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-				msg := map[string]string{
-					"type": stream,
-					"data": scanner.Text(),
-				}
-				if err := conn.WriteJSON(msg); err != nil {
-					return err
-				}
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case line := <-t.Lines:
+			if line == nil {
+				return fmt.Errorf("tail channel closed unexpectedly")
 			}
-		}
 
-		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("error scanning %s log: %w", stream, err)
+			if line.Err != nil {
+				return fmt.Errorf("error tailing log file: %w", line.Err)
+			}
+
+			if err := conn.WriteMessage(websocket.TextMessage, []byte(line.Text)); err != nil {
+				return fmt.Errorf("failed to write to websocket: %w", err)
+			}
 		}
 	}
-
-	return nil
 }
 
 func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *int64) error {
