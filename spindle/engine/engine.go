@@ -253,11 +253,10 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 
 		select {
 		case <-waitDone:
-			// container finished normally
-			stepCancel()
 
 			// wait for tailing to complete
 			<-tailDone
+			stepCancel()
 
 		case <-stepCtx.Done():
 			e.l.Warn("step timed out; killing container", "container", resp.ID, "timeout", stepTimeout)
@@ -491,8 +490,12 @@ func hostConfig(wid models.WorkflowId) *container.HostConfig {
 				Target: "/nix",
 			},
 			{
-				Type:   mount.TypeTmpfs,
-				Target: "/tmp",
+				Type:     mount.TypeTmpfs,
+				Target:   "/tmp",
+				ReadOnly: false,
+				TmpfsOptions: &mount.TmpfsOptions{
+					Mode: 0o1777, // world-writeable sticky bit
+				},
 			},
 		},
 		ReadonlyRootfs: false,
