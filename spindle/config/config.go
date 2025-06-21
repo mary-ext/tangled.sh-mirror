@@ -16,8 +16,7 @@ type Server struct {
 }
 
 type Pipelines struct {
-	// TODO: change default to nixery.tangled.sh
-	Nixery      string `env:"NIXERY, default=nixery.dev"`
+	Nixery      string `env:"NIXERY, default=nixery.tangled.sh"`
 	StepTimeout string `env:"STEP_TIMEOUT, default=5m"`
 	LogDir      string `env:"LOG_DIR, default=/var/log/spindle"`
 }
