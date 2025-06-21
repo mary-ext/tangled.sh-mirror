@@ -71,7 +71,7 @@
 
       <div class="text-sm">
         {{ if $.Pipeline }}
-          {{ template "repo/pipelines/fragments/pipelineSymbolLong" $.Pipeline }}
+          {{ template "repo/pipelines/fragments/pipelineSymbolLong" (dict "Pipeline" $.Pipeline "RepoInfo" $.RepoInfo) }}
         {{ end }}
       </div>
   </div>

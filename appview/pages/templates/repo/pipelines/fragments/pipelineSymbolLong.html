@@ -1,8 +1,12 @@
 {{ define "repo/pipelines/fragments/pipelineSymbolLong" }}
-  <div class="group relative inline-block">
-    {{ template "repo/pipelines/fragments/pipelineSymbol" $ }}
-    {{ template "repo/pipelines/fragments/tooltip" $ }}
+  {{ $pipeline := .Pipeline }}
+  {{ $repoinfo := .RepoInfo }}
+  <div class="relative inline-block">
+    <details class="relative">
+      <summary class="cursor-pointer list-none">
+        {{ template "repo/pipelines/fragments/pipelineSymbol" .Pipeline }}
+      </summary>
+      {{ template "repo/pipelines/fragments/tooltip" $ }}
+    </details>
   </div>
 {{ end }}
-
-
