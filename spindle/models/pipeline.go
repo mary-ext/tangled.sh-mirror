@@ -53,7 +53,7 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 		swf.Image = workflowImage(twf.Dependencies, cfg.Pipelines.Nixery)
 
 		swf.addNixProfileToPath()
-		swf.enableNixFlakes()
+		swf.setGlobalEnvs()
 		setup := &setupSteps{}
 
 		setup.addStep(nixConfStep())
@@ -103,6 +103,7 @@ func (wf *Workflow) addNixProfileToPath() {
 	wf.Environment["PATH"] = "$PATH:/.nix-profile/bin"
 }
 
-func (wf *Workflow) enableNixFlakes() {
+func (wf *Workflow) setGlobalEnvs() {
 	wf.Environment["NIX_CONFIG"] = "experimental-features = nix-command flakes"
+	wf.Environment["HOME"] = "/tangled/workspace"
 }
