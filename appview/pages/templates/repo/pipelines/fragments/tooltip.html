@@ -10,12 +10,12 @@
           {{ $lastStatus := $all.Latest }}
           {{ $kind := $lastStatus.Status.String }}
 
-          {{ $t := .TimeTaken }}
+          {{ $t := $pipeline.TimeTaken }}
           {{ $time := "" }}
           {{ if $t }}
             {{ $time = durationFmt $t }}
           {{ else }}
-            {{ $time = printf "%s ago" (shortTimeFmt $.Created) }}
+            {{ $time = printf "%s ago" (shortTimeFmt $pipeline.Created) }}
           {{ end }}
 
           <div id="left" class="flex items-center gap-2 flex-shrink-0">
