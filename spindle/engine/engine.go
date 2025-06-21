@@ -497,10 +497,16 @@ func hostConfig(wid models.WorkflowId) *container.HostConfig {
 					Mode: 0o1777, // world-writeable sticky bit
 				},
 			},
+			{
+				Type:   mount.TypeVolume,
+				Source: "etc-nix-" + wid.String(),
+				Target: "/etc/nix",
+			},
 		},
 		ReadonlyRootfs: false,
 		CapDrop:        []string{"ALL"},
-		SecurityOpt:    []string{"seccomp=unconfined"},
+		CapAdd:         []string{"CAP_DAC_OVERRIDE"},
+		SecurityOpt:    []string{"no-new-privileges"},
 	}
 
 	return hostConfig

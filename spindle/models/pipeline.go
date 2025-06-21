@@ -55,6 +55,7 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 		swf.addNixProfileToPath()
 		setup := &setupSteps{}
 
+		setup.addStep(nixConfStep())
 		setup.addStep(cloneStep(*twf, *pl.TriggerMetadata.Repo, cfg.Server.Dev))
 		setup.addStep(checkoutStep(*twf, *pl.TriggerMetadata))
 		setup.addStep(dependencyStep(*twf))

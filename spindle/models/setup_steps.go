@@ -8,6 +8,15 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 )
 
+func nixConfStep() Step {
+	setupCmd := `echo 'extra-experimental-features = nix-command flakes' >> /etc/nix/nix.conf
+echo 'build-users-group = ' >> /etc/nix/nix.conf`
+	return Step{
+		Command: setupCmd,
+		Name:    "Configure Nix",
+	}
+}
+
 // checkoutStep checks out the specified ref in the cloned repository.
 func checkoutStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMetadata) Step {
 	if twf.Clone.Skip {
