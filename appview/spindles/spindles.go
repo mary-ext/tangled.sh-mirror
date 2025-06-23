@@ -1,22 +1,23 @@
 package spindles
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"strings"
+	"slices"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	verify "tangled.sh/tangled.sh/core/appview/spindleverify"
 	"tangled.sh/tangled.sh/core/rbac"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -25,23 +26,27 @@ import (
 )
 
 type Spindles struct {
-	Db       *db.DB
-	OAuth    *oauth.OAuth
-	Pages    *pages.Pages
-	Config   *config.Config
-	Enforcer *rbac.Enforcer
-	Logger   *slog.Logger
+	Db         *db.DB
+	OAuth      *oauth.OAuth
+	Pages      *pages.Pages
+	Config     *config.Config
+	Enforcer   *rbac.Enforcer
+	IdResolver *idresolver.Resolver
+	Logger     *slog.Logger
 }
 
 func (s *Spindles) Router() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.AuthMiddleware(s.OAuth))
+	r.With(middleware.AuthMiddleware(s.OAuth)).Get("/", s.spindles)
+	r.With(middleware.AuthMiddleware(s.OAuth)).Post("/register", s.register)
 
-	r.Get("/", s.spindles)
-	r.Post("/register", s.register)
-	r.Delete("/{instance}", s.delete)
-	r.Post("/{instance}/retry", s.retry)
+	r.With(middleware.AuthMiddleware(s.OAuth)).Get("/{instance}", s.dashboard)
+	r.With(middleware.AuthMiddleware(s.OAuth)).Delete("/{instance}", s.delete)
+
+	r.With(middleware.AuthMiddleware(s.OAuth)).Post("/{instance}/retry", s.retry)
+	r.With(middleware.AuthMiddleware(s.OAuth)).Post("/{instance}/add", s.addMember)
+	r.With(middleware.AuthMiddleware(s.OAuth)).Post("/{instance}/remove", s.removeMember)
 
 	return r
 }
@@ -61,6 +66,78 @@ func (s *Spindles) spindles(w http.ResponseWriter, r *http.Request) {
 	s.Pages.Spindles(w, pages.SpindlesParams{
 		LoggedInUser: user,
 		Spindles:     all,
+	})
+}
+
+func (s *Spindles) dashboard(w http.ResponseWriter, r *http.Request) {
+	l := s.Logger.With("handler", "dashboard")
+
+	user := s.OAuth.GetUser(r)
+	l = l.With("user", user.Did)
+
+	instance := chi.URLParam(r, "instance")
+	if instance == "" {
+		return
+	}
+	l = l.With("instance", instance)
+
+	spindles, err := db.GetSpindles(
+		s.Db,
+		db.FilterEq("instance", instance),
+		db.FilterEq("owner", user.Did),
+		db.FilterIsNot("verified", "null"),
+	)
+	if err != nil || len(spindles) != 1 {
+		l.Error("failed to get spindle", "err", err, "len(spindles)", len(spindles))
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	spindle := spindles[0]
+	members, err := s.Enforcer.GetSpindleUsersByRole("server:member", spindle.Instance)
+	if err != nil {
+		l.Error("failed to get spindle members", "err", err)
+		http.Error(w, "Not found", http.StatusInternalServerError)
+		return
+	}
+	slices.Sort(members)
+
+	repos, err := db.GetRepos(
+		s.Db,
+		db.FilterEq("spindle", instance),
+	)
+	if err != nil {
+		l.Error("failed to get spindle repos", "err", err)
+		http.Error(w, "Not found", http.StatusInternalServerError)
+		return
+	}
+
+	identsToResolve := make([]string, len(members))
+	for i, member := range members {
+		identsToResolve[i] = member
+	}
+	resolvedIds := s.IdResolver.ResolveIdents(r.Context(), identsToResolve)
+	didHandleMap := make(map[string]string)
+	for _, identity := range resolvedIds {
+		if !identity.Handle.IsInvalidHandle() {
+			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+		} else {
+			didHandleMap[identity.DID.String()] = identity.DID.String()
+		}
+	}
+
+	// organize repos by did
+	repoMap := make(map[string][]db.Repo)
+	for _, r := range repos {
+		repoMap[r.Did] = append(repoMap[r.Did], r)
+	}
+
+	s.Pages.SpindleDashboard(w, pages.SpindleDashboardParams{
+		LoggedInUser: user,
+		Spindle:      spindle,
+		Members:      members,
+		Repos:        repoMap,
+		DidHandleMap: didHandleMap,
 	})
 }
 
@@ -85,6 +162,8 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 		s.Pages.Notice(w, noticeId, "Incomplete form.")
 		return
 	}
+	l = l.With("instance", instance)
+	l = l.With("user", user.Did)
 
 	tx, err := s.Db.Begin()
 	if err != nil {
@@ -92,7 +171,10 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 		fail()
 		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		tx.Rollback()
+		s.Enforcer.E.LoadPolicy()
+	}()
 
 	err = db.AddSpindle(tx, db.Spindle{
 		Owner:    syntax.DID(user.Did),
@@ -100,6 +182,13 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		l.Error("failed to insert", "err", err)
+		fail()
+		return
+	}
+
+	err = s.Enforcer.AddSpindle(instance)
+	if err != nil {
+		l.Error("failed to create spindle", "err", err)
 		fail()
 		return
 	}
@@ -144,58 +233,24 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// begin verification
-	expectedOwner, err := fetchOwner(r.Context(), instance, s.Config.Core.Dev)
-	if err != nil {
-		l.Error("verification failed", "err", err)
-
-		// just refresh the page
-		s.Pages.HxRefresh(w)
-		return
-	}
-
-	if expectedOwner != user.Did {
-		// verification failed
-		l.Error("verification failed", "expectedOwner", expectedOwner, "observedOwner", user.Did)
-		s.Pages.HxRefresh(w)
-		return
-	}
-
-	tx, err = s.Db.Begin()
-	if err != nil {
-		l.Error("failed to commit verification info", "err", err)
-		s.Pages.HxRefresh(w)
-		return
-	}
-	defer func() {
-		tx.Rollback()
-		s.Enforcer.E.LoadPolicy()
-	}()
-
-	// mark this spindle as verified in the db
-	_, err = db.VerifySpindle(
-		tx,
-		db.FilterEq("owner", user.Did),
-		db.FilterEq("instance", instance),
-	)
-
-	err = s.Enforcer.AddSpindleOwner(instance, user.Did)
-	if err != nil {
-		l.Error("failed to update ACL", "err", err)
-		s.Pages.HxRefresh(w)
-		return
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		l.Error("failed to commit verification info", "err", err)
-		s.Pages.HxRefresh(w)
-		return
-	}
-
 	err = s.Enforcer.E.SavePolicy()
 	if err != nil {
 		l.Error("failed to update ACL", "err", err)
+		s.Pages.HxRefresh(w)
+		return
+	}
+
+	// begin verification
+	err = verify.RunVerification(r.Context(), instance, user.Did, s.Config.Core.Dev)
+	if err != nil {
+		l.Error("verification failed", "err", err)
+		s.Pages.HxRefresh(w)
+		return
+	}
+
+	_, err = verify.MarkVerified(s.Db, s.Enforcer, instance, user.Did)
+	if err != nil {
+		l.Error("failed to mark verified", "err", err)
 		s.Pages.HxRefresh(w)
 		return
 	}
@@ -207,7 +262,7 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 
 func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
 	user := s.OAuth.GetUser(r)
-	l := s.Logger.With("handler", "register")
+	l := s.Logger.With("handler", "delete")
 
 	noticeId := "operation-error"
 	defaultErr := "Failed to delete spindle. Try again later."
@@ -222,13 +277,33 @@ func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	spindles, err := db.GetSpindles(
+		s.Db,
+		db.FilterEq("owner", user.Did),
+		db.FilterEq("instance", instance),
+	)
+	if err != nil || len(spindles) != 1 {
+		l.Error("failed to retrieve instance", "err", err, "len(spindles)", len(spindles))
+		fail()
+		return
+	}
+
+	if string(spindles[0].Owner) != user.Did {
+		l.Error("unauthorized", "user", user.Did, "owner", spindles[0].Owner)
+		s.Pages.Notice(w, noticeId, "Failed to delete spindle, unauthorized deletion attempt.")
+		return
+	}
+
 	tx, err := s.Db.Begin()
 	if err != nil {
 		l.Error("failed to start txn", "err", err)
 		fail()
 		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		tx.Rollback()
+		s.Enforcer.E.LoadPolicy()
+	}()
 
 	err = db.DeleteSpindle(
 		tx,
@@ -237,6 +312,13 @@ func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		l.Error("failed to delete spindle", "err", err)
+		fail()
+		return
+	}
+
+	err = s.Enforcer.RemoveSpindle(instance)
+	if err != nil {
+		l.Error("failed to update ACL", "err", err)
 		fail()
 		return
 	}
@@ -265,12 +347,25 @@ func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = s.Enforcer.E.SavePolicy()
+	if err != nil {
+		l.Error("failed to update ACL", "err", err)
+		s.Pages.HxRefresh(w)
+		return
+	}
+
+	shouldRedirect := r.Header.Get("shouldRedirect")
+	if shouldRedirect == "true" {
+		s.Pages.HxRedirect(w, "/spindles")
+		return
+	}
+
 	w.Write([]byte{})
 }
 
 func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 	user := s.OAuth.GetUser(r)
-	l := s.Logger.With("handler", "register")
+	l := s.Logger.With("handler", "retry")
 
 	noticeId := "operation-error"
 	defaultErr := "Failed to verify spindle. Try again later."
@@ -284,76 +379,333 @@ func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 		fail()
 		return
 	}
+	l = l.With("instance", instance)
+	l = l.With("user", user.Did)
 
-	// begin verification
-	expectedOwner, err := fetchOwner(r.Context(), instance, s.Config.Core.Dev)
-	if err != nil {
-		l.Error("verification failed", "err", err)
-		fail()
-		return
-	}
-
-	if expectedOwner != user.Did {
-		l.Error("verification failed", "expectedOwner", expectedOwner, "observedOwner", user.Did)
-		s.Pages.Notice(w, noticeId, fmt.Sprintf("Owner did not match, expected %s, got %s", expectedOwner, user.Did))
-		return
-	}
-
-	// mark this spindle as verified in the db
-	rowId, err := db.VerifySpindle(
+	spindles, err := db.GetSpindles(
 		s.Db,
 		db.FilterEq("owner", user.Did),
 		db.FilterEq("instance", instance),
 	)
-	if err != nil {
-		l.Error("verification failed", "err", err)
+	if err != nil || len(spindles) != 1 {
+		l.Error("failed to retrieve instance", "err", err, "len(spindles)", len(spindles))
 		fail()
 		return
 	}
 
-	verifiedSpindle := db.Spindle{
-		Id:       int(rowId),
-		Owner:    syntax.DID(user.Did),
-		Instance: instance,
+	if string(spindles[0].Owner) != user.Did {
+		l.Error("unauthorized", "user", user.Did, "owner", spindles[0].Owner)
+		s.Pages.Notice(w, noticeId, "Failed to verify spindle, unauthorized verification attempt.")
+		return
+	}
+
+	// begin verification
+	err = verify.RunVerification(r.Context(), instance, user.Did, s.Config.Core.Dev)
+	if err != nil {
+		l.Error("verification failed", "err", err)
+
+		if errors.Is(err, verify.FetchError) {
+			s.Pages.Notice(w, noticeId, err.Error())
+			return
+		}
+
+		if e, ok := err.(*verify.OwnerMismatch); ok {
+			s.Pages.Notice(w, noticeId, e.Error())
+			return
+		}
+
+		fail()
+		return
+	}
+
+	rowId, err := verify.MarkVerified(s.Db, s.Enforcer, instance, user.Did)
+	if err != nil {
+		l.Error("failed to mark verified", "err", err)
+		s.Pages.Notice(w, noticeId, err.Error())
+		return
+	}
+
+	verifiedSpindle, err := db.GetSpindles(
+		s.Db,
+		db.FilterEq("id", rowId),
+	)
+	if err != nil || len(verifiedSpindle) != 1 {
+		l.Error("failed get new spindle", "err", err)
+		s.Pages.HxRefresh(w)
+		return
+	}
+
+	shouldRefresh := r.Header.Get("shouldRefresh")
+	if shouldRefresh == "true" {
+		s.Pages.HxRefresh(w)
+		return
 	}
 
 	w.Header().Set("HX-Reswap", "outerHTML")
-	s.Pages.SpindleListing(w, pages.SpindleListingParams{
-		LoggedInUser: user,
-		Spindle:      verifiedSpindle,
-	})
+	s.Pages.SpindleListing(w, pages.SpindleListingParams{verifiedSpindle[0]})
 }
 
-func fetchOwner(ctx context.Context, domain string, dev bool) (string, error) {
-	scheme := "https"
-	if dev {
-		scheme = "http"
+func (s *Spindles) addMember(w http.ResponseWriter, r *http.Request) {
+	user := s.OAuth.GetUser(r)
+	l := s.Logger.With("handler", "addMember")
+
+	instance := chi.URLParam(r, "instance")
+	if instance == "" {
+		l.Error("empty instance")
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	l = l.With("instance", instance)
+	l = l.With("user", user.Did)
+
+	spindles, err := db.GetSpindles(
+		s.Db,
+		db.FilterEq("owner", user.Did),
+		db.FilterEq("instance", instance),
+	)
+	if err != nil || len(spindles) != 1 {
+		l.Error("failed to retrieve instance", "err", err, "len(spindles)", len(spindles))
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
 	}
 
-	url := fmt.Sprintf("%s://%s/owner", scheme, domain)
-	req, err := http.NewRequest("GET", url, nil)
+	noticeId := fmt.Sprintf("add-member-error-%d", spindles[0].Id)
+	defaultErr := "Failed to add member. Try again later."
+	fail := func() {
+		s.Pages.Notice(w, noticeId, defaultErr)
+	}
+
+	if string(spindles[0].Owner) != user.Did {
+		l.Error("unauthorized", "user", user.Did, "owner", spindles[0].Owner)
+		s.Pages.Notice(w, noticeId, "Failed to add member, unauthorized attempt.")
+		return
+	}
+
+	member := r.FormValue("member")
+	if member == "" {
+		l.Error("empty member")
+		s.Pages.Notice(w, noticeId, "Failed to add member, empty form.")
+		return
+	}
+	l = l.With("member", member)
+
+	memberId, err := s.IdResolver.ResolveIdent(r.Context(), member)
 	if err != nil {
-		return "", err
+		l.Error("failed to resolve member identity to handle", "err", err)
+		s.Pages.Notice(w, noticeId, "Failed to add member, identity resolution failed.")
+		return
+	}
+	if memberId.Handle.IsInvalidHandle() {
+		l.Error("failed to resolve member identity to handle")
+		s.Pages.Notice(w, noticeId, "Failed to add member, identity resolution failed.")
+		return
 	}
 
-	client := &http.Client{
-		Timeout: 1 * time.Second,
-	}
-
-	resp, err := client.Do(req.WithContext(ctx))
-	if err != nil || resp.StatusCode != 200 {
-		return "", errors.New("failed to fetch /owner")
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024)) // read atmost 1kb of data
+	// write to pds
+	client, err := s.OAuth.AuthorizedClient(r)
 	if err != nil {
-		return "", fmt.Errorf("failed to read /owner response: %w", err)
+		l.Error("failed to authorize client", "err", err)
+		fail()
+		return
 	}
 
-	did := strings.TrimSpace(string(body))
-	if did == "" {
-		return "", errors.New("empty DID in /owner response")
+	tx, err := s.Db.Begin()
+	if err != nil {
+		l.Error("failed to start txn", "err", err)
+		fail()
+		return
+	}
+	defer func() {
+		tx.Rollback()
+		s.Enforcer.E.LoadPolicy()
+	}()
+
+	rkey := appview.TID()
+
+	// add member to db
+	if err = db.AddSpindleMember(tx, db.SpindleMember{
+		Did:      syntax.DID(user.Did),
+		Rkey:     rkey,
+		Instance: instance,
+		Subject:  memberId.DID,
+	}); err != nil {
+		l.Error("failed to add spindle member", "err", err)
+		fail()
+		return
 	}
 
-	return did, nil
+	if err = s.Enforcer.AddSpindleMember(instance, memberId.DID.String()); err != nil {
+		l.Error("failed to add member to ACLs")
+		fail()
+		return
+	}
+
+	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.SpindleMemberNSID,
+		Repo:       user.Did,
+		Rkey:       rkey,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.SpindleMember{
+				CreatedAt: time.Now().Format(time.RFC3339),
+				Instance:  instance,
+				Subject:   memberId.DID.String(),
+			},
+		},
+	})
+	if err != nil {
+		l.Error("failed to add record to PDS", "err", err)
+		s.Pages.Notice(w, noticeId, "Failed to add record to PDS, try again later.")
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		l.Error("failed to commit txn", "err", err)
+		fail()
+		return
+	}
+
+	if err = s.Enforcer.E.SavePolicy(); err != nil {
+		l.Error("failed to add member to ACLs", "err", err)
+		fail()
+		return
+	}
+
+	// success
+	s.Pages.HxRedirect(w, fmt.Sprintf("/spindles/%s", instance))
+}
+
+func (s *Spindles) removeMember(w http.ResponseWriter, r *http.Request) {
+	user := s.OAuth.GetUser(r)
+	l := s.Logger.With("handler", "removeMember")
+
+	noticeId := "operation-error"
+	defaultErr := "Failed to add member. Try again later."
+	fail := func() {
+		s.Pages.Notice(w, noticeId, defaultErr)
+	}
+
+	instance := chi.URLParam(r, "instance")
+	if instance == "" {
+		l.Error("empty instance")
+		fail()
+		return
+	}
+	l = l.With("instance", instance)
+	l = l.With("user", user.Did)
+
+	spindles, err := db.GetSpindles(
+		s.Db,
+		db.FilterEq("owner", user.Did),
+		db.FilterEq("instance", instance),
+	)
+	if err != nil || len(spindles) != 1 {
+		l.Error("failed to retrieve instance", "err", err, "len(spindles)", len(spindles))
+		fail()
+		return
+	}
+
+	if string(spindles[0].Owner) != user.Did {
+		l.Error("unauthorized", "user", user.Did, "owner", spindles[0].Owner)
+		s.Pages.Notice(w, noticeId, "Failed to add member, unauthorized attempt.")
+		return
+	}
+
+	member := r.FormValue("member")
+	if member == "" {
+		l.Error("empty member")
+		s.Pages.Notice(w, noticeId, "Failed to add member, empty form.")
+		return
+	}
+	l = l.With("member", member)
+
+	memberId, err := s.IdResolver.ResolveIdent(r.Context(), member)
+	if err != nil {
+		l.Error("failed to resolve member identity to handle", "err", err)
+		s.Pages.Notice(w, noticeId, "Failed to add member, identity resolution failed.")
+		return
+	}
+	if memberId.Handle.IsInvalidHandle() {
+		l.Error("failed to resolve member identity to handle")
+		s.Pages.Notice(w, noticeId, "Failed to add member, identity resolution failed.")
+		return
+	}
+
+	tx, err := s.Db.Begin()
+	if err != nil {
+		l.Error("failed to start txn", "err", err)
+		fail()
+		return
+	}
+	defer func() {
+		tx.Rollback()
+		s.Enforcer.E.LoadPolicy()
+	}()
+
+	// get the record from the DB first:
+	members, err := db.GetSpindleMembers(
+		s.Db,
+		db.FilterEq("did", user.Did),
+		db.FilterEq("instance", instance),
+		db.FilterEq("subject", memberId.DID),
+	)
+	if err != nil || len(members) != 1 {
+		l.Error("failed to get member", "err", err)
+		fail()
+		return
+	}
+
+	// remove from db
+	if err = db.RemoveSpindleMember(
+		tx,
+		db.FilterEq("did", user.Did),
+		db.FilterEq("instance", instance),
+		db.FilterEq("subject", memberId.DID),
+	); err != nil {
+		l.Error("failed to remove spindle member", "err", err)
+		fail()
+		return
+	}
+
+	// remove from enforcer
+	if err = s.Enforcer.RemoveSpindleMember(instance, memberId.DID.String()); err != nil {
+		l.Error("failed to update ACLs", "err", err)
+		fail()
+		return
+	}
+
+	client, err := s.OAuth.AuthorizedClient(r)
+	if err != nil {
+		l.Error("failed to authorize client", "err", err)
+		fail()
+		return
+	}
+
+	// remove from pds
+	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+		Collection: tangled.SpindleMemberNSID,
+		Repo:       user.Did,
+		Rkey:       members[0].Rkey,
+	})
+	if err != nil {
+		// non-fatal
+		l.Error("failed to delete record", "err", err)
+	}
+
+	// commit everything
+	if err = tx.Commit(); err != nil {
+		l.Error("failed to commit txn", "err", err)
+		fail()
+		return
+	}
+
+	// commit everything
+	if err = s.Enforcer.E.SavePolicy(); err != nil {
+		l.Error("failed to save ACLs", "err", err)
+		fail()
+		return
+	}
+
+	// ok
+	s.Pages.HxRefresh(w)
+	return
 }
