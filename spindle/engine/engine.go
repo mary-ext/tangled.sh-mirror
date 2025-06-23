@@ -104,11 +104,16 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, 
 
 			err = e.StartSteps(ctx, w.Steps, wid, w.Image)
 			if err != nil {
-				e.l.Error("workflow failed!", "wid", wid.String(), "error", err.Error())
-
-				dbErr := e.db.StatusFailed(wid, err.Error(), -1, e.n)
-				if dbErr != nil {
-					return dbErr
+				if errors.Is(err, ErrTimedOut) {
+					dbErr := e.db.StatusTimeout(wid, e.n)
+					if dbErr != nil {
+						return dbErr
+					}
+				} else {
+					dbErr := e.db.StatusFailed(wid, err.Error(), -1, e.n)
+					if dbErr != nil {
+						return dbErr
+					}
 				}
 
 				return fmt.Errorf("starting steps image: %w", err)
@@ -245,7 +250,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 			<-tailDone
 
 			stepCancel()
-			return fmt.Errorf("step timed out after %v", stepTimeout)
+			return ErrTimedOut
 		}
 
 		if waitErr != nil {
@@ -259,7 +264,10 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 
 		if state.ExitCode != 0 {
 			e.l.Error("workflow failed!", "workflow_id", wid.String(), "error", state.Error, "exit_code", state.ExitCode, "oom_killed", state.OOMKilled)
-			return fmt.Errorf("error: %s, exit code: %d, oom: %t", state.Error, state.ExitCode, state.OOMKilled)
+			if state.OOMKilled {
+				return ErrOOMKilled
+			}
+			return ErrWorkflowFailed
 		}
 	}
 

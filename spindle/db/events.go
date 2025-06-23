@@ -135,3 +135,7 @@ func (d *DB) StatusFailed(workflowId models.WorkflowId, workflowError string, ex
 func (d *DB) StatusSuccess(workflowId models.WorkflowId, n *notifier.Notifier) error {
 	return d.createStatusEvent(workflowId, models.StatusKindSuccess, nil, nil, n)
 }
+
+func (d *DB) StatusTimeout(workflowId models.WorkflowId, n *notifier.Notifier) error {
+	return d.createStatusEvent(workflowId, models.StatusKindTimeout, nil, nil, n)
+}
