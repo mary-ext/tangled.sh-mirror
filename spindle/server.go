@@ -218,17 +218,32 @@ func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source,
 
 func (s *Spindle) configureOwner() error {
 	cfgOwner := s.cfg.Server.Owner
-	serverOwner, err := s.e.GetUserByRole("server:owner", rbacDomain)
+
+	existing, err := s.e.GetSpindleUsersByRole("server:owner", rbacDomain)
 	if err != nil {
-		return fmt.Errorf("failed to fetch server:owner: %w", err)
+		return err
 	}
 
-	if len(serverOwner) == 0 {
-		s.e.AddKnotOwner(rbacDomain, cfgOwner)
-	} else {
-		if serverOwner[0] != cfgOwner {
-			return fmt.Errorf("server owner mismatch: %s != %s", cfgOwner, serverOwner[0])
+	switch len(existing) {
+	case 0:
+		// no owner configured, continue
+	case 1:
+		// find existing owner
+		existingOwner := existing[0]
+
+		// no ownership change, this is okay
+		if existingOwner == s.cfg.Server.Owner {
+			break
 		}
+
+		// remove existing owner
+		err = s.e.RemoveSpindleOwner(rbacDomain, existingOwner)
+		if err != nil {
+			return nil
+		}
+	default:
+		return fmt.Errorf("more than one owner in DB, try deleting %q and starting over", s.cfg.Server.DBPath)
 	}
-	return nil
+
+	return s.e.AddSpindleOwner(rbacDomain, cfgOwner)
 }

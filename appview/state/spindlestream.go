@@ -20,7 +20,10 @@ import (
 )
 
 func Spindlestream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.Enforcer) (*ec.Consumer, error) {
-	spindles, err := db.GetSpindles(d)
+	spindles, err := db.GetSpindles(
+		d,
+		db.FilterIsNot("verified", "null"),
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -21,7 +21,7 @@ nixpkgs.lib.nixosSystem {
         g = config.services.tangled-knot.gitUser;
       in [
         "d /var/lib/knot 0770 ${u} ${g} - -" # Create the directory first
-        "f+ /var/lib/knot/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=7387221d57e64499b179a9dff19c5f1abf436470e2976d3585badddad5282970"
+        "f+ /var/lib/knot/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=168c426fa6d9829fcbe85c96bdf144e800fb9737d6ca87f21acc543b1aa3e440"
       ];
       services.tangled-knot = {
         enable = true;
