@@ -29,8 +29,18 @@ func (e *Enforcer) addOwner(domain, owner string) error {
 	return err
 }
 
+func (e *Enforcer) removeOwner(domain, owner string) error {
+	_, err := e.E.RemoveGroupingPolicy(owner, "server:owner", domain)
+	return err
+}
+
 func (e *Enforcer) addMember(domain, member string) error {
 	_, err := e.E.AddGroupingPolicy(member, "server:member", domain)
+	return err
+}
+
+func (e *Enforcer) removeMember(domain, member string) error {
+	_, err := e.E.RemoveGroupingPolicy(member, "server:member", domain)
 	return err
 }
 

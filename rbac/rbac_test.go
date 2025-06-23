@@ -214,13 +214,24 @@ func TestGetKnotssForUser(t *testing.T) {
 	assert.Contains(t, knots2, "example.com")
 }
 
-func TestGetUserByRole(t *testing.T) {
+func TestGetKnotUsersByRole(t *testing.T) {
 	e := setup(t)
 	_ = e.AddKnot("example.com")
 	_ = e.AddKnotMember("example.com", "did:plc:foo")
 	_ = e.AddKnotOwner("example.com", "did:plc:bar")
 
-	members, _ := e.GetUserByRole("server:member", "example.com")
+	members, _ := e.GetKnotUsersByRole("server:member", "example.com")
+	assert.Contains(t, members, "did:plc:foo")
+	assert.Contains(t, members, "did:plc:bar") // due to inheritance
+}
+
+func TestGetSpindleUsersByRole(t *testing.T) {
+	e := setup(t)
+	_ = e.AddSpindle("example.com")
+	_ = e.AddSpindleMember("example.com", "did:plc:foo")
+	_ = e.AddSpindleOwner("example.com", "did:plc:bar")
+
+	members, _ := e.GetSpindleUsersByRole("server:member", "example.com")
 	assert.Contains(t, members, "did:plc:foo")
 	assert.Contains(t, members, "did:plc:bar") // due to inheritance
 }
@@ -300,4 +311,139 @@ func TestAddSpindleAndRoles(t *testing.T) {
 	ok, err = e.IsSpindleMember("did:plc:foo", "s.com")
 	assert.NoError(t, err)
 	assert.True(t, ok)
+}
+
+func TestRemoveKnotOwner(t *testing.T) {
+	e := setup(t)
+
+	err := e.AddKnot("k.com")
+	assert.NoError(t, err)
+
+	err = e.AddKnotOwner("k.com", "did:plc:foo")
+	assert.NoError(t, err)
+
+	knots, err := e.GetKnotsForUser("did:plc:foo")
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{
+		"k.com",
+	}, knots)
+
+	err = e.RemoveKnotOwner("k.com", "did:plc:foo")
+	assert.NoError(t, err)
+
+	knots, err = e.GetKnotsForUser("did:plc:foo")
+	assert.NoError(t, err)
+	assert.Empty(t, knots)
+}
+
+func TestRemoveKnotMember(t *testing.T) {
+	e := setup(t)
+
+	err := e.AddKnot("k.com")
+	assert.NoError(t, err)
+
+	err = e.AddKnotOwner("k.com", "did:plc:foo")
+	assert.NoError(t, err)
+
+	err = e.AddKnotMember("k.com", "did:plc:bar")
+	assert.NoError(t, err)
+
+	knots, err := e.GetKnotsForUser("did:plc:bar")
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{
+		"k.com",
+	}, knots)
+
+	err = e.RemoveKnotMember("k.com", "did:plc:bar")
+	assert.NoError(t, err)
+
+	knots, err = e.GetKnotsForUser("did:plc:bar")
+	assert.NoError(t, err)
+	assert.Empty(t, knots)
+}
+
+func TestRemoveSpindleOwner(t *testing.T) {
+	e := setup(t)
+
+	err := e.AddSpindle("s.com")
+	assert.NoError(t, err)
+
+	err = e.AddSpindleOwner("s.com", "did:plc:foo")
+	assert.NoError(t, err)
+
+	spindles, err := e.GetSpindlesForUser("did:plc:foo")
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{
+		"s.com",
+	}, spindles)
+
+	err = e.RemoveSpindleOwner("s.com", "did:plc:foo")
+	assert.NoError(t, err)
+
+	spindles, err = e.GetSpindlesForUser("did:plc:foo")
+	assert.NoError(t, err)
+	assert.Empty(t, spindles)
+}
+
+func TestRemoveSpindleMember(t *testing.T) {
+	e := setup(t)
+
+	err := e.AddSpindle("s.com")
+	assert.NoError(t, err)
+
+	err = e.AddSpindleOwner("s.com", "did:plc:foo")
+	assert.NoError(t, err)
+
+	err = e.AddSpindleMember("s.com", "did:plc:bar")
+	assert.NoError(t, err)
+
+	spindles, err := e.GetSpindlesForUser("did:plc:foo")
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{
+		"s.com",
+	}, spindles)
+
+	spindles, err = e.GetSpindlesForUser("did:plc:bar")
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{
+		"s.com",
+	}, spindles)
+
+	err = e.RemoveSpindleMember("s.com", "did:plc:bar")
+	assert.NoError(t, err)
+
+	spindles, err = e.GetSpindlesForUser("did:plc:bar")
+	assert.NoError(t, err)
+	assert.Empty(t, spindles)
+}
+
+func TestRemoveSpindle(t *testing.T) {
+	e := setup(t)
+
+	err := e.AddSpindle("s.com")
+	assert.NoError(t, err)
+
+	err = e.AddSpindleOwner("s.com", "did:plc:foo")
+	assert.NoError(t, err)
+
+	err = e.AddSpindleMember("s.com", "did:plc:bar")
+	assert.NoError(t, err)
+
+	users, err := e.GetSpindleUsersByRole("server:member", "s.com")
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{
+		"did:plc:foo",
+		"did:plc:bar",
+	}, users)
+
+	err = e.RemoveSpindle("s.com")
+	assert.NoError(t, err)
+
+	// TODO: see this issue https://github.com/casbin/casbin/issues/1492
+	// s, err := e.E.GetAllDomains()
+	// assert.Empty(t, s)
+
+	spindles, err := e.GetSpindleUsersByRole("server:member", "s.com")
+	assert.NoError(t, err)
+	assert.Empty(t, spindles)
 }

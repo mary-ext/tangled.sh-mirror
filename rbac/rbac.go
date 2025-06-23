@@ -90,6 +90,12 @@ func (e *Enforcer) AddSpindle(spindle string) error {
 	return err
 }
 
+func (e *Enforcer) RemoveSpindle(spindle string) error {
+	spindle = intoSpindle(spindle)
+	_, err := e.E.DeleteDomains(spindle)
+	return err
+}
+
 func (e *Enforcer) GetKnotsForUser(did string) ([]string, error) {
 	keepFunc := isNotSpindle
 	stripFunc := unSpindle
@@ -106,16 +112,32 @@ func (e *Enforcer) AddKnotOwner(domain, owner string) error {
 	return e.addOwner(domain, owner)
 }
 
+func (e *Enforcer) RemoveKnotOwner(domain, owner string) error {
+	return e.removeOwner(domain, owner)
+}
+
 func (e *Enforcer) AddKnotMember(domain, member string) error {
 	return e.addMember(domain, member)
+}
+
+func (e *Enforcer) RemoveKnotMember(domain, member string) error {
+	return e.removeMember(domain, member)
 }
 
 func (e *Enforcer) AddSpindleOwner(domain, owner string) error {
 	return e.addOwner(intoSpindle(domain), owner)
 }
 
+func (e *Enforcer) RemoveSpindleOwner(domain, owner string) error {
+	return e.removeOwner(intoSpindle(domain), owner)
+}
+
 func (e *Enforcer) AddSpindleMember(domain, member string) error {
 	return e.addMember(intoSpindle(domain), member)
+}
+
+func (e *Enforcer) RemoveSpindleMember(domain, member string) error {
+	return e.removeMember(intoSpindle(domain), member)
 }
 
 func repoPolicies(member, domain, repo string) [][]string {
@@ -194,6 +216,14 @@ func (e *Enforcer) GetUserByRole(role, domain string) ([]string, error) {
 
 	slices.Sort(membersWithoutRoles)
 	return slices.Compact(membersWithoutRoles), nil
+}
+
+func (e *Enforcer) GetKnotUsersByRole(role, domain string) ([]string, error) {
+	return e.GetUserByRole(role, domain)
+}
+
+func (e *Enforcer) GetSpindleUsersByRole(role, domain string) ([]string, error) {
+	return e.GetUserByRole(role, intoSpindle(domain))
 }
 
 func (e *Enforcer) GetUserByRoleInRepo(role, domain, repo string) ([]string, error) {
