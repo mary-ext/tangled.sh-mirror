@@ -7,25 +7,24 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-<section class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto">
-  <div class="flex flex-col items-center">
-    <p class="text-center text-black dark:text-white">
-    Recently updated branches in this repository:
-    </p>
-    {{ block "recentBranchList" $ }} {{ end }}
-  </div>
-</section>
-{{ end }}
-
-{{ define "recentBranchList" }}
-  <div class="mt-4 grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 w-full md:w-1/2">
-    {{ range $br := take .Branches 5 }}
-    <a href="/{{ $.RepoInfo.FullName }}/compare?head={{ $br.Name | urlquery }}" class="no-underline hover:no-underline">
-      <div class="flex items-center justify-between p-2">
-        {{ $br.Name }}
-        <time class="text-gray-500 dark:text-gray-400">{{ timeFmt $br.Commit.Committer.When }}</time>
+  {{ $brs := take .Branches 5 }}
+  {{ if $brs }}
+    <section class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto">
+      <div class="flex flex-col items-center">
+        <p class="text-center text-black dark:text-white">
+        Recently updated branches in this repository:
+        </p>
+          <div class="mt-4 grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 w-full md:w-1/2">
+            {{ range $br := $brs }}
+            <a href="/{{ $.RepoInfo.FullName }}/compare?head={{ $br.Name | urlquery }}" class="no-underline hover:no-underline">
+              <div class="flex items-center justify-between p-2">
+                {{ $br.Name }}
+                <time class="text-gray-500 dark:text-gray-400">{{ timeFmt $br.Commit.Committer.When }}</time>
+              </div>
+            </a>
+            {{ end }}
+          </div>
       </div>
-    </a>
-    {{ end }}
-  </div>
+    </section>
+  {{ end }}
 {{ end }}
