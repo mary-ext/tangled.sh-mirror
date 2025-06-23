@@ -326,7 +326,11 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 	}
 	defer wfLogger.Close()
 
-	_, err = stdcopy.StdCopy(wfLogger.Stdout(), wfLogger.Stderr(), logs)
+	_, err = stdcopy.StdCopy(
+		wfLogger.Writer("stdout", stepIdx),
+		wfLogger.Writer("stderr", stepIdx),
+		logs,
+	)
 	if err != nil && err != io.EOF && !errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Errorf("failed to copy logs: %w", err)
 	}

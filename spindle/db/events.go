@@ -120,6 +120,40 @@ func (d *DB) createStatusEvent(
 
 }
 
+func (d *DB) GetStatus(workflowId models.WorkflowId) (*tangled.PipelineStatus, error) {
+	pipelineAtUri := workflowId.PipelineId.AtUri()
+
+	var eventJson string
+	err := d.QueryRow(
+		`
+		select
+			event from events
+		where
+			nsid = ?
+			and json_extract(event, '$.pipeline') = ?
+			and json_extract(event, '$.workflow') = ?
+		order by
+			created desc
+		limit
+			1
+		`,
+		tangled.PipelineStatusNSID,
+		string(pipelineAtUri),
+		workflowId.Name,
+	).Scan(&eventJson)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var status tangled.PipelineStatus
+	if err := json.Unmarshal([]byte(eventJson), &status); err != nil {
+		return nil, err
+	}
+
+	return &status, nil
+}
+
 func (d *DB) StatusPending(workflowId models.WorkflowId, n *notifier.Notifier) error {
 	return d.createStatusEvent(workflowId, models.StatusKindPending, nil, nil, n)
 }

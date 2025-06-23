@@ -158,7 +158,14 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 		l.Error("websocket upgrade failed", "err", err)
 		return
 	}
-	defer clientConn.Close()
+	defer func() {
+		_ = clientConn.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "log stream complete"),
+			time.Now().Add(time.Second),
+		)
+		clientConn.Close()
+	}()
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -236,10 +243,19 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 	// start a goroutine to read from spindle
 	go func() {
 		defer close(msgChan)
+		defer close(errChan)
+
 		for {
 			_, msg, err := spindleConn.ReadMessage()
 			if err != nil {
-				errChan <- err
+				if websocket.IsCloseError(err,
+					websocket.CloseNormalClosure,
+					websocket.CloseGoingAway,
+					websocket.CloseAbnormalClosure) {
+					errChan <- nil // signal graceful end
+				} else {
+					errChan <- err
+				}
 				return
 			}
 			msgChan <- msg
@@ -252,7 +268,14 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 			l.Info("client disconnected")
 			return
 		case err := <-errChan:
-			l.Error("error reading from spindle", "err", err)
+			if err != nil {
+				l.Error("error reading from spindle", "err", err)
+			}
+
+			if err == nil {
+				l.Info("log tail complete")
+			}
+
 			return
 		case msg := <-msgChan:
 			var logLine spindlemodel.LogLine

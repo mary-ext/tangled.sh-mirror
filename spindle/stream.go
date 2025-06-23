@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -105,7 +106,14 @@ func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to upgrade", http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "log stream complete"),
+			time.Now().Add(time.Second),
+		)
+		conn.Close()
+	}()
 	l.Debug("upgraded http to wss")
 
 	ctx, cancel := context.WithCancel(r.Context())
@@ -122,20 +130,30 @@ func (s *Spindle) Logs(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err := s.streamLogsFromDisk(ctx, conn, wid); err != nil {
-		l.Error("log stream failed", "err", err)
+		l.Info("log stream ended", "err", err)
 	}
-	l.Debug("logs connection closed")
+
+	l.Info("logs connection closed")
 }
 
 func (s *Spindle) streamLogsFromDisk(ctx context.Context, conn *websocket.Conn, wid models.WorkflowId) error {
+	status, err := s.db.GetStatus(wid)
+	if err != nil {
+		return err
+	}
+	isFinished := models.StatusKind(status.Status).IsFinish()
+
 	filePath := engine.LogFilePath(s.cfg.Pipelines.LogDir, wid)
 
 	config := tail.Config{
-		Follow:    true,
-		ReOpen:    true,
+		Follow:    !isFinished,
+		ReOpen:    !isFinished,
 		MustExist: false,
-		Location:  &tail.SeekInfo{Offset: 0, Whence: 0},
-		Logger:    tail.DiscardingLogger,
+		Location: &tail.SeekInfo{
+			Offset: 0,
+			Whence: io.SeekStart,
+		},
+		// Logger: tail.DiscardingLogger,
 	}
 
 	t, err := tail.TailFile(filePath, config)
@@ -149,6 +167,10 @@ func (s *Spindle) streamLogsFromDisk(ctx context.Context, conn *websocket.Conn, 
 		case <-ctx.Done():
 			return ctx.Err()
 		case line := <-t.Lines:
+			if line == nil && isFinished {
+				return fmt.Errorf("tail completed")
+			}
+
 			if line == nil {
 				return fmt.Errorf("tail channel closed unexpectedly")
 			}

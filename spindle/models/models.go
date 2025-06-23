@@ -74,4 +74,5 @@ func (s StatusKind) IsFinish() bool {
 type LogLine struct {
 	Stream string `json:"s"`
 	Data   string `json:"d"`
+	StepId int    `json:"i"`
 }
