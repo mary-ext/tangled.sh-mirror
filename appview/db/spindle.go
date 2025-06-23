@@ -17,6 +17,15 @@ type Spindle struct {
 	Created  time.Time
 }
 
+type SpindleMember struct {
+	Id       int
+	Did      syntax.DID // owner of the record
+	Rkey     string     // rkey of the record
+	Instance string
+	Subject  syntax.DID // the member being added
+	Created  time.Time
+}
+
 func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 	var spindles []Spindle
 
@@ -133,4 +142,91 @@ func DeleteSpindle(e Execer, filters ...filter) error {
 
 	_, err := e.Exec(query, args...)
 	return err
+}
+
+func AddSpindleMember(e Execer, member SpindleMember) error {
+	_, err := e.Exec(
+		`insert or ignore into spindle_members (did, rkey, instance, subject) values (?, ?, ?, ?)`,
+		member.Did,
+		member.Rkey,
+		member.Instance,
+		member.Subject,
+	)
+	return err
+}
+
+func RemoveSpindleMember(e Execer, filters ...filter) error {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`delete from spindle_members %s`, whereClause)
+
+	_, err := e.Exec(query, args...)
+	return err
+}
+
+func GetSpindleMembers(e Execer, filters ...filter) ([]SpindleMember, error) {
+	var members []SpindleMember
+
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(
+		`select id, did, rkey, instance, subject, created
+		from spindle_members
+		%s
+		order by created
+		`,
+		whereClause,
+	)
+
+	rows, err := e.Query(query, args...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var member SpindleMember
+		var createdAt string
+
+		if err := rows.Scan(
+			&member.Id,
+			&member.Did,
+			&member.Rkey,
+			&member.Instance,
+			&member.Subject,
+			&createdAt,
+		); err != nil {
+			return nil, err
+		}
+
+		member.Created, err = time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			member.Created = time.Now()
+		}
+
+		members = append(members, member)
+	}
+
+	return members, nil
 }

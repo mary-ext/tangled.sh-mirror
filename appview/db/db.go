@@ -330,7 +330,23 @@ func Make(dbPath string) (*DB, error) {
 			verified text, -- time of verification
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 
-			unique(instance)
+			unique(did, instance)
+		);
+
+		create table if not exists spindle_members (
+			-- identifiers for the record
+			id integer primary key autoincrement,
+			did text not null,
+			rkey text not null,
+
+			-- data
+			instance text not null,
+			subject text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
+			foreign key (did, instance) references spindles(owner, instance) on delete cascade,
+			unique (did, instance, subject)
 		);
 
 		create table if not exists pipelines (
