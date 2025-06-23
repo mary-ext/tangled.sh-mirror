@@ -186,6 +186,7 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 		wf, err := workflow.FromFile(e.Name, contents)
 		if err != nil {
 			// TODO: log here, respond to client that is pushing
+			h.l.Error("failed to parse workflow", "err", err, "path", fpath)
 			continue
 		}
 
