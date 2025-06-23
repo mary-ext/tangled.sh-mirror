@@ -31,6 +31,7 @@ import (
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotclient"
+	tlog "tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
@@ -93,6 +94,8 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 			tangled.PublicKeyNSID,
 			tangled.RepoArtifactNSID,
 			tangled.ActorProfileNSID,
+			tangled.SpindleMemberNSID,
+			tangled.SpindleNSID,
 		},
 		nil,
 		slog.Default(),
@@ -106,7 +109,15 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
-	err = jc.StartJetstream(ctx, appview.Ingest(wrapper, enforcer))
+
+	ingester := appview.Ingester{
+		Db:         wrapper,
+		Enforcer:   enforcer,
+		IdResolver: res,
+		Config:     config,
+		Logger:     tlog.New("ingester"),
+	}
+	err = jc.StartJetstream(ctx, ingester.Ingest())
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream watcher: %w", err)
 	}

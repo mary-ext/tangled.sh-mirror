@@ -3,12 +3,8 @@ package appview
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"strings"
+	"log/slog"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -16,19 +12,30 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/ipfs/go-cid"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/idresolver"
+	"tangled.sh/tangled.sh/core/appview/spindleverify"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
-type Ingester func(ctx context.Context, e *models.Event) error
+type Ingester struct {
+	Db         db.DbWrapper
+	Enforcer   *rbac.Enforcer
+	IdResolver *idresolver.Resolver
+	Config     *config.Config
+	Logger     *slog.Logger
+}
 
-func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer) Ingester {
+type processFunc func(ctx context.Context, e *models.Event) error
+
+func (i *Ingester) Ingest() processFunc {
 	return func(ctx context.Context, e *models.Event) error {
 		var err error
 		defer func() {
 			eventTime := e.TimeUS
 			lastTimeUs := eventTime + 1
-			if err := d.SaveLastTimeUs(lastTimeUs); err != nil {
+			if err := i.Db.SaveLastTimeUs(lastTimeUs); err != nil {
 				err = fmt.Errorf("(deferred) failed to save last time us: %w", err)
 			}
 		}()
@@ -39,28 +46,36 @@ func Ingest(d db.DbWrapper, enforcer *rbac.Enforcer) Ingester {
 
 		switch e.Commit.Collection {
 		case tangled.GraphFollowNSID:
-			ingestFollow(&d, e)
+			err = i.ingestFollow(e)
 		case tangled.FeedStarNSID:
-			ingestStar(&d, e)
+			err = i.ingestStar(e)
 		case tangled.PublicKeyNSID:
-			ingestPublicKey(&d, e)
+			err = i.ingestPublicKey(e)
 		case tangled.RepoArtifactNSID:
-			ingestArtifact(&d, e, enforcer)
+			err = i.ingestArtifact(e)
 		case tangled.ActorProfileNSID:
-			ingestProfile(&d, e)
+			err = i.ingestProfile(e)
 		case tangled.SpindleMemberNSID:
-			ingestSpindleMember(&d, e, enforcer)
+			err = i.ingestSpindleMember(e)
 		case tangled.SpindleNSID:
-			ingestSpindle(&d, e, true) // TODO: change this to dynamic
+			err = i.ingestSpindle(e)
+		}
+
+		if err != nil {
+			l := i.Logger.With("nsid", e.Commit.Collection)
+			l.Error("error ingesting record", "err", err)
 		}
 
 		return err
 	}
 }
 
-func ingestStar(d *db.DbWrapper, e *models.Event) error {
+func (i *Ingester) ingestStar(e *models.Event) error {
 	var err error
 	did := e.Did
+
+	l := i.Logger.With("handler", "ingestStar")
+	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate, models.CommitOperationUpdate:
@@ -70,18 +85,18 @@ func ingestStar(d *db.DbWrapper, e *models.Event) error {
 		record := tangled.FeedStar{}
 		err := json.Unmarshal(raw, &record)
 		if err != nil {
-			log.Println("invalid record")
+			l.Error("invalid record", "err", err)
 			return err
 		}
 
 		subjectUri, err = syntax.ParseATURI(record.Subject)
 		if err != nil {
-			log.Println("invalid record")
+			l.Error("invalid record", "err", err)
 			return err
 		}
-		err = db.AddStar(d, did, subjectUri, e.Commit.RKey)
+		err = db.AddStar(i.Db, did, subjectUri, e.Commit.RKey)
 	case models.CommitOperationDelete:
-		err = db.DeleteStarByRkey(d, did, e.Commit.RKey)
+		err = db.DeleteStarByRkey(i.Db, did, e.Commit.RKey)
 	}
 
 	if err != nil {
@@ -91,9 +106,12 @@ func ingestStar(d *db.DbWrapper, e *models.Event) error {
 	return nil
 }
 
-func ingestFollow(d *db.DbWrapper, e *models.Event) error {
+func (i *Ingester) ingestFollow(e *models.Event) error {
 	var err error
 	did := e.Did
+
+	l := i.Logger.With("handler", "ingestFollow")
+	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate, models.CommitOperationUpdate:
@@ -101,14 +119,14 @@ func ingestFollow(d *db.DbWrapper, e *models.Event) error {
 		record := tangled.GraphFollow{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			log.Println("invalid record")
+			l.Error("invalid record", "err", err)
 			return err
 		}
 
 		subjectDid := record.Subject
-		err = db.AddFollow(d, did, subjectDid, e.Commit.RKey)
+		err = db.AddFollow(i.Db, did, subjectDid, e.Commit.RKey)
 	case models.CommitOperationDelete:
-		err = db.DeleteFollowByRkey(d, did, e.Commit.RKey)
+		err = db.DeleteFollowByRkey(i.Db, did, e.Commit.RKey)
 	}
 
 	if err != nil {
@@ -118,27 +136,30 @@ func ingestFollow(d *db.DbWrapper, e *models.Event) error {
 	return nil
 }
 
-func ingestPublicKey(d *db.DbWrapper, e *models.Event) error {
+func (i *Ingester) ingestPublicKey(e *models.Event) error {
 	did := e.Did
 	var err error
 
+	l := i.Logger.With("handler", "ingestPublicKey")
+	l = l.With("nsid", e.Commit.Collection)
+
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate, models.CommitOperationUpdate:
-		log.Println("processing add of pubkey")
+		l.Debug("processing add of pubkey")
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.PublicKey{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			log.Printf("invalid record: %s", err)
+			l.Error("invalid record", "err", err)
 			return err
 		}
 
 		name := record.Name
 		key := record.Key
-		err = db.AddPublicKey(d, did, name, key, e.Commit.RKey)
+		err = db.AddPublicKey(i.Db, did, name, key, e.Commit.RKey)
 	case models.CommitOperationDelete:
-		log.Println("processing delete of pubkey")
-		err = db.DeletePublicKeyByRkey(d, did, e.Commit.RKey)
+		l.Debug("processing delete of pubkey")
+		err = db.DeletePublicKeyByRkey(i.Db, did, e.Commit.RKey)
 	}
 
 	if err != nil {
@@ -148,9 +169,12 @@ func ingestPublicKey(d *db.DbWrapper, e *models.Event) error {
 	return nil
 }
 
-func ingestArtifact(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
+func (i *Ingester) ingestArtifact(e *models.Event) error {
 	did := e.Did
 	var err error
+
+	l := i.Logger.With("handler", "ingestArtifact")
+	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate, models.CommitOperationUpdate:
@@ -158,7 +182,7 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) e
 		record := tangled.RepoArtifact{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			log.Printf("invalid record: %s", err)
+			l.Error("invalid record", "err", err)
 			return err
 		}
 
@@ -167,12 +191,12 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) e
 			return err
 		}
 
-		repo, err := db.GetRepoByAtUri(d, repoAt.String())
+		repo, err := db.GetRepoByAtUri(i.Db, repoAt.String())
 		if err != nil {
 			return err
 		}
 
-		ok, err := enforcer.E.Enforce(did, repo.Knot, repo.DidSlashRepo(), "repo:push")
+		ok, err := i.Enforcer.E.Enforce(did, repo.Knot, repo.DidSlashRepo(), "repo:push")
 		if err != nil || !ok {
 			return err
 		}
@@ -194,9 +218,9 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) e
 			MimeType:  record.Artifact.MimeType,
 		}
 
-		err = db.AddArtifact(d, artifact)
+		err = db.AddArtifact(i.Db, artifact)
 	case models.CommitOperationDelete:
-		err = db.DeleteArtifact(d, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
+		err = db.DeleteArtifact(i.Db, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
 	}
 
 	if err != nil {
@@ -206,9 +230,12 @@ func ingestArtifact(d *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) e
 	return nil
 }
 
-func ingestProfile(d *db.DbWrapper, e *models.Event) error {
+func (i *Ingester) ingestProfile(e *models.Event) error {
 	did := e.Did
 	var err error
+
+	l := i.Logger.With("handler", "ingestProfile")
+	l = l.With("nsid", e.Commit.Collection)
 
 	if e.Commit.RKey != "self" {
 		return fmt.Errorf("ingestProfile only ingests `self` record")
@@ -220,7 +247,7 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 		record := tangled.ActorProfile{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			log.Printf("invalid record: %s", err)
+			l.Error("invalid record", "err", err)
 			return err
 		}
 
@@ -267,7 +294,7 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 			PinnedRepos:    pinned,
 		}
 
-		ddb, ok := d.Execer.(*db.DB)
+		ddb, ok := i.Db.Execer.(*db.DB)
 		if !ok {
 			return fmt.Errorf("failed to index profile record, invalid db cast")
 		}
@@ -284,7 +311,7 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 
 		err = db.UpsertProfile(tx, &profile)
 	case models.CommitOperationDelete:
-		err = db.DeleteArtifact(d, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
+		err = db.DeleteArtifact(i.Db, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
 	}
 
 	if err != nil {
@@ -294,9 +321,12 @@ func ingestProfile(d *db.DbWrapper, e *models.Event) error {
 	return nil
 }
 
-func ingestSpindleMember(_ *db.DbWrapper, e *models.Event, enforcer *rbac.Enforcer) error {
+func (i *Ingester) ingestSpindleMember(e *models.Event) error {
 	did := e.Did
 	var err error
+
+	l := i.Logger.With("handler", "ingestSpindleMember")
+	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate:
@@ -304,28 +334,101 @@ func ingestSpindleMember(_ *db.DbWrapper, e *models.Event, enforcer *rbac.Enforc
 		record := tangled.SpindleMember{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			log.Printf("invalid record: %s", err)
+			l.Error("invalid record", "err", err)
 			return err
 		}
 
 		// only spindle owner can invite to spindles
-		ok, err := enforcer.IsSpindleInviteAllowed(did, record.Instance)
+		ok, err := i.Enforcer.IsSpindleInviteAllowed(did, record.Instance)
 		if err != nil || !ok {
 			return fmt.Errorf("failed to enforce permissions: %w", err)
 		}
 
-		err = enforcer.AddSpindleMember(record.Instance, record.Subject)
+		memberId, err := i.IdResolver.ResolveIdent(context.Background(), record.Subject)
 		if err != nil {
-			return fmt.Errorf("failed to add member: %w", err)
+			return err
+		}
+
+		if memberId.Handle.IsInvalidHandle() {
+			return err
+		}
+
+		ddb, ok := i.Db.Execer.(*db.DB)
+		if !ok {
+			return fmt.Errorf("failed to index profile record, invalid db cast")
+		}
+
+		err = db.AddSpindleMember(ddb, db.SpindleMember{
+			Did:      syntax.DID(did),
+			Rkey:     e.Commit.RKey,
+			Instance: record.Instance,
+			Subject:  memberId.DID,
+		})
+		if !ok {
+			return fmt.Errorf("failed to add to db: %w", err)
+		}
+
+		err = i.Enforcer.AddSpindleMember(record.Instance, memberId.DID.String())
+		if err != nil {
+			return fmt.Errorf("failed to update ACLs: %w", err)
+		}
+	case models.CommitOperationDelete:
+		rkey := e.Commit.RKey
+
+		ddb, ok := i.Db.Execer.(*db.DB)
+		if !ok {
+			return fmt.Errorf("failed to index profile record, invalid db cast")
+		}
+
+		// get record from db first
+		members, err := db.GetSpindleMembers(
+			ddb,
+			db.FilterEq("did", did),
+			db.FilterEq("rkey", rkey),
+		)
+		if err != nil || len(members) != 1 {
+			return fmt.Errorf("failed to get member: %w, len(members) = %d", err, len(members))
+		}
+		member := members[0]
+
+		tx, err := ddb.Begin()
+		if err != nil {
+			return fmt.Errorf("failed to start txn: %w", err)
+		}
+
+		// remove record by rkey && update enforcer
+		if err = db.RemoveSpindleMember(
+			tx,
+			db.FilterEq("did", did),
+			db.FilterEq("rkey", rkey),
+		); err != nil {
+			return fmt.Errorf("failed to remove from db: %w", err)
+		}
+
+		// update enforcer
+		err = i.Enforcer.RemoveSpindleMember(member.Instance, member.Subject.String())
+		if err != nil {
+			return fmt.Errorf("failed to update ACLs: %w", err)
+		}
+
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit txn: %w", err)
+		}
+
+		if err = i.Enforcer.E.SavePolicy(); err != nil {
+			return fmt.Errorf("failed to save ACLs: %w", err)
 		}
 	}
 
 	return nil
 }
 
-func ingestSpindle(d *db.DbWrapper, e *models.Event, dev bool) error {
+func (i *Ingester) ingestSpindle(e *models.Event) error {
 	did := e.Did
 	var err error
+
+	l := i.Logger.With("handler", "ingestSpindle")
+	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate:
@@ -333,73 +436,80 @@ func ingestSpindle(d *db.DbWrapper, e *models.Event, dev bool) error {
 		record := tangled.Spindle{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			log.Printf("invalid record: %s", err)
+			l.Error("invalid record", "err", err)
 			return err
 		}
 
-		// this is a special record whose rkey is the instance of the spindle itself
 		instance := e.Commit.RKey
 
-		owner, err := fetchOwner(context.TODO(), instance, dev)
-		if err != nil {
-			log.Printf("failed to verify owner of %s: %s", instance, err)
-			return err
-		}
-
-		// verify that the spindle owner points back to this did
-		if owner != did {
-			log.Printf("incorrect owner for domain: %s, %s != %s", instance, owner, did)
-			return err
-		}
-
-		// mark this spindle as registered
-		ddb, ok := d.Execer.(*db.DB)
+		ddb, ok := i.Db.Execer.(*db.DB)
 		if !ok {
 			return fmt.Errorf("failed to index profile record, invalid db cast")
 		}
 
-		_, err = db.VerifySpindle(
-			ddb,
+		err := db.AddSpindle(ddb, db.Spindle{
+			Owner:    syntax.DID(did),
+			Instance: instance,
+		})
+		if err != nil {
+			l.Error("failed to add spindle to db", "err", err, "instance", instance)
+			return err
+		}
+
+		err = spindleverify.RunVerification(context.Background(), instance, did, i.Config.Core.Dev)
+		if err != nil {
+			l.Error("failed to add spindle to db", "err", err, "instance", instance)
+			return err
+		}
+
+		_, err = spindleverify.MarkVerified(ddb, i.Enforcer, instance, did)
+		if err != nil {
+			return fmt.Errorf("failed to mark verified: %w", err)
+		}
+
+		return nil
+
+	case models.CommitOperationDelete:
+		instance := e.Commit.RKey
+
+		ddb, ok := i.Db.Execer.(*db.DB)
+		if !ok {
+			return fmt.Errorf("failed to index profile record, invalid db cast")
+		}
+
+		tx, err := ddb.Begin()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			tx.Rollback()
+			i.Enforcer.E.LoadPolicy()
+		}()
+
+		err = db.DeleteSpindle(
+			tx,
 			db.FilterEq("owner", did),
 			db.FilterEq("instance", instance),
 		)
+		if err != nil {
+			return err
+		}
 
-		return err
+		err = i.Enforcer.RemoveSpindle(instance)
+		if err != nil {
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return err
+		}
+
+		err = i.Enforcer.E.SavePolicy()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
-}
-
-func fetchOwner(ctx context.Context, domain string, dev bool) (string, error) {
-	scheme := "https"
-	if dev {
-		scheme = "http"
-	}
-
-	url := fmt.Sprintf("%s://%s/owner", scheme, domain)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", err
-	}
-
-	client := &http.Client{
-		Timeout: 1 * time.Second,
-	}
-
-	resp, err := client.Do(req.WithContext(ctx))
-	if err != nil || resp.StatusCode != 200 {
-		return "", errors.New("failed to fetch /owner")
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024)) // read atmost 1kb of data
-	if err != nil {
-		return "", fmt.Errorf("failed to read /owner response: %w", err)
-	}
-
-	did := strings.TrimSpace(string(body))
-	if did == "" {
-		return "", errors.New("empty DID in /owner response")
-	}
-
-	return did, nil
 }
