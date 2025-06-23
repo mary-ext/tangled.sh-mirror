@@ -16,9 +16,9 @@ type Server struct {
 }
 
 type Pipelines struct {
-	Nixery      string `env:"NIXERY, default=nixery.tangled.sh"`
-	StepTimeout string `env:"STEP_TIMEOUT, default=5m"`
-	LogDir      string `env:"LOG_DIR, default=/var/log/spindle"`
+	Nixery          string `env:"NIXERY, default=nixery.tangled.sh"`
+	WorkflowTimeout string `env:"WORKFLOW_TIMEOUT, default=5m"`
+	LogDir          string `env:"LOG_DIR, default=/var/log/spindle"`
 }
 
 type Config struct {

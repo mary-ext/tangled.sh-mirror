@@ -102,6 +102,16 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, 
 			defer reader.Close()
 			io.Copy(os.Stdout, reader)
 
+			workflowTimeoutStr := e.cfg.Pipelines.WorkflowTimeout
+			workflowTimeout, err := time.ParseDuration(workflowTimeoutStr)
+			if err != nil {
+				e.l.Error("failed to parse workflow timeout", "error", err, "timeout", workflowTimeoutStr)
+				workflowTimeout = 5 * time.Minute
+			}
+			e.l.Info("using workflow timeout", "timeout", workflowTimeout)
+			ctx, cancel := context.WithTimeout(ctx, workflowTimeout)
+			defer cancel()
+
 			err = e.StartSteps(ctx, w.Steps, wid, w.Image)
 			if err != nil {
 				if errors.Is(err, ErrTimedOut) {
@@ -177,15 +187,14 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId) error
 // All other errors are bubbled up.
 // Fixed version of the step execution logic
 func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models.WorkflowId, image string) error {
-	stepTimeoutStr := e.cfg.Pipelines.StepTimeout
-	stepTimeout, err := time.ParseDuration(stepTimeoutStr)
-	if err != nil {
-		e.l.Error("failed to parse step timeout", "error", err, "timeout", stepTimeoutStr)
-		stepTimeout = 5 * time.Minute
-	}
-	e.l.Info("using step timeout", "timeout", stepTimeout)
 
 	for stepIdx, step := range steps {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		envs := ConstructEnvs(step.Environment)
 		envs.AddEnv("HOME", workspaceDir)
 		e.l.Debug("envs for step", "step", step.Name, "envs", envs.Slice())
@@ -199,6 +208,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 			Hostname:   "spindle",
 			Env:        envs.Slice(),
 		}, hostConfig, nil, nil, "")
+		defer e.DestroyStep(ctx, resp.ID)
 		if err != nil {
 			return fmt.Errorf("creating container: %w", err)
 		}
@@ -208,11 +218,8 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 			return fmt.Errorf("connecting network: %w", err)
 		}
 
-		stepCtx, stepCancel := context.WithTimeout(ctx, stepTimeout)
-
-		err = e.docker.ContainerStart(stepCtx, resp.ID, container.StartOptions{})
+		err = e.docker.ContainerStart(ctx, resp.ID, container.StartOptions{})
 		if err != nil {
-			stepCancel()
 			return err
 		}
 		e.l.Info("started container", "name", resp.ID, "step", step.Name)
@@ -220,7 +227,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 		// start tailing logs in background
 		tailDone := make(chan error, 1)
 		go func() {
-			tailDone <- e.TailStep(stepCtx, resp.ID, wid, stepIdx)
+			tailDone <- e.TailStep(ctx, resp.ID, wid, stepIdx)
 		}()
 
 		// wait for container completion or timeout
@@ -230,7 +237,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 
 		go func() {
 			defer close(waitDone)
-			state, waitErr = e.WaitStep(stepCtx, resp.ID)
+			state, waitErr = e.WaitStep(ctx, resp.ID)
 		}()
 
 		select {
@@ -238,19 +245,25 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 
 			// wait for tailing to complete
 			<-tailDone
-			stepCancel()
 
-		case <-stepCtx.Done():
-			e.l.Warn("step timed out; killing container", "container", resp.ID, "timeout", stepTimeout)
-
-			_ = e.DestroyStep(ctx, resp.ID)
+		case <-ctx.Done():
+			e.l.Warn("step timed out; killing container", "container", resp.ID, "step", step.Name)
+			err = e.DestroyStep(context.Background(), resp.ID)
+			if err != nil {
+				e.l.Error("failed to destroy step", "container", resp.ID, "error", err)
+			}
 
 			// wait for both goroutines to finish
 			<-waitDone
 			<-tailDone
 
-			stepCancel()
 			return ErrTimedOut
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 		}
 
 		if waitErr != nil {
