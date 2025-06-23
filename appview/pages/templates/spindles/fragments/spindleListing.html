@@ -1,23 +1,42 @@
 {{ define "spindles/fragments/spindleListing" }}
-<div id="spindle-{{.Id}}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
-  <div id="left-side" class="flex items-center gap-2 min-w-0 max-w-[60%]">
+  <div id="spindle-{{.Id}}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+    {{ block "leftSide" . }} {{ end }}
+    {{ block "rightSide" . }} {{ end }}
+  </div>
+{{ end }}
+
+{{ define "leftSide" }}
+  {{ if .Verified }}
+  <a href="/spindles/{{ .Instance }}" class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
+    {{ i "hard-drive" "w-4 h-4" }}
+    {{ .Instance }}
+    <span class="text-gray-500">
+      {{ .Created | shortTimeFmt }} ago
+    </span>
+  </a>
+  {{ else }}
+  <div class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
     {{ i "hard-drive" "w-4 h-4" }}
     {{ .Instance }}
     <span class="text-gray-500">
       {{ .Created | shortTimeFmt }} ago
     </span>
   </div>
+  {{ end }}
+{{ end }}
+
+{{ define "rightSide" }}
   <div id="right-side" class="flex gap-2">
     {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2 text-sm" }}
     {{ if .Verified }}
       <span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{$style}}">{{ i "shield-check" "w-4 h-4" }} verified</span>
+      {{ template "spindles/fragments/addMemberModal" . }}
     {{ else }}
       <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} unverified</span>
       {{ block "retryButton" . }} {{ end }}
     {{ end }}
     {{ block "deleteButton" . }} {{ end }}
   </div>
-</div>
 {{ end }}
 
 {{ define "deleteButton" }}

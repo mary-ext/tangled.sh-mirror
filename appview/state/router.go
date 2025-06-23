@@ -178,12 +178,13 @@ func (s *State) SpindlesRouter() http.Handler {
 	logger := log.New("spindles")
 
 	spindles := &spindles.Spindles{
-		Db:       s.db,
-		OAuth:    s.oauth,
-		Pages:    s.pages,
-		Config:   s.config,
-		Enforcer: s.enforcer,
-		Logger:   logger,
+		Db:         s.db,
+		OAuth:      s.oauth,
+		Pages:      s.pages,
+		Config:     s.config,
+		Enforcer:   s.enforcer,
+		IdResolver: s.idResolver,
+		Logger:     logger,
 	}
 
 	return spindles.Router()

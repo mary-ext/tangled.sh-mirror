@@ -301,12 +301,23 @@ func (p *Pages) Spindles(w io.Writer, params SpindlesParams) error {
 }
 
 type SpindleListingParams struct {
-	LoggedInUser *oauth.User
-	Spindle      db.Spindle
+	db.Spindle
 }
 
 func (p *Pages) SpindleListing(w io.Writer, params SpindleListingParams) error {
-	return p.execute("spindles/fragments/spindleListing", w, params)
+	return p.executePlain("spindles/fragments/spindleListing", w, params)
+}
+
+type SpindleDashboardParams struct {
+	LoggedInUser *oauth.User
+	Spindle      db.Spindle
+	Members      []string
+	Repos        map[string][]db.Repo
+	DidHandleMap map[string]string
+}
+
+func (p *Pages) SpindleDashboard(w io.Writer, params SpindleDashboardParams) error {
+	return p.execute("spindles/dashboard", w, params)
 }
 
 type NewRepoParams struct {

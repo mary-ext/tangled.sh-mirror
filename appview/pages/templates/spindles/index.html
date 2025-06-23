@@ -25,7 +25,7 @@
         </div>
       {{ end }}
     </div>
-    <div id="operation-error" class="dark:text-red-400"></div>
+    <div id="operation-error" class="text-red-500 dark:text-red-400"></div>
   </section>
 {{ end }}
 
@@ -36,7 +36,7 @@
     <form
       hx-post="/spindles/register"
       class="max-w-2xl mb-2 space-y-4"
-      hx-indicator="#register-spinner"
+      hx-indicator="#register-button"
       hx-swap="none"
       >
       <div class="flex gap-2">
@@ -50,13 +50,14 @@
         >
         <button
           type="submit"
+          id="register-button"
           class="btn rounded flex items-center py-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 group"
           >
           <span class="inline-flex items-center gap-2">
             {{ i "plus" "w-4 h-4" }}
             register
           </span>
-          <span id="register-spinner" class="pl-2 hidden group-[.htmx-request]:inline">
+          <span class="pl-2 hidden group-[.htmx-request]:inline">
             {{ i "loader-circle" "w-4 h-4 animate-spin" }}
           </span>
         </button>

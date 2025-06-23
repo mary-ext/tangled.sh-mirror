@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -65,6 +66,192 @@ func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+
+	return repos, nil
+}
+
+func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
+	repoMap := make(map[syntax.ATURI]Repo)
+
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	repoQuery := fmt.Sprintf(
+		`select
+			did,
+			name,
+			knot,
+			rkey,
+			created,
+			description,
+			source,
+			spindle
+		from
+			repos r
+		%s`,
+		whereClause,
+	)
+	rows, err := e.Query(repoQuery, args...)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute repo query: %w ", err)
+	}
+
+	for rows.Next() {
+		var repo Repo
+		var createdAt string
+		var description, source, spindle sql.NullString
+
+		err := rows.Scan(
+			&repo.Did,
+			&repo.Name,
+			&repo.Knot,
+			&repo.Rkey,
+			&createdAt,
+			&description,
+			&source,
+			&spindle,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute repo query: %w ", err)
+		}
+
+		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
+			repo.Created = t
+		}
+		if description.Valid {
+			repo.Description = description.String
+		}
+		if source.Valid {
+			repo.Source = source.String
+		}
+		if spindle.Valid {
+			repo.Spindle = spindle.String
+		}
+
+		repoMap[repo.RepoAt()] = repo
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to execute repo query: %w ", err)
+	}
+
+	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(repoMap)), ", ")
+	args = make([]any, len(repoMap))
+	for _, r := range repoMap {
+		args = append(args, r.RepoAt())
+	}
+
+	starCountQuery := fmt.Sprintf(
+		`select
+			repo_at, count(1)
+		from stars
+		where repo_at in (%s)
+		group by repo_at`,
+		inClause,
+	)
+	rows, err = e.Query(starCountQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute star-count query: %w ", err)
+	}
+	for rows.Next() {
+		var repoat string
+		var count int
+		if err := rows.Scan(&repoat, &count); err != nil {
+			continue
+		}
+		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
+			r.RepoStats.StarCount = count
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to execute star-count query: %w ", err)
+	}
+
+	issueCountQuery := fmt.Sprintf(
+		`select
+			repo_at,
+			count(case when open = 1 then 1 end) as open_count,
+			count(case when open = 0 then 1 end) as closed_count
+		from issues
+		where repo_at in (%s)
+		group by repo_at`,
+		inClause,
+	)
+	rows, err = e.Query(issueCountQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute issue-count query: %w ", err)
+	}
+	for rows.Next() {
+		var repoat string
+		var open, closed int
+		if err := rows.Scan(&repoat, &open, &closed); err != nil {
+			continue
+		}
+		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
+			r.RepoStats.IssueCount.Open = open
+			r.RepoStats.IssueCount.Closed = closed
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to execute issue-count query: %w ", err)
+	}
+
+	pullCountQuery := fmt.Sprintf(
+		`select
+			repo_at,
+			count(case when state = ? then 1 end) as open_count,
+			count(case when state = ? then 1 end) as merged_count,
+			count(case when state = ? then 1 end) as closed_count,
+			count(case when state = ? then 1 end) as deleted_count
+		from pulls
+		where repo_at in (%s)
+		group by repo_at`,
+		inClause,
+	)
+	args = append([]any{
+		PullOpen,
+		PullMerged,
+		PullClosed,
+		PullDeleted,
+	}, args...)
+	rows, err = e.Query(
+		pullCountQuery,
+		args...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute pulls-count query: %w ", err)
+	}
+	for rows.Next() {
+		var repoat string
+		var open, merged, closed, deleted int
+		if err := rows.Scan(&repoat, &open, &merged, &closed, &deleted); err != nil {
+			continue
+		}
+		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
+			r.RepoStats.PullCount.Open = open
+			r.RepoStats.PullCount.Merged = merged
+			r.RepoStats.PullCount.Closed = closed
+			r.RepoStats.PullCount.Deleted = deleted
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to execute pulls-count query: %w ", err)
+	}
+
+	var repos []Repo
+	for _, r := range repoMap {
+		repos = append(repos, r)
 	}
 
 	return repos, nil
