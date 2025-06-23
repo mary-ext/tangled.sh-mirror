@@ -14,7 +14,7 @@
         </p>
         <div class="mt-4 grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 w-full md:w-1/2">
           {{ range $br := .BranchesTrunc }}
-          <a href="/{{ $.RepoInfo.FullName }}/tree/{{$br.Name}}" class="no-underline hover:no-underline">
+          <a href="/{{ $.RepoInfo.FullName }}/tree/{{$br.Name | urlquery }}" class="no-underline hover:no-underline">
             <div class="flex items-center justify-between p-2">
               {{ $br.Name }}
               <time class="text-gray-500 dark:text-gray-400">{{ timeFmt $br.Commit.Committer.When }}</time>
