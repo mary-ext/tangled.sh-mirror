@@ -5,9 +5,11 @@
     {{ $total := len $statuses }}
     {{ $success := index $c "success" }}
     {{ $fail := index $c "failed" }}
+    {{ $timeout := index $c "timeout" }}
     {{ $empty := eq $total 0 }}
     {{ $allPass := eq $success $total }}
     {{ $allFail := eq $fail $total }}
+    {{ $allTimeout := eq $timeout $total }}
 
     {{ if $empty }}
       <div class="flex gap-1 items-center">
@@ -16,12 +18,17 @@
       </div>
     {{ else if $allPass }}
       <div class="flex gap-1 items-center">
-        {{ i "check" "size-4 text-green-600" }} 
+        {{ i "check" "size-4 text-green-600" }}
         <span>{{ $total }}/{{ $total }}</span>
       </div>
     {{ else if $allFail }}
       <div class="flex gap-1 items-center">
-        {{ i "x" "size-4 text-red-600" }} 
+        {{ i "x" "size-4 text-red-600" }}
+        <span>0/{{ $total }}</span>
+      </div>
+    {{ else if $allTimeout }}
+      <div class="flex gap-1 items-center">
+        {{ i "clock-alert" "size-4 text-orange-400" }}
         <span>0/{{ $total }}</span>
       </div>
     {{ else }}
@@ -35,13 +42,15 @@
           {{ range $kind, $count := $c }}
             {{ $color := "" }}
             {{ if or (eq $kind "pending") (eq $kind "running") }}
-              {{ $color = "#eab308" }}
+              {{ $color = "#eab308" }} {{/* amber-500 */}}
             {{ else if eq $kind "success" }}
-              {{ $color = "#10b981" }}
+              {{ $color = "#10b981" }} {{/* green-500 */}}
             {{ else if eq $kind "cancelled" }}
-              {{ $color = "#6b7280" }}
+              {{ $color = "#6b7280" }} {{/* gray-500 */}}
+            {{ else if eq $kind "timeout" }}
+              {{ $color = "#fb923c" }} {{/* orange-400 */}}
             {{ else }}
-              {{ $color = "#ef4444" }}
+              {{ $color = "#ef4444" }} {{/* red-500 for failed or unknown */}}
             {{ end }}
 
             {{ $percent := divf64 (f64 $count) (f64 $total) }}
@@ -63,4 +72,3 @@
     {{ end }}
   </div>
 {{ end }}
-
