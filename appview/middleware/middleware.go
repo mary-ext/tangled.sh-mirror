@@ -192,7 +192,7 @@ func (mw Middleware) ResolveIdent() middlewareFunc {
 			if err != nil {
 				// invalid did or handle
 				log.Println("failed to resolve did/handle:", err)
-				w.WriteHeader(http.StatusNotFound)
+				mw.pages.Error404(w)
 				return
 			}
 
