@@ -330,7 +330,7 @@ func Make(dbPath string) (*DB, error) {
 			verified text, -- time of verification
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 
-			unique(did, instance)
+			unique(owner, instance)
 		);
 
 		create table if not exists spindle_members (
