@@ -54,12 +54,12 @@ type State struct {
 func Make(ctx context.Context, config *config.Config) (*State, error) {
 	d, err := db.Make(config.Core.DbPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create db: %w", err)
 	}
 
 	enforcer, err := rbac.NewEnforcer(config.Core.DbPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create enforcer: %w", err)
 	}
 
 	clock := syntax.NewTIDClock(0)
