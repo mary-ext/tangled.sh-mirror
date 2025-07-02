@@ -690,7 +690,22 @@ type RepoSingleIssueParams struct {
 	IssueOwnerHandle string
 	DidHandleMap     map[string]string
 
+	OrderedReactionKinds []db.ReactionKind
+	Reactions map[db.ReactionKind]int
+	UserReacted map[db.ReactionKind]bool
+
 	State string
+}
+
+type ThreadReactionFragmentParams struct {
+	ThreadAt  syntax.ATURI
+	Kind  db.ReactionKind
+	Count int
+	IsReacted bool
+}
+
+func (p *Pages) ThreadReactionFragment(w io.Writer, params ThreadReactionFragmentParams) error {
+	return p.executePlain("repo/fragments/reaction", w, params)
 }
 
 func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error {
@@ -798,6 +813,10 @@ type RepoSinglePullParams struct {
 	MergeCheck     types.MergeCheckResponse
 	ResubmitCheck  ResubmitResult
 	Pipelines      map[string]db.Pipeline
+
+	OrderedReactionKinds []db.ReactionKind
+	Reactions            map[db.ReactionKind]int
+	UserReacted          map[db.ReactionKind]bool
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {

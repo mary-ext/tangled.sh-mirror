@@ -61,6 +61,20 @@
             {{ .Pull.Body | markdown }}
         </article>
     {{ end }}
+
+    <div class="flex items-center gap-2 mt-2">
+        {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
+        {{ range $kind := .OrderedReactionKinds }}
+            {{
+                template "repo/fragments/reaction"
+                (dict
+                    "Kind"      $kind
+                    "Count"     (index $.Reactions $kind)
+                    "IsReacted" (index $.UserReacted $kind)
+                    "ThreadAt"  $.Pull.PullAt)
+            }}
+        {{ end }}
+    </div>
 </section>
 
 

@@ -11,6 +11,7 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/data"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 	"github.com/posthog/posthog-go"
@@ -79,6 +80,17 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	reactionCountMap, err := db.GetReactionCountMap(rp.db, syntax.ATURI(issue.IssueAt))
+	if err != nil {
+		log.Println("failed to get issue reactions")
+		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+	}
+
+	userReactions := map[db.ReactionKind]bool{}
+	if user != nil {
+		userReactions = db.GetReactionStatusMap(rp.db, user.Did, syntax.ATURI(issue.IssueAt))
+	}
+
 	issueOwnerIdent, err := rp.idResolver.ResolveIdent(r.Context(), issue.OwnerDid)
 	if err != nil {
 		log.Println("failed to resolve issue owner", err)
@@ -106,6 +118,10 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 
 		IssueOwnerHandle: issueOwnerIdent.Handle.String(),
 		DidHandleMap:     didHandleMap,
+
+		OrderedReactionKinds: db.OrderedReactionKinds,
+		Reactions: reactionCountMap,
+		UserReacted: userReactions,
 	})
 
 }

@@ -137,6 +137,11 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 		r.Delete("/", s.Star)
 	})
 
+	r.With(middleware.AuthMiddleware(s.oauth)).Route("/react", func(r chi.Router) {
+		r.Post("/", s.React)
+		r.Delete("/", s.React)
+	})
+
 	r.Route("/profile", func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(s.oauth))
 		r.Get("/edit-bio", s.EditBioFragment)

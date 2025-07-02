@@ -198,6 +198,17 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		m[p.Sha] = p
 	}
 
+	reactionCountMap, err := db.GetReactionCountMap(s.db, pull.PullAt())
+	if err != nil {
+		log.Println("failed to get pull reactions")
+		s.pages.Notice(w, "pulls", "Failed to load pull. Try again later.")
+	}
+
+	userReactions := map[db.ReactionKind]bool{}
+	if user != nil {
+		userReactions = db.GetReactionStatusMap(s.db, user.Did, pull.PullAt())
+	}
+
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
 		LoggedInUser:   user,
 		RepoInfo:       repoInfo,
@@ -208,6 +219,10 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		MergeCheck:     mergeCheckResponse,
 		ResubmitCheck:  resubmitResult,
 		Pipelines:      m,
+
+		OrderedReactionKinds: db.OrderedReactionKinds,
+		Reactions:            reactionCountMap,
+		UserReacted:          userReactions,
 	})
 }
 

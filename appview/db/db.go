@@ -199,6 +199,16 @@ func Make(dbPath string) (*DB, error) {
 			unique(starred_by_did, repo_at)
 		);
 
+		create table if not exists reactions (
+			id integer primary key autoincrement,
+			reacted_by_did text not null,
+			thread_at text not null,
+			kind text not null,
+			rkey text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			unique(reacted_by_did, thread_at, kind)
+		);
+
 		create table if not exists emails (
 			id integer primary key autoincrement,
 			did text not null,

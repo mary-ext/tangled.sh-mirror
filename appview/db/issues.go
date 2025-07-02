@@ -277,12 +277,12 @@ func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 }
 
 func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, []Comment, error) {
-	query := `select owner_did, issue_id, created, title, body, open from issues where repo_at = ? and issue_id = ?`
+	query := `select owner_did, issue_id, created, title, body, open, issue_at from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
 	var issue Issue
 	var createdAt string
-	err := row.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open)
+	err := row.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &issue.IssueAt)
 	if err != nil {
 		return nil, nil, err
 	}
