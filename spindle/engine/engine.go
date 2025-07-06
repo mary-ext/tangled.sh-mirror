@@ -227,7 +227,7 @@ func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models
 		// start tailing logs in background
 		tailDone := make(chan error, 1)
 		go func() {
-			tailDone <- e.TailStep(ctx, resp.ID, wid, stepIdx)
+			tailDone <- e.TailStep(ctx, resp.ID, wid, stepIdx, step)
 		}()
 
 		// wait for container completion or timeout
@@ -307,7 +307,17 @@ func (e *Engine) WaitStep(ctx context.Context, containerID string) (*container.S
 	return info.State, nil
 }
 
-func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.WorkflowId, stepIdx int) error {
+func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.WorkflowId, stepIdx int, step models.Step) error {
+	wfLogger, err := NewWorkflowLogger(e.cfg.Pipelines.LogDir, wid)
+	if err != nil {
+		e.l.Warn("failed to setup step logger; logs will not be persisted", "error", err)
+		return err
+	}
+	defer wfLogger.Close()
+
+	ctl := wfLogger.ControlWriter()
+	ctl.Write([]byte(step.Command))
+
 	logs, err := e.docker.ContainerLogs(ctx, containerID, container.LogsOptions{
 		Follow:     true,
 		ShowStdout: true,
@@ -319,16 +329,9 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 		return err
 	}
 
-	wfLogger, err := NewWorkflowLogger(e.cfg.Pipelines.LogDir, wid)
-	if err != nil {
-		e.l.Warn("failed to setup step logger; logs will not be persisted", "error", err)
-		return err
-	}
-	defer wfLogger.Close()
-
 	_, err = stdcopy.StdCopy(
-		wfLogger.Writer("stdout", stepIdx),
-		wfLogger.Writer("stderr", stepIdx),
+		wfLogger.DataWriter("stdout"),
+		wfLogger.DataWriter("stderr"),
 		logs,
 	)
 	if err != nil && err != io.EOF && !errors.Is(err, context.DeadlineExceeded) {

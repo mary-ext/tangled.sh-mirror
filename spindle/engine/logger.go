@@ -30,36 +30,35 @@ func NewWorkflowLogger(baseDir string, wid models.WorkflowId) (*WorkflowLogger, 
 	}, nil
 }
 
-func (l *WorkflowLogger) Write(p []byte) (n int, err error) {
-	return l.file.Write(p)
+func LogFilePath(baseDir string, workflowID models.WorkflowId) string {
+	logFilePath := filepath.Join(baseDir, fmt.Sprintf("%s.log", workflowID.String()))
+	return logFilePath
 }
 
 func (l *WorkflowLogger) Close() error {
 	return l.file.Close()
 }
 
-func LogFilePath(baseDir string, workflowID models.WorkflowId) string {
-	logFilePath := filepath.Join(baseDir, fmt.Sprintf("%s.log", workflowID.String()))
-	return logFilePath
+func (l *WorkflowLogger) DataWriter(stream string) io.Writer {
+	// TODO: emit stream
+	return &jsonWriter{logger: l, kind: models.LogKindData}
 }
 
-func (l *WorkflowLogger) Writer(stream string, stepId int) io.Writer {
-	return &jsonWriter{logger: l, stream: stream, stepId: stepId}
+func (l *WorkflowLogger) ControlWriter() io.Writer {
+	return &jsonWriter{logger: l, kind: models.LogKindControl}
 }
 
 type jsonWriter struct {
 	logger *WorkflowLogger
-	stream string
-	stepId int
+	kind   models.LogKind
 }
 
 func (w *jsonWriter) Write(p []byte) (int, error) {
 	line := strings.TrimRight(string(p), "\r\n")
 
 	entry := models.LogLine{
-		Stream: w.stream,
-		Data:   line,
-		StepId: w.stepId,
+		Kind:    w.kind,
+		Content: line,
 	}
 
 	if err := w.logger.encoder.Encode(entry); err != nil {

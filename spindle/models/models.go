@@ -71,8 +71,21 @@ func (s StatusKind) IsFinish() bool {
 	return slices.Contains(FinishStates[:], s)
 }
 
+type LogKind string
+
+var (
+	// step log data
+	LogKindData LogKind = "data"
+	// indicates start/end of a step
+	LogKindControl LogKind = "control"
+)
+
 type LogLine struct {
-	Stream string `json:"s"`
-	Data   string `json:"d"`
-	StepId int    `json:"i"`
+	Kind    LogKind `json:"kind"`
+	Content string  `json:"content"`
+
+	// fields if kind is "data"
+	Stream string `json:"stream,omitempty"`
+
+	// fields if kind is "control"
 }

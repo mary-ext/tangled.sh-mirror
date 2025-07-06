@@ -234,6 +234,7 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 					Owner:       user.Did,
 					CreatedAt:   f.CreatedAt,
 					Description: &newDescription,
+					Spindle:     &f.Spindle,
 				},
 			},
 		})

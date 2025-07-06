@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -262,6 +263,7 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	stepIdx := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -284,13 +286,30 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			html := fmt.Appendf(nil, `
-				<div id="lines" hx-swap-oob="beforeend">
-				<p>%s: %s</p>
-				</div>
-			`, logLine.Stream, logLine.Data)
+			var fragment []byte
+			switch logLine.Kind {
+			case spindlemodel.LogKindControl:
+				// control messages create a new step block
+				stepIdx++
+				fragment = fmt.Appendf(nil, `
+					<div id="lines" hx-swap-oob="beforeend">
+						<details id="step-%d" open>
+							<summary>%s</summary>
+							<div id="step-body-%d"></div>
+						</details>
+					</div>
+				`, stepIdx, logLine.Content, stepIdx)
+			case spindlemodel.LogKindData:
+				// data messages simply insert new log lines into current step
+				escaped := html.EscapeString(logLine.Content)
+				fragment = fmt.Appendf(nil, `
+					<div id="step-body-%d" hx-swap-oob="beforeend">
+						<p>%s</p>
+					</div>
+				`, stepIdx, escaped)
+			}
 
-			if err = clientConn.WriteMessage(websocket.TextMessage, html); err != nil {
+			if err = clientConn.WriteMessage(websocket.TextMessage, fragment); err != nil {
 				l.Error("error writing to client", "err", err)
 				return
 			}
