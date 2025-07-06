@@ -6,14 +6,37 @@ nixpkgs.lib.nixosSystem {
   system = "x86_64-linux";
   modules = [
     self.nixosModules.knot
+    self.nixosModules.spindle
     ({
       config,
       pkgs,
       ...
     }: {
-      virtualisation.memorySize = 2048;
-      virtualisation.diskSize = 10 * 1024;
-      virtualisation.cores = 2;
+      virtualisation = {
+        memorySize = 2048;
+        diskSize = 10 * 1024;
+        cores = 2;
+        forwardPorts = [
+          # ssh
+          {
+            from = "host";
+            host.port = 2222;
+            guest.port = 22;
+          }
+          # knot
+          {
+            from = "host";
+            host.port = 6000;
+            guest.port = 6000;
+          }
+          # spindle
+          {
+            from = "host";
+            host.port = 6555;
+            guest.port = 6555;
+          }
+        ];
+      };
       services.getty.autologinUser = "root";
       environment.systemPackages = with pkgs; [curl vim git];
       systemd.tmpfiles.rules = let
@@ -29,6 +52,15 @@ nixpkgs.lib.nixosSystem {
           secretFile = "/var/lib/knot/secret";
           hostname = "localhost:6000";
           listenAddr = "0.0.0.0:6000";
+        };
+      };
+      services.tangled-spindle = {
+        enable = true;
+        server = {
+          owner = "did:plc:qfpnj4og54vl56wngdriaxug";
+          hostname = "localhost:6555";
+          listenAddr = "0.0.0.0:6555";
+          dev = true;
         };
       };
     })

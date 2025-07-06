@@ -35,13 +35,13 @@
     "htmx-ws-src": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-XbUFiv94ZPB6VVULoTWOsje5Gq1I+IT72lMc4CpUYrY=",
+        "narHash": "sha256-2fg6KyEJoO24q0fQqbz9RMaYNPQrMwpZh29tkSqdqGY=",
         "type": "file",
-        "url": "https://unpkg.com/htmx.org@2.0.4/dist/ext/ws.js"
+        "url": "https://cdn.jsdelivr.net/npm/htmx-ext-ws@2.0.2"
       },
       "original": {
         "type": "file",
-        "url": "https://unpkg.com/htmx.org@2.0.4/dist/ext/ws.js"
+        "url": "https://cdn.jsdelivr.net/npm/htmx-ext-ws@2.0.2"
       }
     },
     "ibm-plex-mono-src": {

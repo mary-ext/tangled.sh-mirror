@@ -12,7 +12,9 @@
       flake = false;
     };
     htmx-ws-src = {
-      url = "https://unpkg.com/htmx.org@2.0.4/dist/ext/ws.js";
+      # strange errors in consle that i can't really make out
+      # url = "https://unpkg.com/htmx.org@2.0.4/dist/ext/ws.js";
+      url = "https://cdn.jsdelivr.net/npm/htmx-ext-ws@2.0.2";
       flake = false;
     };
     lucide-src = {
@@ -66,10 +68,14 @@
       knotDeps = {
         inherit goModHash gitignoreSource;
       };
+      spindleDeps = {
+        inherit goModHash gitignoreSource;
+      };
       mkPackageSet = pkgs: {
         lexgen = pkgs.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
         appview = pkgs.callPackage ./nix/pkgs/appview.nix appviewDeps;
         knot = pkgs.callPackage ./nix/pkgs/knot.nix {};
+        spindle = pkgs.callPackage ./nix/pkgs/spindle.nix spindleDeps;
         knot-unwrapped = pkgs.callPackage ./nix/pkgs/knot-unwrapped.nix knotDeps;
         sqlite-lib = pkgs.callPackage ./nix/pkgs/sqlite-lib.nix {
           inherit (pkgs) gcc;
@@ -89,17 +95,20 @@
       lexgen = pkgs.lexgen;
       knot = pkgs.knot;
       knot-unwrapped = pkgs.knot-unwrapped;
+      spindle = pkgs.spindle;
       genjwks = pkgs.genjwks;
       sqlite-lib = pkgs.sqlite-lib;
 
       pkgsStatic-appview = staticPkgs.appview;
       pkgsStatic-knot = staticPkgs.knot;
       pkgsStatic-knot-unwrapped = staticPkgs.knot-unwrapped;
+      pkgsStatic-spindle = staticPkgs.spindle;
       pkgsStatic-sqlite-lib = staticPkgs.sqlite-lib;
 
       pkgsCross-gnu64-pkgsStatic-appview = crossPkgs.appview;
       pkgsCross-gnu64-pkgsStatic-knot = crossPkgs.knot;
       pkgsCross-gnu64-pkgsStatic-knot-unwrapped = crossPkgs.knot-unwrapped;
+      pkgsCross-gnu64-pkgsStatic-spindle = crossPkgs.spindle;
     });
     defaultPackage = forAllSystems (system: nixpkgsFor.${system}.appview);
     formatter = forAllSystems (system: nixpkgsFor."${system}".alejandra);
@@ -167,6 +176,7 @@
 
     nixosModules.appview = import ./nix/modules/appview.nix {inherit self;};
     nixosModules.knot = import ./nix/modules/knot.nix {inherit self;};
-    nixosConfigurations.knotVM = import ./nix/vm.nix {inherit self nixpkgs;};
+    nixosModules.spindle = import ./nix/modules/spindle.nix {inherit self;};
+    nixosConfigurations.vm = import ./nix/vm.nix {inherit self nixpkgs;};
   };
 }

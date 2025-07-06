@@ -101,8 +101,7 @@ in
 
       system.activationScripts.gitConfig = ''
         mkdir -p "${cfg.repo.scanPath}"
-        chown -R ${cfg.gitUser}:${cfg.gitUser} \
-            "${cfg.repo.scanPath}"
+        chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.repo.scanPath}"
 
         mkdir -p "${cfg.stateDir}/.config/git"
         cat > "${cfg.stateDir}/.config/git/config" << EOF
@@ -110,8 +109,7 @@ in
             name = Git User
             email = git@example.com
         EOF
-        chown -R ${cfg.gitUser}:${cfg.gitUser} \
-            "${cfg.stateDir}"
+        chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.stateDir}"
       '';
 
       users.users.${cfg.gitUser} = {
