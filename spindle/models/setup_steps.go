@@ -63,8 +63,8 @@ func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerRepo, d
 	cloneDepth := 1
 	if twf.Clone.Depth > 1 {
 		cloneDepth = int(twf.Clone.Depth)
-		cloneCmd = append(cloneCmd, []string{"--depth", fmt.Sprintf("%d", cloneDepth)}...)
 	}
+	cloneCmd = append(cloneCmd, []string{"--depth", fmt.Sprintf("%d", cloneDepth)}...)
 
 	if twf.Clone.Submodules {
 		cloneCmd = append(cloneCmd, "--recursive")
