@@ -93,7 +93,5 @@ in
           Restart = "always";
         };
       };
-
-      networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [22];
     };
   }
