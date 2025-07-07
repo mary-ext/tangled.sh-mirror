@@ -143,6 +143,32 @@ func Run(ctx context.Context) error {
 func (s *Spindle) Router() http.Handler {
 	mux := chi.NewRouter()
 
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(
+			`                   ****
+               ***        ***
+            *** **   ******   **
+           **    *           *****
+          *      **              **
+         *   *    *  ***************
+        **   **    *#             **
+        *     **    **    ***      **
+        *  *   **    **    *   ******
+        *  **   **   *    **   *   *
+        **  **    ***    **   **   *
+         **  **    *    **    *   *
+          **   ****    **    *   *
+           **  ***    **   **  **
+             ***    **    *****
+                ********************
+                                    **
+                                     *
+                      #**************
+                      **
+                        ********
+
+This is a spindle server. More info at https://tangled.sh/@tangled.sh/core/tree/master/docs/spindle`))
+	})
 	mux.HandleFunc("/events", s.Events)
 	mux.HandleFunc("/owner", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(s.cfg.Server.Owner))
