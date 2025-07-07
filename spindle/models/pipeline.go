@@ -15,7 +15,17 @@ type Step struct {
 	Command     string
 	Name        string
 	Environment map[string]string
+	Kind        StepKind
 }
+
+type StepKind int
+
+const (
+	// steps injected by the CI runner
+	StepKindSystem StepKind = iota
+	// steps defined by the user in the original pipeline
+	StepKindUser
+)
 
 type Workflow struct {
 	Steps       []Step
@@ -46,6 +56,7 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 			sstep.Environment = stepEnvToMap(tstep.Environment)
 			sstep.Command = tstep.Command
 			sstep.Name = tstep.Name
+			sstep.Kind = StepKindUser
 			swf.Steps = append(swf.Steps, sstep)
 		}
 		swf.Name = twf.Name
@@ -59,7 +70,10 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 		setup.addStep(nixConfStep())
 		setup.addStep(cloneStep(*twf, *pl.TriggerMetadata.Repo, cfg.Server.Dev))
 		setup.addStep(checkoutStep(*twf, *pl.TriggerMetadata))
-		setup.addStep(dependencyStep(*twf))
+		// this step could be empty
+		if s := dependencyStep(*twf); s != nil {
+			setup.addStep(*s)
+		}
 
 		// append setup steps in order to the start of workflow steps
 		swf.Steps = append(*setup, swf.Steps...)

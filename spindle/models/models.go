@@ -88,4 +88,25 @@ type LogLine struct {
 	Stream string `json:"stream,omitempty"`
 
 	// fields if kind is "control"
+	StepId      int      `json:"step_id,omitempty"`
+	StepKind    StepKind `json:"step_kind,omitempty"`
+	StepCommand string   `json:"step_command,omitempty"`
+}
+
+func NewDataLogLine(content, stream string) LogLine {
+	return LogLine{
+		Kind:    LogKindData,
+		Content: content,
+		Stream:  stream,
+	}
+}
+
+func NewControlLogLine(idx int, step Step) LogLine {
+	return LogLine{
+		Kind:        LogKindControl,
+		Content:     step.Name,
+		StepId:      idx,
+		StepKind:    step.Kind,
+		StepCommand: step.Command,
+	}
 }

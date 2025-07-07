@@ -83,7 +83,7 @@ func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerRepo, d
 // For dependencies using a custom registry (i.e. not nixpkgs), it collects
 // all packages and adds a single 'nix profile install' step to the
 // beginning of the workflow's step list.
-func dependencyStep(twf tangled.Pipeline_Workflow) Step {
+func dependencyStep(twf tangled.Pipeline_Workflow) *Step {
 	var customPackages []string
 
 	for _, d := range twf.Dependencies {
@@ -111,7 +111,7 @@ func dependencyStep(twf tangled.Pipeline_Workflow) Step {
 				"NIX_SHOW_DOWNLOAD_PROGRESS": "0",
 			},
 		}
-		return installStep
+		return &installStep
 	}
-	return Step{}
+	return nil
 }

@@ -24,7 +24,7 @@
   {{ $active := .Workflow }}
   {{ with .Pipeline }}
     {{ $id := .Id }}
-    <div class="grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+    <div class="sticky top-2 grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
       {{ range $name, $all := .Statuses }}
       <a href="/{{ $.RepoInfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
         <div
@@ -58,12 +58,10 @@
 
 {{ define "logs" }}
   <div id="log-stream"
-       class="p-2 bg-gray-100 dark:bg-gray-900 font-mono text-sm min-h-96 max-h-screen overflow-auto flex flex-col-reverse [overflow-anchor:auto_!important]"
+       class="text-sm"
        hx-ext="ws"
        ws-connect="/{{ $.RepoInfo.FullName }}/pipelines/{{ .Pipeline.Id }}/workflow/{{ .Workflow }}/logs">
-    <div id="lines">
-      <!-- Each log line should be rendered with class="item" like below -->
-      <!-- <div class="item">[INFO] Log line here</div> -->
+    <div id="lines" class="flex flex-col gap-2">
     </div>
   </div>
 {{ end }}

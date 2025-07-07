@@ -974,6 +974,26 @@ func (p *Pages) Pipelines(w io.Writer, params PipelinesParams) error {
 	return p.executeRepo("repo/pipelines/pipelines", w, params)
 }
 
+type LogBlockParams struct {
+	Id        int
+	Name      string
+	Command   string
+	Collapsed bool
+}
+
+func (p *Pages) LogBlock(w io.Writer, params LogBlockParams) error {
+	return p.executePlain("repo/pipelines/fragments/logBlock", w, params)
+}
+
+type LogLineParams struct {
+	Id      int
+	Content string
+}
+
+func (p *Pages) LogLine(w io.Writer, params LogLineParams) error {
+	return p.executePlain("repo/pipelines/fragments/logLine", w, params)
+}
+
 type WorkflowParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo

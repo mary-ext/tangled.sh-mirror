@@ -41,29 +41,44 @@ func (l *WorkflowLogger) Close() error {
 
 func (l *WorkflowLogger) DataWriter(stream string) io.Writer {
 	// TODO: emit stream
-	return &jsonWriter{logger: l, kind: models.LogKindData}
-}
-
-func (l *WorkflowLogger) ControlWriter() io.Writer {
-	return &jsonWriter{logger: l, kind: models.LogKindControl}
-}
-
-type jsonWriter struct {
-	logger *WorkflowLogger
-	kind   models.LogKind
-}
-
-func (w *jsonWriter) Write(p []byte) (int, error) {
-	line := strings.TrimRight(string(p), "\r\n")
-
-	entry := models.LogLine{
-		Kind:    w.kind,
-		Content: line,
+	return &dataWriter{
+		logger: l,
+		stream: stream,
 	}
+}
 
+func (l *WorkflowLogger) ControlWriter(idx int, step models.Step) io.Writer {
+	return &controlWriter{
+		logger: l,
+		idx:    idx,
+		step:   step,
+	}
+}
+
+type dataWriter struct {
+	logger *WorkflowLogger
+	stream string
+}
+
+func (w *dataWriter) Write(p []byte) (int, error) {
+	line := strings.TrimRight(string(p), "\r\n")
+	entry := models.NewDataLogLine(line, w.stream)
 	if err := w.logger.encoder.Encode(entry); err != nil {
 		return 0, err
 	}
-
 	return len(p), nil
+}
+
+type controlWriter struct {
+	logger *WorkflowLogger
+	idx    int
+	step   models.Step
+}
+
+func (w *controlWriter) Write(_ []byte) (int, error) {
+	entry := models.NewControlLogLine(w.idx, w.step)
+	if err := w.logger.encoder.Encode(entry); err != nil {
+		return 0, err
+	}
+	return len(w.step.Name), nil
 }

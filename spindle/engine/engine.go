@@ -315,8 +315,8 @@ func (e *Engine) TailStep(ctx context.Context, containerID string, wid models.Wo
 	}
 	defer wfLogger.Close()
 
-	ctl := wfLogger.ControlWriter()
-	ctl.Write([]byte(step.Command))
+	ctl := wfLogger.ControlWriter(stepIdx, step)
+	ctl.Write([]byte(step.Name))
 
 	logs, err := e.docker.ContainerLogs(ctx, containerID, container.LogsOptions{
 		Follow:     true,

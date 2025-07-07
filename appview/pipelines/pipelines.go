@@ -1,10 +1,9 @@
 package pipelines
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"html"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -170,15 +169,6 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
-	go func() {
-		for {
-			if _, _, err := clientConn.NextReader(); err != nil {
-				l.Error("failed to read", "err", err)
-				cancel()
-				return
-			}
-		}
-	}()
 
 	user := p.oauth.GetUser(r)
 	f, err := p.repoResolver.Resolve(r)
@@ -238,86 +228,110 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 	defer spindleConn.Close()
 
 	// create a channel for incoming messages
-	msgChan := make(chan []byte, 10)
-	errChan := make(chan error, 1)
-
+	evChan := make(chan logEvent, 100)
 	// start a goroutine to read from spindle
-	go func() {
-		defer close(msgChan)
-		defer close(errChan)
-
-		for {
-			_, msg, err := spindleConn.ReadMessage()
-			if err != nil {
-				if websocket.IsCloseError(err,
-					websocket.CloseNormalClosure,
-					websocket.CloseGoingAway,
-					websocket.CloseAbnormalClosure) {
-					errChan <- nil // signal graceful end
-				} else {
-					errChan <- err
-				}
-				return
-			}
-			msgChan <- msg
-		}
-	}()
+	go readLogs(spindleConn, evChan)
 
 	stepIdx := 0
+	var fragment bytes.Buffer
 	for {
 		select {
 		case <-ctx.Done():
 			l.Info("client disconnected")
 			return
-		case err := <-errChan:
-			if err != nil {
+
+		case ev, ok := <-evChan:
+			if !ok {
+				continue
+			}
+
+			if ev.err != nil && ev.isCloseError() {
+				l.Debug("graceful shutdown, tail complete", "err", err)
+				return
+			}
+			if ev.err != nil {
 				l.Error("error reading from spindle", "err", err)
+				return
 			}
 
-			if err == nil {
-				l.Info("log tail complete")
-			}
-
-			return
-		case msg := <-msgChan:
 			var logLine spindlemodel.LogLine
-			if err = json.Unmarshal(msg, &logLine); err != nil {
+			if err = json.Unmarshal(ev.msg, &logLine); err != nil {
 				l.Error("failed to parse logline", "err", err)
 				continue
 			}
 
-			var fragment []byte
+			fragment.Reset()
+
 			switch logLine.Kind {
 			case spindlemodel.LogKindControl:
 				// control messages create a new step block
 				stepIdx++
-				fragment = fmt.Appendf(nil, `
-					<div id="lines" hx-swap-oob="beforeend">
-						<details id="step-%d" open>
-							<summary>%s</summary>
-							<div id="step-body-%d"></div>
-						</details>
-					</div>
-				`, stepIdx, logLine.Content, stepIdx)
+				collapsed := false
+				if logLine.StepKind == spindlemodel.StepKindSystem {
+					collapsed = true
+				}
+				err = p.pages.LogBlock(&fragment, pages.LogBlockParams{
+					Id:        stepIdx,
+					Name:      logLine.Content,
+					Command:   logLine.StepCommand,
+					Collapsed: collapsed,
+				})
 			case spindlemodel.LogKindData:
 				// data messages simply insert new log lines into current step
-				escaped := html.EscapeString(logLine.Content)
-				fragment = fmt.Appendf(nil, `
-					<div id="step-body-%d" hx-swap-oob="beforeend">
-						<p>%s</p>
-					</div>
-				`, stepIdx, escaped)
+				err = p.pages.LogLine(&fragment, pages.LogLineParams{
+					Id:      stepIdx,
+					Content: logLine.Content,
+				})
+			}
+			if err != nil {
+				l.Error("failed to render log line", "err", err)
+				return
 			}
 
-			if err = clientConn.WriteMessage(websocket.TextMessage, fragment); err != nil {
+			if err = clientConn.WriteMessage(websocket.TextMessage, fragment.Bytes()); err != nil {
 				l.Error("error writing to client", "err", err)
 				return
 			}
+
 		case <-time.After(30 * time.Second):
 			l.Debug("sent keepalive")
 			if err = clientConn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
 				l.Error("failed to write control", "err", err)
+				return
 			}
 		}
+	}
+}
+
+// either a message or an error
+type logEvent struct {
+	msg []byte
+	err error
+}
+
+func (ev *logEvent) isCloseError() bool {
+	return websocket.IsCloseError(
+		ev.err,
+		websocket.CloseNormalClosure,
+		websocket.CloseGoingAway,
+		websocket.CloseAbnormalClosure,
+	)
+}
+
+// read logs from spindle and pass through to chan
+func readLogs(conn *websocket.Conn, ch chan logEvent) {
+	defer close(ch)
+
+	for {
+		if conn == nil {
+			return
+		}
+
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			ch <- logEvent{err: err}
+			return
+		}
+		ch <- logEvent{msg: msg}
 	}
 }
