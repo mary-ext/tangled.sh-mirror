@@ -1,8 +1,9 @@
 package engine
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConstructEnvs(t *testing.T) {
@@ -27,18 +28,13 @@ func TestConstructEnvs(t *testing.T) {
 			want: EnvVars{"FOO=bar", "BAZ=qux"},
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ConstructEnvs(tt.in)
-
 			if got == nil {
 				got = EnvVars{}
 			}
-
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ConstructEnvs() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -47,9 +43,6 @@ func TestAddEnv(t *testing.T) {
 	ev := EnvVars{}
 	ev.AddEnv("FOO", "bar")
 	ev.AddEnv("BAZ", "qux")
-
 	want := EnvVars{"FOO=bar", "BAZ=qux"}
-	if !reflect.DeepEqual(ev, want) {
-		t.Errorf("AddEnv result = %v, want %v", ev, want)
-	}
+	assert.Equal(t, want, ev)
 }

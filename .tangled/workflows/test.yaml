@@ -1,13 +1,11 @@
 when:
-  - event: ["push"]
-    branch: ["master"]
+  - event: push
+    branch: master
 
 dependencies:
   nixpkgs:
     - go
-
-environment:
-  CGO_ENABLED: 1
+    - gcc
 
 steps:
   - name: patch static dir
@@ -15,5 +13,7 @@ steps:
       mkdir -p appview/pages/static; touch appview/pages/static/x
 
   - name: run all tests
+    environment:
+      CGO_ENABLED: 1
     command: |
       go test -v ./...
