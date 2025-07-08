@@ -26,7 +26,7 @@ func checkoutStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMeta
 	var ref string
 	switch tr.Kind {
 	case "push":
-		ref = tr.Push.Ref
+		ref = tr.Push.NewSha
 	case "pull_request":
 		ref = tr.PullRequest.TargetBranch
 
