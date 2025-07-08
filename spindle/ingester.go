@@ -68,7 +68,7 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 
 		ok, err := s.e.E.Enforce(did, rbacDomain, rbacDomain, "server:invite")
 		if err != nil || !ok {
-			l.Error("failed to add member", "did", did)
+			l.Error("failed to add member", "did", did, "error", err)
 			return fmt.Errorf("failed to enforce permissions: %w", err)
 		}
 
