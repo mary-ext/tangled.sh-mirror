@@ -413,6 +413,9 @@ func hostConfig(wid models.WorkflowId) *container.HostConfig {
 				ReadOnly: false,
 				TmpfsOptions: &mount.TmpfsOptions{
 					Mode: 0o1777, // world-writeable sticky bit
+					Options: [][]string{
+						{"exec"},
+					},
 				},
 			},
 			{
