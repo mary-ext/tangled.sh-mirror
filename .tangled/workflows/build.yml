@@ -1,0 +1,24 @@
+when:
+  - event: ["push"]
+    branch: ["master"]
+
+dependencies:
+  nixpkgs:
+    - go
+    - gcc
+
+environment:
+  CGO_ENABLED: 1
+
+steps:
+  - name: patch static dir
+    command: |
+       mkdir -p appview/pages/static; touch appview/pages/static/x
+
+  - name: build appview
+    command: |
+       go build -o appview.out ./cmd/appview
+
+  - name: build knot
+    command: |
+       go build -o knot.out ./cmd/knot

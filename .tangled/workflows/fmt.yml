@@ -1,0 +1,18 @@
+when:
+  - event: ["push"]
+    branch: ["master"]
+
+dependencies:
+  nixpkgs:
+    - go
+    - alejandra
+
+steps:
+  - name: "nix fmt"
+    command: |
+       alejandra -c nix/**/*.nix flake.nix
+
+  - name: "go fmt"
+    command: |
+       gofmt -l .
+
