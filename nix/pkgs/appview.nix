@@ -10,7 +10,6 @@
   sqlite-lib,
   goModHash,
   gitignoreSource,
-  uglify-js,
 }:
 buildGoModule {
   inherit stdenv;
@@ -22,7 +21,8 @@ buildGoModule {
   postUnpack = ''
     pushd source
     mkdir -p appview/pages/static/{fonts,icons}
-    ${uglify-js}/bin/uglifyjs ${htmx-src} ${htmx-ws-src} -c -m > appview/pages/static/htmx.min.js
+    cp -f ${htmx-src} appview/pages/static/htmx.min.js
+    cp -f ${htmx-ws-src} appview/pages/static/htmx-ext-ws.min.js
     cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
     cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
     cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
