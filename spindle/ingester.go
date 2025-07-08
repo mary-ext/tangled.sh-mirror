@@ -66,7 +66,7 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 			return fmt.Errorf("domain mismatch: %s != %s", record.Instance, domain)
 		}
 
-		ok, err := s.e.E.Enforce(did, rbacDomain, rbacDomain, "server:invite")
+		ok, err := s.e.IsSpindleInviteAllowed(did, rbacDomain)
 		if err != nil || !ok {
 			l.Error("failed to add member", "did", did, "error", err)
 			return fmt.Errorf("failed to enforce permissions: %w", err)
@@ -78,11 +78,11 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 		}
 		l.Info("added member from firehose", "member", record.Subject)
 
-		if err := s.db.AddDid(did); err != nil {
+		if err := s.db.AddDid(record.Subject); err != nil {
 			l.Error("failed to add did", "error", err)
 			return fmt.Errorf("failed to add did: %w", err)
 		}
-		s.jc.AddDid(did)
+		s.jc.AddDid(record.Subject)
 
 		return nil
 
