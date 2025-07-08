@@ -37,7 +37,7 @@ func main() {
 		dateStr := day.Format("2006-01-02")
 		_, err := stmt.Exec(did, dateStr, count)
 		if err != nil {
-			log.Println("Failed to insert for date %s: %v", dateStr, err)
+			log.Printf("Failed to insert for date %s: %v", dateStr, err)
 		}
 	}
 

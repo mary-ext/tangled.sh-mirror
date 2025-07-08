@@ -158,7 +158,7 @@ func (g *GitRepo) TotalCommits() (int, error) {
 		fmt.Sprintf("--count"),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("failed to run rev-list", err)
+		return 0, fmt.Errorf("failed to run rev-list: %w", err)
 	}
 
 	count, err := strconv.Atoi(strings.TrimSpace(string(output)))
