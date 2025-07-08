@@ -1,0 +1,19 @@
+when:
+  - event: ["push"]
+    branch: ["master"]
+
+dependencies:
+  nixpkgs:
+    - go
+
+environment:
+  CGO_ENABLED: 1
+
+steps:
+  - name: patch static dir
+    command: |
+      mkdir -p appview/pages/static; touch appview/pages/static/x
+
+  - name: run all tests
+    command: |
+      go test -v ./...
