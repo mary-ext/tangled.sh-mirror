@@ -477,6 +477,16 @@ func (i *Ingester) ingestSpindle(e *models.Event) error {
 			return fmt.Errorf("failed to index profile record, invalid db cast")
 		}
 
+		// get record from db first
+		spindles, err := db.GetSpindles(
+			ddb,
+			db.FilterEq("owner", did),
+			db.FilterEq("instance", instance),
+		)
+		if err != nil || len(spindles) != 1 {
+			return fmt.Errorf("failed to get spindles: %w, len(spindles) = %d", err, len(spindles))
+		}
+
 		tx, err := ddb.Begin()
 		if err != nil {
 			return err
