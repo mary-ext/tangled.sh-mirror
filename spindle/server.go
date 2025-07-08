@@ -87,7 +87,7 @@ func Run(ctx context.Context) error {
 		cfg: cfg,
 	}
 
-	err = e.AddKnot(rbacDomain)
+	err = e.AddSpindle(rbacDomain)
 	if err != nil {
 		return fmt.Errorf("failed to set rbac domain: %w", err)
 	}
