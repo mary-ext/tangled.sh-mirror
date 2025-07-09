@@ -4,7 +4,7 @@
 {{ define "extrameta" }}
     {{ $title := printf "%s &middot; issue #%d &middot; %s" .Issue.Title .Issue.IssueId .RepoInfo.FullName }}
     {{ $url := printf "https://tangled.sh/%s/issues/%d" .RepoInfo.FullName .Issue.IssueId }}
-    
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
@@ -30,13 +30,11 @@
                 {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
                 <span class="text-white">{{ .State }}</span>
             </div>
-            <span class="text-gray-500 dark:text-gray-400 text-sm">
+            <span class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
                 opened by
                 {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
-                <a href="/{{ $owner }}" class="no-underline hover:underline"
-                    >{{ $owner }}</a
-                >
-                <span class="px-1 select-none before:content-['\00B7']"></span>
+                {{ template "user/fragments/picHandle" $owner }}
+               <span class="select-none before:content-['\00B7']"></span>
                 <time title="{{ .Issue.Created | longTimeFmt }}">
                     {{ .Issue.Created | timeFmt }}
                 </time>
@@ -71,8 +69,8 @@
 
 {{ define "newComment" }}
   {{ if .LoggedInUser }}
-  <form 
-      id="comment-form" 
+  <form
+      id="comment-form"
       hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
       hx-on::after-request="if(event.detail.successful) this.reset()"
   >
@@ -90,9 +88,9 @@
           <div id="issue-comment"></div>
       <div id="issue-action" class="error"></div>
     </div>
-    
+
     <div class="flex gap-2 mt-2">
-        <button 
+        <button
             id="comment-button"
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
             type="submit"
@@ -109,9 +107,9 @@
         {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
         {{ $isRepoOwner := .RepoInfo.Roles.IsOwner }}
         {{ if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "open") }}
-        <button 
+        <button
             id="close-button"
-            type="button" 
+            type="button"
             class="btn flex items-center gap-2"
             hx-indicator="#close-spinner"
             hx-trigger="click"
@@ -122,10 +120,10 @@
                 {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </span>
         </button>
-        <div 
-            id="close-with-comment" 
-            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment" 
-            hx-trigger="click from:#close-button" 
+        <div
+            id="close-with-comment"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+            hx-trigger="click from:#close-button"
             hx-disabled-elt="#close-with-comment"
             hx-target="#issue-comment"
             hx-indicator="#close-spinner"
@@ -133,11 +131,11 @@
             hx-swap="none"
         >
         </div>
-        <div 
-            id="close-issue" 
+        <div
+            id="close-issue"
             hx-disabled-elt="#close-issue"
-            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/close" 
-            hx-trigger="click from:#close-button" 
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/close"
+            hx-trigger="click from:#close-button"
             hx-target="#issue-action"
             hx-indicator="#close-spinner"
             hx-swap="none"
@@ -155,8 +153,8 @@
             });
         </script>
         {{ else if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "closed") }}
-        <button 
-            type="button" 
+        <button
+            type="button"
             class="btn flex items-center gap-2"
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/reopen"
             hx-indicator="#reopen-spinner"
@@ -206,7 +204,7 @@
         });
         </script>
     </div>
-  </form> 
+  </form>
   {{ else }}
     <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-fit">
       <a href="/login" class="underline">login</a> to join the discussion

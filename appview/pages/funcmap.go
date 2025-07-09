@@ -1,6 +1,9 @@
 package pages
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html"
@@ -19,7 +22,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 )
 
-func funcMap() template.FuncMap {
+func (p *Pages) funcMap() template.FuncMap {
 	return template.FuncMap{
 		"split": func(s string) []string {
 			return strings.Split(s, "\n")
@@ -246,7 +249,18 @@ func funcMap() template.FuncMap {
 			u, _ := url.PathUnescape(s)
 			return u
 		},
+
+		"tinyAvatar": p.tinyAvatar,
 	}
+}
+
+func (p *Pages) tinyAvatar(handle string) string {
+	handle = strings.TrimPrefix(handle, "@")
+	secret := p.avatar.SharedSecret
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(handle))
+	signature := hex.EncodeToString(h.Sum(nil))
+	return fmt.Sprintf("%s/%s/%s?size=tiny", p.avatar.Host, signature, handle)
 }
 
 func icon(name string, classes []string) (template.HTML, error) {
