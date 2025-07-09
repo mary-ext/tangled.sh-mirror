@@ -32,4 +32,5 @@ type RepoPull struct {
 type RepoPull_Source struct {
 	Branch string  `json:"branch" cborgen:"branch"`
 	Repo   *string `json:"repo,omitempty" cborgen:"repo,omitempty"`
+	Sha    string  `json:"sha" cborgen:"sha"`
 }

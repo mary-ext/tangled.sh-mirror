@@ -798,13 +798,6 @@ func (s *Pulls) handleBranchBasedPull(
 	sourceBranch string,
 	isStacked bool,
 ) {
-	pullSource := &db.PullSource{
-		Branch: sourceBranch,
-	}
-	recordPullSource := &tangled.RepoPull_Source{
-		Branch: sourceBranch,
-	}
-
 	// Generate a patch using /compare
 	ksClient, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
 	if err != nil {
@@ -826,6 +819,14 @@ func (s *Pulls) handleBranchBasedPull(
 	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
+	}
+
+	pullSource := &db.PullSource{
+		Branch: sourceBranch,
+	}
+	recordPullSource := &tangled.RepoPull_Source{
+		Branch: sourceBranch,
+		Sha:    comparison.Rev2,
 	}
 
 	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, pullSource, recordPullSource, isStacked)
@@ -914,10 +915,17 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 		return
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, &db.PullSource{
+	pullSource := &db.PullSource{
 		Branch: sourceBranch,
 		RepoAt: &forkAtUri,
-	}, &tangled.RepoPull_Source{Branch: sourceBranch, Repo: &fork.AtUri}, isStacked)
+	}
+	recordPullSource := &tangled.RepoPull_Source{
+		Branch: sourceBranch,
+		Repo:   &fork.AtUri,
+		Sha:    sourceRev,
+	}
+
+	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, pullSource, recordPullSource, isStacked)
 }
 
 func (s *Pulls) createPullRequest(
@@ -934,7 +942,7 @@ func (s *Pulls) createPullRequest(
 ) {
 	if isStacked {
 		// creates a series of PRs, each linking to the previous, identified by jj's change-id
-		s.createStackedPulLRequest(
+		s.createStackedPullRequest(
 			w,
 			r,
 			f,
@@ -1049,7 +1057,7 @@ func (s *Pulls) createPullRequest(
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
 }
 
-func (s *Pulls) createStackedPulLRequest(
+func (s *Pulls) createStackedPullRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
@@ -1566,6 +1574,7 @@ func (s *Pulls) resubmitPullHelper(
 	if pull.IsBranchBased() {
 		recordPullSource = &tangled.RepoPull_Source{
 			Branch: pull.PullSource.Branch,
+			Sha:    sourceRev,
 		}
 	}
 	if pull.IsForkBased() {
@@ -1573,6 +1582,7 @@ func (s *Pulls) resubmitPullHelper(
 		recordPullSource = &tangled.RepoPull_Source{
 			Branch: pull.PullSource.Branch,
 			Repo:   &repoAt,
+			Sha:    sourceRev,
 		}
 	}
 
