@@ -51,11 +51,17 @@
     "source": {
       "type": "object",
       "required": [
-        "branch"
+        "branch",
+        "sha"
       ],
       "properties": {
         "branch": {
           "type": "string"
+        },
+        "sha": {
+          "type": "string",
+          "minLength": 40,
+          "maxLength": 40
         },
         "repo": {
           "type": "string",

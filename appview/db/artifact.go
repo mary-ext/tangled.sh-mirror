@@ -27,7 +27,7 @@ type Artifact struct {
 }
 
 func (a *Artifact) ArtifactAt() syntax.ATURI {
-	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", a.Did, tangled.RepoPullNSID, a.Rkey))
+	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", a.Did, tangled.RepoArtifactNSID, a.Rkey))
 }
 
 func AddArtifact(e Execer, artifact Artifact) error {

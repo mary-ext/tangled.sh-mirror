@@ -139,7 +139,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	for _, c := range repolog.Commits {
 		shas = append(shas, c.Hash.String())
 	}
-	pipelines, err := rp.getPipelineStatuses(repoInfo, shas)
+	pipelines, err := getPipelineStatuses(rp.db, repoInfo, shas)
 	if err != nil {
 		log.Println(err)
 		// non-fatal
@@ -304,7 +304,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 
 	user := rp.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(user)
-	pipelines, err := rp.getPipelineStatuses(repoInfo, []string{result.Diff.Commit.This})
+	pipelines, err := getPipelineStatuses(rp.db, repoInfo, []string{result.Diff.Commit.This})
 	if err != nil {
 		log.Println(err)
 		// non-fatal

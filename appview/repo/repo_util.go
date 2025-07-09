@@ -105,7 +105,8 @@ func randomString(n int) string {
 // grab pipelines from DB and munge that into a hashmap with commit sha as key
 //
 // golang is so blessed that it requires 35 lines of imperative code for this
-func (rp *Repo) getPipelineStatuses(
+func getPipelineStatuses(
+	d *db.DB,
 	repoInfo repoinfo.RepoInfo,
 	shas []string,
 ) (map[string]db.Pipeline, error) {
@@ -116,7 +117,7 @@ func (rp *Repo) getPipelineStatuses(
 	}
 
 	ps, err := db.GetPipelineStatuses(
-		rp.db,
+		d,
 		db.FilterEq("repo_owner", repoInfo.OwnerDid),
 		db.FilterEq("repo_name", repoInfo.Name),
 		db.FilterEq("knot", repoInfo.Knot),

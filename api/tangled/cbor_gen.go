@@ -7008,13 +7008,36 @@ func (t *RepoPull_Source) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 2
+	fieldCount := 3
 
 	if t.Repo == nil {
 		fieldCount--
 	}
 
 	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
+		return err
+	}
+
+	// t.Sha (string) (string)
+	if len("sha") > 1000000 {
+		return xerrors.Errorf("Value in field \"sha\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("sha"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("sha")); err != nil {
+		return err
+	}
+
+	if len(t.Sha) > 1000000 {
+		return xerrors.Errorf("Value in field t.Sha was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Sha))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Sha)); err != nil {
 		return err
 	}
 
@@ -7116,7 +7139,18 @@ func (t *RepoPull_Source) UnmarshalCBOR(r io.Reader) (err error) {
 		}
 
 		switch string(nameBuf[:nameLen]) {
-		// t.Repo (string) (string)
+		// t.Sha (string) (string)
+		case "sha":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Sha = string(sval)
+			}
+			// t.Repo (string) (string)
 		case "repo":
 
 			{

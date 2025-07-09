@@ -87,6 +87,7 @@ func (p Pull) AsRecord() tangled.RepoPull {
 	if p.PullSource != nil {
 		s := p.PullSource.AsRecord()
 		source = &s
+		source.Sha = p.LatestSha()
 	}
 
 	record := tangled.RepoPull{
@@ -162,6 +163,11 @@ type PullComment struct {
 func (p *Pull) LatestPatch() string {
 	latestSubmission := p.Submissions[p.LastRoundNumber()]
 	return latestSubmission.Patch
+}
+
+func (p *Pull) LatestSha() string {
+	latestSubmission := p.Submissions[p.LastRoundNumber()]
+	return latestSubmission.SourceRev
 }
 
 func (p *Pull) PullAt() syntax.ATURI {
