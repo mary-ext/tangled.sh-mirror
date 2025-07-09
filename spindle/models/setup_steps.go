@@ -5,7 +5,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-git/go-git/v5/plumbing"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/workflow"
 )
@@ -19,80 +18,70 @@ echo 'build-users-group = ' >> /etc/nix/nix.conf`
 	}
 }
 
-// checkoutStep checks out the specified ref in the cloned repository.
-func checkoutStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMetadata) Step {
-	if twf.Clone.Skip {
-		return Step{}
-	}
-
-	var ref string
-	switch tr.Kind {
-	case "push":
-		ref = tr.Push.NewSha
-	case "pull_request":
-		ref = tr.PullRequest.TargetBranch
-
-	// TODO: this needs to be specified in lexicon
-	case "manual":
-		ref = tr.Repo.DefaultBranch
-	}
-
-	checkoutCmd := fmt.Sprintf("git config advice.detachedHead false; git checkout --progress --force %s", ref)
-
-	return Step{
-		Command: checkoutCmd,
-		Name:    "Checkout ref " + ref,
-	}
-}
-
 // cloneOptsAsSteps processes clone options and adds corresponding steps
 // to the beginning of the workflow's step list if cloning is not skipped.
+//
+// the steps to do here are:
+// - git init
+// - git remote add origin <url>
+// - git fetch --depth=<d> --recurse-submodules=<yes|no> <sha>
+// - git checkout FETCH_HEAD
 func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMetadata, dev bool) Step {
 	if twf.Clone.Skip {
 		return Step{}
 	}
 
-	uri := "https://"
+	var commands []string
+
+	// initialize git repo in workspace
+	commands = append(commands, "git init")
+
+	// add repo as git remote
+	scheme := "https://"
 	if dev {
-		uri = "http://"
+		scheme = "http://"
 		tr.Repo.Knot = strings.ReplaceAll(tr.Repo.Knot, "localhost", "host.docker.internal")
 	}
+	url := scheme + path.Join(tr.Repo.Knot, tr.Repo.Did, tr.Repo.Repo)
+	commands = append(commands, fmt.Sprintf("git remote add origin %s", url))
 
-	cloneUrl := uri + path.Join(tr.Repo.Knot, tr.Repo.Did, tr.Repo.Repo)
-	cloneCmd := []string{"git", "clone", cloneUrl, "."}
+	// run git fetch
+	{
+		var fetchArgs []string
 
-	// default clone depth is 1
-	cloneDepth := 1
-	if twf.Clone.Depth > 1 {
-		cloneDepth = int(twf.Clone.Depth)
+		// default clone depth is 1
+		depth := 1
+		if twf.Clone.Depth > 1 {
+			depth = int(twf.Clone.Depth)
+		}
+		fetchArgs = append(fetchArgs, fmt.Sprintf("--depth=%d", depth))
+
+		// optionally recurse submodules
+		if twf.Clone.Submodules {
+			fetchArgs = append(fetchArgs, "--recurse-submodules=yes")
+		}
+
+		// set remote to fetch from
+		fetchArgs = append(fetchArgs, "origin")
+
+		// set revision to checkout
+		switch workflow.TriggerKind(tr.Kind) {
+		case workflow.TriggerKindManual:
+			// TODO: unimplemented
+		case workflow.TriggerKindPush:
+			fetchArgs = append(fetchArgs, tr.Push.NewSha)
+		case workflow.TriggerKindPullRequest:
+			fetchArgs = append(fetchArgs, tr.PullRequest.SourceSha)
+		}
+
+		commands = append(commands, fmt.Sprintf("git fetch %s", strings.Join(fetchArgs, " ")))
 	}
-	cloneCmd = append(cloneCmd, fmt.Sprintf("--depth=%d", cloneDepth))
 
-	// select the clone branch
-	cloneBranch := ""
-	switch tr.Kind {
-	case workflow.TriggerKindManual:
-		// TODO: unimplemented
-	case workflow.TriggerKindPush:
-		ref := tr.Push.Ref
-		refName := plumbing.ReferenceName(ref)
-		cloneBranch = refName.Short()
-	case workflow.TriggerKindPullRequest:
-		cloneBranch = tr.PullRequest.SourceBranch
-	}
-
-	if cloneBranch != "" {
-		cloneCmd = append(cloneCmd, fmt.Sprintf("--branch=%s", cloneBranch))
-	}
-
-	if twf.Clone.Submodules {
-		cloneCmd = append(cloneCmd, "--recursive")
-	}
-
-	fmt.Println(strings.Join(cloneCmd, " "))
+	// run git checkout
+	commands = append(commands, "git checkout FETCH_HEAD")
 
 	cloneStep := Step{
-		Command: strings.Join(cloneCmd, " "),
+		Command: strings.Join(commands, "\n"),
 		Name:    "Clone repository into workspace",
 	}
 	return cloneStep
