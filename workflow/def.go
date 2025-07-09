@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 
@@ -51,13 +52,21 @@ type (
 	}
 
 	StringList []string
+
+	TriggerKind string
 )
 
 const (
-	TriggerKindPush        string = "push"
-	TriggerKindPullRequest string = "pull_request"
-	TriggerKindManual      string = "manual"
+	WorkflowDir = ".tangled/workflows"
+
+	TriggerKindPush        TriggerKind = "push"
+	TriggerKindPullRequest TriggerKind = "pull_request"
+	TriggerKindManual      TriggerKind = "manual"
 )
+
+func (t TriggerKind) String() string {
+	return strings.ReplaceAll(string(t), "_", " ")
+}
 
 func FromFile(name string, contents []byte) (Workflow, error) {
 	var wf Workflow
