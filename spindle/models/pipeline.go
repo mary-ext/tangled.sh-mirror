@@ -68,7 +68,7 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 		setup := &setupSteps{}
 
 		setup.addStep(nixConfStep())
-		setup.addStep(cloneStep(*twf, *pl.TriggerMetadata.Repo, cfg.Server.Dev))
+		setup.addStep(cloneStep(*twf, *pl.TriggerMetadata, cfg.Server.Dev))
 		setup.addStep(checkoutStep(*twf, *pl.TriggerMetadata))
 		// this step could be empty
 		if s := dependencyStep(*twf); s != nil {

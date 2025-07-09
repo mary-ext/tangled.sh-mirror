@@ -5,7 +5,9 @@ import (
 	"path"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/workflow"
 )
 
 func nixConfStep() Step {
@@ -45,7 +47,7 @@ func checkoutStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMeta
 
 // cloneOptsAsSteps processes clone options and adds corresponding steps
 // to the beginning of the workflow's step list if cloning is not skipped.
-func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerRepo, dev bool) Step {
+func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMetadata, dev bool) Step {
 	if twf.Clone.Skip {
 		return Step{}
 	}
@@ -53,10 +55,10 @@ func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerRepo, d
 	uri := "https://"
 	if dev {
 		uri = "http://"
-		tr.Knot = strings.ReplaceAll(tr.Knot, "localhost", "host.docker.internal")
+		tr.Repo.Knot = strings.ReplaceAll(tr.Repo.Knot, "localhost", "host.docker.internal")
 	}
 
-	cloneUrl := uri + path.Join(tr.Knot, tr.Did, tr.Repo)
+	cloneUrl := uri + path.Join(tr.Repo.Knot, tr.Repo.Did, tr.Repo.Repo)
 	cloneCmd := []string{"git", "clone", cloneUrl, "."}
 
 	// default clone depth is 1
@@ -64,7 +66,24 @@ func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerRepo, d
 	if twf.Clone.Depth > 1 {
 		cloneDepth = int(twf.Clone.Depth)
 	}
-	cloneCmd = append(cloneCmd, []string{"--depth", fmt.Sprintf("%d", cloneDepth)}...)
+	cloneCmd = append(cloneCmd, fmt.Sprintf("--depth=%d", cloneDepth))
+
+	// select the clone branch
+	cloneBranch := ""
+	switch tr.Kind {
+	case workflow.TriggerKindManual:
+		// TODO: unimplemented
+	case workflow.TriggerKindPush:
+		ref := tr.Push.Ref
+		refName := plumbing.ReferenceName(ref)
+		cloneBranch = refName.Short()
+	case workflow.TriggerKindPullRequest:
+		cloneBranch = tr.PullRequest.SourceBranch
+	}
+
+	if cloneBranch != "" {
+		cloneCmd = append(cloneCmd, fmt.Sprintf("--branch=%s", cloneBranch))
+	}
 
 	if twf.Clone.Submodules {
 		cloneCmd = append(cloneCmd, "--recursive")
