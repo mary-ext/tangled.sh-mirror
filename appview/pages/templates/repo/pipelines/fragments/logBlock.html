@@ -1,7 +1,7 @@
 {{ define "repo/pipelines/fragments/logBlock" }}
 <div id="lines" hx-swap-oob="beforeend">
-  <details id="step-{{ .Id }}" {{if not .Collapsed}}open{{end}} class="group bg-gray-100 px-2 dark:bg-gray-900">
-    <summary class="sticky top-0 py-1 list-none cursor-pointer py-2 bg-gray-100 dark:bg-gray-900 hover:text-gray-500 hover:dark:text-gray-400">
+  <details id="step-{{ .Id }}" {{if not .Collapsed}}open{{end}} class="group bg-gray-100 pb-2 px-2 dark:bg-gray-900">
+    <summary class="sticky top-0 pt-2 group-open:pb-2 list-none cursor-pointer bg-gray-100 dark:bg-gray-900 hover:text-gray-500 hover:dark:text-gray-400">
       <div class="group-open:hidden flex items-center gap-1">
         {{ i "chevron-right" "w-4 h-4" }} {{ .Name }}
       </div>
@@ -9,8 +9,7 @@
         {{ i "chevron-down" "w-4 h-4" }} {{ .Name }}
       </div>
     </summary>
-    <div class="text-blue-600 dark:text-blue-300 font-mono">{{ .Command }}</div>
-    <div id="step-body-{{ .Id }}" class="font-mono"></div>
+    <div class="font-mono whitespace-pre overflow-x-auto"><div class="text-blue-600 dark:text-blue-300">{{ .Command }}</div><div id="step-body-{{ .Id }}"></div></div>
   </details>
 </div>
 {{ end }}

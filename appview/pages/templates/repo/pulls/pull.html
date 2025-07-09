@@ -162,6 +162,8 @@
             </div>
           {{ end }}
 
+          {{ block "pipelineStatus" (list $ .) }} {{ end }}
+
           {{ if eq $lastIdx .RoundNumber }}
             {{ block "mergeStatus" $ }} {{ end }}
             {{ block "resubmitStatus" $ }} {{ end }}
@@ -260,5 +262,42 @@
   {{ end }}
 {{ end }}
 
-{{ define "commits" }}
+{{ define "pipelineStatus" }}
+  {{ $root := index . 0 }}
+  {{ $submission := index . 1 }}
+  {{ $pipeline := index $root.Pipelines $submission.SourceRev }}
+  {{ with $pipeline }}
+    {{ $id := .Id }}
+    {{ if .Statuses }}
+      <div class="max-w-80 grid grid-cols-1 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+        {{ range $name, $all := .Statuses }}
+        <a href="/{{ $root.RepoInfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
+          <div
+            class="flex gap-2 items-center justify-between p-2">
+            {{ $lastStatus := $all.Latest }}
+            {{ $kind := $lastStatus.Status.String }}
+
+            {{ $t := .TimeTaken }}
+            {{ $time := "" }}
+
+            {{ if $t }}
+            {{ $time = durationFmt $t }}
+            {{ else }}
+            {{ $time = printf "%s ago" (shortTimeFmt $lastStatus.Created) }}
+            {{ end }}
+
+            <div id="left" class="flex items-center gap-2 flex-shrink-0">
+              {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
+              {{ $name }}
+            </div>
+            <div id="right" class="flex items-center gap-2 flex-shrink-0">
+              <span class="font-bold">{{ $kind }}</span>
+              <time>{{ $time }}</time>
+            </div>
+          </div>
+        </a>
+        {{ end }}
+      </div>
+    {{ end }}
+  {{ end }}
 {{ end }}

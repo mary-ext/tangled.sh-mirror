@@ -797,6 +797,7 @@ type RepoSinglePullParams struct {
 	AbandonedPulls []*db.Pull
 	MergeCheck     types.MergeCheckResponse
 	ResubmitCheck  ResubmitResult
+	Pipelines      map[string]db.Pipeline
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {

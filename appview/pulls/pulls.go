@@ -167,15 +167,41 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		resubmitResult = s.resubmitCheck(f, pull, stack)
 	}
 
+	repoInfo := f.RepoInfo(user)
+
+	m := make(map[string]db.Pipeline)
+
+	var shas []string
+	for _, s := range pull.Submissions {
+		shas = append(shas, s.SourceRev)
+	}
+
+	ps, err := db.GetPipelineStatuses(
+		s.db,
+		db.FilterEq("repo_owner", repoInfo.OwnerDid),
+		db.FilterEq("repo_name", repoInfo.Name),
+		db.FilterEq("knot", repoInfo.Knot),
+		db.FilterIn("sha", shas),
+	)
+	if err != nil {
+		log.Printf("failed to fetch pipeline statuses: %s", err)
+		// non-fatal
+	}
+
+	for _, p := range ps {
+		m[p.Sha] = p
+	}
+
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
 		LoggedInUser:   user,
-		RepoInfo:       f.RepoInfo(user),
+		RepoInfo:       repoInfo,
 		DidHandleMap:   didHandleMap,
 		Pull:           pull,
 		Stack:          stack,
 		AbandonedPulls: abandonedPulls,
 		MergeCheck:     mergeCheckResponse,
 		ResubmitCheck:  resubmitResult,
+		Pipelines:      m,
 	})
 }
 

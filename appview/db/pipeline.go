@@ -9,6 +9,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-git/go-git/v5/plumbing"
 	spindle "tangled.sh/tangled.sh/core/spindle/models"
+	"tangled.sh/tangled.sh/core/workflow"
 )
 
 type Pipeline struct {
@@ -85,7 +86,7 @@ func (p Pipeline) IsResponding() bool {
 
 type Trigger struct {
 	Id   int
-	Kind string
+	Kind workflow.TriggerKind
 
 	// push trigger fields
 	PushRef    *string
@@ -100,11 +101,11 @@ type Trigger struct {
 }
 
 func (t *Trigger) IsPush() bool {
-	return t != nil && t.Kind == "push"
+	return t != nil && t.Kind == workflow.TriggerKindPush
 }
 
 func (t *Trigger) IsPullRequest() bool {
-	return t != nil && t.Kind == "pull_request"
+	return t != nil && t.Kind == workflow.TriggerKindPullRequest
 }
 
 func (t *Trigger) TargetRef() string {
