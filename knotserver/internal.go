@@ -147,10 +147,6 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 }
 
 func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
-	const (
-		WorkflowDir = ".tangled/workflows"
-	)
-
 	didSlashRepo, err := securejoin.SecureJoin(repoDid, repoName)
 	if err != nil {
 		return err
@@ -166,7 +162,7 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 		return err
 	}
 
-	workflowDir, err := gr.FileTree(context.Background(), WorkflowDir)
+	workflowDir, err := gr.FileTree(context.Background(), workflow.WorkflowDir)
 	if err != nil {
 		return err
 	}
@@ -177,7 +173,7 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 			continue
 		}
 
-		fpath := filepath.Join(WorkflowDir, e.Name)
+		fpath := filepath.Join(workflow.WorkflowDir, e.Name)
 		contents, err := gr.RawContent(fpath)
 		if err != nil {
 			continue

@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -100,5 +101,10 @@ func ingestPipelineStatus(ctx context.Context, logger *slog.Logger, d *db.DB, so
 		ExitCode:     exitCode,
 	}
 
-	return db.AddPipelineStatus(d, status)
+	err = db.AddPipelineStatus(d, status)
+	if err != nil {
+		return fmt.Errorf("failed to add pipeline status: %w", err)
+	}
+
+	return nil
 }
