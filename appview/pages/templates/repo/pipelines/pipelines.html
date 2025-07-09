@@ -34,7 +34,11 @@
   {{ $p := index . 1 }}
   {{ with $p }}
       <div class="grid grid-cols-6 md:grid-cols-12 gap-2 items-center w-full">
-        <div class="col-span-2 md:col-span-8 flex items-center gap-4">
+        <div class="text-sm md:text-base col-span-1">
+          {{ .Trigger.Kind.String }}
+        </div>
+
+        <div class="col-span-2 md:col-span-7 flex items-center gap-4">
           {{ $target := .Trigger.TargetRef }}
           {{ $workflows := .Workflows }}
           {{ $link := "" }}
@@ -43,7 +47,6 @@
           {{ end }}
           {{ if .Trigger.IsPush }}
             <span class="font-bold">{{ $target }}</span>
-            <span>push</span>
             <span class="hidden md:inline-flex gap-2 items-center font-mono text-sm">
               {{ $old := deref .Trigger.PushOldSha }}
               {{ $new := deref .Trigger.PushNewSha }}
@@ -53,12 +56,14 @@
               <a href="/{{ $root.RepoInfo.FullName }}/commit/{{ $old }}">{{ slice $old 0 8 }}</a>
             </span>
           {{ else if .Trigger.IsPullRequest }}
-            <span>
-              pull request
-              <span class="inline-flex gap-2 items-center">
-                {{ $target }}
-                {{ i "arrow-left" "size-4" }}
-                {{ .Trigger.PRSourceBranch }}
+            {{ $sha := deref .Trigger.PRSourceSha }}
+            <span class="inline-flex gap-2 items-center">
+              <span class="font-bold">{{ $target }}</span>
+              {{ i "arrow-left" "size-4" }}
+              {{ .Trigger.PRSourceBranch }} 
+              <span class="text-sm font-mono">
+                @
+                <a href="/{{ $root.RepoInfo.FullName }}/commit/{{ $sha }}">{{ slice $sha 0 8 }}</a>
               </span>
             </span>
           {{ end }}
