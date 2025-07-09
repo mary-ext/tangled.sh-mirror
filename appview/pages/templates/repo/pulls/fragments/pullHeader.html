@@ -26,12 +26,10 @@
             {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
             <span class="text-white">{{ .Pull.State.String }}</span>
         </div>
-        <span class="text-gray-500 dark:text-gray-400 text-sm">
+        <span class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
             opened by
             {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
-            <a href="/{{ $owner }}" class="no-underline hover:underline"
-                >{{ $owner }}</a
-            >
+            {{ template "user/fragments/picHandle" $owner }}
             <span class="select-none before:content-['\00B7']"></span>
             <time>{{ .Pull.Created | timeFmt }}</time>
 

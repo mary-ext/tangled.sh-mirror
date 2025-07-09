@@ -40,6 +40,7 @@ var Files embed.FS
 
 type Pages struct {
 	t           map[string]*template.Template
+	avatar      config.AvatarConfig
 	dev         bool
 	embedFS     embed.FS
 	templateDir string // Path to templates on disk for dev mode
@@ -57,6 +58,7 @@ func NewPages(config *config.Config) *Pages {
 	p := &Pages{
 		t:           make(map[string]*template.Template),
 		dev:         config.Core.Dev,
+		avatar:      config.Avatar,
 		embedFS:     Files,
 		rctx:        rctx,
 		templateDir: "appview/pages",
@@ -90,7 +92,7 @@ func (p *Pages) loadAllTemplates() {
 		name := strings.TrimPrefix(path, "templates/")
 		name = strings.TrimSuffix(name, ".html")
 		tmpl, err := template.New(name).
-			Funcs(funcMap()).
+			Funcs(p.funcMap()).
 			ParseFS(p.embedFS, path)
 		if err != nil {
 			log.Fatalf("setting up fragment: %v", err)
@@ -131,7 +133,7 @@ func (p *Pages) loadAllTemplates() {
 		allPaths = append(allPaths, fragmentPaths...)
 		allPaths = append(allPaths, path)
 		tmpl, err := template.New(name).
-			Funcs(funcMap()).
+			Funcs(p.funcMap()).
 			ParseFS(p.embedFS, allPaths...)
 		if err != nil {
 			return fmt.Errorf("setting up template: %w", err)
@@ -185,7 +187,7 @@ func (p *Pages) loadTemplateFromDisk(name string) error {
 	}
 
 	// Create a new template
-	tmpl := template.New(name).Funcs(funcMap())
+	tmpl := template.New(name).Funcs(p.funcMap())
 
 	// Parse layouts
 	layoutGlob := filepath.Join(p.templateDir, "templates", "layouts", "*.html")

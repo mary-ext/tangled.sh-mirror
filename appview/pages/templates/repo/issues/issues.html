@@ -3,7 +3,7 @@
 {{ define "extrameta" }}
     {{ $title := "issues"}}
     {{ $url := printf "https://tangled.sh/%s/issues" .RepoInfo.FullName }}
-    
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
@@ -49,7 +49,7 @@
           <span class="text-gray-500">#{{ .IssueId }}</span>
       </a>
     </div>
-    <p class="text-sm text-gray-500 dark:text-gray-400">
+    <p class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
       {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
       {{ $icon := "ban" }}
       {{ $state := "closed" }}
@@ -64,9 +64,9 @@
           <span class="text-white dark:text-white">{{ $state }}</span>
       </span>
 
-      <span>
-        {{ $owner := index $.DidHandleMap .OwnerDid }}
-        <a href="/{{ $owner }}">{{ $owner }}</a>
+      <span class="ml-1">
+          {{ $owner := index $.DidHandleMap .OwnerDid }}
+          {{ template "user/fragments/picHandle" $owner }}
       </span>
 
       <span class="before:content-['·']">
