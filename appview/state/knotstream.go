@@ -143,15 +143,14 @@ func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
 	// trigger info
 	var trigger db.Trigger
 	var sha string
-	switch record.TriggerMetadata.Kind {
+	trigger.Kind = workflow.TriggerKind(record.TriggerMetadata.Kind)
+	switch trigger.Kind {
 	case workflow.TriggerKindPush:
-		trigger.Kind = workflow.TriggerKindPush
 		trigger.PushRef = &record.TriggerMetadata.Push.Ref
 		trigger.PushNewSha = &record.TriggerMetadata.Push.NewSha
 		trigger.PushOldSha = &record.TriggerMetadata.Push.OldSha
 		sha = *trigger.PushNewSha
 	case workflow.TriggerKindPullRequest:
-		trigger.Kind = workflow.TriggerKindPush
 		trigger.PRSourceBranch = &record.TriggerMetadata.PullRequest.SourceBranch
 		trigger.PRTargetBranch = &record.TriggerMetadata.PullRequest.TargetBranch
 		trigger.PRSourceSha = &record.TriggerMetadata.PullRequest.SourceSha
@@ -161,12 +160,12 @@ func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
 
 	tx, err := d.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to start txn: %w", err)
 	}
 
 	triggerId, err := db.AddTrigger(tx, trigger)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to add trigger entry: %w", err)
 	}
 
 	pipeline := db.Pipeline{
@@ -180,13 +179,13 @@ func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
 
 	err = db.AddPipeline(tx, pipeline)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to add pipeline: %w", err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to commit txn: %w", err)
 	}
 
-	return err
+	return nil
 }
