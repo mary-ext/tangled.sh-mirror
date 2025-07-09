@@ -127,8 +127,6 @@ func (c *Constraint) MatchRef(ref string) bool {
 	if refName.IsBranch() {
 		return slices.Contains(c.Branch, refName.Short())
 	}
-	fmt.Println("no", c.Branch, refName.Short())
-
 	return false
 }
 
