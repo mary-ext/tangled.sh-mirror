@@ -10,7 +10,7 @@
           {{ i "chevrons-down-up" "w-4 h-4" }}
         </span>
         STACK
-        <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm ml-1">{{ len .Stack }}</span>
+        <span class="bg-gray-200 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">{{ len .Stack }}</span>
       </span>
     </summary>
     {{ block "pullList" (list .Stack $) }} {{ end }}
@@ -41,6 +41,7 @@
   <div class="grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
     {{ range $pull := $list }}
       {{ $isCurrent := false }}
+      {{ $pipeline := index $root.Pipelines $pull.LatestSha }}
       {{ with $root.Pull }}
         {{ $isCurrent = eq $pull.PullId $root.Pull.PullId }}
       {{ end }}
@@ -52,7 +53,7 @@
             </div>
           {{ end }}
           <div class="{{ if not $isCurrent }} pl-6 {{ end }} flex-grow min-w-0 w-full py-2">
-            {{ template "repo/pulls/fragments/summarizedHeader" $pull }}
+            {{ template "repo/pulls/fragments/summarizedHeader" (list $pull $pipeline) }}
           </div>
         </div>
       </a>

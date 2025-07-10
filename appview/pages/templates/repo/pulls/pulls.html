@@ -156,7 +156,7 @@
       <a href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
         <div class="flex gap-2 items-center px-6">
           <div class="flex-grow min-w-0 w-full py-2">
-            {{ template "repo/pulls/fragments/summarizedHeader" $pull }}
+            {{ template "repo/pulls/fragments/summarizedHeader" (list $pull 0) }}
           </div>
         </div>
       </a>
