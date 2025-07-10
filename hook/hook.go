@@ -63,7 +63,7 @@ func postRecieve(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "text/plain")
+	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 	req.Header.Set("X-Git-Dir", gitDir)
 	req.Header.Set("X-Git-User-Did", userDid)
 	req.Header.Set("X-Git-User-Handle", userHandle)
