@@ -40,29 +40,35 @@ func (i *Ingester) Ingest() processFunc {
 			}
 		}()
 
-		if e.Kind != models.EventKindCommit {
-			return nil
-		}
-
-		switch e.Commit.Collection {
-		case tangled.GraphFollowNSID:
-			err = i.ingestFollow(e)
-		case tangled.FeedStarNSID:
-			err = i.ingestStar(e)
-		case tangled.PublicKeyNSID:
-			err = i.ingestPublicKey(e)
-		case tangled.RepoArtifactNSID:
-			err = i.ingestArtifact(e)
-		case tangled.ActorProfileNSID:
-			err = i.ingestProfile(e)
-		case tangled.SpindleMemberNSID:
-			err = i.ingestSpindleMember(e)
-		case tangled.SpindleNSID:
-			err = i.ingestSpindle(e)
+		l := i.Logger.With("kind", e.Kind)
+		switch e.Kind {
+		case models.EventKindAccount:
+			if !e.Account.Active && *e.Account.Status == "deactivated" {
+				err = i.IdResolver.InvalidateIdent(ctx, e.Account.Did)
+			}
+		case models.EventKindIdentity:
+			err = i.IdResolver.InvalidateIdent(ctx, e.Identity.Did)
+		case models.EventKindCommit:
+			switch e.Commit.Collection {
+			case tangled.GraphFollowNSID:
+				err = i.ingestFollow(e)
+			case tangled.FeedStarNSID:
+				err = i.ingestStar(e)
+			case tangled.PublicKeyNSID:
+				err = i.ingestPublicKey(e)
+			case tangled.RepoArtifactNSID:
+				err = i.ingestArtifact(e)
+			case tangled.ActorProfileNSID:
+				err = i.ingestProfile(e)
+			case tangled.SpindleMemberNSID:
+				err = i.ingestSpindleMember(e)
+			case tangled.SpindleNSID:
+				err = i.ingestSpindle(e)
+			}
+			l = i.Logger.With("nsid", e.Commit.Collection)
 		}
 
 		if err != nil {
-			l := i.Logger.With("nsid", e.Commit.Collection)
 			l.Error("error ingesting record", "err", err)
 		}
 

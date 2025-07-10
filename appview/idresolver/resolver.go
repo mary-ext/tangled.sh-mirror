@@ -102,3 +102,12 @@ func (r *Resolver) ResolveIdents(ctx context.Context, idents []string) []*identi
 	wg.Wait()
 	return results
 }
+
+func (r *Resolver) InvalidateIdent(ctx context.Context, arg string) error {
+	id, err := syntax.ParseAtIdentifier(arg)
+	if err != nil {
+		return err
+	}
+
+	return r.directory.Purge(ctx, *id)
+}
