@@ -175,6 +175,12 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	for _, s := range pull.Submissions {
 		shas = append(shas, s.SourceRev)
 	}
+	for _, p := range stack {
+		shas = append(shas, p.LatestSha())
+	}
+	for _, p := range abandonedPulls {
+		shas = append(shas, p.LatestSha())
+	}
 
 	ps, err := db.GetPipelineStatuses(
 		s.db,
