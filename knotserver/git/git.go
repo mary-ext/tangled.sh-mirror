@@ -2,6 +2,7 @@ package git
 
 import (
 	"archive/tar"
+	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -201,8 +202,6 @@ func (g *GitRepo) LastCommit() (*object.Commit, error) {
 }
 
 func (g *GitRepo) FileContentN(path string, cap int64) ([]byte, error) {
-	buf := []byte{}
-
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
 		return nil, fmt.Errorf("commit object: %w", err)
@@ -219,21 +218,21 @@ func (g *GitRepo) FileContentN(path string, cap int64) ([]byte, error) {
 	}
 
 	isbin, _ := file.IsBinary()
-
-	if !isbin {
-		reader, err := file.Reader()
-		if err != nil {
-			return nil, err
-		}
-		bufReader := io.LimitReader(reader, cap)
-		_, err = bufReader.Read(buf)
-		if err != nil {
-			return nil, err
-		}
-		return buf, nil
-	} else {
+	if isbin {
 		return nil, ErrBinaryFile
 	}
+
+	reader, err := file.Reader()
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	if _, err = buf.ReadFrom(io.LimitReader(reader, cap)); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (g *GitRepo) FileContent(path string) (string, error) {

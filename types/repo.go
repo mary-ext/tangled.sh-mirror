@@ -117,5 +117,5 @@ type RepoLanguageDetails struct {
 
 type RepoLanguageResponse struct {
 	// Language: File count
-	Languages map[string]int `json:"languages"`
+	Languages map[string]int64 `json:"languages"`
 }
