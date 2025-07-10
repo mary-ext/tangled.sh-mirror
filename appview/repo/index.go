@@ -123,7 +123,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	languageInfo, err := getLanguageInfo(repoInfo, rp, f, user, signedClient, ref)
+	languageInfo, err := getLanguageInfo(f, signedClient, ref)
 	if err != nil {
 		log.Printf("failed to compute language percentages: %s", err)
 		// non-fatal
@@ -157,10 +157,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLanguageInfo(
-	repoInfo repoinfo.RepoInfo,
-	rp *Repo,
 	f *reporesolver.ResolvedRepo,
-	user *oauth.User,
 	signedClient *knotclient.SignedClient,
 	ref string,
 ) ([]types.RepoLanguageDetails, error) {
@@ -169,49 +166,42 @@ func getLanguageInfo(
 		return []types.RepoLanguageDetails{}, err
 	}
 	if repoLanguages == nil {
-		repoLanguages = &types.RepoLanguageResponse{Languages: make(map[string]int)}
+		repoLanguages = &types.RepoLanguageResponse{Languages: make(map[string]int64)}
 	}
 
-	totalLanguageFileCount := 0
-	for _, fileCount := range repoLanguages.Languages {
-		totalLanguageFileCount += fileCount
+	var totalSize int64
+	for _, fileSize := range repoLanguages.Languages {
+		totalSize += fileSize
 	}
 
 	var languageStats []types.RepoLanguageDetails
-	var otherLanguageStat *types.RepoLanguageDetails
 	var otherPercentage float32 = 0
 
-	for fileType, fileCount := range repoLanguages.Languages {
-		percentage := (float32(fileCount) / float32(totalLanguageFileCount)) * 100
+	for lang, size := range repoLanguages.Languages {
+		percentage := (float32(size) / float32(totalSize)) * 100
 
-		if percentage <= 0.1 {
+		if percentage <= 0.5 {
 			otherPercentage += percentage
 			continue
 		}
 
-		// Exclude languages
-		if fileType == "Text" {
-			otherPercentage += percentage
-			continue
-		}
+		color := enry.GetColor(lang)
 
-		color := enry.GetColor(fileType)
-
-		if fileType == "Other" {
-			otherLanguageStat = &types.RepoLanguageDetails{Name: fileType, Percentage: percentage, Color: color}
-		} else {
-			languageStats = append(languageStats, types.RepoLanguageDetails{Name: fileType, Percentage: percentage, Color: color})
-		}
+		languageStats = append(languageStats, types.RepoLanguageDetails{Name: lang, Percentage: percentage, Color: color})
 	}
 
 	sort.Slice(languageStats, func(i, j int) bool {
-		return languageStats[i].Percentage > languageStats[j].Percentage
+		if languageStats[i].Name == enry.OtherLanguage {
+			return false
+		}
+		if languageStats[j].Name == enry.OtherLanguage {
+			return true
+		}
+		if languageStats[i].Percentage != languageStats[j].Percentage {
+			return languageStats[i].Percentage > languageStats[j].Percentage
+		}
+		return languageStats[i].Name < languageStats[j].Name
 	})
-
-	if otherLanguageStat != nil {
-		otherLanguageStat.Percentage += otherPercentage
-		languageStats = append(languageStats, *otherLanguageStat)
-	}
 
 	return languageStats, nil
 }
