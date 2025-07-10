@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/gliderlabs/ssh"
@@ -763,73 +764,79 @@ func (h *Handle) RepoForkAheadBehind(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
-	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
 	ref := chi.URLParam(r, "ref")
 	ref, _ = url.PathUnescape(ref)
 
 	l := h.l.With("handler", "RepoLanguages")
 
-	gr, err := git.Open(path, ref)
+	gr, err := git.Open(repoPath, ref)
 	if err != nil {
 		l.Error("opening repo", "error", err.Error())
 		notFound(w)
 		return
 	}
 
-	languageFileCount := make(map[string]int)
+	sizes := make(map[string]int64)
 
-	err = recurseEntireTree(r.Context(), gr, func(absPath string) {
-		lang, safe := enry.GetLanguageByExtension(absPath)
-		if len(lang) == 0 || !safe {
-			content, _ := gr.FileContentN(absPath, 1024)
-			if !safe {
-				lang = enry.GetLanguage(absPath, content)
-				if len(lang) == 0 {
-					lang = "Other"
-				}
-			} else {
-				lang, _ = enry.GetLanguageByContent(absPath, content)
-				if len(lang) == 0 {
-					lang = "Other"
-				}
-			}
+	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
+	defer cancel()
+
+	err = gr.Walk(ctx, "", func(node object.TreeEntry, parent *object.Tree, root string) error {
+		filepath := path.Join(root, node.Name)
+
+		content, err := gr.FileContentN(filepath, 16*1024) // 16KB
+		if err != nil {
+			return nil
 		}
 
-		v, ok := languageFileCount[lang]
-		if ok {
-			languageFileCount[lang] = v + 1
-		} else {
-			languageFileCount[lang] = 1
+		if enry.IsGenerated(filepath, content) {
+			return nil
 		}
-	}, "")
+
+		language := analyzeLanguage(node, content)
+		if group := enry.GetLanguageGroup(language); group != "" {
+			language = group
+		}
+
+		langType := enry.GetLanguageType(language)
+		if langType != enry.Programming && langType != enry.Markup && langType != enry.Unknown {
+			return nil
+		}
+
+		sz, _ := parent.Size(node.Name)
+		sizes[language] += sz
+
+		return nil
+	})
 	if err != nil {
 		l.Error("failed to recurse file tree", "error", err.Error())
 		writeError(w, err.Error(), http.StatusNoContent)
 		return
 	}
 
-	resp := types.RepoLanguageResponse{Languages: languageFileCount}
+	resp := types.RepoLanguageResponse{Languages: sizes}
 
 	writeJSON(w, resp)
 	return
 }
 
-func recurseEntireTree(ctx context.Context, git *git.GitRepo, callback func(absPath string), filePath string) error {
-	files, err := git.FileTree(ctx, filePath)
-	if err != nil {
-		log.Println(err)
-		return err
+func analyzeLanguage(node object.TreeEntry, content []byte) string {
+	language, ok := enry.GetLanguageByExtension(node.Name)
+	if ok {
+		return language
 	}
 
-	for _, file := range files {
-		absPath := path.Join(filePath, file.Name)
-		if !file.IsFile {
-			return recurseEntireTree(ctx, git, callback, absPath)
-		}
-		callback(absPath)
+	language, ok = enry.GetLanguageByFilename(node.Name)
+	if ok {
+		return language
 	}
 
-	return nil
+	if len(content) == 0 {
+		return enry.OtherLanguage
+	}
+
+	return enry.GetLanguage(node.Name, content)
 }
 
 func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {
