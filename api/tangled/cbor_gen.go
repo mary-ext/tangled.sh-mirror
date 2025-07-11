@@ -2188,7 +2188,7 @@ func (t *Pipeline_CloneOpts) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *Pipeline_Dependencies_Elem) MarshalCBOR(w io.Writer) error {
+func (t *Pipeline_Dependency) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -2258,8 +2258,8 @@ func (t *Pipeline_Dependencies_Elem) MarshalCBOR(w io.Writer) error {
 	return nil
 }
 
-func (t *Pipeline_Dependencies_Elem) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = Pipeline_Dependencies_Elem{}
+func (t *Pipeline_Dependency) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = Pipeline_Dependency{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -2278,7 +2278,7 @@ func (t *Pipeline_Dependencies_Elem) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("Pipeline_Dependencies_Elem: map struct too large (%d)", extra)
+		return fmt.Errorf("Pipeline_Dependency: map struct too large (%d)", extra)
 	}
 
 	n := extra
@@ -2378,7 +2378,7 @@ func (t *Pipeline_ManualTriggerData) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Inputs ([]*tangled.Pipeline_ManualTriggerData_Inputs_Elem) (slice)
+	// t.Inputs ([]*tangled.Pipeline_Pair) (slice)
 	if t.Inputs != nil {
 
 		if len("inputs") > 1000000 {
@@ -2450,7 +2450,7 @@ func (t *Pipeline_ManualTriggerData) UnmarshalCBOR(r io.Reader) (err error) {
 		}
 
 		switch string(nameBuf[:nameLen]) {
-		// t.Inputs ([]*tangled.Pipeline_ManualTriggerData_Inputs_Elem) (slice)
+		// t.Inputs ([]*tangled.Pipeline_Pair) (slice)
 		case "inputs":
 
 			maj, extra, err = cr.ReadHeader()
@@ -2467,7 +2467,7 @@ func (t *Pipeline_ManualTriggerData) UnmarshalCBOR(r io.Reader) (err error) {
 			}
 
 			if extra > 0 {
-				t.Inputs = make([]*Pipeline_ManualTriggerData_Inputs_Elem, extra)
+				t.Inputs = make([]*Pipeline_Pair, extra)
 			}
 
 			for i := 0; i < int(extra); i++ {
@@ -2489,7 +2489,7 @@ func (t *Pipeline_ManualTriggerData) UnmarshalCBOR(r io.Reader) (err error) {
 							if err := cr.UnreadByte(); err != nil {
 								return err
 							}
-							t.Inputs[i] = new(Pipeline_ManualTriggerData_Inputs_Elem)
+							t.Inputs[i] = new(Pipeline_Pair)
 							if err := t.Inputs[i].UnmarshalCBOR(cr); err != nil {
 								return xerrors.Errorf("unmarshaling t.Inputs[i] pointer: %w", err)
 							}
@@ -2510,7 +2510,7 @@ func (t *Pipeline_ManualTriggerData) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *Pipeline_ManualTriggerData_Inputs_Elem) MarshalCBOR(w io.Writer) error {
+func (t *Pipeline_Pair) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -2570,8 +2570,8 @@ func (t *Pipeline_ManualTriggerData_Inputs_Elem) MarshalCBOR(w io.Writer) error 
 	return nil
 }
 
-func (t *Pipeline_ManualTriggerData_Inputs_Elem) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = Pipeline_ManualTriggerData_Inputs_Elem{}
+func (t *Pipeline_Pair) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = Pipeline_Pair{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -2590,7 +2590,7 @@ func (t *Pipeline_ManualTriggerData_Inputs_Elem) UnmarshalCBOR(r io.Reader) (err
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("Pipeline_ManualTriggerData_Inputs_Elem: map struct too large (%d)", extra)
+		return fmt.Errorf("Pipeline_Pair: map struct too large (%d)", extra)
 	}
 
 	n := extra
@@ -3014,141 +3014,6 @@ func (t *Pipeline_PushTriggerData) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-
-func (t *Pipeline_Step_Environment_Elem) MarshalCBOR(w io.Writer) error {
-	if t == nil {
-		_, err := w.Write(cbg.CborNull)
-		return err
-	}
-
-	cw := cbg.NewCborWriter(w)
-
-	if _, err := cw.Write([]byte{162}); err != nil {
-		return err
-	}
-
-	// t.Key (string) (string)
-	if len("key") > 1000000 {
-		return xerrors.Errorf("Value in field \"key\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("key"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("key")); err != nil {
-		return err
-	}
-
-	if len(t.Key) > 1000000 {
-		return xerrors.Errorf("Value in field t.Key was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Key))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Key)); err != nil {
-		return err
-	}
-
-	// t.Value (string) (string)
-	if len("value") > 1000000 {
-		return xerrors.Errorf("Value in field \"value\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("value"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("value")); err != nil {
-		return err
-	}
-
-	if len(t.Value) > 1000000 {
-		return xerrors.Errorf("Value in field t.Value was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Value))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Value)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t *Pipeline_Step_Environment_Elem) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = Pipeline_Step_Environment_Elem{}
-
-	cr := cbg.NewCborReader(r)
-
-	maj, extra, err := cr.ReadHeader()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err == io.EOF {
-			err = io.ErrUnexpectedEOF
-		}
-	}()
-
-	if maj != cbg.MajMap {
-		return fmt.Errorf("cbor input should be of type map")
-	}
-
-	if extra > cbg.MaxLength {
-		return fmt.Errorf("Pipeline_Step_Environment_Elem: map struct too large (%d)", extra)
-	}
-
-	n := extra
-
-	nameBuf := make([]byte, 5)
-	for i := uint64(0); i < n; i++ {
-		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
-				return err
-			}
-			continue
-		}
-
-		switch string(nameBuf[:nameLen]) {
-		// t.Key (string) (string)
-		case "key":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Key = string(sval)
-			}
-			// t.Value (string) (string)
-		case "value":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Value = string(sval)
-			}
-
-		default:
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
 func (t *PipelineStatus) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
@@ -3511,7 +3376,6 @@ func (t *PipelineStatus) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-
 func (t *Pipeline_Step) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
@@ -3575,7 +3439,7 @@ func (t *Pipeline_Step) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Environment ([]*tangled.Pipeline_Step_Environment_Elem) (slice)
+	// t.Environment ([]*tangled.Pipeline_Pair) (slice)
 	if t.Environment != nil {
 
 		if len("environment") > 1000000 {
@@ -3669,7 +3533,7 @@ func (t *Pipeline_Step) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Command = string(sval)
 			}
-			// t.Environment ([]*tangled.Pipeline_Step_Environment_Elem) (slice)
+			// t.Environment ([]*tangled.Pipeline_Pair) (slice)
 		case "environment":
 
 			maj, extra, err = cr.ReadHeader()
@@ -3686,7 +3550,7 @@ func (t *Pipeline_Step) UnmarshalCBOR(r io.Reader) (err error) {
 			}
 
 			if extra > 0 {
-				t.Environment = make([]*Pipeline_Step_Environment_Elem, extra)
+				t.Environment = make([]*Pipeline_Pair, extra)
 			}
 
 			for i := 0; i < int(extra); i++ {
@@ -3708,7 +3572,7 @@ func (t *Pipeline_Step) UnmarshalCBOR(r io.Reader) (err error) {
 							if err := cr.UnreadByte(); err != nil {
 								return err
 							}
-							t.Environment[i] = new(Pipeline_Step_Environment_Elem)
+							t.Environment[i] = new(Pipeline_Pair)
 							if err := t.Environment[i].UnmarshalCBOR(cr); err != nil {
 								return xerrors.Errorf("unmarshaling t.Environment[i] pointer: %w", err)
 							}
@@ -4274,7 +4138,7 @@ func (t *Pipeline_Workflow) MarshalCBOR(w io.Writer) error {
 
 	}
 
-	// t.Environment ([]*tangled.Pipeline_Workflow_Environment_Elem) (slice)
+	// t.Environment ([]*tangled.Pipeline_Pair) (slice)
 	if len("environment") > 1000000 {
 		return xerrors.Errorf("Value in field \"environment\" was too long")
 	}
@@ -4300,7 +4164,7 @@ func (t *Pipeline_Workflow) MarshalCBOR(w io.Writer) error {
 
 	}
 
-	// t.Dependencies ([]tangled.Pipeline_Dependencies_Elem) (slice)
+	// t.Dependencies ([]*tangled.Pipeline_Dependency) (slice)
 	if len("dependencies") > 1000000 {
 		return xerrors.Errorf("Value in field \"dependencies\" was too long")
 	}
@@ -4449,7 +4313,7 @@ func (t *Pipeline_Workflow) UnmarshalCBOR(r io.Reader) (err error) {
 
 				}
 			}
-			// t.Environment ([]*tangled.Pipeline_Workflow_Environment_Elem) (slice)
+			// t.Environment ([]*tangled.Pipeline_Pair) (slice)
 		case "environment":
 
 			maj, extra, err = cr.ReadHeader()
@@ -4466,7 +4330,7 @@ func (t *Pipeline_Workflow) UnmarshalCBOR(r io.Reader) (err error) {
 			}
 
 			if extra > 0 {
-				t.Environment = make([]*Pipeline_Workflow_Environment_Elem, extra)
+				t.Environment = make([]*Pipeline_Pair, extra)
 			}
 
 			for i := 0; i < int(extra); i++ {
@@ -4488,7 +4352,7 @@ func (t *Pipeline_Workflow) UnmarshalCBOR(r io.Reader) (err error) {
 							if err := cr.UnreadByte(); err != nil {
 								return err
 							}
-							t.Environment[i] = new(Pipeline_Workflow_Environment_Elem)
+							t.Environment[i] = new(Pipeline_Pair)
 							if err := t.Environment[i].UnmarshalCBOR(cr); err != nil {
 								return xerrors.Errorf("unmarshaling t.Environment[i] pointer: %w", err)
 							}
@@ -4498,7 +4362,7 @@ func (t *Pipeline_Workflow) UnmarshalCBOR(r io.Reader) (err error) {
 
 				}
 			}
-			// t.Dependencies ([]tangled.Pipeline_Dependencies_Elem) (slice)
+			// t.Dependencies ([]*tangled.Pipeline_Dependency) (slice)
 		case "dependencies":
 
 			maj, extra, err = cr.ReadHeader()
@@ -4515,7 +4379,7 @@ func (t *Pipeline_Workflow) UnmarshalCBOR(r io.Reader) (err error) {
 			}
 
 			if extra > 0 {
-				t.Dependencies = make([]Pipeline_Dependencies_Elem, extra)
+				t.Dependencies = make([]*Pipeline_Dependency, extra)
 			}
 
 			for i := 0; i < int(extra); i++ {
@@ -4529,147 +4393,23 @@ func (t *Pipeline_Workflow) UnmarshalCBOR(r io.Reader) (err error) {
 
 					{
 
-						if err := t.Dependencies[i].UnmarshalCBOR(cr); err != nil {
-							return xerrors.Errorf("unmarshaling t.Dependencies[i]: %w", err)
+						b, err := cr.ReadByte()
+						if err != nil {
+							return err
+						}
+						if b != cbg.CborNull[0] {
+							if err := cr.UnreadByte(); err != nil {
+								return err
+							}
+							t.Dependencies[i] = new(Pipeline_Dependency)
+							if err := t.Dependencies[i].UnmarshalCBOR(cr); err != nil {
+								return xerrors.Errorf("unmarshaling t.Dependencies[i] pointer: %w", err)
+							}
 						}
 
 					}
 
 				}
-			}
-
-		default:
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-func (t *Pipeline_Workflow_Environment_Elem) MarshalCBOR(w io.Writer) error {
-	if t == nil {
-		_, err := w.Write(cbg.CborNull)
-		return err
-	}
-
-	cw := cbg.NewCborWriter(w)
-
-	if _, err := cw.Write([]byte{162}); err != nil {
-		return err
-	}
-
-	// t.Key (string) (string)
-	if len("key") > 1000000 {
-		return xerrors.Errorf("Value in field \"key\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("key"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("key")); err != nil {
-		return err
-	}
-
-	if len(t.Key) > 1000000 {
-		return xerrors.Errorf("Value in field t.Key was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Key))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Key)); err != nil {
-		return err
-	}
-
-	// t.Value (string) (string)
-	if len("value") > 1000000 {
-		return xerrors.Errorf("Value in field \"value\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("value"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("value")); err != nil {
-		return err
-	}
-
-	if len(t.Value) > 1000000 {
-		return xerrors.Errorf("Value in field t.Value was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Value))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Value)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t *Pipeline_Workflow_Environment_Elem) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = Pipeline_Workflow_Environment_Elem{}
-
-	cr := cbg.NewCborReader(r)
-
-	maj, extra, err := cr.ReadHeader()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err == io.EOF {
-			err = io.ErrUnexpectedEOF
-		}
-	}()
-
-	if maj != cbg.MajMap {
-		return fmt.Errorf("cbor input should be of type map")
-	}
-
-	if extra > cbg.MaxLength {
-		return fmt.Errorf("Pipeline_Workflow_Environment_Elem: map struct too large (%d)", extra)
-	}
-
-	n := extra
-
-	nameBuf := make([]byte, 5)
-	for i := uint64(0); i < n; i++ {
-		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
-				return err
-			}
-			continue
-		}
-
-		switch string(nameBuf[:nameLen]) {
-		// t.Key (string) (string)
-		case "key":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Key = string(sval)
-			}
-			// t.Value (string) (string)
-		case "value":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Value = string(sval)
 			}
 
 		default:
