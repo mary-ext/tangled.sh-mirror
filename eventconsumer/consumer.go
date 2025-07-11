@@ -12,6 +12,7 @@ import (
 	"tangled.sh/tangled.sh/core/eventconsumer/cursor"
 	"tangled.sh/tangled.sh/core/log"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/gorilla/websocket"
 )
 
@@ -170,7 +171,7 @@ func (c *Consumer) worker(ctx context.Context) {
 
 func (c *Consumer) startConnectionLoop(ctx context.Context, source Source) {
 	defer c.wg.Done()
-	retryInterval := c.cfg.RetryInterval
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -178,33 +179,13 @@ func (c *Consumer) startConnectionLoop(ctx context.Context, source Source) {
 		default:
 			err := c.runConnection(ctx, source)
 			if err != nil {
-				c.logger.Error("connection failed", "source", source, "err", err)
-			}
-
-			// apply jitter
-			jitter := time.Duration(c.randSource.Int63n(int64(retryInterval) / 5))
-			delay := retryInterval + jitter
-
-			if retryInterval < c.cfg.MaxRetryInterval {
-				retryInterval *= 2
-				if retryInterval > c.cfg.MaxRetryInterval {
-					retryInterval = c.cfg.MaxRetryInterval
-				}
-			}
-			c.logger.Info("retrying connection", "source", source, "delay", delay)
-			select {
-			case <-time.After(delay):
-			case <-ctx.Done():
-				return
+				c.logger.Error("failed to run connection", "err", err)
 			}
 		}
 	}
 }
 
 func (c *Consumer) runConnection(ctx context.Context, source Source) error {
-	connCtx, cancel := context.WithTimeout(ctx, c.cfg.ConnectionTimeout)
-	defer cancel()
-
 	cursor := c.cfg.CursorStore.Get(source.Key())
 
 	u, err := source.Url(cursor, c.cfg.Dev)
@@ -213,12 +194,38 @@ func (c *Consumer) runConnection(ctx context.Context, source Source) error {
 	}
 
 	c.logger.Info("connecting", "url", u.String())
-	conn, _, err := c.dialer.DialContext(connCtx, u.String(), nil)
+
+	retryOpts := []retry.Option{
+		retry.Attempts(0), // infinite attempts
+		retry.DelayType(retry.BackOffDelay),
+		retry.Delay(c.cfg.RetryInterval),
+		retry.MaxDelay(c.cfg.MaxRetryInterval),
+		retry.MaxJitter(c.cfg.RetryInterval / 5),
+		retry.OnRetry(func(n uint, err error) {
+			c.logger.Info("retrying connection",
+				"source", source,
+				"url", u.String(),
+				"attempt", n+1,
+				"err", err,
+			)
+		}),
+		retry.Context(ctx),
+	}
+
+	var conn *websocket.Conn
+
+	err = retry.Do(func() error {
+		connCtx, cancel := context.WithTimeout(ctx, c.cfg.ConnectionTimeout)
+		defer cancel()
+		conn, _, err = c.dialer.DialContext(connCtx, u.String(), nil)
+		return err
+	}, retryOpts...)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+
 	c.connMap.Store(source, conn)
+	defer conn.Close()
 	defer c.connMap.Delete(source)
 
 	c.logger.Info("connected", "source", source)
