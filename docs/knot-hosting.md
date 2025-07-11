@@ -89,6 +89,39 @@ systemctl enable knotserver
 systemctl start knotserver
 ```
 
+The last step is to configure a reverse proxy like Nginx or Caddy to front yourself
+knot. Here's an example configuration for Nginx:
+
+```
+server {
+    listen 80;
+    listen [::]:80;
+    server_name knot.example.com;
+
+    location / {
+        proxy_pass http://localhost:5555;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # wss endpoint for git events
+    location /events {
+        proxy_set_header   X-Forwarded-For $remote_addr;
+        proxy_set_header   Host $http_host;
+        proxy_set_header Upgrade websocket;
+        proxy_set_header Connection Upgrade;
+        proxy_pass http://localhost:5555;
+    }
+  # additional config for SSL/TLS go here.
+}
+
+```
+
+Remember to use Let's Encrypt or similar to procure a certificate for your
+knot domain.
+
 You should now have a running knot server! You can finalize your registration by hitting the
 `initialize` button on the [/knots](/knots) page.
 
