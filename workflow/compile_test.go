@@ -9,7 +9,7 @@ import (
 )
 
 var trigger = tangled.Pipeline_TriggerMetadata{
-	Kind: TriggerKindPush,
+	Kind: string(TriggerKindPush),
 	Push: &tangled.Pipeline_PushTriggerData{
 		Ref:    "refs/heads/main",
 		OldSha: strings.Repeat("0", 40),
