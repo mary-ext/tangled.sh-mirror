@@ -172,15 +172,26 @@ func (c *Consumer) worker(ctx context.Context) {
 func (c *Consumer) startConnectionLoop(ctx context.Context, source Source) {
 	defer c.wg.Done()
 
+	// attempt connection initially
+	err := c.runConnection(ctx, source)
+	if err != nil {
+		c.logger.Error("failed to run connection", "err", err)
+	}
+
+	timer := time.NewTimer(1 * time.Minute)
+	defer timer.Stop()
+
+	// every subsequent attempt is delayed by 1 minute
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-timer.C:
 			err := c.runConnection(ctx, source)
 			if err != nil {
 				c.logger.Error("failed to run connection", "err", err)
 			}
+			timer.Reset(1 * time.Minute)
 		}
 	}
 }
