@@ -1,6 +1,6 @@
 {{ define "layouts/topbar" }}
     <nav class="space-x-4 mb-4 px-6 py-2 rounded bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm">
-        <div class="container flex justify-between p-0">
+        <div class="container flex justify-between p-0 items-center">
             <div id="left-items">
                 <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic">
                   tangled<sub>alpha</sub>
@@ -19,10 +19,10 @@
                 {{ i "code" "size-4" }} source
               </a>
             </div>
-            <div id="right-items" class="flex gap-2">
+            <div id="right-items" class="flex items-center gap-4">
                 {{ with .LoggedInUser }}
-                    <a href="/repo/new" hx-boost="true">
-                      {{ i "plus" "w-6 h-6" }}
+                    <a href="/repo/new" hx-boost="true" class="btn-create hover:no-underline hover:text-white">
+                      {{ i "plus" "w-4 h-4" }}
                     </a>
                     {{ block "dropDown" . }} {{ end }}
                 {{ else }}
@@ -47,9 +47,9 @@
         <a href="/knots">knots</a>
         <a href="/spindles">spindles</a>
         <a href="/settings">settings</a>
-        <a href="#" 
-           hx-post="/logout" 
-           hx-swap="none" 
+        <a href="#"
+           hx-post="/logout"
+           hx-swap="none"
            class="text-red-400 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
           logout
         </a>

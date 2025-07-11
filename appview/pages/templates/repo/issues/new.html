@@ -23,10 +23,11 @@
                 ></textarea>
             </div>
             <div>
-                <button type="submit" class="btn flex items-center gap-2">
-                    create
-                    <span id="spinner" class="group">
-                      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+                <button type="submit" class="btn-create flex items-center gap-2">
+                    {{ i "circle-plus" "w-4 h-4" }}
+                    create issue
+                    <span id="create-pull-spinner" class="group">
+                        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
                     </span>
                 </button>
             </div>
