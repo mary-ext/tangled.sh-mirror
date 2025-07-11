@@ -108,8 +108,8 @@
                         {{ $starrerHandle :=  index $.DidHandleMap .Star.StarredByDid }}
                         {{ $repoOwnerHandle :=  index $.DidHandleMap .Star.Repo.Did }}
                         <div class="flex items-center">
-                            {{ template "user/fragments/picHandle" $starrerHandle }}
                             <p class="text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                {{ template "user/fragments/picHandle" $starrerHandle }}
                                 starred
                                 <a
                                     href="/{{ $repoOwnerHandle }}/{{ .Star.Repo.Name }}"
