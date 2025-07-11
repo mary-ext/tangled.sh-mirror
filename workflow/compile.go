@@ -98,7 +98,7 @@ func (compiler *Compiler) compileWorkflow(w Workflow) tangled.Pipeline_Workflow 
 			Name:    s.Name,
 		}
 		for k, v := range s.Environment {
-			e := &tangled.Pipeline_Step_Environment_Elem{
+			e := &tangled.Pipeline_Pair{
 				Key:   k,
 				Value: v,
 			}
@@ -107,7 +107,7 @@ func (compiler *Compiler) compileWorkflow(w Workflow) tangled.Pipeline_Workflow 
 		cw.Steps = append(cw.Steps, &step)
 	}
 	for k, v := range w.Environment {
-		e := &tangled.Pipeline_Workflow_Environment_Elem{
+		e := &tangled.Pipeline_Pair{
 			Key:   k,
 			Value: v,
 		}

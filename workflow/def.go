@@ -167,10 +167,10 @@ func (s *StringList) UnmarshalYAML(unmarshal func(any) error) error {
 }
 
 // conversion utilities to atproto records
-func (d Dependencies) AsRecord() []tangled.Pipeline_Dependencies_Elem {
-	var deps []tangled.Pipeline_Dependencies_Elem
+func (d Dependencies) AsRecord() []*tangled.Pipeline_Dependency {
+	var deps []*tangled.Pipeline_Dependency
 	for registry, packages := range d {
-		deps = append(deps, tangled.Pipeline_Dependencies_Elem{
+		deps = append(deps, &tangled.Pipeline_Dependency{
 			Registry: registry,
 			Packages: packages,
 		})

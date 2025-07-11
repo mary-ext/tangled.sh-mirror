@@ -83,23 +83,27 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 	return &Pipeline{Workflows: workflows}
 }
 
-func workflowEnvToMap(envs []*tangled.Pipeline_Workflow_Environment_Elem) map[string]string {
+func workflowEnvToMap(envs []*tangled.Pipeline_Pair) map[string]string {
 	envMap := map[string]string{}
 	for _, env := range envs {
-		envMap[env.Key] = env.Value
+		if env != nil {
+			envMap[env.Key] = env.Value
+		}
 	}
 	return envMap
 }
 
-func stepEnvToMap(envs []*tangled.Pipeline_Step_Environment_Elem) map[string]string {
+func stepEnvToMap(envs []*tangled.Pipeline_Pair) map[string]string {
 	envMap := map[string]string{}
 	for _, env := range envs {
-		envMap[env.Key] = env.Value
+		if env != nil {
+			envMap[env.Key] = env.Value
+		}
 	}
 	return envMap
 }
 
-func workflowImage(deps []tangled.Pipeline_Dependencies_Elem, nixery string) string {
+func workflowImage(deps []*tangled.Pipeline_Dependency, nixery string) string {
 	var dependencies string
 	for _, d := range deps {
 		if d.Registry == "nixpkgs" {

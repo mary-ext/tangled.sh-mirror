@@ -29,17 +29,19 @@ type Pipeline_CloneOpts struct {
 	Submodules bool  `json:"submodules" cborgen:"submodules"`
 }
 
-type Pipeline_Dependencies_Elem struct {
+// Pipeline_Dependency is a "dependency" in the sh.tangled.pipeline schema.
+type Pipeline_Dependency struct {
 	Packages []string `json:"packages" cborgen:"packages"`
 	Registry string   `json:"registry" cborgen:"registry"`
 }
 
 // Pipeline_ManualTriggerData is a "manualTriggerData" in the sh.tangled.pipeline schema.
 type Pipeline_ManualTriggerData struct {
-	Inputs []*Pipeline_ManualTriggerData_Inputs_Elem `json:"inputs,omitempty" cborgen:"inputs,omitempty"`
+	Inputs []*Pipeline_Pair `json:"inputs,omitempty" cborgen:"inputs,omitempty"`
 }
 
-type Pipeline_ManualTriggerData_Inputs_Elem struct {
+// Pipeline_Pair is a "pair" in the sh.tangled.pipeline schema.
+type Pipeline_Pair struct {
 	Key   string `json:"key" cborgen:"key"`
 	Value string `json:"value" cborgen:"value"`
 }
@@ -61,14 +63,9 @@ type Pipeline_PushTriggerData struct {
 
 // Pipeline_Step is a "step" in the sh.tangled.pipeline schema.
 type Pipeline_Step struct {
-	Command     string                            `json:"command" cborgen:"command"`
-	Environment []*Pipeline_Step_Environment_Elem `json:"environment,omitempty" cborgen:"environment,omitempty"`
-	Name        string                            `json:"name" cborgen:"name"`
-}
-
-type Pipeline_Step_Environment_Elem struct {
-	Key   string `json:"key" cborgen:"key"`
-	Value string `json:"value" cborgen:"value"`
+	Command     string           `json:"command" cborgen:"command"`
+	Environment []*Pipeline_Pair `json:"environment,omitempty" cborgen:"environment,omitempty"`
+	Name        string           `json:"name" cborgen:"name"`
 }
 
 // Pipeline_TriggerMetadata is a "triggerMetadata" in the sh.tangled.pipeline schema.
@@ -90,14 +87,9 @@ type Pipeline_TriggerRepo struct {
 
 // Pipeline_Workflow is a "workflow" in the sh.tangled.pipeline schema.
 type Pipeline_Workflow struct {
-	Clone        *Pipeline_CloneOpts                   `json:"clone" cborgen:"clone"`
-	Dependencies []Pipeline_Dependencies_Elem          `json:"dependencies" cborgen:"dependencies"`
-	Environment  []*Pipeline_Workflow_Environment_Elem `json:"environment" cborgen:"environment"`
-	Name         string                                `json:"name" cborgen:"name"`
-	Steps        []*Pipeline_Step                      `json:"steps" cborgen:"steps"`
-}
-
-type Pipeline_Workflow_Environment_Elem struct {
-	Key   string `json:"key" cborgen:"key"`
-	Value string `json:"value" cborgen:"value"`
+	Clone        *Pipeline_CloneOpts    `json:"clone" cborgen:"clone"`
+	Dependencies []*Pipeline_Dependency `json:"dependencies" cborgen:"dependencies"`
+	Environment  []*Pipeline_Pair       `json:"environment" cborgen:"environment"`
+	Name         string                 `json:"name" cborgen:"name"`
+	Steps        []*Pipeline_Step       `json:"steps" cborgen:"steps"`
 }
