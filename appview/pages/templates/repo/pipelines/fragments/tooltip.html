@@ -10,7 +10,7 @@
           {{ $lastStatus := $all.Latest }}
           {{ $kind := $lastStatus.Status.String }}
 
-          {{ $t := $pipeline.TimeTaken }}
+          {{ $t := .TimeTaken }}
           {{ $time := "" }}
           {{ if $t }}
             {{ $time = durationFmt $t }}
