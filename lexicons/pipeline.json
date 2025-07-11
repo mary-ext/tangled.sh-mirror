@@ -9,7 +9,10 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["triggerMetadata", "workflows"],
+        "required": [
+          "triggerMetadata",
+          "workflows"
+        ],
         "properties": {
           "triggerMetadata": {
             "type": "ref",
@@ -27,11 +30,18 @@
     },
     "triggerMetadata": {
       "type": "object",
-      "required": ["kind", "repo"],
+      "required": [
+        "kind",
+        "repo"
+      ],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["push", "pull_request", "manual"]
+          "enum": [
+            "push",
+            "pull_request",
+            "manual"
+          ]
         },
         "repo": {
           "type": "ref",
@@ -53,7 +63,12 @@
     },
     "triggerRepo": {
       "type": "object",
-      "required": ["knot", "did", "repo", "defaultBranch"],
+      "required": [
+        "knot",
+        "did",
+        "repo",
+        "defaultBranch"
+      ],
       "properties": {
         "knot": {
           "type": "string"
@@ -72,7 +87,11 @@
     },
     "pushTriggerData": {
       "type": "object",
-      "required": ["ref", "newSha", "oldSha"],
+      "required": [
+        "ref",
+        "newSha",
+        "oldSha"
+      ],
       "properties": {
         "ref": {
           "type": "string"
@@ -91,7 +110,12 @@
     },
     "pullRequestTriggerData": {
       "type": "object",
-      "required": ["sourceBranch", "targetBranch", "sourceSha", "action"],
+      "required": [
+        "sourceBranch",
+        "targetBranch",
+        "sourceSha",
+        "action"
+      ],
       "properties": {
         "sourceBranch": {
           "type": "string"
@@ -115,30 +139,31 @@
         "inputs": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": ["key", "value"],
-            "properties": {
-              "key": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              }
-            }
+            "type": "ref",
+            "ref": "#pair"
           }
         }
       }
     },
     "workflow": {
       "type": "object",
-      "required": ["name", "dependencies", "steps", "environment", "clone"],
+      "required": [
+        "name",
+        "dependencies",
+        "steps",
+        "environment",
+        "clone"
+      ],
       "properties": {
         "name": {
           "type": "string"
         },
         "dependencies": {
-          "type": "ref",
-          "ref": "#dependencies"
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "#dependency"
+          }
         },
         "steps": {
           "type": "array",
@@ -150,16 +175,8 @@
         "environment": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": ["key", "value"],
-            "properties": {
-              "key": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              }
-            }
+            "type": "ref",
+            "ref": "#pair"
           }
         },
         "clone": {
@@ -168,27 +185,31 @@
         }
       }
     },
-    "dependencies": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["registry", "packages"],
-        "properties": {
-          "registry": {
+    "dependency": {
+      "type": "object",
+      "required": [
+        "registry",
+        "packages"
+      ],
+      "properties": {
+        "registry": {
+          "type": "string"
+        },
+        "packages": {
+          "type": "array",
+          "items": {
             "type": "string"
-          },
-          "packages": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         }
       }
     },
     "cloneOpts": {
       "type": "object",
-      "required": ["skip", "depth", "submodules"],
+      "required": [
+        "skip",
+        "depth",
+        "submodules"
+      ],
       "properties": {
         "skip": {
           "type": "boolean"
@@ -203,7 +224,10 @@
     },
     "step": {
       "type": "object",
-      "required": ["name", "command"],
+      "required": [
+        "name",
+        "command"
+      ],
       "properties": {
         "name": {
           "type": "string"
@@ -214,17 +238,24 @@
         "environment": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": ["key", "value"],
-            "properties": {
-              "key": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              }
-            }
+            "type": "ref",
+            "ref": "#pair"
           }
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
         }
       }
     }
