@@ -60,13 +60,14 @@
     </fieldset>
 
     <div class="space-y-2">
-      <button type="submit" class="btn flex items-center">
-        create repo
-        <span id="spinner" class="group">
-          {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-        </span>
-      </button>
-      <div id="repo" class="error"></div>
+        <button type="submit" class="btn-create flex items-center gap-2">
+            {{ i "book-plus" "w-4 h-4" }}
+            create repo
+            <span id="create-pull-spinner" class="group">
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
+        </button>
+        <div id="repo" class="error"></div>
     </div>
   </form>
 </div>
