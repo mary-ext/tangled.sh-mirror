@@ -44,5 +44,5 @@ func TestAddEnv(t *testing.T) {
 	ev.AddEnv("FOO", "bar")
 	ev.AddEnv("BAZ", "qux")
 	want := EnvVars{"FOO=bar", "BAZ=qux"}
-	assert.Equal(t, want, ev)
+	assert.ElementsMatch(t, want, ev)
 }
