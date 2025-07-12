@@ -783,15 +783,35 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	openVal := 0
-	if isOpen {
-		openVal = 1
+	keyword := params.Get("q")
+
+	var ids []int64
+	searchOpts := models.IssueSearchOptions{
+		Keyword: keyword,
+		RepoAt:  f.RepoAt().String(),
+		IsOpen:  isOpen,
+		Page:    page,
 	}
-	issues, err := db.GetIssuesPaginated(
+	if keyword != "" {
+		res, err := rp.indexer.Search(r.Context(), searchOpts)
+		if err != nil {
+			l.Error("failed to search for issues", "err", err)
+			return
+		}
+		ids = res.Hits
+		l.Debug("searched issues with indexer", "count", len(ids))
+	} else {
+		ids, err = db.GetIssueIDs(rp.db, searchOpts)
+		if err != nil {
+			l.Error("failed to search for issues", "err", err)
+			return
+		}
+		l.Debug("indexed all issues from the db", "count", len(ids))
+	}
+
+	issues, err := db.GetIssues(
 		rp.db,
-		page,
-		db.FilterEq("repo_at", f.RepoAt()),
-		db.FilterEq("open", openVal),
+		db.FilterIn("id", ids),
 	)
 	if err != nil {
 		l.Error("failed to get issues", "err", err)
@@ -821,6 +841,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		Issues:          issues,
 		LabelDefs:       defs,
 		FilteringByOpen: isOpen,
+		FilterQuery:     keyword,
 		Page:            page,
 	})
 }

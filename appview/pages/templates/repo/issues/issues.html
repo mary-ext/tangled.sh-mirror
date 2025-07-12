@@ -24,6 +24,13 @@
         {{ i "ban" "w-4 h-4" }}
         <span>{{ .RepoInfo.Stats.IssueCount.Closed }} closed</span>
     </a>
+    <form class="flex gap-4" method="GET">
+        <input type="hidden" name="state" value="{{ if .FilteringByOpen }}open{{ else }}closed{{ end }}">
+        <input class="" type="text" name="q" value="{{ .FilterQuery }}">
+        <button class="btn" type="submit">
+            search
+        </button>
+    </form>
   </div>
   <a
       href="/{{ .RepoInfo.FullName }}/issues/new"
@@ -55,7 +62,7 @@
         <a
             class="btn flex items-center gap-2 no-underline hover:no-underline dark:text-white dark:hover:bg-gray-700"
             hx-boost="true"
-            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&offset={{ $prev.Offset }}&limit={{ $prev.Limit }}"
+            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $prev.Offset }}&limit={{ $prev.Limit }}"
         >
             {{ i "chevron-left" "w-4 h-4" }}
             previous
@@ -69,7 +76,7 @@
         <a
             class="btn flex items-center gap-2 no-underline hover:no-underline dark:text-white dark:hover:bg-gray-700"
             hx-boost="true"
-            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&offset={{ $next.Offset }}&limit={{ $next.Limit }}"
+            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $next.Offset }}&limit={{ $next.Limit }}"
         >
             next
             {{ i "chevron-right" "w-4 h-4" }}

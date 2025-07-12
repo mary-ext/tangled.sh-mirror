@@ -250,6 +250,62 @@ func GetIssues(e Execer, filters ...filter) ([]models.Issue, error) {
 	return GetIssuesPaginated(e, pagination.Page{}, filters...)
 }
 
+// GetIssueIDs gets list of all existing issue's IDs
+func GetIssueIDs(e Execer, opts models.IssueSearchOptions) ([]int64, error) {
+	var ids []int64
+
+	var filters []filter
+	openValue := 0
+	if opts.IsOpen {
+		openValue = 1
+	}
+	filters = append(filters, FilterEq("open", openValue))
+	if opts.RepoAt != "" {
+		filters = append(filters, FilterEq("repo_at", opts.RepoAt))
+	}
+
+	var conditions []string
+	var args []any
+
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+	query := fmt.Sprintf(
+		`
+		select
+			id
+		from
+			issues
+		%s
+		limit ? offset ?`,
+		whereClause,
+	)
+	args = append(args, opts.Page.Limit, opts.Page.Offset)
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int64
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
 func AddIssueComment(e Execer, c models.IssueComment) (int64, error) {
 	result, err := e.Exec(
 		`insert into issue_comments (
