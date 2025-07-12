@@ -53,67 +53,58 @@
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-    nixpkgsFor = forAllSystems (system:
-      import nixpkgs {
-        inherit system;
-        overlays = [self.overlays.default];
-      });
+    nixpkgsFor = forAllSystems (system: nixpkgs.legacyPackages.${system});
     inherit (gitignore.lib) gitignoreSource;
-  in {
-    overlays.default = final: prev: let
+    mkPackageSet = pkgs: let
       goModHash = "sha256-SLi+nALwCd/Lzn3aljwPqCo2UaM9hl/4OAjcHQLt2Bk=";
-      appviewDeps = {
-        inherit htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
+      sqlite-lib = pkgs.callPackage ./nix/pkgs/sqlite-lib.nix {
+        inherit (pkgs) gcc;
+        inherit sqlite-lib-src;
       };
-      knotDeps = {
-        inherit goModHash gitignoreSource;
+      genjwks = pkgs.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
+      lexgen = pkgs.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
+      appview = pkgs.callPackage ./nix/pkgs/appview.nix {
+        inherit sqlite-lib htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
       };
-      spindleDeps = {
-        inherit goModHash gitignoreSource;
-      };
-      mkPackageSet = pkgs: {
-        lexgen = pkgs.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
-        appview = pkgs.callPackage ./nix/pkgs/appview.nix appviewDeps;
-        knot = pkgs.callPackage ./nix/pkgs/knot.nix {};
-        spindle = pkgs.callPackage ./nix/pkgs/spindle.nix spindleDeps;
-        knot-unwrapped = pkgs.callPackage ./nix/pkgs/knot-unwrapped.nix knotDeps;
-        sqlite-lib = pkgs.callPackage ./nix/pkgs/sqlite-lib.nix {
-          inherit (pkgs) gcc;
-          inherit sqlite-lib-src;
-        };
-        genjwks = pkgs.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
-      };
-    in
-      mkPackageSet final;
+      spindle = pkgs.callPackage ./nix/pkgs/spindle.nix {inherit sqlite-lib goModHash gitignoreSource;};
+      knot-unwrapped = pkgs.callPackage ./nix/pkgs/knot-unwrapped.nix {inherit sqlite-lib goModHash gitignoreSource;};
+      knot = pkgs.callPackage ./nix/pkgs/knot.nix {inherit knot-unwrapped;};
+    in {
+      inherit lexgen appview spindle knot-unwrapped knot sqlite-lib genjwks;
+    };
+  in {
+    overlays.default = final: prev: mkPackageSet final;
 
     packages = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
-      staticPkgs = pkgs.pkgsStatic;
-      crossPkgs = pkgs.pkgsCross.gnu64.pkgsStatic;
+      packages = mkPackageSet pkgs;
+      staticPackages = mkPackageSet pkgs.pkgsStatic;
+      crossPackages = mkPackageSet pkgs.pkgsCross.gnu64.pkgsStatic;
     in {
-      appview = pkgs.appview;
-      lexgen = pkgs.lexgen;
-      knot = pkgs.knot;
-      knot-unwrapped = pkgs.knot-unwrapped;
-      spindle = pkgs.spindle;
-      genjwks = pkgs.genjwks;
-      sqlite-lib = pkgs.sqlite-lib;
+      appview = packages.appview;
+      lexgen = packages.lexgen;
+      knot = packages.knot;
+      knot-unwrapped = packages.knot-unwrapped;
+      spindle = packages.spindle;
+      genjwks = packages.genjwks;
+      sqlite-lib = packages.sqlite-lib;
 
-      pkgsStatic-appview = staticPkgs.appview;
-      pkgsStatic-knot = staticPkgs.knot;
-      pkgsStatic-knot-unwrapped = staticPkgs.knot-unwrapped;
-      pkgsStatic-spindle = staticPkgs.spindle;
-      pkgsStatic-sqlite-lib = staticPkgs.sqlite-lib;
+      pkgsStatic-appview = staticPackages.appview;
+      pkgsStatic-knot = staticPackages.knot;
+      pkgsStatic-knot-unwrapped = staticPackages.knot-unwrapped;
+      pkgsStatic-spindle = staticPackages.spindle;
+      pkgsStatic-sqlite-lib = staticPackages.sqlite-lib;
 
-      pkgsCross-gnu64-pkgsStatic-appview = crossPkgs.appview;
-      pkgsCross-gnu64-pkgsStatic-knot = crossPkgs.knot;
-      pkgsCross-gnu64-pkgsStatic-knot-unwrapped = crossPkgs.knot-unwrapped;
-      pkgsCross-gnu64-pkgsStatic-spindle = crossPkgs.spindle;
+      pkgsCross-gnu64-pkgsStatic-appview = crossPackages.appview;
+      pkgsCross-gnu64-pkgsStatic-knot = crossPackages.knot;
+      pkgsCross-gnu64-pkgsStatic-knot-unwrapped = crossPackages.knot-unwrapped;
+      pkgsCross-gnu64-pkgsStatic-spindle = crossPackages.spindle;
     });
-    defaultPackage = forAllSystems (system: nixpkgsFor.${system}.appview);
-    formatter = forAllSystems (system: nixpkgsFor."${system}".alejandra);
+    defaultPackage = forAllSystems (system: self.packages.${system}.appview);
+    formatter = forAllSystems (system: nixpkgsFor.${system}.alejandra);
     devShells = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
+      packages' = self.packages.${system};
       staticShell = pkgs.mkShell.override {
         stdenv = pkgs.pkgsStatic.stdenv;
       };
@@ -124,12 +115,12 @@
           pkgs.air
           pkgs.gopls
           pkgs.httpie
-          pkgs.lexgen
           pkgs.litecli
           pkgs.websocat
           pkgs.tailwindcss
           pkgs.nixos-shell
           pkgs.redis
+          packages'.lexgen
         ];
         shellHook = ''
           mkdir -p appview/pages/static/{fonts,icons}
@@ -139,7 +130,7 @@
           cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
           cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
           cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
-          export TANGLED_OAUTH_JWKS="$(${pkgs.genjwks}/bin/genjwks)"
+          export TANGLED_OAUTH_JWKS="$(${packages'.genjwks}/bin/genjwks)"
         '';
         env.CGO_ENABLED = 1;
       };
