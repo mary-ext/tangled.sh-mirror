@@ -15,6 +15,7 @@ patches
 .env
 *.rdb
 .envrc
+*.bleve
 # Created if following hacking.md
 genjwks.out
 /nix/vm-data

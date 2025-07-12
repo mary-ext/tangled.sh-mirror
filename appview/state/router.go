@@ -262,6 +262,7 @@ func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
 		s.config,
 		s.notifier,
 		s.validator,
+		s.indexer.Issues,
 		log.SubLogger(s.logger, "issues"),
 	)
 	return issues.Router(mw)

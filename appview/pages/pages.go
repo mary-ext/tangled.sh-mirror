@@ -971,6 +971,7 @@ type RepoIssuesParams struct {
 	LabelDefs       map[string]*models.LabelDefinition
 	Page            pagination.Page
 	FilteringByOpen bool
+	FilterQuery     string
 }
 
 func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {

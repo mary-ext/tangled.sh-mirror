@@ -19,6 +19,7 @@ import (
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	issues_indexer "tangled.org/core/appview/indexer/issues"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
@@ -40,6 +41,7 @@ type Issues struct {
 	notifier     notify.Notifier
 	logger       *slog.Logger
 	validator    *validator.Validator
+	indexer      *issues_indexer.Indexer
 }
 
 func New(
@@ -51,6 +53,7 @@ func New(
 	config *config.Config,
 	notifier notify.Notifier,
 	validator *validator.Validator,
+	indexer *issues_indexer.Indexer,
 	logger *slog.Logger,
 ) *Issues {
 	return &Issues{
@@ -63,6 +66,7 @@ func New(
 		notifier:     notifier,
 		logger:       logger,
 		validator:    validator,
+		indexer:      indexer,
 	}
 }
 
@@ -843,6 +847,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			Rkey:    tid.TID(),
 			Title:   r.FormValue("title"),
 			Body:    r.FormValue("body"),
+			Open:    true,
 			Did:     user.Did,
 			Created: time.Now(),
 			Repo:    &f.Repo,

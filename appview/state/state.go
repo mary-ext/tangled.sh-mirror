@@ -14,6 +14,7 @@ import (
 	"tangled.org/core/appview"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/indexer"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	dbnotify "tangled.org/core/appview/notify/db"
@@ -43,6 +44,7 @@ import (
 type State struct {
 	db            *db.DB
 	notifier      notify.Notifier
+	indexer       *indexer.Indexer
 	oauth         *oauth.OAuth
 	enforcer      *rbac.Enforcer
 	pages         *pages.Pages
@@ -63,6 +65,12 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	d, err := db.Make(ctx, config.Core.DbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create db: %w", err)
+	}
+
+	indexer := indexer.New(log.SubLogger(logger, "indexer"))
+	err = indexer.Init(ctx, d)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create indexer: %w", err)
 	}
 
 	enforcer, err := rbac.NewEnforcer(config.Core.DbPath)
@@ -159,11 +167,13 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	if !config.Core.Dev {
 		notifiers = append(notifiers, phnotify.NewPosthogNotifier(posthog))
 	}
+	notifiers = append(notifiers, indexer)
 	notifier := notify.NewMergedNotifier(notifiers...)
 
 	state := &State{
 		d,
 		notifier,
+		indexer,
 		oauth,
 		enforcer,
 		pages,

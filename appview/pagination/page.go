@@ -52,3 +52,26 @@ func (p Page) Next() Page {
 		Limit:  p.Limit,
 	}
 }
+
+func IterateAll[T any](
+	fetch func(page Page) ([]T, error),
+	handle func(items []T) error,
+) error {
+	page := FirstPage()
+	for {
+		items, err := fetch(page)
+		if err != nil {
+			return err
+		}
+
+		err = handle(items)
+		if err != nil {
+			return err
+		}
+		if len(items) < page.Limit {
+			break
+		}
+		page = page.Next()
+	}
+	return nil
+}
