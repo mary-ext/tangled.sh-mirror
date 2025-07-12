@@ -1,10 +1,8 @@
 {{ define "user/fragments/picHandle" }}
-<a href="/{{ . }}" class="flex items-center">
-    <img
-        src="{{ tinyAvatar . }}"
-        alt="{{ . }}"
-        class="rounded-full h-6 w-6 mr-1 border border-gray-300 dark:border-gray-700"
-    />
-    {{ . | truncateAt30 }}
-</a>
+<img
+    src="{{ tinyAvatar . }}"
+    alt="{{ . }}"
+    class="rounded-full h-6 w-6 mr-1 border border-gray-300 dark:border-gray-700"
+/>
+{{ . | truncateAt30 }}
 {{ end }}

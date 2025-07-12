@@ -61,7 +61,7 @@
                         {{ $userHandle :=  index $.DidHandleMap .Repo.Did }}
                         <div class="flex items-center">
                             <p class="text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2">
-                                {{ template "user/fragments/picHandle" $userHandle }}
+                                {{ template "user/fragments/picHandleLink" $userHandle }}
                                 {{ if .Source }}
                                     forked
                                     <a
@@ -95,9 +95,9 @@
                         {{ $subjectHandle :=  index $.DidHandleMap .Follow.SubjectDid }}
                         <div class="flex items-center">
                             <p class="text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2">
-                                {{ template "user/fragments/picHandle" $userHandle }}
+                                {{ template "user/fragments/picHandleLink" $userHandle }}
                                 followed
-                                {{ template "user/fragments/picHandle" $subjectHandle }}
+                                {{ template "user/fragments/picHandleLink" $subjectHandle }}
                                 <time
                                     class="text-gray-700 dark:text-gray-400 text-xs"
                                     >{{ .Follow.FollowedAt | timeFmt }}</time
@@ -109,7 +109,7 @@
                         {{ $repoOwnerHandle :=  index $.DidHandleMap .Star.Repo.Did }}
                         <div class="flex items-center">
                             <p class="text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2">
-                                {{ template "user/fragments/picHandle" $starrerHandle }}
+                                {{ template "user/fragments/picHandleLink" $starrerHandle }}
                                 starred
                                 <a
                                     href="/{{ $repoOwnerHandle }}/{{ .Star.Repo.Name }}"

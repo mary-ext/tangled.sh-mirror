@@ -36,14 +36,15 @@
 {{ define "dropDown" }}
 <details class="relative inline-block text-left">
     <summary
-        class="cursor-pointer list-none"
+        class="cursor-pointer list-none flex items-center"
     >
-        {{ didOrHandle .Did .Handle }}
+        {{ $user := didOrHandle .Did .Handle }}
+        {{ template "user/fragments/picHandle" $user }}
     </summary>
     <div
         class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700"
     >
-        <a href="/{{ didOrHandle .Did .Handle }}">profile</a>
+        <a href="/{{ $user }}">profile</a>
         <a href="/knots">knots</a>
         <a href="/spindles">spindles</a>
         <a href="/settings">settings</a>

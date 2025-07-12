@@ -33,7 +33,7 @@
             <span class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
                 opened by
                 {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
-                {{ template "user/fragments/picHandle" $owner }}
+                {{ template "user/fragments/picHandleLink" $owner }}
                <span class="select-none before:content-['\00B7']"></span>
                 <time title="{{ .Issue.Created | longTimeFmt }}">
                     {{ .Issue.Created | timeFmt }}
