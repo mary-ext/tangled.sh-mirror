@@ -84,9 +84,9 @@
                                         >{{ .Repo.Name }}</a
                                     >
                                 {{ end }}
-                                <time
+                                <span
                                     class="text-gray-700 dark:text-gray-400 text-xs"
-                                    >{{ .Repo.Created | timeFmt }}</time
+                                    >{{ template "repo/fragments/time" .Repo.Created }}</span
                                 >
                             </p>
                         </div>
@@ -98,9 +98,9 @@
                                 {{ template "user/fragments/picHandleLink" $userHandle }}
                                 followed
                                 {{ template "user/fragments/picHandleLink" $subjectHandle }}
-                                <time
+                                <span
                                     class="text-gray-700 dark:text-gray-400 text-xs"
-                                    >{{ .Follow.FollowedAt | timeFmt }}</time
+                                    >{{ template "repo/fragments/time" .Follow.FollowedAt }}</span
                                 >
                             </p>
                         </div>
@@ -116,9 +116,9 @@
                                     class="no-underline hover:underline"
                                     >{{ $repoOwnerHandle | truncateAt30 }}/{{ .Star.Repo.Name }}</a
                                 >
-                                <time
+                                <span
                                     class="text-gray-700 dark:text-gray-400 text-xs"
-                                    >{{ .Star.Created | timeFmt }}</time
+                                    >{{ template "repo/fragments/time" .Star.Created }}</spa
                                 >
                             </p>
                         </div>

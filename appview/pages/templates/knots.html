@@ -44,7 +44,7 @@
                 </a>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-400">owned by {{ .ByDid }}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">registered {{ .Registered | timeFmt }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">registered {{ template "repo/fragments/time" .Registered }}</p>
             </div>
           </div>
           {{ end }}
@@ -70,7 +70,7 @@
                 </div>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-400">opened by {{ .ByDid }}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">created {{ .Created | timeFmt }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">created {{ template "repo/fragments/time" .Created }}</p>
             </div>
             <div class="flex gap-2 items-center">
               <button

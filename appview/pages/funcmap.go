@@ -107,7 +107,10 @@ func (p *Pages) funcMap() template.FuncMap {
 		},
 		"timeFmt": humanize.Time,
 		"longTimeFmt": func(t time.Time) string {
-			return t.Format("2006-01-02 * 3:04 PM")
+			return t.Format("Jan 2, 2006, 3:04 PM MST")
+		},
+		"iso8601Fmt": func(t time.Time) string {
+			return t.Format("2006-01-02T15:04:05-07:00")
 		},
 		"commaFmt": humanize.Comma,
 		"shortTimeFmt": func(t time.Time) string {

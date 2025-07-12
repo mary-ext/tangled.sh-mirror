@@ -19,7 +19,7 @@
           href="#{{ .CommentId }}"
           class="text-gray-500 hover:text-gray-500 hover:underline no-underline"
           id="{{ .CommentId }}">
-        {{ .Created | timeFmt }}
+        {{ template "repo/fragments/time" .Created }}
       </a>
 
       <button

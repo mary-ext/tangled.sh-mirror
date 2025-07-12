@@ -55,7 +55,7 @@
                 <span class="hidden md:inline">{{$re}}submitted</span>
                 by {{ template "user/fragments/picHandleLink" $owner }}
                 <span class="select-none before:content-['\00B7']"></span>
-                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500" href="#round-#{{ .RoundNumber }}"><time>{{ .Created | shortTimeFmt }}</time></a>
+                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500" href="#round-#{{ .RoundNumber }}">{{ template "repo/fragments/shortTime" .Created }}</a>
                 <span class="select-none before:content-['·']"></span>
                 {{ $s := "s" }}
                 {{ if eq (len .Comments) 1 }}
@@ -154,7 +154,7 @@
                 {{ $owner := index $.DidHandleMap $c.OwnerDid }}
                 {{ template "user/fragments/picHandleLink" $owner }}
                 <span class="before:content-['·']"></span>
-                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" href="#comment-{{.ID}}"><time>{{ $c.Created | shortTimeFmt }}</time></a>
+                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" href="#comment-{{.ID}}">{{ template "repo/fragments/time" $c.Created }}</a>
               </div>
               <div class="prose dark:prose-invert">
                 {{ $c.Body | markdown }}

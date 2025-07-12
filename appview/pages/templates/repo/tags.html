@@ -35,7 +35,7 @@
             <span>{{ .Tag.Tagger.Name }}</span>
 
             <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
-            <time>{{ shortTimeFmt .Tag.Tagger.When }}</time>
+            {{ template "repo/fragments/shortTime" .Tag.Tagger.When }}
             {{ end }}
           </div>
         </div>
@@ -54,7 +54,7 @@
               {{  slice .Tag.Target.String 0 8  }}
             </a>
             <span>{{ .Tag.Tagger.Name }}</span>
-            <time>{{ timeFmt .Tag.Tagger.When }}</time>
+            {{ template "repo/fragments/time" .Tag.Tagger.When }}
             {{ end }}
           </div>
         </div>

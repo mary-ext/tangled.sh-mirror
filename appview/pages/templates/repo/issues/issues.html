@@ -70,9 +70,7 @@
       </span>
 
       <span class="before:content-['·']">
-        <time>
-          {{ .Created | timeFmt }}
-        </time>
+        {{ template "repo/fragments/time" .Created }}
       </span>
 
       <span class="before:content-['·']">

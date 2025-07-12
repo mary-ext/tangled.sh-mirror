@@ -26,11 +26,11 @@
     </dd>
     
     <dt class="font-bold">opened</dt>
-    <dd>{{ .Registration.Created | timeFmt }}</dd>
+    <dd>{{ template "repo/fragments/time" .Registration.Created }}</dd>
     
     {{ if .Registration.Registered }}
       <dt class="font-bold">registered</dt>
-      <dd>{{ .Registration.Registered | timeFmt }}</dd>
+      <dd>{{ template "repo/fragments/time" .Registration.Registered }}</dd>
     {{ else }}
       <dt class="font-bold">status</dt>
       <dd class="text-yellow-800 dark:text-yellow-200 bg-yellow-100 dark:bg-yellow-900 rounded px-2 py-1 inline-block">

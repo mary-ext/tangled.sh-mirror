@@ -1,0 +1,15 @@
+{{ define "repo/fragments/timeWrapper" }}
+<time datetime="{{ .Time | iso8601Fmt }}" title="{{ .Time | longTimeFmt }}">{{ .Content }}</time>
+{{ end }}
+
+{{ define "repo/fragments/time" }}
+{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (. | timeFmt)) }}
+{{ end }}
+
+{{ define "repo/fragments/shortTime" }}
+{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (. | shortTimeFmt)) }}
+{{ end }}
+
+{{ define "repo/fragments/shortTimeAgo" }}
+{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (print (. | shortTimeFmt) " ago")) }}
+{{ end }}

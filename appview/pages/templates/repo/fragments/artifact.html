@@ -10,8 +10,8 @@
       </div>
 
     <div id="right-side" class="text-gray-500 dark:text-gray-400 flex items-center flex-shrink-0 gap-2 text-sm">
-      <span title="{{ longTimeFmt .Artifact.CreatedAt }}" class="hidden md:inline">{{ timeFmt .Artifact.CreatedAt }}</span>
-      <span title="{{ longTimeFmt .Artifact.CreatedAt }}" class="       md:hidden">{{ shortTimeFmt .Artifact.CreatedAt }}</span>
+      <span class="hidden md:inline">{{ template "repo/fragments/time" .Artifact.CreatedAt }}</span>
+      <span class="       md:hidden">{{ template "repo/fragments/shortTime" .Artifact.CreatedAt }}</span>
 
       <span class="select-none after:content-['·'] hidden md:inline"></span>
       <span class="truncate max-w-[100px] hidden md:inline">{{ .Artifact.MimeType }}</span>

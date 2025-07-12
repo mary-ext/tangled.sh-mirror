@@ -11,7 +11,7 @@
     {{ i "hard-drive" "w-4 h-4" }}
     {{ .Instance }}
     <span class="text-gray-500">
-      {{ .Created | shortTimeFmt }} ago
+      {{ template "repo/fragments/shortTimeAgo" .Created }}
     </span>
   </a>
   {{ else }}
@@ -19,7 +19,7 @@
     {{ i "hard-drive" "w-4 h-4" }}
     {{ .Instance }}
     <span class="text-gray-500">
-      {{ .Created | shortTimeFmt }} ago
+      {{ template "repo/fragments/shortTimeAgo" .Created }}
     </span>
   </div>
   {{ end }}

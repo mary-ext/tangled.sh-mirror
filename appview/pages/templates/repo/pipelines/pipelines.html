@@ -74,9 +74,7 @@
         </div>
 
         <div class="text-sm md:text-base col-span-1 text-right">
-          <time title="{{ .Created | longTimeFmt }}">
-            {{ .Created | shortTimeFmt }} ago
-          </time>
+          {{ template "repo/fragments/shortTimeAgo" .Created }}
         </div>
 
         {{ $t := .TimeTaken }}

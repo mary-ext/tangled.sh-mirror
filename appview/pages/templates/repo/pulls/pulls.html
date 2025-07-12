@@ -79,10 +79,8 @@
                         {{ template "user/fragments/picHandleLink" $owner }}
                     </span>
 
-                    <span>
-                        <time>
-                            {{ .Created | timeFmt }}
-                        </time>
+                    <span class="before:content-['·']">
+                        {{ template "repo/fragments/time" .Created }}
                     </span>
 
                     <span class="before:content-['·']">
