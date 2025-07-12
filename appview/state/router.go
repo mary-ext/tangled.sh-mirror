@@ -70,6 +70,7 @@ func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 
 	r.With(mw.ResolveIdent()).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.Profile)
+		r.Get("/feed.atom", s.AtomFeedPage)
 
 		r.With(mw.ResolveRepo()).Route("/{repo}", func(r chi.Router) {
 			r.Use(mw.GoImport())

@@ -183,7 +183,7 @@ func (mw Middleware) ResolveIdent() middlewareFunc {
 			id, err := mw.idResolver.ResolveIdent(req.Context(), didOrHandle)
 			if err != nil {
 				// invalid did or handle
-				log.Println("failed to resolve did/handle:", err)
+				log.Printf("failed to resolve did/handle '%s': %s\n", didOrHandle, err)
 				mw.pages.Error404(w)
 				return
 			}
