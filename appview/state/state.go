@@ -22,6 +22,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
+	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
@@ -34,6 +35,7 @@ import (
 
 type State struct {
 	db            *db.DB
+	notifier      notify.Notifier
 	oauth         *oauth.OAuth
 	enforcer      *rbac.Enforcer
 	tidClock      syntax.TIDClock
@@ -131,8 +133,12 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	}
 	spindlestream.Start(ctx)
 
+	notifier := notify.NewMergedNotifier(
+	)
+
 	state := &State{
 		d,
+		notifier,
 		oauth,
 		enforcer,
 		clock,
