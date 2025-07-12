@@ -173,6 +173,12 @@
         type = "app";
         program = ''${tailwind-watcher}/bin/run'';
       };
+      vm = {
+        type = "app";
+        program = toString (pkgs.writeShellScript "vm" ''
+          ${pkgs.nixos-shell}/bin/nixos-shell --flake .#vm
+        '');
+      };
     });
 
     nixosModules.appview = import ./nix/modules/appview.nix {inherit self;};

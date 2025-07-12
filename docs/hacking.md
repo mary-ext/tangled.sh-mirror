@@ -47,14 +47,15 @@ You can now start a lightweight NixOS VM using
 `nixos-shell` like so:
 
 ```bash
-QEMU_NET_OPTS="hostfwd=tcp::6000-:6000,hostfwd=tcp::2222-:22" nixos-shell --flake .#knotVM
+nix run .#vm
+# or nixos-shell --flake .#vm
 
 # hit Ctrl-a + c + q to exit the VM
 ```
 
-This starts a knot on port 6000 with `ssh` exposed on port
-2222. You can push repositories to this VM with this ssh
-config block on your main machine:
+This starts a knot on port 6000, a spindle on port 6555
+with `ssh` exposed on port 2222. You can push repositories
+to this VM with this ssh config block on your main machine:
 
 ```bash
 Host nixos-shell
