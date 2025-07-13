@@ -31,13 +31,15 @@ Spindle is configured using environment variables. The following environment var
 2.  **Build the Spindle binary.**
 
     ```shell
-    go build -o spindle core/spindle/server.go
+    cd core
+    go mod download
+    go build -o cmd/spindle/spindle cmd/spindle/main.go
     ```
 
 3.  **Run the Spindle binary.**
 
     ```shell
-    ./spindle
+    ./cmd/spindle/spindle
     ```
 
 Spindle will now start, connect to the Jetstream server, and begin processing pipelines.
