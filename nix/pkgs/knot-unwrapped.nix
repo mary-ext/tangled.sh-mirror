@@ -1,22 +1,21 @@
 {
-  buildGoModule,
-  stdenv,
+  buildGoApplication,
+  modules,
   sqlite-lib,
-  goModHash,
   gitignoreSource,
 }:
-buildGoModule {
+buildGoApplication {
   pname = "knot";
   version = "0.1.0";
   src = gitignoreSource ../..;
+  inherit modules;
 
   doCheck = false;
 
   subPackages = ["cmd/knot"];
-  vendorHash = goModHash;
-  tags = "libsqlite3";
+  tags = ["libsqlite3"];
 
   env.CGO_CFLAGS = "-I ${sqlite-lib}/include ";
   env.CGO_LDFLAGS = "-L ${sqlite-lib}/lib";
-  env.CGO_ENABLED = 1;
+  CGO_ENABLED = 1;
 }

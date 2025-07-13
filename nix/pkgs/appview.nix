@@ -1,6 +1,6 @@
 {
-  buildGoModule,
-  stdenv,
+  buildGoApplication,
+  modules,
   htmx-src,
   htmx-ws-src,
   lucide-src,
@@ -8,15 +8,13 @@
   ibm-plex-mono-src,
   tailwindcss,
   sqlite-lib,
-  goModHash,
   gitignoreSource,
 }:
-buildGoModule {
-  inherit stdenv;
-
+buildGoApplication {
   pname = "appview";
   version = "0.1.0";
   src = gitignoreSource ../..;
+  inherit modules;
 
   postUnpack = ''
     pushd source
@@ -33,10 +31,9 @@ buildGoModule {
 
   doCheck = false;
   subPackages = ["cmd/appview"];
-  vendorHash = goModHash;
 
-  tags = "libsqlite3";
+  tags = ["libsqlite3"];
   env.CGO_CFLAGS = "-I ${sqlite-lib}/include ";
   env.CGO_LDFLAGS = "-L ${sqlite-lib}/lib";
-  env.CGO_ENABLED = 1;
+  CGO_ENABLED = 1;
 }

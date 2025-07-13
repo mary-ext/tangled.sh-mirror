@@ -3,6 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    gomod2nix = {
+      url = "github:nix-community/gomod2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     indigo = {
       url = "github:oppiliappan/indigo";
       flake = false;
@@ -42,6 +46,7 @@
   outputs = {
     self,
     nixpkgs,
+    gomod2nix,
     indigo,
     htmx-src,
     htmx-ws-src,
@@ -57,8 +62,9 @@
 
     mkPackageSet = pkgs:
       pkgs.lib.makeScope pkgs.newScope (self: {
-        goModHash = "sha256-SLi+nALwCd/Lzn3aljwPqCo2UaM9hl/4OAjcHQLt2Bk=";
         inherit (gitignore.lib) gitignoreSource;
+        inherit (gomod2nix.legacyPackages.${pkgs.system}) buildGoApplication;
+        modules = ./nix/gomod2nix.toml;
         sqlite-lib = self.callPackage ./nix/pkgs/sqlite-lib.nix {
           inherit (pkgs) gcc;
           inherit sqlite-lib-src;
@@ -170,6 +176,12 @@
         type = "app";
         program = toString (pkgs.writeShellScript "vm" ''
           ${pkgs.nixos-shell}/bin/nixos-shell --flake .#vm
+        '');
+      };
+      gomod2nix = {
+        type = "app";
+        program = toString (pkgs.writeShellScript "gomod2nix" ''
+          ${gomod2nix.legacyPackages.${system}.gomod2nix}/bin/gomod2nix generate --outdir ./nix
         '');
       };
     });
