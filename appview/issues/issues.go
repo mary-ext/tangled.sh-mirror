@@ -703,21 +703,15 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.NewIssue(tx, &db.Issue{
+		issue := &db.Issue{
 			RepoAt:   f.RepoAt,
 			Title:    title,
 			Body:     body,
 			OwnerDid: user.Did,
-		})
+		}
+		err = db.NewIssue(tx, issue)
 		if err != nil {
 			log.Println("failed to create issue", err)
-			rp.pages.Notice(w, "issues", "Failed to create issue.")
-			return
-		}
-
-		issueId, err := db.GetIssueId(rp.db, f.RepoAt)
-		if err != nil {
-			log.Println("failed to get issue id", err)
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}
@@ -739,7 +733,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 					Title:   title,
 					Body:    &body,
 					Owner:   user.Did,
-					IssueId: int64(issueId),
+					IssueId: int64(issue.IssueId),
 				},
 			},
 		})
@@ -749,7 +743,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.SetIssueAt(rp.db, f.RepoAt, issueId, resp.Uri)
+		err = db.SetIssueAt(rp.db, f.RepoAt, issue.IssueId, resp.Uri)
 		if err != nil {
 			log.Println("failed to set issue at", err)
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
@@ -760,14 +754,14 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			err = rp.posthog.Enqueue(posthog.Capture{
 				DistinctId: user.Did,
 				Event:      "new_issue",
-				Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "issue_id": issueId},
+				Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "issue_id": issue.IssueId},
 			})
 			if err != nil {
 				log.Println("failed to enqueue posthog event:", err)
 			}
 		}
 
-		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueId))
+		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	}
 }

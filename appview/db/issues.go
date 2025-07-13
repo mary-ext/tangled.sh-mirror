@@ -98,12 +98,6 @@ func GetIssueAt(e Execer, repoAt syntax.ATURI, issueId int) (string, error) {
 	return issueAt, err
 }
 
-func GetIssueId(e Execer, repoAt syntax.ATURI) (int, error) {
-	var issueId int
-	err := e.QueryRow(`select next_issue_id from repo_issue_seqs where repo_at = ?`, repoAt).Scan(&issueId)
-	return issueId - 1, err
-}
-
 func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error) {
 	var ownerDid string
 	err := e.QueryRow(`select owner_did from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&ownerDid)
