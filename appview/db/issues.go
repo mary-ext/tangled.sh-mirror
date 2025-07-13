@@ -9,6 +9,7 @@ import (
 )
 
 type Issue struct {
+	ID       int64
 	RepoAt   syntax.ATURI
 	OwnerDid string
 	IssueId  int
@@ -65,13 +66,19 @@ func NewIssue(tx *sql.Tx, issue *Issue) error {
 
 	issue.IssueId = nextId
 
-	_, err = tx.Exec(`
+	res, err := tx.Exec(`
 		insert into issues (repo_at, owner_did, issue_id, title, body)
 		values (?, ?, ?, ?, ?)
 	`, issue.RepoAt, issue.OwnerDid, issue.IssueId, issue.Title, issue.Body)
 	if err != nil {
 		return err
 	}
+
+	lastID, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	issue.ID = lastID
 
 	if err := tx.Commit(); err != nil {
 		return err
@@ -114,6 +121,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 		`
 		with numbered_issue as (
 			select
+				i.id,
 				i.owner_did,
 				i.issue_id,
 				i.created,
@@ -132,6 +140,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 				i.id, i.owner_did, i.issue_id, i.created, i.title, i.body, i.open
 		)
 		select
+			id,
 			owner_did,
 			issue_id,
 			created,
@@ -153,7 +162,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 		var issue Issue
 		var createdAt string
 		var metadata IssueMetadata
-		err := rows.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
+		err := rows.Scan(&issue.ID, &issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
 		if err != nil {
 			return nil, err
 		}
@@ -182,6 +191,7 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 
 	rows, err := e.Query(
 		`select
+			i.id,
 			i.owner_did,
 			i.repo_at,
 			i.issue_id,
@@ -213,6 +223,7 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 		var issueCreatedAt, repoCreatedAt string
 		var repo Repo
 		err := rows.Scan(
+			&issue.ID,
 			&issue.OwnerDid,
 			&issue.RepoAt,
 			&issue.IssueId,
@@ -257,12 +268,12 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 }
 
 func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
-	query := `select owner_did, created, title, body, open from issues where repo_at = ? and issue_id = ?`
+	query := `select id, owner_did, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
 	var issue Issue
 	var createdAt string
-	err := row.Scan(&issue.OwnerDid, &createdAt, &issue.Title, &issue.Body, &issue.Open)
+	err := row.Scan(&issue.ID, &issue.OwnerDid, &createdAt, &issue.Title, &issue.Body, &issue.Open)
 	if err != nil {
 		return nil, err
 	}
@@ -277,12 +288,12 @@ func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 }
 
 func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, []Comment, error) {
-	query := `select owner_did, issue_id, created, title, body, open, issue_at from issues where repo_at = ? and issue_id = ?`
+	query := `select id, owner_did, issue_id, created, title, body, open, issue_at from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
 	var issue Issue
 	var createdAt string
-	err := row.Scan(&issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &issue.IssueAt)
+	err := row.Scan(&issue.ID, &issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &issue.IssueAt)
 	if err != nil {
 		return nil, nil, err
 	}
