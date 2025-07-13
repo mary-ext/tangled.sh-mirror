@@ -54,26 +54,28 @@
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     nixpkgsFor = forAllSystems (system: nixpkgs.legacyPackages.${system});
-    inherit (gitignore.lib) gitignoreSource;
-    mkPackageSet = pkgs: let
-      goModHash = "sha256-SLi+nALwCd/Lzn3aljwPqCo2UaM9hl/4OAjcHQLt2Bk=";
-      sqlite-lib = pkgs.callPackage ./nix/pkgs/sqlite-lib.nix {
-        inherit (pkgs) gcc;
-        inherit sqlite-lib-src;
-      };
-      genjwks = pkgs.callPackage ./nix/pkgs/genjwks.nix {inherit goModHash gitignoreSource;};
-      lexgen = pkgs.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
-      appview = pkgs.callPackage ./nix/pkgs/appview.nix {
-        inherit sqlite-lib htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src goModHash gitignoreSource;
-      };
-      spindle = pkgs.callPackage ./nix/pkgs/spindle.nix {inherit sqlite-lib goModHash gitignoreSource;};
-      knot-unwrapped = pkgs.callPackage ./nix/pkgs/knot-unwrapped.nix {inherit sqlite-lib goModHash gitignoreSource;};
-      knot = pkgs.callPackage ./nix/pkgs/knot.nix {inherit knot-unwrapped;};
-    in {
-      inherit lexgen appview spindle knot-unwrapped knot sqlite-lib genjwks;
-    };
+
+    mkPackageSet = pkgs:
+      pkgs.lib.makeScope pkgs.newScope (self: {
+        goModHash = "sha256-SLi+nALwCd/Lzn3aljwPqCo2UaM9hl/4OAjcHQLt2Bk=";
+        inherit (gitignore.lib) gitignoreSource;
+        sqlite-lib = self.callPackage ./nix/pkgs/sqlite-lib.nix {
+          inherit (pkgs) gcc;
+          inherit sqlite-lib-src;
+        };
+        genjwks = self.callPackage ./nix/pkgs/genjwks.nix {};
+        lexgen = self.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
+        appview = self.callPackage ./nix/pkgs/appview.nix {
+          inherit htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src;
+        };
+        spindle = self.callPackage ./nix/pkgs/spindle.nix {};
+        knot-unwrapped = self.callPackage ./nix/pkgs/knot-unwrapped.nix {};
+        knot = self.callPackage ./nix/pkgs/knot.nix {};
+      });
   in {
-    overlays.default = final: prev: mkPackageSet final;
+    overlays.default = final: prev: {
+      inherit (mkPackageSet final) lexgen sqlite-lib genjwks spindle knot-unwrapped knot appview;
+    };
 
     packages = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
