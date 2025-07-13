@@ -1,5 +1,5 @@
 when:
-  - event: ["push"]
+  - event: ["push", "pull_request"]
     branch: ["master"]
 
 dependencies:
@@ -22,3 +22,7 @@ steps:
   - name: build knot
     command: |
        go build -o knot.out ./cmd/knot
+
+  - name: build spindle
+    command: |
+       go build -o spindle.out ./cmd/spindle

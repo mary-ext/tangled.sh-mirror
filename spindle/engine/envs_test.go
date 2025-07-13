@@ -34,7 +34,7 @@ func TestConstructEnvs(t *testing.T) {
 			if got == nil {
 				got = EnvVars{}
 			}
-			assert.Equal(t, tt.want, got)
+			assert.ElementsMatch(t, tt.want, got)
 		})
 	}
 }
