@@ -32,22 +32,17 @@
           {{ $lastStatus := $all.Latest }}
           {{ $kind := $lastStatus.Status.String }}
 
-          {{ $t := .TimeTaken }}
-          {{ $time := "" }}
-
-          {{ if $t }}
-          {{ $time = durationFmt $t }}
-          {{ else }}
-          {{ $time = printf "%s ago" (shortTimeFmt $lastStatus.Created) }}
-          {{ end }}
-
           <div id="left" class="flex items-center gap-2 flex-shrink-0">
             {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
             {{ $name }}
           </div>
           <div id="right" class="flex items-center gap-2 flex-shrink-0">
             <span class="font-bold">{{ $kind }}</span>
-            <time>{{ $time }}</time>
+            {{ if .TimeTaken }}
+            {{ template "repo/fragments/duration" .TimeTaken }}
+            {{ else }}
+            {{ template "repo/fragments/shortTimeAgo" $lastStatus.Created }}
+            {{ end }}
           </div>
         </div>
       </a>

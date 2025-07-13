@@ -105,15 +105,9 @@ func (p *Pages) funcMap() template.FuncMap {
 			s = append(s, values...)
 			return s
 		},
-		"timeFmt": humanize.Time,
-		"longTimeFmt": func(t time.Time) string {
-			return t.Format("Jan 2, 2006, 3:04 PM MST")
-		},
-		"iso8601Fmt": func(t time.Time) string {
-			return t.Format("2006-01-02T15:04:05-07:00")
-		},
-		"commaFmt": humanize.Comma,
-		"shortTimeFmt": func(t time.Time) string {
+		"commaFmt":   humanize.Comma,
+		"relTimeFmt": humanize.Time,
+		"shortRelTimeFmt": func(t time.Time) string {
 			return humanize.CustomRelTime(t, time.Now(), "", "", []humanize.RelTimeMagnitude{
 				{time.Second, "now", time.Second},
 				{2 * time.Second, "1s %s", 1},
@@ -132,31 +126,24 @@ func (p *Pages) funcMap() template.FuncMap {
 				{math.MaxInt64, "a long while %s", 1},
 			})
 		},
-		"durationFmt": func(duration time.Duration) string {
+		"longTimeFmt": func(t time.Time) string {
+			return t.Format("Jan 2, 2006, 3:04 PM MST")
+		},
+		"iso8601DateTimeFmt": func(t time.Time) string {
+			return t.Format("2006-01-02T15:04:05-07:00")
+		},
+		"iso8601DurationFmt": func(duration time.Duration) string {
 			days := int64(duration.Hours() / 24)
 			hours := int64(math.Mod(duration.Hours(), 24))
 			minutes := int64(math.Mod(duration.Minutes(), 60))
 			seconds := int64(math.Mod(duration.Seconds(), 60))
-
-			chunks := []struct {
-				name   string
-				amount int64
-			}{
-				{"d", days},
-				{"hr", hours},
-				{"min", minutes},
-				{"s", seconds},
-			}
-
-			parts := []string{}
-
-			for _, chunk := range chunks {
-				if chunk.amount != 0 {
-					parts = append(parts, fmt.Sprintf("%d%s", chunk.amount, chunk.name))
-				}
-			}
-
-			return strings.Join(parts, " ")
+			return fmt.Sprintf("P%dD%dH%dM%dS", days, hours, minutes, seconds)
+		},
+		"durationFmt": func(duration time.Duration) string {
+			return durationFmt(duration, [4]string{"d", "hr", "min", "s"})
+		},
+		"longDurationFmt": func(duration time.Duration) string {
+			return durationFmt(duration, [4]string{"days", "hours", "minutes", "seconds"})
 		},
 		"byteFmt": humanize.Bytes,
 		"length": func(slice any) int {
@@ -290,4 +277,31 @@ func icon(name string, classes []string) (template.HTML, error) {
 
 	modifiedSVG := svgStr[:svgTagEnd] + classTag + svgStr[svgTagEnd:]
 	return template.HTML(modifiedSVG), nil
+}
+
+func durationFmt(duration time.Duration, names [4]string) string {
+	days := int64(duration.Hours() / 24)
+	hours := int64(math.Mod(duration.Hours(), 24))
+	minutes := int64(math.Mod(duration.Minutes(), 60))
+	seconds := int64(math.Mod(duration.Seconds(), 60))
+
+	chunks := []struct {
+		name   string
+		amount int64
+	}{
+		{names[0], days},
+		{names[1], hours},
+		{names[2], minutes},
+		{names[3], seconds},
+	}
+
+	parts := []string{}
+
+	for _, chunk := range chunks {
+		if chunk.amount != 0 {
+			parts = append(parts, fmt.Sprintf("%d%s", chunk.amount, chunk.name))
+		}
+	}
+
+	return strings.Join(parts, " ")
 }
