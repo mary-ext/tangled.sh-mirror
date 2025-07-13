@@ -90,7 +90,7 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, 
 
 			reader, err := e.docker.ImagePull(ctx, w.Image, image.PullOptions{})
 			if err != nil {
-				e.l.Error("pipeline failed!", "workflowId", wid, "error", err.Error())
+				e.l.Error("pipeline image pull failed!", "image", w.Image, "workflowId", wid, "error", err.Error())
 
 				err := e.db.StatusFailed(wid, err.Error(), -1, e.n)
 				if err != nil {
