@@ -36,7 +36,14 @@ Spindle is configured using environment variables. The following environment var
     go build -o cmd/spindle/spindle cmd/spindle/main.go
     ```
 
-3.  **Run the Spindle binary.**
+3.  **Create the log directory.**
+
+    ```shell
+    sudo mkdir -p /var/log/spindle
+    sudo chown $USER:$USER -R /var/log/spindle
+    ```
+
+4.  **Run the Spindle binary.**
 
     ```shell
     ./cmd/spindle/spindle
