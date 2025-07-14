@@ -316,11 +316,14 @@ func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.Enforcer.RemoveSpindle(instance)
-	if err != nil {
-		l.Error("failed to update ACL", "err", err)
-		fail()
-		return
+	// delete from enforcer
+	if spindles[0].Verified != nil {
+		err = s.Enforcer.RemoveSpindle(instance)
+		if err != nil {
+			l.Error("failed to update ACL", "err", err)
+			fail()
+			return
+		}
 	}
 
 	client, err := s.OAuth.AuthorizedClient(r)

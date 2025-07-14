@@ -492,6 +492,7 @@ func (i *Ingester) ingestSpindle(e *models.Event) error {
 		if err != nil || len(spindles) != 1 {
 			return fmt.Errorf("failed to get spindles: %w, len(spindles) = %d", err, len(spindles))
 		}
+		spindle := spindles[0]
 
 		tx, err := ddb.Begin()
 		if err != nil {
@@ -511,9 +512,11 @@ func (i *Ingester) ingestSpindle(e *models.Event) error {
 			return err
 		}
 
-		err = i.Enforcer.RemoveSpindle(instance)
-		if err != nil {
-			return err
+		if spindle.Verified != nil {
+			err = i.Enforcer.RemoveSpindle(instance)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = tx.Commit()
