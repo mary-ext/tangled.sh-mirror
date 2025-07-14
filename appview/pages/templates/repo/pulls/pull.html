@@ -5,7 +5,7 @@
 {{ define "extrameta" }}
     {{ $title := printf "%s &middot; pull #%d &middot; %s" .Pull.Title .Pull.PullId .RepoInfo.FullName }}
     {{ $url := printf "https://tangled.sh/%s/pulls/%d" .RepoInfo.FullName .Pull.PullId }}
-    
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
@@ -46,14 +46,14 @@
             </div>
             <!-- round summary -->
             <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 p-2 text-gray-500 dark:text-gray-400">
-              <span>
+              <span class="gap-1 flex items-center">
                 {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
                 {{ $re := "re" }}
                 {{ if eq .RoundNumber 0 }}
                   {{ $re = "" }}
                 {{ end }}
                 <span class="hidden md:inline">{{$re}}submitted</span>
-                by <a href="/{{ $owner }}">{{ $owner }}</a>
+                by {{ template "user/fragments/picHandleLink" $owner }}
                 <span class="select-none before:content-['\00B7']"></span>
                 <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500" href="#round-#{{ .RoundNumber }}"><time>{{ .Created | shortTimeFmt }}</time></a>
                 <span class="select-none before:content-['·']"></span>
@@ -68,7 +68,7 @@
             <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
                hx-boost="true"
                href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">
-              {{ i "file-diff" "w-4 h-4" }} 
+              {{ i "file-diff" "w-4 h-4" }}
               <span class="hidden md:inline">diff</span>
               {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </a>
@@ -150,9 +150,9 @@
               {{ if gt $cidx 0 }}
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
               {{ end }}
-              <div class="text-sm text-gray-500 dark:text-gray-400">
-                {{ $owner := index $.DidHandleMap $c.OwnerDid }} 
-                <a href="/{{$owner}}">{{$owner}}</a>
+              <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                {{ $owner := index $.DidHandleMap $c.OwnerDid }}
+                {{ template "user/fragments/picHandleLink" $owner }}
                 <span class="before:content-['·']"></span>
                 <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" href="#comment-{{.ID}}"><time>{{ $c.Created | shortTimeFmt }}</time></a>
               </div>

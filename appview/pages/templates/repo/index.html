@@ -266,7 +266,7 @@
             {{ end }}"
             class="text-gray-500 dark:text-gray-400 no-underline hover:underline"
             >{{ if $didOrHandle }}
-            {{ $didOrHandle }}
+            {{ template "user/fragments/picHandleLink" $didOrHandle }}
             {{ else }}
             {{ .Author.Name }}
             {{ end }}</a

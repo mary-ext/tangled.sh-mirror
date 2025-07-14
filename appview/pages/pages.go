@@ -691,16 +691,16 @@ type RepoSingleIssueParams struct {
 	DidHandleMap     map[string]string
 
 	OrderedReactionKinds []db.ReactionKind
-	Reactions map[db.ReactionKind]int
-	UserReacted map[db.ReactionKind]bool
+	Reactions            map[db.ReactionKind]int
+	UserReacted          map[db.ReactionKind]bool
 
 	State string
 }
 
 type ThreadReactionFragmentParams struct {
 	ThreadAt  syntax.ATURI
-	Kind  db.ReactionKind
-	Count int
+	Kind      db.ReactionKind
+	Count     int
 	IsReacted bool
 }
 
@@ -825,14 +825,15 @@ func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
 }
 
 type RepoPullPatchParams struct {
-	LoggedInUser *oauth.User
-	DidHandleMap map[string]string
-	RepoInfo     repoinfo.RepoInfo
-	Pull         *db.Pull
-	Stack        db.Stack
-	Diff         *types.NiceDiff
-	Round        int
-	Submission   *db.PullSubmission
+	LoggedInUser         *oauth.User
+	DidHandleMap         map[string]string
+	RepoInfo             repoinfo.RepoInfo
+	Pull                 *db.Pull
+	Stack                db.Stack
+	Diff                 *types.NiceDiff
+	Round                int
+	Submission           *db.PullSubmission
+	OrderedReactionKinds []db.ReactionKind
 }
 
 // this name is a mouthful
@@ -841,12 +842,13 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 }
 
 type RepoPullInterdiffParams struct {
-	LoggedInUser *oauth.User
-	DidHandleMap map[string]string
-	RepoInfo     repoinfo.RepoInfo
-	Pull         *db.Pull
-	Round        int
-	Interdiff    *patchutil.InterdiffResult
+	LoggedInUser         *oauth.User
+	DidHandleMap         map[string]string
+	RepoInfo             repoinfo.RepoInfo
+	Pull                 *db.Pull
+	Round                int
+	Interdiff            *patchutil.InterdiffResult
+	OrderedReactionKinds []db.ReactionKind
 }
 
 // this name is a mouthful

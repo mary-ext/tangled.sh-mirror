@@ -90,7 +90,7 @@
   >
     <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-full md:w-3/5">
       <div class="text-sm pb-2 text-gray-500 dark:text-gray-400">
-        {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
+        {{ template "user/fragments/picHandleLink" (didOrHandle .LoggedInUser.Did .LoggedInUser.Handle) }}
       </div>
           <textarea
               id="comment-textarea"

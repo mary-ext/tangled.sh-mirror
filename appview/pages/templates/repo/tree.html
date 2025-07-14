@@ -11,7 +11,7 @@
     {{ template "repo/fragments/meta" . }}
     {{ $title := printf "%s at %s &middot; %s" $path .Ref .RepoInfo.FullName }}
     {{ $url := printf "https://tangled.sh/%s/tree/%s%s" .RepoInfo.FullName .Ref $path }}
-    
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
@@ -63,7 +63,10 @@
                 </div>
             </a>
             {{ if .LastCommit}}
+            <div class="flex items-end gap-2">
+              <span  class="text text-gray-500 dark:text-gray-400 mr-6">{{ .LastCommit.Message }}</span>
               <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .LastCommit.When }}</time>
+            </div>
             {{ end }}
         </div>
     </div>
@@ -80,7 +83,10 @@
                 </div>
             </a>
             {{ if .LastCommit}}
+            <div class="flex items-end gap-2">
+              <span  class="text text-gray-500 dark:text-gray-400 mr-6">{{ .LastCommit.Message }}</span>
               <time class="text-xs text-gray-500 dark:text-gray-400">{{ timeFmt .LastCommit.When }}</time>
+            </div>
             {{ end }}
         </div>
     </div>

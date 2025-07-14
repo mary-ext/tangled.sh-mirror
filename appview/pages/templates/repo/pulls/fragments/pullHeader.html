@@ -62,9 +62,10 @@
         </article>
     {{ end }}
 
+    {{ with .OrderedReactionKinds }}
     <div class="flex items-center gap-2 mt-2">
-        {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
-        {{ range $kind := .OrderedReactionKinds }}
+        {{ template "repo/fragments/reactionsPopUp" . }}
+        {{ range $kind := . }}
             {{
                 template "repo/fragments/reaction"
                 (dict
@@ -75,6 +76,7 @@
             }}
         {{ end }}
     </div>
+    {{ end }}
 </section>
 
 
