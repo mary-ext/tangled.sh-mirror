@@ -96,7 +96,7 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		total    int
 		branches []types.Branch
 		files    []types.NiceTree
-		tags     []*git.TagReference
+		tags     []object.Tag
 	)
 
 	var wg sync.WaitGroup
@@ -169,17 +169,21 @@ func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	rtags := []*types.TagReference{}
 	for _, tag := range tags {
+		var target *object.Tag
+		if tag.Target != plumbing.ZeroHash {
+			target = &tag
+		}
 		tr := types.TagReference{
-			Tag: tag.TagObject(),
+			Tag: target,
 		}
 
 		tr.Reference = types.Reference{
-			Name: tag.Name(),
-			Hash: tag.Hash().String(),
+			Name: tag.Name,
+			Hash: tag.Hash.String(),
 		}
 
-		if tag.Message() != "" {
-			tr.Message = tag.Message()
+		if tag.Message != "" {
+			tr.Message = tag.Message
 		}
 
 		rtags = append(rtags, &tr)
@@ -488,17 +492,21 @@ func (h *Handle) Tags(w http.ResponseWriter, r *http.Request) {
 
 	rtags := []*types.TagReference{}
 	for _, tag := range tags {
+		var target *object.Tag
+		if tag.Target != plumbing.ZeroHash {
+			target = &tag
+		}
 		tr := types.TagReference{
-			Tag: tag.TagObject(),
+			Tag: target,
 		}
 
 		tr.Reference = types.Reference{
-			Name: tag.Name(),
-			Hash: tag.Hash().String(),
+			Name: tag.Name,
+			Hash: tag.Hash.String(),
 		}
 
-		if tag.Message() != "" {
-			tr.Message = tag.Message()
+		if tag.Message != "" {
+			tr.Message = tag.Message
 		}
 
 		rtags = append(rtags, &tr)
