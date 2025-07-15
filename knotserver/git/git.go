@@ -264,39 +264,6 @@ func (g *GitRepo) RawContent(path string) ([]byte, error) {
 	return io.ReadAll(reader)
 }
 
-func (g *GitRepo) Tags() ([]*TagReference, error) {
-	iter, err := g.r.Tags()
-	if err != nil {
-		return nil, fmt.Errorf("tag objects: %w", err)
-	}
-
-	tags := make([]*TagReference, 0)
-
-	if err := iter.ForEach(func(ref *plumbing.Reference) error {
-		obj, err := g.r.TagObject(ref.Hash())
-		switch err {
-		case nil:
-			tags = append(tags, &TagReference{
-				ref: ref,
-				tag: obj,
-			})
-		case plumbing.ErrObjectNotFound:
-			tags = append(tags, &TagReference{
-				ref: ref,
-			})
-		default:
-			return err
-		}
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	tagList := &TagList{r: g.r, refs: tags}
-	sort.Sort(tagList)
-	return tags, nil
-}
-
 func (g *GitRepo) Branches() ([]types.Branch, error) {
 	bi, err := g.r.Branches()
 	if err != nil {
