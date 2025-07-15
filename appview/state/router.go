@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"tangled.sh/tangled.sh/core/appview/issues"
+	"tangled.sh/tangled.sh/core/appview/knots"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	oauthhandler "tangled.sh/tangled.sh/core/appview/oauth/handler"
 	"tangled.sh/tangled.sh/core/appview/pipelines"
@@ -101,23 +102,6 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 	r.Get("/", s.Timeline)
 
-	r.Route("/knots", func(r chi.Router) {
-		r.Use(middleware.AuthMiddleware(s.oauth))
-		r.Get("/", s.Knots)
-		r.Post("/key", s.RegistrationKey)
-
-		r.Route("/{domain}", func(r chi.Router) {
-			r.Post("/init", s.InitKnotServer)
-			r.Get("/", s.KnotServerInfo)
-			r.Route("/member", func(r chi.Router) {
-				r.Use(mw.KnotOwner())
-				r.Get("/", s.ListMembers)
-				r.Put("/", s.AddMember)
-				r.Delete("/", s.RemoveMember)
-			})
-		})
-	})
-
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(s.oauth))
@@ -151,6 +135,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	})
 
 	r.Mount("/settings", s.SettingsRouter())
+	r.Mount("/knots", s.KnotsRouter(mw))
 	r.Mount("/spindles", s.SpindlesRouter())
 	r.Mount("/", s.OAuthRouter())
 
@@ -195,10 +180,26 @@ func (s *State) SpindlesRouter() http.Handler {
 	return spindles.Router()
 }
 
+func (s *State) KnotsRouter(mw *middleware.Middleware) http.Handler {
+	logger := log.New("knots")
+
+	knots := &knots.Knots{
+		Db:         s.db,
+		OAuth:      s.oauth,
+		Pages:      s.pages,
+		Config:     s.config,
+		Enforcer:   s.enforcer,
+		IdResolver: s.idResolver,
+		Knotstream: s.knotstream,
+		Logger:     logger,
+	}
+
+	return knots.Router(mw)
+}
+
 func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
 	issues := issues.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.posthog)
 	return issues.Router(mw)
-
 }
 
 func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {

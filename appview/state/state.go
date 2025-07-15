@@ -2,9 +2,6 @@ package state
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"log/slog"
@@ -202,40 +199,40 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 }
 
 // requires auth
-func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		// list open registrations under this did
-
-		return
-	case http.MethodPost:
-		session, err := s.oauth.Stores().Get(r, oauth.SessionName)
-		if err != nil || session.IsNew {
-			log.Println("unauthorized attempt to generate registration key")
-			http.Error(w, "Forbidden", http.StatusUnauthorized)
-			return
-		}
-
-		did := session.Values[oauth.SessionDid].(string)
-
-		// check if domain is valid url, and strip extra bits down to just host
-		domain := r.FormValue("domain")
-		if domain == "" {
-			http.Error(w, "Invalid form", http.StatusBadRequest)
-			return
-		}
-
-		key, err := db.GenerateRegistrationKey(s.db, domain, did)
-
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "unable to register this domain", http.StatusNotAcceptable)
-			return
-		}
-
-		w.Write([]byte(key))
-	}
-}
+// func (s *State) RegistrationKey(w http.ResponseWriter, r *http.Request) {
+// 	switch r.Method {
+// 	case http.MethodGet:
+// 		// list open registrations under this did
+//
+// 		return
+// 	case http.MethodPost:
+// 		session, err := s.oauth.Stores().Get(r, oauth.SessionName)
+// 		if err != nil || session.IsNew {
+// 			log.Println("unauthorized attempt to generate registration key")
+// 			http.Error(w, "Forbidden", http.StatusUnauthorized)
+// 			return
+// 		}
+//
+// 		did := session.Values[oauth.SessionDid].(string)
+//
+// 		// check if domain is valid url, and strip extra bits down to just host
+// 		domain := r.FormValue("domain")
+// 		if domain == "" {
+// 			http.Error(w, "Invalid form", http.StatusBadRequest)
+// 			return
+// 		}
+//
+// 		key, err := db.GenerateRegistrationKey(s.db, domain, did)
+//
+// 		if err != nil {
+// 			log.Println(err)
+// 			http.Error(w, "unable to register this domain", http.StatusNotAcceptable)
+// 			return
+// 		}
+//
+// 		w.Write([]byte(key))
+// 	}
+// }
 
 func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 	user := chi.URLParam(r, "user")
@@ -270,298 +267,304 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 }
 
 // create a signed request and check if a node responds to that
-func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
-	user := s.oauth.GetUser(r)
+// func (s *State) InitKnotServer(w http.ResponseWriter, r *http.Request) {
+// 	user := s.oauth.GetUser(r)
+//
+// 	noticeId := "operation-error"
+// 	defaultErr := "Failed to register spindle. Try again later."
+// 	fail := func() {
+// 		s.pages.Notice(w, noticeId, defaultErr)
+// 	}
+//
+// 	domain := chi.URLParam(r, "domain")
+// 	if domain == "" {
+// 		http.Error(w, "malformed url", http.StatusBadRequest)
+// 		return
+// 	}
+// 	log.Println("checking ", domain)
+//
+// 	secret, err := db.GetRegistrationKey(s.db, domain)
+// 	if err != nil {
+// 		log.Printf("no key found for domain %s: %s\n", domain, err)
+// 		return
+// 	}
+//
+// 	client, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
+// 	if err != nil {
+// 		log.Println("failed to create client to ", domain)
+// 	}
+//
+// 	resp, err := client.Init(user.Did)
+// 	if err != nil {
+// 		w.Write([]byte("no dice"))
+// 		log.Println("domain was unreachable after 5 seconds")
+// 		return
+// 	}
+//
+// 	if resp.StatusCode == http.StatusConflict {
+// 		log.Println("status conflict", resp.StatusCode)
+// 		w.Write([]byte("already registered, sorry!"))
+// 		return
+// 	}
+//
+// 	if resp.StatusCode != http.StatusNoContent {
+// 		log.Println("status nok", resp.StatusCode)
+// 		w.Write([]byte("no dice"))
+// 		return
+// 	}
+//
+// 	// verify response mac
+// 	signature := resp.Header.Get("X-Signature")
+// 	signatureBytes, err := hex.DecodeString(signature)
+// 	if err != nil {
+// 		return
+// 	}
+//
+// 	expectedMac := hmac.New(sha256.New, []byte(secret))
+// 	expectedMac.Write([]byte("ok"))
+//
+// 	if !hmac.Equal(expectedMac.Sum(nil), signatureBytes) {
+// 		log.Printf("response body signature mismatch: %x\n", signatureBytes)
+// 		return
+// 	}
+//
+// 	tx, err := s.db.BeginTx(r.Context(), nil)
+// 	if err != nil {
+// 		log.Println("failed to start tx", err)
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	defer func() {
+// 		tx.Rollback()
+// 		err = s.enforcer.E.LoadPolicy()
+// 		if err != nil {
+// 			log.Println("failed to rollback policies")
+// 		}
+// 	}()
+//
+// 	// mark as registered
+// 	err = db.Register(tx, domain)
+// 	if err != nil {
+// 		log.Println("failed to register domain", err)
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	// set permissions for this did as owner
+// 	reg, err := db.RegistrationByDomain(tx, domain)
+// 	if err != nil {
+// 		log.Println("failed to register domain", err)
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	// add basic acls for this domain
+// 	err = s.enforcer.AddKnot(domain)
+// 	if err != nil {
+// 		log.Println("failed to setup owner of domain", err)
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	// add this did as owner of this domain
+// 	err = s.enforcer.AddKnotOwner(domain, reg.ByDid)
+// 	if err != nil {
+// 		log.Println("failed to setup owner of domain", err)
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		log.Println("failed to commit changes", err)
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	err = s.enforcer.E.SavePolicy()
+// 	if err != nil {
+// 		log.Println("failed to update ACLs", err)
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	// add this knot to knotstream
+// 	go s.knotstream.AddSource(
+// 		context.Background(),
+// 		eventconsumer.NewKnotSource(domain),
+// 	)
+//
+// 	w.Write([]byte("check success"))
+// }
 
-	domain := chi.URLParam(r, "domain")
-	if domain == "" {
-		http.Error(w, "malformed url", http.StatusBadRequest)
-		return
-	}
-	log.Println("checking ", domain)
-
-	secret, err := db.GetRegistrationKey(s.db, domain)
-	if err != nil {
-		log.Printf("no key found for domain %s: %s\n", domain, err)
-		return
-	}
-
-	client, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
-	if err != nil {
-		log.Println("failed to create client to ", domain)
-	}
-
-	resp, err := client.Init(user.Did)
-	if err != nil {
-		w.Write([]byte("no dice"))
-		log.Println("domain was unreachable after 5 seconds")
-		return
-	}
-
-	if resp.StatusCode == http.StatusConflict {
-		log.Println("status conflict", resp.StatusCode)
-		w.Write([]byte("already registered, sorry!"))
-		return
-	}
-
-	if resp.StatusCode != http.StatusNoContent {
-		log.Println("status nok", resp.StatusCode)
-		w.Write([]byte("no dice"))
-		return
-	}
-
-	// verify response mac
-	signature := resp.Header.Get("X-Signature")
-	signatureBytes, err := hex.DecodeString(signature)
-	if err != nil {
-		return
-	}
-
-	expectedMac := hmac.New(sha256.New, []byte(secret))
-	expectedMac.Write([]byte("ok"))
-
-	if !hmac.Equal(expectedMac.Sum(nil), signatureBytes) {
-		log.Printf("response body signature mismatch: %x\n", signatureBytes)
-		return
-	}
-
-	tx, err := s.db.BeginTx(r.Context(), nil)
-	if err != nil {
-		log.Println("failed to start tx", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer func() {
-		tx.Rollback()
-		err = s.enforcer.E.LoadPolicy()
-		if err != nil {
-			log.Println("failed to rollback policies")
-		}
-	}()
-
-	// mark as registered
-	err = db.Register(tx, domain)
-	if err != nil {
-		log.Println("failed to register domain", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// set permissions for this did as owner
-	reg, err := db.RegistrationByDomain(tx, domain)
-	if err != nil {
-		log.Println("failed to register domain", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// add basic acls for this domain
-	err = s.enforcer.AddKnot(domain)
-	if err != nil {
-		log.Println("failed to setup owner of domain", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// add this did as owner of this domain
-	err = s.enforcer.AddKnotOwner(domain, reg.ByDid)
-	if err != nil {
-		log.Println("failed to setup owner of domain", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Println("failed to commit changes", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = s.enforcer.E.SavePolicy()
-	if err != nil {
-		log.Println("failed to update ACLs", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// add this knot to knotstream
-	go s.knotstream.AddSource(
-		context.Background(),
-		eventconsumer.NewKnotSource(domain),
-	)
-
-	w.Write([]byte("check success"))
-}
-
-func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
-	domain := chi.URLParam(r, "domain")
-	if domain == "" {
-		http.Error(w, "malformed url", http.StatusBadRequest)
-		return
-	}
-
-	user := s.oauth.GetUser(r)
-	reg, err := db.RegistrationByDomain(s.db, domain)
-	if err != nil {
-		w.Write([]byte("failed to pull up registration info"))
-		return
-	}
-
-	var members []string
-	if reg.Registered != nil {
-		members, err = s.enforcer.GetUserByRole("server:member", domain)
-		if err != nil {
-			w.Write([]byte("failed to fetch member list"))
-			return
-		}
-	}
-
-	var didsToResolve []string
-	for _, m := range members {
-		didsToResolve = append(didsToResolve, m)
-	}
-	didsToResolve = append(didsToResolve, reg.ByDid)
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
-	ok, err := s.enforcer.IsKnotOwner(user.Did, domain)
-	isOwner := err == nil && ok
-
-	p := pages.KnotParams{
-		LoggedInUser: user,
-		DidHandleMap: didHandleMap,
-		Registration: reg,
-		Members:      members,
-		IsOwner:      isOwner,
-	}
-
-	s.pages.Knot(w, p)
-}
+// func (s *State) KnotServerInfo(w http.ResponseWriter, r *http.Request) {
+// 	domain := chi.URLParam(r, "domain")
+// 	if domain == "" {
+// 		http.Error(w, "malformed url", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	user := s.oauth.GetUser(r)
+// 	reg, err := db.RegistrationByDomain(s.db, domain)
+// 	if err != nil {
+// 		w.Write([]byte("failed to pull up registration info"))
+// 		return
+// 	}
+//
+// 	var members []string
+// 	if reg.Registered != nil {
+// 		members, err = s.enforcer.GetUserByRole("server:member", domain)
+// 		if err != nil {
+// 			w.Write([]byte("failed to fetch member list"))
+// 			return
+// 		}
+// 	}
+//
+// 	var didsToResolve []string
+// 	for _, m := range members {
+// 		didsToResolve = append(didsToResolve, m)
+// 	}
+// 	didsToResolve = append(didsToResolve, reg.ByDid)
+// 	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
+// 	didHandleMap := make(map[string]string)
+// 	for _, identity := range resolvedIds {
+// 		if !identity.Handle.IsInvalidHandle() {
+// 			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
+// 		} else {
+// 			didHandleMap[identity.DID.String()] = identity.DID.String()
+// 		}
+// 	}
+//
+// 	ok, err := s.enforcer.IsKnotOwner(user.Did, domain)
+// 	isOwner := err == nil && ok
+//
+// 	p := pages.KnotParams{
+// 		LoggedInUser: user,
+// 		DidHandleMap: didHandleMap,
+// 		Registration: reg,
+// 		Members:      members,
+// 		IsOwner:      isOwner,
+// 	}
+//
+// 	s.pages.Knot(w, p)
+// }
 
 // get knots registered by this user
-func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
-	// for now, this is just pubkeys
-	user := s.oauth.GetUser(r)
-	registrations, err := db.RegistrationsByDid(s.db, user.Did)
-	if err != nil {
-		log.Println(err)
-	}
-
-	s.pages.Knots(w, pages.KnotsParams{
-		LoggedInUser:  user,
-		Registrations: registrations,
-	})
-}
+// func (s *State) Knots(w http.ResponseWriter, r *http.Request) {
+// 	// for now, this is just pubkeys
+// 	user := s.oauth.GetUser(r)
+// 	registrations, err := db.RegistrationsByDid(s.db, user.Did)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+//
+// 	s.pages.Knots(w, pages.KnotsParams{
+// 		LoggedInUser:  user,
+// 		Registrations: registrations,
+// 	})
+// }
 
 // list members of domain, requires auth and requires owner status
-func (s *State) ListMembers(w http.ResponseWriter, r *http.Request) {
-	domain := chi.URLParam(r, "domain")
-	if domain == "" {
-		http.Error(w, "malformed url", http.StatusBadRequest)
-		return
-	}
-
-	// list all members for this domain
-	memberDids, err := s.enforcer.GetUserByRole("server:member", domain)
-	if err != nil {
-		w.Write([]byte("failed to fetch member list"))
-		return
-	}
-
-	w.Write([]byte(strings.Join(memberDids, "\n")))
-	return
-}
+// func (s *State) ListMembers(w http.ResponseWriter, r *http.Request) {
+// 	domain := chi.URLParam(r, "domain")
+// 	if domain == "" {
+// 		http.Error(w, "malformed url", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	// list all members for this domain
+// 	memberDids, err := s.enforcer.GetUserByRole("server:member", domain)
+// 	if err != nil {
+// 		w.Write([]byte("failed to fetch member list"))
+// 		return
+// 	}
+//
+// 	w.Write([]byte(strings.Join(memberDids, "\n")))
+// 	return
+// }
 
 // add member to domain, requires auth and requires invite access
-func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
-	domain := chi.URLParam(r, "domain")
-	if domain == "" {
-		http.Error(w, "malformed url", http.StatusBadRequest)
-		return
-	}
+// func (s *State) AddMember(w http.ResponseWriter, r *http.Request) {
+// 	domain := chi.URLParam(r, "domain")
+// 	if domain == "" {
+// 		http.Error(w, "malformed url", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	subjectIdentifier := r.FormValue("subject")
+// 	if subjectIdentifier == "" {
+// 		http.Error(w, "malformed form", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	subjectIdentity, err := s.idResolver.ResolveIdent(r.Context(), subjectIdentifier)
+// 	if err != nil {
+// 		w.Write([]byte("failed to resolve member did to a handle"))
+// 		return
+// 	}
+// 	log.Printf("adding %s to %s\n", subjectIdentity.Handle.String(), domain)
+//
+// 	// announce this relation into the firehose, store into owners' pds
+// 	client, err := s.oauth.AuthorizedClient(r)
+// 	if err != nil {
+// 		http.Error(w, "failed to authorize client", http.StatusInternalServerError)
+// 		return
+// 	}
+// 	currentUser := s.oauth.GetUser(r)
+// 	createdAt := time.Now().Format(time.RFC3339)
+// 	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+// 		Collection: tangled.KnotMemberNSID,
+// 		Repo:       currentUser.Did,
+// 		Rkey:       appview.TID(),
+// 		Record: &lexutil.LexiconTypeDecoder{
+// 			Val: &tangled.KnotMember{
+// 				Subject:   subjectIdentity.DID.String(),
+// 				Domain:    domain,
+// 				CreatedAt: createdAt,
+// 			}},
+// 	})
+//
+// 	// invalid record
+// 	if err != nil {
+// 		log.Printf("failed to create record: %s", err)
+// 		return
+// 	}
+// 	log.Println("created atproto record: ", resp.Uri)
+//
+// 	secret, err := db.GetRegistrationKey(s.db, domain)
+// 	if err != nil {
+// 		log.Printf("no key found for domain %s: %s\n", domain, err)
+// 		return
+// 	}
+//
+// 	ksClient, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
+// 	if err != nil {
+// 		log.Println("failed to create client to ", domain)
+// 		return
+// 	}
+//
+// 	ksResp, err := ksClient.AddMember(subjectIdentity.DID.String())
+// 	if err != nil {
+// 		log.Printf("failed to make request to %s: %s", domain, err)
+// 		return
+// 	}
+//
+// 	if ksResp.StatusCode != http.StatusNoContent {
+// 		w.Write([]byte(fmt.Sprint("knotserver failed to add member: ", err)))
+// 		return
+// 	}
+//
+// 	err = s.enforcer.AddKnotMember(domain, subjectIdentity.DID.String())
+// 	if err != nil {
+// 		w.Write([]byte(fmt.Sprint("failed to add member: ", err)))
+// 		return
+// 	}
+//
+// 	w.Write([]byte(fmt.Sprint("added member: ", subjectIdentity.Handle.String())))
+// }
 
-	subjectIdentifier := r.FormValue("subject")
-	if subjectIdentifier == "" {
-		http.Error(w, "malformed form", http.StatusBadRequest)
-		return
-	}
-
-	subjectIdentity, err := s.idResolver.ResolveIdent(r.Context(), subjectIdentifier)
-	if err != nil {
-		w.Write([]byte("failed to resolve member did to a handle"))
-		return
-	}
-	log.Printf("adding %s to %s\n", subjectIdentity.Handle.String(), domain)
-
-	// announce this relation into the firehose, store into owners' pds
-	client, err := s.oauth.AuthorizedClient(r)
-	if err != nil {
-		http.Error(w, "failed to authorize client", http.StatusInternalServerError)
-		return
-	}
-	currentUser := s.oauth.GetUser(r)
-	createdAt := time.Now().Format(time.RFC3339)
-	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
-		Collection: tangled.KnotMemberNSID,
-		Repo:       currentUser.Did,
-		Rkey:       appview.TID(),
-		Record: &lexutil.LexiconTypeDecoder{
-			Val: &tangled.KnotMember{
-				Subject:   subjectIdentity.DID.String(),
-				Domain:    domain,
-				CreatedAt: createdAt,
-			}},
-	})
-
-	// invalid record
-	if err != nil {
-		log.Printf("failed to create record: %s", err)
-		return
-	}
-	log.Println("created atproto record: ", resp.Uri)
-
-	secret, err := db.GetRegistrationKey(s.db, domain)
-	if err != nil {
-		log.Printf("no key found for domain %s: %s\n", domain, err)
-		return
-	}
-
-	ksClient, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
-	if err != nil {
-		log.Println("failed to create client to ", domain)
-		return
-	}
-
-	ksResp, err := ksClient.AddMember(subjectIdentity.DID.String())
-	if err != nil {
-		log.Printf("failed to make request to %s: %s", domain, err)
-		return
-	}
-
-	if ksResp.StatusCode != http.StatusNoContent {
-		w.Write([]byte(fmt.Sprint("knotserver failed to add member: ", err)))
-		return
-	}
-
-	err = s.enforcer.AddKnotMember(domain, subjectIdentity.DID.String())
-	if err != nil {
-		w.Write([]byte(fmt.Sprint("failed to add member: ", err)))
-		return
-	}
-
-	w.Write([]byte(fmt.Sprint("added member: ", subjectIdentity.Handle.String())))
-}
-
-func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
-}
+// func (s *State) RemoveMember(w http.ResponseWriter, r *http.Request) {
+// }
 
 func validateRepoName(name string) error {
 	// check for path traversal attempts

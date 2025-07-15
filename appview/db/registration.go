@@ -10,6 +10,7 @@ import (
 )
 
 type Registration struct {
+	Id         int64
 	Domain     string
 	ByDid      string
 	Created    *time.Time
@@ -36,7 +37,7 @@ func RegistrationsByDid(e Execer, did string) ([]Registration, error) {
 	var registrations []Registration
 
 	rows, err := e.Query(`
-		select domain, did, created, registered from registrations
+		select id, domain, did, created, registered from registrations
 		where did = ?
 	`, did)
 	if err != nil {
@@ -47,7 +48,7 @@ func RegistrationsByDid(e Execer, did string) ([]Registration, error) {
 		var createdAt *string
 		var registeredAt *string
 		var registration Registration
-		err = rows.Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
+		err = rows.Scan(&registration.Id, &registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
 
 		if err != nil {
 			log.Println(err)
@@ -75,9 +76,9 @@ func RegistrationByDomain(e Execer, domain string) (*Registration, error) {
 	var registration Registration
 
 	err := e.QueryRow(`
-		select domain, did, created, registered from registrations
+		select id, domain, did, created, registered from registrations
 		where domain = ?
-	`, domain).Scan(&registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
+	`, domain).Scan(&registration.Id, &registration.Domain, &registration.ByDid, &createdAt, &registeredAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
