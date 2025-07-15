@@ -278,7 +278,7 @@ type KnotsParams struct {
 }
 
 func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
-	return p.execute("knots", w, params)
+	return p.execute("knots/index", w, params)
 }
 
 type KnotParams struct {
@@ -286,11 +286,36 @@ type KnotParams struct {
 	DidHandleMap map[string]string
 	Registration *db.Registration
 	Members      []string
+	Repos        map[string][]db.Repo
 	IsOwner      bool
 }
 
 func (p *Pages) Knot(w io.Writer, params KnotParams) error {
-	return p.execute("knot", w, params)
+	return p.execute("knots/dashboard", w, params)
+}
+
+type KnotListingParams struct {
+	db.Registration
+}
+
+func (p *Pages) KnotListing(w io.Writer, params KnotListingParams) error {
+	return p.executePlain("knots/fragments/knotListing", w, params)
+}
+
+type KnotListingFullParams struct {
+	Registrations []db.Registration
+}
+
+func (p *Pages) KnotListingFull(w io.Writer, params KnotListingFullParams) error {
+	return p.executePlain("knots/fragments/knotListingFull", w, params)
+}
+
+type KnotSecretParams struct {
+	Secret string
+}
+
+func (p *Pages) KnotSecret(w io.Writer, params KnotSecretParams) error {
+	return p.executePlain("knots/fragments/secret", w, params)
 }
 
 type SpindlesParams struct {

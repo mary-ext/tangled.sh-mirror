@@ -582,7 +582,7 @@ func (s *Spindles) removeMember(w http.ResponseWriter, r *http.Request) {
 	l := s.Logger.With("handler", "removeMember")
 
 	noticeId := "operation-error"
-	defaultErr := "Failed to add member. Try again later."
+	defaultErr := "Failed to remove member. Try again later."
 	fail := func() {
 		s.Pages.Notice(w, noticeId, defaultErr)
 	}
