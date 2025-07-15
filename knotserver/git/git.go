@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os/exec"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -168,25 +166,6 @@ func (g *GitRepo) TotalCommits() (int, error) {
 	}
 
 	return count, nil
-}
-
-func (g *GitRepo) revList(extraArgs ...string) ([]byte, error) {
-	var args []string
-	args = append(args, "rev-list")
-	args = append(args, extraArgs...)
-
-	cmd := exec.Command("git", args...)
-	cmd.Dir = g.path
-
-	out, err := cmd.Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("%w, stderr: %s", err, string(exitErr.Stderr))
-		}
-		return nil, err
-	}
-
-	return out, nil
 }
 
 func (g *GitRepo) Commit(h plumbing.Hash) (*object.Commit, error) {
