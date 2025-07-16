@@ -316,15 +316,12 @@ func (g *GitRepo) SetDefaultBranch(branch string) error {
 }
 
 func (g *GitRepo) FindMainBranch() (string, error) {
-	ref, err := g.r.Head()
+	output, err := g.revParse("--abbrev-ref", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("unable to find main branch: %w", err)
-	}
-	if ref.Name().IsBranch() {
-		return strings.TrimPrefix(string(ref.Name()), "refs/heads/"), nil
+		return "", fmt.Errorf("failed to find main branch: %w", err)
 	}
 
-	return "", fmt.Errorf("unable to find main branch: %w", err)
+	return strings.TrimSpace(string(output)), nil
 }
 
 // WriteTar writes itself from a tree into a binary tar file format.
