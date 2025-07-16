@@ -14,7 +14,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"tangled.sh/tangled.sh/core/types"
 )
 
 var (
@@ -262,39 +261,6 @@ func (g *GitRepo) RawContent(path string) ([]byte, error) {
 	defer reader.Close()
 
 	return io.ReadAll(reader)
-}
-
-func (g *GitRepo) Branches() ([]types.Branch, error) {
-	bi, err := g.r.Branches()
-	if err != nil {
-		return nil, fmt.Errorf("branchs: %w", err)
-	}
-
-	branches := []types.Branch{}
-
-	defaultBranch, err := g.FindMainBranch()
-
-	_ = bi.ForEach(func(ref *plumbing.Reference) error {
-		b := types.Branch{}
-		b.Hash = ref.Hash().String()
-		b.Name = ref.Name().Short()
-
-		// resolve commit that this branch points to
-		commit, _ := g.Commit(ref.Hash())
-		if commit != nil {
-			b.Commit = commit
-		}
-
-		if defaultBranch != "" && defaultBranch == b.Name {
-			b.IsDefault = true
-		}
-
-		branches = append(branches, b)
-
-		return nil
-	})
-
-	return branches, nil
 }
 
 func (g *GitRepo) Branch(name string) (*plumbing.Reference, error) {
