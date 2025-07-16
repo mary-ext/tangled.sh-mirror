@@ -5,10 +5,14 @@ import (
 	"strings"
 )
 
+var (
+	handleRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)
+	didRegex    = regexp.MustCompile(`^did:[a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-]$`)
+)
+
 func IsHandleNoAt(s string) bool {
 	// ref: https://atproto.com/specs/handle
-	re := regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)
-	return re.MatchString(s)
+	return handleRegex.MatchString(s)
 }
 
 func UnflattenDid(s string) string {
@@ -29,9 +33,8 @@ func IsFlattenedDid(s string) bool {
 	// Reconstruct as a standard DID format using Replace
 	// Example: "did-plc-xyz-abc" becomes "did:plc:xyz-abc"
 	reconstructed := strings.Replace(s, "-", ":", 2)
-	re := regexp.MustCompile(`^did:[a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-]$`)
 
-	return re.MatchString(reconstructed)
+	return didRegex.MatchString(reconstructed)
 }
 
 // FlattenDid converts a DID to a flattened format.
@@ -46,6 +49,5 @@ func FlattenDid(s string) string {
 
 // IsDid checks if the given string is a standard DID.
 func IsDid(s string) bool {
-	re := regexp.MustCompile(`^did:[a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-]$`)
-	return re.MatchString(s)
+	return didRegex.MatchString(s)
 }
