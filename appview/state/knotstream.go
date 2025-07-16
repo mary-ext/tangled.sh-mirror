@@ -140,6 +140,22 @@ func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
 		return fmt.Errorf("empty repo: nsid %s, rkey %s", msg.Nsid, msg.Rkey)
 	}
 
+	// does this repo have a spindle configured?
+	repos, err := db.GetRepos(
+		d,
+		db.FilterEq("did", record.TriggerMetadata.Repo.Did),
+		db.FilterEq("name", record.TriggerMetadata.Repo.Repo),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to look for repo in DB: nsid %s, rkey %s, %w", msg.Nsid, msg.Rkey, err)
+	}
+	if len(repos) != 1 {
+		return fmt.Errorf("incorrect number of repos returned: %d (expected 1)", len(repos))
+	}
+	if repos[0].Spindle == "" {
+		return fmt.Errorf("repo does not have a spindle configured yet: nsid %s, rkey %s", msg.Nsid, msg.Rkey)
+	}
+
 	// trigger info
 	var trigger db.Trigger
 	var sha string

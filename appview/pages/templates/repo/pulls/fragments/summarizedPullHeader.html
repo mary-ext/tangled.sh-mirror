@@ -17,7 +17,7 @@
         {{ $latestRound := .LastRoundNumber }}
         {{ $lastSubmission := index .Submissions $latestRound }}
         {{ $commentCount := len $lastSubmission.Comments }}
-        {{ if $pipeline }}
+        {{ if and $pipeline $pipeline.Id }}
           <div class="inline-flex items-center gap-2">
             {{ template "repo/pipelines/fragments/pipelineSymbol" $pipeline }}
             <span class="mx-2 before:content-['·'] before:select-none"></span>
