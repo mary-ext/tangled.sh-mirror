@@ -39,7 +39,7 @@
         class="cursor-pointer list-none flex items-center"
     >
         {{ $user := didOrHandle .Did .Handle }}
-        {{ template "user/fragments/picHandleLink" $user }}
+        {{ template "user/fragments/picHandle" $user }}
     </summary>
     <div
         class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700"
