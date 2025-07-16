@@ -77,27 +77,36 @@ func (g *GitRepo) newCommitCount(line PostReceiveLine) (CommitCount, error) {
 		ByEmail: byEmail,
 	}
 
-	if !line.NewSha.IsZero() {
-		output, err := g.revList(
-			fmt.Sprintf("--max-count=%d", 100),
-			fmt.Sprintf("%s..%s", line.OldSha.String(), line.NewSha.String()),
-		)
+	if line.NewSha.IsZero() {
+		return commitCount, nil
+	}
+
+	args := []string{fmt.Sprintf("--max-count=%d", 100)}
+
+	if line.OldSha.IsZero() {
+		// just git rev-list <newsha>
+		args = append(args, line.NewSha.String())
+	} else {
+		// git rev-list <oldsha>..<newsha>
+		args = append(args, fmt.Sprintf("%s..%s", line.OldSha.String(), line.NewSha.String()))
+	}
+
+	output, err := g.revList(args...)
+	if err != nil {
+		return commitCount, fmt.Errorf("failed to run rev-list: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) == 1 && lines[0] == "" {
+		return commitCount, nil
+	}
+
+	for _, item := range lines {
+		obj, err := g.r.CommitObject(plumbing.NewHash(item))
 		if err != nil {
-			return commitCount, fmt.Errorf("failed to run rev-list: %w", err)
+			continue
 		}
-
-		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-		if len(lines) == 1 && lines[0] == "" {
-			return commitCount, nil
-		}
-
-		for _, item := range lines {
-			obj, err := g.r.CommitObject(plumbing.NewHash(item))
-			if err != nil {
-				continue
-			}
-			commitCount.ByEmail[obj.Author.Email] += 1
-		}
+		commitCount.ByEmail[obj.Author.Email] += 1
 	}
 
 	return commitCount, nil
