@@ -21,6 +21,8 @@ func main() {
 		tangled.GitRefUpdate_Meta{},
 		tangled.GitRefUpdate_Meta_CommitCount{},
 		tangled.GitRefUpdate_Meta_CommitCount_ByEmail_Elem{},
+		tangled.GitRefUpdate_Meta_LangBreakdown{},
+		tangled.GitRefUpdate_Pair{},
 		tangled.GraphFollow{},
 		tangled.KnotMember{},
 		tangled.Pipeline{},
