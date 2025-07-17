@@ -15,19 +15,64 @@
             {{ block "extrameta" . }}{{ end }}
         </head>
         <body class="bg-slate-100 dark:bg-gray-900 dark:text-white transition-colors duration-200">
-          <div class="container mx-auto px-1 md:pt-4 min-h-screen flex flex-col">
-            <header style="z-index: 20">
+          <div class="px-1 grid grid-cols-1 md:grid-cols-12">
+            <div class="col-span-1 md:col-span-2">
+              {{ block "topbarLeft" . }} {{ end }}
+            </div>
+            <header style="z-index: 20" class="col-span-1 md:col-span-8">
               {{ block "topbar" . }}
-              {{ template "layouts/topbar" . }}
+                {{ template "layouts/topbar" . }}
               {{ end }}
             </header>
-            <main class="content grow">{{ block "content" . }}{{ end }}</main>
-            <footer class="mt-16">
-                {{ block "footer" . }}
-                    {{ template "layouts/footer" . }}
-                {{ end }}
-            </footer>
+            <div class="col-span-1 md:col-span-2">
+              {{ block "topbarRight" . }} {{ end }}
+            </div>
           </div>
+
+          <div class="flex flex-col min-h-screen">
+            {{ block "contentLayout" . }}
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+                <div class="col-span-1 md:col-span-2">
+                  {{ block "contentLeft" . }} {{ end }}
+                </div>
+                <main class="px-1 col-span-1 md:col-span-8">
+                  {{ block "content" . }}{{ end }}
+                </main>
+                <div class="col-span-1 md:col-span-2">
+                  {{ block "contentRight" . }} {{ end }}
+                </div>
+              </div>
+            {{ end }}
+
+            {{ block "contentAfterLayout" . }}
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+                <div class="col-span-1 md:col-span-2">
+                  {{ block "contentAfterLeft" . }} {{ end }}
+                </div>
+                <main class="px-1 col-span-1 md:col-span-8">
+                  {{ block "contentAfter" . }}{{ end }}
+                </main>
+                <div class="col-span-1 md:col-span-2">
+                  {{ block "contentAfterRight" . }} {{ end }}
+                </div>
+              </div>
+            {{ end }}
+          </div>
+
+          <div class="px-1 grid grid-cols-1 md:grid-cols-12">
+            <div class="col-span-1 md:col-span-2">
+              {{ block "footerLeft" . }} {{ end }}
+            </div>
+            <footer class="mt-16 col-span-1 md:col-span-8">
+              {{ block "footer" . }}
+                {{ template "layouts/footer" . }}
+              {{ end }}
+            </footer>
+            <div class="col-span-1 md:col-span-2">
+              {{ block "footerRight" . }} {{ end }}
+            </div>
+          </div>
+
         </body>
     </html>
 {{ end }}
