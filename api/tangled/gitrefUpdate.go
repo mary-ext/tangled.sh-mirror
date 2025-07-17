@@ -34,8 +34,9 @@ type GitRefUpdate struct {
 }
 
 type GitRefUpdate_Meta struct {
-	CommitCount  *GitRefUpdate_Meta_CommitCount `json:"commitCount" cborgen:"commitCount"`
-	IsDefaultRef bool                           `json:"isDefaultRef" cborgen:"isDefaultRef"`
+	CommitCount   *GitRefUpdate_Meta_CommitCount   `json:"commitCount" cborgen:"commitCount"`
+	IsDefaultRef  bool                             `json:"isDefaultRef" cborgen:"isDefaultRef"`
+	LangBreakdown *GitRefUpdate_Meta_LangBreakdown `json:"langBreakdown,omitempty" cborgen:"langBreakdown,omitempty"`
 }
 
 type GitRefUpdate_Meta_CommitCount struct {
@@ -45,4 +46,14 @@ type GitRefUpdate_Meta_CommitCount struct {
 type GitRefUpdate_Meta_CommitCount_ByEmail_Elem struct {
 	Count int64  `json:"count" cborgen:"count"`
 	Email string `json:"email" cborgen:"email"`
+}
+
+type GitRefUpdate_Meta_LangBreakdown struct {
+	Inputs []*GitRefUpdate_Pair `json:"inputs,omitempty" cborgen:"inputs,omitempty"`
+}
+
+// GitRefUpdate_Pair is a "pair" in the sh.tangled.git.refUpdate schema.
+type GitRefUpdate_Pair struct {
+	Lang string `json:"lang" cborgen:"lang"`
+	Size int64  `json:"size" cborgen:"size"`
 }

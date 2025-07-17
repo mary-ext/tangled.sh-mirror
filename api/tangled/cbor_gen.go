@@ -1209,8 +1209,13 @@ func (t *GitRefUpdate_Meta) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
+	fieldCount := 3
 
-	if _, err := cw.Write([]byte{162}); err != nil {
+	if t.LangBreakdown == nil {
+		fieldCount--
+	}
+
+	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
 		return err
 	}
 
@@ -1245,6 +1250,25 @@ func (t *GitRefUpdate_Meta) MarshalCBOR(w io.Writer) error {
 	if err := cbg.WriteBool(w, t.IsDefaultRef); err != nil {
 		return err
 	}
+
+	// t.LangBreakdown (tangled.GitRefUpdate_Meta_LangBreakdown) (struct)
+	if t.LangBreakdown != nil {
+
+		if len("langBreakdown") > 1000000 {
+			return xerrors.Errorf("Value in field \"langBreakdown\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("langBreakdown"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("langBreakdown")); err != nil {
+			return err
+		}
+
+		if err := t.LangBreakdown.MarshalCBOR(cw); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -1273,7 +1297,7 @@ func (t *GitRefUpdate_Meta) UnmarshalCBOR(r io.Reader) (err error) {
 
 	n := extra
 
-	nameBuf := make([]byte, 12)
+	nameBuf := make([]byte, 13)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -1326,6 +1350,26 @@ func (t *GitRefUpdate_Meta) UnmarshalCBOR(r io.Reader) (err error) {
 				t.IsDefaultRef = true
 			default:
 				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
+			}
+			// t.LangBreakdown (tangled.GitRefUpdate_Meta_LangBreakdown) (struct)
+		case "langBreakdown":
+
+			{
+
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+					t.LangBreakdown = new(GitRefUpdate_Meta_LangBreakdown)
+					if err := t.LangBreakdown.UnmarshalCBOR(cr); err != nil {
+						return xerrors.Errorf("unmarshaling t.LangBreakdown pointer: %w", err)
+					}
+				}
+
 			}
 
 		default:
@@ -1623,6 +1667,304 @@ func (t *GitRefUpdate_Meta_CommitCount_ByEmail_Elem) UnmarshalCBOR(r io.Reader) 
 				}
 
 				t.Email = string(sval)
+			}
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+func (t *GitRefUpdate_Meta_LangBreakdown) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+	fieldCount := 1
+
+	if t.Inputs == nil {
+		fieldCount--
+	}
+
+	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
+		return err
+	}
+
+	// t.Inputs ([]*tangled.GitRefUpdate_Pair) (slice)
+	if t.Inputs != nil {
+
+		if len("inputs") > 1000000 {
+			return xerrors.Errorf("Value in field \"inputs\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("inputs"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("inputs")); err != nil {
+			return err
+		}
+
+		if len(t.Inputs) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Inputs was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Inputs))); err != nil {
+			return err
+		}
+		for _, v := range t.Inputs {
+			if err := v.MarshalCBOR(cw); err != nil {
+				return err
+			}
+
+		}
+	}
+	return nil
+}
+
+func (t *GitRefUpdate_Meta_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = GitRefUpdate_Meta_LangBreakdown{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("GitRefUpdate_Meta_LangBreakdown: map struct too large (%d)", extra)
+	}
+
+	n := extra
+
+	nameBuf := make([]byte, 6)
+	for i := uint64(0); i < n; i++ {
+		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		switch string(nameBuf[:nameLen]) {
+		// t.Inputs ([]*tangled.GitRefUpdate_Pair) (slice)
+		case "inputs":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Inputs: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Inputs = make([]*GitRefUpdate_Pair, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+
+						b, err := cr.ReadByte()
+						if err != nil {
+							return err
+						}
+						if b != cbg.CborNull[0] {
+							if err := cr.UnreadByte(); err != nil {
+								return err
+							}
+							t.Inputs[i] = new(GitRefUpdate_Pair)
+							if err := t.Inputs[i].UnmarshalCBOR(cr); err != nil {
+								return xerrors.Errorf("unmarshaling t.Inputs[i] pointer: %w", err)
+							}
+						}
+
+					}
+
+				}
+			}
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+func (t *GitRefUpdate_Pair) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+
+	if _, err := cw.Write([]byte{162}); err != nil {
+		return err
+	}
+
+	// t.Lang (string) (string)
+	if len("lang") > 1000000 {
+		return xerrors.Errorf("Value in field \"lang\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("lang"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("lang")); err != nil {
+		return err
+	}
+
+	if len(t.Lang) > 1000000 {
+		return xerrors.Errorf("Value in field t.Lang was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Lang))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Lang)); err != nil {
+		return err
+	}
+
+	// t.Size (int64) (int64)
+	if len("size") > 1000000 {
+		return xerrors.Errorf("Value in field \"size\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("size"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("size")); err != nil {
+		return err
+	}
+
+	if t.Size >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Size)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Size-1)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *GitRefUpdate_Pair) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = GitRefUpdate_Pair{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("GitRefUpdate_Pair: map struct too large (%d)", extra)
+	}
+
+	n := extra
+
+	nameBuf := make([]byte, 4)
+	for i := uint64(0); i < n; i++ {
+		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		switch string(nameBuf[:nameLen]) {
+		// t.Lang (string) (string)
+		case "lang":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Lang = string(sval)
+			}
+			// t.Size (int64) (int64)
+		case "size":
+			{
+				maj, extra, err := cr.ReadHeader()
+				if err != nil {
+					return err
+				}
+				var extraI int64
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative overflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Size = int64(extraI)
 			}
 
 		default:

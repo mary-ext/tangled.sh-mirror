@@ -61,6 +61,18 @@
                 "type": "boolean",
                 "default": "false"
               },
+              "langBreakdown": {
+                "type": "object",
+                "properties": {
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "ref",
+                      "ref": "#pair"
+                    }
+                  }
+                }
+              },
               "commitCount": {
                 "type": "object",
                 "required": [],
@@ -87,6 +99,21 @@
               }
             }
           }
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "required": [
+        "lang",
+        "size"
+      ],
+      "properties": {
+        "lang": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
         }
       }
     }
