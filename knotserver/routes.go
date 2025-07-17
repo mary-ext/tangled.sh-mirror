@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -23,7 +22,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-enry/go-enry/v2"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -777,40 +775,12 @@ func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sizes := make(map[string]int64)
-
 	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 	defer cancel()
 
-	err = gr.Walk(ctx, "", func(node object.TreeEntry, parent *object.Tree, root string) error {
-		filepath := path.Join(root, node.Name)
-
-		content, err := gr.FileContentN(filepath, 16*1024) // 16KB
-		if err != nil {
-			return nil
-		}
-
-		if enry.IsGenerated(filepath, content) {
-			return nil
-		}
-
-		language := analyzeLanguage(node, content)
-		if group := enry.GetLanguageGroup(language); group != "" {
-			language = group
-		}
-
-		langType := enry.GetLanguageType(language)
-		if langType != enry.Programming && langType != enry.Markup && langType != enry.Unknown {
-			return nil
-		}
-
-		sz, _ := parent.Size(node.Name)
-		sizes[language] += sz
-
-		return nil
-	})
+	sizes, err := gr.AnalyzeLanguages(ctx)
 	if err != nil {
-		l.Error("failed to recurse file tree", "error", err.Error())
+		l.Error("failed to analyze languages", "error", err.Error())
 		writeError(w, err.Error(), http.StatusNoContent)
 		return
 	}
@@ -818,25 +788,6 @@ func (h *Handle) RepoLanguages(w http.ResponseWriter, r *http.Request) {
 	resp := types.RepoLanguageResponse{Languages: sizes}
 
 	writeJSON(w, resp)
-	return
-}
-
-func analyzeLanguage(node object.TreeEntry, content []byte) string {
-	language, ok := enry.GetLanguageByExtension(node.Name)
-	if ok {
-		return language
-	}
-
-	language, ok = enry.GetLanguageByFilename(node.Name)
-	if ok {
-		return language
-	}
-
-	if len(content) == 0 {
-		return enry.OtherLanguage
-	}
-
-	return enry.GetLanguage(node.Name, content)
 }
 
 func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {
