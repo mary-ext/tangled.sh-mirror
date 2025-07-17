@@ -3,6 +3,7 @@ package knotserver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"path/filepath"
@@ -115,12 +116,13 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 		return err
 	}
 
-	gr, err := git.PlainOpen(repoPath)
+	gr, err := git.Open(repoPath, line.Ref)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open git repo at ref %s: %w", line.Ref, err)
 	}
 
 	meta := gr.RefUpdateMeta(line)
+
 	metaRecord := meta.AsRecord()
 
 	refUpdate := tangled.GitRefUpdate{

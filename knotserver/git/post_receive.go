@@ -2,9 +2,11 @@ package git
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 
@@ -46,8 +48,9 @@ func ParsePostReceive(buf io.Reader) ([]PostReceiveLine, error) {
 }
 
 type RefUpdateMeta struct {
-	CommitCount  CommitCount
-	IsDefaultRef bool
+	CommitCount   CommitCount
+	IsDefaultRef  bool
+	LangBreakdown LangBreakdown
 }
 
 type CommitCount struct {
@@ -57,17 +60,25 @@ type CommitCount struct {
 func (g *GitRepo) RefUpdateMeta(line PostReceiveLine) RefUpdateMeta {
 	commitCount, err := g.newCommitCount(line)
 	if err != nil {
-		// TODO: non-fatal, log this
+		// TODO: log this
 	}
 
 	isDefaultRef, err := g.isDefaultBranch(line)
 	if err != nil {
-		// TODO: non-fatal, log this
+		// TODO: log this
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+	breakdown, err := g.AnalyzeLanguages(ctx)
+	if err != nil {
+		// TODO: log this
 	}
 
 	return RefUpdateMeta{
-		CommitCount:  commitCount,
-		IsDefaultRef: isDefaultRef,
+		CommitCount:   commitCount,
+		IsDefaultRef:  isDefaultRef,
+		LangBreakdown: breakdown,
 	}
 }
 
@@ -135,10 +146,22 @@ func (m RefUpdateMeta) AsRecord() tangled.GitRefUpdate_Meta {
 		})
 	}
 
+	var langs []*tangled.GitRefUpdate_Pair
+	for lang, size := range m.LangBreakdown {
+		langs = append(langs, &tangled.GitRefUpdate_Pair{
+			Lang: lang,
+			Size: size,
+		})
+	}
+	langBreakdown := &tangled.GitRefUpdate_Meta_LangBreakdown{
+		Inputs: langs,
+	}
+
 	return tangled.GitRefUpdate_Meta{
 		CommitCount: &tangled.GitRefUpdate_Meta_CommitCount{
 			ByEmail: byEmail,
 		},
-		IsDefaultRef: m.IsDefaultRef,
+		IsDefaultRef:  m.IsDefaultRef,
+		LangBreakdown: langBreakdown,
 	}
 }
