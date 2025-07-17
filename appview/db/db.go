@@ -421,6 +421,21 @@ func Make(dbPath string) (*DB, error) {
 				on delete cascade
 		);
 
+		create table if not exists repo_languages (
+			-- identifiers
+			id integer primary key autoincrement,
+
+			-- repo identifiers
+			repo_at text not null,
+			ref text not null,
+
+			-- language breakdown
+			language text not null,
+			bytes integer not null check (bytes >= 0),
+
+			unique(repo_at, ref, language)
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
