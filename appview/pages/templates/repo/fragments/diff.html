@@ -2,151 +2,138 @@
 {{ $repo := index . 0 }}
 {{ $diff := index . 1 }}
 {{ $commit := $diff.Commit }}
-{{ $stat := $diff.Stat }}
-{{ $fileTree := fileTree $diff.ChangedFiles }}
 {{ $diff := $diff.Diff }}
-
-  {{ $this := $commit.This }}
-  {{ $parent := $commit.Parent }}
-
-  <section class="mt-6 p-6 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
-    <div class="diff-stat">
-      <div class="flex gap-2 items-center">
-        <strong class="text-sm uppercase dark:text-gray-200">Changed files</strong>
-        {{ block "statPill" $stat }} {{ end }}
-      </div>
-      {{ block "fileTree" $fileTree }} {{ end }}
-    </div>
-  </section>
+{{ $this := $commit.This }}
+{{ $parent := $commit.Parent }}
 
   {{ $last := sub (len $diff) 1 }}
-  {{ range $idx, $hunk := $diff }}
-  {{ with $hunk }}
-  <section class="mt-6 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
-    <div id="file-{{ .Name.New }}">
-      <div id="diff-file">
-        <details open>
-          <summary class="list-none cursor-pointer sticky top-0">
-            <div id="diff-file-header" class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
-              <div id="left-side-items" class="p-2 flex gap-2 items-center overflow-x-auto">
-                <div class="flex gap-1 items-center">
-                  {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
-                  {{ if .IsNew }}
-                  <span class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">ADDED</span>
-                  {{ else if .IsDelete }}
-                  <span class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">DELETED</span>
-                  {{ else if .IsCopy }}
-                  <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">COPIED</span>
-                  {{ else if .IsRename }}
-                  <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">RENAMED</span>
-                  {{ else }}
-                  <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">MODIFIED</span>
-                  {{ end }}
+    {{ range $idx, $hunk := $diff }}
+      {{ with $hunk }}
+      <section class="mt-4 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
+        <div id="file-{{ .Name.New }}">
+          <div id="diff-file">
+            <details open>
+              <summary class="list-none cursor-pointer sticky top-0">
+                <div id="diff-file-header" class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
+                  <div id="left-side-items" class="p-2 flex gap-2 items-center overflow-x-auto">
+                    <div class="flex gap-1 items-center">
+                      {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
+                      {{ if .IsNew }}
+                      <span class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">ADDED</span>
+                      {{ else if .IsDelete }}
+                      <span class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">DELETED</span>
+                      {{ else if .IsCopy }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">COPIED</span>
+                      {{ else if .IsRename }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">RENAMED</span>
+                      {{ else }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">MODIFIED</span>
+                      {{ end }}
 
-                  {{ block "statPill" .Stats }} {{ end }}
-                </div>
+                      {{ template "repo/fragments/diffStatPill" .Stats }}
+                    </div>
 
-                <div class="flex gap-2 items-center overflow-x-auto">
-                  {{ if .IsDelete }}
-                  <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this }}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}"{{end}}>
-                    {{ .Name.Old }}
-                  </a>
-                  {{ else if (or .IsCopy .IsRename) }}
-                  <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $parent}}href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}"{{end}}>
-                    {{ .Name.Old }}
-                  </a>
-                  {{ i "arrow-right" "w-4 h-4" }}
-                  <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
-                    {{ .Name.New }}
-                  </a>
-                  {{ else }}
-                  <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
-                    {{ .Name.New }}
-                  </a>
-                  {{ end }}
+                    <div class="flex gap-2 items-center overflow-x-auto">
+                      {{ if .IsDelete }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this }}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}"{{end}}>
+                        {{ .Name.Old }}
+                      </a>
+                      {{ else if (or .IsCopy .IsRename) }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $parent}}href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}"{{end}}>
+                        {{ .Name.Old }}
+                      </a>
+                      {{ i "arrow-right" "w-4 h-4" }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
+                        {{ .Name.New }}
+                      </a>
+                      {{ else }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
+                        {{ .Name.New }}
+                      </a>
+                      {{ end }}
+                    </div>
+                  </div>
+
+                  {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" }}
+                  <div id="right-side-items" class="p-2 flex items-center">
+                    <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up-to-line" "w-4 h-4" }}</a>
+                    {{ if gt $idx 0 }}
+                      {{ $prev := index $diff (sub $idx 1) }}
+                      <a title="previous file" href="#file-{{ $prev.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up" "w-4 h-4" }}</a>
+                    {{ end }}
+
+                    {{ if lt $idx $last }}
+                      {{ $next := index $diff (add $idx 1) }}
+                      <a title="next file" href="#file-{{ $next.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-down" "w-4 h-4" }}</a>
+                    {{ end }}
+                  </div>
+
                 </div>
+              </summary>
+
+              <div class="transition-all duration-700 ease-in-out">
+                {{ if .IsDelete }}
+                  <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                  This file has been deleted.
+                  </p>
+                {{ else if .IsCopy }}
+                  <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                  This file has been copied.
+                  </p>
+                {{ else if .IsBinary }}
+                  <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                  This is a binary file and will not be displayed.
+                  </p>
+                {{ else }}
+                {{ $name := .Name.New }}
+                <pre class="overflow-x-auto"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}<div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none text-center">&middot;&middot;&middot;</div>
+                 {{- $oldStart := .OldPosition -}}
+                 {{- $newStart := .NewPosition -}}
+                 {{- $lineNrStyle := "min-w-[3.5rem] flex-shrink-0 select-none text-right bg-white dark:bg-gray-800 scroll-mt-10 target:border target:border-amber-500 target:rounded " -}}
+                 {{- $linkStyle := "text-gray-400 dark:text-gray-500 hover:underline" -}}
+                 {{- $lineNrSepStyle1 := "" -}}
+                 {{- $lineNrSepStyle2 := "pr-2" -}}
+                 {{- range .Lines -}}
+                   {{- if eq .Op.String "+" -}}
+                     <div class="bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400 flex min-w-full items-center">
+                       <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}"><span aria-hidden="true" class="invisible">{{$newStart}}</span></div>
+                       <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}" id="{{$name}}-N{{$newStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-N{{$newStart}}">{{ $newStart }}</a></div>
+                       <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
+                       <div class="px-2">{{ .Line }}</div>
+                     </div>
+                     {{- $newStart = add64 $newStart 1 -}}
+                   {{- end -}}
+                   {{- if eq .Op.String "-" -}}
+                     <div class="bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 flex min-w-full items-center">
+                       <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}" id="{{$name}}-O{{$oldStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-O{{$oldStart}}">{{ $oldStart }}</a></div>
+                       <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}"><span aria-hidden="true" class="invisible">{{$oldStart}}</span></div>
+                       <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
+                       <div class="px-2">{{ .Line }}</div>
+                     </div>
+                     {{- $oldStart = add64 $oldStart 1 -}}
+                   {{- end -}}
+                   {{- if eq .Op.String " " -}}
+                     <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex min-w-full items-center">
+                       <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}" id="{{$name}}-O{{$oldStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-O{{$oldStart}}">{{ $oldStart }}</a></div>
+                       <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}" id="{{$name}}-N{{$newStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-N{{$newStart}}">{{ $newStart }}</a></div>
+                       <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
+                       <div class="px-2">{{ .Line }}</div>
+                     </div>
+                     {{- $newStart = add64 $newStart 1 -}}
+                     {{- $oldStart = add64 $oldStart 1 -}}
+                   {{- end -}}
+                 {{- end -}}
+                 {{- end -}}</div></div></pre>
+                {{- end -}}
               </div>
 
-              {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" }}
-              <div id="right-side-items" class="p-2 flex items-center">
-                <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up-to-line" "w-4 h-4" }}</a>
-                {{ if gt $idx 0 }}
-                  {{ $prev := index $diff (sub $idx 1) }}
-                  <a title="previous file" href="#file-{{ $prev.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up" "w-4 h-4" }}</a>
-                {{ end }}
+            </details>
 
-                {{ if lt $idx $last }}
-                  {{ $next := index $diff (add $idx 1) }}
-                  <a title="next file" href="#file-{{ $next.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-down" "w-4 h-4" }}</a>
-                {{ end }}
-              </div>
-
-            </div>
-          </summary>
-
-          <div class="transition-all duration-700 ease-in-out">
-            {{ if .IsDelete }}
-              <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-              This file has been deleted.
-              </p>
-            {{ else if .IsCopy }}
-              <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-              This file has been copied.
-              </p>
-            {{ else if .IsBinary }}
-              <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-              This is a binary file and will not be displayed.
-              </p>
-            {{ else }}
-            {{ $name := .Name.New }}
-            <pre class="overflow-x-auto"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}<div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none text-center">&middot;&middot;&middot;</div>
-             {{- $oldStart := .OldPosition -}}
-             {{- $newStart := .NewPosition -}}
-             {{- $lineNrStyle := "min-w-[3.5rem] flex-shrink-0 select-none text-right bg-white dark:bg-gray-800 scroll-mt-10 target:border target:border-amber-500 target:rounded " -}}
-             {{- $linkStyle := "text-gray-400 dark:text-gray-500 hover:underline" -}}
-             {{- $lineNrSepStyle1 := "" -}}
-             {{- $lineNrSepStyle2 := "pr-2" -}}
-             {{- range .Lines -}}
-               {{- if eq .Op.String "+" -}}
-                 <div class="bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400 flex min-w-full items-center">
-                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}"><span aria-hidden="true" class="invisible">{{$newStart}}</span></div>
-                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}" id="{{$name}}-N{{$newStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-N{{$newStart}}">{{ $newStart }}</a></div>
-                   <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
-                   <div class="px-2">{{ .Line }}</div>
-                 </div>
-                 {{- $newStart = add64 $newStart 1 -}}
-               {{- end -}}
-               {{- if eq .Op.String "-" -}}
-                 <div class="bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 flex min-w-full items-center">
-                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}" id="{{$name}}-O{{$oldStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-O{{$oldStart}}">{{ $oldStart }}</a></div>
-                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}"><span aria-hidden="true" class="invisible">{{$oldStart}}</span></div>
-                   <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
-                   <div class="px-2">{{ .Line }}</div>
-                 </div>
-                 {{- $oldStart = add64 $oldStart 1 -}}
-               {{- end -}}
-               {{- if eq .Op.String " " -}}
-                 <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex min-w-full items-center">
-                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle1}}" id="{{$name}}-O{{$oldStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-O{{$oldStart}}">{{ $oldStart }}</a></div>
-                   <div class="{{$lineNrStyle}} {{$lineNrSepStyle2}}" id="{{$name}}-N{{$newStart}}"><a class="{{$linkStyle}}" href="#{{$name}}-N{{$newStart}}">{{ $newStart }}</a></div>
-                   <div class="w-5 flex-shrink-0 select-none text-center">{{ .Op.String }}</div>
-                   <div class="px-2">{{ .Line }}</div>
-                 </div>
-                 {{- $newStart = add64 $newStart 1 -}}
-                 {{- $oldStart = add64 $oldStart 1 -}}
-               {{- end -}}
-             {{- end -}}
-             {{- end -}}</div></div></pre>
-            {{- end -}}
           </div>
-
-        </details>
-
-      </div>
-    </div>
-  </section>
-  {{ end }}
-  {{ end }}
+        </div>
+      </section>
+      {{ end }}
+    {{ end }}
 {{ end }}
 
 {{ define "statPill" }}

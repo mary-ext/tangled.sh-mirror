@@ -31,6 +31,54 @@
         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
     {{ template "repo/pulls/fragments/pullHeader" . }}
     </section>
-  {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
 </section>
 {{ end }}
+
+{{ define "topbarLayout" }}
+  <div class="px-1 grid grid-cols-1">
+    <header style="z-index: 20" class="col-span-1">
+      {{ block "topbar" . }}
+        {{ template "layouts/topbar" . }}
+      {{ end }}
+    </header>
+  </div>
+{{ end }}
+
+{{ define "contentLayout" }}
+  <div class="grid grid-cols-1 md:grid-cols-1 gap-2">
+    <main class="px-1 col-span-1">
+      {{ block "content" . }}{{ end }}
+    </main>
+  </div>
+{{ end }}
+
+{{ block "contentAfterLayout" . }}
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+    <div class="col-span-1 md:col-span-2">
+      {{ block "contentAfterLeft" . }} {{ end }}
+    </div>
+    <main class="px-1 col-span-1 md:col-span-10">
+      {{ block "contentAfter" . }}{{ end }}
+    </main>
+  </div>
+{{ end }}
+
+{{ block "footerLayout" . }}
+  <div class="px-1 grid grid-cols-1">
+    <footer class="mt-16 col-span-1">
+      {{ block "footer" . }}
+        {{ template "layouts/footer" . }}
+      {{ end }}
+    </footer>
+  </div>
+{{ end }}
+
+{{ define "contentAfter" }}
+  {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
+{{end}}
+
+{{ define "contentAfterLeft" }}
+  <div class="sticky top-0">
+    {{ template "repo/fragments/diffChangedFiles" .Diff }}
+  </div>
+{{end}}
