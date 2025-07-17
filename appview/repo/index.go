@@ -123,7 +123,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	languageInfo, err := getLanguageInfo(f, signedClient, ref)
+	languageInfo, err := rp.getLanguageInfo(f, signedClient, ref)
 	if err != nil {
 		log.Printf("failed to compute language percentages: %s", err)
 		// non-fatal
@@ -153,41 +153,60 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		Languages:          languageInfo,
 		Pipelines:          pipelines,
 	})
-	return
 }
 
-func getLanguageInfo(
+func (rp *Repo) getLanguageInfo(
 	f *reporesolver.ResolvedRepo,
 	signedClient *knotclient.SignedClient,
 	ref string,
 ) ([]types.RepoLanguageDetails, error) {
-	repoLanguages, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoName, ref)
-	if err != nil {
-		return []types.RepoLanguageDetails{}, err
-	}
-	if repoLanguages == nil {
-		repoLanguages = &types.RepoLanguageResponse{Languages: make(map[string]int64)}
+	// first attempt to fetch from db
+	langs, err := db.GetRepoLanguages(
+		rp.db,
+		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("ref", ref),
+	)
+
+	if err != nil || langs == nil {
+		// non-fatal, fetch langs from ks
+		ls, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoName, ref)
+		if err != nil {
+			return nil, err
+		}
+		if ls == nil {
+			return nil, nil
+		}
+		for l, s := range ls.Languages {
+			langs = append(langs, db.RepoLanguage{
+				RepoAt:   f.RepoAt,
+				Ref:      ref,
+				Language: l,
+				Bytes:    s,
+			})
+		}
+
+		// update appview's cache
+		err = db.InsertRepoLanguages(rp.db, langs)
+		if err != nil {
+			// non-fatal
+			log.Println("failed to cache lang results", err)
+		}
 	}
 
-	var totalSize int64
-	for _, fileSize := range repoLanguages.Languages {
-		totalSize += fileSize
+	var total int64
+	for _, l := range langs {
+		total += l.Bytes
 	}
 
 	var languageStats []types.RepoLanguageDetails
-	var otherPercentage float32 = 0
-
-	for lang, size := range repoLanguages.Languages {
-		percentage := (float32(size) / float32(totalSize)) * 100
-
-		if percentage <= 0.5 {
-			otherPercentage += percentage
-			continue
-		}
-
-		color := enry.GetColor(lang)
-
-		languageStats = append(languageStats, types.RepoLanguageDetails{Name: lang, Percentage: percentage, Color: color})
+	for _, l := range langs {
+		percentage := float32(l.Bytes) / float32(total) * 100
+		color := enry.GetColor(l.Language)
+		languageStats = append(languageStats, types.RepoLanguageDetails{
+			Name:       l.Language,
+			Percentage: percentage,
+			Color:      color,
+		})
 	}
 
 	sort.Slice(languageStats, func(i, j int) bool {

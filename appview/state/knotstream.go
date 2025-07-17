@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"tangled.sh/tangled.sh/core/workflow"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/posthog/posthog-go"
 )
 
@@ -39,7 +41,7 @@ func Knotstream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.
 
 	cfg := ec.ConsumerConfig{
 		Sources:           srcs,
-		ProcessFunc:       knotIngester(ctx, d, enforcer, posthog, c.Core.Dev),
+		ProcessFunc:       knotIngester(d, enforcer, posthog, c.Core.Dev),
 		RetryInterval:     c.Knotstream.RetryInterval,
 		MaxRetryInterval:  c.Knotstream.MaxRetryInterval,
 		ConnectionTimeout: c.Knotstream.ConnectionTimeout,
@@ -53,7 +55,7 @@ func Knotstream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.
 	return ec.NewConsumer(cfg), nil
 }
 
-func knotIngester(ctx context.Context, d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client, dev bool) ec.ProcessFunc {
+func knotIngester(d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client, dev bool) ec.ProcessFunc {
 	return func(ctx context.Context, source ec.Source, msg ec.Message) error {
 		switch msg.Nsid {
 		case tangled.GitRefUpdateNSID:
@@ -81,10 +83,26 @@ func ingestRefUpdate(d *db.DB, enforcer *rbac.Enforcer, pc posthog.Client, dev b
 		return fmt.Errorf("%s does not belong to %s, something is fishy", record.CommitterDid, source.Key())
 	}
 
+	err1 := populatePunchcard(d, record)
+	err2 := updateRepoLanguages(d, record)
+
+	var err3 error
+	if !dev {
+		err3 = pc.Enqueue(posthog.Capture{
+			DistinctId: record.CommitterDid,
+			Event:      "git_ref_update",
+		})
+	}
+
+	return errors.Join(err1, err2, err3)
+}
+
+func populatePunchcard(d *db.DB, record tangled.GitRefUpdate) error {
 	knownEmails, err := db.GetAllEmails(d, record.CommitterDid)
 	if err != nil {
 		return err
 	}
+
 	count := 0
 	for _, ke := range knownEmails {
 		if record.Meta == nil {
@@ -108,21 +126,47 @@ func ingestRefUpdate(d *db.DB, enforcer *rbac.Enforcer, pc posthog.Client, dev b
 		Date:  time.Now(),
 		Count: count,
 	}
-	if err := db.AddPunch(d, punch); err != nil {
-		return err
+	return db.AddPunch(d, punch)
+}
+
+func updateRepoLanguages(d *db.DB, record tangled.GitRefUpdate) error {
+	if record.Meta == nil && record.Meta.LangBreakdown == nil {
+		return fmt.Errorf("empty language data for repo: %s/%s", record.RepoDid, record.RepoName)
 	}
 
-	if !dev {
-		err = pc.Enqueue(posthog.Capture{
-			DistinctId: record.CommitterDid,
-			Event:      "git_ref_update",
-		})
-		if err != nil {
-			// non-fatal, TODO: log this
+	repos, err := db.GetRepos(
+		d,
+		db.FilterEq("did", record.RepoDid),
+		db.FilterEq("name", record.RepoName),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to look for repo in DB (%s/%s): %w", record.RepoDid, record.RepoName, err)
+	}
+	if len(repos) != 1 {
+		return fmt.Errorf("incorrect number of repos returned: %d (expected 1)", len(repos))
+	}
+	repo := repos[0]
+
+	ref := plumbing.ReferenceName(record.Ref)
+	if !ref.IsBranch() {
+		return fmt.Errorf("%s is not a valid reference name", ref)
+	}
+
+	var langs []db.RepoLanguage
+	for _, l := range record.Meta.LangBreakdown.Inputs {
+		if l == nil {
+			continue
 		}
+
+		langs = append(langs, db.RepoLanguage{
+			RepoAt:   repo.RepoAt(),
+			Ref:      ref.Short(),
+			Language: l.Lang,
+			Bytes:    l.Size,
+		})
 	}
 
-	return nil
+	return db.InsertRepoLanguages(d, langs)
 }
 
 func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
