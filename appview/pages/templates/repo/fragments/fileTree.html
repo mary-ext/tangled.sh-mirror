@@ -1,4 +1,4 @@
-{{ define "fileTree" }}
+{{ define "repo/fragments/fileTree" }}
   {{ if and .Name .IsDirectory }}
     <details open>
       <summary class="cursor-pointer list-none pt-1">
@@ -7,9 +7,9 @@
           <span class="filename text-black dark:text-white">{{ .Name }}</span>
         </span>
       </summary>
-      <div class="ml-1 pl-4 border-l border-gray-200 dark:border-gray-700">
+      <div class="ml-1 pl-2 border-l border-gray-200 dark:border-gray-700">
         {{ range $child := .Children }}
-          {{ block "fileTree" $child }} {{ end }}
+          {{ template "repo/fragments/fileTree" $child }}
         {{ end }}
       </div>
     </details>
@@ -20,7 +20,7 @@
     </div>
   {{ else }}
     {{ range $child := .Children }}
-      {{ block "fileTree" $child }} {{ end }}
+      {{ template "repo/fragments/fileTree" $child }}
     {{ end }}
   {{ end }}
 {{ end }}
