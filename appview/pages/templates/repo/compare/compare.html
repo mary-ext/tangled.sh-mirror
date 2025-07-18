@@ -50,7 +50,7 @@
 {{ end }}
 
 {{ define "contentAfter" }}
-  {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff) }}
+  {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff .DiffOpts) }}
 {{end}}
 
 {{ define "contentAfterLeft" }}

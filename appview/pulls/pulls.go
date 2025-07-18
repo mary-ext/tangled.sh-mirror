@@ -355,6 +355,11 @@ func (s *Pulls) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var diffOpts types.DiffOpts
+	if d := r.URL.Query().Get("diff"); d == "split" {
+		diffOpts.Split = true
+	}
+
 	pull, ok := r.Context().Value("pull").(*db.Pull)
 	if !ok {
 		log.Println("failed to get pull")
@@ -395,6 +400,7 @@ func (s *Pulls) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		Round:        roundIdInt,
 		Submission:   pull.Submissions[roundIdInt],
 		Diff:         &diff,
+		DiffOpts:     diffOpts,
 	})
 
 }

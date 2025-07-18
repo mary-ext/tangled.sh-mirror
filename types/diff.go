@@ -5,6 +5,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
+type DiffOpts struct {
+	Split bool `json:"split"`
+}
+
 type TextFragment struct {
 	Header string         `json:"comment"`
 	Lines  []gitdiff.Line `json:"lines"`
@@ -76,4 +80,26 @@ func (d *NiceDiff) ChangedFiles() []string {
 	}
 
 	return files
+}
+
+// used by html elements as a unique ID for hrefs
+func (d *Diff) Id() string {
+	return d.Name.New
+}
+
+func (d *Diff) Split() *SplitDiff {
+	fragments := make([]SplitFragment, len(d.TextFragments))
+	for i, fragment := range d.TextFragments {
+		leftLines, rightLines := SeparateLines(&fragment)
+		fragments[i] = SplitFragment{
+			Header:     fragment.Header(),
+			LeftLines:  leftLines,
+			RightLines: rightLines,
+		}
+	}
+
+	return &SplitDiff{
+		Name:          d.Id(),
+		TextFragments: fragments,
+	}
 }

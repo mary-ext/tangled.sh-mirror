@@ -527,6 +527,7 @@ type RepoCommitParams struct {
 	Active             string
 	EmailToDidOrHandle map[string]string
 	Pipeline           *db.Pipeline
+	DiffOpts           types.DiffOpts
 
 	// singular because it's always going to be just one
 	VerifiedCommit commitverify.VerifiedCommits
@@ -859,6 +860,7 @@ type RepoPullPatchParams struct {
 	Round                int
 	Submission           *db.PullSubmission
 	OrderedReactionKinds []db.ReactionKind
+	DiffOpts             types.DiffOpts
 }
 
 // this name is a mouthful
@@ -964,6 +966,7 @@ type RepoCompareParams struct {
 	Base         string
 	Head         string
 	Diff         *types.NiceDiff
+	DiffOpts     types.DiffOpts
 
 	Active string
 }
