@@ -268,6 +268,11 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		protocol = "https"
 	}
 
+	var diffOpts types.DiffOpts
+	if d := r.URL.Query().Get("diff"); d == "split" {
+		diffOpts.Split = true
+	}
+
 	if !plumbing.IsHash(ref) {
 		rp.pages.Error404(w)
 		return
@@ -321,8 +326,8 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
 		VerifiedCommit:     vc,
 		Pipeline:           pipeline,
+		DiffOpts:           diffOpts,
 	})
-	return
 }
 
 func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
@@ -1269,6 +1274,11 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var diffOpts types.DiffOpts
+	if d := r.URL.Query().Get("diff"); d == "split" {
+		diffOpts.Split = true
+	}
+
 	// if user is navigating to one of
 	//   /compare/{base}/{head}
 	//   /compare/{base}...{head}
@@ -1331,6 +1341,7 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		Base:         base,
 		Head:         head,
 		Diff:         &diff,
+		DiffOpts:     diffOpts,
 	})
 
 }
