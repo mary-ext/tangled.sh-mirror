@@ -414,6 +414,11 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var diffOpts types.DiffOpts
+	if d := r.URL.Query().Get("diff"); d == "split" {
+		diffOpts.Split = true
+	}
+
 	pull, ok := r.Context().Value("pull").(*db.Pull)
 	if !ok {
 		log.Println("failed to get pull")
@@ -462,6 +467,10 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 
 	interdiff := patchutil.Interdiff(previousPatch, currentPatch)
 
+	for _, f := range interdiff.Files {
+		log.Println("", "", f.Split())
+	}
+
 	s.pages.RepoPullInterdiffPage(w, pages.RepoPullInterdiffParams{
 		LoggedInUser: s.oauth.GetUser(r),
 		RepoInfo:     f.RepoInfo(user),
@@ -469,8 +478,8 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		Round:        roundIdInt,
 		DidHandleMap: didHandleMap,
 		Interdiff:    interdiff,
+		DiffOpts:     diffOpts,
 	})
-	return
 }
 
 func (s *Pulls) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {

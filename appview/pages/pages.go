@@ -876,6 +876,7 @@ type RepoPullInterdiffParams struct {
 	Round                int
 	Interdiff            *patchutil.InterdiffResult
 	OrderedReactionKinds []db.ReactionKind
+	DiffOpts             types.DiffOpts
 }
 
 // this name is a mouthful
