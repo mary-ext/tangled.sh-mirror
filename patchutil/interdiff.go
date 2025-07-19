@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 type InterdiffResult struct {
@@ -33,6 +34,30 @@ type InterdiffFile struct {
 	*gitdiff.File
 	Name   string
 	Status InterdiffFileStatus
+}
+
+func (s *InterdiffFile) Split() *types.SplitDiff {
+	fragments := make([]types.SplitFragment, len(s.TextFragments))
+
+	for i, fragment := range s.TextFragments {
+		leftLines, rightLines := types.SeparateLines(fragment)
+
+		fragments[i] = types.SplitFragment{
+			Header:     fragment.Header(),
+			LeftLines:  leftLines,
+			RightLines: rightLines,
+		}
+	}
+
+	return &types.SplitDiff{
+		Name:          s.Id(),
+		TextFragments: fragments,
+	}
+}
+
+// used by html elements as a unique ID for hrefs
+func (s *InterdiffFile) Id() string {
+	return s.Name
 }
 
 func (s *InterdiffFile) String() string {
