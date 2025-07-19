@@ -7,10 +7,24 @@
 
 <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
   <div class="flex flex-col gap-6">
+    {{ block "about" . }} {{ end }}
     {{ template "knots/fragments/knotListingFull" . }}
     {{ block "register" . }} {{ end }}
   </div>
 </section>
+{{ end }}
+
+{{ define "about" }}
+  <section class="rounded flex flex-col gap-2">
+    <p class="dark:text-gray-300">
+      Knots are lightweight headless servers that enable users to host Git repositories with ease.
+      Knots are designed for either single or multi-tenant use which is perfect for self-hosting on a Raspberry Pi at home, or larger “community” servers.
+      By default, Tangled provides managed knots where you can host your repositories for free.
+      <a href="https://tangled.sh/@tangled.sh/core/blob/master/docs/knot-hosting.md">
+        Checkout the documentation if you're interested in self-hosting.
+      </a>
+    </p>
+  </section>
 {{ end }}
 
 {{ define "register" }}
