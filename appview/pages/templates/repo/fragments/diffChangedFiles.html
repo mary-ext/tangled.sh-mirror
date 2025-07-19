@@ -1,15 +1,13 @@
 {{ define "repo/fragments/diffChangedFiles" }}
   {{ $stat := .Stat }}
   {{ $fileTree := fileTree .ChangedFiles }}
-  <div class="col-span-1 md:col-span-2 mt-4">
-    <section class="sticky top-0 overflow-x-auto text-sm px-6 py-2 border border-gray-200 dark:border-gray-700 w-full mx-auto md:min-h-screen rounded bg-white dark:bg-gray-800 drop-shadow-sm">
-      <div class="diff-stat">
-        <div class="flex gap-2 items-center">
-          <strong class="text-sm uppercase dark:text-gray-200">Changed files</strong>
-          {{ template "repo/fragments/diffStatPill" $stat }}
-        </div>
-        {{ template "repo/fragments/fileTree" $fileTree }}
+  <section class="overflow-x-auto text-sm px-6 py-2 border border-gray-200 dark:border-gray-700 w-full mx-auto md:min-h-screen rounded bg-white dark:bg-gray-800 drop-shadow-sm">
+    <div class="diff-stat">
+      <div class="flex gap-2 items-center">
+        <strong class="text-sm uppercase dark:text-gray-200">Changed files</strong>
+        {{ template "repo/fragments/diffStatPill" $stat }}
       </div>
-    </section>
-  </div>
+      {{ template "repo/fragments/fileTree" $fileTree }}
+    </div>
+  </section>
 {{ end }}

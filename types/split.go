@@ -36,7 +36,7 @@ func SeparateLines(fragment *gitdiff.TextFragment) ([]SplitLine, []SplitLine) {
 	lines := fragment.Lines
 	var leftLines, rightLines []SplitLine
 	oldLineNum := fragment.OldPosition
-	newLineNum := fragment.OldPosition
+	newLineNum := fragment.NewPosition
 
 	// process deletions and additions in groups for better alignment
 	i := 0
