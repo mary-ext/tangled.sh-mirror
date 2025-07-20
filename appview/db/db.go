@@ -428,6 +428,7 @@ func Make(dbPath string) (*DB, error) {
 			-- repo identifiers
 			repo_at text not null,
 			ref text not null,
+			is_default_ref integer not null default 0,
 
 			-- language breakdown
 			language text not null,

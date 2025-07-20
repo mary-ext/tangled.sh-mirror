@@ -123,7 +123,8 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	languageInfo, err := rp.getLanguageInfo(f, signedClient)
+	// TODO: a bit dirty
+	languageInfo, err := rp.getLanguageInfo(f, signedClient, chi.URLParam(r, "ref") == "")
 	if err != nil {
 		log.Printf("failed to compute language percentages: %s", err)
 		// non-fatal
@@ -158,6 +159,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 func (rp *Repo) getLanguageInfo(
 	f *reporesolver.ResolvedRepo,
 	signedClient *knotclient.SignedClient,
+	isDefaultRef bool,
 ) ([]types.RepoLanguageDetails, error) {
 	// first attempt to fetch from db
 	langs, err := db.GetRepoLanguages(
@@ -175,12 +177,14 @@ func (rp *Repo) getLanguageInfo(
 		if ls == nil {
 			return nil, nil
 		}
+
 		for l, s := range ls.Languages {
 			langs = append(langs, db.RepoLanguage{
-				RepoAt:   f.RepoAt,
-				Ref:      f.Ref,
-				Language: l,
-				Bytes:    s,
+				RepoAt:       f.RepoAt,
+				Ref:          f.Ref,
+				IsDefaultRef: isDefaultRef,
+				Language:     l,
+				Bytes:        s,
 			})
 		}
 

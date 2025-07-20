@@ -159,10 +159,11 @@ func updateRepoLanguages(d *db.DB, record tangled.GitRefUpdate) error {
 		}
 
 		langs = append(langs, db.RepoLanguage{
-			RepoAt:   repo.RepoAt(),
-			Ref:      ref.Short(),
-			Language: l.Lang,
-			Bytes:    l.Size,
+			RepoAt:       repo.RepoAt(),
+			Ref:          ref.Short(),
+			IsDefaultRef: record.Meta.IsDefaultRef,
+			Language:     l.Lang,
+			Bytes:        l.Size,
 		})
 	}
 

@@ -8,11 +8,12 @@ import (
 )
 
 type RepoLanguage struct {
-	Id       int64
-	RepoAt   syntax.ATURI
-	Ref      string
-	Language string
-	Bytes    int64
+	Id           int64
+	RepoAt       syntax.ATURI
+	Ref          string
+	IsDefaultRef bool
+	Language     string
+	Bytes        int64
 }
 
 func GetRepoLanguages(e Execer, filters ...filter) ([]RepoLanguage, error) {
@@ -29,7 +30,7 @@ func GetRepoLanguages(e Execer, filters ...filter) ([]RepoLanguage, error) {
 	}
 
 	query := fmt.Sprintf(
-		`select id, repo_at, ref, language, bytes from repo_languages %s`,
+		`select id, repo_at, ref, is_default_ref, language, bytes from repo_languages %s`,
 		whereClause,
 	)
 	rows, err := e.Query(query, args...)
@@ -41,16 +42,22 @@ func GetRepoLanguages(e Execer, filters ...filter) ([]RepoLanguage, error) {
 	var langs []RepoLanguage
 	for rows.Next() {
 		var rl RepoLanguage
+		var isDefaultRef int
 
 		err := rows.Scan(
 			&rl.Id,
 			&rl.RepoAt,
 			&rl.Ref,
+			&isDefaultRef,
 			&rl.Language,
 			&rl.Bytes,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan: %w ", err)
+		}
+
+		if isDefaultRef != 0 {
+			rl.IsDefaultRef = true
 		}
 
 		langs = append(langs, rl)
@@ -64,14 +71,19 @@ func GetRepoLanguages(e Execer, filters ...filter) ([]RepoLanguage, error) {
 
 func InsertRepoLanguages(e Execer, langs []RepoLanguage) error {
 	stmt, err := e.Prepare(
-		"insert or replace into repo_languages (repo_at, ref, language, bytes) values (?, ?, ?, ?)",
+		"insert or replace into repo_languages (repo_at, ref, is_default_ref, language, bytes) values (?, ?, ?, ?, ?)",
 	)
 	if err != nil {
 		return err
 	}
 
 	for _, l := range langs {
-		_, err := stmt.Exec(l.RepoAt, l.Ref, l.Language, l.Bytes)
+		isDefaultRef := 0
+		if l.IsDefaultRef {
+			isDefaultRef = 1
+		}
+
+		_, err := stmt.Exec(l.RepoAt, l.Ref, isDefaultRef, l.Language, l.Bytes)
 		if err != nil {
 			return err
 		}
