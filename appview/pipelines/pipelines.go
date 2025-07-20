@@ -22,7 +22,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
-	"github.com/posthog/posthog-go"
 )
 
 type Pipelines struct {
@@ -34,7 +33,6 @@ type Pipelines struct {
 	spindlestream *eventconsumer.Consumer
 	db            *db.DB
 	enforcer      *rbac.Enforcer
-	posthog       posthog.Client
 	logger        *slog.Logger
 }
 
@@ -46,7 +44,6 @@ func New(
 	idResolver *idresolver.Resolver,
 	db *db.DB,
 	config *config.Config,
-	posthog posthog.Client,
 	enforcer *rbac.Enforcer,
 ) *Pipelines {
 	logger := log.New("pipelines")
@@ -58,7 +55,6 @@ func New(
 		config:        config,
 		spindlestream: spindlestream,
 		db:            db,
-		posthog:       posthog,
 		enforcer:      enforcer,
 		logger:        logger,
 	}

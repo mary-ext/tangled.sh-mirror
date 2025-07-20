@@ -14,13 +14,13 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
-	"github.com/posthog/posthog-go"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
+	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pagination"
@@ -34,7 +34,7 @@ type Issues struct {
 	idResolver   *idresolver.Resolver
 	db           *db.DB
 	config       *config.Config
-	posthog      posthog.Client
+	notifier     notify.Notifier
 }
 
 func New(
@@ -44,7 +44,7 @@ func New(
 	idResolver *idresolver.Resolver,
 	db *db.DB,
 	config *config.Config,
-	posthog posthog.Client,
+	notifier notify.Notifier,
 ) *Issues {
 	return &Issues{
 		oauth:        oauth,
@@ -53,7 +53,7 @@ func New(
 		idResolver:   idResolver,
 		db:           db,
 		config:       config,
-		posthog:      posthog,
+		notifier:     notifier,
 	}
 }
 
@@ -750,16 +750,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !rp.config.Core.Dev {
-			err = rp.posthog.Enqueue(posthog.Capture{
-				DistinctId: user.Did,
-				Event:      "new_issue",
-				Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "issue_id": issue.IssueId},
-			})
-			if err != nil {
-				log.Println("failed to enqueue posthog event:", err)
-			}
-		}
+		rp.notifier.NewIssue(r.Context(), issue)
 
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return

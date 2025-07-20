@@ -33,9 +33,14 @@ func (star *Star) ResolveRepo(e Execer) error {
 	return nil
 }
 
-func AddStar(e Execer, starredByDid string, repoAt syntax.ATURI, rkey string) error {
+func AddStar(e Execer, star *Star) error {
 	query := `insert or ignore into stars (starred_by_did, repo_at, rkey) values (?, ?, ?)`
-	_, err := e.Exec(query, starredByDid, repoAt, rkey)
+	_, err := e.Exec(
+		query,
+		star.StarredByDid,
+		star.RepoAt.String(),
+		star.Rkey,
+	)
 	return err
 }
 

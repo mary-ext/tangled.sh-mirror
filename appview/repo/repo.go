@@ -21,6 +21,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
+	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
@@ -34,7 +35,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/posthog/posthog-go"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -49,7 +49,7 @@ type Repo struct {
 	spindlestream *eventconsumer.Consumer
 	db            *db.DB
 	enforcer      *rbac.Enforcer
-	posthog       posthog.Client
+	notifier      notify.Notifier
 }
 
 func New(
@@ -60,7 +60,7 @@ func New(
 	idResolver *idresolver.Resolver,
 	db *db.DB,
 	config *config.Config,
-	posthog posthog.Client,
+	notifier notify.Notifier,
 	enforcer *rbac.Enforcer,
 ) *Repo {
 	return &Repo{oauth: oauth,
@@ -70,7 +70,7 @@ func New(
 		config:        config,
 		spindlestream: spindlestream,
 		db:            db,
-		posthog:       posthog,
+		notifier:      notifier,
 		enforcer:      enforcer,
 	}
 }

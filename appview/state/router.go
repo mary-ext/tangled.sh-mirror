@@ -198,21 +198,21 @@ func (s *State) KnotsRouter(mw *middleware.Middleware) http.Handler {
 }
 
 func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
-	issues := issues.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.posthog)
+	issues := issues.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.notifier)
 	return issues.Router(mw)
 }
 
 func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {
-	pulls := pulls.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.posthog)
+	pulls := pulls.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.notifier)
 	return pulls.Router(mw)
 }
 
 func (s *State) RepoRouter(mw *middleware.Middleware) http.Handler {
-	repo := repo.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.posthog, s.enforcer)
+	repo := repo.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.notifier, s.enforcer)
 	return repo.Router(mw)
 }
 
 func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
-	pipes := pipelines.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.posthog, s.enforcer)
+	pipes := pipelines.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.enforcer)
 	return pipes.Router(mw)
 }

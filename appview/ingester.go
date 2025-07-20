@@ -100,7 +100,11 @@ func (i *Ingester) ingestStar(e *models.Event) error {
 			l.Error("invalid record", "err", err)
 			return err
 		}
-		err = db.AddStar(i.Db, did, subjectUri, e.Commit.RKey)
+		err = db.AddStar(i.Db, &db.Star{
+			StarredByDid: did,
+			RepoAt:       subjectUri,
+			Rkey:         e.Commit.RKey,
+		})
 	case models.CommitOperationDelete:
 		err = db.DeleteStarByRkey(i.Db, did, e.Commit.RKey)
 	}
@@ -129,8 +133,11 @@ func (i *Ingester) ingestFollow(e *models.Event) error {
 			return err
 		}
 
-		subjectDid := record.Subject
-		err = db.AddFollow(i.Db, did, subjectDid, e.Commit.RKey)
+		err = db.AddFollow(i.Db, &db.Follow{
+			UserDid:    did,
+			SubjectDid: record.Subject,
+			Rkey:       e.Commit.RKey,
+		})
 	case models.CommitOperationDelete:
 		err = db.DeleteFollowByRkey(i.Db, did, e.Commit.RKey)
 	}

@@ -18,6 +18,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
+	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
@@ -31,7 +32,6 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/posthog/posthog-go"
 )
 
 type Pulls struct {
@@ -41,7 +41,7 @@ type Pulls struct {
 	idResolver   *idresolver.Resolver
 	db           *db.DB
 	config       *config.Config
-	posthog      posthog.Client
+	notifier     notify.Notifier
 }
 
 func New(
@@ -51,7 +51,7 @@ func New(
 	resolver *idresolver.Resolver,
 	db *db.DB,
 	config *config.Config,
-	posthog posthog.Client,
+	notifier notify.Notifier,
 ) *Pulls {
 	return &Pulls{
 		oauth:        oauth,
@@ -60,7 +60,7 @@ func New(
 		idResolver:   resolver,
 		db:           db,
 		config:       config,
-		posthog:      posthog,
+		notifier:     notifier,
 	}
 }
 
@@ -685,15 +685,17 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Create the pull comment in the database with the commentAt field
-		commentId, err := db.NewPullComment(tx, &db.PullComment{
+		comment := &db.PullComment{
 			OwnerDid:     user.Did,
 			RepoAt:       f.RepoAt.String(),
 			PullId:       pull.PullId,
 			Body:         body,
 			CommentAt:    atResp.Uri,
 			SubmissionId: pull.Submissions[roundNumber].ID,
-		})
+		}
+
+		// Create the pull comment in the database with the commentAt field
+		commentId, err := db.NewPullComment(tx, comment)
 		if err != nil {
 			log.Println("failed to create pull comment", err)
 			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
@@ -707,16 +709,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !s.config.Core.Dev {
-			err = s.posthog.Enqueue(posthog.Capture{
-				DistinctId: user.Did,
-				Event:      "new_pull_comment",
-				Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "pull_id": pull.PullId},
-			})
-			if err != nil {
-				log.Println("failed to enqueue posthog event:", err)
-			}
-		}
+		s.notifier.NewPullComment(r.Context(), comment)
 
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", f.OwnerSlashRepo(), pull.PullId, commentId))
 		return
@@ -1050,7 +1043,7 @@ func (s *Pulls) createPullRequest(
 		Patch:     patch,
 		SourceRev: sourceRev,
 	}
-	err = db.NewPull(tx, &db.Pull{
+	pull := &db.Pull{
 		Title:        title,
 		Body:         body,
 		TargetBranch: targetBranch,
@@ -1061,7 +1054,8 @@ func (s *Pulls) createPullRequest(
 			&initialSubmission,
 		},
 		PullSource: pullSource,
-	})
+	}
+	err = db.NewPull(tx, pull)
 	if err != nil {
 		log.Println("failed to create pull request", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
@@ -1101,16 +1095,7 @@ func (s *Pulls) createPullRequest(
 		return
 	}
 
-	if !s.config.Core.Dev {
-		err = s.posthog.Enqueue(posthog.Capture{
-			DistinctId: user.Did,
-			Event:      "new_pull",
-			Properties: posthog.Properties{"repo_at": f.RepoAt.String(), "pull_id": pullId},
-		})
-		if err != nil {
-			log.Println("failed to enqueue posthog event:", err)
-		}
-	}
+	s.notifier.NewPull(r.Context(), pull)
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
 }

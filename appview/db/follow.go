@@ -12,9 +12,9 @@ type Follow struct {
 	Rkey       string
 }
 
-func AddFollow(e Execer, userDid, subjectDid, rkey string) error {
+func AddFollow(e Execer, follow *Follow) error {
 	query := `insert or ignore into follows (user_did, subject_did, rkey) values (?, ?, ?)`
-	_, err := e.Exec(query, userDid, subjectDid, rkey)
+	_, err := e.Exec(query, follow.UserDid, follow.SubjectDid, follow.Rkey)
 	return err
 }
 

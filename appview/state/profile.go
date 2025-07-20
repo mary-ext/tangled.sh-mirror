@@ -16,7 +16,6 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
-	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
@@ -371,15 +370,7 @@ func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *htt
 		return
 	}
 
-	if !s.config.Core.Dev {
-		err = s.posthog.Enqueue(posthog.Capture{
-			DistinctId: user.Did,
-			Event:      "edit_profile",
-		})
-		if err != nil {
-			log.Println("failed to enqueue posthog event:", err)
-		}
-	}
+	s.notifier.UpdateProfile(r.Context(), profile)
 
 	s.pages.HxRedirect(w, "/"+user.Did)
 	return

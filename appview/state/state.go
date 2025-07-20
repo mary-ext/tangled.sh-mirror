@@ -25,6 +25,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	posthog_service "tangled.sh/tangled.sh/core/appview/posthog"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/jetstream"
@@ -134,6 +135,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	spindlestream.Start(ctx)
 
 	notifier := notify.NewMergedNotifier(
+		posthog_service.NewPosthogNotifier(posthog),
 	)
 
 	state := &State{
@@ -766,16 +768,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !s.config.Core.Dev {
-			err = s.posthog.Enqueue(posthog.Capture{
-				DistinctId: user.Did,
-				Event:      "new_repo",
-				Properties: posthog.Properties{"repo": repoName, "repo_at": repo.AtUri},
-			})
-			if err != nil {
-				log.Println("failed to enqueue posthog event:", err)
-			}
-		}
+		s.notifier.NewRepo(r.Context(), repo)
 
 		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Handle, repoName))
 		return

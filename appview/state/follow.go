@@ -7,7 +7,6 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
-	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -58,29 +57,26 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.AddFollow(s.db, currentUser.Did, subjectIdent.DID.String(), rkey)
+		log.Println("created atproto record: ", resp.Uri)
+
+		follow := &db.Follow{
+			UserDid: currentUser.Did,
+			SubjectDid: subjectIdent.DID.String(),
+			Rkey: rkey,
+		}
+
+		err = db.AddFollow(s.db, follow)
 		if err != nil {
 			log.Println("failed to follow", err)
 			return
 		}
 
-		log.Println("created atproto record: ", resp.Uri)
+		s.notifier.NewFollow(r.Context(), follow)
 
 		s.pages.FollowFragment(w, pages.FollowFragmentParams{
 			UserDid:      subjectIdent.DID.String(),
 			FollowStatus: db.IsFollowing,
 		})
-
-		if !s.config.Core.Dev {
-			err = s.posthog.Enqueue(posthog.Capture{
-				DistinctId: currentUser.Did,
-				Event:      "follow",
-				Properties: posthog.Properties{"subject": subjectIdent.DID.String()},
-			})
-			if err != nil {
-				log.Println("failed to enqueue posthog event:", err)
-			}
-		}
 
 		return
 	case http.MethodDelete:
@@ -113,16 +109,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 			FollowStatus: db.IsNotFollowing,
 		})
 
-		if !s.config.Core.Dev {
-			err = s.posthog.Enqueue(posthog.Capture{
-				DistinctId: currentUser.Did,
-				Event:      "unfollow",
-				Properties: posthog.Properties{"subject": subjectIdent.DID.String()},
-			})
-			if err != nil {
-				log.Println("failed to enqueue posthog event:", err)
-			}
-		}
+		s.notifier.DeleteFollow(r.Context(), follow)
 
 		return
 	}

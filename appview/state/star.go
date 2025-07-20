@@ -8,7 +8,6 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
-	"github.com/posthog/posthog-go"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -54,8 +53,15 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 			log.Println("failed to create atproto record", err)
 			return
 		}
+		log.Println("created atproto record: ", resp.Uri)
 
-		err = db.AddStar(s.db, currentUser.Did, subjectUri, rkey)
+		star := &db.Star{
+			StarredByDid: currentUser.Did,
+			RepoAt: subjectUri,
+			Rkey: rkey,
+		}
+
+		err = db.AddStar(s.db, star)
 		if err != nil {
 			log.Println("failed to star", err)
 			return
@@ -66,7 +72,7 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 			log.Println("failed to get star count for ", subjectUri)
 		}
 
-		log.Println("created atproto record: ", resp.Uri)
+		s.notifier.NewStar(r.Context(), star)
 
 		s.pages.RepoActionsFragment(w, pages.RepoActionsFragmentParams{
 			IsStarred: true,
@@ -75,17 +81,6 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 				StarCount: starCount,
 			},
 		})
-
-		if !s.config.Core.Dev {
-			err = s.posthog.Enqueue(posthog.Capture{
-				DistinctId: currentUser.Did,
-				Event:      "star",
-				Properties: posthog.Properties{"repo_at": subjectUri.String()},
-			})
-			if err != nil {
-				log.Println("failed to enqueue posthog event:", err)
-			}
-		}
 
 		return
 	case http.MethodDelete:
@@ -119,6 +114,8 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		s.notifier.DeleteStar(r.Context(), star)
+
 		s.pages.RepoActionsFragment(w, pages.RepoActionsFragmentParams{
 			IsStarred: false,
 			RepoAt:    subjectUri,
@@ -126,17 +123,6 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 				StarCount: starCount,
 			},
 		})
-
-		if !s.config.Core.Dev {
-			err = s.posthog.Enqueue(posthog.Capture{
-				DistinctId: currentUser.Did,
-				Event:      "unstar",
-				Properties: posthog.Properties{"repo_at": subjectUri.String()},
-			})
-			if err != nil {
-				log.Println("failed to enqueue posthog event:", err)
-			}
-		}
 
 		return
 	}
