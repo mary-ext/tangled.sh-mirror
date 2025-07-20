@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/config"
@@ -39,7 +40,9 @@ import (
 var Files embed.FS
 
 type Pages struct {
-	t           map[string]*template.Template
+	mu sync.RWMutex
+	t  map[string]*template.Template
+
 	avatar      config.AvatarConfig
 	dev         bool
 	embedFS     embed.FS
@@ -56,6 +59,7 @@ func NewPages(config *config.Config) *Pages {
 	}
 
 	p := &Pages{
+		mu:          sync.RWMutex{},
 		t:           make(map[string]*template.Template),
 		dev:         config.Core.Dev,
 		avatar:      config.Avatar,
@@ -147,6 +151,8 @@ func (p *Pages) loadAllTemplates() {
 	}
 
 	log.Printf("total templates loaded: %d", len(templates))
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.t = templates
 }
 
@@ -207,6 +213,8 @@ func (p *Pages) loadTemplateFromDisk(name string) error {
 	}
 
 	// Update the template in the map
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.t[name] = tmpl
 	log.Printf("template reloaded from disk: %s", name)
 	return nil
@@ -221,6 +229,8 @@ func (p *Pages) executeOrReload(templateName string, w io.Writer, base string, p
 		}
 	}
 
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	tmpl, exists := p.t[templateName]
 	if !exists {
 		return fmt.Errorf("template not found: %s", templateName)
