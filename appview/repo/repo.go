@@ -106,19 +106,30 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := us.Tags(f.OwnerDid(), f.RepoName)
+	tagResult, err := us.Tags(f.OwnerDid(), f.RepoName)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
 	}
 
 	tagMap := make(map[string][]string)
-	for _, tag := range result.Tags {
+	for _, tag := range tagResult.Tags {
 		hash := tag.Hash
 		if tag.Tag != nil {
 			hash = tag.Tag.Target.String()
 		}
 		tagMap[hash] = append(tagMap[hash], tag.Name)
+	}
+
+	branchResult, err := us.Branches(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	for _, branch := range branchResult.Branches {
+		hash := branch.Hash
+		tagMap[hash] = append(tagMap[hash], branch.Name)
 	}
 
 	user := rp.oauth.GetUser(r)
@@ -154,7 +165,6 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		VerifiedCommits:    vc,
 		Pipelines:          pipelines,
 	})
-	return
 }
 
 func (rp *Repo) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {

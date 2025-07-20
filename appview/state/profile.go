@@ -50,7 +50,10 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting profile data for %s: %s", ident.DID.String(), err)
 	}
 
-	repos, err := db.GetAllReposByDid(s.db, ident.DID.String())
+	repos, err := db.GetRepos(
+		s.db,
+		db.FilterEq("did", ident.DID.String()),
+	)
 	if err != nil {
 		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
 	}
@@ -171,7 +174,10 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting profile data for %s: %s", ident.DID.String(), err)
 	}
 
-	repos, err := db.GetAllReposByDid(s.db, ident.DID.String())
+	repos, err := db.GetRepos(
+		s.db,
+		db.FilterEq("did", ident.DID.String()),
+	)
 	if err != nil {
 		log.Printf("getting repos for %s: %s", ident.DID.String(), err)
 	}
@@ -192,6 +198,7 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 	s.pages.ReposPage(w, pages.ReposPageParams{
 		LoggedInUser: loggedInUser,
 		Repos:        repos,
+		DidHandleMap: map[string]string{ident.DID.String(): ident.Handle.String()},
 		Card: pages.ProfileCard{
 			UserDid:      ident.DID.String(),
 			UserHandle:   ident.Handle.String(),

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/go-enry/go-enry/v2"
 	"github.com/microcosm-cc/bluemonday"
 	"tangled.sh/tangled.sh/core/appview/filetree"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
@@ -241,6 +242,7 @@ func (p *Pages) funcMap() template.FuncMap {
 		},
 
 		"tinyAvatar": p.tinyAvatar,
+		"langColor":  enry.GetColor,
 	}
 }
 

@@ -22,28 +22,7 @@
   <p class="text-sm font-bold p-2 dark:text-white">ALL REPOSITORIES</p>
   <div id="repos" class="grid grid-cols-1 gap-4 mb-6">
     {{ range .Repos }}
-      <div
-          id="repo-card"
-          class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
-          <div id="repo-card-name" class="font-medium">
-              <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}/{{ .Name }}"
-                  >{{ .Name }}</a
-              >
-          </div>
-          {{ if .Description }}
-              <div class="text-gray-600 dark:text-gray-300 text-sm">
-                  {{ .Description }}
-              </div>
-          {{ end }}
-          <div class="text-gray-400 pt-1 text-sm font-mono inline-flex gap-4 mt-auto">
-            {{ if .RepoStats.StarCount }}
-                <div class="flex gap-1 items-center text-sm">
-                    {{ i "star" "w-3 h-3 fill-current" }}
-                    <span>{{ .RepoStats.StarCount }}</span>
-                </div>
-            {{ end }}
-          </div>
-      </div>
+       {{ template "user/fragments/repoCard" (list $ . false) }}
     {{ else }}
         <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
     {{ end }}

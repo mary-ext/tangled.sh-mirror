@@ -130,7 +130,7 @@ func populatePunchcard(d *db.DB, record tangled.GitRefUpdate) error {
 }
 
 func updateRepoLanguages(d *db.DB, record tangled.GitRefUpdate) error {
-	if record.Meta == nil && record.Meta.LangBreakdown == nil {
+	if record.Meta == nil || record.Meta.LangBreakdown == nil || record.Meta.LangBreakdown.Inputs == nil {
 		return fmt.Errorf("empty language data for repo: %s/%s", record.RepoDid, record.RepoName)
 	}
 

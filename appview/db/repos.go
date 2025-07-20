@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"slices"
 	"strings"
 	"time"
 
@@ -72,7 +74,7 @@ func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 }
 
 func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
-	repoMap := make(map[syntax.ATURI]Repo)
+	repoMap := make(map[syntax.ATURI]*Repo)
 
 	var conditions []string
 	var args []any
@@ -139,7 +141,8 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 			repo.Spindle = spindle.String
 		}
 
-		repoMap[repo.RepoAt()] = repo
+		repo.RepoStats = &RepoStats{}
+		repoMap[repo.RepoAt()] = &repo
 	}
 
 	if err = rows.Err(); err != nil {
@@ -148,8 +151,49 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(repoMap)), ", ")
 	args = make([]any, len(repoMap))
+
+	i := 0
 	for _, r := range repoMap {
-		args = append(args, r.RepoAt())
+		args[i] = r.RepoAt()
+		i++
+	}
+
+	languageQuery := fmt.Sprintf(
+		`
+		select
+			repo_at, language
+		from
+			repo_languages r1
+		where
+			repo_at IN (%s)
+			and is_default_ref = 1
+			and id = (
+				select id
+					from repo_languages r2
+					where r2.repo_at = r1.repo_at
+					and r2.is_default_ref = 1
+					order by bytes desc
+					limit 1
+			);
+		`,
+		inClause,
+	)
+	rows, err = e.Query(languageQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute lang query: %w ", err)
+	}
+	for rows.Next() {
+		var repoat, lang string
+		if err := rows.Scan(&repoat, &lang); err != nil {
+			log.Println("err", "err", err)
+			continue
+		}
+		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
+			r.RepoStats.Language = lang
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to execute lang query: %w ", err)
 	}
 
 	starCountQuery := fmt.Sprintf(
@@ -168,6 +212,7 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 		var repoat string
 		var count int
 		if err := rows.Scan(&repoat, &count); err != nil {
+			log.Println("err", "err", err)
 			continue
 		}
 		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
@@ -196,6 +241,7 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 		var repoat string
 		var open, closed int
 		if err := rows.Scan(&repoat, &open, &closed); err != nil {
+			log.Println("err", "err", err)
 			continue
 		}
 		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
@@ -236,6 +282,7 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 		var repoat string
 		var open, merged, closed, deleted int
 		if err := rows.Scan(&repoat, &open, &merged, &closed, &deleted); err != nil {
+			log.Println("err", "err", err)
 			continue
 		}
 		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
@@ -251,8 +298,15 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 
 	var repos []Repo
 	for _, r := range repoMap {
-		repos = append(repos, r)
+		repos = append(repos, *r)
 	}
+
+	slices.SortFunc(repos, func(a, b Repo) int {
+		if a.Created.After(b.Created) {
+			return 1
+		}
+		return -1
+	})
 
 	return repos, nil
 }
@@ -509,63 +563,33 @@ func UpdateSpindle(e Execer, repoAt, spindle string) error {
 }
 
 func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
-	var repos []Repo
-
-	rows, err := e.Query(
-		`select
-			r.did, r.name, r.knot, r.rkey, r.description, r.created, count(s.id) as star_count
-		from
-			repos r
-		join
-			collaborators c on r.id = c.repo
-		left join
-			stars s on r.at_uri = s.repo_at
-		where
-			c.did = ?
-		group by
-			r.id;`, collaborator)
+	rows, err := e.Query(`select repo from collaborators where did = ?`, collaborator)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	var repoIds []int
 	for rows.Next() {
-		var repo Repo
-		var repoStats RepoStats
-		var createdAt string
-		var nullableDescription sql.NullString
-
-		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repoStats.StarCount)
+		var id int
+		err := rows.Scan(&id)
 		if err != nil {
 			return nil, err
 		}
-
-		if nullableDescription.Valid {
-			repo.Description = nullableDescription.String
-		} else {
-			repo.Description = ""
-		}
-
-		createdAtTime, err := time.Parse(time.RFC3339, createdAt)
-		if err != nil {
-			repo.Created = time.Now()
-		} else {
-			repo.Created = createdAtTime
-		}
-
-		repo.RepoStats = &repoStats
-
-		repos = append(repos, repo)
+		repoIds = append(repoIds, id)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	if repoIds == nil {
+		return nil, nil
+	}
 
-	return repos, nil
+	return GetRepos(e, FilterIn("id", repoIds))
 }
 
 type RepoStats struct {
+	Language   string
 	StarCount  int
 	IssueCount IssueCount
 	PullCount  PullCount
