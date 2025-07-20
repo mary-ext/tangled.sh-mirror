@@ -60,7 +60,7 @@ in
             description = "Nixery instance to use";
           };
 
-          stepTimeout = mkOption {
+          workflowTimeout = mkOption {
             type = types.str;
             default = "5m";
             description = "Timeout for each step of a pipeline";
@@ -87,7 +87,7 @@ in
             "SPINDLE_SERVER_DEV=${lib.boolToString cfg.server.dev}"
             "SPINDLE_SERVER_OWNER=${cfg.server.owner}"
             "SPINDLE_PIPELINES_NIXERY=${cfg.pipelines.nixery}"
-            "SPINDLE_PIPELINES_STEP_TIMEOUT=${cfg.pipelines.stepTimeout}"
+            "SPINDLE_PIPELINES_WORKFLOW_TIMEOUT=${cfg.pipelines.workflowTimeout}"
           ];
           ExecStart = "${self.packages.${pkgs.system}.spindle}/bin/spindle";
           Restart = "always";
