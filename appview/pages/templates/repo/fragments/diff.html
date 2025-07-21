@@ -1,18 +1,19 @@
 {{ define "repo/fragments/diff" }}
-{{ $repo := index . 0 }}
-{{ $diff := index . 1 }}
-{{ $opts := index . 2 }}
+  {{ $repo := index . 0 }}
+  {{ $diff := index . 1 }}
+  {{ $opts := index . 2 }}
 
-{{ $commit := $diff.Commit }}
-{{ $diff := $diff.Diff }}
-{{ $isSplit := $opts.Split }}
-{{ $this := $commit.This }}
-{{ $parent := $commit.Parent }}
-
+  {{ $commit := $diff.Commit }}
+  {{ $diff := $diff.Diff }}
+  {{ $isSplit := $opts.Split }}
+  {{ $this := $commit.This }}
+  {{ $parent := $commit.Parent }}
   {{ $last := sub (len $diff) 1 }}
+
+  <div class="flex flex-col gap-4">
     {{ range $idx, $hunk := $diff }}
       {{ with $hunk }}
-      <section class="mt-4 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
+      <section class="border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
         <div id="file-{{ .Name.New }}">
           <div id="diff-file">
             <details open>
@@ -103,4 +104,5 @@
       </section>
       {{ end }}
     {{ end }}
+  </div>
 {{ end }}

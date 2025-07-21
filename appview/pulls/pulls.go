@@ -467,10 +467,6 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 
 	interdiff := patchutil.Interdiff(previousPatch, currentPatch)
 
-	for _, f := range interdiff.Files {
-		log.Println("", "", f.Split())
-	}
-
 	s.pages.RepoPullInterdiffPage(w, pages.RepoPullInterdiffParams{
 		LoggedInUser: s.oauth.GetUser(r),
 		RepoInfo:     f.RepoInfo(user),

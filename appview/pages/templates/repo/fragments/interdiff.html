@@ -7,9 +7,10 @@
 {{ $last := sub (len $diff) 1 }}
 {{ $isSplit := $opts.Split }}
 
+<div class="flex flex-col gap-4">
   {{ range $idx, $hunk := $diff }}
     {{ with $hunk }}
-    <section class="mt-4 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
+    <section class="border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
       <div id="file-{{ .Name }}">
         <div id="diff-file">
           <details {{ if not (.Status.IsOnlyInOne) }}open{{end}}>
@@ -86,5 +87,6 @@
     </section>
     {{ end }}
   {{ end }}
+</div>
 {{ end }}
 

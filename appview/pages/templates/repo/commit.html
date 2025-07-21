@@ -80,42 +80,26 @@
 {{end}}
 
 {{ define "topbarLayout" }}
-  <div class="px-1 grid grid-cols-1">
-    <header style="z-index: 20" class="col-span-1">
-      {{ block "topbar" . }}
-        {{ template "layouts/topbar" . }}
-      {{ end }}
-    </header>
-  </div>
+  {{ template "layouts/topbar" . }}
 {{ end }}
 
-{{ define "contentLayout" }}
-  <div class="grid grid-cols-1 md:grid-cols-1 gap-2">
-    <main class="px-1 col-span-1">
-      {{ block "content" . }}{{ end }}
-    </main>
-  </div>
+{{ define "contentLayout"  }}
+  {{ block "content" . }}{{ end }}
 {{ end }}
 
-{{ block "contentAfterLayout" . }}
-  <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+{{ define "contentAfterLayout"  }}
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
     <div class="col-span-1 md:col-span-2">
       {{ block "contentAfterLeft" . }} {{ end }}
     </div>
-    <main class="px-1 col-span-1 md:col-span-10">
+    <main class="col-span-1 md:col-span-10">
       {{ block "contentAfter" . }}{{ end }}
     </main>
   </div>
 {{ end }}
 
-{{ block "footerLayout" . }}
-  <div class="px-1 grid grid-cols-1">
-    <footer class="mt-16 col-span-1">
-      {{ block "footer" . }}
-        {{ template "layouts/footer" . }}
-      {{ end }}
-    </footer>
-  </div>
+{{ define "footerLayout"  }}
+  {{ template "layouts/footer" . }}
 {{ end }}
 
 {{ define "contentAfter" }}
@@ -123,7 +107,7 @@
 {{end}}
 
 {{ define "contentAfterLeft" }}
-  <div class="flex flex-col gap-4 col-span-1 md:col-span-2 mt-4">
+  <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
     {{ template "repo/fragments/diffOpts" .DiffOpts }}
   </div>
   <div class="sticky top-0 mt-4">
