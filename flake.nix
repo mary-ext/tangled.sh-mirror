@@ -63,7 +63,10 @@
     mkPackageSet = pkgs:
       pkgs.lib.makeScope pkgs.newScope (self: {
         inherit (gitignore.lib) gitignoreSource;
-        inherit (gomod2nix.legacyPackages.${pkgs.system}) buildGoApplication;
+        buildGoApplication =
+          (self.callPackage "${gomod2nix}/builder" {
+            gomod2nix = gomod2nix.legacyPackages.${pkgs.system}.gomod2nix;
+          }).buildGoApplication;
         modules = ./nix/gomod2nix.toml;
         sqlite-lib = self.callPackage ./nix/pkgs/sqlite-lib.nix {
           inherit (pkgs) gcc;
