@@ -16,7 +16,7 @@
         </head>
         <body class="bg-slate-100 dark:bg-gray-900 dark:text-white transition-colors duration-200">
           {{ block "topbarLayout" . }}
-            <div class="px-1 grid grid-cols-1 md:grid-cols-12">
+            <div class="px-1 grid grid-cols-1 md:grid-cols-12 gap-2">
               <div class="{{ layoutSide }}">
                 {{ block "topbarLeft" . }} {{ end }}
               </div>
@@ -33,11 +33,11 @@
 
           <div class="flex flex-col min-h-screen">
             {{ block "contentLayout" . }}
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+              <div class="px-1 grid grid-cols-1 md:grid-cols-12 gap-2">
                 <div class="{{ layoutSide }}">
                   {{ block "contentLeft" . }} {{ end }}
                 </div>
-                <main class="px-1 {{ layoutCenter }}">
+                <main class="{{ layoutCenter }}">
                   {{ block "content" . }}{{ end }}
                 </main>
                 <div class="{{ layoutSide }}">
@@ -47,7 +47,7 @@
             {{ end }}
 
             {{ block "contentAfterLayout" . }}
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+              <div class="px-1 grid grid-cols-1 md:grid-cols-12 gap-2">
                 <div class="{{ layoutSide }}">
                   {{ block "contentAfterLeft" . }} {{ end }}
                 </div>
@@ -62,7 +62,7 @@
           </div>
 
           {{ block "footerLayout" . }}
-            <div class="px-1 grid grid-cols-1 md:grid-cols-12">
+            <div class="px-1 grid grid-cols-1 md:grid-cols-12 gap-2">
               <div class="{{ layoutSide }}">
                 {{ block "footerLeft" . }} {{ end }}
               </div>
