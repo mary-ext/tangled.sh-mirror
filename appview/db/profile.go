@@ -348,6 +348,115 @@ func UpsertProfile(tx *sql.Tx, profile *Profile) error {
 	return tx.Commit()
 }
 
+func GetProfiles(e Execer, filters ...filter) ([]Profile, error) {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	profilesQuery := fmt.Sprintf(
+		`select
+			id,
+			did,
+			description,
+			include_bluesky,
+			location
+		from
+			profile
+		%s`,
+		whereClause,
+	)
+	rows, err := e.Query(profilesQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	profileMap := make(map[string]*Profile)
+	for rows.Next() {
+		var profile Profile
+		var includeBluesky int
+
+		err = rows.Scan(&profile.ID, &profile.Did, &profile.Description, &includeBluesky, &profile.Location)
+		if err != nil {
+			return nil, err
+		}
+
+		if includeBluesky != 0 {
+			profile.IncludeBluesky = true
+		}
+
+		profileMap[profile.Did] = &profile
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// populate profile links
+	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(profileMap)), ", ")
+	args = make([]any, len(profileMap))
+	i := 0
+	for did := range profileMap {
+		args[i] = did
+		i++
+	}
+
+	linksQuery := fmt.Sprintf("select link, did from profile_links where did in (%s)", inClause)
+	rows, err = e.Query(linksQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	idxs := make(map[string]int)
+	for did := range profileMap {
+		idxs[did] = 0
+	}
+	for rows.Next() {
+		var link, did string
+		if err = rows.Scan(&link, &did); err != nil {
+			return nil, err
+		}
+
+		idx := idxs[did]
+		log.Println("idx", "idx", idx, "link", link)
+		profileMap[did].Links[idx] = link
+		idxs[did] = idx + 1
+	}
+
+	pinsQuery := fmt.Sprintf("select at_uri, did from profile_pinned_repositories where did in (%s)", inClause)
+	rows, err = e.Query(pinsQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	idxs = make(map[string]int)
+	for did := range profileMap {
+		idxs[did] = 0
+	}
+	for rows.Next() {
+		var link syntax.ATURI
+		var did string
+		if err = rows.Scan(&link, &did); err != nil {
+			return nil, err
+		}
+
+		idx := idxs[did]
+		profileMap[did].PinnedRepos[idx] = link
+		idxs[did] = idx + 1
+	}
+
+	var profiles []Profile
+	for _, p := range profileMap {
+		profiles = append(profiles, *p)
+	}
+
+	return profiles, nil
+}
+
 func GetProfile(e Execer, did string) (*Profile, error) {
 	var profile Profile
 	profile.Did = did
