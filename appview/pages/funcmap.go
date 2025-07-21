@@ -241,8 +241,13 @@ func (p *Pages) funcMap() template.FuncMap {
 			return u
 		},
 
-		"tinyAvatar": p.tinyAvatar,
-		"langColor":  enry.GetColor,
+		"tinyAvatar": func(handle string) string {
+			return p.avatarUri(handle, "tiny")
+		},
+		"fullAvatar": func(handle string) string {
+			return p.avatarUri(handle, "")
+		},
+		"langColor": enry.GetColor,
 		"layoutSide": func() string {
 			return "col-span-1 md:col-span-2 lg:col-span-3"
 		},
@@ -252,13 +257,19 @@ func (p *Pages) funcMap() template.FuncMap {
 	}
 }
 
-func (p *Pages) tinyAvatar(handle string) string {
+func (p *Pages) avatarUri(handle, size string) string {
 	handle = strings.TrimPrefix(handle, "@")
+
 	secret := p.avatar.SharedSecret
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(handle))
 	signature := hex.EncodeToString(h.Sum(nil))
-	return fmt.Sprintf("%s/%s/%s?size=tiny", p.avatar.Host, signature, handle)
+
+	sizeArg := ""
+	if size != "" {
+		sizeArg = fmt.Sprintf("size=%s", size)
+	}
+	return fmt.Sprintf("%s/%s/%s?%s", p.avatar.Host, signature, handle, sizeArg)
 }
 
 func icon(name string, classes []string) (template.HTML, error) {

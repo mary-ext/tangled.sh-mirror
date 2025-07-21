@@ -423,7 +423,6 @@ func GetProfiles(e Execer, filters ...filter) ([]Profile, error) {
 		}
 
 		idx := idxs[did]
-		log.Println("idx", "idx", idx, "link", link)
 		profileMap[did].Links[idx] = link
 		idxs[did] = idx + 1
 	}

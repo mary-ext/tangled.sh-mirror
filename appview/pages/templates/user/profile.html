@@ -8,20 +8,20 @@
 {{ end }}
 
 {{ define "content" }}
-<div class="grid grid-cols-1 md:grid-cols-8 gap-4">
-    <div class="md:col-span-2 order-1 md:order-1">
+<div class="grid grid-cols-1 md:grid-cols-11 gap-4">
+    <div class="md:col-span-3 order-1 md:order-1">
       <div class="grid grid-cols-1 gap-4">
         {{ template "user/fragments/profileCard" .Card }}
         {{ block "punchcard" .Punchcard }} {{ end }}
       </div>
     </div>
-    <div id="all-repos" class="md:col-span-3 order-2 md:order-2">
+    <div id="all-repos" class="md:col-span-4 order-2 md:order-2">
       <div class="grid grid-cols-1 gap-4">
         {{ block "ownRepos" . }}{{ end }}
         {{ block "collaboratingRepos" . }}{{ end }}
       </div>
     </div>
-    <div class="md:col-span-3 order-3 md:order-3">
+    <div class="md:col-span-4 order-3 md:order-3">
         {{ block "profileTimeline" . }}{{ end }}
     </div>
 </div>
@@ -258,7 +258,7 @@
         </button>
       {{ end }}
     </div>
-    <div id="repos" class="grid grid-cols-1 gap-4">
+    <div id="repos" class="grid grid-cols-1 gap-4 items-stretch">
       {{ range .Repos }}
         {{ template "user/fragments/repoCard" (list $ . false) }}
       {{ else }}
