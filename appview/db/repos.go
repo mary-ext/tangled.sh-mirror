@@ -73,7 +73,7 @@ func GetAllRepos(e Execer, limit int) ([]Repo, error) {
 	return repos, nil
 }
 
-func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
+func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 	repoMap := make(map[syntax.ATURI]*Repo)
 
 	var conditions []string
@@ -88,6 +88,11 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 		whereClause = " where " + strings.Join(conditions, " and ")
 	}
 
+	limitClause := ""
+	if limit != 0 {
+		limitClause = fmt.Sprintf(" limit %d", limit)
+	}
+
 	repoQuery := fmt.Sprintf(
 		`select
 			did,
@@ -100,8 +105,10 @@ func GetRepos(e Execer, filters ...filter) ([]Repo, error) {
 			spindle
 		from
 			repos r
+		%s
 		%s`,
 		whereClause,
+		limitClause,
 	)
 	rows, err := e.Query(repoQuery, args...)
 
@@ -585,7 +592,7 @@ func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
 		return nil, nil
 	}
 
-	return GetRepos(e, FilterIn("id", repoIds))
+	return GetRepos(e, 0, FilterIn("id", repoIds))
 }
 
 type RepoStats struct {

@@ -319,6 +319,7 @@ func (k *Knots) dashboard(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := db.GetRepos(
 		k.Db,
+		0,
 		db.FilterEq("knot", domain),
 		db.FilterIn("did", members),
 	)

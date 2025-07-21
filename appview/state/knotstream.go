@@ -136,6 +136,7 @@ func updateRepoLanguages(d *db.DB, record tangled.GitRefUpdate) error {
 
 	repos, err := db.GetRepos(
 		d,
+		0,
 		db.FilterEq("did", record.RepoDid),
 		db.FilterEq("name", record.RepoName),
 	)
@@ -188,6 +189,7 @@ func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
 	// does this repo have a spindle configured?
 	repos, err := db.GetRepos(
 		d,
+		0,
 		db.FilterEq("did", record.TriggerMetadata.Repo.Did),
 		db.FilterEq("name", record.TriggerMetadata.Repo.Repo),
 	)

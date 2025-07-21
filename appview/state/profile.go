@@ -52,6 +52,7 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := db.GetRepos(
 		s.db,
+		0,
 		db.FilterEq("did", ident.DID.String()),
 	)
 	if err != nil {
@@ -176,6 +177,7 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := db.GetRepos(
 		s.db,
+		0,
 		db.FilterEq("did", ident.DID.String()),
 	)
 	if err != nil {
