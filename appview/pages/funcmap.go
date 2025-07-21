@@ -243,6 +243,12 @@ func (p *Pages) funcMap() template.FuncMap {
 
 		"tinyAvatar": p.tinyAvatar,
 		"langColor":  enry.GetColor,
+		"layoutSide": func() string {
+			return "col-span-1 md:col-span-2 lg:col-span-3"
+		},
+		"layoutCenter": func() string {
+			return "col-span-1 md:col-span-8 lg:col-span-6"
+		},
 	}
 }
 

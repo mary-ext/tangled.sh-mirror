@@ -17,15 +17,15 @@
         <body class="bg-slate-100 dark:bg-gray-900 dark:text-white transition-colors duration-200">
           {{ block "topbarLayout" . }}
             <div class="px-1 grid grid-cols-1 md:grid-cols-12">
-              <div class="col-span-1 md:col-span-2">
+              <div class="{{ layoutSide }}">
                 {{ block "topbarLeft" . }} {{ end }}
               </div>
-              <header style="z-index: 20" class="col-span-1 md:col-span-8">
+              <header style="z-index: 20" class="{{ layoutCenter }}">
                 {{ block "topbar" . }}
                   {{ template "layouts/topbar" . }}
                 {{ end }}
               </header>
-              <div class="col-span-1 md:col-span-2">
+              <div class="{{ layoutSide }}">
                 {{ block "topbarRight" . }} {{ end }}
               </div>
             </div>
@@ -34,13 +34,13 @@
           <div class="flex flex-col min-h-screen">
             {{ block "contentLayout" . }}
               <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
-                <div class="col-span-1 md:col-span-2">
+                <div class="{{ layoutSide }}">
                   {{ block "contentLeft" . }} {{ end }}
                 </div>
-                <main class="px-1 col-span-1 md:col-span-8">
+                <main class="px-1 {{ layoutCenter }}">
                   {{ block "content" . }}{{ end }}
                 </main>
-                <div class="col-span-1 md:col-span-2">
+                <div class="{{ layoutSide }}">
                   {{ block "contentRight" . }} {{ end }}
                 </div>
               </div>
@@ -48,13 +48,13 @@
 
             {{ block "contentAfterLayout" . }}
               <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
-                <div class="col-span-1 md:col-span-2">
+                <div class="{{ layoutSide }}">
                   {{ block "contentAfterLeft" . }} {{ end }}
                 </div>
-                <main class="px-1 col-span-1 md:col-span-8">
+                <main class="px-1 {{ layoutCenter }}">
                   {{ block "contentAfter" . }}{{ end }}
                 </main>
-                <div class="col-span-1 md:col-span-2">
+                <div class="{{ layoutSide }}">
                   {{ block "contentAfterRight" . }} {{ end }}
                 </div>
               </div>
@@ -63,15 +63,15 @@
 
           {{ block "footerLayout" . }}
             <div class="px-1 grid grid-cols-1 md:grid-cols-12">
-              <div class="col-span-1 md:col-span-2">
+              <div class="{{ layoutSide }}">
                 {{ block "footerLeft" . }} {{ end }}
               </div>
-              <footer class="mt-16 col-span-1 md:col-span-8">
+              <footer class="mt-16 {{ layoutCenter }}">
                 {{ block "footer" . }}
                   {{ template "layouts/footer" . }}
                 {{ end }}
               </footer>
-              <div class="col-span-1 md:col-span-2">
+              <div class="{{ layoutSide }}">
                 {{ block "footerRight" . }} {{ end }}
               </div>
             </div>
