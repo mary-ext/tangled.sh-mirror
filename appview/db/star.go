@@ -1,7 +1,9 @@
 package db
 
 import (
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -91,6 +93,89 @@ func GetStarStatus(e Execer, userDid string, repoAt syntax.ATURI) bool {
 	} else {
 		return true
 	}
+}
+
+func GetStars(e Execer, limit int, filters ...filter) ([]Star, error) {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	limitClause := ""
+	if limit != 0 {
+		limitClause = fmt.Sprintf(" limit %d", limit)
+	}
+
+	repoQuery := fmt.Sprintf(
+		`select starred_by_did, repo_at, created, rkey 
+		from stars
+		%s
+		order by created desc
+		%s`,
+		whereClause,
+		limitClause,
+	)
+	rows, err := e.Query(repoQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	starMap := make(map[string][]Star)
+	for rows.Next() {
+		var star Star
+		var created string
+		err := rows.Scan(&star.StarredByDid, &star.RepoAt, &created, &star.Rkey)
+		if err != nil {
+			return nil, err
+		}
+
+		star.Created = time.Now()
+		if t, err := time.Parse(time.RFC3339, created); err == nil {
+			star.Created = t
+		}
+
+		repoAt := string(star.RepoAt)
+		starMap[repoAt] = append(starMap[repoAt], star)
+	}
+
+	// populate *Repo in each star
+	args = make([]any, len(starMap))
+	i := 0
+	for r := range starMap {
+		args[i] = r
+		i++
+	}
+
+	if len(args) == 0 {
+		return nil, nil
+	}
+
+	repos, err := GetRepos(e, 0, FilterIn("at_uri", args))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range repos {
+		if stars, ok := starMap[string(r.RepoAt())]; ok {
+			for i := range stars {
+				stars[i].Repo = &r
+			}
+		}
+	}
+
+	var stars []Star
+	for _, s := range starMap {
+		stars = append(stars, s...)
+	}
+
+	return stars, nil
 }
 
 func GetAllStars(e Execer, limit int) ([]Star, error) {
