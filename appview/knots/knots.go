@@ -141,6 +141,18 @@ func (k *Knots) init(w http.ResponseWriter, r *http.Request) {
 
 	l.Info("checking domain")
 
+	registration, err := db.RegistrationByDomain(k.Db, domain)
+	if err != nil {
+		l.Error("failed to get registration for domain", "err", err)
+		fail()
+		return
+	}
+	if registration.ByDid != user.Did {
+		l.Error("unauthorized", "wantedDid", registration.ByDid, "gotDid", user.Did)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	secret, err := db.GetRegistrationKey(k.Db, domain)
 	if err != nil {
 		l.Error("failed to get registration key for domain", "err", err)
