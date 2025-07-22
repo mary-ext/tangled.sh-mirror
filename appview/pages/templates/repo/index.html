@@ -386,7 +386,7 @@
                 dark:[&_pre]:border dark:[&_pre]:border-gray-700
             {{ end }}"
         >
-            <article class="{{ if .Raw }}whitespace-pre{{ end }}">{{- if .Raw -}}<pre class="dark:bg-gray-800 dark:text-white overflow-x-scroll">
+            <article class="{{ if .Raw }}whitespace-pre{{ end }}">{{- if .Raw -}}<pre class="dark:bg-gray-800 dark:text-white overflow-x-auto">
                         {{- .HTMLReadme -}}
                     </pre>
                 {{- else -}}

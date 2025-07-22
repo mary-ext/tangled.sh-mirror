@@ -143,15 +143,19 @@
       <a href="/{{ $subjectHandle }}">
         <span class="font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">{{ $subjectHandle | truncateAt30 }}</span>
       </a>
-      {{ with $profile.Description }}
-        <p class="text-sm pb-2 md:pb-2">{{.}}</p>
+      {{ with $profile }}
+        {{ with .Description }}
+          <p class="text-sm pb-2 md:pb-2">{{.}}</p>
+        {{ end }}
       {{ end }}
-      <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full text-sm">
-        <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
-        <span id="followers">{{ $stat.Followers }} followers</span>
-        <span class="select-none after:content-['·']"></span>
-        <span id="following">{{  $stat.Following  }} following</span>
-      </div>
+      {{ with $stat }}
+        <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full text-sm">
+          <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
+          <span id="followers">{{ .Followers }} followers</span>
+          <span class="select-none after:content-['·']"></span>
+          <span id="following">{{  .Following  }} following</span>
+        </div>
+      {{ end }}
     </div>
   </div>
 {{ end }}

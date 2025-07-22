@@ -80,7 +80,9 @@
 {{end}}
 
 {{ define "topbarLayout" }}
-  {{ template "layouts/topbar" . }}
+  <header style="z-index: 20;">
+    {{ template "layouts/topbar" . }}
+  </header>
 {{ end }}
 
 {{ define "contentLayout"  }}

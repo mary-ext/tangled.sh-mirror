@@ -174,11 +174,8 @@ func getTimelineFollows(e Execer) ([]TimelineEvent, error) {
 
 	var events []TimelineEvent
 	for _, f := range follows {
-		profile, ok1 := profileMap[f.SubjectDid]
-		followStatMap, ok2 := followStatMap[f.SubjectDid]
-		if !ok1 || !ok2 {
-			continue
-		}
+		profile, _ := profileMap[f.SubjectDid]
+		followStatMap, _ := followStatMap[f.SubjectDid]
 
 		events = append(events, TimelineEvent{
 			Follow:      &f,

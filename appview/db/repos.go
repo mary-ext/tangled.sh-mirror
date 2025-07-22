@@ -106,6 +106,7 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 		from
 			repos r
 		%s
+		order by created desc
 		%s`,
 		whereClause,
 		limitClause,
