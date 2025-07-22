@@ -1,4 +1,4 @@
-{self}: {
+{
   config,
   pkgs,
   lib,
@@ -13,6 +13,11 @@ in
           type = types.bool;
           default = false;
           description = "Enable a tangled knot";
+        };
+
+        package = mkOption {
+          type = types.package;
+          description = "Package to use for the knot";
         };
 
         appviewEndpoint = mkOption {
@@ -94,9 +99,9 @@ in
     };
 
     config = mkIf cfg.enable {
-      environment.systemPackages = with pkgs; [
-        git
-        self.packages."${pkgs.system}".knot
+      environment.systemPackages = [
+        pkgs.git
+        cfg.package
       ];
 
       system.activationScripts.gitConfig = ''
@@ -135,7 +140,7 @@ in
         mode = "0555";
         text = ''
           #!${pkgs.stdenv.shell}
-          ${self.packages.${pkgs.system}.knot}/bin/knot keys \
+          ${cfg.package}/bin/knot keys \
             -output authorized-keys \
             -internal-api "http://${cfg.server.internalListenAddr}" \
             -git-dir "${cfg.repo.scanPath}" \
@@ -160,7 +165,7 @@ in
             "KNOT_SERVER_HOSTNAME=${cfg.server.hostname}"
           ];
           EnvironmentFile = cfg.server.secretFile;
-          ExecStart = "${self.packages.${pkgs.system}.knot}/bin/knot server";
+          ExecStart = "${cfg.package}/bin/knot server";
           Restart = "always";
         };
       };

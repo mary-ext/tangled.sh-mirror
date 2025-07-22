@@ -190,9 +190,33 @@
       };
     });
 
-    nixosModules.appview = import ./nix/modules/appview.nix {inherit self;};
-    nixosModules.knot = import ./nix/modules/knot.nix {inherit self;};
-    nixosModules.spindle = import ./nix/modules/spindle.nix {inherit self;};
+    nixosModules.appview = {
+      lib,
+      pkgs,
+      ...
+    }: {
+      imports = [./nix/modules/appview.nix];
+
+      services.tangled-appview.package = lib.mkDefault self.packages.${pkgs.system}.appview;
+    };
+    nixosModules.knot = {
+      lib,
+      pkgs,
+      ...
+    }: {
+      imports = [./nix/modules/knot.nix];
+
+      services.tangled-knot.package = lib.mkDefault self.packages.${pkgs.system}.knot;
+    };
+    nixosModules.spindle = {
+      lib,
+      pkgs,
+      ...
+    }: {
+      imports = [./nix/modules/spindle.nix];
+
+      services.tangled-spindle.package = lib.mkDefault self.packages.${pkgs.system}.spindle;
+    };
     nixosConfigurations.vm = import ./nix/vm.nix {inherit self nixpkgs;};
   };
 }

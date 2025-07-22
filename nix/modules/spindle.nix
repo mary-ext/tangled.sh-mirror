@@ -1,6 +1,5 @@
-{self}: {
+{
   config,
-  pkgs,
   lib,
   ...
 }: let
@@ -13,6 +12,10 @@ in
           type = types.bool;
           default = false;
           description = "Enable a tangled spindle";
+        };
+        package = mkOption {
+          type = types.package;
+          description = "Package to use for the spindle";
         };
 
         server = {
@@ -89,7 +92,7 @@ in
             "SPINDLE_PIPELINES_NIXERY=${cfg.pipelines.nixery}"
             "SPINDLE_PIPELINES_WORKFLOW_TIMEOUT=${cfg.pipelines.workflowTimeout}"
           ];
-          ExecStart = "${self.packages.${pkgs.system}.spindle}/bin/spindle";
+          ExecStart = "${cfg.package}/bin/spindle";
           Restart = "always";
         };
       };
