@@ -54,7 +54,7 @@
                         "Kind"      $kind
                         "Count"     (index $.Reactions $kind)
                         "IsReacted" (index $.UserReacted $kind)
-                        "ThreadAt"  $.Issue.IssueAt)
+                        "ThreadAt"  $.Issue.AtUri)
                 }}
             {{ end }}
         </div>

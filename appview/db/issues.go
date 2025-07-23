@@ -2,9 +2,11 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 )
 
@@ -13,7 +15,7 @@ type Issue struct {
 	RepoAt   syntax.ATURI
 	OwnerDid string
 	IssueId  int
-	IssueAt  string
+	Rkey     string
 	Created  time.Time
 	Title    string
 	Body     string
@@ -42,6 +44,10 @@ type Comment struct {
 	Edited    *time.Time
 }
 
+func (i *Issue) AtUri() syntax.ATURI {
+	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", i.OwnerDid, tangled.RepoIssueNSID, i.Rkey))
+}
+
 func NewIssue(tx *sql.Tx, issue *Issue) error {
 	defer tx.Rollback()
 
@@ -67,9 +73,9 @@ func NewIssue(tx *sql.Tx, issue *Issue) error {
 	issue.IssueId = nextId
 
 	res, err := tx.Exec(`
-		insert into issues (repo_at, owner_did, issue_id, title, body)
-		values (?, ?, ?, ?, ?)
-	`, issue.RepoAt, issue.OwnerDid, issue.IssueId, issue.Title, issue.Body)
+		insert into issues (repo_at, owner_did, rkey, issue_at, issue_id, title, body)
+		values (?, ?, ?, ?, ?, ?, ?)
+	`, issue.RepoAt, issue.OwnerDid, issue.Rkey, issue.AtUri(), issue.IssueId, issue.Title, issue.Body)
 	if err != nil {
 		return err
 	}
@@ -85,11 +91,6 @@ func NewIssue(tx *sql.Tx, issue *Issue) error {
 	}
 
 	return nil
-}
-
-func SetIssueAt(e Execer, repoAt syntax.ATURI, issueId int, issueAt string) error {
-	_, err := e.Exec(`update issues set issue_at = ? where repo_at = ? and issue_id = ?`, issueAt, repoAt, issueId)
-	return err
 }
 
 func GetIssueAt(e Execer, repoAt syntax.ATURI, issueId int) (string, error) {
@@ -117,6 +118,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 			select
 				i.id,
 				i.owner_did,
+				i.rkey,
 				i.issue_id,
 				i.created,
 				i.title,
@@ -136,6 +138,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 		select
 			id,
 			owner_did,
+			rkey,
 			issue_id,
 			created,
 			title,
@@ -156,7 +159,7 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 		var issue Issue
 		var createdAt string
 		var metadata IssueMetadata
-		err := rows.Scan(&issue.ID, &issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
+		err := rows.Scan(&issue.ID, &issue.OwnerDid, &issue.Rkey, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
 		if err != nil {
 			return nil, err
 		}
@@ -187,6 +190,7 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 		`select
 			i.id,
 			i.owner_did,
+			i.rkey,
 			i.repo_at,
 			i.issue_id,
 			i.created,
@@ -219,6 +223,7 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 		err := rows.Scan(
 			&issue.ID,
 			&issue.OwnerDid,
+			&issue.Rkey,
 			&issue.RepoAt,
 			&issue.IssueId,
 			&issueCreatedAt,
@@ -262,12 +267,12 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 }
 
 func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
-	query := `select id, owner_did, created, title, body, open from issues where repo_at = ? and issue_id = ?`
+	query := `select id, owner_did, rkey, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
 	var issue Issue
 	var createdAt string
-	err := row.Scan(&issue.ID, &issue.OwnerDid, &createdAt, &issue.Title, &issue.Body, &issue.Open)
+	err := row.Scan(&issue.ID, &issue.OwnerDid, &issue.Rkey, &createdAt, &issue.Title, &issue.Body, &issue.Open)
 	if err != nil {
 		return nil, err
 	}
@@ -282,12 +287,12 @@ func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 }
 
 func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, []Comment, error) {
-	query := `select id, owner_did, issue_id, created, title, body, open, issue_at from issues where repo_at = ? and issue_id = ?`
+	query := `select id, owner_did, rkey, issue_id, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
 	var issue Issue
 	var createdAt string
-	err := row.Scan(&issue.ID, &issue.OwnerDid, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &issue.IssueAt)
+	err := row.Scan(&issue.ID, &issue.OwnerDid, &issue.Rkey, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open)
 	if err != nil {
 		return nil, nil, err
 	}

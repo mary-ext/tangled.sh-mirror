@@ -11,7 +11,6 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/data"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 
@@ -80,7 +79,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reactionCountMap, err := db.GetReactionCountMap(rp.db, syntax.ATURI(issue.IssueAt))
+	reactionCountMap, err := db.GetReactionCountMap(rp.db, issue.AtUri())
 	if err != nil {
 		log.Println("failed to get issue reactions")
 		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
@@ -88,7 +87,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 
 	userReactions := map[db.ReactionKind]bool{}
 	if user != nil {
-		userReactions = db.GetReactionStatusMap(rp.db, user.Did, syntax.ATURI(issue.IssueAt))
+		userReactions = db.GetReactionStatusMap(rp.db, user.Did, issue.AtUri())
 	}
 
 	issueOwnerIdent, err := rp.idResolver.ResolveIdent(r.Context(), issue.OwnerDid)
@@ -99,7 +98,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 	rp.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(user),
-		Issue:        *issue,
+		Issue:        issue,
 		Comments:     comments,
 
 		IssueOwnerHandle: issueOwnerIdent.Handle.String(),
@@ -159,7 +158,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			Rkey:       tid.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssueState{
-					Issue: issue.IssueAt,
+					Issue: issue.AtUri().String(),
 					State: closed,
 				},
 			},
@@ -651,6 +650,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 
 		issue := &db.Issue{
 			RepoAt:   f.RepoAt,
+			Rkey:     tid.TID(),
 			Title:    title,
 			Body:     body,
 			OwnerDid: user.Did,
@@ -669,10 +669,10 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		atUri := f.RepoAt.String()
-		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,
-			Rkey:       tid.TID(),
+			Rkey:       issue.Rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssue{
 					Repo:    atUri,
@@ -685,13 +685,6 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			log.Println("failed to create issue", err)
-			rp.pages.Notice(w, "issues", "Failed to create issue.")
-			return
-		}
-
-		err = db.SetIssueAt(rp.db, f.RepoAt, issue.IssueId, resp.Uri)
-		if err != nil {
-			log.Println("failed to set issue at", err)
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}

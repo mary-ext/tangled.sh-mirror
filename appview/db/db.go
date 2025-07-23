@@ -663,6 +663,17 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	runMigration(conn, "add-rkey-to-issues", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table issues add column rkey text not null default '';
+
+			-- get last url section from issue_at and save to rkey column
+			update issues
+			set rkey = replace(issue_at, rtrim(issue_at, replace(issue_at, '/', '')), '');
+		`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 

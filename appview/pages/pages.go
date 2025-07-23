@@ -793,7 +793,7 @@ type RepoSingleIssueParams struct {
 	LoggedInUser     *oauth.User
 	RepoInfo         repoinfo.RepoInfo
 	Active           string
-	Issue            db.Issue
+	Issue            *db.Issue
 	Comments         []db.Comment
 	IssueOwnerHandle string
 
