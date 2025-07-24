@@ -50,7 +50,7 @@ type RenderContext struct {
 	Files        fs.FS
 }
 
-func (rctx *RenderContext) RenderMarkdown(source string) string {
+func NewMarkdown() goldmark.Markdown {
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,
@@ -66,12 +66,18 @@ func (rctx *RenderContext) RenderMarkdown(source string) string {
 			),
 			treeblood.MathML(),
 			callout.CalloutExtention,
+			AtExt,
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
 		goldmark.WithRendererOptions(html.WithUnsafe()),
 	)
+	return md
+}
+
+func (rctx *RenderContext) RenderMarkdown(source string) string {
+	md := NewMarkdown()
 
 	if rctx != nil {
 		var transformers []util.PrioritizedValue
