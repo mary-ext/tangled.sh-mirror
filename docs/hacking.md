@@ -32,6 +32,22 @@ TANGLED_DEV=true nix run .#watch-appview
 nix run .#watch-tailwind
 ```
 
+To authenticate with the appview, you will need redis and
+OAUTH JWKs to be setup:
+
+```
+# oauth jwks should already be setup by the nix devshell:
+echo $TANGLED_OAUTH_JWKS
+{"crv":"P-256","d":"tELKHYH-Dko6qo4ozYcVPE1ah6LvXHFV2wpcWpi8ab4","kid":"1753352226","kty":"EC","x":"mRzYpLzAGq74kJez9UbgGfV040DxgsXpMbaVsdy8RZs","y":"azqqXzUYywMlLb2Uc5AVG18nuLXyPnXr4kI4T39eeIc"}
+
+# if not, you can set it up yourself:
+go build -o genjwks.out ./cmd/genjwks
+export TANGLED_OAUTH_JWKS="$(./genjwks.out)"
+
+# run redis in at a new shell to store oauth sessions
+redis-server
+```
+
 ## running a knot
 
 An end-to-end knot setup requires setting up a machine with
@@ -70,4 +86,29 @@ Set up a remote called `local-dev` on a git repo:
 ```bash
 git remote add local-dev git@nixos-shell:user/repo
 git push local-dev main
+```
+
+## running a spindle
+
+The above VM should already be running a spindle on
+`localhost:6555`. You can head to the spindle dashboard on
+`http://localhost:3000/spindles`, and register a spindle
+with hostname `localhost:6555`. It should instantly be
+verified. You can then configure each repository to use this
+spindle and run CI jobs.
+
+Of interest when debugging spindles:
+
+```
+# service logs from journald:
+journalctl -xeu spindle
+
+# CI job logs from disk:
+ls /var/log/spindle
+
+# debugging spindle db:
+sqlite3 /var/lib/spindle/spindle.db
+
+# litecli has a nicer REPL interface:
+litecli /var/lib/spindle/spindle.db
 ```
