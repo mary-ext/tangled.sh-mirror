@@ -47,8 +47,8 @@
     {{ end }}
 
     {{ block "contentAfterLayout" . }}
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-      <div class="col-span-1 md:col-span-2">
+    <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4">
+      <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
         {{ block "contentAfterLeft" . }} {{ end }}
       </div>
       <main class="col-span-1 md:col-span-10">
@@ -73,7 +73,7 @@
   <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
     {{ template "repo/fragments/diffOpts" .DiffOpts }}
   </div>
-  <div class="sticky top-0 mt-4">
+  <div class="sticky top-0 flex-grow max-h-screen">
     {{ template "repo/fragments/diffChangedFiles" .Diff }}
   </div>
 {{end}}
