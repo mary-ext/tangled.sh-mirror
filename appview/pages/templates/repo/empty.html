@@ -23,10 +23,22 @@
           {{ end }}
         </div>
       </div>
+    {{ else if (and .LoggedInUser (eq .LoggedInUser.Did .RepoInfo.OwnerDid)) }}
+      {{ $knot := .RepoInfo.Knot }}
+      {{ if eq $knot "knot1.tangled.sh" }}
+          {{ $knot = "tangled.sh" }}
+      {{ end }}
+      <div class="w-full flex place-content-center">
+        <div class="py-6 w-fit flex flex-col gap-4">
+          <p>This is an empty repository. To get started:</p>
+          {{ $bullet := "mx-2 text-xs bg-gray-200 dark:bg-gray-600 rounded-full size-5 flex items-center justify-center font-mono inline-flex align-middle" }}
+          <p><span class="{{$bullet}}">1</span>Add a public key to your account from the <a href="/settings" class="underline">settings</a> page</p>
+          <p><span class="{{$bullet}}">2</span>Configure your remote to <span class="font-mono p-1 rounded bg-gray-100 dark:bg-gray-700 ">git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}<span></p>
+          <p><span class="{{$bullet}}">3</span>Push!</p>
+        </div>
+      </div>
     {{ else }}
-      <p class="text-center pt-5 text-gray-400 dark:text-gray-500">
-          This is an empty repository. Push some commits here.
-      </p>
+      <p class="text-gray-400 dark:text-gray-500 py-6 text-center">This is an empty repository.</p>
     {{ end }}
   </main>
 {{ end }}
