@@ -8,11 +8,11 @@
 {{ end }}
 
 {{ define "content" }}
-<div class="grid grid-cols-1 md:grid-cols-8 gap-4">
-    <div class="md:col-span-2 order-1 md:order-1">
+<div class="grid grid-cols-1 md:grid-cols-11 gap-4">
+    <div class="md:col-span-3 order-1 md:order-1">
         {{ template "user/fragments/profileCard" .Card }}
     </div>
-    <div id="all-repos" class="md:col-span-6 order-2 md:order-2">
+    <div id="all-repos" class="md:col-span-8 order-2 md:order-2">
         {{ block "ownRepos" . }}{{ end }}
     </div>
 </div>

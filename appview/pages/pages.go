@@ -555,8 +555,7 @@ type RepoTreeParams struct {
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	BreadCrumbs  [][]string
-	BaseTreeLink string
-	BaseBlobLink string
+	TreePath     string
 	types.RepoTreeResponse
 }
 

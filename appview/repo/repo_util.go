@@ -5,12 +5,46 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"slices"
+	"sort"
+	"strings"
 
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
+	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+func sortFiles(files []types.NiceTree) {
+	sort.Slice(files, func(i, j int) bool {
+		iIsFile := files[i].IsFile
+		jIsFile := files[j].IsFile
+		if iIsFile != jIsFile {
+			return !iIsFile
+		}
+		return files[i].Name < files[j].Name
+	})
+}
+
+func sortBranches(branches []types.Branch) {
+	slices.SortFunc(branches, func(a, b types.Branch) int {
+		if a.IsDefault {
+			return -1
+		}
+		if b.IsDefault {
+			return 1
+		}
+		if a.Commit != nil && b.Commit != nil {
+			if a.Commit.Committer.When.Before(b.Commit.Committer.When) {
+				return 1
+			} else {
+				return -1
+			}
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+}
 
 func uniqueEmails(commits []*object.Commit) []string {
 	emails := make(map[string]struct{})

@@ -10,9 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"path"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -374,7 +372,8 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	// redirects tree paths trying to access a blob; in this case the result.Files is unpopulated,
 	// so we can safely redirect to the "parent" (which is the same file).
-	if len(result.Files) == 0 && result.Parent == treePath {
+	unescapedTreePath, _ := url.PathUnescape(treePath)
+	if len(result.Files) == 0 && result.Parent == unescapedTreePath {
 		http.Redirect(w, r, fmt.Sprintf("/%s/blob/%s/%s", f.OwnerSlashRepo(), ref, result.Parent), http.StatusFound)
 		return
 	}
@@ -389,18 +388,15 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	baseTreeLink := path.Join(f.OwnerSlashRepo(), "tree", ref, treePath)
-	baseBlobLink := path.Join(f.OwnerSlashRepo(), "blob", ref, treePath)
+	sortFiles(result.Files)
 
 	rp.pages.RepoTree(w, pages.RepoTreeParams{
 		LoggedInUser:     user,
 		BreadCrumbs:      breadcrumbs,
-		BaseTreeLink:     baseTreeLink,
-		BaseBlobLink:     baseBlobLink,
+		TreePath:         treePath,
 		RepoInfo:         f.RepoInfo(user),
 		RepoTreeResponse: result,
 	})
-	return
 }
 
 func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
@@ -480,22 +476,7 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
-		if a.IsDefault {
-			return -1
-		}
-		if b.IsDefault {
-			return 1
-		}
-		if a.Commit != nil && b.Commit != nil {
-			if a.Commit.Committer.When.Before(b.Commit.Committer.When) {
-				return 1
-			} else {
-				return -1
-			}
-		}
-		return strings.Compare(a.Name, b.Name) * -1
-	})
+	sortBranches(result.Branches)
 
 	user := rp.oauth.GetUser(r)
 	rp.pages.RepoBranches(w, pages.RepoBranchesParams{
@@ -503,7 +484,6 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:             f.RepoInfo(user),
 		RepoBranchesResponse: *result,
 	})
-	return
 }
 
 func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
@@ -1233,9 +1213,8 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	branches := result.Branches
-	sort.Slice(branches, func(i int, j int) bool {
-		return branches[i].Commit.Committer.When.After(branches[j].Commit.Committer.When)
-	})
+
+	sortBranches(branches)
 
 	var defaultBranch string
 	for _, b := range branches {

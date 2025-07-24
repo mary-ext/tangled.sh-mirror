@@ -191,7 +191,7 @@ func (p *Pages) funcMap() template.FuncMap {
 			if v.Len() == 0 {
 				return nil
 			}
-			return v.Slice(0, min(n, v.Len()-1)).Interface()
+			return v.Slice(0, min(n, v.Len())).Interface()
 		},
 
 		"markdown": func(text string) template.HTML {

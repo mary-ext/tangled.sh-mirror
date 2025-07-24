@@ -58,6 +58,8 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		tagMap[hash] = append(tagMap[hash], branch.Name)
 	}
 
+	sortFiles(result.Files)
+
 	slices.SortFunc(result.Branches, func(a, b types.Branch) int {
 		if a.Name == result.Ref {
 			return -1
