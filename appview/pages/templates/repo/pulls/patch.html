@@ -35,26 +35,34 @@
 {{ end }}
 
 {{ define "topbarLayout" }}
-  {{ template "layouts/topbar" . }}
+  <header class="px-1 col-span-full" style="z-index: 20;">
+    {{ template "layouts/topbar" . }}
+  </header>
 {{ end }}
 
-{{ define "contentLayout"  }}
-  {{ block "content" . }}{{ end }}
-{{ end }}
+{{ define "mainLayout" }}
+  <div class="px-1 col-span-full flex flex-col gap-4">
+    {{ block "contentLayout" . }}
+      {{ block "content" . }}{{ end }}
+    {{ end }}
 
-{{ define "contentAfterLayout"  }}
-  <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-    <div class="col-span-1 md:col-span-2">
-      {{ block "contentAfterLeft" . }} {{ end }}
+    {{ block "contentAfterLayout" . }}
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+      <div class="col-span-1 md:col-span-2">
+        {{ block "contentAfterLeft" . }} {{ end }}
+      </div>
+      <main class="col-span-1 md:col-span-10">
+        {{ block "contentAfter" . }}{{ end }}
+      </main>
     </div>
-    <main class="col-span-1 md:col-span-10">
-      {{ block "contentAfter" . }}{{ end }}
-    </main>
+    {{ end }}
   </div>
 {{ end }}
 
-{{ define "footerLayout"  }}
-  {{ template "layouts/footer" . }}
+{{ define "footerLayout" }}
+  <footer class="px-1 col-span-full mt-12">
+    {{ template "layouts/footer" . }}
+  </footer>
 {{ end }}
 
 {{ define "contentAfter" }}
