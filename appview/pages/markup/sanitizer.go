@@ -77,6 +77,9 @@ func defaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`heading`)).OnElements("h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(strings.Join(slices.Collect(maps.Values(chroma.StandardTypes)), "|"))).OnElements("span")
 
+	// at-mentions
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`mention`)).OnElements("a")
+
 	// centering content
 	policy.AllowElements("center")
 
