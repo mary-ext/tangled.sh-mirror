@@ -448,14 +448,14 @@ func (p *Pages) EditPinsFragment(w io.Writer, params EditPinsParams) error {
 	return p.executePlain("user/fragments/editPins", w, params)
 }
 
-type RepoActionsFragmentParams struct {
+type RepoStarFragmentParams struct {
 	IsStarred bool
 	RepoAt    syntax.ATURI
 	Stats     db.RepoStats
 }
 
-func (p *Pages) RepoActionsFragment(w io.Writer, params RepoActionsFragmentParams) error {
-	return p.executePlain("repo/fragments/repoActions", w, params)
+func (p *Pages) RepoStarFragment(w io.Writer, params RepoStarFragmentParams) error {
+	return p.executePlain("repo/fragments/repoStar", w, params)
 }
 
 type RepoDescriptionParams struct {

@@ -19,7 +19,29 @@
           <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
         </div>
 
-        {{ template "repo/fragments/repoActions" .RepoInfo }}
+        <div class="flex items-center gap-2 z-auto">
+          {{ template "repo/fragments/repoStar" .RepoInfo }}
+          {{ if .RepoInfo.DisableFork }}
+            <button
+              class="btn text-sm no-underline hover:no-underline flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+              title="Empty repositories cannot be forked"
+            >
+              {{ i "git-fork" "w-4 h-4" }}
+              fork
+            </button>
+          {{ else }}
+            <a
+              class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
+              hx-boost="true"
+              href="/{{ .RepoInfo.FullName }}/fork"
+            >
+              {{ i "git-fork" "w-4 h-4" }}
+              fork
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </a>
+          {{ end }}
+        </div>
       </div>
       {{ template "repo/fragments/repoDescription" . }}
     </section>
