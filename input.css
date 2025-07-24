@@ -161,6 +161,10 @@
             @apply no-underline;
         }
 
+        .prose a.mention {
+            @apply no-underline hover:underline;
+        }
+
         .prose li {
             @apply my-0 py-0;
         }
