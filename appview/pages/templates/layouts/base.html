@@ -15,9 +15,9 @@
             {{ block "extrameta" . }}{{ end }}
         </head>
         <body class="bg-slate-100 dark:bg-gray-900 dark:text-white transition-colors duration-200">
-          <div class="px-1" style="z-index: 20">
+          <div class="px-1">
             {{ block "topbarLayout" . }}
-            <div class="grid grid-cols-1 md:grid-cols-12">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
               <header class="col-span-1 md:col-start-3 md:col-span-8" style="z-index: 20;">
                 {{ template "layouts/topbar" . }}
               </header>
@@ -57,7 +57,7 @@
 
           <div class="px-1 mt-16">
             {{ block "footerLayout" . }}
-            <div class="grid grid-cols-1 md:grid-cols-12">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
               <footer class="col-span-1 md:col-start-3 md:col-span-8">
                 {{ template "layouts/footer" . }}
               </footer>
