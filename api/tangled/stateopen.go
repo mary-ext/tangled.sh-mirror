@@ -4,6 +4,8 @@ package tangled
 
 // schema: sh.tangled.repo.issue.state.open
 
-const ()
+const (
+	RepoIssueStateOpenNSID = "sh.tangled.repo.issue.state.open"
+)
 
 const RepoIssueStateOpen = "sh.tangled.repo.issue.state.open"

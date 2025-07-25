@@ -4,6 +4,8 @@ package tangled
 
 // schema: sh.tangled.repo.pull.status.closed
 
-const ()
+const (
+	RepoPullStatusClosedNSID = "sh.tangled.repo.pull.status.closed"
+)
 
 const RepoPullStatusClosed = "sh.tangled.repo.pull.status.closed"
