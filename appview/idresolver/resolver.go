@@ -111,3 +111,7 @@ func (r *Resolver) InvalidateIdent(ctx context.Context, arg string) error {
 
 	return r.directory.Purge(ctx, *id)
 }
+
+func (r *Resolver) Directory() identity.Directory {
+	return r.directory
+}
