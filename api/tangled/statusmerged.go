@@ -4,6 +4,8 @@ package tangled
 
 // schema: sh.tangled.repo.pull.status.merged
 
-const ()
+const (
+	RepoPullStatusMergedNSID = "sh.tangled.repo.pull.status.merged"
+)
 
 const RepoPullStatusMerged = "sh.tangled.repo.pull.status.merged"
