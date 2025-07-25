@@ -8,24 +8,24 @@ import (
 	"runtime/debug"
 
 	"github.com/go-chi/chi/v5"
+	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
+	"tangled.sh/tangled.sh/core/knotserver/xrpc"
+	tlog "tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
-const (
-	ThisServer = "thisserver" // resource identifier for rbac enforcement
-)
-
 type Handle struct {
-	c  *config.Config
-	db *db.DB
-	jc *jetstream.JetstreamClient
-	e  *rbac.Enforcer
-	l  *slog.Logger
-	n  *notifier.Notifier
+	c        *config.Config
+	db       *db.DB
+	jc       *jetstream.JetstreamClient
+	e        *rbac.Enforcer
+	l        *slog.Logger
+	n        *notifier.Notifier
+	resolver *idresolver.Resolver
 
 	// init is a channel that is closed when the knot has been initailized
 	// i.e. when the first user (knot owner) has been added.
@@ -37,16 +37,17 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	r := chi.NewRouter()
 
 	h := Handle{
-		c:    c,
-		db:   db,
-		e:    e,
-		l:    l,
-		jc:   jc,
-		n:    n,
-		init: make(chan struct{}),
+		c:        c,
+		db:       db,
+		e:        e,
+		l:        l,
+		jc:       jc,
+		n:        n,
+		resolver: idresolver.DefaultResolver(),
+		init:     make(chan struct{}),
 	}
 
-	err := e.AddKnot(ThisServer)
+	err := e.AddKnot(rbac.ThisServer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
 	}
@@ -131,6 +132,9 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		})
 	})
 
+	// xrpc apis
+	r.Mount("/xrpc", h.XrpcRouter())
+
 	// Create a new repository.
 	r.Route("/repo", func(r chi.Router) {
 		r.Use(h.VerifySignature)
@@ -161,6 +165,21 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	r.Get("/keys", h.Keys)
 
 	return r, nil
+}
+
+func (h *Handle) XrpcRouter() http.Handler {
+	logger := tlog.New("knots")
+
+	xrpc := &xrpc.Xrpc{
+		Config:   h.c,
+		Db:       h.db,
+		Ingester: h.jc,
+		Enforcer: h.e,
+		Logger:   logger,
+		Notifier: h.n,
+		Resolver: h.resolver,
+	}
+	return xrpc.Router()
 }
 
 // version is set during build time.
