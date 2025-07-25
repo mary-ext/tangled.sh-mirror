@@ -21,6 +21,7 @@ import (
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/log"
+	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/workflow"
 )
 
@@ -46,13 +47,13 @@ func (h *Handle) processKnotMember(ctx context.Context, did string, record tangl
 		return fmt.Errorf("domain mismatch: %s != %s", record.Domain, h.c.Server.Hostname)
 	}
 
-	ok, err := h.e.E.Enforce(did, ThisServer, ThisServer, "server:invite")
+	ok, err := h.e.E.Enforce(did, rbac.ThisServer, rbac.ThisServer, "server:invite")
 	if err != nil || !ok {
 		l.Error("failed to add member", "did", did)
 		return fmt.Errorf("failed to enforce permissions: %w", err)
 	}
 
-	if err := h.e.AddKnotMember(ThisServer, record.Subject); err != nil {
+	if err := h.e.AddKnotMember(rbac.ThisServer, record.Subject); err != nil {
 		l.Error("failed to add member", "error", err)
 		return fmt.Errorf("failed to add member: %w", err)
 	}
