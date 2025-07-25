@@ -44,6 +44,8 @@ func (s *Pulls) Router(mw *middleware.Middleware) http.Handler {
 				r.Get("/", s.ResubmitPull)
 				r.Post("/", s.ResubmitPull)
 			})
+			// permissions here require us to know pull author
+			// it is handled within the route
 			r.Post("/close", s.ClosePull)
 			r.Post("/reopen", s.ReopenPull)
 			// collaborators only

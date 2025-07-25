@@ -2026,9 +2026,10 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 
 	// auth filter: only owner or collaborators can close
 	roles := f.RolesInRepo(user)
+	isOwner := roles.IsOwner()
 	isCollaborator := roles.IsCollaborator()
 	isPullAuthor := user.Did == pull.OwnerDid
-	isCloseAllowed := isCollaborator || isPullAuthor
+	isCloseAllowed := isOwner || isCollaborator || isPullAuthor
 	if !isCloseAllowed {
 		log.Println("failed to close pull")
 		s.pages.Notice(w, "pull-close", "You are unauthorized to close this pull.")
@@ -2094,9 +2095,10 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 
 	// auth filter: only owner or collaborators can close
 	roles := f.RolesInRepo(user)
+	isOwner := roles.IsOwner()
 	isCollaborator := roles.IsCollaborator()
 	isPullAuthor := user.Did == pull.OwnerDid
-	isCloseAllowed := isCollaborator || isPullAuthor
+	isCloseAllowed := isOwner || isCollaborator || isPullAuthor
 	if !isCloseAllowed {
 		log.Println("failed to close pull")
 		s.pages.Notice(w, "pull-close", "You are unauthorized to close this pull.")
