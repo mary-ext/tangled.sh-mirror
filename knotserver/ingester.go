@@ -17,7 +17,7 @@ import (
 	"github.com/bluesky-social/jetstream/pkg/models"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/idresolver"
+	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/log"

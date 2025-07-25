@@ -11,7 +11,6 @@ import (
 	"github.com/bluesky-social/indigo/atproto/identity/redisdir"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/carlmjohnson/versioninfo"
-	"tangled.sh/tangled.sh/core/appview/config"
 )
 
 type Resolver struct {
@@ -56,8 +55,8 @@ func DefaultResolver() *Resolver {
 	}
 }
 
-func RedisResolver(config config.RedisConfig) (*Resolver, error) {
-	directory, err := RedisDirectory(config.ToURL())
+func RedisResolver(redisUrl string) (*Resolver, error) {
+	directory, err := RedisDirectory(redisUrl)
 	if err != nil {
 		return nil, err
 	}

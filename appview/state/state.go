@@ -20,13 +20,13 @@ import (
 	"tangled.sh/tangled.sh/core/appview/cache/session"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	posthog_service "tangled.sh/tangled.sh/core/appview/posthog"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/eventconsumer"
+	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/knotclient"
 	tlog "tangled.sh/tangled.sh/core/log"
@@ -63,7 +63,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 
 	pgs := pages.NewPages(config)
 
-	res, err := idresolver.RedisResolver(config.Redis)
+	res, err := idresolver.RedisResolver(config.Redis.ToURL())
 	if err != nil {
 		log.Printf("failed to create redis resolver: %v", err)
 		res = idresolver.DefaultResolver()
