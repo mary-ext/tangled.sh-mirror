@@ -8,12 +8,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
-	"github.com/microcosm-cc/bluemonday"
 )
-
-func sanitize(content []byte) []byte {
-	return bluemonday.UGCPolicy().SanitizeBytes([]byte(content))
-}
 
 func didPath(r *http.Request) string {
 	did := chi.URLParam(r, "did")

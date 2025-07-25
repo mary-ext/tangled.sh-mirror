@@ -29,6 +29,7 @@ import (
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/patchutil"
+	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/types"
 )
 
@@ -674,7 +675,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// add perms for this user to access the repo
-	err = h.e.AddRepo(did, ThisServer, relativeRepoPath)
+	err = h.e.AddRepo(did, rbac.ThisServer, relativeRepoPath)
 	if err != nil {
 		l.Error("adding repo permissions", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
@@ -892,7 +893,7 @@ func (h *Handle) RepoFork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// add perms for this user to access the repo
-	err = h.e.AddRepo(did, ThisServer, relativeRepoPath)
+	err = h.e.AddRepo(did, rbac.ThisServer, relativeRepoPath)
 	if err != nil {
 		l.Error("adding repo permissions", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
@@ -1146,7 +1147,7 @@ func (h *Handle) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 	h.jc.AddDid(did)
 
-	if err := h.e.AddKnotMember(ThisServer, did); err != nil {
+	if err := h.e.AddKnotMember(rbac.ThisServer, did); err != nil {
 		l.Error("adding member", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1184,7 +1185,7 @@ func (h *Handle) AddRepoCollaborator(w http.ResponseWriter, r *http.Request) {
 	h.jc.AddDid(data.Did)
 
 	repoName, _ := securejoin.SecureJoin(ownerDid, repo)
-	if err := h.e.AddCollaborator(data.Did, ThisServer, repoName); err != nil {
+	if err := h.e.AddCollaborator(data.Did, rbac.ThisServer, repoName); err != nil {
 		l.Error("adding repo collaborator", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1281,7 +1282,7 @@ func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
 	}
 	h.jc.AddDid(data.Did)
 
-	if err := h.e.AddKnotOwner(ThisServer, data.Did); err != nil {
+	if err := h.e.AddKnotOwner(rbac.ThisServer, data.Did); err != nil {
 		l.Error("adding owner", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
