@@ -87,3 +87,18 @@ func (c *Client) RepoDeleteRecord(ctx context.Context, input *atproto.RepoDelete
 
 	return &out, nil
 }
+
+func (c *Client) ServerGetServiceAuth(ctx context.Context, aud string, exp int64, lxm string) (*atproto.ServerGetServiceAuth_Output, error) {
+	var out atproto.ServerGetServiceAuth_Output
+
+	params := map[string]interface{}{
+		"aud": aud,
+		"exp": exp,
+		"lxm": lxm,
+	}
+	if err := c.Do(ctx, c.authArgs, xrpc.Query, "", "com.atproto.server.getServiceAuth", params, nil, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
