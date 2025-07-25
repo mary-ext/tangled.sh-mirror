@@ -13,7 +13,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/identity"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/urfave/cli/v3"
-	"tangled.sh/tangled.sh/core/appview/idresolver"
+	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/log"
 )
 

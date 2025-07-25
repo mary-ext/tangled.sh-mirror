@@ -19,12 +19,12 @@ import (
 	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/idresolver"
 	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/idresolver"
 )
 
 type Issues struct {
@@ -120,8 +120,8 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		DidHandleMap:     didHandleMap,
 
 		OrderedReactionKinds: db.OrderedReactionKinds,
-		Reactions: reactionCountMap,
-		UserReacted: userReactions,
+		Reactions:            reactionCountMap,
+		UserReacted:          userReactions,
 	})
 
 }
