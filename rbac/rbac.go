@@ -11,6 +11,10 @@ import (
 )
 
 const (
+	ThisServer = "thisserver" // resource identifier for local rbac enforcement
+)
+
+const (
 	Model = `
 [request_definition]
 r = sub, dom, obj, act

@@ -38,7 +38,7 @@ func (h *InternalHandle) PushAllowed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok, err := h.e.IsPushAllowed(user, ThisServer, repo)
+	ok, err := h.e.IsPushAllowed(user, rbac.ThisServer, repo)
 	if err != nil || !ok {
 		w.WriteHeader(http.StatusForbidden)
 		return
