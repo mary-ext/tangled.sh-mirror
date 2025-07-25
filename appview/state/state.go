@@ -134,9 +134,11 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	}
 	spindlestream.Start(ctx)
 
-	notifier := notify.NewMergedNotifier(
-		posthog_service.NewPosthogNotifier(posthog),
-	)
+	var notifiers []notify.Notifier
+	if !config.Core.Dev {
+		notifiers = append(notifiers, posthog_service.NewPosthogNotifier(posthog))
+	}
+	notifier := notify.NewMergedNotifier(notifiers...)
 
 	state := &State{
 		d,
