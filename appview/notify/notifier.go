@@ -13,8 +13,8 @@ type Notifier interface {
 	NewStar(ctx context.Context, star *models.Star)
 	DeleteStar(ctx context.Context, star *models.Star)
 
-	NewIssue(ctx context.Context, issue *models.Issue)
-	NewIssueComment(ctx context.Context, comment *models.IssueComment)
+	NewIssue(ctx context.Context, issue *models.Issue, mentions []syntax.DID)
+	NewIssueComment(ctx context.Context, comment *models.IssueComment, mentions []syntax.DID)
 	NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue)
 	DeleteIssue(ctx context.Context, issue *models.Issue)
 
@@ -42,8 +42,9 @@ func (m *BaseNotifier) NewRepo(ctx context.Context, repo *models.Repo) {}
 func (m *BaseNotifier) NewStar(ctx context.Context, star *models.Star)    {}
 func (m *BaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {}
 
-func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue)                        {}
-func (m *BaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment)        {}
+func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue, mentions []syntax.DID) {}
+func (m *BaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment, mentions []syntax.DID) {
+}
 func (m *BaseNotifier) NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue) {}
 func (m *BaseNotifier) DeleteIssue(ctx context.Context, issue *models.Issue)                     {}
 

@@ -54,12 +54,12 @@ func (m *mergedNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 	m.fanout("DeleteStar", ctx, star)
 }
 
-func (m *mergedNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
-	m.fanout("NewIssue", ctx, issue)
+func (m *mergedNotifier) NewIssue(ctx context.Context, issue *models.Issue, mentions []syntax.DID) {
+	m.fanout("NewIssue", ctx, issue, mentions)
 }
 
-func (m *mergedNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {
-	m.fanout("NewIssueComment", ctx, comment)
+func (m *mergedNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment, mentions []syntax.DID) {
+	m.fanout("NewIssueComment", ctx, comment, mentions)
 }
 
 func (m *mergedNotifier) NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue) {

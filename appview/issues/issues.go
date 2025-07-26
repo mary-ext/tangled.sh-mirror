@@ -24,6 +24,7 @@ import (
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/appview/pagination"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/validator"
@@ -453,7 +454,17 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	// notify about the new comment
 	comment.Id = commentId
-	rp.notifier.NewIssueComment(r.Context(), &comment)
+
+	rawMentions := markup.FindUserMentions(comment.Body)
+	idents := rp.idResolver.ResolveIdents(r.Context(), rawMentions)
+	l.Debug("parsed mentions", "raw", rawMentions, "idents", idents)
+	var mentions []syntax.DID
+	for _, ident := range idents {
+		if ident != nil && !ident.Handle.IsInvalidHandle() {
+			mentions = append(mentions, ident.DID)
+		}
+	}
+	rp.notifier.NewIssueComment(r.Context(), &comment, mentions)
 
 	rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d#comment-%d", f.OwnerSlashRepo(), issue.IssueId, commentId))
 }
@@ -948,7 +959,17 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 
 		// everything is successful, do not rollback the atproto record
 		atUri = ""
-		rp.notifier.NewIssue(r.Context(), issue)
+
+		rawMentions := markup.FindUserMentions(issue.Body)
+		idents := rp.idResolver.ResolveIdents(r.Context(), rawMentions)
+		l.Debug("parsed mentions", "raw", rawMentions, "idents", idents)
+		var mentions []syntax.DID
+		for _, ident := range idents {
+			if ident != nil && !ident.Handle.IsInvalidHandle() {
+				mentions = append(mentions, ident.DID)
+			}
+		}
+		rp.notifier.NewIssue(r.Context(), issue, mentions)
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	}
