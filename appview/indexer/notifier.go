@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/log"
@@ -10,7 +11,7 @@ import (
 
 var _ notify.Notifier = &Indexer{}
 
-func (ix *Indexer) NewIssue(ctx context.Context, issue *models.Issue) {
+func (ix *Indexer) NewIssue(ctx context.Context, issue *models.Issue, mentions []syntax.DID) {
 	l := log.FromContext(ctx).With("notifier", "indexer", "issue", issue)
 	l.Debug("indexing new issue")
 	err := ix.Issues.Index(ctx, *issue)
