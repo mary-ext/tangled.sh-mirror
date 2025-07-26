@@ -302,6 +302,30 @@ func (rctx *RenderContext) actualPath(dst string) string {
 	return path.Join(rctx.CurrentDir, dst)
 }
 
+// FindUserMentions returns Set of user handles from given markup soruce.
+// It doesn't guarntee unique DIDs
+func FindUserMentions(source string) []string {
+	var (
+		mentions    []string
+		mentionsSet = make(map[string]struct{})
+		md          = NewMarkdown()
+		sourceBytes = []byte(source)
+		root        = md.Parser().Parse(text.NewReader(sourceBytes))
+	)
+	ast.Walk(root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering && n.Kind() == textension.KindAt {
+			handle := n.(*textension.AtNode).Handle
+			mentionsSet[handle] = struct{}{}
+			return ast.WalkSkipChildren, nil
+		}
+		return ast.WalkContinue, nil
+	})
+	for handle := range mentionsSet {
+		mentions = append(mentions, handle)
+	}
+	return mentions
+}
+
 func isAbsoluteUrl(link string) bool {
 	parsed, err := url.Parse(link)
 	if err != nil {

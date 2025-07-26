@@ -57,13 +57,14 @@ func (n *posthogNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 	}
 }
 
-func (n *posthogNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
+func (n *posthogNotifier) NewIssue(ctx context.Context, issue *models.Issue, mentions []syntax.DID) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: issue.Did,
 		Event:      "new_issue",
 		Properties: posthog.Properties{
 			"repo_at":  issue.RepoAt.String(),
 			"issue_id": issue.IssueId,
+			"mentions": mentions,
 		},
 	})
 	if err != nil {
@@ -178,12 +179,13 @@ func (n *posthogNotifier) NewString(ctx context.Context, string *models.String) 
 	}
 }
 
-func (n *posthogNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {
+func (n *posthogNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment, mentions []syntax.DID) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: comment.Did,
 		Event:      "new_issue_comment",
 		Properties: posthog.Properties{
 			"issue_at": comment.IssueAt,
+			"mentions": mentions,
 		},
 	})
 	if err != nil {

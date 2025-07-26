@@ -64,7 +64,7 @@ func (n *databaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 	// no-op
 }
 
-func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
+func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue, mentions []syntax.DID) {
 
 	// build the recipients list
 	// - owner of the repo
@@ -81,7 +81,6 @@ func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 	}
 
 	actorDid := syntax.DID(issue.Did)
-	eventType := models.NotificationTypeIssueCreated
 	entityType := "issue"
 	entityId := issue.AtUri().String()
 	repoId := &issue.Repo.Id
@@ -91,7 +90,17 @@ func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 	n.notifyEvent(
 		actorDid,
 		recipients,
-		eventType,
+		models.NotificationTypeIssueCreated,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
+	n.notifyEvent(
+		actorDid,
+		mentions,
+		models.NotificationTypeUserMentioned,
 		entityType,
 		entityId,
 		repoId,
@@ -100,7 +109,7 @@ func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 	)
 }
 
-func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {
+func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment, mentions []syntax.DID) {
 	issues, err := db.GetIssues(n.db, db.FilterEq("at_uri", comment.IssueAt))
 	if err != nil {
 		log.Printf("NewIssueComment: failed to get issues: %v", err)
@@ -132,7 +141,6 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 	}
 
 	actorDid := syntax.DID(comment.Did)
-	eventType := models.NotificationTypeIssueCommented
 	entityType := "issue"
 	entityId := issue.AtUri().String()
 	repoId := &issue.Repo.Id
@@ -142,7 +150,17 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 	n.notifyEvent(
 		actorDid,
 		recipients,
-		eventType,
+		models.NotificationTypeIssueCommented,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
+	n.notifyEvent(
+		actorDid,
+		mentions,
+		models.NotificationTypeUserMentioned,
 		entityType,
 		entityId,
 		repoId,
