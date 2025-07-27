@@ -262,6 +262,12 @@ func (p *Pages) Login(w io.Writer, params LoginParams) error {
 	return p.executePlain("user/login", w, params)
 }
 
+type SignupParams struct{}
+
+func (p *Pages) CompleteSignup(w io.Writer, params SignupParams) error {
+	return p.executePlain("user/completeSignup", w, params)
+}
+
 type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []db.TimelineEvent
