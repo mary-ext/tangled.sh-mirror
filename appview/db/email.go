@@ -103,8 +103,8 @@ func GetEmailToDid(e Execer, ems []string, isVerifiedFilter bool) (map[string]st
 	query := `
 		select email, did
 		from emails
-		where 
-			verified = ? 
+		where
+			verified = ?
 			and email in (` + strings.Join(placeholders, ",") + `)
 	`
 
@@ -153,6 +153,20 @@ func CheckEmailExists(e Execer, did string, email string) (bool, error) {
 	`
 	var count int
 	err := e.QueryRow(query, did, email).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func CheckEmailExistsAtAll(e Execer, email string) (bool, error) {
+	query := `
+		select count(*)
+		from emails
+		where email = ?
+	`
+	var count int
+	err := e.QueryRow(query, email).Scan(&count)
 	if err != nil {
 		return false, err
 	}

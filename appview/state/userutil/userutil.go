@@ -51,3 +51,9 @@ func FlattenDid(s string) string {
 func IsDid(s string) bool {
 	return didRegex.MatchString(s)
 }
+
+var subdomainRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{2,61}[a-z0-9])?$`)
+
+func IsValidSubdomain(name string) bool {
+	return len(name) >= 4 && len(name) <= 63 && subdomainRegex.MatchString(name)
+}

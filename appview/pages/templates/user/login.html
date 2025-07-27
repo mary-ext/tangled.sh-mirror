@@ -17,7 +17,7 @@
             />
             <meta
                 property="og:description"
-                content="login to tangled"
+                content="login to or sign up for tangled"
             />
             <script src="/static/htmx.min.js"></script>
             <link
@@ -25,7 +25,7 @@
                 href="/static/tw.css?{{ cssContentHash }}"
                 type="text/css"
             />
-            <title>login &middot; tangled</title>
+            <title>login or sign up &middot; tangled</title>
         </head>
         <body class="flex items-center justify-center min-h-screen">
             <main class="max-w-md px-6 -mt-4">
@@ -51,12 +51,12 @@
                             name="handle"
                             tabindex="1"
                             required
+                            placeholder="foo.tngl.sh"
                         />
                         <span class="text-sm text-gray-500 mt-1">
-                            Use your
-                            <a href="https://bsky.app">Bluesky</a> handle to log
-                            in. You will then be redirected to your PDS to
-                            complete authentication.
+                            Use your <a href="https://atproto.com">ATProto</a>
+                            handle to log in. If you're unsure, this is likely
+                            your Tangled (<code>.tngl.sh</code>) or <a href="https://bsky.app">Bluesky</a> (<code>.bsky.social</code>) account.
                         </span>
                     </div>
 
@@ -69,7 +69,54 @@
                         <span>login</span>
                     </button>
                 </form>
-                <p class="text-sm text-gray-500">
+                <hr class="my-4">
+                <p class="text-sm text-gray-500 mt-4">
+                    Alternatively, you may create an account on Tangled below. You will
+                    get a <code>user.tngl.sh</code> handle.
+                </p>
+
+                <details class="group">
+
+                    <summary
+                        class="btn cursor-pointer w-full mt-4 flex items-center justify-center gap-2"
+                    >
+                        create an account
+
+                        <div class="group-open:hidden flex">{{ i "arrow-right" "w-4 h-4" }}</div>
+                        <div class="hidden group-open:flex">{{ i "arrow-down" "w-4 h-4" }}</div>
+                    </summary>
+                    <form
+                        class="mt-4 max-w-sm mx-auto"
+                        hx-post="/signup"
+                        hx-swap="none"
+                        hx-disabled-elt="#signup-button"
+                    >
+                        <div class="flex flex-col mt-2">
+                            <label for="email">email</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                tabindex="4"
+                                required
+                                placeholder="jason@bourne.co"
+                            />
+                        </div>
+                        <span class="text-sm text-gray-500 mt-1">
+                        You will receive an email with a code. Enter that, along with your
+                        desired username and password in the next page to complete your registration.
+                        </span>
+                        <button
+                            class="btn w-full my-2 mt-6"
+                            type="submit"
+                            id="signup-button"
+                            tabindex="7"
+                        >
+                            <span>sign up</span>
+                        </button>
+                    </form>
+                </details>
+                <p class="text-sm text-gray-500 mt-6">
                     Join our <a href="https://chat.tangled.sh">Discord</a> or
                     IRC channel:
                     <a href="https://web.libera.chat/#tangled"
