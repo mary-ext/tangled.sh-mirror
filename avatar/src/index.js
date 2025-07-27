@@ -1,5 +1,19 @@
 export default {
   async fetch(request, env) {
+    // Helper function to generate a color from a string
+    const stringToColor = (str) => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      let color = "#";
+      for (let i = 0; i < 3; i++) {
+        const value = (hash >> (i * 8)) & 0xff;
+        color += ("00" + value.toString(16)).substr(-2);
+      }
+      return color;
+    };
+
     const url = new URL(request.url);
     const { pathname, searchParams } = url;
 
@@ -60,14 +74,29 @@ You can't use this directly unfortunately since all requests are signed and may 
       const profile = await profileResponse.json();
       const avatar = profile.avatar;
 
-      if (!avatar) {
-        return new Response(`avatar not found for ${actor}.`, { status: 404 });
+      let avatarUrl = profile.avatar;
+
+      if (!avatarUrl) {
+        // Generate a random color based on the actor string
+        const bgColor = stringToColor(actor);
+        const size = resizeToTiny ? 32 : 128;
+        const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg"><rect width="${size}" height="${size}" fill="${bgColor}"/></svg>`;
+        const svgData = new TextEncoder().encode(svg);
+
+        response = new Response(svgData, {
+          headers: {
+            "Content-Type": "image/svg+xml",
+            "Cache-Control": "public, max-age=43200",
+          },
+        });
+        await cache.put(cacheKey, response.clone());
+        return response;
       }
 
       // Resize if requested
       let avatarResponse;
       if (resizeToTiny) {
-        avatarResponse = await fetch(avatar, {
+        avatarResponse = await fetch(avatarUrl, {
           cf: {
             image: {
               width: 32,
@@ -78,7 +107,7 @@ You can't use this directly unfortunately since all requests are signed and may 
           },
         });
       } else {
-        avatarResponse = await fetch(avatar);
+        avatarResponse = await fetch(avatarUrl);
       }
 
       if (!avatarResponse.ok) {
