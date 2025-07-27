@@ -36,6 +36,10 @@ func Command() *cli.Command {
 				Usage: "endpoint for the internal API",
 				Value: "http://localhost:5444",
 			},
+			&cli.StringSliceFlag{
+				Name:  "push-option",
+				Usage: "any push option from git",
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -52,6 +56,7 @@ func postRecieve(ctx context.Context, cmd *cli.Command) error {
 	userDid := cmd.String("user-did")
 	userHandle := cmd.String("user-handle")
 	endpoint := cmd.String("internal-api")
+	pushOptions := cmd.StringSlice("push-option")
 
 	payloadReader := bufio.NewReader(os.Stdin)
 	payload, _ := payloadReader.ReadString('\n')
@@ -67,6 +72,11 @@ func postRecieve(ctx context.Context, cmd *cli.Command) error {
 	req.Header.Set("X-Git-Dir", gitDir)
 	req.Header.Set("X-Git-User-Did", userDid)
 	req.Header.Set("X-Git-User-Handle", userHandle)
+	if pushOptions != nil {
+		for _, option := range pushOptions {
+			req.Header.Add("X-Git-Push-Option", option)
+		}
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
