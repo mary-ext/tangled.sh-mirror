@@ -14,6 +14,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pulls"
 	"tangled.sh/tangled.sh/core/appview/repo"
 	"tangled.sh/tangled.sh/core/appview/settings"
+	"tangled.sh/tangled.sh/core/appview/signup"
 	"tangled.sh/tangled.sh/core/appview/spindles"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
 	"tangled.sh/tangled.sh/core/log"
@@ -137,6 +138,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Mount("/settings", s.SettingsRouter())
 	r.Mount("/knots", s.KnotsRouter(mw))
 	r.Mount("/spindles", s.SpindlesRouter())
+	r.Mount("/signup", s.SignupRouter())
 	r.Mount("/", s.OAuthRouter())
 
 	r.Get("/keys/{user}", s.Keys)
@@ -216,4 +218,11 @@ func (s *State) RepoRouter(mw *middleware.Middleware) http.Handler {
 func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
 	pipes := pipelines.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.enforcer)
 	return pipes.Router(mw)
+}
+
+func (s *State) SignupRouter() http.Handler {
+	logger := log.New("signup")
+
+	sig := signup.New(s.config, s.cf, s.db, s.posthog, s.idResolver, s.pages, logger)
+	return sig.Router()
 }

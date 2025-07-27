@@ -59,6 +59,16 @@ type RedisConfig struct {
 	DB       int    `env:"DB, default=0"`
 }
 
+type PdsConfig struct {
+	Host        string `env:"HOST, default=https://tngl.sh"`
+	AdminSecret string `env:"ADMIN_SECRET"`
+}
+
+type Cloudflare struct {
+	ApiToken string `env:"API_TOKEN"`
+	ZoneId   string `env:"ZONE_ID"`
+}
+
 func (cfg RedisConfig) ToURL() string {
 	u := &url.URL{
 		Scheme: "redis",
@@ -84,6 +94,8 @@ type Config struct {
 	Avatar        AvatarConfig    `env:",prefix=TANGLED_AVATAR_"`
 	OAuth         OAuthConfig     `env:",prefix=TANGLED_OAUTH_"`
 	Redis         RedisConfig     `env:",prefix=TANGLED_REDIS_"`
+	Pds           PdsConfig       `env:",prefix=TANGLED_PDS_"`
+	Cloudflare    Cloudflare      `env:",prefix=TANGLED_CLOUDFLARE_"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {

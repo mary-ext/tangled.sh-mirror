@@ -436,6 +436,13 @@ func Make(dbPath string) (*DB, error) {
 			unique(repo_at, ref, language)
 		);
 
+		create table if not exists signups_inflight (
+			id integer primary key autoincrement,
+			email text not null unique,
+			invite_code text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique

@@ -12,6 +12,7 @@ require (
 	github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/casbin/casbin/v2 v2.103.0
+	github.com/cloudflare/cloudflare-go v0.115.0
 	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/dgraph-io/ristretto v0.2.0
 	github.com/docker/docker v28.2.2+incompatible
@@ -85,6 +86,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.3 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/mock v1.6.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
