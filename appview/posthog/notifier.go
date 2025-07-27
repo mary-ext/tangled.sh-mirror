@@ -75,7 +75,7 @@ func (n *posthogNotifier) NewPull(ctx context.Context, pull *db.Pull) {
 		DistinctId: pull.OwnerDid,
 		Event:      "new_pull",
 		Properties: posthog.Properties{
-			"repo_at":  pull.RepoAt,
+			"repo_at": pull.RepoAt,
 			"pull_id": pull.PullId,
 		},
 	})
@@ -89,7 +89,7 @@ func (n *posthogNotifier) NewPullComment(ctx context.Context, comment *db.PullCo
 		DistinctId: comment.OwnerDid,
 		Event:      "new_pull_comment",
 		Properties: posthog.Properties{
-			"repo_at":  comment.RepoAt,
+			"repo_at": comment.RepoAt,
 			"pull_id": comment.PullId,
 		},
 	})
