@@ -64,6 +64,10 @@ func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+type PushOptions struct {
+	skipCi bool
+}
+
 func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "PostReceiveHook")
 
@@ -90,6 +94,15 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 		// non-fatal
 	}
 
+	// extract any push options
+	pushOptionsRaw := r.Header.Values("X-Git-Push-Option")
+	pushOptions := PushOptions{}
+	for _, option := range pushOptionsRaw {
+		if option == "skip-ci" || option == "ci-skip" {
+			pushOptions.skipCi = true
+		}
+	}
+
 	for _, line := range lines {
 		err := h.insertRefUpdate(line, gitUserDid, repoDid, repoName)
 		if err != nil {
@@ -97,7 +110,7 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 			// non-fatal
 		}
 
-		err = h.triggerPipeline(line, gitUserDid, repoDid, repoName)
+		err = h.triggerPipeline(line, gitUserDid, repoDid, repoName, pushOptions)
 		if err != nil {
 			l.Error("failed to trigger pipeline", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
 			// non-fatal
@@ -148,7 +161,11 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 	return h.db.InsertEvent(event, h.n)
 }
 
-func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
+func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, repoDid, repoName string, pushOptions PushOptions) error {
+	if pushOptions.skipCi {
+		return nil
+	}
+
 	didSlashRepo, err := securejoin.SecureJoin(repoDid, repoName)
 	if err != nil {
 		return err
