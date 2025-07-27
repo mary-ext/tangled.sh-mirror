@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -30,6 +29,7 @@ import (
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/tid"
 	"tangled.sh/tangled.sh/core/types"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -1088,7 +1088,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
 		sourceAt := f.RepoAt.String()
 
-		rkey := appview.TID()
+		rkey := tid.TID()
 		repo := &db.Repo{
 			Did:    user.Did,
 			Name:   forkName,

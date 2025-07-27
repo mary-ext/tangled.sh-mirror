@@ -10,9 +10,9 @@ import (
 
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/tid"
 )
 
 func (s *State) React(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		createdAt := time.Now().Format(time.RFC3339)
-		rkey := appview.TID()
+		rkey := tid.TID()
 		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.FeedReactionNSID,
 			Repo:       currentUser.Did,
@@ -77,9 +77,9 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 		log.Println("created atproto record: ", resp.Uri)
 
 		s.pages.ThreadReactionFragment(w, pages.ThreadReactionFragmentParams{
-			ThreadAt:      subjectUri,
-			Kind: reactionKind,
-			Count: count,
+			ThreadAt:  subjectUri,
+			Kind:      reactionKind,
+			Count:     count,
 			IsReacted: true,
 		})
 
@@ -115,9 +115,9 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.pages.ThreadReactionFragment(w, pages.ThreadReactionFragmentParams{
-			ThreadAt:         subjectUri,
-			Kind: reactionKind,
-			Count: count,
+			ThreadAt:  subjectUri,
+			Kind:      reactionKind,
+			Count:     count,
 			IsReacted: false,
 		})
 

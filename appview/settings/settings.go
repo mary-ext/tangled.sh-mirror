@@ -12,13 +12,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/email"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/tid"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -366,7 +366,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rkey := appview.TID()
+		rkey := tid.TID()
 
 		tx, err := s.Db.Begin()
 		if err != nil {

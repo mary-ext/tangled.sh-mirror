@@ -7,6 +7,7 @@ toolchain go1.24.3
 require (
 	github.com/Blank-Xu/sql-adapter v1.1.1
 	github.com/alecthomas/chroma/v2 v2.15.0
+	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bluekeyes/go-gitdiff v0.8.1
 	github.com/bluesky-social/indigo v0.0.0-20250520232546-236dd575c91e
 	github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1
@@ -49,7 +50,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.2.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
-	github.com/avast/retry-go/v4 v4.6.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.7.1 // indirect

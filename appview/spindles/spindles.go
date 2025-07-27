@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -19,6 +18,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	verify "tangled.sh/tangled.sh/core/appview/spindleverify"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/tid"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -524,7 +524,7 @@ func (s *Spindles) addMember(w http.ResponseWriter, r *http.Request) {
 		s.Enforcer.E.LoadPolicy()
 	}()
 
-	rkey := appview.TID()
+	rkey := tid.TID()
 
 	// add member to db
 	if err = db.AddSpindleMember(tx, db.SpindleMember{

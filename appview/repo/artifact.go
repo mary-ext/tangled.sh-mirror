@@ -14,11 +14,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/ipfs/go-cid"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/knotclient"
+	"tangled.sh/tangled.sh/core/tid"
 	"tangled.sh/tangled.sh/core/types"
 )
 
@@ -64,7 +64,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("uploaded blob", humanize.Bytes(uint64(uploadBlobResp.Blob.Size)), uploadBlobResp.Blob.Ref.String())
 
-	rkey := appview.TID()
+	rkey := tid.TID()
 	createdAt := time.Now()
 
 	putRecordResp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{

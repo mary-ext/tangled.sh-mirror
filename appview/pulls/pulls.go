@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -24,6 +23,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/patchutil"
+	"tangled.sh/tangled.sh/core/tid"
 	"tangled.sh/tangled.sh/core/types"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
@@ -668,7 +668,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 		atResp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoPullCommentNSID,
 			Repo:       user.Did,
-			Rkey:       appview.TID(),
+			Rkey:       tid.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoPullComment{
 					Repo:      &atUri,
@@ -1038,7 +1038,7 @@ func (s *Pulls) createPullRequest(
 		body = formatPatches[0].Body
 	}
 
-	rkey := appview.TID()
+	rkey := tid.TID()
 	initialSubmission := db.PullSubmission{
 		Patch:     patch,
 		SourceRev: sourceRev,
@@ -2168,7 +2168,7 @@ func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patc
 
 		title := fp.Title
 		body := fp.Body
-		rkey := appview.TID()
+		rkey := tid.TID()
 
 		initialSubmission := db.PullSubmission{
 			Patch:     fp.Raw,

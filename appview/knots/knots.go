@@ -13,7 +13,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -23,6 +22,7 @@ import (
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/tid"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -436,7 +436,7 @@ func (k *Knots) addMember(w http.ResponseWriter, r *http.Request) {
 	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 		Collection: tangled.KnotMemberNSID,
 		Repo:       currentUser.Did,
-		Rkey:       appview.TID(),
+		Rkey:       tid.TID(),
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.KnotMember{
 				Subject:   subjectIdentity.DID.String(),

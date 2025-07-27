@@ -16,7 +16,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/idresolver"
@@ -25,6 +24,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/tid"
 )
 
 type Issues struct {
@@ -120,8 +120,8 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		DidHandleMap:     didHandleMap,
 
 		OrderedReactionKinds: db.OrderedReactionKinds,
-		Reactions: reactionCountMap,
-		UserReacted: userReactions,
+		Reactions:            reactionCountMap,
+		UserReacted:          userReactions,
 	})
 
 }
@@ -171,7 +171,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueStateNSID,
 			Repo:       user.Did,
-			Rkey:       appview.TID(),
+			Rkey:       tid.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssueState{
 					Issue: issue.IssueAt,
@@ -275,7 +275,7 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		commentId := mathrand.IntN(1000000)
-		rkey := appview.TID()
+		rkey := tid.TID()
 
 		err := db.NewIssueComment(rp.db, &db.Comment{
 			OwnerDid:  user.Did,
@@ -726,7 +726,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,
-			Rkey:       appview.TID(),
+			Rkey:       tid.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssue{
 					Repo:    atUri,
