@@ -597,7 +597,6 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		FilteringBy:  state,
 		Stacks:       stacks,
 	})
-	return
 }
 
 func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
@@ -1658,7 +1657,6 @@ func (s *Pulls) resubmitPullHelper(
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
-	return
 }
 
 func (s *Pulls) resubmitStackedPullHelper(
@@ -1902,7 +1900,6 @@ func (s *Pulls) resubmitStackedPullHelper(
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
-	return
 }
 
 func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
@@ -2073,7 +2070,6 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
-	return
 }
 
 func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
@@ -2142,7 +2138,6 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
-	return
 }
 
 func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patch string, pullSource *db.PullSource, stackId string) (db.Stack, error) {

@@ -114,9 +114,7 @@ func (s *Spindles) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	identsToResolve := make([]string, len(members))
-	for i, member := range members {
-		identsToResolve[i] = member
-	}
+	copy(identsToResolve, members)
 	resolvedIds := s.IdResolver.ResolveIdents(r.Context(), identsToResolve)
 	didHandleMap := make(map[string]string)
 	for _, identity := range resolvedIds {
@@ -258,7 +256,6 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 
 	// ok
 	s.Pages.HxRefresh(w)
-	return
 }
 
 func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
@@ -711,5 +708,4 @@ func (s *Spindles) removeMember(w http.ResponseWriter, r *http.Request) {
 
 	// ok
 	s.Pages.HxRefresh(w)
-	return
 }

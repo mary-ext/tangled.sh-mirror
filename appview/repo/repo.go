@@ -177,7 +177,6 @@ func (rp *Repo) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
 	rp.pages.EditRepoDescriptionFragment(w, pages.RepoDescriptionParams{
 		RepoInfo: f.RepoInfo(user),
 	})
-	return
 }
 
 func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
@@ -454,7 +453,6 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 		ArtifactMap:       artifactMap,
 		DanglingArtifacts: danglingArtifacts,
 	})
-	return
 }
 
 func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
@@ -543,7 +541,6 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		ShowRendered:     showRendered,
 		RenderToggle:     renderToggle,
 	})
-	return
 }
 
 func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
@@ -587,7 +584,6 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Write([]byte(result.Contents))
-	return
 }
 
 // modify the spindle configured for this repo

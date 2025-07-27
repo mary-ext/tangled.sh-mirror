@@ -265,7 +265,6 @@ func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.updateProfile(profile, w, r)
-	return
 }
 
 func (s *State) UpdateProfilePins(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +304,6 @@ func (s *State) UpdateProfilePins(w http.ResponseWriter, r *http.Request) {
 	profile.PinnedRepos = pinnedRepos
 
 	s.updateProfile(profile, w, r)
-	return
 }
 
 func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *http.Request) {
@@ -373,7 +371,6 @@ func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *htt
 	s.notifier.UpdateProfile(r.Context(), profile)
 
 	s.pages.HxRedirect(w, "/"+user.Did)
-	return
 }
 
 func (s *State) EditBioFragment(w http.ResponseWriter, r *http.Request) {

@@ -378,7 +378,6 @@ func (k *Knots) members(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(strings.Join(memberDids, "\n")))
-	return
 }
 
 // add member to domain, requires auth and requires invite access
