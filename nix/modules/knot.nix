@@ -113,6 +113,8 @@ in
         [user]
             name = Git User
             email = git@example.com
+        [receive]
+            advertisePushOptions = true
         EOF
         chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.stateDir}"
       '';
