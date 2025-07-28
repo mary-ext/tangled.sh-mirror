@@ -57,3 +57,10 @@ clone:
   depth: 50
   submodules: true
 ```
+
+## git push options
+
+These are push options that can be used with the `--push-option (-o)` flag of git push:
+
+- `verbose-ci`, `ci-verbose`: enables diagnostics reporting for the CI pipeline, allowing you to see any issues when you push.
+- `skip-ci`, `ci-skip`: skips triggering the CI pipeline.
