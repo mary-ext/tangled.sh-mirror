@@ -3,6 +3,7 @@ package hook
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +11,10 @@ import (
 
 	"github.com/urfave/cli/v3"
 )
+
+type HookResponse struct {
+	Messages []string `json:"messages"`
+}
 
 // The hook command is nested like so:
 //
@@ -86,6 +91,15 @@ func postRecieve(ctx context.Context, cmd *cli.Command) error {
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var data HookResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	for _, message := range data.Messages {
+		fmt.Println(message)
 	}
 
 	return nil

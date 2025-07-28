@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/hook"
 	"tangled.sh/tangled.sh/core/knotserver/config"
 	"tangled.sh/tangled.sh/core/knotserver/db"
 	"tangled.sh/tangled.sh/core/knotserver/git"
@@ -65,7 +66,8 @@ func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
 }
 
 type PushOptions struct {
-	skipCi bool
+	skipCi    bool
+	verboseCi bool
 }
 
 func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +103,13 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 		if option == "skip-ci" || option == "ci-skip" {
 			pushOptions.skipCi = true
 		}
+		if option == "verbose-ci" || option == "ci-verbose" {
+			pushOptions.verboseCi = true
+		}
+	}
+
+	resp := hook.HookResponse{
+		Messages: make([]string, 0),
 	}
 
 	for _, line := range lines {
@@ -110,12 +119,14 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 			// non-fatal
 		}
 
-		err = h.triggerPipeline(line, gitUserDid, repoDid, repoName, pushOptions)
+		err = h.triggerPipeline(&resp.Messages, line, gitUserDid, repoDid, repoName, pushOptions)
 		if err != nil {
 			l.Error("failed to trigger pipeline", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
 			// non-fatal
 		}
 	}
+
+	writeJSON(w, resp)
 }
 
 func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
@@ -161,7 +172,7 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 	return h.db.InsertEvent(event, h.n)
 }
 
-func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, repoDid, repoName string, pushOptions PushOptions) error {
+func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostReceiveLine, gitUserDid, repoDid, repoName string, pushOptions PushOptions) error {
 	if pushOptions.skipCi {
 		return nil
 	}
@@ -186,6 +197,8 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 		return err
 	}
 
+	pipelineParseErrors := []string{}
+
 	var pipeline workflow.Pipeline
 	for _, e := range workflowDir {
 		if !e.IsFile {
@@ -200,8 +213,8 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 
 		wf, err := workflow.FromFile(e.Name, contents)
 		if err != nil {
-			// TODO: log here, respond to client that is pushing
 			h.l.Error("failed to parse workflow", "err", err, "path", fpath)
+			pipelineParseErrors = append(pipelineParseErrors, fmt.Sprintf("- at %s: %s\n", fpath, err))
 			continue
 		}
 
@@ -226,11 +239,38 @@ func (h *InternalHandle) triggerPipeline(line git.PostReceiveLine, gitUserDid, r
 		},
 	}
 
-	// TODO: send the diagnostics back to the user here via stderr
 	cp := compiler.Compile(pipeline)
 	eventJson, err := json.Marshal(cp)
 	if err != nil {
 		return err
+	}
+
+	if pushOptions.verboseCi {
+		hasDiagnostics := false
+		if len(pipelineParseErrors) > 0 {
+			hasDiagnostics = true
+			*clientMsgs = append(*clientMsgs, "error: failed to parse workflow(s):")
+			for _, error := range pipelineParseErrors {
+				*clientMsgs = append(*clientMsgs, error)
+			}
+		}
+		if len(compiler.Diagnostics.Errors) > 0 {
+			hasDiagnostics = true
+			*clientMsgs = append(*clientMsgs, "error(s) on pipeline:")
+			for _, error := range compiler.Diagnostics.Errors {
+				*clientMsgs = append(*clientMsgs, fmt.Sprintf("- %s:", error))
+			}
+		}
+		if len(compiler.Diagnostics.Warnings) > 0 {
+			hasDiagnostics = true
+			*clientMsgs = append(*clientMsgs, "warning(s) on pipeline:")
+			for _, warning := range compiler.Diagnostics.Warnings {
+				*clientMsgs = append(*clientMsgs, fmt.Sprintf("- at %s: %s: %s", warning.Path, warning.Type, warning.Reason))
+			}
+		}
+		if !hasDiagnostics {
+			*clientMsgs = append(*clientMsgs, "success: pipeline compiled with no diagnostics")
+		}
 	}
 
 	// do not run empty pipelines
