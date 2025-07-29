@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	indigo_xrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
 	oauth "tangled.sh/icyphox.sh/atproto-oauth"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
@@ -204,6 +205,78 @@ func (o *OAuth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
 	})
 
 	return xrpcClient, nil
+}
+
+// use this to create a client to communicate with knots or spindles
+//
+// this is a higher level abstraction on ServerGetServiceAuth
+type ServiceClientOpts struct {
+	service string
+	exp     int64
+	lxm     string
+	dev     bool
+}
+
+type ServiceClientOpt func(*ServiceClientOpts)
+
+func WithService(service string) ServiceClientOpt {
+	return func(s *ServiceClientOpts) {
+		s.service = service
+	}
+}
+func WithExp(exp int64) ServiceClientOpt {
+	return func(s *ServiceClientOpts) {
+		s.exp = exp
+	}
+}
+
+func WithLxm(lxm string) ServiceClientOpt {
+	return func(s *ServiceClientOpts) {
+		s.lxm = lxm
+	}
+}
+
+func WithDev(dev bool) ServiceClientOpt {
+	return func(s *ServiceClientOpts) {
+		s.dev = dev
+	}
+}
+
+func (s *ServiceClientOpts) Audience() string {
+	return fmt.Sprintf("did:web:%s", s.service)
+}
+
+func (s *ServiceClientOpts) Host() string {
+	scheme := "https://"
+	if s.dev {
+		scheme = "http://"
+	}
+
+	return scheme + s.service
+}
+
+func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*indigo_xrpc.Client, error) {
+	opts := ServiceClientOpts{}
+	for _, o := range os {
+		o(&opts)
+	}
+
+	authorizedClient, err := o.AuthorizedClient(r)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := authorizedClient.ServerGetServiceAuth(r.Context(), opts.Audience(), opts.exp, opts.lxm)
+	if err != nil {
+		return nil, err
+	}
+
+	return &indigo_xrpc.Client{
+		Auth: &indigo_xrpc.AuthInfo{
+			AccessJwt: resp.Token,
+		},
+		Host: opts.Host(),
+	}, nil
 }
 
 type ClientMetadata struct {
