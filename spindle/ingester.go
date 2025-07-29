@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/eventconsumer"
+	"tangled.sh/tangled.sh/core/rbac"
 
 	"github.com/bluesky-social/jetstream/pkg/models"
 )
@@ -72,7 +74,7 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 			return fmt.Errorf("failed to enforce permissions: %w", err)
 		}
 
-		if err := s.e.AddKnotMember(rbacDomain, record.Subject); err != nil {
+		if err := s.e.AddSpindleMember(rbacDomain, record.Subject); err != nil {
 			l.Error("failed to add member", "error", err)
 			return fmt.Errorf("failed to add member: %w", err)
 		}
@@ -124,6 +126,12 @@ func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
 		// add this repo to the watch list
 		if err := s.db.AddRepo(record.Knot, record.Owner, record.Name); err != nil {
 			l.Error("failed to add repo", "error", err)
+			return fmt.Errorf("failed to add repo: %w", err)
+		}
+
+		// add repo to rbac
+		if err := s.e.AddRepo(record.Owner, rbac.ThisServer, filepath.Join(record.Owner, record.Name)); err != nil {
+			l.Error("failed to add repo to enforcer", "error", err)
 			return fmt.Errorf("failed to add repo: %w", err)
 		}
 
