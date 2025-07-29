@@ -14,5 +14,6 @@ steps:
 
   - name: "go fmt"
     command: |
-       gofmt -l .
+       unformatted=$(gofmt -l .)
+       test -z "$unformatted" || (echo "$unformatted" && exit 1)
 
