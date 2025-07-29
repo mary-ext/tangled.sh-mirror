@@ -303,6 +303,18 @@ func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
 		s.Enforcer.E.LoadPolicy()
 	}()
 
+	// remove spindle members first
+	err = db.RemoveSpindleMember(
+		tx,
+		db.FilterEq("did", user.Did),
+		db.FilterEq("instance", instance),
+	)
+	if err != nil {
+		l.Error("failed to remove spindle members", "err", err)
+		fail()
+		return
+	}
+
 	err = db.DeleteSpindle(
 		tx,
 		db.FilterEq("owner", user.Did),
