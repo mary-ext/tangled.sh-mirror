@@ -1,0 +1,89 @@
+package xrpc
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/bluesky-social/indigo/xrpc"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/spindle/secrets"
+)
+
+func (x *Xrpc) AddSecret(w http.ResponseWriter, r *http.Request) {
+	l := x.Logger
+	fail := func(e XrpcError) {
+		l.Error("failed", "kind", e.Tag, "error", e.Message)
+		writeError(w, e, http.StatusBadRequest)
+	}
+
+	actorDid, ok := r.Context().Value(ActorDid).(syntax.DID)
+	if !ok {
+		fail(MissingActorDidError)
+		return
+	}
+
+	var data tangled.RepoAddSecret_Input
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		fail(GenericError(err))
+		return
+	}
+
+	if err := secrets.ValidateKey(data.Key); err != nil {
+		fail(GenericError(err))
+		return
+	}
+
+	// unfortunately we have to resolve repo-at here
+	repoAt, err := syntax.ParseATURI(data.Repo)
+	if err != nil {
+		fail(InvalidRepoError(data.Repo))
+		return
+	}
+
+	// resolve this aturi to extract the repo record
+	ident, err := x.Resolver.ResolveIdent(r.Context(), repoAt.Authority().String())
+	if err != nil || ident.Handle.IsInvalidHandle() {
+		fail(GenericError(fmt.Errorf("failed to resolve handle: %w", err)))
+		return
+	}
+
+	xrpcc := xrpc.Client{Host: ident.PDSEndpoint()}
+	resp, err := atproto.RepoGetRecord(r.Context(), &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
+	if err != nil {
+		fail(GenericError(err))
+		return
+	}
+
+	repo := resp.Value.Val.(*tangled.Repo)
+	didPath, err := securejoin.SecureJoin(repo.Owner, repo.Name)
+	if err != nil {
+		fail(GenericError(err))
+		return
+	}
+
+	if ok, err := x.Enforcer.IsSettingsAllowed(actorDid.String(), rbac.ThisServer, didPath); !ok || err != nil {
+		l.Error("insufficent permissions", "did", actorDid.String())
+		writeError(w, AccessControlError(actorDid.String()), http.StatusUnauthorized)
+		return
+	}
+
+	secret := secrets.UnlockedSecret{
+		Repo:      secrets.DidSlashRepo(didPath),
+		Key:       data.Key,
+		Value:     data.Value,
+		CreatedBy: actorDid,
+	}
+	err = x.Vault.AddSecret(secret)
+	if err != nil {
+		l.Error("failed to add secret to vault", "did", actorDid.String(), "err", err)
+		writeError(w, GenericError(err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
