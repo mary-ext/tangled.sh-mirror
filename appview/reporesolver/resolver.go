@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/appview/config"
@@ -26,13 +25,8 @@ import (
 )
 
 type ResolvedRepo struct {
-	Knot        string
+	db.Repo
 	OwnerId     identity.Identity
-	RepoName    string
-	RepoAt      syntax.ATURI
-	Description string
-	Spindle     string
-	CreatedAt   string
 	Ref         string
 	CurrentDir  string
 
@@ -51,10 +45,9 @@ func New(config *config.Config, enforcer *rbac.Enforcer, resolver *idresolver.Re
 }
 
 func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
-	repoName := chi.URLParam(r, "repo")
-	knot, ok := r.Context().Value("knot").(string)
+	repo, ok := r.Context().Value("repo").(*db.Repo)
 	if !ok {
-		log.Println("malformed middleware")
+		log.Println("malformed middleware: `repo` not exist in context")
 		return nil, fmt.Errorf("malformed middleware")
 	}
 	id, ok := r.Context().Value("resolvedId").(identity.Identity)
@@ -63,27 +56,15 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
-	repoAt, ok := r.Context().Value("repoAt").(string)
-	if !ok {
-		log.Println("malformed middleware")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-
-	parsedRepoAt, err := syntax.ParseATURI(repoAt)
-	if err != nil {
-		log.Println("malformed repo at-uri")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-
 	ref := chi.URLParam(r, "ref")
 
 	if ref == "" {
-		us, err := knotclient.NewUnsignedClient(knot, rr.config.Core.Dev)
+		us, err := knotclient.NewUnsignedClient(repo.Knot, rr.config.Core.Dev)
 		if err != nil {
 			return nil, err
 		}
 
-		defaultBranch, err := us.DefaultBranch(id.DID.String(), repoName)
+		defaultBranch, err := us.DefaultBranch(id.DID.String(), repo.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -93,21 +74,11 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 
 	currentDir := path.Dir(extractPathAfterRef(r.URL.EscapedPath(), ref))
 
-	// pass through values from the middleware
-	description, ok := r.Context().Value("repoDescription").(string)
-	addedAt, ok := r.Context().Value("repoAddedAt").(string)
-	spindle, ok := r.Context().Value("repoSpindle").(string)
-
 	return &ResolvedRepo{
-		Knot:        knot,
-		OwnerId:     id,
-		RepoName:    repoName,
-		RepoAt:      parsedRepoAt,
-		Description: description,
-		CreatedAt:   addedAt,
-		Ref:         ref,
-		CurrentDir:  currentDir,
-		Spindle:     spindle,
+		Repo:       *repo,
+		OwnerId:    id,
+		Ref:        ref,
+		CurrentDir: currentDir,
 
 		rr: rr,
 	}, nil
@@ -126,16 +97,11 @@ func (f *ResolvedRepo) OwnerSlashRepo() string {
 
 	var p string
 	if handle != "" && !handle.IsInvalidHandle() {
-		p, _ = securejoin.SecureJoin(fmt.Sprintf("@%s", handle), f.RepoName)
+		p, _ = securejoin.SecureJoin(fmt.Sprintf("@%s", handle), f.Name)
 	} else {
-		p, _ = securejoin.SecureJoin(f.OwnerDid(), f.RepoName)
+		p, _ = securejoin.SecureJoin(f.OwnerDid(), f.Name)
 	}
 
-	return p
-}
-
-func (f *ResolvedRepo) DidSlashRepo() string {
-	p, _ := securejoin.SecureJoin(f.OwnerDid(), f.RepoName)
 	return p
 }
 
@@ -187,28 +153,29 @@ func (f *ResolvedRepo) Collaborators(ctx context.Context) ([]pages.Collaborator,
 // this function is a bit weird since it now returns RepoInfo from an entirely different
 // package. we should refactor this or get rid of RepoInfo entirely.
 func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
+	repoAt := f.RepoAt()
 	isStarred := false
 	if user != nil {
-		isStarred = db.GetStarStatus(f.rr.execer, user.Did, syntax.ATURI(f.RepoAt))
+		isStarred = db.GetStarStatus(f.rr.execer, user.Did, repoAt)
 	}
 
-	starCount, err := db.GetStarCount(f.rr.execer, f.RepoAt)
+	starCount, err := db.GetStarCount(f.rr.execer, repoAt)
 	if err != nil {
-		log.Println("failed to get star count for ", f.RepoAt)
+		log.Println("failed to get star count for ", repoAt)
 	}
-	issueCount, err := db.GetIssueCount(f.rr.execer, f.RepoAt)
+	issueCount, err := db.GetIssueCount(f.rr.execer, repoAt)
 	if err != nil {
-		log.Println("failed to get issue count for ", f.RepoAt)
+		log.Println("failed to get issue count for ", repoAt)
 	}
-	pullCount, err := db.GetPullCount(f.rr.execer, f.RepoAt)
+	pullCount, err := db.GetPullCount(f.rr.execer, repoAt)
 	if err != nil {
-		log.Println("failed to get issue count for ", f.RepoAt)
+		log.Println("failed to get issue count for ", repoAt)
 	}
-	source, err := db.GetRepoSource(f.rr.execer, f.RepoAt)
+	source, err := db.GetRepoSource(f.rr.execer, repoAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		source = ""
 	} else if err != nil {
-		log.Println("failed to get repo source for ", f.RepoAt, err)
+		log.Println("failed to get repo source for ", repoAt, err)
 	}
 
 	var sourceRepo *db.Repo
@@ -233,9 +200,9 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s: %v", knot, err)
 	} else {
-		result, err := us.Branches(f.OwnerDid(), f.RepoName)
+		result, err := us.Branches(f.OwnerDid(), f.Name)
 		if err != nil {
-			log.Printf("failed to get branches for %s/%s: %v", f.OwnerDid(), f.RepoName, err)
+			log.Printf("failed to get branches for %s/%s: %v", f.OwnerDid(), f.Name, err)
 		}
 
 		if len(result.Branches) == 0 {
@@ -246,8 +213,8 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 	repoInfo := repoinfo.RepoInfo{
 		OwnerDid:    f.OwnerDid(),
 		OwnerHandle: f.OwnerHandle(),
-		Name:        f.RepoName,
-		RepoAt:      f.RepoAt,
+		Name:        f.Name,
+		RepoAt:      repoAt,
 		Description: f.Description,
 		Ref:         f.Ref,
 		IsStarred:   isStarred,

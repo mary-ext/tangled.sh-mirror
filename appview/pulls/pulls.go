@@ -246,7 +246,7 @@ func (s *Pulls) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db
 		patch = mergeable.CombinedPatch()
 	}
 
-	resp, err := ksClient.MergeCheck([]byte(patch), f.OwnerDid(), f.RepoName, pull.TargetBranch)
+	resp, err := ksClient.MergeCheck([]byte(patch), f.OwnerDid(), f.Name, pull.TargetBranch)
 	if err != nil {
 		log.Println("failed to check for mergeability:", err)
 		return types.MergeCheckResponse{
@@ -307,7 +307,7 @@ func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack
 		// pulls within the same repo
 		knot = f.Knot
 		ownerDid = f.OwnerDid()
-		repoName = f.RepoName
+		repoName = f.Name
 	}
 
 	us, err := knotclient.NewUnsignedClient(knot, s.config.Core.Dev)
@@ -483,7 +483,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 
 	pulls, err := db.GetPulls(
 		s.db,
-		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("repo_at", f.RepoAt()),
 		db.FilterEq("state", state),
 	)
 	if err != nil {
@@ -610,14 +610,14 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 		createdAt := time.Now().Format(time.RFC3339)
 		ownerDid := user.Did
 
-		pullAt, err := db.GetPullAt(s.db, f.RepoAt, pull.PullId)
+		pullAt, err := db.GetPullAt(s.db, f.RepoAt(), pull.PullId)
 		if err != nil {
 			log.Println("failed to get pull at", err)
 			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
 			return
 		}
 
-		atUri := f.RepoAt.String()
+		atUri := f.RepoAt().String()
 		client, err := s.oauth.AuthorizedClient(r)
 		if err != nil {
 			log.Println("failed to get authorized client", err)
@@ -646,7 +646,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 
 		comment := &db.PullComment{
 			OwnerDid:     user.Did,
-			RepoAt:       f.RepoAt.String(),
+			RepoAt:       f.RepoAt().String(),
 			PullId:       pull.PullId,
 			Body:         body,
 			CommentAt:    atResp.Uri,
@@ -692,7 +692,7 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		result, err := us.Branches(f.OwnerDid(), f.RepoName)
+		result, err := us.Branches(f.OwnerDid(), f.Name)
 		if err != nil {
 			log.Println("failed to fetch branches", err)
 			return
@@ -816,7 +816,7 @@ func (s *Pulls) handleBranchBasedPull(
 		return
 	}
 
-	comparison, err := ksClient.Compare(f.OwnerDid(), f.RepoName, targetBranch, sourceBranch)
+	comparison, err := ksClient.Compare(f.OwnerDid(), f.Name, targetBranch, sourceBranch)
 	if err != nil {
 		log.Println("failed to compare", err)
 		s.pages.Notice(w, "pull", err.Error())
@@ -1007,7 +1007,7 @@ func (s *Pulls) createPullRequest(
 		Body:         body,
 		TargetBranch: targetBranch,
 		OwnerDid:     user.Did,
-		RepoAt:       f.RepoAt,
+		RepoAt:       f.RepoAt(),
 		Rkey:         rkey,
 		Submissions: []*db.PullSubmission{
 			&initialSubmission,
@@ -1020,7 +1020,7 @@ func (s *Pulls) createPullRequest(
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
-	pullId, err := db.NextPullId(tx, f.RepoAt)
+	pullId, err := db.NextPullId(tx, f.RepoAt())
 	if err != nil {
 		log.Println("failed to get pull id", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
@@ -1035,7 +1035,7 @@ func (s *Pulls) createPullRequest(
 			Val: &tangled.RepoPull{
 				Title:        title,
 				PullId:       int64(pullId),
-				TargetRepo:   string(f.RepoAt),
+				TargetRepo:   string(f.RepoAt()),
 				TargetBranch: targetBranch,
 				Patch:        patch,
 				Source:       recordPullSource,
@@ -1213,7 +1213,7 @@ func (s *Pulls) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	result, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -1297,7 +1297,7 @@ func (s *Pulls) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	targetResult, err := targetBranchesClient.Branches(f.OwnerDid(), f.RepoName)
+	targetResult, err := targetBranchesClient.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver for target branches", err)
 		return
@@ -1413,7 +1413,7 @@ func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comparison, err := ksClient.Compare(f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.PullSource.Branch)
+	comparison, err := ksClient.Compare(f.OwnerDid(), f.Name, pull.TargetBranch, pull.PullSource.Branch)
 	if err != nil {
 		log.Printf("compare request failed: %s", err)
 		s.pages.Notice(w, "resubmit-error", err.Error())
@@ -1597,7 +1597,7 @@ func (s *Pulls) resubmitPullHelper(
 			Val: &tangled.RepoPull{
 				Title:        pull.Title,
 				PullId:       int64(pull.PullId),
-				TargetRepo:   string(f.RepoAt),
+				TargetRepo:   string(f.RepoAt()),
 				TargetBranch: pull.TargetBranch,
 				Patch:        patch, // new patch
 				Source:       recordPullSource,
@@ -1934,7 +1934,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Merge the pull request
-	resp, err := ksClient.Merge([]byte(patch), f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.Title, pull.Body, ident.Handle.String(), email.Address)
+	resp, err := ksClient.Merge([]byte(patch), f.OwnerDid(), f.Name, pull.TargetBranch, pull.Title, pull.Body, ident.Handle.String(), email.Address)
 	if err != nil {
 		log.Printf("failed to merge pull request: %s", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
@@ -1956,7 +1956,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	for _, p := range pullsToMerge {
-		err := db.MergePull(tx, f.RepoAt, p.PullId)
+		err := db.MergePull(tx, f.RepoAt(), p.PullId)
 		if err != nil {
 			log.Printf("failed to update pull request status in database: %s", err)
 			s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
@@ -1972,7 +1972,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.RepoName, pull.PullId))
+	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.Name, pull.PullId))
 }
 
 func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
@@ -2024,7 +2024,7 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 
 	for _, p := range pullsToClose {
 		// Close the pull in the database
-		err = db.ClosePull(tx, f.RepoAt, p.PullId)
+		err = db.ClosePull(tx, f.RepoAt(), p.PullId)
 		if err != nil {
 			log.Println("failed to close pull", err)
 			s.pages.Notice(w, "pull-close", "Failed to close pull.")
@@ -2092,7 +2092,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 
 	for _, p := range pullsToReopen {
 		// Close the pull in the database
-		err = db.ReopenPull(tx, f.RepoAt, p.PullId)
+		err = db.ReopenPull(tx, f.RepoAt(), p.PullId)
 		if err != nil {
 			log.Println("failed to close pull", err)
 			s.pages.Notice(w, "pull-close", "Failed to close pull.")
@@ -2144,7 +2144,7 @@ func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patc
 			Body:         body,
 			TargetBranch: targetBranch,
 			OwnerDid:     user.Did,
-			RepoAt:       f.RepoAt,
+			RepoAt:       f.RepoAt(),
 			Rkey:         rkey,
 			Submissions: []*db.PullSubmission{
 				&initialSubmission,

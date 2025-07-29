@@ -37,7 +37,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := us.Index(f.OwnerDid(), f.RepoName, ref)
+	result, err := us.Index(f.OwnerDid(), f.Name, ref)
 	if err != nil {
 		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
@@ -166,13 +166,13 @@ func (rp *Repo) getLanguageInfo(
 	// first attempt to fetch from db
 	langs, err := db.GetRepoLanguages(
 		rp.db,
-		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("repo_at", f.RepoAt()),
 		db.FilterEq("ref", f.Ref),
 	)
 
 	if err != nil || langs == nil {
 		// non-fatal, fetch langs from ks
-		ls, err := signedClient.RepoLanguages(f.OwnerDid(), f.RepoName, f.Ref)
+		ls, err := signedClient.RepoLanguages(f.OwnerDid(), f.Name, f.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +182,7 @@ func (rp *Repo) getLanguageInfo(
 
 		for l, s := range ls.Languages {
 			langs = append(langs, db.RepoLanguage{
-				RepoAt:       f.RepoAt,
+				RepoAt:       f.RepoAt(),
 				Ref:          f.Ref,
 				IsDefaultRef: isDefaultRef,
 				Language:     l,
@@ -279,7 +279,7 @@ func getForkInfo(
 	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
 
 	var status types.AncestorCheckResponse
-	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt), repoInfo.Name, f.Ref, hiddenRef)
+	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt()), repoInfo.Name, f.Ref, hiddenRef)
 	if err != nil {
 		log.Printf("failed to check if fork is ahead/behind: %s", err)
 		return nil, err

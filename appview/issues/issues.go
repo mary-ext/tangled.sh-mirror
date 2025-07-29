@@ -72,7 +72,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, comments, err := db.GetIssueWithComments(rp.db, f.RepoAt, issueIdInt)
+	issue, comments, err := db.GetIssueWithComments(rp.db, f.RepoAt(), issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue and comments", err)
 		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
@@ -126,7 +126,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := db.GetIssue(rp.db, f.RepoAt, issueIdInt)
+	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue", err)
 		rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
@@ -170,7 +170,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.CloseIssue(rp.db, f.RepoAt, issueIdInt)
+		err = db.CloseIssue(rp.db, f.RepoAt(), issueIdInt)
 		if err != nil {
 			log.Println("failed to close issue", err)
 			rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
@@ -202,7 +202,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := db.GetIssue(rp.db, f.RepoAt, issueIdInt)
+	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue", err)
 		rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
@@ -219,7 +219,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 	isIssueOwner := user.Did == issue.OwnerDid
 
 	if isCollaborator || isIssueOwner {
-		err := db.ReopenIssue(rp.db, f.RepoAt, issueIdInt)
+		err := db.ReopenIssue(rp.db, f.RepoAt(), issueIdInt)
 		if err != nil {
 			log.Println("failed to reopen issue", err)
 			rp.pages.Notice(w, "issue-action", "Failed to reopen issue. Try again later.")
@@ -263,7 +263,7 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 
 		err := db.NewIssueComment(rp.db, &db.Comment{
 			OwnerDid:  user.Did,
-			RepoAt:    f.RepoAt,
+			RepoAt:    f.RepoAt(),
 			Issue:     issueIdInt,
 			CommentId: commentId,
 			Body:      body,
@@ -278,14 +278,14 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		createdAt := time.Now().Format(time.RFC3339)
 		commentIdInt64 := int64(commentId)
 		ownerDid := user.Did
-		issueAt, err := db.GetIssueAt(rp.db, f.RepoAt, issueIdInt)
+		issueAt, err := db.GetIssueAt(rp.db, f.RepoAt(), issueIdInt)
 		if err != nil {
 			log.Println("failed to get issue at", err)
 			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
 			return
 		}
 
-		atUri := f.RepoAt.String()
+		atUri := f.RepoAt().String()
 		client, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
 			log.Println("failed to get authorized client", err)
@@ -342,14 +342,14 @@ func (rp *Issues) IssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := db.GetIssue(rp.db, f.RepoAt, issueIdInt)
+	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue", err)
 		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
 		return
 	}
 
-	comment, err := db.GetComment(rp.db, f.RepoAt, issueIdInt, commentIdInt)
+	comment, err := db.GetComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
 	if err != nil {
 		http.Error(w, "bad comment id", http.StatusBadRequest)
 		return
@@ -387,14 +387,14 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := db.GetIssue(rp.db, f.RepoAt, issueIdInt)
+	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue", err)
 		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
 		return
 	}
 
-	comment, err := db.GetComment(rp.db, f.RepoAt, issueIdInt, commentIdInt)
+	comment, err := db.GetComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
 	if err != nil {
 		http.Error(w, "bad comment id", http.StatusBadRequest)
 		return
@@ -505,7 +505,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := db.GetIssue(rp.db, f.RepoAt, issueIdInt)
+	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
 	if err != nil {
 		log.Println("failed to get issue", err)
 		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
@@ -520,7 +520,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comment, err := db.GetComment(rp.db, f.RepoAt, issueIdInt, commentIdInt)
+	comment, err := db.GetComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
 	if err != nil {
 		http.Error(w, "bad comment id", http.StatusBadRequest)
 		return
@@ -538,7 +538,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	// optimistic deletion
 	deleted := time.Now()
-	err = db.DeleteComment(rp.db, f.RepoAt, issueIdInt, commentIdInt)
+	err = db.DeleteComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
 	if err != nil {
 		log.Println("failed to delete comment")
 		rp.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "failed to delete comment")
@@ -602,7 +602,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issues, err := db.GetIssues(rp.db, f.RepoAt, isOpen, page)
+	issues, err := db.GetIssues(rp.db, f.RepoAt(), isOpen, page)
 	if err != nil {
 		log.Println("failed to get issues", err)
 		rp.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
@@ -649,7 +649,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 		}
 
 		issue := &db.Issue{
-			RepoAt:   f.RepoAt,
+			RepoAt:   f.RepoAt(),
 			Rkey:     tid.TID(),
 			Title:    title,
 			Body:     body,
@@ -668,7 +668,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}
-		atUri := f.RepoAt.String()
+		atUri := f.RepoAt().String()
 		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,

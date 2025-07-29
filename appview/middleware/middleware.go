@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
@@ -222,11 +221,7 @@ func (mw Middleware) ResolveRepo() middlewareFunc {
 				return
 			}
 
-			ctx := context.WithValue(req.Context(), "knot", repo.Knot)
-			ctx = context.WithValue(ctx, "repoAt", repo.AtUri)
-			ctx = context.WithValue(ctx, "repoDescription", repo.Description)
-			ctx = context.WithValue(ctx, "repoSpindle", repo.Spindle)
-			ctx = context.WithValue(ctx, "repoAddedAt", repo.Created.Format(time.RFC3339))
+			ctx := context.WithValue(req.Context(), "repo", repo)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	}
@@ -251,7 +246,7 @@ func (mw Middleware) ResolvePull() middlewareFunc {
 				return
 			}
 
-			pr, err := db.GetPull(mw.db, f.RepoAt, prIdInt)
+			pr, err := db.GetPull(mw.db, f.RepoAt(), prIdInt)
 			if err != nil {
 				log.Println("failed to get pull and comments", err)
 				return
@@ -292,7 +287,7 @@ func (mw Middleware) GoImport() middlewareFunc {
 				return
 			}
 
-			fullName := f.OwnerHandle() + "/" + f.RepoName
+			fullName := f.OwnerHandle() + "/" + f.Name
 
 			if r.Header.Get("User-Agent") == "Go-http-client/1.1" {
 				if r.URL.Query().Get("go-get") == "1" {

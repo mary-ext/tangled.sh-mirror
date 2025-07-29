@@ -76,7 +76,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 				Artifact:  uploadBlobResp.Blob,
 				CreatedAt: createdAt.Format(time.RFC3339),
 				Name:      handler.Filename,
-				Repo:      f.RepoAt.String(),
+				Repo:      f.RepoAt().String(),
 				Tag:       tag.Tag.Hash[:],
 			},
 		},
@@ -100,7 +100,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	artifact := db.Artifact{
 		Did:       user.Did,
 		Rkey:      rkey,
-		RepoAt:    f.RepoAt,
+		RepoAt:    f.RepoAt(),
 		Tag:       tag.Tag.Hash,
 		CreatedAt: createdAt,
 		BlobCid:   cid.Cid(uploadBlobResp.Blob.Ref),
@@ -155,7 +155,7 @@ func (rp *Repo) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifacts, err := db.GetArtifact(
 		rp.db,
-		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("repo_at", f.RepoAt()),
 		db.FilterEq("tag", tag.Tag.Hash[:]),
 		db.FilterEq("name", filename),
 	)
@@ -197,7 +197,7 @@ func (rp *Repo) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifacts, err := db.GetArtifact(
 		rp.db,
-		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("repo_at", f.RepoAt()),
 		db.FilterEq("tag", tag[:]),
 		db.FilterEq("name", filename),
 	)
@@ -239,7 +239,7 @@ func (rp *Repo) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	err = db.DeleteArtifact(tx,
-		db.FilterEq("repo_at", f.RepoAt),
+		db.FilterEq("repo_at", f.RepoAt()),
 		db.FilterEq("tag", artifact.Tag[:]),
 		db.FilterEq("name", filename),
 	)
@@ -270,7 +270,7 @@ func (rp *Repo) resolveTag(f *reporesolver.ResolvedRepo, tagParam string) (*type
 		return nil, err
 	}
 
-	result, err := us.Tags(f.OwnerDid(), f.RepoName)
+	result, err := us.Tags(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return nil, err

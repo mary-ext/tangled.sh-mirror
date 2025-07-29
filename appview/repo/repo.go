@@ -95,7 +95,7 @@ func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 	} else {
 		uri = "https"
 	}
-	url := fmt.Sprintf("%s://%s/%s/%s/archive/%s.tar.gz", uri, f.Knot, f.OwnerDid(), f.RepoName, url.PathEscape(refParam))
+	url := fmt.Sprintf("%s://%s/%s/%s/archive/%s.tar.gz", uri, f.Knot, f.OwnerDid(), f.Name, url.PathEscape(refParam))
 
 	http.Redirect(w, r, url, http.StatusFound)
 }
@@ -123,13 +123,13 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repolog, err := us.Log(f.OwnerDid(), f.RepoName, ref, page)
+	repolog, err := us.Log(f.OwnerDid(), f.Name, ref, page)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	tagResult, err := us.Tags(f.OwnerDid(), f.RepoName)
+	tagResult, err := us.Tags(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -144,7 +144,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		tagMap[hash] = append(tagMap[hash], tag.Name)
 	}
 
-	branchResult, err := us.Branches(f.OwnerDid(), f.RepoName)
+	branchResult, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -212,7 +212,7 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoAt := f.RepoAt
+	repoAt := f.RepoAt()
 	rkey := repoAt.RecordKey().String()
 	if rkey == "" {
 		log.Println("invalid aturi for repo", err)
@@ -262,9 +262,9 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.Repo{
 					Knot:        f.Knot,
-					Name:        f.RepoName,
+					Name:        f.Name,
 					Owner:       user.Did,
-					CreatedAt:   f.CreatedAt,
+					CreatedAt:   f.Created.Format(time.RFC3339),
 					Description: &newDescription,
 					Spindle:     &f.Spindle,
 				},
@@ -310,7 +310,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/commit/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref))
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/commit/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -375,7 +375,7 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		protocol = "https"
 	}
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tree/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, treePath))
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tree/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, treePath))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -405,7 +405,7 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
+	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
 	if treePath != "" {
 		for idx, elem := range strings.Split(treePath, "/") {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
@@ -436,13 +436,13 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := us.Tags(f.OwnerDid(), f.RepoName)
+	result, err := us.Tags(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	artifacts, err := db.GetArtifact(rp.db, db.FilterEq("repo_at", f.RepoAt))
+	artifacts, err := db.GetArtifact(rp.db, db.FilterEq("repo_at", f.RepoAt()))
 	if err != nil {
 		log.Println("failed grab artifacts", err)
 		return
@@ -493,7 +493,7 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	result, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -522,7 +522,7 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		protocol = "https"
 	}
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath))
+	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, filePath))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -542,7 +542,7 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.RepoName, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
+	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
 	if filePath != "" {
 		for idx, elem := range strings.Split(filePath, "/") {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
@@ -575,7 +575,7 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 		// fetch the actual binary content like in RepoBlobRaw
 
-		blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath)
+		blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Name, ref, filePath)
 		contentSrc = blobURL
 		if !rp.config.Core.Dev {
 			contentSrc = markup.GenerateCamoURL(rp.config.Camo.Host, rp.config.Camo.SharedSecret, blobURL)
@@ -612,7 +612,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		protocol = "https"
 	}
-	blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath)
+	blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, filePath)
 	resp, err := http.Get(blobURL)
 	if err != nil {
 		log.Println("failed to reach knotserver:", err)
@@ -668,7 +668,7 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoAt := f.RepoAt
+	repoAt := f.RepoAt()
 	rkey := repoAt.RecordKey().String()
 	if rkey == "" {
 		fail("Failed to resolve repo. Try again later", err)
@@ -722,9 +722,9 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.Repo{
 				Knot:        f.Knot,
-				Name:        f.RepoName,
+				Name:        f.Name,
 				Owner:       user.Did,
-				CreatedAt:   f.CreatedAt,
+				CreatedAt:   f.Created.Format(time.RFC3339),
 				Description: &f.Description,
 				Spindle:     spindlePtr,
 			},
@@ -805,7 +805,7 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		Record: &lexutil.LexiconTypeDecoder{
 			Val: &tangled.RepoCollaborator{
 				Subject:   collaboratorIdent.DID.String(),
-				Repo:      string(f.RepoAt),
+				Repo:      string(f.RepoAt()),
 				CreatedAt: createdAt.Format(time.RFC3339),
 			}},
 	})
@@ -830,7 +830,7 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksResp, err := ksClient.AddCollaborator(f.OwnerDid(), f.RepoName, collaboratorIdent.DID.String())
+	ksResp, err := ksClient.AddCollaborator(f.OwnerDid(), f.Name, collaboratorIdent.DID.String())
 	if err != nil {
 		fail("Knot was unreachable.", err)
 		return
@@ -864,7 +864,7 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		Did:        syntax.DID(currentUser.Did),
 		Rkey:       rkey,
 		SubjectDid: collaboratorIdent.DID,
-		RepoAt:     f.RepoAt,
+		RepoAt:     f.RepoAt(),
 		Created:    createdAt,
 	})
 	if err != nil {
@@ -902,18 +902,17 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to get authorized client", err)
 		return
 	}
-	repoRkey := f.RepoAt.RecordKey().String()
 	_, err = xrpcClient.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       user.Did,
-		Rkey:       repoRkey,
+		Rkey:       f.Rkey,
 	})
 	if err != nil {
 		log.Printf("failed to delete record: %s", err)
 		rp.pages.Notice(w, "settings-delete", "Failed to delete repository from PDS.")
 		return
 	}
-	log.Println("removed repo record ", f.RepoAt.String())
+	log.Println("removed repo record ", f.RepoAt().String())
 
 	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
 	if err != nil {
@@ -927,7 +926,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksResp, err := ksClient.RemoveRepo(f.OwnerDid(), f.RepoName)
+	ksResp, err := ksClient.RemoveRepo(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Printf("failed to make request to %s: %s", f.Knot, err)
 		return
@@ -973,7 +972,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// remove repo from db
-	err = db.RemoveRepo(tx, f.OwnerDid(), f.RepoName)
+	err = db.RemoveRepo(tx, f.OwnerDid(), f.Name)
 	if err != nil {
 		rp.pages.Notice(w, "settings-delete", "Failed to update appview")
 		return
@@ -1022,7 +1021,7 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksResp, err := ksClient.SetDefaultBranch(f.OwnerDid(), f.RepoName, branch)
+	ksResp, err := ksClient.SetDefaultBranch(f.OwnerDid(), f.Name, branch)
 	if err != nil {
 		log.Printf("failed to make request to %s: %s", f.Knot, err)
 		return
@@ -1090,7 +1089,7 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			spindleClient,
 			&tangled.RepoAddSecret_Input{
-				Repo:  f.RepoAt.String(),
+				Repo:  f.RepoAt().String(),
 				Key:   key,
 				Value: value,
 			},
@@ -1108,7 +1107,7 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			spindleClient,
 			&tangled.RepoRemoveSecret_Input{
-				Repo: f.RepoAt.String(),
+				Repo: f.RepoAt().String(),
 				Key:  key,
 			},
 		)
@@ -1170,7 +1169,7 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	// result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	// result, err := us.Branches(f.OwnerDid(), f.Name)
 	// if err != nil {
 	// 	log.Println("failed to reach knotserver", err)
 	// 	return
@@ -1192,7 +1191,7 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 	// 		oauth.WithDev(rp.config.Core.Dev),
 	// 	); err != nil {
 	// 		log.Println("failed to create spindle client", err)
-	// 	} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt.String()); err != nil {
+	// 	} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt().String()); err != nil {
 	// 		log.Println("failed to fetch secrets", err)
 	// 	} else {
 	// 		secrets = resp.Secrets
@@ -1221,7 +1220,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	result, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
 		return
@@ -1275,7 +1274,7 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 			oauth.WithDev(rp.config.Core.Dev),
 		); err != nil {
 			log.Println("failed to create spindle client", err)
-		} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt.String()); err != nil {
+		} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt().String()); err != nil {
 			log.Println("failed to fetch secrets", err)
 		} else {
 			secrets = resp.Secrets
@@ -1343,8 +1342,8 @@ func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 		} else {
 			uri = "https"
 		}
-		forkName := fmt.Sprintf("%s", f.RepoName)
-		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
+		forkName := fmt.Sprintf("%s", f.Name)
+		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.Repo.Name)
 
 		_, err = client.SyncRepoFork(user.Did, forkSourceUrl, forkName, f.Ref)
 		if err != nil {
@@ -1394,11 +1393,11 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		forkName := fmt.Sprintf("%s", f.RepoName)
+		forkName := fmt.Sprintf("%s", f.Name)
 
 		// this check is *only* to see if the forked repo name already exists
 		// in the user's account.
-		existingRepo, err := db.GetRepo(rp.db, user.Did, f.RepoName)
+		existingRepo, err := db.GetRepo(rp.db, user.Did, f.Name)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// no existing repo with this name found, we can use the name as is
@@ -1429,8 +1428,8 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		} else {
 			uri = "https"
 		}
-		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.RepoName)
-		sourceAt := f.RepoAt.String()
+		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.Repo.Name)
+		sourceAt := f.RepoAt().String()
 
 		rkey := tid.TID()
 		repo := &db.Repo{
@@ -1550,7 +1549,7 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	result, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		log.Println("failed to reach knotserver", err)
@@ -1580,7 +1579,7 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 		head = queryHead
 	}
 
-	tags, err := us.Tags(f.OwnerDid(), f.RepoName)
+	tags, err := us.Tags(f.OwnerDid(), f.Name)
 	if err != nil {
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		log.Println("failed to reach knotserver", err)
@@ -1642,21 +1641,21 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	branches, err := us.Branches(f.OwnerDid(), f.RepoName)
+	branches, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	tags, err := us.Tags(f.OwnerDid(), f.RepoName)
+	tags, err := us.Tags(f.OwnerDid(), f.Name)
 	if err != nil {
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	formatPatch, err := us.Compare(f.OwnerDid(), f.RepoName, base, head)
+	formatPatch, err := us.Compare(f.OwnerDid(), f.Name, base, head)
 	if err != nil {
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		log.Println("failed to compare", err)
