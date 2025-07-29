@@ -23,7 +23,7 @@ func (x *Xrpc) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		writeError(w, e, http.StatusBadRequest)
 	}
 
-	actorDid, ok := r.Context().Value(ActorDid).(*syntax.DID)
+	actorDid, ok := r.Context().Value(ActorDid).(syntax.DID)
 	if !ok {
 		fail(MissingActorDidError)
 		return
@@ -83,5 +83,5 @@ func (x *Xrpc) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
