@@ -510,6 +510,16 @@ func (i *Ingester) ingestSpindle(e *models.Event) error {
 			i.Enforcer.E.LoadPolicy()
 		}()
 
+		// remove spindle members first
+		err = db.RemoveSpindleMember(
+			tx,
+			db.FilterEq("owner", did),
+			db.FilterEq("instance", instance),
+		)
+		if err != nil {
+			return err
+		}
+
 		err = db.DeleteSpindle(
 			tx,
 			db.FilterEq("owner", did),
