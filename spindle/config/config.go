@@ -2,17 +2,28 @@ package config
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/sethvargo/go-envconfig"
 )
 
 type Server struct {
-	ListenAddr        string `env:"LISTEN_ADDR, default=0.0.0.0:6555"`
-	DBPath            string `env:"DB_PATH, default=spindle.db"`
-	Hostname          string `env:"HOSTNAME, required"`
-	JetstreamEndpoint string `env:"JETSTREAM_ENDPOINT, default=wss://jetstream1.us-west.bsky.network/subscribe"`
-	Dev               bool   `env:"DEV, default=false"`
-	Owner             string `env:"OWNER, required"`
+	ListenAddr        string  `env:"LISTEN_ADDR, default=0.0.0.0:6555"`
+	DBPath            string  `env:"DB_PATH, default=spindle.db"`
+	Hostname          string  `env:"HOSTNAME, required"`
+	JetstreamEndpoint string  `env:"JETSTREAM_ENDPOINT, default=wss://jetstream1.us-west.bsky.network/subscribe"`
+	Dev               bool    `env:"DEV, default=false"`
+	Owner             string  `env:"OWNER, required"`
+	Secrets           Secrets `env:",prefix=SECRETS_"`
+}
+
+func (s Server) Did() syntax.DID {
+	return syntax.DID(fmt.Sprintf("did:web:%s", s.Hostname))
+}
+
+type Secrets struct {
+	Provider string `env:"PROVIDER, default=sqlite"`
 }
 
 type Pipelines struct {
