@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -692,6 +693,8 @@ type RepoSettingsParams struct {
 	Branches       []types.Branch
 	Spindles       []string
 	CurrentSpindle string
+	Secrets        []*tangled.RepoListSecrets_Secret
+
 	// TODO: use repoinfo.roles
 	IsCollaboratorInviteAllowed bool
 }

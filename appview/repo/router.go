@@ -74,6 +74,8 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 			r.With(mw.RepoPermissionMiddleware("repo:invite")).Put("/collaborator", rp.AddCollaborator)
 			r.With(mw.RepoPermissionMiddleware("repo:delete")).Delete("/delete", rp.DeleteRepo)
 			r.Put("/branches/default", rp.SetDefaultBranch)
+			r.Put("/secrets", rp.Secrets)
+			r.Delete("/secrets", rp.Secrets)
 		})
 	})
 
