@@ -134,7 +134,7 @@ var GitError = func(e error) XrpcError {
 
 func GenericError(err error) XrpcError {
 	return NewXrpcError(
-		WithTag("InvalidRepo"),
+		WithTag("Generic"),
 		WithError(err),
 	)
 }
