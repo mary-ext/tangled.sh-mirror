@@ -912,6 +912,78 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 	w.Write(fmt.Append(nil, "default branch set to: ", branch))
 }
 
+func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	if f.Spindle == "" {
+		log.Println("empty spindle cannot add/rm secret", err)
+		return
+	}
+
+	lxm := tangled.RepoAddSecretNSID
+	if r.Method == http.MethodDelete {
+		lxm = tangled.RepoRemoveSecretNSID
+	}
+
+	spindleClient, err := rp.oauth.ServiceClient(
+		r,
+		oauth.WithService(f.Spindle),
+		oauth.WithLxm(lxm),
+		oauth.WithDev(rp.config.Core.Dev),
+	)
+	if err != nil {
+		log.Println("failed to create spindle client", err)
+		return
+	}
+
+	key := r.FormValue("key")
+	if key == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPut:
+		value := r.FormValue("value")
+		if key == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err = tangled.RepoAddSecret(
+			r.Context(),
+			spindleClient,
+			&tangled.RepoAddSecret_Input{
+				Repo:  f.RepoAt.String(),
+				Key:   key,
+				Value: value,
+			},
+		)
+		if err != nil {
+			log.Println("request didnt run", "err", err)
+			return
+		}
+
+	case http.MethodDelete:
+		err = tangled.RepoRemoveSecret(
+			r.Context(),
+			spindleClient,
+			&tangled.RepoRemoveSecret_Input{
+				Repo: f.RepoAt.String(),
+				Key:  key,
+			},
+		)
+		if err != nil {
+			log.Println("request didnt run", "err", err)
+			return
+		}
+	}
+}
+
 func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -955,6 +1027,22 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		var secrets []*tangled.RepoListSecrets_Secret
+		if f.Spindle != "" {
+			if spindleClient, err := rp.oauth.ServiceClient(
+				r,
+				oauth.WithService(f.Spindle),
+				oauth.WithLxm(tangled.RepoListSecretsNSID),
+				oauth.WithDev(rp.config.Core.Dev),
+			); err != nil {
+				log.Println("failed to create spindle client", err)
+			} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt.String()); err != nil {
+				log.Println("failed to fetch secrets", err)
+			} else {
+				secrets = resp.Secrets
+			}
+		}
+
 		rp.pages.RepoSettings(w, pages.RepoSettingsParams{
 			LoggedInUser:                user,
 			RepoInfo:                    f.RepoInfo(user),
@@ -963,6 +1051,7 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 			Branches:                    result.Branches,
 			Spindles:                    spindles,
 			CurrentSpindle:              f.Spindle,
+			Secrets:                     secrets,
 		})
 	}
 }

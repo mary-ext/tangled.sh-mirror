@@ -115,6 +115,50 @@
     </form>
     {{ end }}
 
+    {{ if $.CurrentSpindle }}
+      <header class="font-bold text-sm mb-4 uppercase dark:text-white">
+        Secrets
+      </header>
+
+      <div id="secret-list" class="flex flex-col gap-2 mb-2">
+        {{ range $idx, $secret := .Secrets }}
+         {{ with $secret }}
+           <div id="secret-{{$idx}}" class="mb-2">
+             {{ .Key }} created on {{ .CreatedAt }} by {{ .CreatedBy }}
+           </div>
+         {{ end }}
+        {{ end }}
+      </div>
+      <form
+          hx-put="/{{ $.RepoInfo.FullName }}/settings/secrets"
+          class="mt-6"
+          hx-indicator="#add-secret-spinner">
+          <label for="key">secret key</label>
+          <input
+              type="text"
+              id="key"
+              name="key"
+              required
+              class="dark:bg-gray-700 dark:text-white"
+              placeholder="SECRET_KEY" />
+          <label for="value">secret value</label>
+          <input
+              type="text"
+              id="value"
+              name="value"
+              required
+              class="dark:bg-gray-700 dark:text-white"
+              placeholder="SECRET VALUE" />
+
+        <button class="btn my-2 flex items-center" type="text">
+            <span>add</span>
+            <span id="add-secret-spinner" class="group">
+              {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
+        </button>
+      </form>
+    {{ end }}
+
     {{ if .RepoInfo.Roles.RepoDeleteAllowed }}
     <form
         hx-confirm="Are you sure you want to delete this repository?"
