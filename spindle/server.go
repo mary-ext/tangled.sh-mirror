@@ -2,6 +2,7 @@ package spindle
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -11,6 +12,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/eventconsumer/cursor"
+	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/jetstream"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/notifier"
@@ -20,22 +22,29 @@ import (
 	"tangled.sh/tangled.sh/core/spindle/engine"
 	"tangled.sh/tangled.sh/core/spindle/models"
 	"tangled.sh/tangled.sh/core/spindle/queue"
+	"tangled.sh/tangled.sh/core/spindle/secrets"
+	"tangled.sh/tangled.sh/core/spindle/xrpc"
 )
+
+//go:embed motd
+var motd []byte
 
 const (
 	rbacDomain = "thisserver"
 )
 
 type Spindle struct {
-	jc  *jetstream.JetstreamClient
-	db  *db.DB
-	e   *rbac.Enforcer
-	l   *slog.Logger
-	n   *notifier.Notifier
-	eng *engine.Engine
-	jq  *queue.Queue
-	cfg *config.Config
-	ks  *eventconsumer.Consumer
+	jc    *jetstream.JetstreamClient
+	db    *db.DB
+	e     *rbac.Enforcer
+	l     *slog.Logger
+	n     *notifier.Notifier
+	eng   *engine.Engine
+	jq    *queue.Queue
+	cfg   *config.Config
+	ks    *eventconsumer.Consumer
+	res   *idresolver.Resolver
+	vault secrets.Manager
 }
 
 func Run(ctx context.Context) error {
@@ -76,15 +85,19 @@ func Run(ctx context.Context) error {
 	}
 	jc.AddDid(cfg.Server.Owner)
 
+	resolver := idresolver.DefaultResolver()
+
 	spindle := Spindle{
-		jc:  jc,
-		e:   e,
-		db:  d,
-		l:   logger,
-		n:   &n,
-		eng: eng,
-		jq:  jq,
-		cfg: cfg,
+		jc:    jc,
+		e:     e,
+		db:    d,
+		l:     logger,
+		n:     &n,
+		eng:   eng,
+		jq:    jq,
+		cfg:   cfg,
+		res:   resolver,
+		vault: vault,
 	}
 
 	err = e.AddSpindle(rbacDomain)
@@ -144,37 +157,32 @@ func (s *Spindle) Router() http.Handler {
 	mux := chi.NewRouter()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(
-			`                   ****
-               ***        ***
-            *** **   ******   **
-           **    *           *****
-          *      **              **
-         *   *    *  ***************
-        **   **    *#             **
-        *     **    **    ***      **
-        *  *   **    **    *   ******
-        *  **   **   *    **   *   *
-        **  **    ***    **   **   *
-         **  **    *    **    *   *
-          **   ****    **    *   *
-           **  ***    **   **  **
-             ***    **    *****
-                ********************
-                                    **
-                                     *
-                      #**************
-                      **
-                        ********
-
-This is a spindle server. More info at https://tangled.sh/@tangled.sh/core/tree/master/docs/spindle`))
+		w.Write(motd)
 	})
 	mux.HandleFunc("/events", s.Events)
 	mux.HandleFunc("/owner", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(s.cfg.Server.Owner))
 	})
 	mux.HandleFunc("/logs/{knot}/{rkey}/{name}", s.Logs)
+
+	mux.Mount("/xrpc", s.XrpcRouter())
 	return mux
+}
+
+func (s *Spindle) XrpcRouter() http.Handler {
+	logger := s.l.With("route", "xrpc")
+
+	x := xrpc.Xrpc{
+		Logger:   logger,
+		Db:       s.db,
+		Enforcer: s.e,
+		Engine:   s.eng,
+		Config:   s.cfg,
+		Resolver: s.res,
+		Vault:    s.vault,
+	}
+
+	return x.Router()
 }
 
 func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source, msg eventconsumer.Message) error {
