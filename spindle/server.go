@@ -2,7 +2,6 @@ package spindle
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -23,11 +22,7 @@ import (
 	"tangled.sh/tangled.sh/core/spindle/models"
 	"tangled.sh/tangled.sh/core/spindle/queue"
 	"tangled.sh/tangled.sh/core/spindle/secrets"
-	"tangled.sh/tangled.sh/core/spindle/xrpc"
 )
-
-//go:embed motd
-var motd []byte
 
 const (
 	rbacDomain = "thisserver"
@@ -68,10 +63,35 @@ func Run(ctx context.Context) error {
 
 	n := notifier.New()
 
-	// TODO: add hashicorp vault provider and choose here
-	vault, err := secrets.NewSQLiteManager(cfg.Server.DBPath, secrets.WithTableName("secrets"))
-	if err != nil {
-		return fmt.Errorf("failed to setup secrets provider: %w", err)
+	resolver := idresolver.DefaultResolver()
+
+	// Setup secrets provider based on configuration
+	var vault secrets.Manager
+	switch cfg.Server.Secrets.Provider {
+	case "openbao":
+		if cfg.Server.Secrets.OpenBao.Addr == "" {
+			return fmt.Errorf("openbao address is required when using openbao secrets provider")
+		}
+		if cfg.Server.Secrets.OpenBao.Token == "" {
+			return fmt.Errorf("openbao token is required when using openbao secrets provider")
+		}
+		vault, err = secrets.NewOpenBaoManager(
+			cfg.Server.Secrets.OpenBao.Addr,
+			cfg.Server.Secrets.OpenBao.Token,
+			secrets.WithMountPath(cfg.Server.Secrets.OpenBao.Mount),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to setup openbao secrets provider: %w", err)
+		}
+		logger.Info("using openbao secrets provider", "address", cfg.Server.Secrets.OpenBao.Addr, "mount", cfg.Server.Secrets.OpenBao.Mount)
+	case "sqlite":
+		vault, err = secrets.NewSQLiteManager(cfg.Server.DBPath, secrets.WithTableName("secrets"))
+		if err != nil {
+			return fmt.Errorf("failed to setup sqlite secrets provider: %w", err)
+		}
+		logger.Info("using sqlite secrets provider", "db_path", cfg.Server.DBPath)
+	default:
+		return fmt.Errorf("unsupported secrets provider: %s (supported: sqlite, openbao)", cfg.Server.Secrets.Provider)
 	}
 
 	eng, err := engine.New(ctx, cfg, d, &n, vault)
@@ -90,8 +110,6 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("failed to setup jetstream client: %w", err)
 	}
 	jc.AddDid(cfg.Server.Owner)
-
-	resolver := idresolver.DefaultResolver()
 
 	spindle := Spindle{
 		jc:    jc,
@@ -163,32 +181,37 @@ func (s *Spindle) Router() http.Handler {
 	mux := chi.NewRouter()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write(motd)
+		w.Write([]byte(
+			`                   ****
+               ***        ***
+            *** **   ******   **
+           **    *           *****
+          *      **              **
+         *   *    *  ***************
+        **   **    *#             **
+        *     **    **    ***      **
+        *  *   **    **    *   ******
+        *  **   **   *    **   *   *
+        **  **    ***    **   **   *
+         **  **    *    **    *   *
+          **   ****    **    *   *
+           **  ***    **   **  **
+             ***    **    *****
+                ********************
+                                    **
+                                     *
+                      #**************
+                      **
+                        ********
+
+This is a spindle server. More info at https://tangled.sh/@tangled.sh/core/tree/master/docs/spindle`))
 	})
 	mux.HandleFunc("/events", s.Events)
 	mux.HandleFunc("/owner", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(s.cfg.Server.Owner))
 	})
 	mux.HandleFunc("/logs/{knot}/{rkey}/{name}", s.Logs)
-
-	mux.Mount("/xrpc", s.XrpcRouter())
 	return mux
-}
-
-func (s *Spindle) XrpcRouter() http.Handler {
-	logger := s.l.With("route", "xrpc")
-
-	x := xrpc.Xrpc{
-		Logger:   logger,
-		Db:       s.db,
-		Enforcer: s.e,
-		Engine:   s.eng,
-		Config:   s.cfg,
-		Resolver: s.res,
-		Vault:    s.vault,
-	}
-
-	return x.Router()
 }
 
 func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source, msg eventconsumer.Message) error {
