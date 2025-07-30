@@ -2,6 +2,7 @@
 package secrets
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -62,13 +63,13 @@ func (s *SqliteManager) init() error {
 	return err
 }
 
-func (s *SqliteManager) AddSecret(secret UnlockedSecret) error {
+func (s *SqliteManager) AddSecret(ctx context.Context, secret UnlockedSecret) error {
 	query := fmt.Sprintf(`
 		insert or ignore into %s (repo, key, value, created_by)
 		values (?, ?, ?, ?);
 	`, s.tableName)
 
-	res, err := s.db.Exec(query, secret.Repo, secret.Key, secret.Value, secret.CreatedBy)
+	res, err := s.db.ExecContext(ctx, query, secret.Repo, secret.Key, secret.Value, secret.CreatedBy)
 	if err != nil {
 		return err
 	}
@@ -85,12 +86,12 @@ func (s *SqliteManager) AddSecret(secret UnlockedSecret) error {
 	return nil
 }
 
-func (s *SqliteManager) RemoveSecret(secret Secret[any]) error {
+func (s *SqliteManager) RemoveSecret(ctx context.Context, secret Secret[any]) error {
 	query := fmt.Sprintf(`
 		delete from %s where repo = ? and key = ?;
 	`, s.tableName)
 
-	res, err := s.db.Exec(query, secret.Repo, secret.Key)
+	res, err := s.db.ExecContext(ctx, query, secret.Repo, secret.Key)
 	if err != nil {
 		return err
 	}
@@ -107,12 +108,12 @@ func (s *SqliteManager) RemoveSecret(secret Secret[any]) error {
 	return nil
 }
 
-func (s *SqliteManager) GetSecretsLocked(repo syntax.ATURI) ([]LockedSecret, error) {
+func (s *SqliteManager) GetSecretsLocked(ctx context.Context, repo syntax.ATURI) ([]LockedSecret, error) {
 	query := fmt.Sprintf(`
 		select repo, key, created_at, created_by from %s where repo = ?;
 	`, s.tableName)
 
-	rows, err := s.db.Query(query, repo)
+	rows, err := s.db.QueryContext(ctx, query, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -139,12 +140,12 @@ func (s *SqliteManager) GetSecretsLocked(repo syntax.ATURI) ([]LockedSecret, err
 	return ls, nil
 }
 
-func (s *SqliteManager) GetSecretsUnlocked(repo syntax.ATURI) ([]UnlockedSecret, error) {
+func (s *SqliteManager) GetSecretsUnlocked(ctx context.Context, repo syntax.ATURI) ([]UnlockedSecret, error) {
 	query := fmt.Sprintf(`
 		select repo, key, value, created_at, created_by from %s where repo = ?;
 	`, s.tableName)
 
-	rows, err := s.db.Query(query, repo)
+	rows, err := s.db.QueryContext(ctx, query, repo)
 	if err != nil {
 		return nil, err
 	}
