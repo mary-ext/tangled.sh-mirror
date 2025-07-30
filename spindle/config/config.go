@@ -23,7 +23,15 @@ func (s Server) Did() syntax.DID {
 }
 
 type Secrets struct {
-	Provider string `env:"PROVIDER, default=sqlite"`
+	Provider string        `env:"PROVIDER, default=sqlite"`
+	OpenBao  OpenBaoConfig `env:",prefix=OPENBAO_"`
+}
+
+type OpenBaoConfig struct {
+	Addr     string `env:"ADDR"`
+	RoleID   string `env:"ROLE_ID"`
+	SecretID string `env:"SECRET_ID"`
+	Mount    string `env:"MOUNT, default=spindle"`
 }
 
 type Pipelines struct {

@@ -68,10 +68,37 @@ func Run(ctx context.Context) error {
 
 	n := notifier.New()
 
-	// TODO: add hashicorp vault provider and choose here
-	vault, err := secrets.NewSQLiteManager(cfg.Server.DBPath, secrets.WithTableName("secrets"))
-	if err != nil {
-		return fmt.Errorf("failed to setup secrets provider: %w", err)
+	var vault secrets.Manager
+	switch cfg.Server.Secrets.Provider {
+	case "openbao":
+		if cfg.Server.Secrets.OpenBao.Addr == "" {
+			return fmt.Errorf("openbao address is required when using openbao secrets provider")
+		}
+		if cfg.Server.Secrets.OpenBao.RoleID == "" {
+			return fmt.Errorf("openbao role_id is required when using openbao secrets provider")
+		}
+		if cfg.Server.Secrets.OpenBao.SecretID == "" {
+			return fmt.Errorf("openbao secret_id is required when using openbao secrets provider")
+		}
+		vault, err = secrets.NewOpenBaoManager(
+			cfg.Server.Secrets.OpenBao.Addr,
+			cfg.Server.Secrets.OpenBao.RoleID,
+			cfg.Server.Secrets.OpenBao.SecretID,
+			logger,
+			secrets.WithMountPath(cfg.Server.Secrets.OpenBao.Mount),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to setup openbao secrets provider: %w", err)
+		}
+		logger.Info("using openbao secrets provider", "address", cfg.Server.Secrets.OpenBao.Addr, "mount", cfg.Server.Secrets.OpenBao.Mount)
+	case "sqlite", "":
+		vault, err = secrets.NewSQLiteManager(cfg.Server.DBPath, secrets.WithTableName("secrets"))
+		if err != nil {
+			return fmt.Errorf("failed to setup sqlite secrets provider: %w", err)
+		}
+		logger.Info("using sqlite secrets provider", "path", cfg.Server.DBPath)
+	default:
+		return fmt.Errorf("unknown secrets provider: %s", cfg.Server.Secrets.Provider)
 	}
 
 	eng, err := engine.New(ctx, cfg, d, &n, vault)
@@ -119,6 +146,11 @@ func Run(ctx context.Context) error {
 	// starts a job queue runner in the background
 	jq.Start()
 	defer jq.Stop()
+
+	// Stop vault token renewal if it implements Stopper
+	if stopper, ok := vault.(secrets.Stopper); ok {
+		defer stopper.Stop()
+	}
 
 	cursorStore, err := cursor.NewSQLiteStore(cfg.Server.DBPath)
 	if err != nil {
