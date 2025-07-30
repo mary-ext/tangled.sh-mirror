@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -76,9 +77,10 @@ func (x *Xrpc) AddSecret(w http.ResponseWriter, r *http.Request) {
 		Repo:      secrets.DidSlashRepo(didPath),
 		Key:       data.Key,
 		Value:     data.Value,
+		CreatedAt: time.Now(),
 		CreatedBy: actorDid,
 	}
-	err = x.Vault.AddSecret(secret)
+	err = x.Vault.AddSecret(r.Context(), secret)
 	if err != nil {
 		l.Error("failed to add secret to vault", "did", actorDid.String(), "err", err)
 		writeError(w, GenericError(err), http.StatusInternalServerError)
