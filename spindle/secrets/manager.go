@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"time"
@@ -26,10 +27,15 @@ type LockedSecret = Secret[struct{}]
 type UnlockedSecret = Secret[string]
 
 type Manager interface {
-	AddSecret(secret UnlockedSecret) error
-	RemoveSecret(secret Secret[any]) error
-	GetSecretsLocked(repo DidSlashRepo) ([]LockedSecret, error)
-	GetSecretsUnlocked(repo DidSlashRepo) ([]UnlockedSecret, error)
+	AddSecret(ctx context.Context, secret UnlockedSecret) error
+	RemoveSecret(ctx context.Context, secret Secret[any]) error
+	GetSecretsLocked(ctx context.Context, repo DidSlashRepo) ([]LockedSecret, error)
+	GetSecretsUnlocked(ctx context.Context, repo DidSlashRepo) ([]UnlockedSecret, error)
+}
+
+// stopper interface for managers that need cleanup
+type Stopper interface {
+	Stop()
 }
 
 var ErrKeyAlreadyPresent = errors.New("key already present")
@@ -40,6 +46,7 @@ var ErrKeyNotFound = errors.New("key not found")
 var (
 	_ = []Manager{
 		&SqliteManager{},
+		&OpenBaoManager{},
 	}
 )
 

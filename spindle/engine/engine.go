@@ -74,7 +74,7 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, 
 	// extract secrets
 	var allSecrets []secrets.UnlockedSecret
 	if didSlashRepo, err := securejoin.SecureJoin(pipeline.RepoOwner, pipeline.RepoName); err == nil {
-		if res, err := e.vault.GetSecretsUnlocked(secrets.DidSlashRepo(didSlashRepo)); err == nil {
+		if res, err := e.vault.GetSecretsUnlocked(ctx, secrets.DidSlashRepo(didSlashRepo)); err == nil {
 			allSecrets = res
 		}
 	}
