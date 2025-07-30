@@ -102,6 +102,9 @@ func dependencyStep(twf tangled.Pipeline_Workflow) *Step {
 			continue
 		}
 
+		if len(packages) == 0 {
+			customPackages = append(customPackages, registry)
+		}
 		// collect packages from custom registries
 		for _, pkg := range packages {
 			customPackages = append(customPackages, fmt.Sprintf("'%s#%s'", registry, pkg))

@@ -68,7 +68,13 @@ func Run(ctx context.Context) error {
 
 	n := notifier.New()
 
-	eng, err := engine.New(ctx, cfg, d, &n)
+	// TODO: add hashicorp vault provider and choose here
+	vault, err := secrets.NewSQLiteManager(cfg.Server.DBPath, secrets.WithTableName("secrets"))
+	if err != nil {
+		return fmt.Errorf("failed to setup secrets provider: %w", err)
+	}
+
+	eng, err := engine.New(ctx, cfg, d, &n, vault)
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,8 @@ import (
 )
 
 type Pipeline struct {
+	RepoOwner string
+	RepoName  string
 	Workflows []Workflow
 }
 
@@ -63,8 +65,6 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 		swf.Environment = workflowEnvToMap(twf.Environment)
 		swf.Image = workflowImage(twf.Dependencies, cfg.Pipelines.Nixery)
 
-		swf.addNixProfileToPath()
-		swf.setGlobalEnvs()
 		setup := &setupSteps{}
 
 		setup.addStep(nixConfStep())
@@ -79,7 +79,13 @@ func ToPipeline(pl tangled.Pipeline, cfg config.Config) *Pipeline {
 
 		workflows = append(workflows, *swf)
 	}
-	return &Pipeline{Workflows: workflows}
+	repoOwner := pl.TriggerMetadata.Repo.Did
+	repoName := pl.TriggerMetadata.Repo.Repo
+	return &Pipeline{
+		RepoOwner: repoOwner,
+		RepoName:  repoName,
+		Workflows: workflows,
+	}
 }
 
 func workflowEnvToMap(envs []*tangled.Pipeline_Pair) map[string]string {
@@ -114,13 +120,4 @@ func workflowImage(deps []*tangled.Pipeline_Dependency, nixery string) string {
 	dependencies = path.Join(dependencies, "bash", "git", "coreutils", "nix")
 
 	return path.Join(nixery, dependencies)
-}
-
-func (wf *Workflow) addNixProfileToPath() {
-	wf.Environment["PATH"] = "$PATH:/.nix-profile/bin"
-}
-
-func (wf *Workflow) setGlobalEnvs() {
-	wf.Environment["NIX_CONFIG"] = "experimental-features = nix-command flakes"
-	wf.Environment["HOME"] = "/tangled/workspace"
 }

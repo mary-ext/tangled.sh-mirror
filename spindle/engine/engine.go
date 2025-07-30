@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
@@ -18,11 +19,13 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"golang.org/x/sync/errgroup"
 	"tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/notifier"
 	"tangled.sh/tangled.sh/core/spindle/config"
 	"tangled.sh/tangled.sh/core/spindle/db"
 	"tangled.sh/tangled.sh/core/spindle/models"
+	"tangled.sh/tangled.sh/core/spindle/secrets"
 )
 
 const (
@@ -37,12 +40,13 @@ type Engine struct {
 	db     *db.DB
 	n      *notifier.Notifier
 	cfg    *config.Config
+	vault  secrets.Manager
 
 	cleanupMu sync.Mutex
 	cleanup   map[string][]cleanupFunc
 }
 
-func New(ctx context.Context, cfg *config.Config, db *db.DB, n *notifier.Notifier) (*Engine, error) {
+func New(ctx context.Context, cfg *config.Config, db *db.DB, n *notifier.Notifier, vault secrets.Manager) (*Engine, error) {
 	dcli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
@@ -56,6 +60,7 @@ func New(ctx context.Context, cfg *config.Config, db *db.DB, n *notifier.Notifie
 		db:     db,
 		n:      n,
 		cfg:    cfg,
+		vault:  vault,
 	}
 
 	e.cleanup = make(map[string][]cleanupFunc)
@@ -66,11 +71,25 @@ func New(ctx context.Context, cfg *config.Config, db *db.DB, n *notifier.Notifie
 func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, pipelineId models.PipelineId) {
 	e.l.Info("starting all workflows in parallel", "pipeline", pipelineId)
 
-	wg := sync.WaitGroup{}
+	// extract secrets
+	var allSecrets []secrets.UnlockedSecret
+	if didSlashRepo, err := securejoin.SecureJoin(pipeline.RepoOwner, pipeline.RepoName); err == nil {
+		if res, err := e.vault.GetSecretsUnlocked(secrets.DidSlashRepo(didSlashRepo)); err == nil {
+			allSecrets = res
+		}
+	}
+
+	workflowTimeoutStr := e.cfg.Pipelines.WorkflowTimeout
+	workflowTimeout, err := time.ParseDuration(workflowTimeoutStr)
+	if err != nil {
+		e.l.Error("failed to parse workflow timeout", "error", err, "timeout", workflowTimeoutStr)
+		workflowTimeout = 5 * time.Minute
+	}
+	e.l.Info("using workflow timeout", "timeout", workflowTimeout)
+
+	eg, ctx := errgroup.WithContext(ctx)
 	for _, w := range pipeline.Workflows {
-		wg.Add(1)
-		go func() error {
-			defer wg.Done()
+		eg.Go(func() error {
 			wid := models.WorkflowId{
 				PipelineId: pipelineId,
 				Name:       w.Name,
@@ -102,17 +121,10 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, 
 			defer reader.Close()
 			io.Copy(os.Stdout, reader)
 
-			workflowTimeoutStr := e.cfg.Pipelines.WorkflowTimeout
-			workflowTimeout, err := time.ParseDuration(workflowTimeoutStr)
-			if err != nil {
-				e.l.Error("failed to parse workflow timeout", "error", err, "timeout", workflowTimeoutStr)
-				workflowTimeout = 5 * time.Minute
-			}
-			e.l.Info("using workflow timeout", "timeout", workflowTimeout)
 			ctx, cancel := context.WithTimeout(ctx, workflowTimeout)
 			defer cancel()
 
-			err = e.StartSteps(ctx, w.Steps, wid, w.Image)
+			err = e.StartSteps(ctx, wid, w, allSecrets)
 			if err != nil {
 				if errors.Is(err, ErrTimedOut) {
 					dbErr := e.db.StatusTimeout(wid, e.n)
@@ -135,10 +147,14 @@ func (e *Engine) StartWorkflows(ctx context.Context, pipeline *models.Pipeline, 
 			}
 
 			return nil
-		}()
+		})
 	}
 
-	wg.Wait()
+	if err = eg.Wait(); err != nil {
+		e.l.Error("failed to run one or more workflows", "err", err)
+	} else {
+		e.l.Error("successfully ran full pipeline")
+	}
 }
 
 // SetupWorkflow sets up a new network for the workflow and volumes for
@@ -186,22 +202,29 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId) error
 // ONLY marks pipeline as failed if container's exit code is non-zero.
 // All other errors are bubbled up.
 // Fixed version of the step execution logic
-func (e *Engine) StartSteps(ctx context.Context, steps []models.Step, wid models.WorkflowId, image string) error {
+func (e *Engine) StartSteps(ctx context.Context, wid models.WorkflowId, w models.Workflow, secrets []secrets.UnlockedSecret) error {
+	workflowEnvs := ConstructEnvs(w.Environment)
+	for _, s := range secrets {
+		workflowEnvs.AddEnv(s.Key, s.Value)
+	}
 
-	for stepIdx, step := range steps {
+	for stepIdx, step := range w.Steps {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
 		}
 
-		envs := ConstructEnvs(step.Environment)
+		envs := append(EnvVars(nil), workflowEnvs...)
+		for k, v := range step.Environment {
+			envs.AddEnv(k, v)
+		}
 		envs.AddEnv("HOME", workspaceDir)
 		e.l.Debug("envs for step", "step", step.Name, "envs", envs.Slice())
 
 		hostConfig := hostConfig(wid)
 		resp, err := e.docker.ContainerCreate(ctx, &container.Config{
-			Image:      image,
+			Image:      w.Image,
 			Cmd:        []string{"bash", "-c", step.Command},
 			WorkingDir: workspaceDir,
 			Tty:        false,
