@@ -91,12 +91,13 @@ git push local-dev main
 
 ## running a spindle
 
-The above VM should already be running a spindle on
-`localhost:6555`. You can head to the spindle dashboard on
-`http://localhost:3000/spindles`, and register a spindle
-with hostname `localhost:6555`. It should instantly be
-verified. You can then configure each repository to use this
-spindle and run CI jobs.
+Be sure to change the `owner` field for the spindle in
+`nix/vm.nix` to your own DID. The above VM should already
+be running a spindle on `localhost:6555`. You can head to
+the spindle dashboard on `http://localhost:3000/spindles`,
+and register a spindle with hostname `localhost:6555`. It
+should instantly be verified. You can then configure each
+repository to use this spindle and run CI jobs.
 
 Of interest when debugging spindles:
 
