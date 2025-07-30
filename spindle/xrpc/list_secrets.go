@@ -67,7 +67,7 @@ func (x *Xrpc) ListSecrets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ls, err := x.Vault.GetSecretsLocked(repoAt)
+	ls, err := x.Vault.GetSecretsLocked(r.Context(), repoAt)
 	if err != nil {
 		l.Error("failed to get secret from vault", "did", actorDid.String(), "err", err)
 		writeError(w, GenericError(err), http.StatusInternalServerError)

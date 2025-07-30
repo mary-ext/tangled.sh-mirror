@@ -78,12 +78,13 @@ func (x *Xrpc) AddSecret(w http.ResponseWriter, r *http.Request) {
 		Value:     data.Value,
 		CreatedBy: actorDid,
 	}
-	err = x.Vault.AddSecret(secret)
+	err = x.Vault.AddSecret(r.Context(), secret)
 	if err != nil {
 		l.Error("failed to add secret to vault", "did", actorDid.String(), "err", err)
 		writeError(w, GenericError(err), http.StatusInternalServerError)
 		return
 	}
 
+	l.Info("added secret", "did", actorDid.String(), "repo", repoAt.String(), "key", data.Key)
 	w.WriteHeader(http.StatusOK)
 }
