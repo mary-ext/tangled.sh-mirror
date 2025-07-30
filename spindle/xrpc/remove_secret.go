@@ -71,7 +71,7 @@ func (x *Xrpc) RemoveSecret(w http.ResponseWriter, r *http.Request) {
 		Repo: secrets.DidSlashRepo(didPath),
 		Key:  data.Key,
 	}
-	err = x.Vault.RemoveSecret(secret)
+	err = x.Vault.RemoveSecret(r.Context(), secret)
 	if err != nil {
 		l.Error("failed to remove secret from vault", "did", actorDid.String(), "err", err)
 		writeError(w, GenericError(err), http.StatusInternalServerError)
