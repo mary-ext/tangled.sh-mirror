@@ -1,9 +1,11 @@
 package secrets
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/alecthomas/assert/v2"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
@@ -122,7 +124,7 @@ func TestSqliteManager_AddSecret(t *testing.T) {
 			defer manager.db.Close()
 
 			for i, secret := range tt.secrets {
-				err := manager.AddSecret(secret)
+				err := manager.AddSecret(context.Background(), secret)
 				if err != tt.expectError[i] {
 					t.Errorf("Secret %d: expected error %v, got %v", i, tt.expectError[i], err)
 				}
@@ -189,13 +191,13 @@ func TestSqliteManager_RemoveSecret(t *testing.T) {
 
 			// Setup secrets
 			for _, secret := range tt.setupSecrets {
-				if err := manager.AddSecret(secret); err != nil {
+				if err := manager.AddSecret(context.Background(), secret); err != nil {
 					t.Fatalf("Failed to setup secret: %v", err)
 				}
 			}
 
 			// Test removal
-			err := manager.RemoveSecret(tt.removeSecret)
+			err := manager.RemoveSecret(context.Background(), tt.removeSecret)
 			if err != tt.expectError {
 				t.Errorf("Expected error %v, got %v", tt.expectError, err)
 			}
@@ -262,13 +264,13 @@ func TestSqliteManager_GetSecretsLocked(t *testing.T) {
 
 			// Setup secrets
 			for _, secret := range tt.setupSecrets {
-				if err := manager.AddSecret(secret); err != nil {
+				if err := manager.AddSecret(context.Background(), secret); err != nil {
 					t.Fatalf("Failed to setup secret: %v", err)
 				}
 			}
 
 			// Test getting locked secrets
-			lockedSecrets, err := manager.GetSecretsLocked(tt.queryRepo)
+			lockedSecrets, err := manager.GetSecretsLocked(context.Background(), tt.queryRepo)
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 				return
@@ -369,13 +371,13 @@ func TestSqliteManager_GetSecretsUnlocked(t *testing.T) {
 
 			// Setup secrets
 			for _, secret := range tt.setupSecrets {
-				if err := manager.AddSecret(secret); err != nil {
+				if err := manager.AddSecret(context.Background(), secret); err != nil {
 					t.Fatalf("Failed to setup secret: %v", err)
 				}
 			}
 
 			// Test getting unlocked secrets
-			unlockedSecrets, err := manager.GetSecretsUnlocked(tt.queryRepo)
+			unlockedSecrets, err := manager.GetSecretsUnlocked(context.Background(), tt.queryRepo)
 			if tt.expectError && err == nil {
 				t.Error("Expected error but got none")
 				return
@@ -424,14 +426,14 @@ func TestManagerInterface_Usage(t *testing.T) {
 			operations: []func(Manager) error{
 				func(m Manager) error {
 					secret := createTestSecret("interface.test/repo", "test_key", "test_value", "did:plc:user")
-					return m.AddSecret(secret)
+					return m.AddSecret(context.Background(), secret)
 				},
 				func(m Manager) error {
-					_, err := m.GetSecretsLocked(DidSlashRepo("interface.test/repo"))
+					_, err := m.GetSecretsLocked(context.Background(), DidSlashRepo("interface.test/repo"))
 					return err
 				},
 				func(m Manager) error {
-					_, err := m.GetSecretsUnlocked(DidSlashRepo("interface.test/repo"))
+					_, err := m.GetSecretsUnlocked(context.Background(), DidSlashRepo("interface.test/repo"))
 					return err
 				},
 				func(m Manager) error {
@@ -439,7 +441,7 @@ func TestManagerInterface_Usage(t *testing.T) {
 						Key:  "test_key",
 						Repo: DidSlashRepo("interface.test/repo"),
 					}
-					return m.RemoveSecret(secret)
+					return m.RemoveSecret(context.Background(), secret)
 				},
 			},
 			expectError: false,
@@ -449,11 +451,11 @@ func TestManagerInterface_Usage(t *testing.T) {
 			operations: []func(Manager) error{
 				func(m Manager) error {
 					secret := createTestSecret("interface.test/repo", "dup_key", "value1", "did:plc:user")
-					return m.AddSecret(secret)
+					return m.AddSecret(context.Background(), secret)
 				},
 				func(m Manager) error {
 					secret := createTestSecret("interface.test/repo", "dup_key", "value2", "did:plc:user")
-					return m.AddSecret(secret) // Should return ErrKeyAlreadyPresent
+					return m.AddSecret(context.Background(), secret) // Should return ErrKeyAlreadyPresent
 				},
 			},
 			expectError: true,
@@ -507,14 +509,14 @@ func TestSqliteManager_Integration(t *testing.T) {
 
 				// Add all secrets
 				for _, secret := range secrets {
-					if err := manager.AddSecret(secret); err != nil {
+					if err := manager.AddSecret(context.Background(), secret); err != nil {
 						t.Fatalf("Failed to add secret %s: %v", secret.Key, err)
 					}
 				}
 
 				// Verify counts
-				locked1, _ := manager.GetSecretsLocked(repo1)
-				locked2, _ := manager.GetSecretsLocked(repo2)
+				locked1, _ := manager.GetSecretsLocked(context.Background(), repo1)
+				locked2, _ := manager.GetSecretsLocked(context.Background(), repo2)
 
 				if len(locked1) != 2 {
 					t.Errorf("Expected 2 secrets for repo1, got %d", len(locked1))
@@ -525,11 +527,11 @@ func TestSqliteManager_Integration(t *testing.T) {
 
 				// Remove and verify
 				secretToRemove := Secret[any]{Key: "db_password", Repo: repo1}
-				if err := manager.RemoveSecret(secretToRemove); err != nil {
+				if err := manager.RemoveSecret(context.Background(), secretToRemove); err != nil {
 					t.Fatalf("Failed to remove secret: %v", err)
 				}
 
-				locked1After, _ := manager.GetSecretsLocked(repo1)
+				locked1After, _ := manager.GetSecretsLocked(context.Background(), repo1)
 				if len(locked1After) != 1 {
 					t.Errorf("Expected 1 secret for repo1 after removal, got %d", len(locked1After))
 				}
@@ -544,7 +546,7 @@ func TestSqliteManager_Integration(t *testing.T) {
 				repo := DidSlashRepo("empty.test/repo")
 
 				// Operations on empty database should not error
-				locked, err := manager.GetSecretsLocked(repo)
+				locked, err := manager.GetSecretsLocked(context.Background(), repo)
 				if err != nil {
 					t.Errorf("GetSecretsLocked on empty DB failed: %v", err)
 				}
@@ -552,7 +554,7 @@ func TestSqliteManager_Integration(t *testing.T) {
 					t.Errorf("Expected 0 secrets, got %d", len(locked))
 				}
 
-				unlocked, err := manager.GetSecretsUnlocked(repo)
+				unlocked, err := manager.GetSecretsUnlocked(context.Background(), repo)
 				if err != nil {
 					t.Errorf("GetSecretsUnlocked on empty DB failed: %v", err)
 				}
@@ -562,7 +564,7 @@ func TestSqliteManager_Integration(t *testing.T) {
 
 				// Remove from empty should return ErrKeyNotFound
 				nonExistent := Secret[any]{Key: "none", Repo: repo}
-				err = manager.RemoveSecret(nonExistent)
+				err = manager.RemoveSecret(context.Background(), nonExistent)
 				if err != ErrKeyNotFound {
 					t.Errorf("Expected ErrKeyNotFound, got %v", err)
 				}
@@ -577,4 +579,12 @@ func TestSqliteManager_Integration(t *testing.T) {
 			tt.scenario(t, manager)
 		})
 	}
+}
+
+func TestSqliteManager_StopperInterface(t *testing.T) {
+	manager := &SqliteManager{}
+
+	// Verify that SqliteManager does NOT implement the Stopper interface
+	_, ok := interface{}(manager).(Stopper)
+	assert.False(t, ok, "SqliteManager should NOT implement Stopper interface")
 }
