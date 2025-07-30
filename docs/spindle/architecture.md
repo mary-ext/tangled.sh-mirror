@@ -13,9 +13,10 @@ logs beamed on the spindle event stream over wss
 
 ### the engine
 
-At present, the only supported backend is Docker. Spindle executes each step in
-the pipeline in a fresh container, with state persisted across steps within the
-`/tangled/workspace` directory.
+At present, the only supported backend is Docker (and Podman, if Docker
+compatibility is enabled, so that `/run/docker.sock` is created). Spindle
+executes each step in the pipeline in a fresh container, with state persisted
+across steps within the `/tangled/workspace` directory.
 
 The base image for the container is constructed on the fly using
 [Nixery](https://nixery.dev), which is handy for caching layers for frequently
