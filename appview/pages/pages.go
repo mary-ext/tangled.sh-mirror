@@ -33,7 +33,6 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/microcosm-cc/bluemonday"
 )
 
 //go:embed templates/* static
@@ -502,13 +501,12 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
+			htmlString = p.rctx.Sanitize(htmlString)
 			htmlString = p.rctx.RenderMarkdown(params.Readme)
 			params.Raw = false
-			params.HTMLReadme = template.HTML(p.rctx.Sanitize(htmlString))
+			params.HTMLReadme = template.HTML(htmlString)
 		default:
-			htmlString = string(params.Readme)
 			params.Raw = true
-			params.HTMLReadme = template.HTML(bluemonday.NewPolicy().Sanitize(htmlString))
 		}
 	}
 

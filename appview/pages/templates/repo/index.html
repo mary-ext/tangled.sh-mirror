@@ -358,7 +358,7 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-    {{- if .HTMLReadme -}}
+    {{- if or .HTMLReadme .Readme -}}
         <section
             class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto overflow-auto {{ if not .Raw }}
                 prose dark:prose-invert dark:[&_pre]:bg-gray-900
@@ -367,7 +367,7 @@
             {{ end }}"
         >
             <article class="{{ if .Raw }}whitespace-pre{{ end }}">{{- if .Raw -}}<pre class="dark:bg-gray-800 dark:text-white overflow-x-auto">
-                        {{- .HTMLReadme -}}
+                        {{- .Readme -}}
                     </pre>
                 {{- else -}}
                     {{ .HTMLReadme }}
