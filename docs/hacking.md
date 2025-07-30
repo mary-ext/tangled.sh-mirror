@@ -55,9 +55,10 @@ An end-to-end knot setup requires setting up a machine with
 quite cumbersome. So the nix flake provides a
 `nixosConfiguration` to do so.
 
-To begin, head to `http://localhost:3000` in the browser and
-generate a knot secret. Replace the existing secret in
-`flake.nix` with the newly generated secret.
+To begin, head to `http://localhost:3000/knots` in the browser
+and generate a knot secret. Replace the existing secret in
+`nix/vm.nix` (`KNOT_SERVER_SECRET`) with the newly generated
+secret.
 
 You can now start a lightweight NixOS VM using
 `nixos-shell` like so:
