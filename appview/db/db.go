@@ -355,7 +355,6 @@ func Make(dbPath string) (*DB, error) {
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 
 			-- constraints
-			foreign key (did, instance) references spindles(owner, instance) on delete cascade,
 			unique (did, instance, subject)
 		);
 
