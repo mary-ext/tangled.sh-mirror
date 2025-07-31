@@ -1,0 +1,110 @@
+{{ define "title" }}{{ .Tab }} settings &middot; {{ .RepoInfo.FullName }}{{ end }}
+
+{{ define "repoContent" }}
+  <section class="w-full grid grid-cols-1 md:grid-cols-4 gap-2">
+    <div class="col-span-1">
+      {{ template "repo/settings/fragments/sidebar" . }}
+    </div>
+    <div class="col-span-1 md:col-span-3 flex flex-col gap-6 p-2">
+      {{ template "collaboratorSettings" . }}
+    </div>
+  </section>
+{{ end }}
+
+{{ define "collaboratorSettings" }}
+  <div class="grid grid-cols-1 gap-4 items-center">
+    <div class="col-span-1">
+      <h2 class="text-sm pb-2 uppercase font-bold">Collaborators</h2>
+      <p class="text-gray-500 dark:text-gray-400">
+        Any user added as a collaborator will be able to push commits and tags to this repository, upload releases, and workflows.
+      </p>
+    </div>
+    {{ template "collaboratorsGrid" . }}
+  </div>
+{{ end }}
+
+{{ define "collaboratorsGrid" }}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {{ if .RepoInfo.Roles.CollaboratorInviteAllowed }}
+      {{ template "addCollaboratorButton" . }}
+    {{ end }}
+    {{ range .Collaborators }}
+      <div class="border border-gray-200 dark:border-gray-700 rounded p-4">
+        <div class="flex items-center gap-3">
+          <img
+            src="{{ fullAvatar .Handle }}"
+            alt="{{ .Handle }}"
+            class="rounded-full h-10 w-10 border border-gray-300 dark:border-gray-600 flex-shrink-0"/>
+
+          <div class="flex-1 min-w-0">
+            <a href="/{{ .Handle }}" class="block truncate">
+              {{ didOrHandle .Did .Handle }}
+            </a>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ .Role }}</p>
+          </div>
+        </div>
+      </div>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "addCollaboratorButton" }}
+  <button
+    class="btn block rounded p-4"
+    popovertarget="add-collaborator-modal"
+    popovertargetaction="toggle">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+        {{ i "user-plus" "size-4" }}
+      </div>
+
+      <div class="text-left flex-1 min-w-0 block truncate">
+        Add collaborator
+      </div>
+    </div>
+  </button>
+  <div
+    id="add-collaborator-modal"
+    popover
+    class="bg-white w-full md:w-96 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
+    {{ template "addCollaboratorModal" . }}
+  </div>
+{{ end }}
+
+{{ define "addCollaboratorModal" }}
+<form
+  hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator"
+  hx-indicator="#spinner"
+  hx-swap="none"
+  class="flex flex-col gap-2"
+>
+  <label for="add-collaborator" class="uppercase p-0">
+    ADD COLLABORATOR
+  </label>
+  <p class="text-sm text-gray-500 dark:text-gray-400">Collaborators can push to this repository.</p>
+  <input
+    type="text"
+    id="add-collaborator"
+    name="collaborator"
+    required
+    placeholder="@foo.bsky.social"
+  />
+  <div class="flex gap-2 pt-2">
+    <button
+      type="button"
+      popovertarget="add-collaborator-modal"
+      popovertargetaction="hide"
+      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+      >
+      {{ i "x" "size-4" }} cancel
+    </button>
+    <button type="submit" class="btn w-1/2 flex items-center">
+      <span class="inline-flex gap-2 items-center">{{ i "user-plus" "size-4" }} add</span>
+      <span id="spinner" class="group">
+        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </span>
+    </button>
+  </div>
+  <div id="add-collaborator-error" class="text-red-500 dark:text-red-400"></div>
+</form>
+{{ end }}

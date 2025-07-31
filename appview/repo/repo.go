@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -51,6 +52,7 @@ type Repo struct {
 	db            *db.DB
 	enforcer      *rbac.Enforcer
 	notifier      notify.Notifier
+	logger        *slog.Logger
 }
 
 func New(
@@ -63,6 +65,7 @@ func New(
 	config *config.Config,
 	notifier notify.Notifier,
 	enforcer *rbac.Enforcer,
+	logger *slog.Logger,
 ) *Repo {
 	return &Repo{oauth: oauth,
 		repoResolver:  repoResolver,
@@ -73,6 +76,7 @@ func New(
 		db:            db,
 		notifier:      notifier,
 		enforcer:      enforcer,
+		logger:        logger,
 	}
 }
 
@@ -627,57 +631,59 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 
 // modify the spindle configured for this repo
 func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
+	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "EditSpindle")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
+	errorId := "operation-error"
+	fail := func(msg string, err error) {
+		l.Error(msg, "err", err)
+		rp.pages.Notice(w, errorId, msg)
+	}
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
-		w.WriteHeader(http.StatusBadRequest)
+		fail("Failed to resolve repo. Try again later", err)
 		return
 	}
 
 	repoAt := f.RepoAt
 	rkey := repoAt.RecordKey().String()
 	if rkey == "" {
-		log.Println("invalid aturi for repo", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		fail("Failed to resolve repo. Try again later", err)
 		return
 	}
-
-	user := rp.oauth.GetUser(r)
 
 	newSpindle := r.FormValue("spindle")
 	client, err := rp.oauth.AuthorizedClient(r)
 	if err != nil {
-		log.Println("failed to get client")
-		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		fail("Failed to authorize. Try again later.", err)
 		return
 	}
 
 	// ensure that this is a valid spindle for this user
 	validSpindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
 	if err != nil {
-		log.Println("failed to get valid spindles")
-		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		fail("Failed to find spindles. Try again later.", err)
 		return
 	}
 
 	if !slices.Contains(validSpindles, newSpindle) {
-		log.Println("newSpindle not present in validSpindles", "newSpindle", newSpindle, "validSpindles", validSpindles)
-		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		fail("Failed to configure spindle.", fmt.Errorf("%s is not a valid spindle: %q", newSpindle, validSpindles))
 		return
 	}
 
 	// optimistic update
 	err = db.UpdateSpindle(rp.db, string(repoAt), newSpindle)
 	if err != nil {
-		log.Println("failed to perform update-spindle query", err)
-		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, try again later.")
+		fail("Failed to update spindle. Try again later.", err)
 		return
 	}
 
 	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, user.Did, rkey)
 	if err != nil {
-		// failed to get record
-		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, no record found on PDS.")
+		fail("Failed to update spindle, no record found on PDS.", err)
 		return
 	}
 	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
@@ -698,9 +704,7 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		log.Println("failed to perform update-spindle query", err)
-		// failed to get record
-		rp.pages.Notice(w, "repo-notice", "Failed to configure spindle, unable to save to PDS.")
+		fail("Failed to update spindle, unable to save to PDS.", err)
 		return
 	}
 
@@ -710,96 +714,109 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		eventconsumer.NewSpindleSource(newSpindle),
 	)
 
-	w.Write(fmt.Append(nil, "spindle set to: ", newSpindle))
+	rp.pages.HxRefresh(w)
 }
 
 func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
+	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "AddCollaborator")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
+	}
+
+	errorId := "add-collaborator-error"
+	fail := func(msg string, err error) {
+		l.Error(msg, "err", err)
+		rp.pages.Notice(w, errorId, msg)
 	}
 
 	collaborator := r.FormValue("collaborator")
 	if collaborator == "" {
-		http.Error(w, "malformed form", http.StatusBadRequest)
+		fail("Invalid form.", nil)
 		return
 	}
 
 	collaboratorIdent, err := rp.idResolver.ResolveIdent(r.Context(), collaborator)
 	if err != nil {
-		w.Write([]byte("failed to resolve collaborator did to a handle"))
+		fail(fmt.Sprintf("'%s' is not a valid DID/handle.", collaborator), err)
 		return
 	}
-	log.Printf("adding %s to %s\n", collaboratorIdent.Handle.String(), f.Knot)
 
-	// TODO: create an atproto record for this
+	if collaboratorIdent.DID.String() == user.Did {
+		fail("You seem to be adding yourself as a collaborator.", nil)
+		return
+	}
+
+	l = l.With("collaborator", collaboratorIdent.Handle)
+	l = l.With("knot", f.Knot)
+	l.Info("adding to knot")
 
 	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
 	if err != nil {
-		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
+		fail("Failed to add to knot.", err)
 		return
 	}
 
 	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
 	if err != nil {
-		log.Println("failed to create client to ", f.Knot)
+		fail("Failed to add to knot.", err)
 		return
 	}
 
 	ksResp, err := ksClient.AddCollaborator(f.OwnerDid(), f.RepoName, collaboratorIdent.DID.String())
 	if err != nil {
-		log.Printf("failed to make request to %s: %s", f.Knot, err)
+		fail("Knot was unreachable.", err)
 		return
 	}
 
 	if ksResp.StatusCode != http.StatusNoContent {
-		w.Write(fmt.Append(nil, "knotserver failed to add collaborator: ", err))
+		fail(fmt.Sprintf("Knot returned unexpected status code: %d.", ksResp.StatusCode), nil)
 		return
 	}
 
 	tx, err := rp.db.BeginTx(r.Context(), nil)
 	if err != nil {
-		log.Println("failed to start tx")
-		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
+		fail("Failed to add collaborator.", err)
 		return
 	}
 	defer func() {
 		tx.Rollback()
 		err = rp.enforcer.E.LoadPolicy()
 		if err != nil {
-			log.Println("failed to rollback policies")
+			fail("Failed to add collaborator.", err)
 		}
 	}()
 
 	err = rp.enforcer.AddCollaborator(collaboratorIdent.DID.String(), f.Knot, f.DidSlashRepo())
 	if err != nil {
-		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
+		fail("Failed to add collaborator permissions.", err)
 		return
 	}
 
 	err = db.AddCollaborator(rp.db, collaboratorIdent.DID.String(), f.OwnerDid(), f.RepoName, f.Knot)
 	if err != nil {
-		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
+		fail("Failed to add collaborator.", err)
 		return
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Println("failed to commit changes", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fail("Failed to add collaborator.", err)
 		return
 	}
 
 	err = rp.enforcer.E.SavePolicy()
 	if err != nil {
-		log.Println("failed to update ACLs", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fail("Failed to update collaborator permissions.", err)
 		return
 	}
 
-	w.Write(fmt.Append(nil, "added collaborator: ", collaboratorIdent.Handle.String()))
-
+	rp.pages.HxRefresh(w)
 }
 
 func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
@@ -952,6 +969,11 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
+	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "Secrets")
+	l = l.With("handle", user.Handle)
+	l = l.With("did", user.Did)
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -987,8 +1009,10 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPut:
+		errorId := "add-secret-error"
+
 		value := r.FormValue("value")
-		if key == "" {
+		if value == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -1003,11 +1027,14 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 			},
 		)
 		if err != nil {
-			log.Println("request didnt run", "err", err)
+			l.Error("Failed to add secret.", "err", err)
+			rp.pages.Notice(w, errorId, "Failed to add secret.")
 			return
 		}
 
 	case http.MethodDelete:
+		errorId := "operation-error"
+
 		err = tangled.RepoRemoveSecret(
 			r.Context(),
 			spindleClient,
@@ -1017,82 +1044,205 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 			},
 		)
 		if err != nil {
-			log.Println("request didnt run", "err", err)
+			l.Error("Failed to delete secret.", "err", err)
+			rp.pages.Notice(w, errorId, "Failed to delete secret.")
 			return
 		}
 	}
+
+	rp.pages.HxRefresh(w)
 }
 
+type tab = map[string]any
+
+var (
+	// would be great to have ordered maps right about now
+	settingsTabs []tab = []tab{
+		{"Name": "general", "Icon": "sliders-horizontal"},
+		{"Name": "access", "Icon": "users"},
+		{"Name": "pipelines", "Icon": "layers-2"},
+	}
+)
+
 func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
+	tabVal := r.URL.Query().Get("tab")
+	if tabVal == "" {
+		tabVal = "general"
+	}
+
+	switch tabVal {
+	case "general":
+		rp.generalSettings(w, r)
+
+	case "access":
+		rp.accessSettings(w, r)
+
+	case "pipelines":
+		rp.pipelineSettings(w, r)
+	}
+
+	// user := rp.oauth.GetUser(r)
+	// repoCollaborators, err := f.Collaborators(r.Context())
+	// if err != nil {
+	// 	log.Println("failed to get collaborators", err)
+	// }
+
+	// isCollaboratorInviteAllowed := false
+	// if user != nil {
+	// 	ok, err := rp.enforcer.IsCollaboratorInviteAllowed(user.Did, f.Knot, f.DidSlashRepo())
+	// 	if err == nil && ok {
+	// 		isCollaboratorInviteAllowed = true
+	// 	}
+	// }
+
+	// us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	// if err != nil {
+	// 	log.Println("failed to create unsigned client", err)
+	// 	return
+	// }
+
+	// result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	// if err != nil {
+	// 	log.Println("failed to reach knotserver", err)
+	// 	return
+	// }
+
+	// // all spindles that this user is a member of
+	// spindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
+	// if err != nil {
+	// 	log.Println("failed to fetch spindles", err)
+	// 	return
+	// }
+
+	// var secrets []*tangled.RepoListSecrets_Secret
+	// if f.Spindle != "" {
+	// 	if spindleClient, err := rp.oauth.ServiceClient(
+	// 		r,
+	// 		oauth.WithService(f.Spindle),
+	// 		oauth.WithLxm(tangled.RepoListSecretsNSID),
+	// 		oauth.WithDev(rp.config.Core.Dev),
+	// 	); err != nil {
+	// 		log.Println("failed to create spindle client", err)
+	// 	} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt.String()); err != nil {
+	// 		log.Println("failed to fetch secrets", err)
+	// 	} else {
+	// 		secrets = resp.Secrets
+	// 	}
+	// }
+
+	// rp.pages.RepoSettings(w, pages.RepoSettingsParams{
+	// 	LoggedInUser:                user,
+	// 	RepoInfo:                    f.RepoInfo(user),
+	// 	Collaborators:               repoCollaborators,
+	// 	IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
+	// 	Branches:                    result.Branches,
+	// 	Spindles:                    spindles,
+	// 	CurrentSpindle:              f.Spindle,
+	// 	Secrets:                     secrets,
+	// })
+}
+
+func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
+	user := rp.oauth.GetUser(r)
+
+	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		log.Println("failed to create unsigned client", err)
 		return
 	}
 
-	switch r.Method {
-	case http.MethodGet:
-		// for now, this is just pubkeys
-		user := rp.oauth.GetUser(r)
-		repoCollaborators, err := f.Collaborators(r.Context())
-		if err != nil {
-			log.Println("failed to get collaborators", err)
-		}
+	result, err := us.Branches(f.OwnerDid(), f.RepoName)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
+		return
+	}
 
-		isCollaboratorInviteAllowed := false
-		if user != nil {
-			ok, err := rp.enforcer.IsCollaboratorInviteAllowed(user.Did, f.Knot, f.DidSlashRepo())
-			if err == nil && ok {
-				isCollaboratorInviteAllowed = true
-			}
-		}
+	rp.pages.RepoGeneralSettings(w, pages.RepoGeneralSettingsParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(user),
+		Branches:     result.Branches,
+		Tabs:         settingsTabs,
+		Tab:          "general",
+	})
+}
 
-		us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
-		if err != nil {
-			log.Println("failed to create unsigned client", err)
-			return
-		}
+func (rp *Repo) accessSettings(w http.ResponseWriter, r *http.Request) {
+	f, err := rp.repoResolver.Resolve(r)
+	user := rp.oauth.GetUser(r)
 
-		result, err := us.Branches(f.OwnerDid(), f.RepoName)
-		if err != nil {
-			log.Println("failed to reach knotserver", err)
-			return
-		}
+	repoCollaborators, err := f.Collaborators(r.Context())
+	if err != nil {
+		log.Println("failed to get collaborators", err)
+	}
 
-		// all spindles that this user is a member of
-		spindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
-		if err != nil {
-			log.Println("failed to fetch spindles", err)
-			return
-		}
+	rp.pages.RepoAccessSettings(w, pages.RepoAccessSettingsParams{
+		LoggedInUser:  user,
+		RepoInfo:      f.RepoInfo(user),
+		Tabs:          settingsTabs,
+		Tab:           "access",
+		Collaborators: repoCollaborators,
+	})
+}
 
-		var secrets []*tangled.RepoListSecrets_Secret
-		if f.Spindle != "" {
-			if spindleClient, err := rp.oauth.ServiceClient(
-				r,
-				oauth.WithService(f.Spindle),
-				oauth.WithLxm(tangled.RepoListSecretsNSID),
-				oauth.WithDev(rp.config.Core.Dev),
-			); err != nil {
-				log.Println("failed to create spindle client", err)
-			} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt.String()); err != nil {
-				log.Println("failed to fetch secrets", err)
-			} else {
-				secrets = resp.Secrets
-			}
-		}
+func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
+	f, err := rp.repoResolver.Resolve(r)
+	user := rp.oauth.GetUser(r)
 
-		rp.pages.RepoSettings(w, pages.RepoSettingsParams{
-			LoggedInUser:                user,
-			RepoInfo:                    f.RepoInfo(user),
-			Collaborators:               repoCollaborators,
-			IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
-			Branches:                    result.Branches,
-			Spindles:                    spindles,
-			CurrentSpindle:              f.Spindle,
-			Secrets:                     secrets,
+	// all spindles that this user is a member of
+	spindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
+	if err != nil {
+		log.Println("failed to fetch spindles", err)
+		return
+	}
+
+	var secrets []*tangled.RepoListSecrets_Secret
+	if f.Spindle != "" {
+		if spindleClient, err := rp.oauth.ServiceClient(
+			r,
+			oauth.WithService(f.Spindle),
+			oauth.WithLxm(tangled.RepoListSecretsNSID),
+			oauth.WithDev(rp.config.Core.Dev),
+		); err != nil {
+			log.Println("failed to create spindle client", err)
+		} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt.String()); err != nil {
+			log.Println("failed to fetch secrets", err)
+		} else {
+			secrets = resp.Secrets
+		}
+	}
+
+	slices.SortFunc(secrets, func(a, b *tangled.RepoListSecrets_Secret) int {
+		return strings.Compare(a.Key, b.Key)
+	})
+
+	var dids []string
+	for _, s := range secrets {
+		dids = append(dids, s.CreatedBy)
+	}
+	resolvedIdents := rp.idResolver.ResolveIdents(r.Context(), dids)
+
+	// convert to a more manageable form
+	var niceSecret []map[string]any
+	for id, s := range secrets {
+		when, _ := time.Parse(time.RFC3339, s.CreatedAt)
+		niceSecret = append(niceSecret, map[string]any{
+			"Id":        id,
+			"Key":       s.Key,
+			"CreatedAt": when,
+			"CreatedBy": resolvedIdents[id].Handle.String(),
 		})
 	}
+
+	rp.pages.RepoPipelineSettings(w, pages.RepoPipelineSettingsParams{
+		LoggedInUser:   user,
+		RepoInfo:       f.RepoInfo(user),
+		Tabs:           settingsTabs,
+		Tab:            "pipelines",
+		Spindles:       spindles,
+		CurrentSpindle: f.Spindle,
+		Secrets:        niceSecret,
+	})
 }
 
 func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {

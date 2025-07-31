@@ -706,6 +706,50 @@ func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 	return p.executeRepo("repo/settings", w, params)
 }
 
+type RepoGeneralSettingsParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Active       string
+	Tabs         []map[string]any
+	Tab          string
+	Branches     []types.Branch
+}
+
+func (p *Pages) RepoGeneralSettings(w io.Writer, params RepoGeneralSettingsParams) error {
+	params.Active = "settings"
+	return p.executeRepo("repo/settings/general", w, params)
+}
+
+type RepoAccessSettingsParams struct {
+	LoggedInUser  *oauth.User
+	RepoInfo      repoinfo.RepoInfo
+	Active        string
+	Tabs          []map[string]any
+	Tab           string
+	Collaborators []Collaborator
+}
+
+func (p *Pages) RepoAccessSettings(w io.Writer, params RepoAccessSettingsParams) error {
+	params.Active = "settings"
+	return p.executeRepo("repo/settings/access", w, params)
+}
+
+type RepoPipelineSettingsParams struct {
+	LoggedInUser   *oauth.User
+	RepoInfo       repoinfo.RepoInfo
+	Active         string
+	Tabs           []map[string]any
+	Tab            string
+	Spindles       []string
+	CurrentSpindle string
+	Secrets        []map[string]any
+}
+
+func (p *Pages) RepoPipelineSettings(w io.Writer, params RepoPipelineSettingsParams) error {
+	params.Active = "settings"
+	return p.executeRepo("repo/settings/pipelines", w, params)
+}
+
 type RepoIssuesParams struct {
 	LoggedInUser    *oauth.User
 	RepoInfo        repoinfo.RepoInfo
