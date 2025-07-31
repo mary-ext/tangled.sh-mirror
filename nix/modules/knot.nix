@@ -58,6 +58,28 @@ in
           };
         };
 
+        motd = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            Message of the day
+
+            The contents are shown as-is; eg. you will want to add a newline if
+            setting a non-empty message since the knot won't do this for you.
+          '';
+        };
+
+        motdFile = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          description = ''
+            File containing message of the day
+
+            The contents are shown as-is; eg. you will want to add a newline if
+            setting a non-empty message since the knot won't do this for you.
+          '';
+        };
+
         server = {
           listenAddr = mkOption {
             type = types.str;
@@ -104,7 +126,15 @@ in
         cfg.package
       ];
 
-      system.activationScripts.gitConfig = ''
+      system.activationScripts.gitConfig = let
+        setMotd =
+          if cfg.motdFile != null && cfg.motd != null then
+            throw "motdFile and motd cannot be both set"
+          else ''
+            ${optionalString (cfg.motdFile != null) "cat ${cfg.motdFile} > ${cfg.stateDir}/motd"}
+            ${optionalString (cfg.motd != null) ''printf "${cfg.motd}" > ${cfg.stateDir}/motd''}
+          '';
+      in ''
         mkdir -p "${cfg.repo.scanPath}"
         chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.repo.scanPath}"
 
@@ -116,6 +146,7 @@ in
         [receive]
             advertisePushOptions = true
         EOF
+        ${setMotd}
         chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.stateDir}"
       '';
 

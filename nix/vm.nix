@@ -48,6 +48,7 @@ nixpkgs.lib.nixosSystem {
       ];
       services.tangled-knot = {
         enable = true;
+        motd = "Welcome to the development knot!\n";
         server = {
           secretFile = "/var/lib/knot/secret";
           hostname = "localhost:6000";
