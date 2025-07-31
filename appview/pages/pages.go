@@ -813,6 +813,7 @@ type RepoPullsParams struct {
 	DidHandleMap map[string]string
 	FilteringBy  db.PullState
 	Stacks       map[string]db.Stack
+	Pipelines    map[string]db.Pipeline
 }
 
 func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {

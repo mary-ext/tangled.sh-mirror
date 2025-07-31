@@ -54,7 +54,7 @@
                         <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
                     </a>
                 </div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
+                <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
                     {{ $owner := index $.DidHandleMap .OwnerDid }}
                     {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
                     {{ $icon := "ban" }}
@@ -103,7 +103,13 @@
                         #{{ .LastRoundNumber }}
                       </span>
                     </span>
-                </p>
+
+                    {{ $pipeline := index $.Pipelines .LatestSha }}
+                    {{ if $pipeline }}
+                      <span class="before:content-['·']"></span>
+                      {{ template "repo/pipelines/fragments/pipelineSymbol" $pipeline }}
+                    {{ end }}
+                </div>
               </div>
               {{ if .StackId }}
                 {{ $otherPulls := index $.Stacks .StackId }}
@@ -135,10 +141,11 @@
   {{ $root := index . 1 }}
   <div class="grid grid-cols-1 rounded-b border-b border-t border-gray-200 dark:border-gray-900 divide-y divide-gray-200 dark:divide-gray-900">
     {{ range $pull := $list }}
+      {{ $pipeline := index $root.Pipelines $pull.LatestSha }}
       <a href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
         <div class="flex gap-2 items-center px-6">
           <div class="flex-grow min-w-0 w-full py-2">
-            {{ template "repo/pulls/fragments/summarizedHeader" (list $pull 0) }}
+            {{ template "repo/pulls/fragments/summarizedHeader" (list $pull $pipeline) }}
           </div>
         </div>
       </a>
