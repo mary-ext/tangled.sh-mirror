@@ -2,7 +2,9 @@ package guard
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -43,6 +45,11 @@ func Command() *cli.Command {
 				Usage: "internal API endpoint",
 				Value: "http://localhost:5444",
 			},
+			&cli.StringFlag{
+				Name:  "motd-file",
+				Usage: "path to message of the day file",
+				Value: "/home/git/motd",
+			},
 		},
 	}
 }
@@ -54,6 +61,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	gitDir := cmd.String("git-dir")
 	logPath := cmd.String("log-path")
 	endpoint := cmd.String("internal-api")
+	motdFile := cmd.String("motd-file")
 
 	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -149,11 +157,19 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 		"fullPath", fullPath,
 		"client", clientIP)
 
-	if gitCommand == "git-upload-pack" {
-		fmt.Fprintf(os.Stderr, "\x02%s\n", "Welcome to this knot!")
+	var motdReader io.Reader
+	if reader, err := os.Open(motdFile); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			l.Error("failed to read motd file", "error", err)
+		}
+		motdReader = strings.NewReader("Welcome to this knot!\n")
 	} else {
-		fmt.Fprintf(os.Stderr, "%s\n", "Welcome to this knot!")
+		motdReader = reader
 	}
+	if gitCommand == "git-upload-pack" {
+		io.WriteString(os.Stderr, "\x02")
+	}
+	io.Copy(os.Stderr, motdReader)
 
 	gitCmd := exec.Command(gitCommand, fullPath)
 	gitCmd.Stdout = os.Stdout
