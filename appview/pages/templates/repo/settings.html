@@ -1,182 +1,168 @@
 {{ define "title" }}settings &middot; {{ .RepoInfo.FullName }}{{ end }}
+
 {{ define "repoContent" }}
-    <header class="font-bold text-sm mb-4 uppercase dark:text-white">
-        Collaborators
-    </header>
+  {{ template "collaboratorSettings" . }}
+  {{ template "branchSettings" . }}
+  {{ template "dangerZone" . }}
+  {{ template "spindleSelector" . }}
+  {{ template "spindleSecrets" . }}
+{{ end }}
 
-    <div id="collaborator-list" class="flex flex-col gap-2 mb-2">
-        {{ range .Collaborators }}
-            <div id="collaborator" class="mb-2">
-                <a
-                    href="/{{ didOrHandle .Did .Handle }}"
-                    class="no-underline hover:underline text-black dark:text-white"
-                >
-                    {{ didOrHandle .Did .Handle }}
-                </a>
-                <div>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ .Role }}
-                    </span>
-                </div>
-            </div>
-        {{ end }}
-    </div>
+{{ define "collaboratorSettings" }}
+  <header class="font-bold text-sm mb-4 uppercase dark:text-white">
+    Collaborators
+  </header>
 
-    {{ if .RepoInfo.Roles.CollaboratorInviteAllowed }}
-        <form
-            hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator"
-            class="group"
+  <div id="collaborator-list" class="flex flex-col gap-2 mb-2">
+    {{ range .Collaborators }}
+    <div id="collaborator" class="mb-2">
+      <a
+        href="/{{ didOrHandle .Did .Handle }}"
+        class="no-underline hover:underline text-black dark:text-white"
         >
-            <label for="collaborator" class="dark:text-white">
-                add collaborator
-            </label>
-            <input
-                type="text"
-                id="collaborator"
-                name="collaborator"
-                required
-                class="dark:bg-gray-700 dark:text-white"
-                placeholder="enter did or handle"
-            >
-            <button
-                class="btn my-2 flex gap-2 items-center dark:text-white dark:hover:bg-gray-700"
-                type="text"
-            >
-                <span>add</span>
-                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </button>
-        </form>
-    {{ end }}
-
-    <form
-        hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default"
-        class="mt-6 group"
-    >
-        <label for="branch">default branch</label>
-        <div class="flex gap-2 items-center">
-            <select id="branch" name="branch" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
-                <option
-                    value=""
-                    disabled
-                    selected
-                >
-                Choose a default branch
-                </option>
-                {{ range .Branches }}
-                    <option
-                        value="{{ .Name }}"
-                        class="py-1"
-                        {{ if .IsDefault }}
-                            selected
-                        {{ end }}
-                    >
-                        {{ .Name }}
-                    </option>
-                {{ end }}
-            </select>
-            <button class="btn my-2 flex gap-2 items-center" type="submit">
-                <span>save</span>
-                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </button>
+        {{ didOrHandle .Did .Handle }}
+      </a>
+        <div>
+          <span class="text-sm text-gray-500 dark:text-gray-400">
+            {{ .Role }}
+          </span>
         </div>
-    </form>
+    </div>
+    {{ end }}
+  </div>
 
-    {{ if .RepoInfo.Roles.IsOwner }}
+  {{ if .RepoInfo.Roles.CollaboratorInviteAllowed }}
     <form
-        hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle"
-        class="mt-6 group"
+      hx-put="/{{ $.RepoInfo.FullName }}/settings/collaborator"
+      class="group"
     >
-        <label for="spindle">spindle</label>
-        <div class="flex gap-2 items-center">
-            <select id="spindle" name="spindle" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
-                <option
-                    value=""
-                    selected
-                >
-                None
-                </option>
-                {{ range .Spindles }}
-                    <option
-                        value="{{ . }}"
-                        class="py-1"
-                        {{ if eq . $.CurrentSpindle }}
-                            selected
-                        {{ end }}
-                    >
-                        {{ . }}
-                    </option>
-                {{ end }}
-            </select>
-            <button class="btn my-2 flex gap-2 items-center" type="submit">
-                <span>save</span>
-                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </button>
-        </div>
+      <label for="collaborator" class="dark:text-white">
+        add collaborator
+      </label>
+      <input
+        type="text"
+        id="collaborator"
+        name="collaborator"
+        required
+        class="dark:bg-gray-700 dark:text-white"
+        placeholder="enter did or handle">
+      <button class="btn my-2 flex gap-2 items-center dark:text-white dark:hover:bg-gray-700" type="text">
+        <span>add</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
     </form>
-    {{ end }}
+  {{ end }}
+{{ end }}
 
-    {{ if $.CurrentSpindle }}
-      <header class="font-bold text-sm mb-4 uppercase dark:text-white">
-        Secrets
-      </header>
-
-      <div id="secret-list" class="flex flex-col gap-2 mb-2">
-        {{ range $idx, $secret := .Secrets }}
-         {{ with $secret }}
-           <div id="secret-{{$idx}}" class="mb-2">
-             {{ .Key }} created on {{ .CreatedAt }} by {{ .CreatedBy }}
-           </div>
-         {{ end }}
-        {{ end }}
-      </div>
-      <form
-          hx-put="/{{ $.RepoInfo.FullName }}/settings/secrets"
-          class="mt-6"
-          hx-indicator="#add-secret-spinner">
-          <label for="key">secret key</label>
-          <input
-              type="text"
-              id="key"
-              name="key"
-              required
-              class="dark:bg-gray-700 dark:text-white"
-              placeholder="SECRET_KEY" />
-          <label for="value">secret value</label>
-          <input
-              type="text"
-              id="value"
-              name="value"
-              required
-              class="dark:bg-gray-700 dark:text-white"
-              placeholder="SECRET VALUE" />
-
-        <button class="btn my-2 flex items-center" type="text">
-            <span>add</span>
-            <span id="add-secret-spinner" class="group">
-              {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </span>
-        </button>
-      </form>
-    {{ end }}
-
-    {{ if .RepoInfo.Roles.RepoDeleteAllowed }}
+{{ define "dangerZone" }}
+  {{ if .RepoInfo.Roles.RepoDeleteAllowed }}
     <form
         hx-confirm="Are you sure you want to delete this repository?"
         hx-delete="/{{ $.RepoInfo.FullName }}/settings/delete"
         class="mt-6"
-        hx-indicator="#delete-repo-spinner"
-    >
-        <label for="branch">delete repository</label>
-        <button class="btn my-2 flex items-center" type="text">
-            <span>delete</span>
-            <span id="delete-repo-spinner" class="group">
-              {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </span>
-        </button>
-        <span>
-          Deleting a repository is irreversible and permanent.
-        </span>
+      hx-indicator="#delete-repo-spinner">
+      <label for="branch">delete repository</label>
+      <button class="btn my-2 flex items-center" type="text">
+          <span>delete</span>
+          <span id="delete-repo-spinner" class="group">
+            {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
+      </button>
+      <span>
+        Deleting a repository is irreversible and permanent.
+      </span>
     </form>
-    {{ end }}
+  {{ end }}
+{{ end }}
 
+{{ define "branchSettings" }}
+  <form hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default" class="mt-6 group">
+    <label for="branch">default branch</label>
+    <div class="flex gap-2 items-center">
+      <select id="branch" name="branch" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+        <option value="" disabled selected >
+          Choose a default branch
+        </option>
+        {{ range .Branches }}
+          <option value="{{ .Name }}" class="py-1" {{ if .IsDefault }}selected{{ end }} >
+            {{ .Name }}
+          </option>
+        {{ end }}
+      </select>
+      <button class="btn my-2 flex gap-2 items-center" type="submit">
+        <span>save</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
+    </div>
+  </form>
+{{ end }}
+
+{{ define "spindleSelector" }}
+  {{ if .RepoInfo.Roles.IsOwner }}
+  <form hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle" class="mt-6 group" >
+    <label for="spindle">spindle</label>
+    <div class="flex gap-2 items-center">
+      <select id="spindle" name="spindle" required class="p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+        <option value="" selected >
+          None
+        </option>
+        {{ range .Spindles }}
+          <option value="{{ . }}" class="py-1" {{ if eq . $.CurrentSpindle }}selected{{ end }}>
+            {{ . }}
+          </option>
+        {{ end }}
+      </select>
+      <button class="btn my-2 flex gap-2 items-center" type="submit">
+        <span>save</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
+    </div>
+  </form>
+  {{ end }}
+{{ end }}
+
+{{ define "spindleSecrets" }}
+  {{ if $.CurrentSpindle }}
+    <header class="font-bold text-sm mb-4 uppercase dark:text-white">
+      Secrets
+    </header>
+
+    <div id="secret-list" class="flex flex-col gap-2 mb-2">
+      {{ range $idx, $secret := .Secrets }}
+       {{ with $secret }}
+         <div id="secret-{{$idx}}" class="mb-2">
+           {{ .Key }} created on {{ .CreatedAt }} by {{ .CreatedBy }}
+         </div>
+       {{ end }}
+      {{ end }}
+    </div>
+    <form
+        hx-put="/{{ $.RepoInfo.FullName }}/settings/secrets"
+        class="mt-6"
+        hx-indicator="#add-secret-spinner">
+        <label for="key">secret key</label>
+        <input
+            type="text"
+            id="key"
+            name="key"
+            required
+            class="dark:bg-gray-700 dark:text-white"
+            placeholder="SECRET_KEY" />
+        <label for="value">secret value</label>
+        <input
+            type="text"
+            id="value"
+            name="value"
+            required
+            class="dark:bg-gray-700 dark:text-white"
+            placeholder="SECRET VALUE" />
+
+      <button class="btn my-2 flex items-center" type="text">
+          <span>add</span>
+          <span id="add-secret-spinner" class="group">
+            {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
+      </button>
+    </form>
+  {{ end }}
 {{ end }}
