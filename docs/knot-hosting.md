@@ -191,3 +191,15 @@ EOF
 ```
 
 Make sure to restart your SSH server!
+
+#### MOTD (message of the day)
+
+To configure the MOTD used ("Welcome to this knot!" by default), edit the
+`/home/git/motd` file:
+
+```
+printf "Hi from this knot!\n" > /home/git/motd
+```
+
+Note that you should add a newline at the end if setting a non-empty message
+since the knot won't do this for you.
