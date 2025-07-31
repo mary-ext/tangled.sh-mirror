@@ -555,8 +555,11 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 
 	// we want to group all stacked PRs into just one list
 	stacks := make(map[string]db.Stack)
+	var shas []string
 	n := 0
 	for _, p := range pulls {
+		// store the sha for later
+		shas = append(shas, p.LatestSha())
 		// this PR is stacked
 		if p.StackId != "" {
 			// we have already seen this PR stack
@@ -574,6 +577,23 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	pulls = pulls[:n]
+
+	repoInfo := f.RepoInfo(user)
+	ps, err := db.GetPipelineStatuses(
+		s.db,
+		db.FilterEq("repo_owner", repoInfo.OwnerDid),
+		db.FilterEq("repo_name", repoInfo.Name),
+		db.FilterEq("knot", repoInfo.Knot),
+		db.FilterIn("sha", shas),
+	)
+	if err != nil {
+		log.Printf("failed to fetch pipeline statuses: %s", err)
+		// non-fatal
+	}
+	m := make(map[string]db.Pipeline)
+	for _, p := range ps {
+		m[p.Sha] = p
+	}
 
 	identsToResolve := make([]string, len(pulls))
 	for i, pull := range pulls {
@@ -596,6 +616,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		DidHandleMap: didHandleMap,
 		FilteringBy:  state,
 		Stacks:       stacks,
+		Pipelines:    m,
 	})
 }
 
