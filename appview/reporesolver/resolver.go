@@ -149,11 +149,12 @@ func (f *ResolvedRepo) Collaborators(ctx context.Context) ([]pages.Collaborator,
 	for _, item := range repoCollaborators {
 		// currently only two roles: owner and member
 		var role string
-		if item[3] == "repo:owner" {
+		switch item[3] {
+		case "repo:owner":
 			role = "owner"
-		} else if item[3] == "repo:collaborator" {
+		case "repo:collaborator":
 			role = "collaborator"
-		} else {
+		default:
 			continue
 		}
 
