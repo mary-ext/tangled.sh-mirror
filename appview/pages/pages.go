@@ -624,6 +624,10 @@ type RepoBlobParams struct {
 	LoggedInUser     *oauth.User
 	RepoInfo         repoinfo.RepoInfo
 	Active           string
+	Unsupported      bool
+	IsImage          bool
+	IsVideo          bool
+	ContentSrc       string
 	BreadCrumbs      [][]string
 	ShowRendered     bool
 	RenderToggle     bool

@@ -9,7 +9,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-func generateCamoURL(baseURL, secret, imageURL string) string {
+func GenerateCamoURL(baseURL, secret, imageURL string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(imageURL))
 	signature := hex.EncodeToString(h.Sum(nil))
@@ -24,7 +24,7 @@ func (rctx *RenderContext) camoImageLinkTransformer(dst string) string {
 	}
 
 	if rctx.CamoUrl != "" && rctx.CamoSecret != "" {
-		return generateCamoURL(rctx.CamoUrl, rctx.CamoSecret, dst)
+		return GenerateCamoURL(rctx.CamoUrl, rctx.CamoSecret, dst)
 	}
 
 	return dst
