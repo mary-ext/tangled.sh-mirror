@@ -400,7 +400,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			// continue
 		}
 
-		repo.AtUri = atresp.Uri
 		err = db.AddRepo(tx, repo)
 		if err != nil {
 			log.Println(err)

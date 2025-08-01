@@ -1498,7 +1498,6 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("created repo record: ", atresp.Uri)
 
-		repo.AtUri = atresp.Uri
 		err = db.AddRepo(tx, repo)
 		if err != nil {
 			log.Println(err)

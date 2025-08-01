@@ -28,7 +28,6 @@ import (
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -918,12 +917,8 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 		return
 	}
 
-	forkAtUri, err := syntax.ParseATURI(fork.AtUri)
-	if err != nil {
-		log.Println("failed to parse fork AT URI", err)
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-		return
-	}
+	forkAtUri := fork.RepoAt()
+	forkAtUriStr := forkAtUri.String()
 
 	pullSource := &db.PullSource{
 		Branch: sourceBranch,
@@ -931,7 +926,7 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 	}
 	recordPullSource := &tangled.RepoPull_Source{
 		Branch: sourceBranch,
-		Repo:   &fork.AtUri,
+		Repo:   &forkAtUriStr,
 		Sha:    sourceRev,
 	}
 
