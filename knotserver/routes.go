@@ -286,9 +286,17 @@ func (h *Handle) BlobRaw(w http.ResponseWriter, r *http.Request) {
 		mimeType = "image/svg+xml"
 	}
 
-	if !strings.HasPrefix(mimeType, "image/") && !strings.HasPrefix(mimeType, "video/") {
-		l.Error("attempted to serve non-image/video file", "mimetype", mimeType)
-		writeError(w, "only image and video files can be accessed directly", http.StatusForbidden)
+	// allow image, video, and text/plain files to be served directly
+	switch {
+	case strings.HasPrefix(mimeType, "image/"):
+		// allowed
+	case strings.HasPrefix(mimeType, "video/"):
+		// allowed
+	case strings.HasPrefix(mimeType, "text/plain"):
+		// allowed
+	default:
+		l.Error("attempted to serve disallowed file type", "mimetype", mimeType)
+		writeError(w, "only image, video, and text files can be accessed directly", http.StatusForbidden)
 		return
 	}
 
