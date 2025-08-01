@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -532,6 +533,31 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		showRendered = r.URL.Query().Get("code") != "true"
 	}
 
+	var unsupported bool
+	var isImage bool
+	var isVideo bool
+	var contentSrc string
+
+	if result.IsBinary {
+		ext := strings.ToLower(filepath.Ext(result.Path))
+		switch ext {
+		case ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp":
+			isImage = true
+		case ".mp4", ".webm", ".ogg", ".mov", ".avi":
+			isVideo = true
+		default:
+			unsupported = true
+		}
+
+		// fetch the actual binary content like in RepoBlobRaw
+
+		blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath)
+		contentSrc = blobURL
+		if !rp.config.Core.Dev {
+			contentSrc = markup.GenerateCamoURL(rp.config.Camo.Host, rp.config.Camo.SharedSecret, blobURL)
+		}
+	}
+
 	user := rp.oauth.GetUser(r)
 	rp.pages.RepoBlob(w, pages.RepoBlobParams{
 		LoggedInUser:     user,
@@ -540,6 +566,10 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		BreadCrumbs:      breadcrumbs,
 		ShowRendered:     showRendered,
 		RenderToggle:     renderToggle,
+		Unsupported:      unsupported,
+		IsImage:          isImage,
+		IsVideo:          isVideo,
+		ContentSrc:       contentSrc,
 	})
 }
 
@@ -547,6 +577,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -557,33 +588,41 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		protocol = "https"
 	}
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath))
+	blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.RepoName, ref, filePath)
+	resp, err := http.Get(blobURL)
 	if err != nil {
-		log.Println("failed to reach knotserver", err)
+		log.Println("failed to reach knotserver:", err)
+		rp.pages.Error503(w)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("knotserver returned non-OK status for raw blob %s: %d", blobURL, resp.StatusCode)
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
 		return
 	}
 
+	contentType := resp.Header.Get("Content-Type")
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Error reading response body: %v", err)
+		log.Printf("error reading response body from knotserver: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	var result types.RepoBlobResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse response:", err)
-		return
-	}
-
-	if result.IsBinary {
-		w.Header().Set("Content-Type", "application/octet-stream")
+	if strings.Contains(contentType, "text/plain") {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write(body)
+	} else if strings.HasPrefix(contentType, "image/") || strings.HasPrefix(contentType, "video/") {
+		w.Header().Set("Content-Type", contentType)
+		w.Write(body)
+	} else {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		w.Write([]byte("unsupported content type"))
 		return
 	}
-
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte(result.Contents))
 }
 
 // modify the spindle configured for this repo

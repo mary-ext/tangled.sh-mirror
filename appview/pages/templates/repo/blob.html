@@ -5,9 +5,9 @@
 
     {{ $title := printf "%s at %s &middot; %s" .Path .Ref .RepoInfo.FullName }}
     {{ $url := printf "https://tangled.sh/%s/blob/%s/%s" .RepoInfo.FullName .Ref .Path }}
-    
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
-   
+
 {{ end }}
 
 {{ define "repoContent" }}
@@ -44,18 +44,31 @@
                 <a href="/{{ .RepoInfo.FullName }}/raw/{{ .Ref }}/{{ .Path }}">view raw</a>
                 {{ if .RenderToggle }}
                 <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <a 
-                href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .ShowRendered }}" 
+                <a
+                href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .ShowRendered }}"
                 hx-boost="true"
                 >view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}</a>
                 {{ end }}
             </div>
         </div>
     </div>
-    {{ if .IsBinary }}
+    {{ if and .IsBinary .Unsupported }}
         <p class="text-center text-gray-400 dark:text-gray-500">
-            This is a binary file and will not be displayed.
+            Previews are not supported for this file type.
         </p>
+    {{ else if .IsBinary }}
+        <div class="text-center">
+            {{ if .IsImage }}
+                <img src="{{ .ContentSrc }}"
+                     alt="{{ .Path }}"
+                     class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded" />
+            {{ else if .IsVideo }}
+                <video controls class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded">
+                    <source src="{{ .ContentSrc }}">
+                    Your browser does not support the video tag.
+                </video>
+            {{ end }}
+        </div>
     {{ else }}
     <div class="overflow-auto relative">
         {{ if .ShowRendered }}
