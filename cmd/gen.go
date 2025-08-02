@@ -40,6 +40,7 @@ func main() {
 		tangled.PublicKey{},
 		tangled.Repo{},
 		tangled.RepoArtifact{},
+		tangled.RepoCollaborator{},
 		tangled.RepoIssue{},
 		tangled.RepoIssueComment{},
 		tangled.RepoIssueState{},
