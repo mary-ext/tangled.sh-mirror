@@ -52,6 +52,19 @@ func (j *JetstreamClient) AddDid(did string) {
 	j.mu.Unlock()
 }
 
+func (j *JetstreamClient) RemoveDid(did string) {
+	if did == "" {
+		return
+	}
+
+	if j.logDids {
+		j.l.Info("removing did from in-memory filter", "did", did)
+	}
+	j.mu.Lock()
+	delete(j.wantedDids, did)
+	j.mu.Unlock()
+}
+
 type processor func(context.Context, *models.Event) error
 
 func (j *JetstreamClient) withDidFilter(processFunc processor) processor {
