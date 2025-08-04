@@ -653,7 +653,8 @@ func (f filter) Condition() string {
 	// if we have `FilterIn(k, [1, 2, 3])`, compile it down to `k in (?, ?, ?)`
 	if kind == reflect.Slice || kind == reflect.Array {
 		if rv.Len() == 0 {
-			panic(fmt.Sprintf("empty slice passed to %q filter on %s", f.cmp, f.key))
+			// always false
+			return "1 = 0"
 		}
 
 		placeholders := make([]string, rv.Len())
@@ -672,7 +673,7 @@ func (f filter) Arg() []any {
 	kind := rv.Kind()
 	if kind == reflect.Slice || kind == reflect.Array {
 		if rv.Len() == 0 {
-			panic(fmt.Sprintf("empty slice passed to %q filter on %s", f.cmp, f.key))
+			return nil
 		}
 
 		out := make([]any, rv.Len())
