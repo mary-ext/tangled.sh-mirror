@@ -578,6 +578,61 @@ func Make(dbPath string) (*DB, error) {
 		return nil
 	})
 
+	// recreate and add rkey + created columns with default constraint
+	runMigration(db, "rework-collaborators-table", func(tx *sql.Tx) error {
+		// create new table
+		// - repo_at instead of repo integer
+		// - rkey field
+		// - created field
+		_, err := tx.Exec(`
+			create table collaborators_new (
+				-- identifiers for the record
+				id integer primary key autoincrement,
+				did text not null,
+				rkey text,
+
+				-- content
+				subject_did text not null,
+				repo_at text not null,
+
+				-- meta
+				created text default (strftime('%y-%m-%dt%h:%m:%sz', 'now')),
+
+				-- constraints
+				foreign key (repo_at) references repos(at_uri) on delete cascade
+			)
+		`)
+		if err != nil {
+			return err
+		}
+
+		// copy data
+		_, err = tx.Exec(`
+			insert into collaborators_new (id, did, rkey, subject_did, repo_at)
+			select
+				c.id,
+				r.did,
+				'',
+				c.did,
+				r.at_uri
+			from collaborators c
+			join repos r on c.repo = r.id
+		`)
+		if err != nil {
+			return err
+		}
+
+		// drop old table
+		_, err = tx.Exec(`drop table collaborators`)
+		if err != nil {
+			return err
+		}
+
+		// rename new table
+		_, err = tx.Exec(`alter table collaborators_new rename to collaborators`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 
