@@ -105,7 +105,7 @@
                     </span>
 
                     {{ $pipeline := index $.Pipelines .LatestSha }}
-                    {{ if $pipeline }}
+                    {{ if and $pipeline $pipeline.Id }}
                       <span class="before:content-['·']"></span>
                       {{ template "repo/pipelines/fragments/pipelineSymbol" $pipeline }}
                     {{ end }}
