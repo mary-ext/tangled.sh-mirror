@@ -128,8 +128,8 @@ in
 
       system.activationScripts.gitConfig = let
         setMotd =
-          if cfg.motdFile != null && cfg.motd != null then
-            throw "motdFile and motd cannot be both set"
+          if cfg.motdFile != null && cfg.motd != null
+          then throw "motdFile and motd cannot be both set"
           else ''
             ${optionalString (cfg.motdFile != null) "cat ${cfg.motdFile} > ${cfg.stateDir}/motd"}
             ${optionalString (cfg.motd != null) ''printf "${cfg.motd}" > ${cfg.stateDir}/motd''}
