@@ -111,6 +111,7 @@ func Run(ctx context.Context) error {
 	collections := []string{
 		tangled.SpindleMemberNSID,
 		tangled.RepoNSID,
+		tangled.RepoCollaboratorNSID,
 	}
 	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, logger, d, true, true)
 	if err != nil {

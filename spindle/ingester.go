@@ -8,9 +8,15 @@ import (
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/eventconsumer"
+	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/bluesky-social/jetstream/pkg/models"
+	securejoin "github.com/cyphar/filepath-securejoin"
 )
 
 type Ingester func(ctx context.Context, e *models.Event) error
@@ -35,6 +41,8 @@ func (s *Spindle) ingest() Ingester {
 			s.ingestMember(ctx, e)
 		case tangled.RepoNSID:
 			s.ingestRepo(ctx, e)
+		case tangled.RepoCollaboratorNSID:
+			s.ingestCollaborator(ctx, e)
 		}
 
 		return err
@@ -143,4 +151,99 @@ func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
 
 	}
 	return nil
+}
+
+func (s *Spindle) ingestCollaborator(ctx context.Context, e *models.Event) error {
+	var err error
+
+	l := s.l.With("component", "ingester", "record", tangled.RepoCollaboratorNSID, "did", e.Did)
+
+	l.Info("ingesting collaborator record")
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		raw := e.Commit.Record
+		record := tangled.RepoCollaborator{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			l.Error("invalid record", "error", err)
+			return err
+		}
+
+		resolver := idresolver.DefaultResolver()
+
+		subjectId, err := resolver.ResolveIdent(ctx, record.Subject)
+		if err != nil || subjectId.Handle.IsInvalidHandle() {
+			return err
+		}
+
+		repoAt, err := syntax.ParseATURI(record.Repo)
+		if err != nil {
+			l.Info("rejecting record, invalid repoAt", "repoAt", record.Repo)
+			return nil
+		}
+
+		// TODO: get rid of this entirely
+		// resolve this aturi to extract the repo record
+		owner, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
+		if err != nil || owner.Handle.IsInvalidHandle() {
+			return fmt.Errorf("failed to resolve handle: %w", err)
+		}
+
+		xrpcc := xrpc.Client{
+			Host: owner.PDSEndpoint(),
+		}
+
+		resp, err := comatproto.RepoGetRecord(ctx, &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
+		if err != nil {
+			return err
+		}
+
+		repo := resp.Value.Val.(*tangled.Repo)
+		didSlashRepo, _ := securejoin.SecureJoin(owner.DID.String(), repo.Name)
+
+		// check perms for this user
+		if ok, err := s.e.IsCollaboratorInviteAllowed(owner.DID.String(), rbac.ThisServer, didSlashRepo); !ok || err != nil {
+			return fmt.Errorf("insufficient permissions: %w", err)
+		}
+
+		// add collaborator to rbac
+		if err := s.e.AddCollaborator(record.Subject, rbac.ThisServer, didSlashRepo); err != nil {
+			l.Error("failed to add repo to enforcer", "error", err)
+			return fmt.Errorf("failed to add repo: %w", err)
+		}
+
+		return nil
+	}
+	return nil
+}
+
+func (s *Spindle) fetchAndAddCollaborators(ctx context.Context, owner *identity.Identity, didSlashRepo string) error {
+	l := s.l.With("component", "ingester", "handler", "fetchAndAddCollaborators")
+
+	l.Info("fetching and adding existing collaborators")
+
+	xrpcc := xrpc.Client{
+		Host: owner.PDSEndpoint(),
+	}
+
+	resp, err := comatproto.RepoListRecords(ctx, &xrpcc, tangled.RepoCollaboratorNSID, "", 50, owner.DID.String(), false)
+	if err != nil {
+		return err
+	}
+
+	var errs error
+	for _, r := range resp.Records {
+		if r == nil {
+			continue
+		}
+		record := r.Value.Val.(*tangled.RepoCollaborator)
+
+		if err := s.e.AddCollaborator(record.Subject, rbac.ThisServer, didSlashRepo); err != nil {
+			l.Error("failed to add repo to enforcer", "error", err)
+			errors.Join(errs, fmt.Errorf("failed to add repo: %w", err))
+		}
+	}
+
+	return errs
 }

@@ -213,6 +213,56 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 	return h.db.InsertEvent(event, h.n)
 }
 
+// duplicated from add collaborator
+func (h *Handle) processCollaborator(ctx context.Context, did string, record tangled.RepoCollaborator) error {
+	repoAt, err := syntax.ParseATURI(record.Repo)
+	if err != nil {
+		return err
+	}
+
+	resolver := idresolver.DefaultResolver()
+
+	subjectId, err := resolver.ResolveIdent(ctx, record.Subject)
+	if err != nil || subjectId.Handle.IsInvalidHandle() {
+		return err
+	}
+
+	// TODO: fix this for good, we need to fetch the record here unfortunately
+	// resolve this aturi to extract the repo record
+	owner, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
+	if err != nil || owner.Handle.IsInvalidHandle() {
+		return fmt.Errorf("failed to resolve handle: %w", err)
+	}
+
+	xrpcc := xrpc.Client{
+		Host: owner.PDSEndpoint(),
+	}
+
+	resp, err := comatproto.RepoGetRecord(ctx, &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
+	if err != nil {
+		return err
+	}
+
+	repo := resp.Value.Val.(*tangled.Repo)
+	didSlashRepo, _ := securejoin.SecureJoin(owner.DID.String(), repo.Name)
+
+	// check perms for this user
+	if ok, err := h.e.IsCollaboratorInviteAllowed(owner.DID.String(), rbac.ThisServer, didSlashRepo); !ok || err != nil {
+		return fmt.Errorf("insufficient permissions: %w", err)
+	}
+
+	if err := h.db.AddDid(subjectId.DID.String()); err != nil {
+		return err
+	}
+	h.jc.AddDid(subjectId.DID.String())
+
+	if err := h.e.AddCollaborator(subjectId.DID.String(), rbac.ThisServer, didSlashRepo); err != nil {
+		return err
+	}
+
+	return h.fetchAndAddKeys(ctx, subjectId.DID.String())
+}
+
 func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 	l := log.FromContext(ctx)
 
@@ -292,6 +342,7 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		if err := h.processKnotMember(ctx, did, record); err != nil {
 			return fmt.Errorf("failed to process knot member: %w", err)
 		}
+
 	case tangled.RepoPullNSID:
 		var record tangled.RepoPull
 		if err := json.Unmarshal(raw, &record); err != nil {
@@ -300,6 +351,16 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		if err := h.processPull(ctx, did, record); err != nil {
 			return fmt.Errorf("failed to process knot member: %w", err)
 		}
+
+	case tangled.RepoCollaboratorNSID:
+		var record tangled.RepoCollaborator
+		if err := json.Unmarshal(raw, &record); err != nil {
+			return fmt.Errorf("failed to unmarshal record: %w", err)
+		}
+		if err := h.processCollaborator(ctx, did, record); err != nil {
+			return fmt.Errorf("failed to process knot member: %w", err)
+		}
+
 	}
 
 	return err

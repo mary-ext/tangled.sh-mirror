@@ -76,6 +76,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 		tangled.PublicKeyNSID,
 		tangled.KnotMemberNSID,
 		tangled.RepoPullNSID,
+		tangled.RepoCollaboratorNSID,
 	}, nil, logger, db, true, c.Server.LogDids)
 	if err != nil {
 		logger.Error("failed to setup jetstream", "error", err)
