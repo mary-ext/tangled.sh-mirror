@@ -1,7 +1,7 @@
 {{ define "repo/issues/fragments/editIssueComment" }}
   {{ with .Comment }}
   <div id="comment-container-{{.CommentId}}">
-    <div class="flex items-center gap-2 mb-2 text-gray-500 text-sm">
+    <div class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400 text-sm flex-wrap">
       {{ $owner := didOrHandle $.LoggedInUser.Did $.LoggedInUser.Handle }}
       <a href="/{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
 
@@ -9,15 +9,13 @@
       {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
       {{ if $isIssueAuthor }}
       <span class="before:content-['·']"></span>
-      <span class="rounded bg-gray-100 text-black font-mono px-2 mx-1/2 inline-flex items-center">
         author
-      </span>
       {{ end }}
 
       <span class="before:content-['·']"></span>
       <a
           href="#{{ .CommentId }}"
-          class="text-gray-500 hover:text-gray-500 hover:underline no-underline"
+          class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-400 hover:underline no-underline"
           id="{{ .CommentId }}">
         {{ template "repo/fragments/time" .Created }}
       </a>

@@ -5,6 +5,13 @@
       {{ $owner := index $.DidHandleMap .OwnerDid }}
       {{ template "user/fragments/picHandleLink" $owner }}
 
+      <!-- show user "hats" -->
+      {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
+      {{ if $isIssueAuthor }}
+        <span class="before:content-['·']"></span>
+        author
+      {{ end }}
+
      <span class="before:content-['·']"></span>
       <a
           href="#{{ .CommentId }}"
@@ -18,14 +25,6 @@
           {{ template "repo/fragments/time" .Created }}
         {{ end }}
       </a>
-
-      <!-- show user "hats" -->
-      {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
-      {{ if $isIssueAuthor }}
-      <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
-        author
-      </span>
-      {{ end }}
 
       {{ $isCommentOwner := and $.LoggedInUser (eq $.LoggedInUser.Did .OwnerDid) }}
       {{ if and $isCommentOwner (not .Deleted) }}
