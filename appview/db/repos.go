@@ -550,14 +550,6 @@ func GetForkByDid(e Execer, did string, name string) (*Repo, error) {
 	return &repo, nil
 }
 
-func AddCollaborator(e Execer, collaborator, repoOwnerDid, repoName, repoKnot string) error {
-	_, err := e.Exec(
-		`insert into collaborators (did, repo)
-		values (?, (select id from repos where did = ? and name = ? and knot = ?));`,
-		collaborator, repoOwnerDid, repoName, repoKnot)
-	return err
-}
-
 func UpdateDescription(e Execer, repoAt, newDescription string) error {
 	_, err := e.Exec(
 		`update repos set description = ? where at_uri = ?`, newDescription, repoAt)
@@ -568,32 +560,6 @@ func UpdateSpindle(e Execer, repoAt, spindle string) error {
 	_, err := e.Exec(
 		`update repos set spindle = ? where at_uri = ?`, spindle, repoAt)
 	return err
-}
-
-func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
-	rows, err := e.Query(`select repo from collaborators where did = ?`, collaborator)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var repoIds []int
-	for rows.Next() {
-		var id int
-		err := rows.Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-		repoIds = append(repoIds, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	if repoIds == nil {
-		return nil, nil
-	}
-
-	return GetRepos(e, 0, FilterIn("id", repoIds))
 }
 
 type RepoStats struct {

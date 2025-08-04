@@ -39,6 +39,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
@@ -751,11 +752,40 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		fail("You seem to be adding yourself as a collaborator.", nil)
 		return
 	}
-
 	l = l.With("collaborator", collaboratorIdent.Handle)
 	l = l.With("knot", f.Knot)
-	l.Info("adding to knot")
 
+	// announce this relation into the firehose, store into owners' pds
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		fail("Failed to write to PDS.", err)
+		return
+	}
+
+	// emit a record
+	currentUser := rp.oauth.GetUser(r)
+	rkey := tid.TID()
+	createdAt := time.Now()
+	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoCollaboratorNSID,
+		Repo:       currentUser.Did,
+		Rkey:       rkey,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &tangled.RepoCollaborator{
+				Subject:   collaboratorIdent.DID.String(),
+				Repo:      string(f.RepoAt),
+				CreatedAt: createdAt.Format(time.RFC3339),
+			}},
+	})
+	// invalid record
+	if err != nil {
+		fail("Failed to write record to PDS.", err)
+		return
+	}
+	l = l.With("at-uri", resp.Uri)
+	l.Info("wrote record to PDS")
+
+	l.Info("adding to knot")
 	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
 	if err != nil {
 		fail("Failed to add to knot.", err)
@@ -798,7 +828,13 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.AddCollaborator(rp.db, collaboratorIdent.DID.String(), f.OwnerDid(), f.RepoName, f.Knot)
+	err = db.AddCollaborator(rp.db, db.Collaborator{
+		Did:        syntax.DID(currentUser.Did),
+		Rkey:       rkey,
+		SubjectDid: collaboratorIdent.DID,
+		RepoAt:     f.RepoAt,
+		Created:    createdAt,
+	})
 	if err != nil {
 		fail("Failed to add collaborator.", err)
 		return
