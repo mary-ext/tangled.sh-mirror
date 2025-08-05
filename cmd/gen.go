@@ -50,6 +50,7 @@ func main() {
 		tangled.RepoPullStatus{},
 		tangled.Spindle{},
 		tangled.SpindleMember{},
+		tangled.String{},
 	); err != nil {
 		panic(err)
 	}
