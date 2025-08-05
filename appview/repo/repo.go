@@ -1225,8 +1225,8 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	user := rp.oauth.GetUser(r)
 
-	// all spindles that this user is a member of
-	spindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
+	// all spindles that the repo owner is a member of
+	spindles, err := rp.enforcer.GetSpindlesForUser(f.OwnerDid())
 	if err != nil {
 		log.Println("failed to fetch spindles", err)
 		return
