@@ -443,6 +443,21 @@ func Make(dbPath string) (*DB, error) {
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 		);
 
+		create table if not exists strings (
+			-- identifiers
+			did text not null,
+			rkey text not null,
+
+			-- content
+			filename text not null,
+			description text,
+			content text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			edited text,
+
+			primary key (did, rkey)
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
