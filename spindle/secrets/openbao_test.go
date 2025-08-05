@@ -16,7 +16,6 @@ type MockOpenBaoManager struct {
 	secrets       map[string]UnlockedSecret // key: repo_key format
 	shouldError   bool
 	errorToReturn error
-	stopped       bool
 }
 
 func NewMockOpenBaoManager() *MockOpenBaoManager {
@@ -31,14 +30,6 @@ func (m *MockOpenBaoManager) SetError(err error) {
 func (m *MockOpenBaoManager) ClearError() {
 	m.shouldError = false
 	m.errorToReturn = nil
-}
-
-func (m *MockOpenBaoManager) Stop() {
-	m.stopped = true
-}
-
-func (m *MockOpenBaoManager) IsStopped() bool {
-	return m.stopped
 }
 
 func (m *MockOpenBaoManager) buildKey(repo DidSlashRepo, key string) string {
@@ -118,6 +109,11 @@ func createTestSecretForOpenBao(repo, key, value, createdBy string) UnlockedSecr
 	}
 }
 
+// Test MockOpenBaoManager interface compliance
+func TestMockOpenBaoManagerInterface(t *testing.T) {
+	var _ Manager = (*MockOpenBaoManager)(nil)
+}
+
 func TestOpenBaoManagerInterface(t *testing.T) {
 	var _ Manager = (*OpenBaoManager)(nil)
 }
@@ -125,56 +121,46 @@ func TestOpenBaoManagerInterface(t *testing.T) {
 func TestNewOpenBaoManager(t *testing.T) {
 	tests := []struct {
 		name          string
-		address       string
-		roleID        string
-		secretID      string
+		proxyAddr     string
 		opts          []OpenBaoManagerOpt
 		expectError   bool
 		errorContains string
 	}{
 		{
-			name:          "empty address",
-			address:       "",
-			roleID:        "test-role-id",
-			secretID:      "test-secret-id",
+			name:          "empty proxy address",
+			proxyAddr:     "",
 			opts:          nil,
 			expectError:   true,
-			errorContains: "address cannot be empty",
+			errorContains: "proxy address cannot be empty",
 		},
 		{
-			name:          "empty role_id",
-			address:       "http://localhost:8200",
-			roleID:        "",
-			secretID:      "test-secret-id",
+			name:          "valid proxy address",
+			proxyAddr:     "http://localhost:8200",
 			opts:          nil,
-			expectError:   true,
-			errorContains: "role_id cannot be empty",
+			expectError:   true, // Will fail because no real proxy is running
+			errorContains: "failed to connect to bao proxy",
 		},
 		{
-			name:          "empty secret_id",
-			address:       "http://localhost:8200",
-			roleID:        "test-role-id",
-			secretID:      "",
-			opts:          nil,
-			expectError:   true,
-			errorContains: "secret_id cannot be empty",
+			name:          "with mount path option",
+			proxyAddr:     "http://localhost:8200",
+			opts:          []OpenBaoManagerOpt{WithMountPath("custom-mount")},
+			expectError:   true, // Will fail because no real proxy is running
+			errorContains: "failed to connect to bao proxy",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-			manager, err := NewOpenBaoManager(tt.address, tt.roleID, tt.secretID, logger, tt.opts...)
+			manager, err := NewOpenBaoManager(tt.proxyAddr, logger, tt.opts...)
 
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, manager)
 				assert.Contains(t, err.Error(), tt.errorContains)
 			} else {
-				// For valid configurations, we expect an error during authentication
-				// since we're not connecting to a real OpenBao server
-				assert.Error(t, err)
-				assert.Nil(t, manager)
+				assert.NoError(t, err)
+				assert.NotNil(t, manager)
 			}
 		})
 	}
@@ -251,45 +237,6 @@ func TestWithMountPath(t *testing.T) {
 	opt(manager)
 
 	assert.Equal(t, "custom-mount", manager.mountPath)
-}
-
-func TestOpenBaoManager_Stop(t *testing.T) {
-	// Create a manager with minimal setup
-	manager := &OpenBaoManager{
-		mountPath: "test",
-		stopCh:    make(chan struct{}),
-	}
-
-	// Verify the manager implements Stopper interface
-	var stopper Stopper = manager
-	assert.NotNil(t, stopper)
-
-	// Call Stop and verify it doesn't panic
-	assert.NotPanics(t, func() {
-		manager.Stop()
-	})
-
-	// Verify the channel was closed
-	select {
-	case <-manager.stopCh:
-		// Channel was closed as expected
-	default:
-		t.Error("Expected stop channel to be closed after Stop()")
-	}
-}
-
-func TestOpenBaoManager_StopperInterface(t *testing.T) {
-	manager := &OpenBaoManager{}
-
-	// Verify that OpenBaoManager implements the Stopper interface
-	_, ok := interface{}(manager).(Stopper)
-	assert.True(t, ok, "OpenBaoManager should implement Stopper interface")
-}
-
-// Test MockOpenBaoManager interface compliance
-func TestMockOpenBaoManagerInterface(t *testing.T) {
-	var _ Manager = (*MockOpenBaoManager)(nil)
-	var _ Stopper = (*MockOpenBaoManager)(nil)
 }
 
 func TestMockOpenBaoManager_AddSecret(t *testing.T) {
@@ -563,16 +510,6 @@ func TestMockOpenBaoManager_ErrorHandling(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestMockOpenBaoManager_Stop(t *testing.T) {
-	mock := NewMockOpenBaoManager()
-
-	assert.False(t, mock.IsStopped())
-
-	mock.Stop()
-
-	assert.True(t, mock.IsStopped())
-}
-
 func TestMockOpenBaoManager_Integration(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -625,6 +562,44 @@ func TestMockOpenBaoManager_Integration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := NewMockOpenBaoManager()
 			tt.scenario(t, mock)
+		})
+	}
+}
+
+func TestOpenBaoManager_ProxyConfiguration(t *testing.T) {
+	tests := []struct {
+		name        string
+		proxyAddr   string
+		description string
+	}{
+		{
+			name:        "default_localhost",
+			proxyAddr:   "http://127.0.0.1:8200",
+			description: "Should connect to default localhost proxy",
+		},
+		{
+			name:        "custom_host",
+			proxyAddr:   "http://bao-proxy:8200",
+			description: "Should connect to custom proxy host",
+		},
+		{
+			name:        "https_proxy",
+			proxyAddr:   "https://127.0.0.1:8200",
+			description: "Should connect to HTTPS proxy",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Log("Testing scenario:", tt.description)
+			logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+			// All these will fail because no real proxy is running
+			// but we can test that the configuration is properly accepted
+			manager, err := NewOpenBaoManager(tt.proxyAddr, logger)
+			assert.Error(t, err) // Expected because no real proxy
+			assert.Nil(t, manager)
+			assert.Contains(t, err.Error(), "failed to connect to bao proxy")
 		})
 	}
 }

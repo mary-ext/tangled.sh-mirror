@@ -28,10 +28,8 @@ type Secrets struct {
 }
 
 type OpenBaoConfig struct {
-	Addr     string `env:"ADDR"`
-	RoleID   string `env:"ROLE_ID"`
-	SecretID string `env:"SECRET_ID"`
-	Mount    string `env:"MOUNT, default=spindle"`
+	ProxyAddr string `env:"PROXY_ADDR, default=http://127.0.0.1:8200"`
+	Mount     string `env:"MOUNT, default=spindle"`
 }
 
 type Pipelines struct {
