@@ -17,6 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/signup"
 	"tangled.sh/tangled.sh/core/appview/spindles"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
+	avstrings "tangled.sh/tangled.sh/core/appview/strings"
 	"tangled.sh/tangled.sh/core/log"
 )
 
@@ -136,6 +137,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	})
 
 	r.Mount("/settings", s.SettingsRouter())
+	r.Mount("/strings", s.StringsRouter(mw))
 	r.Mount("/knots", s.KnotsRouter(mw))
 	r.Mount("/spindles", s.SpindlesRouter())
 	r.Mount("/signup", s.SignupRouter())
@@ -199,6 +201,23 @@ func (s *State) KnotsRouter(mw *middleware.Middleware) http.Handler {
 	}
 
 	return knots.Router(mw)
+}
+
+func (s *State) StringsRouter(mw *middleware.Middleware) http.Handler {
+	logger := log.New("strings")
+
+	strs := &avstrings.Strings{
+		Db:         s.db,
+		OAuth:      s.oauth,
+		Pages:      s.pages,
+		Config:     s.config,
+		Enforcer:   s.enforcer,
+		IdResolver: s.idResolver,
+		Knotstream: s.knotstream,
+		Logger:     logger,
+	}
+
+	return strs.Router(mw)
 }
 
 func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
