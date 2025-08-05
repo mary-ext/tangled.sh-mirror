@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -16,10 +15,6 @@ import (
 type OpenBaoManager struct {
 	client    *vault.Client
 	mountPath string
-	roleID    string
-	secretID  string
-	stopCh    chan struct{}
-	tokenMu   sync.RWMutex
 	logger    *slog.Logger
 }
 
@@ -31,37 +26,25 @@ func WithMountPath(mountPath string) OpenBaoManagerOpt {
 	}
 }
 
-func NewOpenBaoManager(address, roleID, secretID string, logger *slog.Logger, opts ...OpenBaoManagerOpt) (*OpenBaoManager, error) {
-	if address == "" {
-		return nil, fmt.Errorf("address cannot be empty")
-	}
-	if roleID == "" {
-		return nil, fmt.Errorf("role_id cannot be empty")
-	}
-	if secretID == "" {
-		return nil, fmt.Errorf("secret_id cannot be empty")
+// NewOpenBaoManager creates a new OpenBao manager that connects to a Bao Proxy
+// The proxyAddress should point to the local Bao Proxy (e.g., "http://127.0.0.1:8200")
+// The proxy handles all authentication automatically via Auto-Auth
+func NewOpenBaoManager(proxyAddress string, logger *slog.Logger, opts ...OpenBaoManagerOpt) (*OpenBaoManager, error) {
+	if proxyAddress == "" {
+		return nil, fmt.Errorf("proxy address cannot be empty")
 	}
 
 	config := vault.DefaultConfig()
-	config.Address = address
+	config.Address = proxyAddress
 
 	client, err := vault.NewClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create openbao client: %w", err)
 	}
 
-	// Authenticate using AppRole
-	err = authenticateAppRole(client, roleID, secretID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to authenticate with AppRole: %w", err)
-	}
-
 	manager := &OpenBaoManager{
 		client:    client,
 		mountPath: "spindle", // default KV v2 mount path
-		roleID:    roleID,
-		secretID:  secretID,
-		stopCh:    make(chan struct{}),
 		logger:    logger,
 	}
 
@@ -69,136 +52,41 @@ func NewOpenBaoManager(address, roleID, secretID string, logger *slog.Logger, op
 		opt(manager)
 	}
 
-	go manager.tokenRenewalLoop()
+	if err := manager.testConnection(); err != nil {
+		return nil, fmt.Errorf("failed to connect to bao proxy: %w", err)
+	}
 
+	logger.Info("successfully connected to bao proxy", "address", proxyAddress)
 	return manager, nil
 }
 
-// authenticateAppRole authenticates the client using AppRole method
-func authenticateAppRole(client *vault.Client, roleID, secretID string) error {
-	authData := map[string]interface{}{
-		"role_id":   roleID,
-		"secret_id": secretID,
-	}
+// testConnection verifies that we can connect to the proxy
+func (v *OpenBaoManager) testConnection() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	resp, err := client.Logical().Write("auth/approle/login", authData)
+	// try token self-lookup as a quick way to verify proxy works
+	// and is authenticated
+	_, err := v.client.Auth().Token().LookupSelfWithContext(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to login with AppRole: %w", err)
+		return fmt.Errorf("proxy connection test failed: %w", err)
 	}
 
-	if resp == nil || resp.Auth == nil {
-		return fmt.Errorf("no auth info returned from AppRole login")
-	}
-
-	client.SetToken(resp.Auth.ClientToken)
-	return nil
-}
-
-// stop stops the token renewal goroutine
-func (v *OpenBaoManager) Stop() {
-	close(v.stopCh)
-}
-
-// tokenRenewalLoop runs in a background goroutine to automatically renew or re-authenticate tokens
-func (v *OpenBaoManager) tokenRenewalLoop() {
-	ticker := time.NewTicker(30 * time.Second) // Check every 30 seconds
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-v.stopCh:
-			return
-		case <-ticker.C:
-			ctx := context.Background()
-			if err := v.ensureValidToken(ctx); err != nil {
-				v.logger.Error("openbao token renewal failed", "error", err)
-			}
-		}
-	}
-}
-
-// ensureValidToken checks if the current token is valid and renews or re-authenticates if needed
-func (v *OpenBaoManager) ensureValidToken(ctx context.Context) error {
-	v.tokenMu.Lock()
-	defer v.tokenMu.Unlock()
-
-	// check current token info
-	tokenInfo, err := v.client.Auth().Token().LookupSelf()
-	if err != nil {
-		// token is invalid, need to re-authenticate
-		v.logger.Warn("token lookup failed, re-authenticating", "error", err)
-		return v.reAuthenticate()
-	}
-
-	if tokenInfo == nil || tokenInfo.Data == nil {
-		return v.reAuthenticate()
-	}
-
-	// check TTL
-	ttlRaw, ok := tokenInfo.Data["ttl"]
-	if !ok {
-		return v.reAuthenticate()
-	}
-
-	var ttl int64
-	switch t := ttlRaw.(type) {
-	case int64:
-		ttl = t
-	case float64:
-		ttl = int64(t)
-	case int:
-		ttl = int64(t)
-	default:
-		return v.reAuthenticate()
-	}
-
-	// if TTL is less than 5 minutes, try to renew
-	if ttl < 300 {
-		v.logger.Info("token ttl low, attempting renewal", "ttl_seconds", ttl)
-
-		renewResp, err := v.client.Auth().Token().RenewSelf(3600) // 1h
-		if err != nil {
-			v.logger.Warn("token renewal failed, re-authenticating", "error", err)
-			return v.reAuthenticate()
-		}
-
-		if renewResp == nil || renewResp.Auth == nil {
-			v.logger.Warn("token renewal returned no auth info, re-authenticating")
-			return v.reAuthenticate()
-		}
-
-		v.logger.Info("token renewed successfully", "new_ttl_seconds", renewResp.Auth.LeaseDuration)
-	}
-
-	return nil
-}
-
-// reAuthenticate performs a fresh authentication using AppRole
-func (v *OpenBaoManager) reAuthenticate() error {
-	v.logger.Info("re-authenticating with approle")
-
-	err := authenticateAppRole(v.client, v.roleID, v.secretID)
-	if err != nil {
-		return fmt.Errorf("re-authentication failed: %w", err)
-	}
-
-	v.logger.Info("re-authentication successful")
 	return nil
 }
 
 func (v *OpenBaoManager) AddSecret(ctx context.Context, secret UnlockedSecret) error {
-	v.tokenMu.RLock()
-	defer v.tokenMu.RUnlock()
 	if err := ValidateKey(secret.Key); err != nil {
 		return err
 	}
 
 	secretPath := v.buildSecretPath(secret.Repo, secret.Key)
+	v.logger.Debug("adding secret", "repo", secret.Repo, "key", secret.Key, "path", secretPath)
 
-	fmt.Println(v.mountPath, secretPath)
-
+	// Check if secret already exists
 	existing, err := v.client.KVv2(v.mountPath).Get(ctx, secretPath)
 	if err == nil && existing != nil {
+		v.logger.Debug("secret already exists", "path", secretPath)
 		return ErrKeyAlreadyPresent
 	}
 
@@ -210,19 +98,35 @@ func (v *OpenBaoManager) AddSecret(ctx context.Context, secret UnlockedSecret) e
 		"created_by": secret.CreatedBy.String(),
 	}
 
-	_, err = v.client.KVv2(v.mountPath).Put(ctx, secretPath, secretData)
+	v.logger.Debug("writing secret to openbao", "path", secretPath, "mount", v.mountPath)
+	resp, err := v.client.KVv2(v.mountPath).Put(ctx, secretPath, secretData)
 	if err != nil {
+		v.logger.Error("failed to write secret", "path", secretPath, "error", err)
 		return fmt.Errorf("failed to store secret in openbao: %w", err)
 	}
 
+	v.logger.Debug("secret write response", "version", resp.VersionMetadata.Version, "created_time", resp.VersionMetadata.CreatedTime)
+
+	v.logger.Debug("verifying secret was written", "path", secretPath)
+	readBack, err := v.client.KVv2(v.mountPath).Get(ctx, secretPath)
+	if err != nil {
+		v.logger.Error("failed to verify secret after write", "path", secretPath, "error", err)
+		return fmt.Errorf("secret not found after writing to %s/%s: %w", v.mountPath, secretPath, err)
+	}
+
+	if readBack == nil || readBack.Data == nil {
+		v.logger.Error("secret verification returned empty data", "path", secretPath)
+		return fmt.Errorf("secret verification failed: empty data returned for %s/%s", v.mountPath, secretPath)
+	}
+
+	v.logger.Info("secret added and verified successfully", "repo", secret.Repo, "key", secret.Key, "version", readBack.VersionMetadata.Version)
 	return nil
 }
 
 func (v *OpenBaoManager) RemoveSecret(ctx context.Context, secret Secret[any]) error {
-	v.tokenMu.RLock()
-	defer v.tokenMu.RUnlock()
 	secretPath := v.buildSecretPath(secret.Repo, secret.Key)
 
+	// check if secret exists
 	existing, err := v.client.KVv2(v.mountPath).Get(ctx, secretPath)
 	if err != nil || existing == nil {
 		return ErrKeyNotFound
@@ -233,15 +137,14 @@ func (v *OpenBaoManager) RemoveSecret(ctx context.Context, secret Secret[any]) e
 		return fmt.Errorf("failed to delete secret from openbao: %w", err)
 	}
 
+	v.logger.Debug("secret removed successfully", "repo", secret.Repo, "key", secret.Key)
 	return nil
 }
 
 func (v *OpenBaoManager) GetSecretsLocked(ctx context.Context, repo DidSlashRepo) ([]LockedSecret, error) {
-	v.tokenMu.RLock()
-	defer v.tokenMu.RUnlock()
 	repoPath := v.buildRepoPath(repo)
 
-	secretsList, err := v.client.Logical().List(fmt.Sprintf("%s/metadata/%s", v.mountPath, repoPath))
+	secretsList, err := v.client.Logical().ListWithContext(ctx, fmt.Sprintf("%s/metadata/%s", v.mountPath, repoPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "no secret found") || strings.Contains(err.Error(), "no handler for route") {
 			return []LockedSecret{}, nil
@@ -266,10 +169,11 @@ func (v *OpenBaoManager) GetSecretsLocked(ctx context.Context, repo DidSlashRepo
 			continue
 		}
 
-		secretPath := path.Join(repoPath, key)
+		secretPath := fmt.Sprintf("%s/%s", repoPath, key)
 		secretData, err := v.client.KVv2(v.mountPath).Get(ctx, secretPath)
 		if err != nil {
-			continue // Skip secrets we can't read
+			v.logger.Warn("failed to read secret metadata", "path", secretPath, "error", err)
+			continue
 		}
 
 		if secretData == nil || secretData.Data == nil {
@@ -308,15 +212,14 @@ func (v *OpenBaoManager) GetSecretsLocked(ctx context.Context, repo DidSlashRepo
 		secrets = append(secrets, secret)
 	}
 
+	v.logger.Debug("retrieved locked secrets", "repo", repo, "count", len(secrets))
 	return secrets, nil
 }
 
 func (v *OpenBaoManager) GetSecretsUnlocked(ctx context.Context, repo DidSlashRepo) ([]UnlockedSecret, error) {
-	v.tokenMu.RLock()
-	defer v.tokenMu.RUnlock()
 	repoPath := v.buildRepoPath(repo)
 
-	secretsList, err := v.client.Logical().List(fmt.Sprintf("%s/metadata/%s", v.mountPath, repoPath))
+	secretsList, err := v.client.Logical().ListWithContext(ctx, fmt.Sprintf("%s/metadata/%s", v.mountPath, repoPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "no secret found") || strings.Contains(err.Error(), "no handler for route") {
 			return []UnlockedSecret{}, nil
@@ -341,9 +244,10 @@ func (v *OpenBaoManager) GetSecretsUnlocked(ctx context.Context, repo DidSlashRe
 			continue
 		}
 
-		secretPath := path.Join(repoPath, key)
+		secretPath := fmt.Sprintf("%s/%s", repoPath, key)
 		secretData, err := v.client.KVv2(v.mountPath).Get(ctx, secretPath)
 		if err != nil {
+			v.logger.Warn("failed to read secret", "path", secretPath, "error", err)
 			continue
 		}
 
@@ -355,7 +259,8 @@ func (v *OpenBaoManager) GetSecretsUnlocked(ctx context.Context, repo DidSlashRe
 
 		valueStr, ok := data["value"].(string)
 		if !ok {
-			continue // skip secrets without values
+			v.logger.Warn("secret missing value", "path", secretPath)
+			continue
 		}
 
 		createdAtStr, ok := data["created_at"].(string)
@@ -389,10 +294,11 @@ func (v *OpenBaoManager) GetSecretsUnlocked(ctx context.Context, repo DidSlashRe
 		secrets = append(secrets, secret)
 	}
 
+	v.logger.Debug("retrieved unlocked secrets", "repo", repo, "count", len(secrets))
 	return secrets, nil
 }
 
-// buildRepoPath creates an OpenBao path for a repository
+// buildRepoPath creates a safe path for a repository
 func (v *OpenBaoManager) buildRepoPath(repo DidSlashRepo) string {
 	// convert DidSlashRepo to a safe path by replacing special characters
 	repoPath := strings.ReplaceAll(string(repo), "/", "_")
@@ -401,7 +307,7 @@ func (v *OpenBaoManager) buildRepoPath(repo DidSlashRepo) string {
 	return fmt.Sprintf("repos/%s", repoPath)
 }
 
-// buildSecretPath creates an OpenBao path for a specific secret
+// buildSecretPath creates a path for a specific secret
 func (v *OpenBaoManager) buildSecretPath(repo DidSlashRepo, key string) string {
 	return path.Join(v.buildRepoPath(repo), key)
 }

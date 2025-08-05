@@ -71,26 +71,18 @@ func Run(ctx context.Context) error {
 	var vault secrets.Manager
 	switch cfg.Server.Secrets.Provider {
 	case "openbao":
-		if cfg.Server.Secrets.OpenBao.Addr == "" {
-			return fmt.Errorf("openbao address is required when using openbao secrets provider")
-		}
-		if cfg.Server.Secrets.OpenBao.RoleID == "" {
-			return fmt.Errorf("openbao role_id is required when using openbao secrets provider")
-		}
-		if cfg.Server.Secrets.OpenBao.SecretID == "" {
-			return fmt.Errorf("openbao secret_id is required when using openbao secrets provider")
+		if cfg.Server.Secrets.OpenBao.ProxyAddr == "" {
+			return fmt.Errorf("openbao proxy address is required when using openbao secrets provider")
 		}
 		vault, err = secrets.NewOpenBaoManager(
-			cfg.Server.Secrets.OpenBao.Addr,
-			cfg.Server.Secrets.OpenBao.RoleID,
-			cfg.Server.Secrets.OpenBao.SecretID,
+			cfg.Server.Secrets.OpenBao.ProxyAddr,
 			logger,
 			secrets.WithMountPath(cfg.Server.Secrets.OpenBao.Mount),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to setup openbao secrets provider: %w", err)
 		}
-		logger.Info("using openbao secrets provider", "address", cfg.Server.Secrets.OpenBao.Addr, "mount", cfg.Server.Secrets.OpenBao.Mount)
+		logger.Info("using openbao secrets provider", "proxy_address", cfg.Server.Secrets.OpenBao.ProxyAddr, "mount", cfg.Server.Secrets.OpenBao.Mount)
 	case "sqlite", "":
 		vault, err = secrets.NewSQLiteManager(cfg.Server.DBPath, secrets.WithTableName("secrets"))
 		if err != nil {

@@ -1,15 +1,22 @@
-# KV v2 data operations  
-path "spindle/data/*" {
+# Allow full access to the spindle KV mount
+path "spindle/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
 
-# KV v2 metadata operations (needed for listing)
+path "spindle/data/*" {
+  capabilities = ["create", "read", "update", "delete"]
+}
+
 path "spindle/metadata/*" {
   capabilities = ["list", "read", "delete"]
 }
 
-# Root path access (needed for mount-level operations)
-path "spindle/*" {
-  capabilities = ["list"]
+# Allow listing mounts (for connection testing)
+path "sys/mounts" {
+  capabilities = ["read"]
 }
 
+# Allow token self-lookup (for health checks)
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
