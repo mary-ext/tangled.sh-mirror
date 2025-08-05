@@ -31,6 +31,7 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -1142,6 +1143,79 @@ type WorkflowParams struct {
 func (p *Pages) Workflow(w io.Writer, params WorkflowParams) error {
 	params.Active = "pipelines"
 	return p.executeRepo("repo/pipelines/workflow", w, params)
+}
+
+type PutStringParams struct {
+	LoggedInUser *oauth.User
+	Action       string
+
+	// this is supplied in the case of editing an existing string
+	String db.String
+}
+
+func (p *Pages) PutString(w io.Writer, params PutStringParams) error {
+	return p.execute("strings/put", w, params)
+}
+
+type StringsDashboardParams struct {
+	LoggedInUser *oauth.User
+	Card         ProfileCard
+	Strings      []db.String
+}
+
+func (p *Pages) StringsDashboard(w io.Writer, params StringsDashboardParams) error {
+	return p.execute("strings/dashboard", w, params)
+}
+
+type SingleStringParams struct {
+	LoggedInUser     *oauth.User
+	ShowRendered     bool
+	RenderToggle     bool
+	RenderedContents template.HTML
+	String           db.String
+	Stats            db.StringStats
+	Owner            identity.Identity
+}
+
+func (p *Pages) SingleString(w io.Writer, params SingleStringParams) error {
+	var style *chroma.Style = styles.Get("catpuccin-latte")
+
+	if params.ShowRendered {
+		switch markup.GetFormat(params.String.Filename) {
+		case markup.FormatMarkdown:
+			p.rctx.RendererType = markup.RendererTypeDefault
+			htmlString := p.rctx.RenderMarkdown(params.String.Contents)
+			params.RenderedContents = template.HTML(p.rctx.Sanitize(htmlString))
+		}
+	}
+
+	c := params.String.Contents
+	formatter := chromahtml.New(
+		chromahtml.InlineCode(false),
+		chromahtml.WithLineNumbers(true),
+		chromahtml.WithLinkableLineNumbers(true, "L"),
+		chromahtml.Standalone(false),
+		chromahtml.WithClasses(true),
+	)
+
+	lexer := lexers.Get(filepath.Base(params.String.Filename))
+	if lexer == nil {
+		lexer = lexers.Fallback
+	}
+
+	iterator, err := lexer.Tokenise(nil, c)
+	if err != nil {
+		return fmt.Errorf("chroma tokenize: %w", err)
+	}
+
+	var code bytes.Buffer
+	err = formatter.Format(&code, style, iterator)
+	if err != nil {
+		return fmt.Errorf("chroma format: %w", err)
+	}
+
+	params.String.Contents = code.String()
+	return p.execute("strings/string", w, params)
 }
 
 func (p *Pages) Static() http.Handler {
