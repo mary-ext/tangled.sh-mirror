@@ -20,34 +20,39 @@
     <div class="col-span-1 md:col-span-2">
       <h2 class="text-sm pb-2 uppercase font-bold">Spindle</h2>
       <p class="text-gray-500 dark:text-gray-400">
-        Choose a spindle to execute your workflows on. Spindles can be
-        selfhosted,
+        Choose a spindle to execute your workflows on. Only repository owners
+        can configure spindles. Spindles can be selfhosted,
         <a class="text-gray-500 dark:text-gray-400 underline" href="https://tangled.sh/@tangled.sh/core/blob/master/docs/spindle/hosting.md">
           click to learn more.
         </a>
       </p>
     </div>
-    <form hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle" class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
-      <select
-        id="spindle" 
-        name="spindle"
-        required 
-        class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
-        {{ if not $.RepoInfo.Roles.IsOwner }}disabled{{ end }}>
-        <option value="" disabled selected >
-          Choose a spindle
-        </option>
-        {{ range $.Spindles }}
-          <option value="{{ . }}" class="py-1" {{ if eq . $.CurrentSpindle }}selected{{ end }}>
-            {{ . }}
+    {{ if not $.RepoInfo.Roles.IsOwner }}
+      <div class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
+        {{ or $.CurrentSpindle "No spindle configured" }}
+      </div>
+    {{ else }}
+      <form hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle" class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
+        <select
+          id="spindle" 
+          name="spindle"
+          required 
+          class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+          <option value="" disabled>
+            Choose a spindle
           </option>
-        {{ end }}
-      </select>
-      <button class="btn flex gap-2 items-center" type="submit" {{ if not $.RepoInfo.Roles.IsOwner }}disabled{{ end }}>
-        {{ i "check" "size-4" }}
-        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-      </button>
-    </form>
+          {{ range $.Spindles }}
+            <option value="{{ . }}" class="py-1" {{ if eq . $.CurrentSpindle }}selected{{ end }}>
+              {{ . }}
+            </option>
+          {{ end }}
+        </select>
+        <button class="btn flex gap-2 items-center" type="submit" {{ if not $.RepoInfo.Roles.IsOwner }}disabled{{ end }}>
+          {{ i "check" "size-4" }}
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </button>
+      </form>
+    {{ end }}
   </div>
 {{ end }}
 

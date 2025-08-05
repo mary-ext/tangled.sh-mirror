@@ -316,7 +316,6 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 	defer func() {
 		eventTime := event.TimeUS
 		lastTimeUs := eventTime + 1
-		fmt.Println("lastTimeUs", lastTimeUs)
 		if err := h.db.SaveLastTimeUs(lastTimeUs); err != nil {
 			err = fmt.Errorf("(deferred) failed to save last time us: %w", err)
 		}

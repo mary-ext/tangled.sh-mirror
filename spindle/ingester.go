@@ -3,8 +3,8 @@ package spindle
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"path/filepath"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/eventconsumer"
@@ -100,8 +100,10 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 	return nil
 }
 
-func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
+func (s *Spindle) ingestRepo(ctx context.Context, e *models.Event) error {
 	var err error
+	did := e.Did
+	resolver := idresolver.DefaultResolver()
 
 	l := s.l.With("component", "ingester", "record", tangled.RepoNSID)
 
@@ -137,10 +139,24 @@ func (s *Spindle) ingestRepo(_ context.Context, e *models.Event) error {
 			return fmt.Errorf("failed to add repo: %w", err)
 		}
 
+		didSlashRepo, err := securejoin.SecureJoin(record.Owner, record.Name)
+		if err != nil {
+			return err
+		}
+
 		// add repo to rbac
-		if err := s.e.AddRepo(record.Owner, rbac.ThisServer, filepath.Join(record.Owner, record.Name)); err != nil {
+		if err := s.e.AddRepo(record.Owner, rbac.ThisServer, didSlashRepo); err != nil {
 			l.Error("failed to add repo to enforcer", "error", err)
 			return fmt.Errorf("failed to add repo: %w", err)
+		}
+
+		// add collaborators to rbac
+		owner, err := resolver.ResolveIdent(ctx, did)
+		if err != nil || owner.Handle.IsInvalidHandle() {
+			return err
+		}
+		if err := s.fetchAndAddCollaborators(ctx, owner, didSlashRepo); err != nil {
+			return err
 		}
 
 		// add this knot to the event consumer
