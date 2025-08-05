@@ -21,7 +21,7 @@
         <div class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold col-span-3">Commit</div>
         <div class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold col-span-6">Message</div>
         <div class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold col-span-1"></div>
-        <div class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold col-span-2">Date</div>
+        <div class="py-2 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold col-span-2 justify-self-end">Date</div>
       </div>
       {{ range $index, $commit := .Commits }}
         {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
@@ -85,7 +85,7 @@
                 {{ template "repo/pipelines/fragments/pipelineSymbolLong" (dict "Pipeline" $pipeline "RepoInfo" $.RepoInfo) }}
               {{ end }}
           </div>
-          <div class="align-top text-gray-500 dark:text-gray-400 col-span-2">{{ template "repo/fragments/shortTimeAgo" $commit.Committer.When }}</div>
+          <div class="align-top justify-self-end text-gray-500 dark:text-gray-400 col-span-2">{{ template "repo/fragments/shortTimeAgo" $commit.Committer.When }}</div>
         </div>
       {{ end }}
     </div>

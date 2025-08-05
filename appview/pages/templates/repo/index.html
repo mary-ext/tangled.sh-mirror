@@ -170,13 +170,9 @@
 {{ define "commitLog" }}
 <div id="commit-log" class="md:col-span-1 px-2 pb-4">
   <div class="flex justify-between items-center">
-    <a href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}" class="flex text-black dark:text-white items-center gap-4 pb-2 no-underline hover:no-underline group">
-      <div class="flex gap-2 items-center font-bold">
-        {{ i "logs" "w-4 h-4" }} commits
-      </div>
-      <span class="hidden group-hover:flex gap-2 items-center text-sm text-gray-500 dark:text-gray-400 ">
-        view {{ .TotalCommits }} commits {{ i "chevron-right" "w-4 h-4" }}
-      </span>
+    <a href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}" class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
+      {{ i "logs" "w-4 h-4" }} commits
+      <span class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">{{ .TotalCommits }}</span>
     </a>
   </div>
   <div class="flex flex-col gap-6">
@@ -278,13 +274,9 @@
 {{ define "branchList" }}
   {{ if gt (len .BranchesTrunc) 0 }}
     <div id="branches" class="md:col-span-1 px-2 py-4 border-t border-gray-200 dark:border-gray-700">
-      <a href="/{{ .RepoInfo.FullName }}/branches" class="flex text-black dark:text-white items-center gap-4 pb-2 no-underline hover:no-underline group">
-        <div class="flex gap-2 items-center font-bold">
-          {{ i "git-branch" "w-4 h-4" }} branches
-        </div>
-        <span class="hidden group-hover:flex gap-2 items-center text-sm text-gray-500 dark:text-gray-400 ">
-          view {{ len .Branches }} branches {{ i "chevron-right" "w-4 h-4" }}
-        </span>
+      <a href="/{{ .RepoInfo.FullName }}/branches" class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
+        {{ i "git-branch" "w-4 h-4" }} branches
+        <span class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">{{ len .Branches }}</span>
       </a>
       <div class="flex flex-col gap-1">
         {{ range .BranchesTrunc }}
@@ -321,13 +313,9 @@
   {{ if gt (len .TagsTrunc) 0 }}
     <div id="tags" class="md:col-span-1 px-2 py-4 border-t border-gray-200 dark:border-gray-700">
       <div class="flex justify-between items-center">
-        <a href="/{{ .RepoInfo.FullName }}/tags" class="flex text-black dark:text-white items-center gap-4 pb-2 no-underline hover:no-underline group">
-          <div class="flex gap-2 items-center font-bold">
-            {{ i "tags" "w-4 h-4" }} tags
-          </div>
-          <span class="hidden group-hover:flex gap-2 items-center text-sm text-gray-500 dark:text-gray-400 ">
-            view {{ len .Tags }} tags {{ i "chevron-right" "w-4 h-4" }}
-          </span>
+        <a href="/{{ .RepoInfo.FullName }}/tags" class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
+          {{ i "tags" "w-4 h-4" }} tags
+          <span class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">{{ len .Tags }}</span>
         </a>
       </div>
       <div class="flex flex-col gap-1">
