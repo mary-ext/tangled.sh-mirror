@@ -10,11 +10,12 @@ import (
 )
 
 type CoreConfig struct {
-	CookieSecret string `env:"COOKIE_SECRET, default=00000000000000000000000000000000"`
-	DbPath       string `env:"DB_PATH, default=appview.db"`
-	ListenAddr   string `env:"LISTEN_ADDR, default=0.0.0.0:3000"`
-	AppviewHost  string `env:"APPVIEW_HOST, default=https://tangled.sh"`
-	Dev          bool   `env:"DEV, default=false"`
+	CookieSecret            string `env:"COOKIE_SECRET, default=00000000000000000000000000000000"`
+	DbPath                  string `env:"DB_PATH, default=appview.db"`
+	ListenAddr              string `env:"LISTEN_ADDR, default=0.0.0.0:3000"`
+	AppviewHost             string `env:"APPVIEW_HOST, default=https://tangled.sh"`
+	Dev                     bool   `env:"DEV, default=false"`
+	DisallowedNicknamesFile string `env:"DISALLOWED_NICKNAMES_FILE"`
 }
 
 type OAuthConfig struct {

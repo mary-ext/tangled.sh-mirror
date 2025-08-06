@@ -1,9 +1,12 @@
 package signup
 
 import (
+	"bufio"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/posthog/posthog-go"
@@ -18,14 +21,15 @@ import (
 )
 
 type Signup struct {
-	config     *config.Config
-	db         *db.DB
-	cf         *dns.Cloudflare
-	posthog    posthog.Client
-	xrpc       *xrpcclient.Client
-	idResolver *idresolver.Resolver
-	pages      *pages.Pages
-	l          *slog.Logger
+	config              *config.Config
+	db                  *db.DB
+	cf                  *dns.Cloudflare
+	posthog             posthog.Client
+	xrpc                *xrpcclient.Client
+	idResolver          *idresolver.Resolver
+	pages               *pages.Pages
+	l                   *slog.Logger
+	disallowedNicknames map[string]bool
 }
 
 func New(cfg *config.Config, database *db.DB, pc posthog.Client, idResolver *idresolver.Resolver, pages *pages.Pages, l *slog.Logger) *Signup {
@@ -38,15 +42,64 @@ func New(cfg *config.Config, database *db.DB, pc posthog.Client, idResolver *idr
 		}
 	}
 
+	disallowedNicknames := loadDisallowedNicknames(cfg.Core.DisallowedNicknamesFile, l)
+
 	return &Signup{
-		config:     cfg,
-		db:         database,
-		posthog:    pc,
-		idResolver: idResolver,
-		cf:         cf,
-		pages:      pages,
-		l:          l,
+		config:              cfg,
+		db:                  database,
+		posthog:             pc,
+		idResolver:          idResolver,
+		cf:                  cf,
+		pages:               pages,
+		l:                   l,
+		disallowedNicknames: disallowedNicknames,
 	}
+}
+
+func loadDisallowedNicknames(filepath string, logger *slog.Logger) map[string]bool {
+	disallowed := make(map[string]bool)
+
+	if filepath == "" {
+		logger.Debug("no disallowed nicknames file configured")
+		return disallowed
+	}
+
+	file, err := os.Open(filepath)
+	if err != nil {
+		logger.Warn("failed to open disallowed nicknames file", "file", filepath, "error", err)
+		return disallowed
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue // skip empty lines and comments
+		}
+
+		nickname := strings.ToLower(line)
+		if userutil.IsValidSubdomain(nickname) {
+			disallowed[nickname] = true
+		} else {
+			logger.Warn("invalid nickname format in disallowed nicknames file",
+				"file", filepath, "line", lineNum, "nickname", nickname)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		logger.Error("error reading disallowed nicknames file", "file", filepath, "error", err)
+	}
+
+	logger.Info("loaded disallowed nicknames", "count", len(disallowed), "file", filepath)
+	return disallowed
+}
+
+// isNicknameAllowed checks if a nickname is allowed (not in the disallowed list)
+func (s *Signup) isNicknameAllowed(nickname string) bool {
+	return !s.disallowedNicknames[strings.ToLower(nickname)]
 }
 
 func (s *Signup) Router() http.Handler {
@@ -128,6 +181,11 @@ func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 
 		if !userutil.IsValidSubdomain(username) {
 			s.pages.Notice(w, "signup-error", "Invalid username. Username must be 4–63 characters, lowercase letters, digits, or hyphens, and can't start or end with a hyphen.")
+			return
+		}
+
+		if !s.isNicknameAllowed(username) {
+			s.pages.Notice(w, "signup-error", "This username is not available. Please choose a different one.")
 			return
 		}
 
