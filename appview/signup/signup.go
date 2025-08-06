@@ -14,6 +14,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/state/userutil"
 	"tangled.sh/tangled.sh/core/appview/xrpcclient"
+	"tangled.sh/tangled.sh/core/idresolver"
 )
 
 type Signup struct {
@@ -27,13 +28,22 @@ type Signup struct {
 	l          *slog.Logger
 }
 
-func New(cfg *config.Config, cf *dns.Cloudflare, database *db.DB, pc posthog.Client, idResolver *idresolver.Resolver, pages *pages.Pages, l *slog.Logger) *Signup {
+func New(cfg *config.Config, database *db.DB, pc posthog.Client, idResolver *idresolver.Resolver, pages *pages.Pages, l *slog.Logger) *Signup {
+	var cf *dns.Cloudflare
+	if cfg.Cloudflare.ApiToken != "" && cfg.Cloudflare.ZoneId != "" {
+		var err error
+		cf, err = dns.NewCloudflare(cfg)
+		if err != nil {
+			l.Warn("failed to create cloudflare client, signup will be disabled", "error", err)
+		}
+	}
+
 	return &Signup{
 		config:     cfg,
 		db:         database,
-		cf:         cf,
 		posthog:    pc,
 		idResolver: idResolver,
+		cf:         cf,
 		pages:      pages,
 		l:          l,
 	}
@@ -49,6 +59,9 @@ func (s *Signup) Router() http.Handler {
 }
 
 func (s *Signup) signup(w http.ResponseWriter, r *http.Request) {
+	if s.cf == nil {
+		http.Error(w, "signup is disabled", http.StatusFailedDependency)
+	}
 	emailId := r.FormValue("email")
 
 	if !email.IsValidEmail(emailId) {
@@ -132,6 +145,12 @@ func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if s.cf == nil {
+			s.l.Error("cloudflare client is nil", "error", "Cloudflare integration is not enabled in configuration")
+			s.pages.Notice(w, "signup-error", "Account signup is currently disabled. DNS record creation is not available. Please contact support.")
+			return
+		}
+
 		err = s.cf.CreateDNSRecord(r.Context(), dns.Record{
 			Type:    "TXT",
 			Name:    "_atproto." + username,
@@ -141,7 +160,7 @@ func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			s.l.Error("failed to create DNS record", "error", err)
-			s.pages.Notice(w, "signup-error", "Failed to complete sign up. Try again later.")
+			s.pages.Notice(w, "signup-error", "Failed to create DNS record for your handle. Please contact support.")
 			return
 		}
 
