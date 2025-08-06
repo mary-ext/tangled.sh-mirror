@@ -64,6 +64,8 @@ func (i *Ingester) Ingest() processFunc {
 				err = i.ingestSpindleMember(e)
 			case tangled.SpindleNSID:
 				err = i.ingestSpindle(e)
+			case tangled.StringNSID:
+				err = i.ingestString(e)
 			}
 			l = i.Logger.With("nsid", e.Commit.Collection)
 		}
@@ -545,6 +547,60 @@ func (i *Ingester) ingestSpindle(e *models.Event) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (i *Ingester) ingestString(e *models.Event) error {
+	did := e.Did
+	rkey := e.Commit.RKey
+
+	var err error
+
+	l := i.Logger.With("handler", "ingestString", "nsid", e.Commit.Collection, "did", did, "rkey", rkey)
+	l.Info("ingesting record")
+
+	ddb, ok := i.Db.Execer.(*db.DB)
+	if !ok {
+		return fmt.Errorf("failed to index string record, invalid db cast")
+	}
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.String{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			l.Error("invalid record", "err", err)
+			return err
+		}
+
+		string := db.StringFromRecord(did, rkey, record)
+
+		if err = string.Validate(); err != nil {
+			l.Error("invalid record", "err", err)
+			return err
+		}
+
+		if err = db.AddString(ddb, string); err != nil {
+			l.Error("failed to add string", "err", err)
+			return err
+		}
+
+		return nil
+
+	case models.CommitOperationDelete:
+		if err := db.DeleteString(
+			ddb,
+			db.FilterEq("did", did),
+			db.FilterEq("rkey", rkey),
+		); err != nil {
+			l.Error("failed to delete", "err", err)
+			return fmt.Errorf("failed to delete string record: %w", err)
+		}
+
+		return nil
 	}
 
 	return nil

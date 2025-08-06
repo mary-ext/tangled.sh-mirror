@@ -68,9 +68,6 @@ func (s *State) Router() http.Handler {
 func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 
-	// strip @ from user
-	r.Use(middleware.StripLeadingAt)
-
 	r.With(mw.ResolveIdent()).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.Profile)
 
