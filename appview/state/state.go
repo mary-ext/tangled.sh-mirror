@@ -156,6 +156,20 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	return state, nil
 }
 
+func (s *State) TermsOfService(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
+	s.pages.TermsOfService(w, pages.TermsOfServiceParams{
+		LoggedInUser: user,
+	})
+}
+
+func (s *State) PrivacyPolicy(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
+	s.pages.PrivacyPolicy(w, pages.PrivacyPolicyParams{
+		LoggedInUser: user,
+	})
+}
+
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 

@@ -268,6 +268,22 @@ func (p *Pages) CompleteSignup(w io.Writer, params SignupParams) error {
 	return p.executePlain("user/completeSignup", w, params)
 }
 
+type TermsOfServiceParams struct {
+	LoggedInUser *oauth.User
+}
+
+func (p *Pages) TermsOfService(w io.Writer, params TermsOfServiceParams) error {
+	return p.execute("legal/terms", w, params)
+}
+
+type PrivacyPolicyParams struct {
+	LoggedInUser *oauth.User
+}
+
+func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
+	return p.execute("legal/privacy", w, params)
+}
+
 type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []db.TimelineEvent

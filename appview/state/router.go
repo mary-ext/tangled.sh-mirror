@@ -142,6 +142,8 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Mount("/", s.OAuthRouter())
 
 	r.Get("/keys/{user}", s.Keys)
+	r.Get("/terms", s.TermsOfService)
+	r.Get("/privacy", s.PrivacyPolicy)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		s.pages.Error404(w)
