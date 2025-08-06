@@ -223,6 +223,6 @@ func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
 func (s *State) SignupRouter() http.Handler {
 	logger := log.New("signup")
 
-	sig := signup.New(s.config, s.cf, s.db, s.posthog, s.idResolver, s.pages, logger)
+	sig := signup.New(s.config, s.db, s.posthog, s.idResolver, s.pages, logger)
 	return sig.Router()
 }

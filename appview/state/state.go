@@ -20,7 +20,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/cache/session"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/dns"
 	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
@@ -47,7 +46,6 @@ type State struct {
 	jc            *jetstream.JetstreamClient
 	config        *config.Config
 	repoResolver  *reporesolver.RepoResolver
-	cf            *dns.Cloudflare
 	knotstream    *eventconsumer.Consumer
 	spindlestream *eventconsumer.Consumer
 }
@@ -139,11 +137,6 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	}
 	notifier := notify.NewMergedNotifier(notifiers...)
 
-	cf, err := dns.NewCloudflare(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Cloudflare client: %w", err)
-	}
-
 	state := &State{
 		d,
 		notifier,
@@ -156,7 +149,6 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		jc,
 		config,
 		repoResolver,
-		cf,
 		knotstream,
 		spindlestream,
 	}
