@@ -1,0 +1,17 @@
+{{ define "title" }}publish a new string{{ end }}
+
+{{ define "topbar" }}
+  {{ template "layouts/topbar" $ }}
+{{ end }}
+
+{{ define "content" }}
+  <div class="px-6 py-2 mb-4">
+    {{ if eq .Action "new" }}
+      <p class="text-xl font-bold dark:text-white">Create a new string</p>
+      <p class="">Store and share code snippets with ease.</p>
+    {{ else }}
+      <p class="text-xl font-bold dark:text-white">Edit string</p>
+    {{ end }}
+  </div>
+  {{ template "strings/fragments/form" . }}
+{{ end }}

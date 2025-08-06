@@ -167,16 +167,6 @@ func (mw Middleware) RepoPermissionMiddleware(requiredPerm string) middlewareFun
 	}
 }
 
-func StripLeadingAt(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		path := req.URL.EscapedPath()
-		if strings.HasPrefix(path, "/@") {
-			req.URL.RawPath = "/" + strings.TrimPrefix(path, "/@")
-		}
-		next.ServeHTTP(w, req)
-	})
-}
-
 func (mw Middleware) ResolveIdent() middlewareFunc {
 	excluded := []string{"favicon.ico"}
 
@@ -187,6 +177,8 @@ func (mw Middleware) ResolveIdent() middlewareFunc {
 				next.ServeHTTP(w, req)
 				return
 			}
+
+			didOrHandle = strings.TrimPrefix(didOrHandle, "@")
 
 			id, err := mw.idResolver.ResolveIdent(req.Context(), didOrHandle)
 			if err != nil {

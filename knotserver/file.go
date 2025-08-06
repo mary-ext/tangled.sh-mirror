@@ -10,13 +10,6 @@ import (
 	"tangled.sh/tangled.sh/core/types"
 )
 
-func (h *Handle) listFiles(files []types.NiceTree, data map[string]any, w http.ResponseWriter) {
-	data["files"] = files
-
-	writeJSON(w, data)
-	return
-}
-
 func countLines(r io.Reader) (int, error) {
 	buf := make([]byte, 32*1024)
 	bufLen := 0
@@ -52,5 +45,4 @@ func (h *Handle) showFile(resp types.RepoBlobResponse, w http.ResponseWriter, l 
 
 	resp.Lines = lc
 	writeJSON(w, resp)
-	return
 }

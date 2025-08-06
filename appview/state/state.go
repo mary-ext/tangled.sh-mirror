@@ -93,6 +93,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 			tangled.ActorProfileNSID,
 			tangled.SpindleMemberNSID,
 			tangled.SpindleNSID,
+			tangled.StringNSID,
 		},
 		nil,
 		slog.Default(),

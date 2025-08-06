@@ -1,0 +1,89 @@
+{{ define "strings/fragments/form" }}
+  <form
+    {{ if eq .Action "new" }}
+      hx-post="/strings/new"
+    {{ else }}
+      hx-post="/strings/{{.String.Did}}/{{.String.Rkey}}/edit"
+    {{ end }}
+    hx-indicator="#new-button"
+    class="p-6 pb-4 dark:text-white flex flex-col gap-2 bg-white dark:bg-gray-800 drop-shadow-sm rounded"
+    hx-swap="none">
+    <div class="flex flex-col md:flex-row md:items-center gap-2">
+      <input
+        type="text"
+        id="filename"
+        name="filename"
+        placeholder="Filename with extension"
+        required
+        value="{{ .String.Filename }}"
+        class="md:max-w-64 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400 px-3 py-2 border rounded"
+        >
+      <input
+        type="text"
+        id="description"
+        name="description"
+        value="{{ .String.Description }}"
+        placeholder="Description ..."
+        class="flex-1 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400 px-3 py-2 border rounded"
+      >
+    </div>
+    <textarea
+      name="content" 
+      id="content-textarea"
+      wrap="off"
+      class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"
+      rows="20"
+      placeholder="Paste your string here!"
+      required>{{ .String.Contents }}</textarea>
+    <div class="flex justify-between items-center">
+      <div id="content-stats" class="text-sm text-gray-500 dark:text-gray-400">
+        <span id="line-count">0 lines</span>
+        <span class="select-none px-1 [&:before]:content-['·']"></span>
+        <span id="byte-count">0 bytes</span>
+      </div>
+      <div id="actions" class="flex gap-2 items-center">
+        {{ if eq .Action "edit" }}
+          <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 "
+             href="/strings/{{ .String.Did }}/{{ .String.Rkey }}">
+            {{ i "x" "size-4" }}
+            <span class="hidden md:inline">cancel</span>
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </a>
+        {{ end }}
+        <button
+          type="submit"
+          id="new-button"
+          class="w-fit btn-create rounded flex items-center py-0 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 group"
+          >
+          <span class="inline-flex items-center gap-2">
+            {{ i "arrow-up" "w-4 h-4" }}
+            publish
+          </span>
+          <span class="pl-2 hidden group-[.htmx-request]:inline">
+            {{ i "loader-circle" "w-4 h-4 animate-spin" }}
+          </span>
+        </button>
+      </div>
+    </div>
+    <script>
+      (function() {
+        const textarea = document.getElementById('content-textarea');
+        const lineCount = document.getElementById('line-count');
+        const byteCount = document.getElementById('byte-count');
+        function updateStats() {
+          const content = textarea.value;
+          const lines = content === '' ? 0 : content.split('\n').length;
+          const bytes = new TextEncoder().encode(content).length;
+          lineCount.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+          byteCount.textContent = `${bytes} byte${bytes !== 1 ? 's' : ''}`;
+        }
+        textarea.addEventListener('input', updateStats);
+        textarea.addEventListener('paste', () => {
+          setTimeout(updateStats, 0);
+        });
+        updateStats();
+      })();
+    </script>
+    <div id="error" class="error dark:text-red-400"></div>
+  </form>
+{{ end }}
