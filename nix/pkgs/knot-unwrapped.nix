@@ -2,13 +2,12 @@
   buildGoApplication,
   modules,
   sqlite-lib,
-  gitignoreSource,
+  src,
 }:
 buildGoApplication {
   pname = "knot";
   version = "0.1.0";
-  src = gitignoreSource ../..;
-  inherit modules;
+  inherit src modules;
 
   doCheck = false;
 

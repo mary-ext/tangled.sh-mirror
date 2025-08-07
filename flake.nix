@@ -37,10 +37,6 @@
       url = "https://sqlite.org/2024/sqlite-amalgamation-3450100.zip";
       flake = false;
     };
-    gitignore = {
-      url = "github:hercules-ci/gitignore.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = {
@@ -51,7 +47,6 @@
     htmx-src,
     htmx-ws-src,
     lucide-src,
-    gitignore,
     inter-fonts-src,
     sqlite-lib-src,
     ibm-plex-mono-src,
@@ -62,7 +57,13 @@
 
     mkPackageSet = pkgs:
       pkgs.lib.makeScope pkgs.newScope (self: {
-        inherit (gitignore.lib) gitignoreSource;
+        src = let
+          fs = pkgs.lib.fileset;
+        in
+          fs.toSource {
+            root = ./.;
+            fileset = fs.difference (fs.intersection (fs.gitTracked ./.) (fs.fileFilter (file: !(file.hasExt "nix")) ./.)) (fs.maybeMissing ./.jj);
+          };
         buildGoApplication =
           (self.callPackage "${gomod2nix}/builder" {
             gomod2nix = gomod2nix.legacyPackages.${pkgs.system}.gomod2nix;

@@ -8,13 +8,12 @@
   ibm-plex-mono-src,
   tailwindcss,
   sqlite-lib,
-  gitignoreSource,
+  src,
 }:
 buildGoApplication {
   pname = "appview";
   version = "0.1.0";
-  src = gitignoreSource ../..;
-  inherit modules;
+  inherit src modules;
 
   postUnpack = ''
     pushd source
