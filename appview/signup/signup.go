@@ -104,6 +104,7 @@ func (s *Signup) isNicknameAllowed(nickname string) bool {
 
 func (s *Signup) Router() http.Handler {
 	r := chi.NewRouter()
+	r.Get("/", s.signup)
 	r.Post("/", s.signup)
 	r.Get("/complete", s.complete)
 	r.Post("/complete", s.complete)
@@ -112,68 +113,74 @@ func (s *Signup) Router() http.Handler {
 }
 
 func (s *Signup) signup(w http.ResponseWriter, r *http.Request) {
-	if s.cf == nil {
-		http.Error(w, "signup is disabled", http.StatusFailedDependency)
-	}
-	emailId := r.FormValue("email")
+	switch r.Method {
+	case http.MethodGet:
+		s.pages.Signup(w)
+	case http.MethodPost:
+		if s.cf == nil {
+			http.Error(w, "signup is disabled", http.StatusFailedDependency)
+		}
+		emailId := r.FormValue("email")
 
-	if !email.IsValidEmail(emailId) {
-		s.pages.Notice(w, "login-msg", "Invalid email address.")
-		return
-	}
+		noticeId := "signup-msg"
+		if !email.IsValidEmail(emailId) {
+			s.pages.Notice(w, noticeId, "Invalid email address.")
+			return
+		}
 
-	exists, err := db.CheckEmailExistsAtAll(s.db, emailId)
-	if err != nil {
-		s.l.Error("failed to check email existence", "error", err)
-		s.pages.Notice(w, "login-msg", "Failed to complete signup. Try again later.")
-		return
-	}
-	if exists {
-		s.pages.Notice(w, "login-msg", "Email already exists.")
-		return
-	}
+		exists, err := db.CheckEmailExistsAtAll(s.db, emailId)
+		if err != nil {
+			s.l.Error("failed to check email existence", "error", err)
+			s.pages.Notice(w, noticeId, "Failed to complete signup. Try again later.")
+			return
+		}
+		if exists {
+			s.pages.Notice(w, noticeId, "Email already exists.")
+			return
+		}
 
-	code, err := s.inviteCodeRequest()
-	if err != nil {
-		s.l.Error("failed to create invite code", "error", err)
-		s.pages.Notice(w, "login-msg", "Failed to create invite code.")
-		return
-	}
+		code, err := s.inviteCodeRequest()
+		if err != nil {
+			s.l.Error("failed to create invite code", "error", err)
+			s.pages.Notice(w, noticeId, "Failed to create invite code.")
+			return
+		}
 
-	em := email.Email{
-		APIKey:  s.config.Resend.ApiKey,
-		From:    s.config.Resend.SentFrom,
-		To:      emailId,
-		Subject: "Verify your Tangled account",
-		Text: `Copy and paste this code below to verify your account on Tangled.
+		em := email.Email{
+			APIKey:  s.config.Resend.ApiKey,
+			From:    s.config.Resend.SentFrom,
+			To:      emailId,
+			Subject: "Verify your Tangled account",
+			Text: `Copy and paste this code below to verify your account on Tangled.
 		` + code,
-		Html: `<p>Copy and paste this code below to verify your account on Tangled.</p>
+			Html: `<p>Copy and paste this code below to verify your account on Tangled.</p>
 <p><code>` + code + `</code></p>`,
-	}
+		}
 
-	err = email.SendEmail(em)
-	if err != nil {
-		s.l.Error("failed to send email", "error", err)
-		s.pages.Notice(w, "login-msg", "Failed to send email.")
-		return
-	}
-	err = db.AddInflightSignup(s.db, db.InflightSignup{
-		Email:      emailId,
-		InviteCode: code,
-	})
-	if err != nil {
-		s.l.Error("failed to add inflight signup", "error", err)
-		s.pages.Notice(w, "login-msg", "Failed to complete sign up. Try again later.")
-		return
-	}
+		err = email.SendEmail(em)
+		if err != nil {
+			s.l.Error("failed to send email", "error", err)
+			s.pages.Notice(w, noticeId, "Failed to send email.")
+			return
+		}
+		err = db.AddInflightSignup(s.db, db.InflightSignup{
+			Email:      emailId,
+			InviteCode: code,
+		})
+		if err != nil {
+			s.l.Error("failed to add inflight signup", "error", err)
+			s.pages.Notice(w, noticeId, "Failed to complete sign up. Try again later.")
+			return
+		}
 
-	s.pages.HxRedirect(w, "/signup/complete")
+		s.pages.HxRedirect(w, "/signup/complete")
+	}
 }
 
 func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.pages.CompleteSignup(w, pages.SignupParams{})
+		s.pages.CompleteSignup(w)
 	case http.MethodPost:
 		username := r.FormValue("username")
 		password := r.FormValue("password")

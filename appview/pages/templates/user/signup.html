@@ -1,0 +1,53 @@
+{{ define "user/signup" }}
+    <!doctype html>
+    <html lang="en" class="dark:bg-gray-900">
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta property="og:title" content="signup · tangled" />
+            <meta property="og:url" content="https://tangled.sh/signup" />
+            <meta property="og:description" content="sign up for tangled" />
+            <script src="/static/htmx.min.js"></script>
+            <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
+            <title>sign up &middot; tangled</title>
+        </head>
+        <body class="flex items-center justify-center min-h-screen">
+            <main class="max-w-md px-6 -mt-4">
+                <h1 class="text-center text-2xl font-semibold italic dark:text-white" >tangled</h1>
+                <h2 class="text-center text-xl italic dark:text-white">tightly-knit social coding.</h2>
+                <form
+                    class="mt-4 max-w-sm mx-auto"
+                    hx-post="/signup"
+                    hx-swap="none"
+                    hx-disabled-elt="#signup-button"
+                >
+                    <div class="flex flex-col mt-2">
+                        <label for="email">email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            tabindex="4"
+                            required
+                            placeholder="jason@bourne.co"
+                        />
+                    </div>
+                    <span class="text-sm text-gray-500 mt-1">
+                    You will receive an email with an invite code. Enter your
+                    invite code, desired username, and password in the next
+                    page to complete your registration.
+                    </span>
+                    <button class="btn text-base w-full my-2 mt-6" type="submit" id="signup-button" tabindex="7" >
+                      <span>join now</span>
+                    </button>
+                </form>
+                <p class="text-sm text-gray-500">
+                  Already have an account? <a href="/login" class="underline">Login to Tangled</a>.
+                </p>
+
+                <p id="signup-msg" class="error w-full"></p>
+            </main>
+        </body>
+    </html>
+{{ end }}
+

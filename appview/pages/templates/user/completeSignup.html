@@ -38,7 +38,7 @@
                     tightly-knit social coding.
                 </h2>
                 <form
-                    class="mt-4 max-w-sm mx-auto"
+                    class="mt-4 max-w-sm mx-auto flex flex-col gap-4"
                     hx-post="/signup/complete"
                     hx-swap="none"
                     hx-disabled-elt="#complete-signup-button"
@@ -58,8 +58,8 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col mt-4">
-                        <label for="username">desired username</label>
+                    <div class="flex flex-col">
+                        <label for="username">username</label>
                         <input
                             type="text"
                             id="username"
@@ -73,7 +73,7 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col mt-4">
+                    <div class="flex flex-col">
                         <label for="password">password</label>
                         <input
                             type="password"
@@ -88,7 +88,7 @@
                     </div>
 
                     <button
-                        class="btn-create w-full my-2 mt-6"
+                        class="btn-create w-full my-2 mt-6 text-base"
                         type="submit"
                         id="complete-signup-button"
                         tabindex="4"
