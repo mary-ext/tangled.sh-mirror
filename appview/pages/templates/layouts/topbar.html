@@ -9,9 +9,7 @@
 
             <div id="right-items" class="flex items-center gap-2">
                 {{ with .LoggedInUser }}
-                    <a href="/repo/new" hx-boost="true" class="btn-create hover:no-underline hover:text-white">
-                      {{ i "plus" "w-4 h-4" }}
-                    </a>
+                    {{ block "newButton" . }} {{ end }}
                     {{ block "dropDown" . }} {{ end }}
                 {{ else }}
                     <a href="/login">login</a>
@@ -23,6 +21,24 @@
             </div>
         </div>
     </nav>
+{{ end }}
+
+{{ define "newButton" }}
+<details class="relative inline-block text-left">
+    <summary class="btn-create py-0 cursor-pointer list-none flex items-center gap-2">
+      {{ i "plus" "w-4 h-4" }} new
+    </summary>
+    <div class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
+        <a href="/repo/new" class="flex items-center gap-2">
+          {{ i "book-plus" "w-4 h-4" }}
+          new repository
+        </a>
+        <a href="/strings/new" class="flex items-center gap-2">
+          {{ i "line-squiggle" "w-4 h-4" }}
+          new string
+        </a>
+    </div>
+</details>
 {{ end }}
 
 {{ define "dropDown" }}
@@ -38,6 +54,7 @@
     >
         <a href="/{{ $user }}">profile</a>
         <a href="/{{ $user }}?tab=repos">repositories</a>
+        <a href="/strings/{{ $user }}">strings</a>
         <a href="/knots">knots</a>
         <a href="/spindles">spindles</a>
         <a href="/settings">settings</a>

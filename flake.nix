@@ -22,7 +22,7 @@
       flake = false;
     };
     lucide-src = {
-      url = "https://github.com/lucide-icons/lucide/releases/download/0.483.0/lucide-icons-0.483.0.zip";
+      url = "https://github.com/lucide-icons/lucide/releases/download/0.536.0/lucide-icons-0.536.0.zip";
       flake = false;
     };
     inter-fonts-src = {
