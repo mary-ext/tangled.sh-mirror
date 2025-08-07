@@ -603,7 +603,7 @@ func Make(dbPath string) (*DB, error) {
 				repo_at text not null,
 
 				-- meta
-				created text default (strftime('%y-%m-%dt%h:%m:%sz', 'now')),
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
 
 				-- constraints
 				foreign key (repo_at) references repos(at_uri) on delete cascade

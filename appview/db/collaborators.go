@@ -50,7 +50,7 @@ func DeleteCollaborator(e Execer, filters ...filter) error {
 }
 
 func CollaboratingIn(e Execer, collaborator string) ([]Repo, error) {
-	rows, err := e.Query(`select repo_at from collaborators where did = ?`, collaborator)
+	rows, err := e.Query(`select repo_at from collaborators where subject_did = ?`, collaborator)
 	if err != nil {
 		return nil, err
 	}
