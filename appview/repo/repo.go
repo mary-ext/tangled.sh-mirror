@@ -742,6 +742,9 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// remove a single leading `@`, to make @handle work with ResolveIdent
+	collaborator = strings.TrimPrefix(collaborator, "@")
+
 	collaboratorIdent, err := rp.idResolver.ResolveIdent(r.Context(), collaborator)
 	if err != nil {
 		fail(fmt.Sprintf("'%s' is not a valid DID/handle.", collaborator), err)
