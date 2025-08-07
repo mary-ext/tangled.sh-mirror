@@ -1,13 +1,44 @@
 {{ define "layouts/footer" }}
-<div class="w-full p-4 bg-white dark:bg-gray-800 rounded-t drop-shadow-sm">
-    <div class="container mx-auto text-center text-gray-600 dark:text-gray-400 text-sm">
-        <div class="mb-2">
-            <a href="/terms" class="hover:text-gray-900 dark:hover:text-gray-200 underline">Terms of Service</a>
-            &nbsp;•&nbsp;
-            <a href="/privacy" class="hover:text-gray-900 dark:hover:text-gray-200 underline">Privacy Policy</a>
-        </div>
-        <div>
-            <span class="font-semibold italic">tangled</span> &mdash; made by <a href="/@oppi.li">@oppi.li</a> and <a href="/@icyphox.sh">@icyphox.sh</a>
+<div class="w-full p-4 md:p-8 bg-white dark:bg-gray-800 rounded-t drop-shadow-sm">
+    <div class="container mx-auto max-w-7xl px-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start text-gray-600 dark:text-gray-400 text-sm gap-8">
+            <div class="mb-4 md:mb-0">
+                <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic">
+                  tangled<sub>alpha</sub>
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 sm:gap-6 md:gap-2 gap-6 flex-1">
+                <div class="flex flex-col gap-1">
+                    <div class="font-medium text-xs uppercase tracking-wide mb-1">legal</div>
+                    <a href="/terms" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline flex gap-1 items-center">{{ i "file-text" "w-4 h-4 flex-shrink-0" }} terms of service</a>
+                    <a href="/privacy" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center">{{ i "shield" "w-4 h-4 flex-shrink-0" }} privacy policy</a>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <div class="font-medium text-xs uppercase tracking-wide mb-1">resources</div>
+                    <a href="https://blog.tangled.sh" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" target="_blank" rel="noopener noreferrer">{{ i "book-open" "w-4 h-4 flex-shrink-0" }} blog</a>
+                    <a href="https://tangled.sh/@tangled.sh/core/tree/master/docs" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center">{{ i "book" "w-4 h-4 flex-shrink-0" }} docs</a>
+                    <a href="https://tangled.sh/@tangled.sh/core" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center">{{ i "code" "w-4 h-4 flex-shrink-0" }} source</a>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <div class="font-medium text-xs uppercase tracking-wide mb-1">social</div>
+                    <a href="https://chat.tangled.sh" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" target="_blank" rel="noopener noreferrer">{{ i "message-circle" "w-4 h-4 flex-shrink-0" }} discord</a>
+                    <a href="https://web.libera.chat/#tangled" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" target="_blank" rel="noopener noreferrer">{{ i "hash" "w-4 h-4 flex-shrink-0" }} irc</a>
+                    <a href="https://bsky.app/profile/tangled.sh" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" target="_blank" rel="noopener noreferrer">{{ template "user/fragments/bluesky" "w-4 h-4 flex-shrink-0 hover:text-gray-900 dark:hover:text-gray-200dark:text-white" }} bluesky</a>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <div class="font-medium text-xs uppercase tracking-wide mb-1">contact</div>
+                    <a href="mailto:team@tangled.sh" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center">{{ i "mail" "w-4 h-4 flex-shrink-0" }} team@tangled.sh</a>
+                    <a href="mailto:security@tangled.sh" class="hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center">{{ i "shield-check" "w-4 h-4 flex-shrink-0" }} security@tangled.sh</a>
+                </div>
+            </div>
+
+            <div class="text-center lg:text-right flex-shrink-0">
+                <div class="text-xs">&copy; 2025 Tangled Labs Oy. All rights reserved.</div>
+            </div>
         </div>
     </div>
 </div>
