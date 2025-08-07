@@ -1,4 +1,4 @@
-package engine
+package models
 
 import (
 	"encoding/json"
@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"tangled.sh/tangled.sh/core/spindle/models"
 )
 
 type WorkflowLogger struct {
@@ -16,7 +14,7 @@ type WorkflowLogger struct {
 	encoder *json.Encoder
 }
 
-func NewWorkflowLogger(baseDir string, wid models.WorkflowId) (*WorkflowLogger, error) {
+func NewWorkflowLogger(baseDir string, wid WorkflowId) (*WorkflowLogger, error) {
 	path := LogFilePath(baseDir, wid)
 
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
@@ -30,7 +28,7 @@ func NewWorkflowLogger(baseDir string, wid models.WorkflowId) (*WorkflowLogger, 
 	}, nil
 }
 
-func LogFilePath(baseDir string, workflowID models.WorkflowId) string {
+func LogFilePath(baseDir string, workflowID WorkflowId) string {
 	logFilePath := filepath.Join(baseDir, fmt.Sprintf("%s.log", workflowID.String()))
 	return logFilePath
 }
@@ -47,7 +45,7 @@ func (l *WorkflowLogger) DataWriter(stream string) io.Writer {
 	}
 }
 
-func (l *WorkflowLogger) ControlWriter(idx int, step models.Step) io.Writer {
+func (l *WorkflowLogger) ControlWriter(idx int, step Step) io.Writer {
 	return &controlWriter{
 		logger: l,
 		idx:    idx,
@@ -62,7 +60,7 @@ type dataWriter struct {
 
 func (w *dataWriter) Write(p []byte) (int, error) {
 	line := strings.TrimRight(string(p), "\r\n")
-	entry := models.NewDataLogLine(line, w.stream)
+	entry := NewDataLogLine(line, w.stream)
 	if err := w.logger.encoder.Encode(entry); err != nil {
 		return 0, err
 	}
@@ -72,13 +70,13 @@ func (w *dataWriter) Write(p []byte) (int, error) {
 type controlWriter struct {
 	logger *WorkflowLogger
 	idx    int
-	step   models.Step
+	step   Step
 }
 
 func (w *controlWriter) Write(_ []byte) (int, error) {
-	entry := models.NewControlLogLine(w.idx, w.step)
+	entry := NewControlLogLine(w.idx, w.step)
 	if err := w.logger.encoder.Encode(entry); err != nil {
 		return 0, err
 	}
-	return len(w.step.Name), nil
+	return len(w.step.Name()), nil
 }

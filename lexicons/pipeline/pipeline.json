@@ -149,57 +149,23 @@
       "type": "object",
       "required": [
         "name",
-        "dependencies",
-        "steps",
-        "environment",
-        "clone"
+        "engine",
+        "clone",
+        "raw"
       ],
       "properties": {
         "name": {
           "type": "string"
         },
-        "dependencies": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "#dependency"
-          }
-        },
-        "steps": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "#step"
-          }
-        },
-        "environment": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "#pair"
-          }
+        "engine": {
+          "type": "string"
         },
         "clone": {
           "type": "ref",
           "ref": "#cloneOpts"
-        }
-      }
-    },
-    "dependency": {
-      "type": "object",
-      "required": [
-        "registry",
-        "packages"
-      ],
-      "properties": {
-        "registry": {
-          "type": "string"
         },
-        "packages": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "raw": {
+          "type": "string"
         }
       }
     },
@@ -219,28 +185,6 @@
         },
         "submodules": {
           "type": "boolean"
-        }
-      }
-    },
-    "step": {
-      "type": "object",
-      "required": [
-        "name",
-        "command"
-      ],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "command": {
-          "type": "string"
-        },
-        "environment": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "#pair"
-          }
         }
       }
     },

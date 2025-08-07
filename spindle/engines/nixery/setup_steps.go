@@ -1,4 +1,4 @@
-package models
+package nixery
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ func nixConfStep() Step {
 	setupCmd := `echo 'extra-experimental-features = nix-command flakes' >> /etc/nix/nix.conf
 echo 'build-users-group = ' >> /etc/nix/nix.conf`
 	return Step{
-		Command: setupCmd,
-		Name:    "Configure Nix",
+		command: setupCmd,
+		name:    "Configure Nix",
 	}
 }
 
@@ -81,8 +81,8 @@ func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMetadat
 	commands = append(commands, "git checkout FETCH_HEAD")
 
 	cloneStep := Step{
-		Command: strings.Join(commands, "\n"),
-		Name:    "Clone repository into workspace",
+		command: strings.Join(commands, "\n"),
+		name:    "Clone repository into workspace",
 	}
 	return cloneStep
 }
@@ -91,13 +91,10 @@ func cloneStep(twf tangled.Pipeline_Workflow, tr tangled.Pipeline_TriggerMetadat
 // For dependencies using a custom registry (i.e. not nixpkgs), it collects
 // all packages and adds a single 'nix profile install' step to the
 // beginning of the workflow's step list.
-func dependencyStep(twf tangled.Pipeline_Workflow) *Step {
+func dependencyStep(deps map[string][]string) *Step {
 	var customPackages []string
 
-	for _, d := range twf.Dependencies {
-		registry := d.Registry
-		packages := d.Packages
-
+	for registry, packages := range deps {
 		if registry == "nixpkgs" {
 			continue
 		}
@@ -115,9 +112,9 @@ func dependencyStep(twf tangled.Pipeline_Workflow) *Step {
 		installCmd := "nix --extra-experimental-features nix-command --extra-experimental-features flakes profile install"
 		cmd := fmt.Sprintf("%s %s", installCmd, strings.Join(customPackages, " "))
 		installStep := Step{
-			Command: cmd,
-			Name:    "Install custom dependencies",
-			Environment: map[string]string{
+			command: cmd,
+			name:    "Install custom dependencies",
+			environment: map[string]string{
 				"NIX_NO_COLOR":               "1",
 				"NIX_SHOW_DOWNLOAD_PROGRESS": "0",
 			},

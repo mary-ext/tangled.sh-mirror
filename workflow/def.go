@@ -24,12 +24,11 @@ type (
 
 	// this is simply a structural representation of the workflow file
 	Workflow struct {
-		Name         string            `yaml:"-"` // name of the workflow file
-		When         []Constraint      `yaml:"when"`
-		Dependencies Dependencies      `yaml:"dependencies"`
-		Steps        []Step            `yaml:"steps"`
-		Environment  map[string]string `yaml:"environment"`
-		CloneOpts    CloneOpts         `yaml:"clone"`
+		Name      string       `yaml:"-"` // name of the workflow file
+		Engine    string       `yaml:"engine"`
+		When      []Constraint `yaml:"when"`
+		CloneOpts CloneOpts    `yaml:"clone"`
+		Raw       string       `yaml:"-"`
 	}
 
 	Constraint struct {
@@ -37,18 +36,10 @@ type (
 		Branch StringList `yaml:"branch"` // this is optional, and only applied on "push" events
 	}
 
-	Dependencies map[string][]string
-
 	CloneOpts struct {
 		Skip              bool `yaml:"skip"`
 		Depth             int  `yaml:"depth"`
 		IncludeSubmodules bool `yaml:"submodules"`
-	}
-
-	Step struct {
-		Name        string            `yaml:"name"`
-		Command     string            `yaml:"command"`
-		Environment map[string]string `yaml:"environment"`
 	}
 
 	StringList []string
@@ -77,6 +68,7 @@ func FromFile(name string, contents []byte) (Workflow, error) {
 	}
 
 	wf.Name = name
+	wf.Raw = string(contents)
 
 	return wf, nil
 }
@@ -173,25 +165,6 @@ func (s *StringList) UnmarshalYAML(unmarshal func(any) error) error {
 	}
 
 	return errors.New("failed to unmarshal StringOrSlice")
-}
-
-// conversion utilities to atproto records
-func (d Dependencies) AsRecord() []*tangled.Pipeline_Dependency {
-	var deps []*tangled.Pipeline_Dependency
-	for registry, packages := range d {
-		deps = append(deps, &tangled.Pipeline_Dependency{
-			Registry: registry,
-			Packages: packages,
-		})
-	}
-	return deps
-}
-
-func (s Step) AsRecord() tangled.Pipeline_Step {
-	return tangled.Pipeline_Step{
-		Command: s.Command,
-		Name:    s.Name,
-	}
 }
 
 func (c CloneOpts) AsRecord() tangled.Pipeline_CloneOpts {

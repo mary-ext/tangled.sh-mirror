@@ -16,6 +16,7 @@ type Server struct {
 	Dev               bool    `env:"DEV, default=false"`
 	Owner             string  `env:"OWNER, required"`
 	Secrets           Secrets `env:",prefix=SECRETS_"`
+	LogDir            string  `env:"LOG_DIR, default=/var/log/spindle"`
 }
 
 func (s Server) Did() syntax.DID {
@@ -32,15 +33,14 @@ type OpenBaoConfig struct {
 	Mount     string `env:"MOUNT, default=spindle"`
 }
 
-type Pipelines struct {
+type NixeryPipelines struct {
 	Nixery          string `env:"NIXERY, default=nixery.tangled.sh"`
 	WorkflowTimeout string `env:"WORKFLOW_TIMEOUT, default=5m"`
-	LogDir          string `env:"LOG_DIR, default=/var/log/spindle"`
 }
 
 type Config struct {
-	Server    Server    `env:",prefix=SPINDLE_SERVER_"`
-	Pipelines Pipelines `env:",prefix=SPINDLE_PIPELINES_"`
+	Server          Server          `env:",prefix=SPINDLE_SERVER_"`
+	NixeryPipelines NixeryPipelines `env:",prefix=SPINDLE_NIXERY_PIPELINES_"`
 }
 
 func Load(ctx context.Context) (*Config, error) {

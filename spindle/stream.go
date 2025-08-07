@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"tangled.sh/tangled.sh/core/spindle/engine"
 	"tangled.sh/tangled.sh/core/spindle/models"
 
 	"github.com/go-chi/chi/v5"
@@ -143,7 +142,7 @@ func (s *Spindle) streamLogsFromDisk(ctx context.Context, conn *websocket.Conn, 
 	}
 	isFinished := models.StatusKind(status.Status).IsFinish()
 
-	filePath := engine.LogFilePath(s.cfg.Pipelines.LogDir, wid)
+	filePath := models.LogFilePath(s.cfg.Server.LogDir, wid)
 
 	config := tail.Config{
 		Follow:    !isFinished,

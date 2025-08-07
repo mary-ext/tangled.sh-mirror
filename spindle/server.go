@@ -20,6 +20,7 @@ import (
 	"tangled.sh/tangled.sh/core/spindle/config"
 	"tangled.sh/tangled.sh/core/spindle/db"
 	"tangled.sh/tangled.sh/core/spindle/engine"
+	"tangled.sh/tangled.sh/core/spindle/engines/nixery"
 	"tangled.sh/tangled.sh/core/spindle/models"
 	"tangled.sh/tangled.sh/core/spindle/queue"
 	"tangled.sh/tangled.sh/core/spindle/secrets"
@@ -39,7 +40,7 @@ type Spindle struct {
 	e     *rbac.Enforcer
 	l     *slog.Logger
 	n     *notifier.Notifier
-	eng   *engine.Engine
+	engs  map[string]models.Engine
 	jq    *queue.Queue
 	cfg   *config.Config
 	ks    *eventconsumer.Consumer
@@ -93,7 +94,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("unknown secrets provider: %s", cfg.Server.Secrets.Provider)
 	}
 
-	eng, err := engine.New(ctx, cfg, d, &n, vault)
+	nixeryEng, err := nixery.New(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -128,7 +129,7 @@ func Run(ctx context.Context) error {
 		db:    d,
 		l:     logger,
 		n:     &n,
-		eng:   eng,
+		engs:  map[string]models.Engine{"nixery": nixeryEng},
 		jq:    jq,
 		cfg:   cfg,
 		res:   resolver,
@@ -216,7 +217,7 @@ func (s *Spindle) XrpcRouter() http.Handler {
 		Logger:   logger,
 		Db:       s.db,
 		Enforcer: s.e,
-		Engine:   s.eng,
+		Engines:  s.engs,
 		Config:   s.cfg,
 		Resolver: s.res,
 		Vault:    s.vault,
@@ -261,9 +262,36 @@ func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source,
 			Rkey: msg.Rkey,
 		}
 
+		workflows := make(map[models.Engine][]models.Workflow)
+
 		for _, w := range tpl.Workflows {
 			if w != nil {
-				err := s.db.StatusPending(models.WorkflowId{
+				if _, ok := s.engs[w.Engine]; !ok {
+					err = s.db.StatusFailed(models.WorkflowId{
+						PipelineId: pipelineId,
+						Name:       w.Name,
+					}, fmt.Sprintf("unknown engine %#v", w.Engine), -1, s.n)
+					if err != nil {
+						return err
+					}
+
+					continue
+				}
+
+				eng := s.engs[w.Engine]
+
+				if _, ok := workflows[eng]; !ok {
+					workflows[eng] = []models.Workflow{}
+				}
+
+				ewf, err := s.engs[w.Engine].InitWorkflow(*w, tpl)
+				if err != nil {
+					return err
+				}
+
+				workflows[eng] = append(workflows[eng], *ewf)
+
+				err = s.db.StatusPending(models.WorkflowId{
 					PipelineId: pipelineId,
 					Name:       w.Name,
 				}, s.n)
@@ -273,11 +301,13 @@ func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source,
 			}
 		}
 
-		spl := models.ToPipeline(tpl, *s.cfg)
-
 		ok := s.jq.Enqueue(queue.Job{
 			Run: func() error {
-				s.eng.StartWorkflows(ctx, spl, pipelineId)
+				engine.StartWorkflows(s.l, s.vault, s.cfg, s.db, s.n, ctx, &models.Pipeline{
+					RepoOwner: tpl.TriggerMetadata.Repo.Did,
+					RepoName:  tpl.TriggerMetadata.Repo.Repo,
+					Workflows: workflows,
+				}, pipelineId)
 				return nil
 			},
 			OnFail: func(jobError error) {

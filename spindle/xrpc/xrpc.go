@@ -17,7 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/spindle/config"
 	"tangled.sh/tangled.sh/core/spindle/db"
-	"tangled.sh/tangled.sh/core/spindle/engine"
+	"tangled.sh/tangled.sh/core/spindle/models"
 	"tangled.sh/tangled.sh/core/spindle/secrets"
 )
 
@@ -27,7 +27,7 @@ type Xrpc struct {
 	Logger   *slog.Logger
 	Db       *db.DB
 	Enforcer *rbac.Enforcer
-	Engine   *engine.Engine
+	Engines  map[string]models.Engine
 	Config   *config.Config
 	Resolver *idresolver.Resolver
 	Vault    secrets.Manager

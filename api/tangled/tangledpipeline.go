@@ -29,12 +29,6 @@ type Pipeline_CloneOpts struct {
 	Submodules bool  `json:"submodules" cborgen:"submodules"`
 }
 
-// Pipeline_Dependency is a "dependency" in the sh.tangled.pipeline schema.
-type Pipeline_Dependency struct {
-	Packages []string `json:"packages" cborgen:"packages"`
-	Registry string   `json:"registry" cborgen:"registry"`
-}
-
 // Pipeline_ManualTriggerData is a "manualTriggerData" in the sh.tangled.pipeline schema.
 type Pipeline_ManualTriggerData struct {
 	Inputs []*Pipeline_Pair `json:"inputs,omitempty" cborgen:"inputs,omitempty"`
@@ -61,13 +55,6 @@ type Pipeline_PushTriggerData struct {
 	Ref    string `json:"ref" cborgen:"ref"`
 }
 
-// Pipeline_Step is a "step" in the sh.tangled.pipeline schema.
-type Pipeline_Step struct {
-	Command     string           `json:"command" cborgen:"command"`
-	Environment []*Pipeline_Pair `json:"environment,omitempty" cborgen:"environment,omitempty"`
-	Name        string           `json:"name" cborgen:"name"`
-}
-
 // Pipeline_TriggerMetadata is a "triggerMetadata" in the sh.tangled.pipeline schema.
 type Pipeline_TriggerMetadata struct {
 	Kind        string                           `json:"kind" cborgen:"kind"`
@@ -87,9 +74,8 @@ type Pipeline_TriggerRepo struct {
 
 // Pipeline_Workflow is a "workflow" in the sh.tangled.pipeline schema.
 type Pipeline_Workflow struct {
-	Clone        *Pipeline_CloneOpts    `json:"clone" cborgen:"clone"`
-	Dependencies []*Pipeline_Dependency `json:"dependencies" cborgen:"dependencies"`
-	Environment  []*Pipeline_Pair       `json:"environment" cborgen:"environment"`
-	Name         string                 `json:"name" cborgen:"name"`
-	Steps        []*Pipeline_Step       `json:"steps" cborgen:"steps"`
+	Clone  *Pipeline_CloneOpts `json:"clone" cborgen:"clone"`
+	Engine string              `json:"engine" cborgen:"engine"`
+	Name   string              `json:"name" cborgen:"name"`
+	Raw    string              `json:"raw" cborgen:"raw"`
 }

@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"errors"
 	"fmt"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
@@ -63,6 +64,10 @@ func (w Warning) String() string {
 	return fmt.Sprintf("warning: %s: %s: %s", w.Path, w.Type, w.Reason)
 }
 
+var (
+	MissingEngine error = errors.New("missing engine")
+)
+
 type WarningKind string
 
 var (
@@ -95,19 +100,18 @@ func (compiler *Compiler) Compile(p Pipeline) tangled.Pipeline {
 	for _, wf := range p {
 		cw := compiler.compileWorkflow(wf)
 
-		// empty workflows are not added to the pipeline
-		if len(cw.Steps) == 0 {
+		if cw == nil {
 			continue
 		}
 
-		cp.Workflows = append(cp.Workflows, &cw)
+		cp.Workflows = append(cp.Workflows, cw)
 	}
 
 	return cp
 }
 
-func (compiler *Compiler) compileWorkflow(w Workflow) tangled.Pipeline_Workflow {
-	cw := tangled.Pipeline_Workflow{}
+func (compiler *Compiler) compileWorkflow(w Workflow) *tangled.Pipeline_Workflow {
+	cw := &tangled.Pipeline_Workflow{}
 
 	if !w.Match(compiler.Trigger) {
 		compiler.Diagnostics.AddWarning(
@@ -115,44 +119,21 @@ func (compiler *Compiler) compileWorkflow(w Workflow) tangled.Pipeline_Workflow 
 			WorkflowSkipped,
 			fmt.Sprintf("did not match trigger %s", compiler.Trigger.Kind),
 		)
-		return cw
-	}
-
-	if len(w.Steps) == 0 {
-		compiler.Diagnostics.AddWarning(
-			w.Name,
-			WorkflowSkipped,
-			"empty workflow",
-		)
-		return cw
+		return nil
 	}
 
 	// validate clone options
 	compiler.analyzeCloneOptions(w)
 
 	cw.Name = w.Name
-	cw.Dependencies = w.Dependencies.AsRecord()
-	for _, s := range w.Steps {
-		step := tangled.Pipeline_Step{
-			Command: s.Command,
-			Name:    s.Name,
-		}
-		for k, v := range s.Environment {
-			e := &tangled.Pipeline_Pair{
-				Key:   k,
-				Value: v,
-			}
-			step.Environment = append(step.Environment, e)
-		}
-		cw.Steps = append(cw.Steps, &step)
+
+	if w.Engine == "" {
+		compiler.Diagnostics.AddError(w.Name, MissingEngine)
+		return nil
 	}
-	for k, v := range w.Environment {
-		e := &tangled.Pipeline_Pair{
-			Key:   k,
-			Value: v,
-		}
-		cw.Environment = append(cw.Environment, e)
-	}
+
+	cw.Engine = w.Engine
+	cw.Raw = w.Raw
 
 	o := w.CloneOpts.AsRecord()
 	cw.Clone = &o

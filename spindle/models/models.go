@@ -104,9 +104,9 @@ func NewDataLogLine(content, stream string) LogLine {
 func NewControlLogLine(idx int, step Step) LogLine {
 	return LogLine{
 		Kind:        LogKindControl,
-		Content:     step.Name,
+		Content:     step.Name(),
 		StepId:      idx,
-		StepKind:    step.Kind,
-		StepCommand: step.Command,
+		StepKind:    step.Kind(),
+		StepCommand: step.Command(),
 	}
 }

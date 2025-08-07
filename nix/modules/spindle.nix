@@ -111,8 +111,8 @@ in
             "SPINDLE_SERVER_SECRETS_PROVIDER=${cfg.server.secrets.provider}"
             "SPINDLE_SERVER_SECRETS_OPENBAO_PROXY_ADDR=${cfg.server.secrets.openbao.proxyAddr}"
             "SPINDLE_SERVER_SECRETS_OPENBAO_MOUNT=${cfg.server.secrets.openbao.mount}"
-            "SPINDLE_PIPELINES_NIXERY=${cfg.pipelines.nixery}"
-            "SPINDLE_PIPELINES_WORKFLOW_TIMEOUT=${cfg.pipelines.workflowTimeout}"
+            "SPINDLE_NIXERY_PIPELINES_NIXERY=${cfg.pipelines.nixery}"
+            "SPINDLE_NIXERY_PIPELINES_WORKFLOW_TIMEOUT=${cfg.pipelines.workflowTimeout}"
           ];
           ExecStart = "${cfg.package}/bin/spindle";
           Restart = "always";

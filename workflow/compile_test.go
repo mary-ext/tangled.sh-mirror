@@ -26,11 +26,9 @@ var when = []Constraint{
 
 func TestCompileWorkflow_MatchingWorkflowWithSteps(t *testing.T) {
 	wf := Workflow{
-		Name: ".tangled/workflows/test.yml",
-		When: when,
-		Steps: []Step{
-			{Name: "Test", Command: "go test ./..."},
-		},
+		Name:      ".tangled/workflows/test.yml",
+		Engine:    "nixery",
+		When:      when,
 		CloneOpts: CloneOpts{}, // default true
 	}
 
@@ -43,32 +41,15 @@ func TestCompileWorkflow_MatchingWorkflowWithSteps(t *testing.T) {
 	assert.False(t, c.Diagnostics.IsErr())
 }
 
-func TestCompileWorkflow_EmptySteps(t *testing.T) {
-	wf := Workflow{
-		Name:  ".tangled/workflows/empty.yml",
-		When:  when,
-		Steps: []Step{}, // no steps
-	}
-
-	c := Compiler{Trigger: trigger}
-	cp := c.Compile([]Workflow{wf})
-
-	assert.Len(t, cp.Workflows, 0)
-	assert.Len(t, c.Diagnostics.Warnings, 1)
-	assert.Equal(t, WorkflowSkipped, c.Diagnostics.Warnings[0].Type)
-}
-
 func TestCompileWorkflow_TriggerMismatch(t *testing.T) {
 	wf := Workflow{
-		Name: ".tangled/workflows/mismatch.yml",
+		Name:   ".tangled/workflows/mismatch.yml",
+		Engine: "nixery",
 		When: []Constraint{
 			{
 				Event:  []string{"push"},
 				Branch: []string{"master"}, // different branch
 			},
-		},
-		Steps: []Step{
-			{Name: "Lint", Command: "golint ./..."},
 		},
 	}
 
@@ -82,11 +63,9 @@ func TestCompileWorkflow_TriggerMismatch(t *testing.T) {
 
 func TestCompileWorkflow_CloneFalseWithShallowTrue(t *testing.T) {
 	wf := Workflow{
-		Name: ".tangled/workflows/clone_skip.yml",
-		When: when,
-		Steps: []Step{
-			{Name: "Skip", Command: "echo skip"},
-		},
+		Name:   ".tangled/workflows/clone_skip.yml",
+		Engine: "nixery",
+		When:   when,
 		CloneOpts: CloneOpts{
 			Skip:  true,
 			Depth: 1,
@@ -100,4 +79,19 @@ func TestCompileWorkflow_CloneFalseWithShallowTrue(t *testing.T) {
 	assert.True(t, cp.Workflows[0].Clone.Skip)
 	assert.Len(t, c.Diagnostics.Warnings, 1)
 	assert.Equal(t, InvalidConfiguration, c.Diagnostics.Warnings[0].Type)
+}
+
+func TestCompileWorkflow_MissingEngine(t *testing.T) {
+	wf := Workflow{
+		Name:   ".tangled/workflows/missing_engine.yml",
+		When:   when,
+		Engine: "",
+	}
+
+	c := Compiler{Trigger: trigger}
+	cp := c.Compile([]Workflow{wf})
+
+	assert.Len(t, cp.Workflows, 0)
+	assert.Len(t, c.Diagnostics.Errors, 1)
+	assert.Equal(t, MissingEngine, c.Diagnostics.Errors[0].Error)
 }

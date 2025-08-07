@@ -4,9 +4,32 @@ Spindle pipelines are defined under the `.tangled/workflows` directory in a
 repo. Generally:
 
 * Pipelines are defined in YAML.
-* Dependencies can be specified from
-[Nixpkgs](https://search.nixos.org) or custom registries.
-* Environment variables can be set globally or per-step.
+* Workflows can run using different *engines*.
+
+The most barebones workflow looks like this:
+
+```yaml
+when:
+  - event: ["push"]
+    branch: ["main"]
+
+engine: "nixery"
+
+# optional
+clone:
+  skip: false
+  depth: 50
+  submodules: true
+```
+
+The `when` and `engine` fields are required, while every other aspect
+of how the definition is parsed is up to the engine. Currently, a spindle
+provides at least one of these built-in engines:
+
+## `nixery`
+
+The Nixery engine uses an instance of [Nixery](https://nixery.dev) to run
+steps that use dependencies from [Nixpkgs](https://github.com/NixOS/nixpkgs).
 
 Here's an example that uses all fields:
 
