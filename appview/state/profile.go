@@ -1,9 +1,6 @@
 package state
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -142,7 +139,6 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to get punchcard for did", "did", ident.DID.String(), "err", err)
 	}
 
-	profileAvatarUri := s.GetAvatarUri(ident.Handle.String())
 	s.pages.ProfilePage(w, pages.ProfilePageParams{
 		LoggedInUser:       loggedInUser,
 		Repos:              pinnedRepos,
@@ -151,7 +147,6 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		Card: pages.ProfileCard{
 			UserDid:      ident.DID.String(),
 			UserHandle:   ident.Handle.String(),
-			AvatarUri:    profileAvatarUri,
 			Profile:      profile,
 			FollowStatus: followStatus,
 			Followers:    followers,
@@ -194,8 +189,6 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
 	}
 
-	profileAvatarUri := s.GetAvatarUri(ident.Handle.String())
-
 	s.pages.ReposPage(w, pages.ReposPageParams{
 		LoggedInUser: loggedInUser,
 		Repos:        repos,
@@ -203,21 +196,12 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 		Card: pages.ProfileCard{
 			UserDid:      ident.DID.String(),
 			UserHandle:   ident.Handle.String(),
-			AvatarUri:    profileAvatarUri,
 			Profile:      profile,
 			FollowStatus: followStatus,
 			Followers:    followers,
 			Following:    following,
 		},
 	})
-}
-
-func (s *State) GetAvatarUri(handle string) string {
-	secret := s.config.Avatar.SharedSecret
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(handle))
-	signature := hex.EncodeToString(h.Sum(nil))
-	return fmt.Sprintf("%s/%s/%s", s.config.Avatar.Host, signature, handle)
 }
 
 func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {

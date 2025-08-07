@@ -416,7 +416,6 @@ type ProfileCard struct {
 	UserDid      string
 	UserHandle   string
 	FollowStatus db.FollowStatus
-	AvatarUri    string
 	Followers    int
 	Following    int
 
