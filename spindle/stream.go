@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -143,6 +144,36 @@ func (s *Spindle) streamLogsFromDisk(ctx context.Context, conn *websocket.Conn, 
 	isFinished := models.StatusKind(status.Status).IsFinish()
 
 	filePath := models.LogFilePath(s.cfg.Server.LogDir, wid)
+
+	if status.Status == models.StatusKindFailed.String() && status.Error != nil {
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			msgs := []models.LogLine{
+				{
+					Kind:     models.LogKindControl,
+					Content:  "",
+					StepId:   0,
+					StepKind: models.StepKindUser,
+				},
+				{
+					Kind:    models.LogKindData,
+					Content: *status.Error,
+				},
+			}
+
+			for _, msg := range msgs {
+				b, err := json.Marshal(msg)
+				if err != nil {
+					return err
+				}
+
+				if err := conn.WriteMessage(websocket.TextMessage, b); err != nil {
+					return fmt.Errorf("failed to write to websocket: %w", err)
+				}
+			}
+
+			return nil
+		}
+	}
 
 	config := tail.Config{
 		Follow:    !isFinished,
