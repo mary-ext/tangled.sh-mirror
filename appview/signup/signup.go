@@ -219,7 +219,7 @@ func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 		err = s.cf.CreateDNSRecord(r.Context(), dns.Record{
 			Type:    "TXT",
 			Name:    "_atproto." + username,
-			Content: "did=" + did,
+			Content: fmt.Sprintf(`"did=%s"`, did),
 			TTL:     6400,
 			Proxied: false,
 		})
