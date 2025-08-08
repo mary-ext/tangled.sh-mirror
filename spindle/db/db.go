@@ -45,6 +45,21 @@ func Make(dbPath string) (*DB, error) {
 			unique(owner, name)
 		);
 
+		create table if not exists spindle_members (
+			-- identifiers for the record
+			id integer primary key autoincrement,
+			did text not null,
+			rkey text not null,
+
+			-- data
+			instance text not null,
+			subject text not null,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
+			unique (did, instance, subject)
+		);
+
 		-- status event for a single workflow
 		create table if not exists events (
 			rkey text not null,

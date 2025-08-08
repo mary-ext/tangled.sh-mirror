@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/spindle/db"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"
@@ -50,8 +52,9 @@ func (s *Spindle) ingest() Ingester {
 }
 
 func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
-	did := e.Did
 	var err error
+	did := e.Did
+	rkey := e.Commit.RKey
 
 	l := s.l.With("component", "ingester", "record", tangled.SpindleMemberNSID)
 
@@ -66,9 +69,6 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 		}
 
 		domain := s.cfg.Server.Hostname
-		if s.cfg.Server.Dev {
-			domain = s.cfg.Server.ListenAddr
-		}
 		recordInstance := record.Instance
 
 		if recordInstance != domain {
@@ -80,6 +80,17 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 		if err != nil || !ok {
 			l.Error("failed to add member", "did", did, "error", err)
 			return fmt.Errorf("failed to enforce permissions: %w", err)
+		}
+
+		if err := db.AddSpindleMember(s.db, db.SpindleMember{
+			Did:      syntax.DID(did),
+			Rkey:     rkey,
+			Instance: recordInstance,
+			Subject:  syntax.DID(record.Subject),
+			Created:  time.Now(),
+		}); err != nil {
+			l.Error("failed to add member", "error", err)
+			return fmt.Errorf("failed to add member: %w", err)
 		}
 
 		if err := s.e.AddSpindleMember(rbacDomain, record.Subject); err != nil {
@@ -95,6 +106,30 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 		s.jc.AddDid(record.Subject)
 
 		return nil
+
+	case models.CommitOperationDelete:
+		record, err := db.GetSpindleMember(s.db, did, rkey)
+		if err != nil {
+			l.Error("failed to find member", "error", err)
+			return fmt.Errorf("failed to find member: %w", err)
+		}
+
+		if err := db.RemoveSpindleMember(s.db, did, rkey); err != nil {
+			l.Error("failed to remove member", "error", err)
+			return fmt.Errorf("failed to remove member: %w", err)
+		}
+
+		if err := s.e.RemoveSpindleMember(rbacDomain, record.Subject.String()); err != nil {
+			l.Error("failed to add member", "error", err)
+			return fmt.Errorf("failed to add member: %w", err)
+		}
+		l.Info("added member from firehose", "member", record.Subject)
+
+		if err := s.db.RemoveDid(record.Subject.String()); err != nil {
+			l.Error("failed to add did", "error", err)
+			return fmt.Errorf("failed to add did: %w", err)
+		}
+		s.jc.RemoveDid(record.Subject.String())
 
 	}
 	return nil

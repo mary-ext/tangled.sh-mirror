@@ -387,6 +387,8 @@ func (i *Ingester) ingestSpindleMember(e *models.Event) error {
 		if err != nil {
 			return fmt.Errorf("failed to update ACLs: %w", err)
 		}
+
+		l.Info("added spindle member")
 	case models.CommitOperationDelete:
 		rkey := e.Commit.RKey
 
@@ -433,6 +435,8 @@ func (i *Ingester) ingestSpindleMember(e *models.Event) error {
 		if err = i.Enforcer.E.SavePolicy(); err != nil {
 			return fmt.Errorf("failed to save ACLs: %w", err)
 		}
+
+		l.Info("removed spindle member")
 	}
 
 	return nil

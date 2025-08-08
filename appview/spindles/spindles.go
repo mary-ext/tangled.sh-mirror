@@ -619,14 +619,14 @@ func (s *Spindles) removeMember(w http.ResponseWriter, r *http.Request) {
 
 	if string(spindles[0].Owner) != user.Did {
 		l.Error("unauthorized", "user", user.Did, "owner", spindles[0].Owner)
-		s.Pages.Notice(w, noticeId, "Failed to add member, unauthorized attempt.")
+		s.Pages.Notice(w, noticeId, "Failed to remove member, unauthorized attempt.")
 		return
 	}
 
 	member := r.FormValue("member")
 	if member == "" {
 		l.Error("empty member")
-		s.Pages.Notice(w, noticeId, "Failed to add member, empty form.")
+		s.Pages.Notice(w, noticeId, "Failed to remove member, empty form.")
 		return
 	}
 	l = l.With("member", member)
@@ -634,12 +634,12 @@ func (s *Spindles) removeMember(w http.ResponseWriter, r *http.Request) {
 	memberId, err := s.IdResolver.ResolveIdent(r.Context(), member)
 	if err != nil {
 		l.Error("failed to resolve member identity to handle", "err", err)
-		s.Pages.Notice(w, noticeId, "Failed to add member, identity resolution failed.")
+		s.Pages.Notice(w, noticeId, "Failed to remove member, identity resolution failed.")
 		return
 	}
 	if memberId.Handle.IsInvalidHandle() {
 		l.Error("failed to resolve member identity to handle")
-		s.Pages.Notice(w, noticeId, "Failed to add member, identity resolution failed.")
+		s.Pages.Notice(w, noticeId, "Failed to remove member, identity resolution failed.")
 		return
 	}
 
