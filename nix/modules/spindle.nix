@@ -54,6 +54,25 @@ in
             example = "did:plc:qfpnj4og54vl56wngdriaxug";
             description = "DID of owner (required)";
           };
+
+          secrets = {
+            provider = mkOption {
+              type = types.str;
+              default = "sqlite";
+              description = "Backend to use for secret management, valid options are 'sqlite', and 'openbao'.";
+            };
+
+            openbao = {
+              proxyAddr = mkOption {
+                type = types.str;
+                default = "http://127.0.0.1:8200";
+              };
+              mount = mkOption {
+                type = types.str;
+                default = "spindle";
+              };
+            };
+          };
         };
 
         pipelines = {
@@ -89,6 +108,9 @@ in
             "SPINDLE_SERVER_JETSTREAM=${cfg.server.jetstreamEndpoint}"
             "SPINDLE_SERVER_DEV=${lib.boolToString cfg.server.dev}"
             "SPINDLE_SERVER_OWNER=${cfg.server.owner}"
+            "SPINDLE_SERVER_SECRETS_PROVIDER=${cfg.server.secrets.provider}"
+            "SPINDLE_SERVER_SECRETS_OPENBAO_PROXY_ADDR=${cfg.server.secrets.openbao.proxyAddr}"
+            "SPINDLE_SERVER_SECRETS_OPENBAO_MOUNT=${cfg.server.secrets.openbao.mount}"
             "SPINDLE_PIPELINES_NIXERY=${cfg.pipelines.nixery}"
             "SPINDLE_PIPELINES_WORKFLOW_TIMEOUT=${cfg.pipelines.workflowTimeout}"
           ];

@@ -62,6 +62,9 @@ nixpkgs.lib.nixosSystem {
           hostname = "localhost:6555";
           listenAddr = "0.0.0.0:6555";
           dev = true;
+          secrets = {
+            provider = "sqlite";
+          };
         };
       };
     })
