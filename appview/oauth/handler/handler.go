@@ -1,18 +1,22 @@
 package oauth
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
+	tangled "tangled.sh/tangled.sh/core/api/tangled"
 	sessioncache "tangled.sh/tangled.sh/core/appview/cache/session"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
@@ -23,6 +27,7 @@ import (
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/tid"
 )
 
 const (
@@ -294,6 +299,7 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("session saved successfully")
 	go o.addToDefaultKnot(oauthRequest.Did)
+	go o.addToDefaultSpindle(oauthRequest.Did)
 
 	if !o.config.Core.Dev {
 		err = o.posthog.Enqueue(posthog.Capture{
@@ -330,6 +336,141 @@ func pubKeyFromJwk(jwks string) (jwk.Key, error) {
 		return nil, err
 	}
 	return pubKey, nil
+}
+
+func (o *OAuthHandler) addToDefaultSpindle(did string) {
+	// use the tangled.sh app password to get an accessJwt
+	// and create an sh.tangled.spindle.member record with that
+
+	defaultSpindle := "spindle.tangled.sh"
+	appPassword := o.config.Core.AppPassword
+
+	spindleMembers, err := db.GetSpindleMembers(
+		o.db,
+		db.FilterEq("instance", "spindle.tangled.sh"),
+		db.FilterEq("subject", did),
+	)
+	if err != nil {
+		log.Printf("failed to get spindle members for did %s: %v", did, err)
+		return
+	}
+
+	if len(spindleMembers) != 0 {
+		log.Printf("did %s is already a member of the default spindle", did)
+		return
+	}
+
+	// TODO: hardcoded tangled handle and did for now
+	tangledHandle := "tangled.sh"
+	tangledDid := "did:plc:wshs7t2adsemcrrd4snkeqli"
+
+	if appPassword == "" {
+		log.Println("no app password configured, skipping spindle member addition")
+		return
+	}
+
+	log.Printf("adding %s to default spindle", did)
+
+	resolved, err := o.idResolver.ResolveIdent(context.Background(), tangledDid)
+	if err != nil {
+		log.Printf("failed to resolve tangled.sh DID %s: %v", tangledDid, err)
+		return
+	}
+
+	pdsEndpoint := resolved.PDSEndpoint()
+	if pdsEndpoint == "" {
+		log.Printf("no PDS endpoint found for tangled.sh DID %s", tangledDid)
+		return
+	}
+
+	sessionPayload := map[string]string{
+		"identifier": tangledHandle,
+		"password":   appPassword,
+	}
+	sessionBytes, err := json.Marshal(sessionPayload)
+	if err != nil {
+		log.Printf("failed to marshal session payload: %v", err)
+		return
+	}
+
+	sessionURL := pdsEndpoint + "/xrpc/com.atproto.server.createSession"
+	sessionReq, err := http.NewRequestWithContext(context.Background(), "POST", sessionURL, bytes.NewBuffer(sessionBytes))
+	if err != nil {
+		log.Printf("failed to create session request: %v", err)
+		return
+	}
+	sessionReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	sessionResp, err := client.Do(sessionReq)
+	if err != nil {
+		log.Printf("failed to create session: %v", err)
+		return
+	}
+	defer sessionResp.Body.Close()
+
+	if sessionResp.StatusCode != http.StatusOK {
+		log.Printf("failed to create session: HTTP %d", sessionResp.StatusCode)
+		return
+	}
+
+	var session struct {
+		AccessJwt string `json:"accessJwt"`
+	}
+	if err := json.NewDecoder(sessionResp.Body).Decode(&session); err != nil {
+		log.Printf("failed to decode session response: %v", err)
+		return
+	}
+
+	record := tangled.SpindleMember{
+		LexiconTypeID: "sh.tangled.spindle.member",
+		Subject:       did,
+		Instance:      defaultSpindle,
+		CreatedAt:     time.Now().Format(time.RFC3339),
+	}
+
+	recordBytes, err := json.Marshal(record)
+	if err != nil {
+		log.Printf("failed to marshal spindle member record: %v", err)
+		return
+	}
+
+	payload := map[string]interface{}{
+		"repo":       tangledDid,
+		"collection": tangled.SpindleMemberNSID,
+		"rkey":       tid.TID(),
+		"record":     json.RawMessage(recordBytes),
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("failed to marshal request payload: %v", err)
+		return
+	}
+
+	url := pdsEndpoint + "/xrpc/com.atproto.repo.putRecord"
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		log.Printf("failed to create HTTP request: %v", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+session.AccessJwt)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("failed to add user to default spindle: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("failed to add user to default spindle: HTTP %d", resp.StatusCode)
+		return
+	}
+
+	log.Printf("successfully added %s to default spindle", did)
 }
 
 func (o *OAuthHandler) addToDefaultKnot(did string) {

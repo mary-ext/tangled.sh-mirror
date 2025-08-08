@@ -16,6 +16,9 @@ type CoreConfig struct {
 	AppviewHost             string `env:"APPVIEW_HOST, default=https://tangled.sh"`
 	Dev                     bool   `env:"DEV, default=false"`
 	DisallowedNicknamesFile string `env:"DISALLOWED_NICKNAMES_FILE"`
+
+	// temporarily, to add users to default spindle
+	AppPassword string `env:"APP_PASSWORD"`
 }
 
 type OAuthConfig struct {
