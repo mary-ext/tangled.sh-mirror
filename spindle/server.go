@@ -98,7 +98,7 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	jq := queue.NewQueue(100, 2)
+	jq := queue.NewQueue(100, 5)
 
 	collections := []string{
 		tangled.SpindleMemberNSID,
