@@ -66,6 +66,9 @@ schema = 3
   [mod."github.com/cloudflare/circl"]
     version = "v1.6.2-0.20250618153321-aa837fd1539d"
     hash = "sha256-0s/i/XmMcuvPQ+qK9OIU5KxwYZyLVXRtdlYvIXRJT3Y="
+  [mod."github.com/cloudflare/cloudflare-go"]
+    version = "v0.115.0"
+    hash = "sha256-jezmDs6IsHA4rag7DzcHDfDgde0vU4iKgCN9+0XDViw="
   [mod."github.com/containerd/errdefs"]
     version = "v1.0.0"
     hash = "sha256-wMZGoeqvRhuovYCJx0Js4P3qFCNTZ/6Atea/kNYoPMI="
@@ -169,6 +172,9 @@ schema = 3
   [mod."github.com/golang/mock"]
     version = "v1.6.0"
     hash = "sha256-fWdnMQisRbiRzGT3ISrUHovquzLRHWvcv1JEsJFZRno="
+  [mod."github.com/google/go-querystring"]
+    version = "v1.1.0"
+    hash = "sha256-itsKgKghuX26czU79cK6C2n+lc27jm5Dw1XbIRgwZJY="
   [mod."github.com/google/uuid"]
     version = "v1.6.0"
     hash = "sha256-VWl9sqUzdOuhW0KzQlv0gwwUQClYkmZwSydHG2sALYw="
