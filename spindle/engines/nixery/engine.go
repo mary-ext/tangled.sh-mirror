@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -142,6 +143,10 @@ func workflowImage(deps map[string][]string, nixery string) string {
 
 	// load defaults from somewhere else
 	dependencies = path.Join(dependencies, "bash", "git", "coreutils", "nix")
+
+	if runtime.GOARCH == "arm64" {
+		dependencies = path.Join("arm64", dependencies)
+	}
 
 	return path.Join(nixery, dependencies)
 }
