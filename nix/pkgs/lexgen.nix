@@ -7,6 +7,6 @@ buildGoModule {
   version = "0.1.0";
   src = indigo;
   subPackages = ["cmd/lexgen"];
-  vendorHash = "sha256-pGc29fgJFq8LP7n/pY1cv6ExZl88PAeFqIbFEhB3xXs=";
+  vendorHash = "sha256-VbDrcN4r5b7utRFQzVsKgDsVgdQLSXl7oZ5kdPA/huw=";
   doCheck = false;
 }
