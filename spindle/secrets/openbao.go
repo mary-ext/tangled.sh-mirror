@@ -132,7 +132,7 @@ func (v *OpenBaoManager) RemoveSecret(ctx context.Context, secret Secret[any]) e
 		return ErrKeyNotFound
 	}
 
-	err = v.client.KVv2(v.mountPath).Delete(ctx, secretPath)
+	err = v.client.KVv2(v.mountPath).DeleteMetadata(ctx, secretPath)
 	if err != nil {
 		return fmt.Errorf("failed to delete secret from openbao: %w", err)
 	}
