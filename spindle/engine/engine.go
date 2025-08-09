@@ -54,6 +54,11 @@ func StartWorkflows(l *slog.Logger, vault secrets.Manager, cfg *config.Config, d
 					// In the original, we only do in a subset of cases.
 					l.Error("setting up worklow", "wid", wid, "err", err)
 
+					destroyErr := eng.DestroyWorkflow(ctx, wid)
+					if destroyErr != nil {
+						l.Error("failed to destroy workflow after setup failure", "error", destroyErr)
+					}
+
 					dbErr := db.StatusFailed(wid, err.Error(), -1, n)
 					if dbErr != nil {
 						return dbErr
