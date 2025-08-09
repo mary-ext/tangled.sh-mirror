@@ -10,7 +10,8 @@ import (
 )
 
 func nixConfStep() Step {
-	setupCmd := `echo 'extra-experimental-features = nix-command flakes' >> /etc/nix/nix.conf
+	setupCmd := `mkdir -p /etc/nix
+echo 'extra-experimental-features = nix-command flakes' >> /etc/nix/nix.conf
 echo 'build-users-group = ' >> /etc/nix/nix.conf`
 	return Step{
 		command: setupCmd,
