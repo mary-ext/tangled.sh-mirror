@@ -99,6 +99,11 @@ func (s *Strings) contents(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	if len(strings) < 1 {
+		l.Error("string not found")
+		s.Pages.Error404(w)
+		return
+	}
 	if len(strings) != 1 {
 		l.Error("incorrect number of records returned", "len(strings)", len(strings))
 		w.WriteHeader(http.StatusInternalServerError)
