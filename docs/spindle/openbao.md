@@ -114,7 +114,7 @@ Get the credentials:
 ROLE_ID=$(bao read -field=role_id auth/approle/role/spindle/role-id)
 
 # Generate secret ID
-SECRET_ID=$(bao write -field=secret_id auth/approle/role/spindle/secret-id)
+SECRET_ID=$(bao write -f -field=secret_id auth/approle/role/spindle/secret-id)
 
 echo "Role ID: $ROLE_ID"
 echo "Secret ID: $SECRET_ID"
