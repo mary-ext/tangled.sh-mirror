@@ -89,7 +89,7 @@ systemctl enable knotserver
 systemctl start knotserver
 ```
 
-The last step is to configure a reverse proxy like Nginx or Caddy to front yourself
+The last step is to configure a reverse proxy like Nginx or Caddy to front your
 knot. Here's an example configuration for Nginx:
 
 ```
