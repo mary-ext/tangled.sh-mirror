@@ -75,9 +75,10 @@
         };
         genjwks = self.callPackage ./nix/pkgs/genjwks.nix {};
         lexgen = self.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
-        appview = self.callPackage ./nix/pkgs/appview.nix {
+        appview-static-files = self.callPackage ./nix/pkgs/appview-static-files.nix {
           inherit htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src;
         };
+        appview = self.callPackage ./nix/pkgs/appview.nix {};
         spindle = self.callPackage ./nix/pkgs/spindle.nix {};
         knot-unwrapped = self.callPackage ./nix/pkgs/knot-unwrapped.nix {};
         knot = self.callPackage ./nix/pkgs/knot.nix {};
@@ -93,13 +94,7 @@
       staticPackages = mkPackageSet pkgs.pkgsStatic;
       crossPackages = mkPackageSet pkgs.pkgsCross.gnu64.pkgsStatic;
     in {
-      appview = packages.appview;
-      lexgen = packages.lexgen;
-      knot = packages.knot;
-      knot-unwrapped = packages.knot-unwrapped;
-      spindle = packages.spindle;
-      genjwks = packages.genjwks;
-      sqlite-lib = packages.sqlite-lib;
+      inherit (packages) appview appview-static-files lexgen genjwks spindle knot knot-unwrapped sqlite-lib;
 
       pkgsStatic-appview = staticPackages.appview;
       pkgsStatic-knot = staticPackages.knot;
@@ -132,16 +127,13 @@
           pkgs.tailwindcss
           pkgs.nixos-shell
           pkgs.redis
+          pkgs.coreutils # for those of us who are on systems that use busybox (alpine)
           packages'.lexgen
         ];
         shellHook = ''
-          mkdir -p appview/pages/static/{fonts,icons}
-          cp -f ${htmx-src} appview/pages/static/htmx.min.js
-          cp -f ${htmx-ws-src} appview/pages/static/htmx-ext-ws.min.js
-          cp -rf ${lucide-src}/*.svg appview/pages/static/icons/
-          cp -f ${inter-fonts-src}/web/InterVariable*.woff2 appview/pages/static/fonts/
-          cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 appview/pages/static/fonts/
-          cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono-Regular.woff2 appview/pages/static/fonts/
+          mkdir -p appview/pages/static
+          # no preserve is needed because watch-tailwind will want to be able to overwrite
+          cp -frv --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
           export TANGLED_OAUTH_JWKS="$(${packages'.genjwks}/bin/genjwks)"
         '';
         env.CGO_ENABLED = 1;
@@ -149,6 +141,7 @@
     });
     apps = forAllSystems (system: let
       pkgs = nixpkgsFor."${system}";
+      packages' = self.packages.${system};
       air-watcher = name: arg:
         pkgs.writeShellScriptBin "run"
         ''
@@ -167,7 +160,11 @@
     in {
       watch-appview = {
         type = "app";
-        program = ''${air-watcher "appview" ""}/bin/run'';
+        program = toString (pkgs.writeShellScript "watch-appview" ''
+            echo "copying static files to appview/pages/static..."
+            ${pkgs.coreutils}/bin/cp -frv --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
+            ${air-watcher "appview" ""}/bin/run
+        '');
       };
       watch-knot = {
         type = "app";
