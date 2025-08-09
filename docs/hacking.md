@@ -56,9 +56,9 @@ quite cumbersome. So the nix flake provides a
 `nixosConfiguration` to do so.
 
 To begin, head to `http://localhost:3000/knots` in the browser
-and generate a knot secret. Replace the existing secret in
-`nix/vm.nix` (`KNOT_SERVER_SECRET`) with the newly generated
-secret.
+and generate a knot secret. Set `$TANGLED_KNOT_SECRET` to it,
+ideally in a `.envrc` with [direnv](https://direnv.net) so you
+don't lose it.
 
 You can now start a lightweight NixOS VM using
 `nixos-shell` like so:
@@ -91,13 +91,12 @@ git push local-dev main
 
 ## running a spindle
 
-Be sure to change the `owner` field for the spindle in
-`nix/vm.nix` to your own DID. The above VM should already
-be running a spindle on `localhost:6555`. You can head to
-the spindle dashboard on `http://localhost:3000/spindles`,
-and register a spindle with hostname `localhost:6555`. It
-should instantly be verified. You can then configure each
-repository to use this spindle and run CI jobs.
+Be sure to set `$TANGLED_SPINDLE_OWNER` to your own DID.
+The above VM should already be running a spindle on `localhost:6555`.
+You can head to the spindle dashboard on `http://localhost:3000/spindles`,
+and register a spindle with hostname `localhost:6555`. It should instantly
+be verified. You can then configure each repository to use this spindle
+and run CI jobs.
 
 Of interest when debugging spindles:
 
