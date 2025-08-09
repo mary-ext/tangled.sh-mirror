@@ -242,13 +242,13 @@ func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostRece
 		return err
 	}
 
+	for _, e := range compiler.Diagnostics.Errors {
+		*clientMsgs = append(*clientMsgs, e.String())
+	}
+
 	if pushOptions.verboseCi {
 		if compiler.Diagnostics.IsEmpty() {
 			*clientMsgs = append(*clientMsgs, "success: pipeline compiled with no diagnostics")
-		}
-
-		for _, e := range compiler.Diagnostics.Errors {
-			*clientMsgs = append(*clientMsgs, e.String())
 		}
 
 		for _, w := range compiler.Diagnostics.Warnings {
