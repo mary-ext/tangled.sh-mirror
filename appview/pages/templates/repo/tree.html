@@ -61,11 +61,12 @@
 
           {{ if .IsFile }}
             {{ $icon = "file" }}
-            {{ $iconStyle = "size-4" }}
+            {{ $iconStyle = "flex-shrink-0 size-4" }}
           {{ end }}
           <a href="{{ $link }}" class="{{ $linkstyle }}">
             <div class="flex items-center gap-2">
-              {{ i $icon $iconStyle }}{{ .Name }}
+              {{ i $icon $iconStyle }}
+              <span class="truncate">{{ .Name }}</span>
             </div>
           </a>
         </div>
