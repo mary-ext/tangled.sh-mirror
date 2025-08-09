@@ -177,10 +177,15 @@
         type = "app";
         program = ''${tailwind-watcher}/bin/run'';
       };
-      vm = {
+      vm = let
+        system =
+          if pkgs.stdenv.hostPlatform.isAarch64
+          then "aarch64"
+          else "x86_64";
+      in {
         type = "app";
         program = toString (pkgs.writeShellScript "vm" ''
-          ${pkgs.nixos-shell}/bin/nixos-shell --flake .#vm
+          ${pkgs.nixos-shell}/bin/nixos-shell --flake .#vm-${system}
         '');
       };
       gomod2nix = {
@@ -218,6 +223,13 @@
 
       services.tangled-spindle.package = lib.mkDefault self.packages.${pkgs.system}.spindle;
     };
-    nixosConfigurations.vm = import ./nix/vm.nix {inherit self nixpkgs;};
+    nixosConfigurations.vm-x86_64 = import ./nix/vm.nix {
+      inherit self nixpkgs;
+      system = "x86_64-linux";
+    };
+    nixosConfigurations.vm-aarch64 = import ./nix/vm.nix {
+      inherit self nixpkgs;
+      system = "aarch64-linux";
+    };
   };
 }

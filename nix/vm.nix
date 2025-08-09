@@ -1,9 +1,10 @@
 {
   nixpkgs,
+  system,
   self,
 }:
 nixpkgs.lib.nixosSystem {
-  system = "x86_64-linux";
+  inherit system;
   modules = [
     self.nixosModules.knot
     self.nixosModules.spindle
