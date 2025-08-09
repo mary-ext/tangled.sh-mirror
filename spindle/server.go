@@ -111,6 +111,15 @@ func Run(ctx context.Context) error {
 	}
 	jc.AddDid(cfg.Server.Owner)
 
+	// Check if the spindle knows about any Dids;
+	dids, err := d.GetAllDids()
+	if err != nil {
+		return fmt.Errorf("failed to get all dids: %w", err)
+	}
+	for _, d := range dids {
+		jc.AddDid(d)
+	}
+
 	resolver := idresolver.DefaultResolver()
 
 	spindle := Spindle{
