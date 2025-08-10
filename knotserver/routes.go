@@ -361,14 +361,22 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 
 	ref := strings.TrimSuffix(file, ".tar.gz")
 
+	unescapedRef, err := url.PathUnescape(ref)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	safeRefFilename := strings.ReplaceAll(plumbing.ReferenceName(unescapedRef).Short(), "/", "-")
+
 	// This allows the browser to use a proper name for the file when
 	// downloading
-	filename := fmt.Sprintf("%s-%s.tar.gz", name, ref)
+	filename := fmt.Sprintf("%s-%s.tar.gz", name, safeRefFilename)
 	setContentDisposition(w, filename)
 	setGZipMIME(w)
 
 	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
-	gr, err := git.Open(path, ref)
+	gr, err := git.Open(path, unescapedRef)
 	if err != nil {
 		notFound(w)
 		return
@@ -377,7 +385,7 @@ func (h *Handle) Archive(w http.ResponseWriter, r *http.Request) {
 	gw := gzip.NewWriter(w)
 	defer gw.Close()
 
-	prefix := fmt.Sprintf("%s-%s", name, ref)
+	prefix := fmt.Sprintf("%s-%s", name, safeRefFilename)
 	err = gr.WriteTar(gw, prefix)
 	if err != nil {
 		// once we start writing to the body we can't report error anymore
