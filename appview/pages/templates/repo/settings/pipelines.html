@@ -34,9 +34,9 @@
     {{ else }}
       <form hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle" class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
         <select
-          id="spindle" 
+          id="spindle"
           name="spindle"
-          required 
+          required
           class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
           {{/* For some reason, we can't use an empty string in a <select> in all scenarios unless it is preceded by a disabled select?? No idea, could just be a Firefox thing? */}}
           <option value="[[none]]" class="py-1" {{ if not $.CurrentSpindle }}selected{{ end }}>
@@ -87,7 +87,7 @@
 {{ end }}
 
 {{ define "addSecretButton" }}
-  <button 
+  <button
     class="btn flex items-center gap-2"
     popovertarget="add-secret-modal"
     popovertargetaction="toggle">

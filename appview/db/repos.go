@@ -391,7 +391,7 @@ func GetRepo(e Execer, did, name string) (*Repo, error) {
 	var description, spindle sql.NullString
 
 	row := e.QueryRow(`
-		select did, name, knot, created, at_uri, description, spindle 
+		select did, name, knot, created, at_uri, description, spindle
 		from repos
 		where did = ? and name = ?
 		`,
