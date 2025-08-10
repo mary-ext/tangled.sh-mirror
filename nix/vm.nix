@@ -20,6 +20,13 @@ in
         pkgs,
         ...
       }: {
+        nixos-shell = {
+          inheritPath = false;
+          mounts = {
+            mountHome = false;
+            mountNixProfile = false;
+          };
+        };
         virtualisation = {
           memorySize = 2048;
           diskSize = 10 * 1024;
