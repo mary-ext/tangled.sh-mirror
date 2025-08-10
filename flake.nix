@@ -133,7 +133,7 @@
         shellHook = ''
           mkdir -p appview/pages/static
           # no preserve is needed because watch-tailwind will want to be able to overwrite
-          cp -frv --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
+          cp -fr --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
           export TANGLED_OAUTH_JWKS="$(${packages'.genjwks}/bin/genjwks)"
         '';
         env.CGO_ENABLED = 1;
@@ -162,7 +162,7 @@
         type = "app";
         program = toString (pkgs.writeShellScript "watch-appview" ''
           echo "copying static files to appview/pages/static..."
-          ${pkgs.coreutils}/bin/cp -frv --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
+          ${pkgs.coreutils}/bin/cp -fr --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
           ${air-watcher "appview" ""}/bin/run
         '');
       };
