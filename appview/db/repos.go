@@ -556,7 +556,7 @@ func UpdateDescription(e Execer, repoAt, newDescription string) error {
 	return err
 }
 
-func UpdateSpindle(e Execer, repoAt, spindle string) error {
+func UpdateSpindle(e Execer, repoAt string, spindle *string) error {
 	_, err := e.Exec(
 		`update repos set spindle = ? where at_uri = ?`, spindle, repoAt)
 	return err

@@ -38,8 +38,13 @@
           name="spindle"
           required 
           class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
-          <option value="" disabled>
+          {{/* For some reason, we can't use an empty string in a <select> in all scenarios unless it is preceded by a disabled select?? No idea, could just be a Firefox thing? */}}
+          <option value="[[none]]" class="py-1" {{ if not $.CurrentSpindle }}selected{{ end }}>
+            {{ if not $.CurrentSpindle }}
             Choose a spindle
+            {{ else }}
+            Disable pipelines
+            {{ end }}
           </option>
           {{ range $.Spindles }}
             <option value="{{ . }}" class="py-1" {{ if eq . $.CurrentSpindle }}selected{{ end }}>

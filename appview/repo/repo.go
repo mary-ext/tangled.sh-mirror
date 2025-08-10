@@ -657,26 +657,34 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newSpindle := r.FormValue("spindle")
+	removingSpindle := newSpindle == "[[none]]" // see pages/templates/repo/settings/pipelines.html for more info on why we use this value
 	client, err := rp.oauth.AuthorizedClient(r)
 	if err != nil {
 		fail("Failed to authorize. Try again later.", err)
 		return
 	}
 
-	// ensure that this is a valid spindle for this user
-	validSpindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
-	if err != nil {
-		fail("Failed to find spindles. Try again later.", err)
-		return
+	if !removingSpindle {
+		// ensure that this is a valid spindle for this user
+		validSpindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
+		if err != nil {
+			fail("Failed to find spindles. Try again later.", err)
+			return
+		}
+
+		if !slices.Contains(validSpindles, newSpindle) {
+			fail("Failed to configure spindle.", fmt.Errorf("%s is not a valid spindle: %q", newSpindle, validSpindles))
+			return
+		}
 	}
 
-	if !slices.Contains(validSpindles, newSpindle) {
-		fail("Failed to configure spindle.", fmt.Errorf("%s is not a valid spindle: %q", newSpindle, validSpindles))
-		return
+	spindlePtr := &newSpindle
+	if removingSpindle {
+		spindlePtr = nil
 	}
 
 	// optimistic update
-	err = db.UpdateSpindle(rp.db, string(repoAt), newSpindle)
+	err = db.UpdateSpindle(rp.db, string(repoAt), spindlePtr)
 	if err != nil {
 		fail("Failed to update spindle. Try again later.", err)
 		return
@@ -699,7 +707,7 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 				Owner:       user.Did,
 				CreatedAt:   f.CreatedAt,
 				Description: &f.Description,
-				Spindle:     &newSpindle,
+				Spindle:     spindlePtr,
 			},
 		},
 	})
@@ -709,11 +717,13 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// add this spindle to spindle stream
-	rp.spindlestream.AddSource(
-		context.Background(),
-		eventconsumer.NewSpindleSource(newSpindle),
-	)
+	if !removingSpindle {
+		// add this spindle to spindle stream
+		rp.spindlestream.AddSource(
+			context.Background(),
+			eventconsumer.NewSpindleSource(newSpindle),
+		)
+	}
 
 	rp.pages.HxRefresh(w)
 }
