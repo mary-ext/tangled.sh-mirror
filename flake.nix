@@ -161,9 +161,9 @@
       watch-appview = {
         type = "app";
         program = toString (pkgs.writeShellScript "watch-appview" ''
-            echo "copying static files to appview/pages/static..."
-            ${pkgs.coreutils}/bin/cp -frv --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
-            ${air-watcher "appview" ""}/bin/run
+          echo "copying static files to appview/pages/static..."
+          ${pkgs.coreutils}/bin/cp -frv --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
+          ${air-watcher "appview" ""}/bin/run
         '');
       };
       watch-knot = {
