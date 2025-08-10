@@ -53,7 +53,7 @@ in
           ];
         };
         services.getty.autologinUser = "root";
-        environment.systemPackages = with pkgs; [curl vim git];
+        environment.systemPackages = with pkgs; [curl vim git sqlite litecli];
         systemd.tmpfiles.rules = let
           u = config.services.tangled-knot.gitUser;
           g = config.services.tangled-knot.gitUser;
