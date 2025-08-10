@@ -3,6 +3,7 @@ package git
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -57,29 +58,25 @@ type CommitCount struct {
 	ByEmail map[string]int
 }
 
-func (g *GitRepo) RefUpdateMeta(line PostReceiveLine) RefUpdateMeta {
+func (g *GitRepo) RefUpdateMeta(line PostReceiveLine) (RefUpdateMeta, error) {
+	var errs error
+
 	commitCount, err := g.newCommitCount(line)
-	if err != nil {
-		// TODO: log this
-	}
+	errors.Join(errs, err)
 
 	isDefaultRef, err := g.isDefaultBranch(line)
-	if err != nil {
-		// TODO: log this
-	}
+	errors.Join(errs, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 	breakdown, err := g.AnalyzeLanguages(ctx)
-	if err != nil {
-		// TODO: log this
-	}
+	errors.Join(errs, err)
 
 	return RefUpdateMeta{
 		CommitCount:   commitCount,
 		IsDefaultRef:  isDefaultRef,
 		LangBreakdown: breakdown,
-	}
+	}, errs
 }
 
 func (g *GitRepo) newCommitCount(line PostReceiveLine) (CommitCount, error) {
@@ -95,8 +92,18 @@ func (g *GitRepo) newCommitCount(line PostReceiveLine) (CommitCount, error) {
 	args := []string{fmt.Sprintf("--max-count=%d", 100)}
 
 	if line.OldSha.IsZero() {
-		// just git rev-list <newsha>
+		// git rev-list <newsha> ^other-branches --not ^this-branch
 		args = append(args, line.NewSha.String())
+
+		branches, _ := g.Branches()
+		for _, b := range branches {
+			if !strings.Contains(line.Ref, b.Name) {
+				args = append(args, fmt.Sprintf("^%s", b.Name))
+			}
+		}
+
+		args = append(args, "--not")
+		args = append(args, fmt.Sprintf("^%s", line.Ref))
 	} else {
 		// git rev-list <oldsha>..<newsha>
 		args = append(args, fmt.Sprintf("%s..%s", line.OldSha.String(), line.NewSha.String()))

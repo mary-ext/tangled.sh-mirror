@@ -3,6 +3,7 @@ package knotserver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -145,7 +146,9 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 		return fmt.Errorf("failed to open git repo at ref %s: %w", line.Ref, err)
 	}
 
-	meta := gr.RefUpdateMeta(line)
+	var errs error
+	meta, err := gr.RefUpdateMeta(line)
+	errors.Join(errs, err)
 
 	metaRecord := meta.AsRecord()
 
@@ -169,7 +172,7 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 		EventJson: string(eventJson),
 	}
 
-	return h.db.InsertEvent(event, h.n)
+	return errors.Join(errs, h.db.InsertEvent(event, h.n))
 }
 
 func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostReceiveLine, gitUserDid, repoDid, repoName string, pushOptions PushOptions) error {
