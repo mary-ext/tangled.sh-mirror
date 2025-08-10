@@ -182,10 +182,23 @@
           if pkgs.stdenv.hostPlatform.isAarch64
           then "aarch64"
           else "x86_64";
+
+        nixos-shell = pkgs.nixos-shell.overrideAttrs (old: {
+          patches =
+            (old.patches or [])
+            ++ [
+              # https://github.com/Mic92/nixos-shell/pull/94
+              (pkgs.fetchpatch {
+                name = "fix-foreign-vm.patch";
+                url = "https://github.com/Mic92/nixos-shell/commit/113e4cc55ae236b5b0b1fbd8b321e9b67c77580e.patch";
+                hash = "sha256-eauetBK0wXAOcd9PYbExokNCiwz2QyFnZ4FnwGi9VCo=";
+              })
+            ];
+        });
       in {
         type = "app";
         program = toString (pkgs.writeShellScript "vm" ''
-          ${pkgs.nixos-shell}/bin/nixos-shell --flake .#vm-${system}
+          ${nixos-shell}/bin/nixos-shell --flake .#vm-${system} --guest-system ${system}-linux
         '');
       };
       gomod2nix = {
