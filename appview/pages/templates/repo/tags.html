@@ -97,18 +97,24 @@
   {{ $isPushAllowed := $root.RepoInfo.Roles.IsPushAllowed }}
   {{ $artifacts := index $root.ArtifactMap $tag.Tag.Hash }}
 
-  {{ if or (gt (len $artifacts) 0) $isPushAllowed }}
   <h2 class="my-4 text-sm text-left text-gray-700 dark:text-gray-300 uppercase font-bold">artifacts</h2>
   <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700">
     {{ range $artifact := $artifacts }}
       {{ $args := dict "LoggedInUser" $root.LoggedInUser "RepoInfo" $root.RepoInfo "Artifact" $artifact }}
       {{ template "repo/fragments/artifact" $args }}
     {{ end }}
+    <div id="artifact-git-source" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+      <div id="left-side" class="flex items-center gap-2 min-w-0 max-w-[60%]">
+        {{ i "archive" "w-4 h-4" }}
+        <a href="/{{ $root.RepoInfo.FullName }}/archive/{{ pathEscape (print "refs/tags/" $tag.Name) }}" class="no-underline hover:no-underline">
+            Source code (.tar.gz)
+        </a>
+      </div>
+    </div>
     {{ if $isPushAllowed }}
       {{ block "uploadArtifact" (list $root $tag) }} {{ end }}
     {{ end }}
   </div>
-  {{ end }}
 {{ end }}
 
 {{ define "uploadArtifact" }}

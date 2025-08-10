@@ -38,6 +38,10 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	r.Get("/blob/{ref}/*", rp.RepoBlob)
 	r.Get("/raw/{ref}/*", rp.RepoBlobRaw)
 
+	// intentionally doesn't use /* as this isn't
+	// a file path
+	r.Get("/archive/{ref}", rp.DownloadArchive)
+
 	r.Route("/fork", func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(rp.oauth))
 		r.Get("/", rp.ForkRepo)

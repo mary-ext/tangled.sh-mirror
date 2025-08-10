@@ -81,6 +81,25 @@ func New(
 	}
 }
 
+func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
+	refParam := chi.URLParam(r, "ref")
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	var uri string
+	if rp.config.Core.Dev {
+		uri = "http"
+	} else {
+		uri = "https"
+	}
+	url := fmt.Sprintf("%s://%s/%s/%s/archive/%s.tar.gz", uri, f.Knot, f.OwnerDid(), f.RepoName, url.PathEscape(refParam))
+
+	http.Redirect(w, r, url, http.StatusFound)
+}
+
 func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {

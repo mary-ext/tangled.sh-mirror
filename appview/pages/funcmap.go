@@ -236,6 +236,9 @@ func (p *Pages) funcMap() template.FuncMap {
 		},
 		"cssContentHash": CssContentHash,
 		"fileTree":       filetree.FileTree,
+		"pathEscape": func(s string) string {
+			return url.PathEscape(s)
+		},
 		"pathUnescape": func(s string) string {
 			u, _ := url.PathUnescape(s)
 			return u
