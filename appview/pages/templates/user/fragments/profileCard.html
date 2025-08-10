@@ -7,10 +7,13 @@
         </div>
       </div>
       <div class="col-span-2">
-        <p title="{{ didOrHandle .UserDid .UserHandle }}"
-        class="text-lg font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-          {{ didOrHandle .UserDid .UserHandle }}
-        </p>
+        <div class="flex items-center flex-row flex-nowrap gap-2">
+          <p title="{{ didOrHandle .UserDid .UserHandle }}"
+          class="text-lg font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap">
+            {{ didOrHandle .UserDid .UserHandle }}
+          </p>
+          <a href="/{{ didOrHandle .UserDid .UserHandle }}/feed.atom">{{ i "rss" "size-4" }}</a>
+        </div>
 
         <div class="md:hidden">
           {{ block "followerFollowing" (list .Followers .Following) }} {{ end }}
