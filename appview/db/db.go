@@ -728,7 +728,7 @@ func (f filter) Condition() string {
 	kind := rv.Kind()
 
 	// if we have `FilterIn(k, [1, 2, 3])`, compile it down to `k in (?, ?, ?)`
-	if kind == reflect.Slice || kind == reflect.Array {
+	if (kind == reflect.Slice && rv.Type().Elem().Kind() != reflect.Uint8) || kind == reflect.Array {
 		if rv.Len() == 0 {
 			// always false
 			return "1 = 0"
@@ -748,7 +748,7 @@ func (f filter) Condition() string {
 func (f filter) Arg() []any {
 	rv := reflect.ValueOf(f.arg)
 	kind := rv.Kind()
-	if kind == reflect.Slice || kind == reflect.Array {
+	if (kind == reflect.Slice && rv.Type().Elem().Kind() != reflect.Uint8) || kind == reflect.Array {
 		if rv.Len() == 0 {
 			return nil
 		}
