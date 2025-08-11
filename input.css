@@ -107,6 +107,14 @@
             margin: 0;
             vertical-align: middle;
         }
+
+        .prose input {
+          @apply inline-block my-0 mb-1 mx-1;
+        }
+
+        .prose input[type="checkbox"] {
+            @apply disabled:accent-blue-500 checked:accent-blue-500 disabled:checked:accent-blue-500;
+        }
     }
     @layer utilities {
         .error {

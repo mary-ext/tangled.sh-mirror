@@ -40,6 +40,12 @@ module.exports = {
 							color: colors.black,
 							"@apply font-normal text-black bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700 dark:border": {},
 						},
+						li: {
+							"@apply inline-block w-full my-0 py-0": {},
+						},
+						"ul, ol": {
+							"@apply my-1 py-0": {},
+						},
 						code: {
 							"@apply font-normal font-mono p-1 rounded text-black bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700": {},
 						},
