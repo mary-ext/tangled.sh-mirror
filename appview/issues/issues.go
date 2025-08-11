@@ -96,20 +96,6 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to resolve issue owner", err)
 	}
 
-	identsToResolve := make([]string, len(comments))
-	for i, comment := range comments {
-		identsToResolve[i] = comment.OwnerDid
-	}
-	resolvedIds := rp.idResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	rp.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(user),
@@ -117,7 +103,6 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		Comments:     comments,
 
 		IssueOwnerHandle: issueOwnerIdent.Handle.String(),
-		DidHandleMap:     didHandleMap,
 
 		OrderedReactionKinds: db.OrderedReactionKinds,
 		Reactions:            reactionCountMap,
@@ -371,23 +356,9 @@ func (rp *Issues) IssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identity, err := rp.idResolver.ResolveIdent(r.Context(), comment.OwnerDid)
-	if err != nil {
-		log.Println("failed to resolve did")
-		return
-	}
-
-	didHandleMap := make(map[string]string)
-	if !identity.Handle.IsInvalidHandle() {
-		didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-	} else {
-		didHandleMap[identity.DID.String()] = identity.DID.String()
-	}
-
 	rp.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(user),
-		DidHandleMap: didHandleMap,
 		Issue:        issue,
 		Comment:      comment,
 	})
@@ -503,9 +474,6 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// optimistic update for htmx
-		didHandleMap := map[string]string{
-			user.Did: user.Handle,
-		}
 		comment.Body = newBody
 		comment.Edited = &edited
 
@@ -513,7 +481,6 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		rp.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
 			LoggedInUser: user,
 			RepoInfo:     f.RepoInfo(user),
-			DidHandleMap: didHandleMap,
 			Issue:        issue,
 			Comment:      comment,
 		})
@@ -598,9 +565,6 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// optimistic update for htmx
-	didHandleMap := map[string]string{
-		user.Did: user.Handle,
-	}
 	comment.Body = ""
 	comment.Deleted = &deleted
 
@@ -608,11 +572,9 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	rp.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(user),
-		DidHandleMap: didHandleMap,
 		Issue:        issue,
 		Comment:      comment,
 	})
-	return
 }
 
 func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
@@ -648,29 +610,13 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identsToResolve := make([]string, len(issues))
-	for i, issue := range issues {
-		identsToResolve[i] = issue.OwnerDid
-	}
-	resolvedIds := rp.idResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	rp.pages.RepoIssues(w, pages.RepoIssuesParams{
 		LoggedInUser:    rp.oauth.GetUser(r),
 		RepoInfo:        f.RepoInfo(user),
 		Issues:          issues,
-		DidHandleMap:    didHandleMap,
 		FilteringByOpen: isOpen,
 		Page:            page,
 	})
-	return
 }
 
 func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {

@@ -108,16 +108,6 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	followers, following, err := db.GetFollowerFollowingCount(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
@@ -145,7 +135,6 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:       loggedInUser,
 		Repos:              pinnedRepos,
 		CollaboratingRepos: pinnedCollaboratingRepos,
-		DidHandleMap:       didHandleMap,
 		Card: pages.ProfileCard{
 			UserDid:      ident.DID.String(),
 			UserHandle:   ident.Handle.String(),
@@ -194,7 +183,6 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 	s.pages.ReposPage(w, pages.ReposPageParams{
 		LoggedInUser: loggedInUser,
 		Repos:        repos,
-		DidHandleMap: map[string]string{ident.DID.String(): ident.Handle.String()},
 		Card: pages.ProfileCard{
 			UserDid:      ident.DID.String(),
 			UserHandle:   ident.Handle.String(),
@@ -518,24 +506,9 @@ func (s *State) EditPinsFragment(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	var didsToResolve []string
-	for _, r := range allRepos {
-		didsToResolve = append(didsToResolve, r.Did)
-	}
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	s.pages.EditPinsFragment(w, pages.EditPinsParams{
 		LoggedInUser: user,
 		Profile:      profile,
 		AllRepos:     allRepos,
-		DidHandleMap: didHandleMap,
 	})
 }

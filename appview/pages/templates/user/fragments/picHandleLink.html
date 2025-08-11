@@ -1,5 +1,6 @@
 {{ define "user/fragments/picHandleLink" }}
-<a href="/{{ . }}" class="flex items-center">
-    {{ template "user/fragments/picHandle" . }}
+{{ $resolved := resolve . }}
+<a href="/{{ $resolved }}" class="flex items-center">
+    {{ template "user/fragments/picHandle" $resolved }}
 </a>
 {{ end }}

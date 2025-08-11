@@ -38,9 +38,8 @@
     <div>
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
-          {{ i "user" "size-4" }}
-          {{ $user := index $.DidHandleMap . }}
-          <a href="/{{ $user }}">{{ $user }} <span class="ml-2 font-mono text-gray-500">{{.}}</span></a>
+          {{ template "user/fragments/picHandleLink" . }}
+          <span class="ml-2 font-mono text-gray-500">{{.}}</span>
         </div>
       </div>
       <div class="ml-2 pl-2 pt-2 border-l border-gray-200 dark:border-gray-700">
@@ -48,7 +47,7 @@
         {{ range $repos }}
           <div class="flex gap-2 items-center">
             {{ i "book-marked" "size-4" }}
-            <a href="/{{ .Did }}/{{ .Name }}">
+            <a href="/{{ resolve .Did }}/{{ .Name }}">
               {{ .Name }}
             </a>
           </div>

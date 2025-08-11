@@ -42,9 +42,7 @@
     <div>
       <div class="flex justify-between items-center">
         <div class="flex items-center gap-2">
-          {{ i "user" "size-4" }}
-          {{ $user := index $.DidHandleMap . }}
-          <a href="/{{ $user }}">{{ $user }}</a>
+          {{ template "user/fragments/picHandleLink" . }}
         </div>
         {{ if ne $.LoggedInUser.Did . }}
           {{ block "removeMemberButton" (list $ . ) }} {{ end }}
@@ -109,7 +107,7 @@
       hx-post="/spindles/{{ $root.Spindle.Instance }}/remove"
       hx-swap="none"
       hx-vals='{"member": "{{$member}}" }'
-      hx-confirm="Are you sure you want to remove {{ index $root.DidHandleMap $member }} from this instance?"
+      hx-confirm="Are you sure you want to remove {{ resolve $member }} from this instance?"
     >
       {{ i "user-minus" "w-4 h-4" }}
       remove

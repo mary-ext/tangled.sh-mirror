@@ -11,13 +11,13 @@ type ReactionKind string
 
 const (
 	Like        ReactionKind = "👍"
-	Unlike                   = "👎"
-	Laugh                    = "😆"
-	Celebration              = "🎉"
-	Confused                 = "🫤"
-	Heart                    = "❤️"
-	Rocket                   = "🚀"
-	Eyes                     = "👀"
+	Unlike      ReactionKind = "👎"
+	Laugh       ReactionKind = "😆"
+	Celebration ReactionKind = "🎉"
+	Confused    ReactionKind = "🫤"
+	Heart       ReactionKind = "❤️"
+	Rocket      ReactionKind = "🚀"
+	Eyes        ReactionKind = "👀"
 )
 
 func (rk ReactionKind) String() string {

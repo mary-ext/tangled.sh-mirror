@@ -24,6 +24,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/pagination"
+	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/types"
 
@@ -45,13 +46,14 @@ type Pages struct {
 	t  map[string]*template.Template
 
 	avatar      config.AvatarConfig
+	resolver    *idresolver.Resolver
 	dev         bool
 	embedFS     embed.FS
 	templateDir string // Path to templates on disk for dev mode
 	rctx        *markup.RenderContext
 }
 
-func NewPages(config *config.Config) *Pages {
+func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
 	// initialized with safe defaults, can be overriden per use
 	rctx := &markup.RenderContext{
 		IsDev:      config.Core.Dev,
@@ -66,6 +68,7 @@ func NewPages(config *config.Config) *Pages {
 		avatar:      config.Avatar,
 		embedFS:     Files,
 		rctx:        rctx,
+		resolver:    res,
 		templateDir: "appview/pages",
 	}
 
@@ -290,7 +293,6 @@ func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
 type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []db.TimelineEvent
-	DidHandleMap map[string]string
 }
 
 func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
@@ -318,7 +320,6 @@ func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
 
 type KnotParams struct {
 	LoggedInUser *oauth.User
-	DidHandleMap map[string]string
 	Registration *db.Registration
 	Members      []string
 	Repos        map[string][]db.Repo
@@ -375,7 +376,6 @@ type SpindleDashboardParams struct {
 	Spindle      db.Spindle
 	Members      []string
 	Repos        map[string][]db.Repo
-	DidHandleMap map[string]string
 }
 
 func (p *Pages) SpindleDashboard(w io.Writer, params SpindleDashboardParams) error {
@@ -408,8 +408,6 @@ type ProfilePageParams struct {
 	ProfileTimeline    *db.ProfileTimeline
 	Card               ProfileCard
 	Punchcard          db.Punchcard
-
-	DidHandleMap map[string]string
 }
 
 type ProfileCard struct {
@@ -430,8 +428,6 @@ type ReposPageParams struct {
 	LoggedInUser *oauth.User
 	Repos        []db.Repo
 	Card         ProfileCard
-
-	DidHandleMap map[string]string
 }
 
 func (p *Pages) ReposPage(w io.Writer, params ReposPageParams) error {
@@ -460,7 +456,6 @@ type EditPinsParams struct {
 	LoggedInUser *oauth.User
 	Profile      *db.Profile
 	AllRepos     []PinnedRepo
-	DidHandleMap map[string]string
 }
 
 type PinnedRepo struct {
@@ -779,7 +774,6 @@ type RepoIssuesParams struct {
 	RepoInfo        repoinfo.RepoInfo
 	Active          string
 	Issues          []db.Issue
-	DidHandleMap    map[string]string
 	Page            pagination.Page
 	FilteringByOpen bool
 }
@@ -796,7 +790,6 @@ type RepoSingleIssueParams struct {
 	Issue            db.Issue
 	Comments         []db.Comment
 	IssueOwnerHandle string
-	DidHandleMap     map[string]string
 
 	OrderedReactionKinds []db.ReactionKind
 	Reactions            map[db.ReactionKind]int
@@ -850,7 +843,6 @@ func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentPar
 
 type SingleIssueCommentParams struct {
 	LoggedInUser *oauth.User
-	DidHandleMap map[string]string
 	RepoInfo     repoinfo.RepoInfo
 	Issue        *db.Issue
 	Comment      *db.Comment
@@ -882,7 +874,6 @@ type RepoPullsParams struct {
 	RepoInfo     repoinfo.RepoInfo
 	Pulls        []*db.Pull
 	Active       string
-	DidHandleMap map[string]string
 	FilteringBy  db.PullState
 	Stacks       map[string]db.Stack
 	Pipelines    map[string]db.Pipeline
@@ -915,7 +906,6 @@ type RepoSinglePullParams struct {
 	LoggedInUser   *oauth.User
 	RepoInfo       repoinfo.RepoInfo
 	Active         string
-	DidHandleMap   map[string]string
 	Pull           *db.Pull
 	Stack          db.Stack
 	AbandonedPulls []*db.Pull
@@ -935,7 +925,6 @@ func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
 
 type RepoPullPatchParams struct {
 	LoggedInUser         *oauth.User
-	DidHandleMap         map[string]string
 	RepoInfo             repoinfo.RepoInfo
 	Pull                 *db.Pull
 	Stack                db.Stack
@@ -953,7 +942,6 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 
 type RepoPullInterdiffParams struct {
 	LoggedInUser         *oauth.User
-	DidHandleMap         map[string]string
 	RepoInfo             repoinfo.RepoInfo
 	Pull                 *db.Pull
 	Round                int

@@ -76,13 +76,14 @@
   {{ $root := index . 0 }}
   {{ $repo := index . 1 }}
   {{ $source := index . 2 }}
-  {{ $userHandle :=  index $root.DidHandleMap $repo.Did }}
+  {{ $userHandle := resolve $repo.Did }}
     <div class="pl-6 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2 text-sm">
-      {{ template "user/fragments/picHandleLink" $userHandle }}
+      {{ template "user/fragments/picHandleLink" $repo.Did }}
       {{ with $source }}
+        {{ $sourceDid := resolve .Did }}
         forked
-        <a href="/{{ index $root.DidHandleMap .Did }}/{{ .Name }}"class="no-underline hover:underline">
-            {{ index $root.DidHandleMap .Did }}/{{ .Name }}
+        <a href="/{{ $sourceDid }}/{{ .Name }}"class="no-underline hover:underline">
+            {{ $sourceDid }}/{{ .Name }}
         </a>
         to
         <a href="/{{ $userHandle }}/{{ $repo.Name }}" class="no-underline hover:underline">{{ $repo.Name }}</a>
@@ -103,8 +104,8 @@
   {{ $root := index . 0 }}
   {{ $star := index . 1 }}
   {{ with $star }}
-    {{ $starrerHandle :=  index $root.DidHandleMap .StarredByDid }}
-    {{ $repoOwnerHandle :=  index $root.DidHandleMap .Repo.Did }}
+    {{ $starrerHandle :=  resolve .StarredByDid }}
+    {{ $repoOwnerHandle :=  resolve .Repo.Did }}
     <div class="pl-6 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2 text-sm">
         {{ template "user/fragments/picHandleLink" $starrerHandle }}
         starred
@@ -126,8 +127,8 @@
   {{ $profile := index . 2 }}
   {{ $stat := index . 3 }}
 
-  {{ $userHandle :=  index $root.DidHandleMap $follow.UserDid }}
-  {{ $subjectHandle :=  index $root.DidHandleMap $follow.SubjectDid }}
+  {{ $userHandle :=  resolve $follow.UserDid }}
+  {{ $subjectHandle :=  resolve $follow.SubjectDid }}
   <div class="pl-6 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2 text-sm">
       {{ template "user/fragments/picHandleLink" $userHandle }}
       followed

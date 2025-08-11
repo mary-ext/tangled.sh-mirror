@@ -151,16 +151,6 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	mergeCheckResponse := s.mergeCheck(f, pull, stack)
 	resubmitResult := pages.Unknown
 	if user != nil && user.Did == pull.OwnerDid {
@@ -212,7 +202,6 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
 		LoggedInUser:   user,
 		RepoInfo:       repoInfo,
-		DidHandleMap:   didHandleMap,
 		Pull:           pull,
 		Stack:          stack,
 		AbandonedPulls: abandonedPulls,
@@ -377,23 +366,11 @@ func (s *Pulls) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identsToResolve := []string{pull.OwnerDid}
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	patch := pull.Submissions[roundIdInt].Patch
 	diff := patchutil.AsNiceDiff(patch, pull.TargetBranch)
 
 	s.pages.RepoPullPatchPage(w, pages.RepoPullPatchParams{
 		LoggedInUser: user,
-		DidHandleMap: didHandleMap,
 		RepoInfo:     f.RepoInfo(user),
 		Pull:         pull,
 		Stack:        stack,
@@ -440,17 +417,6 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identsToResolve := []string{pull.OwnerDid}
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	currentPatch, err := patchutil.AsDiff(pull.Submissions[roundIdInt].Patch)
 	if err != nil {
 		log.Println("failed to interdiff; current patch malformed")
@@ -472,7 +438,6 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:     f.RepoInfo(user),
 		Pull:         pull,
 		Round:        roundIdInt,
-		DidHandleMap: didHandleMap,
 		Interdiff:    interdiff,
 		DiffOpts:     diffOpts,
 	})
@@ -492,17 +457,6 @@ func (s *Pulls) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad round id", http.StatusBadRequest)
 		log.Println("failed to parse round id", err)
 		return
-	}
-
-	identsToResolve := []string{pull.OwnerDid}
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -595,25 +549,10 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		m[p.Sha] = p
 	}
 
-	identsToResolve := make([]string, len(pulls))
-	for i, pull := range pulls {
-		identsToResolve[i] = pull.OwnerDid
-	}
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	s.pages.RepoPulls(w, pages.RepoPullsParams{
 		LoggedInUser: s.oauth.GetUser(r),
 		RepoInfo:     f.RepoInfo(user),
 		Pulls:        pulls,
-		DidHandleMap: didHandleMap,
 		FilteringBy:  state,
 		Stacks:       stacks,
 		Pipelines:    m,

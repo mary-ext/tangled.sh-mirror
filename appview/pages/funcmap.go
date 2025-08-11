@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -27,6 +28,19 @@ func (p *Pages) funcMap() template.FuncMap {
 	return template.FuncMap{
 		"split": func(s string) []string {
 			return strings.Split(s, "\n")
+		},
+		"resolve": func(s string) string {
+			identity, err := p.resolver.ResolveIdent(context.Background(), s)
+
+			if err != nil {
+				return s
+			}
+
+			if identity.Handle.IsInvalidHandle() {
+				return "handle.invalid"
+			}
+
+			return "@" + identity.Handle.String()
 		},
 		"truncateAt30": func(s string) string {
 			if len(s) <= 30 {
@@ -74,7 +88,7 @@ func (p *Pages) funcMap() template.FuncMap {
 		"negf64": func(a float64) float64 {
 			return -a
 		},
-		"cond": func(cond interface{}, a, b string) string {
+		"cond": func(cond any, a, b string) string {
 			if cond == nil {
 				return b
 			}
@@ -167,7 +181,7 @@ func (p *Pages) funcMap() template.FuncMap {
 			return html.UnescapeString(s)
 		},
 		"nl2br": func(text string) template.HTML {
-			return template.HTML(strings.Replace(template.HTMLEscapeString(text), "\n", "<br>", -1))
+			return template.HTML(strings.ReplaceAll(template.HTMLEscapeString(text), "\n", "<br>"))
 		},
 		"unwrapText": func(text string) string {
 			paragraphs := strings.Split(text, "\n\n")

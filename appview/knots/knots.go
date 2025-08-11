@@ -334,24 +334,8 @@ func (k *Knots) dashboard(w http.ResponseWriter, r *http.Request) {
 		repoByMember[r.Did] = append(repoByMember[r.Did], r)
 	}
 
-	var didsToResolve []string
-	for _, m := range members {
-		didsToResolve = append(didsToResolve, m)
-	}
-	didsToResolve = append(didsToResolve, reg.ByDid)
-	resolvedIds := k.IdResolver.ResolveIdents(r.Context(), didsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	k.Pages.Knot(w, pages.KnotParams{
 		LoggedInUser: user,
-		DidHandleMap: didHandleMap,
 		Registration: reg,
 		Members:      members,
 		Repos:        repoByMember,

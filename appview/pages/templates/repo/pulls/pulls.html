@@ -55,7 +55,6 @@
                     </a>
                 </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
-                    {{ $owner := index $.DidHandleMap .OwnerDid }}
                     {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
                     {{ $icon := "ban" }}
 
@@ -76,7 +75,7 @@
                     </span>
 
                     <span class="ml-1">
-                        {{ template "user/fragments/picHandleLink" $owner }}
+                        {{ template "user/fragments/picHandleLink" .OwnerDid }}
                     </span>
 
                     <span class="before:content-['·']">

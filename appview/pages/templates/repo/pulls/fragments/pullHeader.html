@@ -17,6 +17,7 @@
     {{ $icon = "git-merge" }}
 {{ end }}
 
+{{ $owner := resolve .Pull.OwnerDid }}
 <section class="mt-2">
     <div class="flex items-center gap-2">
         <div
@@ -28,8 +29,7 @@
         </div>
         <span class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
             opened by
-            {{ $owner := index $.DidHandleMap .Pull.OwnerDid }}
-            {{ template "user/fragments/picHandleLink" $owner }}
+            {{ template "user/fragments/picHandleLink" .Pull.OwnerDid }}
             <span class="select-none before:content-['\00B7']"></span>
             {{ template "repo/fragments/time" .Pull.Created }}
 
