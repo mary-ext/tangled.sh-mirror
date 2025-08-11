@@ -61,6 +61,11 @@ generate a knot secret. Set `$TANGLED_VM_KNOT_SECRET` to it,
 ideally in a `.envrc` with [direnv](https://direnv.net) so you
 don't lose it.
 
+You will also need to set the `$TANGLED_VM_SPINDLE_OWNER`
+variable to some value. If you don't want to [set up a
+spindle](#running-a-spindle), you can use any placeholder
+value. 
+
 You can now start a lightweight NixOS VM using
 `nixos-shell` like so:
 
@@ -92,7 +97,9 @@ git push local-dev main
 
 ## running a spindle
 
-Be sure to set `$TANGLED_VM_SPINDLE_OWNER` to your own DID.
+You will need to find out your DID by entering your login handle into
+<https://pdsls.dev/>. Set `$TANGLED_VM_SPINDLE_OWNER` to your DID.
+
 The above VM should already be running a spindle on `localhost:6555`.
 You can head to the spindle dashboard on `http://localhost:3000/spindles`,
 and register a spindle with hostname `localhost:6555`. It should instantly
