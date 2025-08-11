@@ -48,12 +48,52 @@ export TANGLED_OAUTH_JWKS="$(./genjwks.out)"
 redis-server
 ```
 
-## running a knot
+## running knots and spindles in a VM
 
 An end-to-end knot setup requires setting up a machine with
 `sshd`, `AuthorizedKeysCommand`, and git user, which is
 quite cumbersome. So the nix flake provides a
 `nixosConfiguration` to do so.
+
+### Mac-specific: setting up a Nix builder
+
+In order to build Tangled's dev VM on macOS, you will first need to set up a
+Linux Nix builder. The recommended way to do so is to run a
+[`darwin.linux-builder` VM][darwin builder vm] and to register it in `nix.conf`
+as a builder for Linux with the same architecture as your Mac (`linux-aarch64`
+if you are using Apple Silicon).
+
+> IMPORTANT: You must build `darwin.linux-builder` somewhere other than inside
+> the tangled repo so that it doesn't conflict with the other VM. For example,
+> you can do
+>
+> ```shell
+> cd $(mktemp -d buildervm.XXXXX) && nix run nixpkgs#darwin.linux-builder
+> ```
+>
+> to store the builder VM in a temporary dir.
+>
+> You should read and follow [all the other intructions][darwin builder vm] to
+>  avoid subtle problems.
+
+Alternatively, you can use any other method to set up a Linux machine with `nix`
+installed that you can `sudo ssh` into (in other words, root user on your Mac
+has to be able to ssh into the Linux machine without entering a password) and
+that has the same architecture as your Mac. See [remote builder instructions]
+for how to register such a builder in `nix.conf`.
+
+> WARNING: If you'd like to use
+> [`nixos-lima`](https://github.com/nixos-lima/nixos-lima) or
+> [Orbstack](https://orbstack.dev/), note that setting them up so that `sudo
+> ssh` works can be tricky. It seems to be [possible with
+> Orbstack](https://github.com/orgs/orbstack/discussions/1669).
+
+[darwin builder vm]:
+    https://nixos.org/manual/nixpkgs/unstable/#sec-darwin-builder
+[remote builder instructions]:
+    https://nix.dev/manual/nix/2.28/advanced-topics/distributed-builds.html#requirements 
+
+### Running a knot on a dev VM 
 
 To begin, grab your DID from http://localhost:3000/settings.
 Then, set `TANGLED_VM_KNOT_OWNER` and
@@ -97,7 +137,7 @@ git remote add local-dev git@nixos-shell:user/repo
 git push local-dev main
 ```
 
-## running a spindle
+### running a spindle
 
 The above VM should already be running a spindle on
 `localhost:6555`. Head to http://localhost:3000/spindles and
