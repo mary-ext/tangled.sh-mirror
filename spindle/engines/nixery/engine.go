@@ -29,6 +29,7 @@ import (
 
 const (
 	workspaceDir = "/tangled/workspace"
+	homeDir      = "/tangled/home"
 )
 
 type cleanupFunc func(context.Context) error
@@ -243,7 +244,7 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId, wf *m
 	}
 
 	mkExecResp, err := e.docker.ContainerExecCreate(ctx, resp.ID, container.ExecOptions{
-		Cmd:          []string{"mkdir", "-p", workspaceDir},
+		Cmd:          []string{"mkdir", "-p", workspaceDir, homeDir},
 		AttachStdout: true, // NOTE(winter): pretty sure this will make it so that when stdout read is done below, mkdir is done. maybe??
 		AttachStderr: true, // for good measure, backed up by docker/cli ("If -d is not set, attach to everything by default")
 	})
@@ -302,7 +303,7 @@ func (e *Engine) RunStep(ctx context.Context, wid models.WorkflowId, w *models.W
 	for k, v := range step.environment {
 		envs.AddEnv(k, v)
 	}
-	envs.AddEnv("HOME", workspaceDir)
+	envs.AddEnv("HOME", homeDir)
 	e.l.Debug("envs for step", "step", step.Name, "envs", envs.Slice())
 
 	mkExecResp, err := e.docker.ContainerExecCreate(ctx, addl.container, container.ExecOptions{
