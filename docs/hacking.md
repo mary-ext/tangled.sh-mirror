@@ -56,7 +56,8 @@ quite cumbersome. So the nix flake provides a
 `nixosConfiguration` to do so.
 
 To begin, head to `http://localhost:3000/knots` in the browser
-and generate a knot secret. Set `$TANGLED_KNOT_SECRET` to it,
+and create a knot with hostname `localhost:6000`. This will
+generate a knot secret. Set `$TANGLED_VM_KNOT_SECRET` to it,
 ideally in a `.envrc` with [direnv](https://direnv.net) so you
 don't lose it.
 
@@ -91,7 +92,7 @@ git push local-dev main
 
 ## running a spindle
 
-Be sure to set `$TANGLED_SPINDLE_OWNER` to your own DID.
+Be sure to set `$TANGLED_VM_SPINDLE_OWNER` to your own DID.
 The above VM should already be running a spindle on `localhost:6555`.
 You can head to the spindle dashboard on `http://localhost:3000/spindles`,
 and register a spindle with hostname `localhost:6555`. It should instantly
