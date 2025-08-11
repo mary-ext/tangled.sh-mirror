@@ -196,8 +196,7 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 			r.name,
 			r.knot,
 			r.rkey,
-			r.created,
-			r.at_uri
+			r.created
 		from stars s
 		join repos r on s.repo_at = r.at_uri
 	`)
@@ -222,7 +221,6 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 			&repo.Knot,
 			&repo.Rkey,
 			&repoCreatedAt,
-			&repo.AtUri,
 		); err != nil {
 			return nil, err
 		}

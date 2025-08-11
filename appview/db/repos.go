@@ -19,7 +19,6 @@ type Repo struct {
 	Knot        string
 	Rkey        string
 	Created     time.Time
-	AtUri       string
 	Description string
 	Spindle     string
 
@@ -391,7 +390,7 @@ func GetRepo(e Execer, did, name string) (*Repo, error) {
 	var description, spindle sql.NullString
 
 	row := e.QueryRow(`
-		select did, name, knot, created, at_uri, description, spindle, rkey
+		select did, name, knot, created, description, spindle, rkey
 		from repos
 		where did = ? and name = ?
 		`,
@@ -400,7 +399,7 @@ func GetRepo(e Execer, did, name string) (*Repo, error) {
 	)
 
 	var createdAt string
-	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &description, &spindle, &repo.Rkey); err != nil {
+	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &description, &spindle, &repo.Rkey); err != nil {
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
@@ -421,10 +420,10 @@ func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
 	var repo Repo
 	var nullableDescription sql.NullString
 
-	row := e.QueryRow(`select did, name, knot, created, at_uri, rkey, description from repos where at_uri = ?`, atUri)
+	row := e.QueryRow(`select did, name, knot, created, rkey, description from repos where at_uri = ?`, atUri)
 
 	var createdAt string
-	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.AtUri, &repo.Rkey, &nullableDescription); err != nil {
+	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &repo.Rkey, &nullableDescription); err != nil {
 		return nil, err
 	}
 	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
@@ -440,14 +439,11 @@ func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
 }
 
 func AddRepo(e Execer, repo *Repo) error {
-	if repo.AtUri == "" {
-		repo.AtUri = repo.RepoAt().String()
-	}
 	_, err := e.Exec(
 		`insert into repos
 		(did, name, knot, rkey, at_uri, description, source)
 		values (?, ?, ?, ?, ?, ?, ?)`,
-		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.AtUri, repo.Description, repo.Source,
+		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.RepoAt().String(), repo.Description, repo.Source,
 	)
 	return err
 }
@@ -470,7 +466,7 @@ func GetForksByDid(e Execer, did string) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
-		`select did, name, knot, rkey, description, created, at_uri, source
+		`select did, name, knot, rkey, description, created, source
 		from repos
 		where did = ? and source is not null and source != ''
 		order by created desc`,
@@ -487,7 +483,7 @@ func GetForksByDid(e Execer, did string) ([]Repo, error) {
 		var nullableDescription sql.NullString
 		var nullableSource sql.NullString
 
-		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repo.AtUri, &nullableSource)
+		err := rows.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &nullableSource)
 		if err != nil {
 			return nil, err
 		}
@@ -524,13 +520,13 @@ func GetForkByDid(e Execer, did string, name string) (*Repo, error) {
 	var nullableSource sql.NullString
 
 	row := e.QueryRow(
-		`select did, name, knot, rkey, description, created, at_uri, source
+		`select did, name, knot, rkey, description, created, source
 		from repos
 		where did = ? and name = ? and source is not null and source != ''`,
 		did, name,
 	)
 
-	err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &repo.AtUri, &nullableSource)
+	err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &nullableDescription, &createdAt, &nullableSource)
 	if err != nil {
 		return nil, err
 	}
