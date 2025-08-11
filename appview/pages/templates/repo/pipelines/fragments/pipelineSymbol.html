@@ -23,12 +23,12 @@
       </div>
     {{ else if $allFail }}
       <div class="flex gap-1 items-center">
-        {{ i "x" "size-4 text-red-600" }}
+        {{ i "x" "size-4 text-red-500" }}
         <span>0/{{ $total }}</span>
       </div>
     {{ else if $allTimeout }}
       <div class="flex gap-1 items-center">
-        {{ i "clock-alert" "size-4 text-orange-400" }}
+        {{ i "clock-alert" "size-4 text-orange-500" }}
         <span>0/{{ $total }}</span>
       </div>
     {{ else }}

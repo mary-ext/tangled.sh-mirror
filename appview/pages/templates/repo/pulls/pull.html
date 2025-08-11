@@ -47,13 +47,13 @@
             <!-- round summary -->
             <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 p-2 text-gray-500 dark:text-gray-400">
               <span class="gap-1 flex items-center">
-                {{ $owner := index $.DidHandleMap $.Pull.OwnerDid }}
+                {{ $owner := resolve $.Pull.OwnerDid }}
                 {{ $re := "re" }}
                 {{ if eq .RoundNumber 0 }}
                   {{ $re = "" }}
                 {{ end }}
                 <span class="hidden md:inline">{{$re}}submitted</span>
-                by {{ template "user/fragments/picHandleLink" $owner }}
+                by {{ template "user/fragments/picHandleLink" $.Pull.OwnerDid }}
                 <span class="select-none before:content-['\00B7']"></span>
                 <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500" href="#round-#{{ .RoundNumber }}">{{ template "repo/fragments/shortTime" .Created }}</a>
                 <span class="select-none before:content-['·']"></span>
@@ -151,8 +151,7 @@
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
               {{ end }}
               <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                {{ $owner := index $.DidHandleMap $c.OwnerDid }}
-                {{ template "user/fragments/picHandleLink" $owner }}
+                {{ template "user/fragments/picHandleLink" $c.OwnerDid }}
                 <span class="before:content-['·']"></span>
                 <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" href="#comment-{{.ID}}">{{ template "repo/fragments/time" $c.Created }}</a>
               </div>

@@ -50,9 +50,9 @@
             </div>
           {{ else }}
             <div class="flex flex-col gap-1">
-              {{ block "repoEvents"  (list .RepoEvents  $.DidHandleMap) }} {{ end }}
-              {{ block "issueEvents" (list .IssueEvents $.DidHandleMap) }} {{ end }}
-              {{ block "pullEvents"  (list .PullEvents  $.DidHandleMap) }} {{ end }}
+              {{ block "repoEvents"  .RepoEvents }} {{ end }}
+              {{ block "issueEvents" .IssueEvents }} {{ end }}
+              {{ block "pullEvents"  .PullEvents }} {{ end }}
             </div>
           {{ end }}
         </div>
@@ -66,19 +66,16 @@
 {{ end }}
 
 {{ define "repoEvents" }}
-  {{ $items := index . 0 }}
-  {{ $handleMap := index . 1 }}
-
-  {{ if gt (len $items) 0 }}
+  {{ if gt (len .) 0 }}
     <details>
       <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex flex-wrap items-center gap-2">
           {{ i "book-plus" "w-4 h-4" }}
-          created {{ len $items }} {{if eq (len $items) 1 }}repository{{else}}repositories{{end}}
+          created {{ len . }} {{if eq (len .) 1 }}repository{{else}}repositories{{end}}
         </div>
       </summary>
       <div class="py-2 text-sm flex flex-col gap-3 mb-2">
-        {{ range $items }}
+        {{ range . }}
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-gray-500 dark:text-gray-400">
               {{ if .Source }}
@@ -87,7 +84,7 @@
                 {{ i "book-plus" "w-4 h-4" }}
               {{ end }}
             </span>
-            <a href="/{{ index $handleMap .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
+            <a href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
               {{- .Repo.Name -}}
             </a>
           </div>
@@ -98,10 +95,8 @@
 {{ end }}
 
 {{ define "issueEvents" }}
-  {{ $i := index . 0 }}
-  {{ $items := $i.Items }}
-  {{ $stats := $i.Stats }}
-  {{ $handleMap := index . 1 }}
+  {{ $items := .Items }}
+  {{ $stats := .Stats }}
 
   {{ if gt (len $items) 0 }}
     <details>
@@ -129,7 +124,7 @@
       </summary>
       <div class="py-2 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
-          {{ $repoOwner := index $handleMap .Metadata.Repo.Did }}
+          {{ $repoOwner := resolve .Metadata.Repo.Did }}
           {{ $repoName := .Metadata.Repo.Name }}
           {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
 
@@ -163,10 +158,8 @@
 {{ end }}
 
 {{ define "pullEvents" }}
-  {{ $i := index . 0 }}
-  {{ $items := $i.Items }}
-  {{ $stats := $i.Stats }}
-  {{ $handleMap := index . 1 }}
+  {{ $items := .Items }}
+  {{ $stats := .Stats }}
   {{ if gt (len $items) 0 }}
     <details>
       <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
@@ -200,7 +193,7 @@
       </summary>
       <div class="py-2 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
-          {{ $repoOwner := index $handleMap .Repo.Did }}
+          {{ $repoOwner := resolve .Repo.Did }}
           {{ $repoName := .Repo.Name }}
           {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
 

@@ -11,14 +11,12 @@
         {{ else }}
           {{ i "book-marked" "w-4 h-4 mr-1.5 shrink-0" }}
         {{ end }}
+
+        {{ $repoOwner := resolve .Did }}
         {{- if $fullName -}}
-          <a href="/{{ index $root.DidHandleMap .Did }}/{{ .Name }}"
-            >{{ index $root.DidHandleMap .Did }}/{{ .Name }}</a
-          >
+          <a href="/{{ $repoOwner }}/{{ .Name }}">{{ $repoOwner }}/{{ .Name }}</a>
         {{- else -}}
-          <a href="/{{ index $root.DidHandleMap .Did }}/{{ .Name }}"
-            >{{ .Name }}</a
-          >
+          <a href="/{{ $repoOwner }}/{{ .Name }}">{{ .Name }}</a>
         {{- end -}}
       </div>
       {{ with .Description }}

@@ -113,18 +113,6 @@ func (s *Spindles) dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identsToResolve := make([]string, len(members))
-	copy(identsToResolve, members)
-	resolvedIds := s.IdResolver.ResolveIdents(r.Context(), identsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	// organize repos by did
 	repoMap := make(map[string][]db.Repo)
 	for _, r := range repos {
@@ -136,7 +124,6 @@ func (s *Spindles) dashboard(w http.ResponseWriter, r *http.Request) {
 		Spindle:      spindle,
 		Members:      members,
 		Repos:        repoMap,
-		DidHandleMap: didHandleMap,
 	})
 }
 

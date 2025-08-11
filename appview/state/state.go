@@ -61,13 +61,13 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to create enforcer: %w", err)
 	}
 
-	pgs := pages.NewPages(config)
-
 	res, err := idresolver.RedisResolver(config.Redis.ToURL())
 	if err != nil {
 		log.Printf("failed to create redis resolver: %v", err)
 		res = idresolver.DefaultResolver()
 	}
+
+	pgs := pages.NewPages(config, res)
 
 	cache := cache.New(config.Redis.Addr)
 	sess := session.New(cache)
@@ -180,39 +180,10 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
 	}
 
-	var didsToResolve []string
-	for _, ev := range timeline {
-		if ev.Repo != nil {
-			didsToResolve = append(didsToResolve, ev.Repo.Did)
-			if ev.Source != nil {
-				didsToResolve = append(didsToResolve, ev.Source.Did)
-			}
-		}
-		if ev.Follow != nil {
-			didsToResolve = append(didsToResolve, ev.Follow.UserDid, ev.Follow.SubjectDid)
-		}
-		if ev.Star != nil {
-			didsToResolve = append(didsToResolve, ev.Star.StarredByDid, ev.Star.Repo.Did)
-		}
-	}
-
-	resolvedIds := s.idResolver.ResolveIdents(r.Context(), didsToResolve)
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIds {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
 	s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
 		Timeline:     timeline,
-		DidHandleMap: didHandleMap,
 	})
-
-	return
 }
 
 func (s *State) Keys(w http.ResponseWriter, r *http.Request) {

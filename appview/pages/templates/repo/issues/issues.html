@@ -65,8 +65,7 @@
       </span>
 
       <span class="ml-1">
-          {{ $owner := index $.DidHandleMap .OwnerDid }}
-          {{ template "user/fragments/picHandleLink" $owner }}
+          {{ template "user/fragments/picHandleLink" .OwnerDid }}
       </span>
 
       <span class="before:content-['·']">

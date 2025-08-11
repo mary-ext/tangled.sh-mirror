@@ -70,7 +70,7 @@
                 {{ if gt $index 0 }}
                 <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
                 {{ end }}
-                {{ template "repo/issues/fragments/issueComment" (dict "RepoInfo" $.RepoInfo "LoggedInUser" $.LoggedInUser "DidHandleMap" $.DidHandleMap "Issue" $.Issue "Comment" .)}}
+                {{ template "repo/issues/fragments/issueComment" (dict "RepoInfo" $.RepoInfo "LoggedInUser" $.LoggedInUser "Issue" $.Issue "Comment" .)}}
             </div>
         {{ end }}
     </section>

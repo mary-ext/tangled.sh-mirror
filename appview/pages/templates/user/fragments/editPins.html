@@ -27,7 +27,7 @@
           <input type="checkbox" id="repo-{{$idx}}" name="pinnedRepo{{$idx}}" value="{{.RepoAt}}" {{if .IsPinned}}checked{{end}}>
           <label for="repo-{{$idx}}" class="my-0 py-0 normal-case font-normal w-full">
             <div class="flex justify-between items-center w-full">
-              <span class="flex-shrink-0 overflow-hidden text-ellipsis ">{{ index $.DidHandleMap .Did }}/{{.Name}}</span>
+              <span class="flex-shrink-0 overflow-hidden text-ellipsis ">{{ resolve .Did }}/{{.Name}}</span>
               <div class="flex gap-1 items-center">
                 {{ i "star" "size-4 fill-current" }}
                 <span>{{ .RepoStats.StarCount }}</span>
