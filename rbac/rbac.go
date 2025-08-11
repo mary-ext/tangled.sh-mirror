@@ -43,7 +43,7 @@ func NewEnforcer(path string) (*Enforcer, error) {
 		return nil, err
 	}
 
-	db, err := sql.Open("sqlite3", path)
+	db, err := sql.Open("sqlite3", path+"?_foreign_keys=1")
 	if err != nil {
 		return nil, err
 	}

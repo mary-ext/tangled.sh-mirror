@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("sqlite3", "./appview.db")
+	db, err := sql.Open("sqlite3", "./appview.db?_foreign_keys=1")
 	if err != nil {
 		log.Fatal("Failed to open database:", err)
 	}

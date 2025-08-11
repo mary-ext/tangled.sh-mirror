@@ -14,7 +14,7 @@ import (
 )
 
 func setup(t *testing.T) *rbac.Enforcer {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", ":memory:?_foreign_keys=1")
 	assert.NoError(t, err)
 
 	a, err := adapter.NewAdapter(db, "sqlite3", "acl")

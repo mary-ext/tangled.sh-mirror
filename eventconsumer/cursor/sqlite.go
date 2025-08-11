@@ -21,7 +21,7 @@ func WithTableName(name string) SqliteStoreOpt {
 }
 
 func NewSQLiteStore(dbPath string, opts ...SqliteStoreOpt) (*SqliteStore, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open sqlite database: %w", err)
 	}

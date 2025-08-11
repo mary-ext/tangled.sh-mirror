@@ -11,7 +11,7 @@ type DB struct {
 }
 
 func Make(dbPath string) (*DB, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=1")
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +19,6 @@ func Make(dbPath string) (*DB, error) {
 	_, err = db.Exec(`
 		pragma journal_mode = WAL;
 		pragma synchronous = normal;
-		pragma foreign_keys = on;
 		pragma temp_store = memory;
 		pragma mmap_size = 30000000000;
 		pragma page_size = 32768;
