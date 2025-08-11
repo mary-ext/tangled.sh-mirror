@@ -242,6 +242,10 @@ func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source,
 			return fmt.Errorf("no repo data found")
 		}
 
+		if src.Key() != tpl.TriggerMetadata.Repo.Knot {
+			return fmt.Errorf("repo knot does not match event source: %s != %s", src.Key(), tpl.TriggerMetadata.Repo.Knot)
+		}
+
 		// filter by repos
 		_, err = s.db.GetRepo(
 			tpl.TriggerMetadata.Repo.Knot,
