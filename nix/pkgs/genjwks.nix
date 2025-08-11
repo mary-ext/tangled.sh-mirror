@@ -9,6 +9,9 @@ buildGoApplication {
   postPatch = ''
     ln -s ${../../go.mod} ./go.mod
   '';
+  postInstall = ''
+    mv $out/bin/core $out/bin/genjwks
+  '';
   inherit modules;
   doCheck = false;
   CGO_ENABLED = 0;
