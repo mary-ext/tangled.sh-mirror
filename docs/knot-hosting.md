@@ -73,7 +73,7 @@ sudo adduser git
 ```
 
 Create `/home/git/.knot.env` with the following, updating the values as
-necessary. The `KNOT_SERVER_SECRET` can be obtaind from the
+necessary. The `KNOT_SERVER_SECRET` can be obtained from the
 [/knots](https://tangled.sh/knots) page on Tangled.
 
 ```
