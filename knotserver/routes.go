@@ -22,7 +22,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
-	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/hook"
@@ -651,67 +650,6 @@ func (h *Handle) Keys(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-}
-
-func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
-	l := h.l.With("handler", "NewRepo")
-
-	data := struct {
-		Did           string `json:"did"`
-		Name          string `json:"name"`
-		DefaultBranch string `json:"default_branch,omitempty"`
-	}{}
-
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		writeError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if data.DefaultBranch == "" {
-		data.DefaultBranch = h.c.Repo.MainBranch
-	}
-
-	did := data.Did
-	name := data.Name
-	defaultBranch := data.DefaultBranch
-
-	if err := validateRepoName(name); err != nil {
-		l.Error("creating repo", "error", err.Error())
-		writeError(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	relativeRepoPath := filepath.Join(did, name)
-	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
-	err := git.InitBare(repoPath, defaultBranch)
-	if err != nil {
-		l.Error("initializing bare repo", "error", err.Error())
-		if errors.Is(err, gogit.ErrRepositoryAlreadyExists) {
-			writeError(w, "That repo already exists!", http.StatusConflict)
-			return
-		} else {
-			writeError(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	// add perms for this user to access the repo
-	err = h.e.AddRepo(did, rbac.ThisServer, relativeRepoPath)
-	if err != nil {
-		l.Error("adding repo permissions", "error", err.Error())
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	hook.SetupRepo(
-		hook.Config(
-			hook.WithScanPath(h.c.Repo.ScanPath),
-			hook.WithInternalApi(h.c.Server.InternalListenAddr),
-		),
-		repoPath,
-	)
-
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handle) RepoForkAheadBehind(w http.ResponseWriter, r *http.Request) {

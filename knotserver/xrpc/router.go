@@ -31,15 +31,24 @@ type Xrpc struct {
 
 func (x *Xrpc) Router() http.Handler {
 	r := chi.NewRouter()
+	r.Group(func(r chi.Router) {
+		r.Use(x.ServiceAuth.VerifyServiceAuth)
 
-	r.With(x.ServiceAuth.VerifyServiceAuth).Post("/"+tangled.RepoSetDefaultBranchNSID, x.SetDefaultBranch)
+		r.Post("/"+tangled.RepoSetDefaultBranchNSID, x.SetDefaultBranch)
+		r.Post("/"+tangled.RepoCreateNSID, x.CreateRepo)
+		r.Post("/"+tangled.RepoDeleteNSID, x.DeleteRepo)
+		r.Post("/"+tangled.RepoForkNSID, x.ForkRepo)
+		r.Post("/"+tangled.RepoForkStatusNSID, x.ForkStatus)
+		r.Post("/"+tangled.RepoForkSyncNSID, x.ForkSync)
 
+		r.Post("/"+tangled.RepoHiddenRefNSID, x.HiddenRef)
+
+		r.Post("/"+tangled.RepoMergeNSID, x.Merge)
+		r.Post("/"+tangled.RepoMergeCheckNSID, x.MergeCheck)
+	})
 	return r
 }
 
-// this is slightly different from http_util::write_error to follow the spec:
-//
-// the json object returned must include an "error" and a "message"
 func writeError(w http.ResponseWriter, e xrpcerr.XrpcError, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
