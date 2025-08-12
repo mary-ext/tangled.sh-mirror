@@ -5,22 +5,32 @@
 
   {{ with $repo }}
     <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
-        <div class="font-medium dark:text-white flex gap-2 items-center">
-          {{- if $fullName -}}
-            <a href="/{{ index $root.DidHandleMap .Did }}/{{ .Name }}">{{ index $root.DidHandleMap .Did }}/{{ .Name }}</a>
-          {{- else -}}
-            <a href="/{{ index $root.DidHandleMap .Did }}/{{ .Name }}">{{ .Name }}</a>
-          {{- end -}}
+      <div class="font-medium dark:text-white flex gap-2 items-center">
+        {{- if $fullName -}}
+          <a href="/{{ index $root.DidHandleMap .Did }}/{{ .Name }}"
+            >{{ index $root.DidHandleMap .Did }}/{{ .Name }}</a
+          >
+        {{- else -}}
+          <a href="/{{ index $root.DidHandleMap .Did }}/{{ .Name }}"
+            >{{ .Name }}</a
+          >
+        {{- end -}}
+      </div>
+      {{ if .Source }}
+        <div class="flex items-center my-0.5 text-sm">
+          {{ i "git-fork" "w-3 h-3 mr-1" }}
+          fork
         </div>
-        {{ with .Description }}
-          <div class="text-gray-600 dark:text-gray-300 text-sm">
-              {{ . }}
-          </div>
-        {{ end }}
+      {{ end }}
+      {{ with .Description }}
+        <div class="text-gray-600 dark:text-gray-300 text-sm">
+          {{ . }}
+        </div>
+      {{ end }}
 
-        {{ if .RepoStats }}
-          {{ block "repoStats" .RepoStats }} {{ end }}
-        {{ end }}
+      {{ if .RepoStats }}
+        {{ block "repoStats" .RepoStats }}{{ end }}
+      {{ end }}
     </div>
   {{ end }}
 {{ end }}
@@ -29,30 +39,30 @@
   <div class="text-gray-400 pt-4 text-sm font-mono inline-flex gap-4 mt-auto">
     {{ with .Language }}
       <div class="flex gap-2 items-center text-sm">
-        <div class="size-2 rounded-full" 
-          style="background: radial-gradient(circle at 35% 35%, color-mix(in srgb, {{ langColor . }} 70%, white), {{ langColor . }} 30%, color-mix(in srgb, {{ langColor . }} 85%, black));"></div>
+        <div
+          class="size-2 rounded-full"
+          style="background: radial-gradient(circle at 35% 35%, color-mix(in srgb, {{ langColor . }} 70%, white), {{ langColor . }} 30%, color-mix(in srgb, {{ langColor . }} 85%, black));"
+        ></div>
         <span>{{ . }}</span>
       </div>
     {{ end }}
     {{ with .StarCount }}
-        <div class="flex gap-1 items-center text-sm">
-            {{ i "star" "w-3 h-3 fill-current" }}
-            <span>{{ . }}</span>
-        </div>
+      <div class="flex gap-1 items-center text-sm">
+        {{ i "star" "w-3 h-3 fill-current" }}
+        <span>{{ . }}</span>
+      </div>
     {{ end }}
     {{ with .IssueCount.Open }}
-        <div class="flex gap-1 items-center text-sm">
-            {{ i "circle-dot" "w-3 h-3" }}
-            <span>{{ . }}</span>
-        </div>
+      <div class="flex gap-1 items-center text-sm">
+        {{ i "circle-dot" "w-3 h-3" }}
+        <span>{{ . }}</span>
+      </div>
     {{ end }}
     {{ with .PullCount.Open }}
-        <div class="flex gap-1 items-center text-sm">
-            {{ i "git-pull-request" "w-3 h-3" }}
-            <span>{{ . }}</span>
-        </div>
+      <div class="flex gap-1 items-center text-sm">
+        {{ i "git-pull-request" "w-3 h-3" }}
+        <span>{{ . }}</span>
+      </div>
     {{ end }}
   </div>
 {{ end }}
-
-
