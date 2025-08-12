@@ -466,11 +466,14 @@ func GetForksByDid(e Execer, did string) ([]Repo, error) {
 	var repos []Repo
 
 	rows, err := e.Query(
-		`select did, name, knot, rkey, description, created, source
-		from repos
-		where did = ? and source is not null and source != ''
-		order by created desc`,
-		did,
+		`select distinct r.did, r.name, r.knot, r.rkey, r.description, r.created, r.source
+		from repos r
+		left join collaborators c on r.at_uri = c.repo_at
+		where (r.did = ? or c.subject_did = ?)
+			and r.source is not null
+			and r.source != ''
+		order by r.created desc`,
+		did, did,
 	)
 	if err != nil {
 		return nil, err
