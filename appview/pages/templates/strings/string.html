@@ -19,7 +19,7 @@
       <div>
         <a href="/strings/{{ $ownerId }}">{{ $ownerId }}</a>
         <span class="select-none">/</span>
-        <a href="/{{ $ownerId }}/{{ .String.Rkey }}" class="font-bold">{{ .String.Filename }}</a>
+        <a href="/strings/{{ $ownerId }}/{{ .String.Rkey }}" class="font-bold">{{ .String.Filename }}</a>
       </div>
       {{ if and .LoggedInUser (eq .LoggedInUser.Did .String.Did) }}
         <div class="flex gap-2 text-base">
@@ -44,22 +44,25 @@
         </div>
       {{ end }}
     </div>
-    <span class="flex items-center">
+    <span>
       {{ with .String.Description }}
         {{ . }}
-        <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-      {{ end }}
-
-      {{ with .String.Edited }}
-        <span>edited {{ template "repo/fragments/shortTimeAgo" . }}</span>
-      {{ else }}
-        {{ template "repo/fragments/shortTimeAgo" .String.Created }}
       {{ end }}
     </span>
   </section>
   <section class="bg-white dark:bg-gray-800 px-6 py-4 rounded relative w-full dark:text-white">
     <div class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-sm md:text-base pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
-      <span>{{ .String.Filename }}</span>
+      <span>
+        {{ .String.Filename }}
+        <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+        <span>
+          {{ with .String.Edited }}
+            edited {{ template "repo/fragments/shortTimeAgo" . }}
+          {{ else }}
+            {{ template "repo/fragments/shortTimeAgo" .String.Created }}
+          {{ end }}
+        </span>
+      </span>
       <div>
         <span>{{ .Stats.LineCount }} lines</span>
         <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
