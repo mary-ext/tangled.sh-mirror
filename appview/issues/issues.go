@@ -604,7 +604,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issues, err := db.GetIssues(rp.db, f.RepoAt(), isOpen, page)
+	issues, err := db.GetIssuesPaginated(rp.db, f.RepoAt(), isOpen, page)
 	if err != nil {
 		log.Println("failed to get issues", err)
 		rp.pages.Notice(w, "issues", "Failed to load issues. Try again later.")

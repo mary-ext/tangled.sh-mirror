@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -105,7 +106,7 @@ func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error
 	return ownerDid, err
 }
 
-func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page) ([]Issue, error) {
+func GetIssuesPaginated(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page) ([]Issue, error) {
 	var issues []Issue
 	openValue := 0
 	if isOpen {
@@ -145,9 +146,9 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 			body,
 			open,
 			comment_count
-		from 
+		from
 			numbered_issue
-		where 
+		where
 			row_num between ? and ?`,
 		repoAt, openValue, page.Offset+1, page.Offset+page.Limit)
 	if err != nil {
@@ -179,6 +180,86 @@ func GetIssues(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page)
 	}
 
 	return issues, nil
+}
+
+func GetIssuesWithLimit(e Execer, limit int, filters ...filter) ([]Issue, error) {
+	issues := make([]Issue, 0, limit)
+
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+	limitClause := ""
+	if limit != 0 {
+		limitClause = fmt.Sprintf(" limit %d ", limit)
+	}
+
+	query := fmt.Sprintf(
+		`select
+			i.id,
+			i.owner_did,
+			i.repo_at,
+			i.issue_id,
+			i.created,
+			i.title,
+			i.body,
+			i.open
+		from
+		    issues i
+		%s
+		order by
+			i.created desc
+		%s`,
+		whereClause, limitClause)
+
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var issue Issue
+		var issueCreatedAt string
+		err := rows.Scan(
+			&issue.ID,
+			&issue.OwnerDid,
+			&issue.RepoAt,
+			&issue.IssueId,
+			&issueCreatedAt,
+			&issue.Title,
+			&issue.Body,
+			&issue.Open,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		issueCreatedTime, err := time.Parse(time.RFC3339, issueCreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		issue.Created = issueCreatedTime
+
+		issues = append(issues, issue)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return issues, nil
+}
+
+func GetIssues(e Execer, filters ...filter) ([]Issue, error) {
+	return GetIssuesWithLimit(e, 0, filters...)
 }
 
 // timeframe here is directly passed into the sql query filter, and any
