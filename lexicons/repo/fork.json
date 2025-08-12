@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "sh.tangled.repo.fork",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Fork a repository from a source repository",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["did", "source"],
+          "properties": {
+            "did": {
+              "type": "string",
+              "format": "did",
+              "description": "DID of the user creating the fork"
+            },
+            "source": {
+              "type": "string",
+              "description": "Source repository URL to fork from"
+            },
+            "name": {
+              "type": "string",
+              "description": "Name for the forked repository (defaults to basename of source)"
+            }
+          }
+        }
+      }
+    }
+  }
+}

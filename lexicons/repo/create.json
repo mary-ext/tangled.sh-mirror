@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "sh.tangled.repo.create",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create a new repository",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["did", "name"],
+          "properties": {
+            "did": {
+              "type": "string",
+              "format": "did",
+              "description": "DID of the user creating the repository"
+            },
+            "name": {
+              "type": "string",
+              "description": "Name of the repository"
+            },
+            "default_branch": {
+              "type": "string",
+              "description": "Default branch name"
+            }
+          }
+        }
+      }
+    }
+  }
+}
