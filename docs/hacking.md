@@ -64,16 +64,14 @@ don't lose it.
 You will also need to set the `$TANGLED_VM_SPINDLE_OWNER`
 variable to some value. If you don't want to [set up a
 spindle](#running-a-spindle), you can use any placeholder
-value. 
+value.
 
-You can now start a lightweight NixOS VM using
-`nixos-shell` like so:
+You can now start a lightweight NixOS VM like so:
 
 ```bash
-nix run .#vm
-# or nixos-shell --flake .#vm
+nix run --impure .#vm
 
-# hit Ctrl-a + c + q to exit the VM
+# type `poweroff` at the shell to exit the VM
 ```
 
 This starts a knot on port 6000, a spindle on port 6555

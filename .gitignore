@@ -17,3 +17,4 @@ patches
 .envrc
 # Created if following hacking.md
 genjwks.out
+/nix/vm-data

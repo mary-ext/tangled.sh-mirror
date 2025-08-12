@@ -1,6 +1,7 @@
 {
   nixpkgs,
   system,
+  hostSystem,
   self,
 }: let
   envVar = name: let
@@ -16,18 +17,15 @@ in
       self.nixosModules.knot
       self.nixosModules.spindle
       ({
+        lib,
         config,
         pkgs,
         ...
       }: {
-        nixos-shell = {
-          inheritPath = false;
-          mounts = {
-            mountHome = false;
-            mountNixProfile = false;
-          };
-        };
-        virtualisation = {
+        virtualisation.vmVariant.virtualisation = {
+          host.pkgs = import nixpkgs {system = hostSystem;};
+
+          graphics = false;
           memorySize = 2048;
           diskSize = 10 * 1024;
           cores = 2;
@@ -51,21 +49,34 @@ in
               guest.port = 6555;
             }
           ];
+          sharedDirectories = {
+            # We can't use the 9p mounts directly for most of these
+            # as SQLite is incompatible with them. So instead we
+            # mount the shared directories to a different location
+            # and copy the contents around on service start/stop.
+            knotData = {
+              source = "$TANGLED_VM_DATA_DIR/knot";
+              target = "/mnt/knot-data";
+            };
+            spindleData = {
+              source = "$TANGLED_VM_DATA_DIR/spindle";
+              target = "/mnt/spindle-data";
+            };
+            spindleLogs = {
+              source = "$TANGLED_VM_DATA_DIR/spindle-logs";
+              target = "/var/log/spindle";
+            };
+          };
         };
+        # This is fine because any and all ports that are forwarded to host are explicitly marked above, we don't need a separate guest firewall
+        networking.firewall.enable = false;
         services.getty.autologinUser = "root";
         environment.systemPackages = with pkgs; [curl vim git sqlite litecli];
-        systemd.tmpfiles.rules = let
-          u = config.services.tangled-knot.gitUser;
-          g = config.services.tangled-knot.gitUser;
-        in [
-          "d /var/lib/knot 0770 ${u} ${g} - -" # Create the directory first
-          "f+ /var/lib/knot/secret 0660 ${u} ${g} - KNOT_SERVER_SECRET=${envVar "TANGLED_VM_KNOT_SECRET"}"
-        ];
         services.tangled-knot = {
           enable = true;
           motd = "Welcome to the development knot!\n";
           server = {
-            secretFile = "/var/lib/knot/secret";
+            secretFile = builtins.toFile "knot-secret" ("KNOT_SERVER_SECRET=" + (envVar "TANGLED_VM_KNOT_SECRET"));
             hostname = "localhost:6000";
             listenAddr = "0.0.0.0:6000";
           };
@@ -81,6 +92,33 @@ in
               provider = "sqlite";
             };
           };
+        };
+        users = {
+          # So we don't have to deal with permission clashing between
+          # blank disk VMs and existing state
+          users.${config.services.tangled-knot.gitUser}.uid = 666;
+          groups.${config.services.tangled-knot.gitUser}.gid = 666;
+
+          # TODO: separate spindle user
+        };
+        systemd.services = let
+          mkDataSyncScripts = source: target: {
+            enableStrictShellChecks = true;
+
+            preStart = lib.mkBefore ''
+              mkdir -p ${target}
+              ${lib.getExe pkgs.rsync} -a ${source}/ ${target}
+            '';
+
+            postStop = lib.mkAfter ''
+              ${lib.getExe pkgs.rsync} -a ${target}/ ${source}
+            '';
+
+            serviceConfig.PermissionsStartOnly = true;
+          };
+        in {
+          knot = mkDataSyncScripts "/mnt/knot-data" config.services.tangled-knot.stateDir;
+          spindle = mkDataSyncScripts "/mnt/spindle-data" (builtins.dirOf config.services.tangled-spindle.server.dbPath);
         };
       })
     ];

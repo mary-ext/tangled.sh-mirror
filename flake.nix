@@ -175,28 +175,31 @@
         program = ''${tailwind-watcher}/bin/run'';
       };
       vm = let
-        system =
+        guestSystem =
           if pkgs.stdenv.hostPlatform.isAarch64
-          then "aarch64"
-          else "x86_64";
-
-        nixos-shell = pkgs.nixos-shell.overrideAttrs (old: {
-          patches =
-            (old.patches or [])
-            ++ [
-              # https://github.com/Mic92/nixos-shell/pull/94
-              (pkgs.fetchpatch {
-                name = "fix-foreign-vm.patch";
-                url = "https://github.com/Mic92/nixos-shell/commit/113e4cc55ae236b5b0b1fbd8b321e9b67c77580e.patch";
-                hash = "sha256-eauetBK0wXAOcd9PYbExokNCiwz2QyFnZ4FnwGi9VCo=";
-              })
-            ];
-        });
+          then "aarch64-linux"
+          else "x86_64-linux";
       in {
         type = "app";
-        program = toString (pkgs.writeShellScript "vm" ''
-          ${nixos-shell}/bin/nixos-shell --flake .#vm-${system} --guest-system ${system}-linux
-        '');
+        program =
+          (pkgs.writeShellApplication {
+            name = "launch-vm";
+            text = ''
+              rootDir=$(jj --ignore-working-copy root || git rev-parse --show-toplevel) || (echo "error: can't find repo root?"; exit 1)
+              cd "$rootDir"
+
+              mkdir -p nix/vm-data/{knot,repos,spindle,spindle-logs}
+
+              export TANGLED_VM_DATA_DIR="$rootDir/nix/vm-data"
+              exec ${pkgs.lib.getExe
+                (import ./nix/vm.nix {
+                  inherit nixpkgs self;
+                  system = guestSystem;
+                  hostSystem = system;
+                }).config.system.build.vm}
+            '';
+          })
+          + /bin/launch-vm;
       };
       gomod2nix = {
         type = "app";
@@ -257,14 +260,6 @@
       imports = [./nix/modules/spindle.nix];
 
       services.tangled-spindle.package = lib.mkDefault self.packages.${pkgs.system}.spindle;
-    };
-    nixosConfigurations.vm-x86_64 = import ./nix/vm.nix {
-      inherit self nixpkgs;
-      system = "x86_64-linux";
-    };
-    nixosConfigurations.vm-aarch64 = import ./nix/vm.nix {
-      inherit self nixpkgs;
-      system = "aarch64-linux";
     };
   };
 }
