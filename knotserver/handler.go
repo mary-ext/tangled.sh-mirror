@@ -16,6 +16,7 @@ import (
 	tlog "tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/notifier"
 	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/types"
 )
 
 type Handle struct {
@@ -170,14 +171,17 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 func (h *Handle) XrpcRouter() http.Handler {
 	logger := tlog.New("knots")
 
+	serviceAuth := serviceauth.NewServiceAuth(h.l, h.resolver, h.c.Server.Did().String())
+
 	xrpc := &xrpc.Xrpc{
-		Config:   h.c,
-		Db:       h.db,
-		Ingester: h.jc,
-		Enforcer: h.e,
-		Logger:   logger,
-		Notifier: h.n,
-		Resolver: h.resolver,
+		Config:      h.c,
+		Db:          h.db,
+		Ingester:    h.jc,
+		Enforcer:    h.e,
+		Logger:      logger,
+		Notifier:    h.n,
+		Resolver:    h.resolver,
+		ServiceAuth: serviceAuth,
 	}
 	return xrpc.Router()
 }
