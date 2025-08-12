@@ -13,63 +13,64 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/spindle/secrets"
+	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
 )
 
 func (x *Xrpc) AddSecret(w http.ResponseWriter, r *http.Request) {
 	l := x.Logger
-	fail := func(e XrpcError) {
+	fail := func(e xrpcerr.XrpcError) {
 		l.Error("failed", "kind", e.Tag, "error", e.Message)
 		writeError(w, e, http.StatusBadRequest)
 	}
 
 	actorDid, ok := r.Context().Value(ActorDid).(syntax.DID)
 	if !ok {
-		fail(MissingActorDidError)
+		fail(xrpcerr.MissingActorDidError)
 		return
 	}
 
 	var data tangled.RepoAddSecret_Input
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		fail(GenericError(err))
+		fail(xrpcerr.GenericError(err))
 		return
 	}
 
 	if err := secrets.ValidateKey(data.Key); err != nil {
-		fail(GenericError(err))
+		fail(xrpcerr.GenericError(err))
 		return
 	}
 
 	// unfortunately we have to resolve repo-at here
 	repoAt, err := syntax.ParseATURI(data.Repo)
 	if err != nil {
-		fail(InvalidRepoError(data.Repo))
+		fail(xrpcerr.InvalidRepoError(data.Repo))
 		return
 	}
 
 	// resolve this aturi to extract the repo record
 	ident, err := x.Resolver.ResolveIdent(r.Context(), repoAt.Authority().String())
 	if err != nil || ident.Handle.IsInvalidHandle() {
-		fail(GenericError(fmt.Errorf("failed to resolve handle: %w", err)))
+		fail(xrpcerr.GenericError(fmt.Errorf("failed to resolve handle: %w", err)))
 		return
 	}
 
 	xrpcc := xrpc.Client{Host: ident.PDSEndpoint()}
 	resp, err := atproto.RepoGetRecord(r.Context(), &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
 	if err != nil {
-		fail(GenericError(err))
+		fail(xrpcerr.GenericError(err))
 		return
 	}
 
 	repo := resp.Value.Val.(*tangled.Repo)
 	didPath, err := securejoin.SecureJoin(repo.Owner, repo.Name)
 	if err != nil {
-		fail(GenericError(err))
+		fail(xrpcerr.GenericError(err))
 		return
 	}
 
 	if ok, err := x.Enforcer.IsSettingsAllowed(actorDid.String(), rbac.ThisServer, didPath); !ok || err != nil {
 		l.Error("insufficent permissions", "did", actorDid.String())
-		writeError(w, AccessControlError(actorDid.String()), http.StatusUnauthorized)
+		writeError(w, xrpcerr.AccessControlError(actorDid.String()), http.StatusUnauthorized)
 		return
 	}
 
@@ -83,7 +84,7 @@ func (x *Xrpc) AddSecret(w http.ResponseWriter, r *http.Request) {
 	err = x.Vault.AddSecret(r.Context(), secret)
 	if err != nil {
 		l.Error("failed to add secret to vault", "did", actorDid.String(), "err", err)
-		writeError(w, GenericError(err), http.StatusInternalServerError)
+		writeError(w, xrpcerr.GenericError(err), http.StatusInternalServerError)
 		return
 	}
 
