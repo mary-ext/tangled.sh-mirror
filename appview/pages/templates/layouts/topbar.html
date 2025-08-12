@@ -24,7 +24,7 @@
 {{ end }}
 
 {{ define "newButton" }}
-<details class="relative inline-block text-left">
+<details class="relative inline-block text-left nav-dropdown">
     <summary class="btn-create py-0 cursor-pointer list-none flex items-center gap-2">
       {{ i "plus" "w-4 h-4" }} new
     </summary>
@@ -42,7 +42,7 @@
 {{ end }}
 
 {{ define "dropDown" }}
-<details class="relative inline-block text-left">
+<details class="relative inline-block text-left nav-dropdown">
     <summary
         class="cursor-pointer list-none flex items-center"
     >
@@ -66,4 +66,15 @@
         </a>
     </div>
 </details>
+
+<script>
+document.addEventListener('click', function(event) {
+    const dropdowns = document.querySelectorAll('.nav-dropdown');
+    dropdowns.forEach(function(dropdown) {
+        if (!dropdown.contains(event.target)) {
+            dropdown.removeAttribute('open');
+        }
+    });
+});
+</script>
 {{ end }}
