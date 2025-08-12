@@ -71,10 +71,10 @@ func (i *Ingester) Ingest() processFunc {
 		}
 
 		if err != nil {
-			l.Error("error ingesting record", "err", err)
+			l.Debug("error ingesting record", "err", err)
 		}
 
-		return err
+		return nil
 	}
 }
 
