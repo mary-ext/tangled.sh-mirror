@@ -32,11 +32,11 @@
         <div class="py-6 w-fit flex flex-col gap-4">
           <p>This is an empty repository. To get started:</p>
           {{ $bullet := "mx-2 text-xs bg-gray-200 dark:bg-gray-600 rounded-full size-5 flex items-center justify-center font-mono inline-flex align-middle" }}
-          <p><span class="{{$bullet}}">1</span>Add an SSH public key to your account from the <a href="/settings" class="underline">settings</a> page.
-              If you don't have one, you can generate a new SSH key pair using the following command: <code>ssh-keygen -t ed25519 -C "you@example.com"</code>
-          </p>
-          <p><span class="{{$bullet}}">2</span>Configure your remote to <code>git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code></p>
-          <p><span class="{{$bullet}}">3</span>Push!</p>
+
+          <p><span class="{{$bullet}}">1</span>First, generate a new <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key" class="underline">SSH key pair</a>.</p>
+          <p><span class="{{$bullet}}">2</span>Then add the public key to your account from the <a href="/settings" class="underline">settings</a> page.</p>
+          <p><span class="{{$bullet}}">3</span>Configure your remote to <code>git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code></p>
+          <p><span class="{{$bullet}}">4</span>Push!</p>
         </div>
       </div>
     {{ else }}
