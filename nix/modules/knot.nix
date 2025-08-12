@@ -126,30 +126,6 @@ in
         cfg.package
       ];
 
-      system.activationScripts.gitConfig = let
-        setMotd =
-          if cfg.motdFile != null && cfg.motd != null
-          then throw "motdFile and motd cannot be both set"
-          else ''
-            ${optionalString (cfg.motdFile != null) "cat ${cfg.motdFile} > ${cfg.stateDir}/motd"}
-            ${optionalString (cfg.motd != null) ''printf "${cfg.motd}" > ${cfg.stateDir}/motd''}
-          '';
-      in ''
-        mkdir -p "${cfg.repo.scanPath}"
-        chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.repo.scanPath}"
-
-        mkdir -p "${cfg.stateDir}/.config/git"
-        cat > "${cfg.stateDir}/.config/git/config" << EOF
-        [user]
-            name = Git User
-            email = git@example.com
-        [receive]
-            advertisePushOptions = true
-        EOF
-        ${setMotd}
-        chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.stateDir}"
-      '';
-
       users.users.${cfg.gitUser} = {
         isSystemUser = true;
         useDefaultShell = true;
@@ -185,8 +161,35 @@ in
         description = "knot service";
         after = ["network.target" "sshd.service"];
         wantedBy = ["multi-user.target"];
+        enableStrictShellChecks = true;
+
+        preStart = let
+          setMotd =
+            if cfg.motdFile != null && cfg.motd != null
+            then throw "motdFile and motd cannot be both set"
+            else ''
+              ${optionalString (cfg.motdFile != null) "cat ${cfg.motdFile} > ${cfg.stateDir}/motd"}
+              ${optionalString (cfg.motd != null) ''printf "${cfg.motd}" > ${cfg.stateDir}/motd''}
+            '';
+        in ''
+          mkdir -p "${cfg.repo.scanPath}"
+          chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.repo.scanPath}"
+
+          mkdir -p "${cfg.stateDir}/.config/git"
+          cat > "${cfg.stateDir}/.config/git/config" << EOF
+          [user]
+              name = Git User
+              email = git@example.com
+          [receive]
+              advertisePushOptions = true
+          EOF
+          ${setMotd}
+          chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.stateDir}"
+        '';
+
         serviceConfig = {
           User = cfg.gitUser;
+          PermissionsStartOnly = true;
           WorkingDirectory = cfg.stateDir;
           Environment = [
             "KNOT_REPO_SCAN_PATH=${cfg.repo.scanPath}"
