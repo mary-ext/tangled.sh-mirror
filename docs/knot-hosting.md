@@ -2,7 +2,7 @@
 
 So you want to run your own knot server? Great! Here are a few prerequisites:
 
-1. A server of some kind (a VPS, a Raspberry Pi, etc.). Preferably running a Linux of some kind.
+1. A server of some kind (a VPS, a Raspberry Pi, etc.). Preferably running a Linux distribution of some kind.
 2. A (sub)domain name. People generally use `knot.example.com`.
 3. A valid SSL certificate for your domain.
 
