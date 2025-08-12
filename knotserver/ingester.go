@@ -25,48 +25,76 @@ import (
 	"tangled.sh/tangled.sh/core/workflow"
 )
 
-func (h *Handle) processPublicKey(ctx context.Context, did string, record tangled.PublicKey) error {
+func (h *Handle) processPublicKey(ctx context.Context, did string, operation string, record tangled.PublicKey) error {
 	l := log.FromContext(ctx)
-	pk := db.PublicKey{
-		Did:       did,
-		PublicKey: record,
+
+	switch operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		pk := db.PublicKey{
+			Did:       did,
+			PublicKey: record,
+		}
+		if err := h.db.AddPublicKey(pk); err != nil {
+			l.Error("failed to add public key", "error", err)
+			return fmt.Errorf("failed to add public key: %w", err)
+		}
+		l.Info("added public key from firehose", "did", did)
+
+	case models.CommitOperationDelete:
+		if err := h.db.RemovePublicKey(did); err != nil {
+			l.Error("failed to remove public key", "error", err)
+			return fmt.Errorf("failed to remove public key: %w", err)
+		}
+		l.Info("removed public key (delete triggered from firehose)", "did", did)
 	}
-	if err := h.db.AddPublicKey(pk); err != nil {
-		l.Error("failed to add public key", "error", err)
-		return fmt.Errorf("failed to add public key: %w", err)
-	}
-	l.Info("added public key from firehose", "did", did)
+
 	return nil
 }
 
-func (h *Handle) processKnotMember(ctx context.Context, did string, record tangled.KnotMember) error {
+func (h *Handle) processKnotMember(ctx context.Context, did string, operation string, record tangled.KnotMember) error {
 	l := log.FromContext(ctx)
 
-	if record.Domain != h.c.Server.Hostname {
-		l.Error("domain mismatch", "domain", record.Domain, "expected", h.c.Server.Hostname)
-		return fmt.Errorf("domain mismatch: %s != %s", record.Domain, h.c.Server.Hostname)
-	}
+	switch operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		if record.Domain != h.c.Server.Hostname {
+			l.Error("domain mismatch", "domain", record.Domain, "expected", h.c.Server.Hostname)
+			return fmt.Errorf("domain mismatch: %s != %s", record.Domain, h.c.Server.Hostname)
+		}
 
-	ok, err := h.e.E.Enforce(did, rbac.ThisServer, rbac.ThisServer, "server:invite")
-	if err != nil || !ok {
-		l.Error("failed to add member", "did", did)
-		return fmt.Errorf("failed to enforce permissions: %w", err)
-	}
+		ok, err := h.e.E.Enforce(did, rbac.ThisServer, rbac.ThisServer, "server:invite")
+		if err != nil || !ok {
+			l.Error("failed to add member", "did", did)
+			return fmt.Errorf("failed to enforce permissions: %w", err)
+		}
 
-	if err := h.e.AddKnotMember(rbac.ThisServer, record.Subject); err != nil {
-		l.Error("failed to add member", "error", err)
-		return fmt.Errorf("failed to add member: %w", err)
-	}
-	l.Info("added member from firehose", "member", record.Subject)
+		if err := h.e.AddKnotMember(rbac.ThisServer, record.Subject); err != nil {
+			l.Error("failed to add member", "error", err)
+			return fmt.Errorf("failed to add member: %w", err)
+		}
+		l.Info("added member from firehose", "member", record.Subject)
 
-	if err := h.db.AddDid(did); err != nil {
-		l.Error("failed to add did", "error", err)
-		return fmt.Errorf("failed to add did: %w", err)
-	}
-	h.jc.AddDid(did)
+		if err := h.db.AddDid(did); err != nil {
+			l.Error("failed to add did", "error", err)
+			return fmt.Errorf("failed to add did: %w", err)
+		}
+		h.jc.AddDid(did)
 
-	if err := h.fetchAndAddKeys(ctx, did); err != nil {
-		return fmt.Errorf("failed to fetch and add keys: %w", err)
+		if err := h.fetchAndAddKeys(ctx, did); err != nil {
+			return fmt.Errorf("failed to fetch and add keys: %w", err)
+		}
+
+	case models.CommitOperationDelete:
+		if err := h.e.RemoveKnotMember(rbac.ThisServer, record.Subject); err != nil {
+			l.Error("failed to remove member", "error", err)
+			return fmt.Errorf("failed to remove member: %w", err)
+		}
+		l.Info("removed member (delete triggered from firehose)", "member", record.Subject)
+
+		if err := h.db.RemoveDid(record.Subject); err != nil {
+			l.Error("failed to remove did", "error", err)
+			return fmt.Errorf("failed to remove did: %w", err)
+		}
+		h.jc.RemoveDid(record.Subject)
 	}
 
 	return nil
@@ -214,53 +242,100 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 }
 
 // duplicated from add collaborator
-func (h *Handle) processCollaborator(ctx context.Context, did string, record tangled.RepoCollaborator) error {
-	repoAt, err := syntax.ParseATURI(record.Repo)
-	if err != nil {
-		return err
+func (h *Handle) processCollaborator(ctx context.Context, did string, operation string, record tangled.RepoCollaborator) error {
+	l := log.FromContext(ctx)
+	l = l.With("handler", "processCollaborator", "did", did)
+
+	switch operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		repoAt, err := syntax.ParseATURI(record.Repo)
+		if err != nil {
+			return err
+		}
+
+		resolver := h.resolver
+
+		subjectId, err := resolver.ResolveIdent(ctx, record.Subject)
+		if err != nil || subjectId.Handle.IsInvalidHandle() {
+			return err
+		}
+
+		// TODO: fix this for good, we need to fetch the record here unfortunately
+		// resolve this aturi to extract the repo record
+		owner, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
+		if err != nil || owner.Handle.IsInvalidHandle() {
+			return fmt.Errorf("failed to resolve handle: %w", err)
+		}
+
+		xrpcc := xrpc.Client{
+			Host: owner.PDSEndpoint(),
+		}
+
+		resp, err := comatproto.RepoGetRecord(ctx, &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
+		if err != nil {
+			return err
+		}
+
+		repo := resp.Value.Val.(*tangled.Repo)
+		didSlashRepo, _ := securejoin.SecureJoin(owner.DID.String(), repo.Name)
+
+		// check perms for this user
+		if ok, err := h.e.IsCollaboratorInviteAllowed(owner.DID.String(), rbac.ThisServer, didSlashRepo); !ok || err != nil {
+			return fmt.Errorf("insufficient permissions: %w", err)
+		}
+
+		if err := h.db.AddDid(subjectId.DID.String()); err != nil {
+			return err
+		}
+		h.jc.AddDid(subjectId.DID.String())
+
+		if err := h.e.AddCollaborator(subjectId.DID.String(), rbac.ThisServer, didSlashRepo); err != nil {
+			return err
+		}
+
+		l.Info("added collaborator from firehose", "subject", record.Subject, "repo", record.Repo)
+
+		return h.fetchAndAddKeys(ctx, subjectId.DID.String())
+
+	case models.CommitOperationDelete:
+		repoAt, err := syntax.ParseATURI(record.Repo)
+		if err != nil {
+			return err
+		}
+
+		resolver := h.resolver
+
+		subjectId, err := resolver.ResolveIdent(ctx, record.Subject)
+		if err != nil || subjectId.Handle.IsInvalidHandle() {
+			return err
+		}
+
+		owner, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
+		if err != nil || owner.Handle.IsInvalidHandle() {
+			return fmt.Errorf("failed to resolve handle: %w", err)
+		}
+
+		xrpcc := xrpc.Client{
+			Host: owner.PDSEndpoint(),
+		}
+
+		resp, err := comatproto.RepoGetRecord(ctx, &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
+		if err != nil {
+			return err
+		}
+
+		repo := resp.Value.Val.(*tangled.Repo)
+		didSlashRepo, _ := securejoin.SecureJoin(owner.DID.String(), repo.Name)
+
+		if err := h.e.RemoveCollaborator(subjectId.DID.String(), rbac.ThisServer, didSlashRepo); err != nil {
+			l.Error("failed to remove collaborator", "error", err)
+			return fmt.Errorf("failed to remove collaborator: %w", err)
+		}
+
+		l.Info("removed collaborator from firehose", "subject", record.Subject, "repo", record.Repo)
 	}
 
-	resolver := idresolver.DefaultResolver()
-
-	subjectId, err := resolver.ResolveIdent(ctx, record.Subject)
-	if err != nil || subjectId.Handle.IsInvalidHandle() {
-		return err
-	}
-
-	// TODO: fix this for good, we need to fetch the record here unfortunately
-	// resolve this aturi to extract the repo record
-	owner, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
-	if err != nil || owner.Handle.IsInvalidHandle() {
-		return fmt.Errorf("failed to resolve handle: %w", err)
-	}
-
-	xrpcc := xrpc.Client{
-		Host: owner.PDSEndpoint(),
-	}
-
-	resp, err := comatproto.RepoGetRecord(ctx, &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
-	if err != nil {
-		return err
-	}
-
-	repo := resp.Value.Val.(*tangled.Repo)
-	didSlashRepo, _ := securejoin.SecureJoin(owner.DID.String(), repo.Name)
-
-	// check perms for this user
-	if ok, err := h.e.IsCollaboratorInviteAllowed(owner.DID.String(), rbac.ThisServer, didSlashRepo); !ok || err != nil {
-		return fmt.Errorf("insufficient permissions: %w", err)
-	}
-
-	if err := h.db.AddDid(subjectId.DID.String()); err != nil {
-		return err
-	}
-	h.jc.AddDid(subjectId.DID.String())
-
-	if err := h.e.AddCollaborator(subjectId.DID.String(), rbac.ThisServer, didSlashRepo); err != nil {
-		return err
-	}
-
-	return h.fetchAndAddKeys(ctx, subjectId.DID.String())
+	return nil
 }
 
 func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
@@ -329,7 +404,7 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		if err := json.Unmarshal(raw, &record); err != nil {
 			return fmt.Errorf("failed to unmarshal record: %w", err)
 		}
-		if err := h.processPublicKey(ctx, did, record); err != nil {
+		if err := h.processPublicKey(ctx, did, event.Commit.Operation, record); err != nil {
 			return fmt.Errorf("failed to process public key: %w", err)
 		}
 
@@ -338,7 +413,7 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		if err := json.Unmarshal(raw, &record); err != nil {
 			return fmt.Errorf("failed to unmarshal record: %w", err)
 		}
-		if err := h.processKnotMember(ctx, did, record); err != nil {
+		if err := h.processKnotMember(ctx, did, event.Commit.Operation, record); err != nil {
 			return fmt.Errorf("failed to process knot member: %w", err)
 		}
 
@@ -356,10 +431,9 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		if err := json.Unmarshal(raw, &record); err != nil {
 			return fmt.Errorf("failed to unmarshal record: %w", err)
 		}
-		if err := h.processCollaborator(ctx, did, record); err != nil {
-			return fmt.Errorf("failed to process knot member: %w", err)
+		if err := h.processCollaborator(ctx, did, event.Commit.Operation, record); err != nil {
+			return fmt.Errorf("failed to process collaborator: %w", err)
 		}
-
 	}
 
 	return err

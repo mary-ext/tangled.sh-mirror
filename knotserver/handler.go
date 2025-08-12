@@ -86,7 +86,6 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 			})
 
 			r.Route("/languages", func(r chi.Router) {
-				r.With(h.VerifySignature)
 				r.Get("/", h.RepoLanguages)
 				r.Get("/{ref}", h.RepoLanguages)
 			})
