@@ -115,23 +115,16 @@ git commit --amend -s
 If you're submitting a PR with multiple commits, make sure each one is
 signed.
 
-For [jj](https://jj-vcs.github.io/jj/latest/) users, you can add this to
-your jj config:
+For [jj](https://jj-vcs.github.io/jj/latest/) users, you can run the following command
+to make it sign off commits in the tangled repo:
 
-```
-ui.should-sign-off = true
-```
-
-and to your `templates.draft_commit_description`, add the following `if`
-block:
-
-```
-  if(
-    config("ui.should-sign-off").as_boolean() && !description.contains("Signed-off-by: " ++ author.name()),
-    "\nSigned-off-by: " ++ author.name() ++ " <" ++ author.email() ++ ">",
-  ),
+```shell
+# Safety check, should say "No matching config key..."
+jj config list templates.commit_trailers
+# The command below may need to be adjusted if the command above returned something.
+jj config set --repo templates.commit_trailers "format_signed_off_by_trailer(self)"
 ```
 
 Refer to the [jj
-documentation](https://jj-vcs.github.io/jj/latest/config/#default-description)
+documentation](https://jj-vcs.github.io/jj/latest/config/#commit-trailers)
 for more information.
