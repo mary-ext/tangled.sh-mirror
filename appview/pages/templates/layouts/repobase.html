@@ -20,16 +20,22 @@
         </div>
 
         <div class="flex items-center gap-2 z-auto">
+          <a
+            class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
+            href="/{{ .RepoInfo.FullName }}/feed.atom"
+          >
+            {{ i "rss" "size-4" }}
+          </a>
           {{ template "repo/fragments/repoStar" .RepoInfo }}
-            <a
-              class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
-              hx-boost="true"
-              href="/{{ .RepoInfo.FullName }}/fork"
-            >
-              {{ i "git-fork" "w-4 h-4" }}
-              fork
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </a>
+          <a
+            class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
+            hx-boost="true"
+            href="/{{ .RepoInfo.FullName }}/fork"
+          >
+            {{ i "git-fork" "w-4 h-4" }}
+            fork
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </a>
         </div>
       </div>
       {{ template "repo/fragments/repoDescription" . }}
