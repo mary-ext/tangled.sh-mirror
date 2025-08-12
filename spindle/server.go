@@ -25,6 +25,7 @@ import (
 	"tangled.sh/tangled.sh/core/spindle/queue"
 	"tangled.sh/tangled.sh/core/spindle/secrets"
 	"tangled.sh/tangled.sh/core/spindle/xrpc"
+	"tangled.sh/tangled.sh/core/xrpc/serviceauth"
 )
 
 //go:embed motd
@@ -213,14 +214,17 @@ func (s *Spindle) Router() http.Handler {
 func (s *Spindle) XrpcRouter() http.Handler {
 	logger := s.l.With("route", "xrpc")
 
+	serviceAuth := serviceauth.NewServiceAuth(s.l, s.res, s.cfg.Server.Did().String())
+
 	x := xrpc.Xrpc{
-		Logger:   logger,
-		Db:       s.db,
-		Enforcer: s.e,
-		Engines:  s.engs,
-		Config:   s.cfg,
-		Resolver: s.res,
-		Vault:    s.vault,
+		Logger:      logger,
+		Db:          s.db,
+		Enforcer:    s.e,
+		Engines:     s.engs,
+		Config:      s.cfg,
+		Resolver:    s.res,
+		Vault:       s.vault,
+		ServiceAuth: serviceAuth,
 	}
 
 	return x.Router()
