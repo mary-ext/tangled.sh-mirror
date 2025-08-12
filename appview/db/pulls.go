@@ -310,7 +310,7 @@ func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
 	return pullId - 1, err
 }
 
-func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
+func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*Pull, error) {
 	pulls := make(map[int]*Pull)
 
 	var conditions []string
@@ -323,6 +323,10 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 	whereClause := ""
 	if conditions != nil {
 		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+	limitClause := ""
+	if limit != 0 {
+		limitClause = fmt.Sprintf(" limit %d ", limit)
 	}
 
 	query := fmt.Sprintf(`
@@ -344,7 +348,10 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 		from
 			pulls
 		%s
-	`, whereClause)
+		order by
+			created desc
+		%s
+	`, whereClause, limitClause)
 
 	rows, err := e.Query(query, args...)
 	if err != nil {
@@ -412,7 +419,7 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
 	submissionsQuery := fmt.Sprintf(`
 		select
-			id, pull_id, round_number, patch, source_rev
+			id, pull_id, round_number, patch, created, source_rev
 		from
 			pull_submissions
 		where
@@ -438,16 +445,24 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 	for submissionsRows.Next() {
 		var s PullSubmission
 		var sourceRev sql.NullString
+		var createdAt string
 		err := submissionsRows.Scan(
 			&s.ID,
 			&s.PullId,
 			&s.RoundNumber,
 			&s.Patch,
+			&createdAt,
 			&sourceRev,
 		)
 		if err != nil {
 			return nil, err
 		}
+
+		createdTime, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			return nil, err
+		}
+		s.Created = createdTime
 
 		if sourceRev.Valid {
 			s.SourceRev = sourceRev.String
@@ -511,6 +526,10 @@ func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
 	})
 
 	return orderedByPullId, nil
+}
+
+func GetPulls(e Execer, filters ...filter) ([]*Pull, error) {
+	return GetPullsWithLimit(e, 0, filters...)
 }
 
 func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
