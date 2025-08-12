@@ -25,8 +25,16 @@ import (
 	"tangled.sh/tangled.sh/core/workflow"
 )
 
-func (h *Handle) processPublicKey(ctx context.Context, did string, record tangled.PublicKey) error {
+func (h *Handle) processPublicKey(ctx context.Context, event *models.Event) error {
 	l := log.FromContext(ctx)
+	raw := json.RawMessage(event.Commit.Record)
+	did := event.Did
+
+	var record tangled.PublicKey
+	if err := json.Unmarshal(raw, &record); err != nil {
+		return fmt.Errorf("failed to unmarshal record: %w", err)
+	}
+
 	pk := db.PublicKey{
 		Did:       did,
 		PublicKey: record,
@@ -39,8 +47,15 @@ func (h *Handle) processPublicKey(ctx context.Context, did string, record tangle
 	return nil
 }
 
-func (h *Handle) processKnotMember(ctx context.Context, did string, record tangled.KnotMember) error {
+func (h *Handle) processKnotMember(ctx context.Context, event *models.Event) error {
 	l := log.FromContext(ctx)
+	raw := json.RawMessage(event.Commit.Record)
+	did := event.Did
+
+	var record tangled.KnotMember
+	if err := json.Unmarshal(raw, &record); err != nil {
+		return fmt.Errorf("failed to unmarshal record: %w", err)
+	}
 
 	if record.Domain != h.c.Server.Hostname {
 		l.Error("domain mismatch", "domain", record.Domain, "expected", h.c.Server.Hostname)
@@ -72,7 +87,15 @@ func (h *Handle) processKnotMember(ctx context.Context, did string, record tangl
 	return nil
 }
 
-func (h *Handle) processPull(ctx context.Context, did string, record tangled.RepoPull) error {
+func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
+	raw := json.RawMessage(event.Commit.Record)
+	did := event.Did
+
+	var record tangled.RepoPull
+	if err := json.Unmarshal(raw, &record); err != nil {
+		return fmt.Errorf("failed to unmarshal record: %w", err)
+	}
+
 	l := log.FromContext(ctx)
 	l = l.With("handler", "processPull")
 	l = l.With("did", did)
@@ -204,17 +227,25 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 		return nil
 	}
 
-	event := db.Event{
+	ev := db.Event{
 		Rkey:      TID(),
 		Nsid:      tangled.PipelineNSID,
 		EventJson: string(eventJson),
 	}
 
-	return h.db.InsertEvent(event, h.n)
+	return h.db.InsertEvent(ev, h.n)
 }
 
 // duplicated from add collaborator
-func (h *Handle) processCollaborator(ctx context.Context, did string, record tangled.RepoCollaborator) error {
+func (h *Handle) processCollaborator(ctx context.Context, event *models.Event) error {
+	raw := json.RawMessage(event.Commit.Record)
+	did := event.Did
+
+	var record tangled.RepoCollaborator
+	if err := json.Unmarshal(raw, &record); err != nil {
+		return fmt.Errorf("failed to unmarshal record: %w", err)
+	}
+
 	repoAt, err := syntax.ParseATURI(record.Repo)
 	if err != nil {
 		return err
@@ -247,7 +278,7 @@ func (h *Handle) processCollaborator(ctx context.Context, did string, record tan
 	didSlashRepo, _ := securejoin.SecureJoin(owner.DID.String(), repo.Name)
 
 	// check perms for this user
-	if ok, err := h.e.IsCollaboratorInviteAllowed(owner.DID.String(), rbac.ThisServer, didSlashRepo); !ok || err != nil {
+	if ok, err := h.e.IsCollaboratorInviteAllowed(did, rbac.ThisServer, didSlashRepo); !ok || err != nil {
 		return fmt.Errorf("insufficient permissions: %w", err)
 	}
 
@@ -307,7 +338,6 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 }
 
 func (h *Handle) processMessages(ctx context.Context, event *models.Event) error {
-	did := event.Did
 	if event.Kind != models.EventKindCommit {
 		return nil
 	}
@@ -321,46 +351,20 @@ func (h *Handle) processMessages(ctx context.Context, event *models.Event) error
 		}
 	}()
 
-	raw := json.RawMessage(event.Commit.Record)
-
 	switch event.Commit.Collection {
 	case tangled.PublicKeyNSID:
-		var record tangled.PublicKey
-		if err := json.Unmarshal(raw, &record); err != nil {
-			return fmt.Errorf("failed to unmarshal record: %w", err)
-		}
-		if err := h.processPublicKey(ctx, did, record); err != nil {
-			return fmt.Errorf("failed to process public key: %w", err)
-		}
-
+		err = h.processPublicKey(ctx, event)
 	case tangled.KnotMemberNSID:
-		var record tangled.KnotMember
-		if err := json.Unmarshal(raw, &record); err != nil {
-			return fmt.Errorf("failed to unmarshal record: %w", err)
-		}
-		if err := h.processKnotMember(ctx, did, record); err != nil {
-			return fmt.Errorf("failed to process knot member: %w", err)
-		}
-
+		err = h.processKnotMember(ctx, event)
 	case tangled.RepoPullNSID:
-		var record tangled.RepoPull
-		if err := json.Unmarshal(raw, &record); err != nil {
-			return fmt.Errorf("failed to unmarshal record: %w", err)
-		}
-		if err := h.processPull(ctx, did, record); err != nil {
-			return fmt.Errorf("failed to process knot member: %w", err)
-		}
-
+		err = h.processPull(ctx, event)
 	case tangled.RepoCollaboratorNSID:
-		var record tangled.RepoCollaborator
-		if err := json.Unmarshal(raw, &record); err != nil {
-			return fmt.Errorf("failed to unmarshal record: %w", err)
-		}
-		if err := h.processCollaborator(ctx, did, record); err != nil {
-			return fmt.Errorf("failed to process knot member: %w", err)
-		}
-
+		err = h.processCollaborator(ctx, event)
 	}
 
-	return err
+	if err != nil {
+		h.l.Debug("failed to process event", "nsid", event.Commit.Collection, "err", err)
+	}
+
+	return nil
 }

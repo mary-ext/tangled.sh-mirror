@@ -40,14 +40,18 @@ func (s *Spindle) ingest() Ingester {
 
 		switch e.Commit.Collection {
 		case tangled.SpindleMemberNSID:
-			s.ingestMember(ctx, e)
+			err = s.ingestMember(ctx, e)
 		case tangled.RepoNSID:
-			s.ingestRepo(ctx, e)
+			err = s.ingestRepo(ctx, e)
 		case tangled.RepoCollaboratorNSID:
-			s.ingestCollaborator(ctx, e)
+			err = s.ingestCollaborator(ctx, e)
 		}
 
-		return err
+		if err != nil {
+			s.l.Debug("failed to process message", "nsid", e.Commit.Collection, "err", err)
+		}
+
+		return nil
 	}
 }
 

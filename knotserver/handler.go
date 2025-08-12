@@ -52,11 +52,6 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
 	}
 
-	err = h.jc.StartJetstream(ctx, h.processMessages)
-	if err != nil {
-		return nil, fmt.Errorf("failed to start jetstream: %w", err)
-	}
-
 	// Check if the knot knows about any Dids;
 	// if it does, it is already initialized and we can repopulate the
 	// Jetstream subscriptions.
@@ -71,6 +66,11 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		for _, d := range dids {
 			h.jc.AddDid(d)
 		}
+	}
+
+	err = h.jc.StartJetstream(ctx, h.processMessages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
 	r.Get("/", h.Index)
