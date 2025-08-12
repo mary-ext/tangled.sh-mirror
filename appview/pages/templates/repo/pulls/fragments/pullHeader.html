@@ -17,7 +17,7 @@
     {{ $icon = "git-merge" }}
 {{ end }}
 
-{{ $owner := resolve .Pull.OwnerDid }}
+{{ $owner := resolve .Pull.PullSource.Repo.Did }}
 <section class="mt-2">
     <div class="flex items-center gap-2">
         <div

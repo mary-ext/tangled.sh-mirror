@@ -19,8 +19,8 @@
                 >
                     <option disabled selected>select a fork</option>
                     {{ range .Forks }}
-                        <option value="{{ .Name }}" {{ if eq .Name $.Selected }}selected{{ end }} class="py-1">
-                            {{ .Name }}
+                        <option value="{{ .Did }}/{{ .Name }}" {{ if eq .Name $.Selected }}selected{{ end }} class="py-1">
+                            {{ .Did | resolve }}/{{ .Name }}
                         </option>
                     {{ end }}
                 </select>

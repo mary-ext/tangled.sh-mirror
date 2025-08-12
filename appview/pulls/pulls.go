@@ -850,7 +850,10 @@ func (s *Pulls) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *
 }
 
 func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string, isStacked bool) {
-	fork, err := db.GetForkByDid(s.db, user.Did, forkRepo)
+	repoString := strings.SplitN(forkRepo, "/", 2)
+	forkOwnerDid := repoString[0]
+	repoName := repoString[1]
+	fork, err := db.GetForkByDid(s.db, forkOwnerDid, repoName)
 	if errors.Is(err, sql.ErrNoRows) {
 		s.pages.Notice(w, "pull", "No such fork.")
 		return
@@ -908,7 +911,7 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 	// hiddenRef: hidden/feature-1/main (on repo-fork)
 	// targetBranch: main (on repo-1)
 	// sourceBranch: feature-1 (on repo-fork)
-	comparison, err := us.Compare(user.Did, fork.Name, hiddenRef, sourceBranch)
+	comparison, err := us.Compare(fork.Did, fork.Name, hiddenRef, sourceBranch)
 	if err != nil {
 		log.Println("failed to compare across branches", err)
 		s.pages.Notice(w, "pull", err.Error())
@@ -1271,9 +1274,11 @@ func (s *Pulls) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 	}
 
 	forkVal := r.URL.Query().Get("fork")
-
+	repoString := strings.SplitN(forkVal, "/", 2)
+	forkOwnerDid := repoString[0]
+	forkName := repoString[1]
 	// fork repo
-	repo, err := db.GetRepo(s.db, user.Did, forkVal)
+	repo, err := db.GetRepo(s.db, forkOwnerDid, forkName)
 	if err != nil {
 		log.Println("failed to get repo", user.Did, forkVal)
 		return
@@ -1286,7 +1291,7 @@ func (s *Pulls) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	sourceResult, err := sourceBranchesClient.Branches(user.Did, repo.Name)
+	sourceResult, err := sourceBranchesClient.Branches(forkOwnerDid, repo.Name)
 	if err != nil {
 		log.Println("failed to reach knotserver for source branches", err)
 		return
