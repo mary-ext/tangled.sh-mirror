@@ -59,6 +59,12 @@ Match User git
 EOF
 ```
 
+Then, reload `sshd`:
+
+```
+sudo systemctl reload ssh
+```
+
 Next, create the `git` user. We'll use the `git` user's home directory
 to store repositories:
 
