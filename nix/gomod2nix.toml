@@ -181,6 +181,9 @@ schema = 3
   [mod."github.com/gorilla/css"]
     version = "v1.0.1"
     hash = "sha256-6JwNHqlY2NpZ0pSQTyYPSpiNqjXOdFHqrUT10sv3y8A="
+  [mod."github.com/gorilla/feeds"]
+    version = "v1.2.0"
+    hash = "sha256-ptczizo27t6Bsq6rHJ4WiHmBRP54UC5yNfHghAqOBQk="
   [mod."github.com/gorilla/securecookie"]
     version = "v1.1.2"
     hash = "sha256-KeMHNM9emxX+N0WYiZsTii7n8sNsmjWwbnQ9SaJfTKE="
