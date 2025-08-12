@@ -72,7 +72,7 @@
         }
 
         code {
-            @apply font-mono p-1 rounded bg-gray-100 dark:bg-gray-700;
+            @apply px-1 font-mono rounded bg-gray-100 dark:bg-gray-700;
         }
     }
 
