@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -11,20 +12,24 @@ type DB struct {
 }
 
 func Setup(dbPath string) (*DB, error) {
-	db, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=1")
+	// https://github.com/mattn/go-sqlite3#connection-string
+	opts := []string{
+		"_foreign_keys=1",
+		"_journal_mode=WAL",
+		"_synchronous=NORMAL",
+		"_auto_vacuum=incremental",
+	}
+
+	db, err := sql.Open("sqlite3", dbPath+"?"+strings.Join(opts, "&"))
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = db.Exec(`
-		pragma journal_mode = WAL;
-		pragma synchronous = normal;
-		pragma temp_store = memory;
-		pragma mmap_size = 30000000000;
-		pragma page_size = 32768;
-		pragma auto_vacuum = incremental;
-		pragma busy_timeout = 5000;
+	// NOTE: If any other migration is added here, you MUST
+	// copy the pattern in appview: use a single sql.Conn
+	// for every migration.
 
+	_, err = db.Exec(`
 		create table if not exists known_dids (
 			did text primary key
 		);
