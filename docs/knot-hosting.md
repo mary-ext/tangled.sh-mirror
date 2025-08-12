@@ -68,7 +68,7 @@ sudo adduser git
 
 Create `/home/git/.knot.env` with the following, updating the values as
 necessary. The `KNOT_SERVER_SECRET` can be obtaind from the
-[/knots](/knots) page on Tangled.
+[/knots](https://tangled.sh/knots) page on Tangled.
 
 ```
 KNOT_REPO_SCAN_PATH=/home/git
@@ -123,7 +123,7 @@ Remember to use Let's Encrypt or similar to procure a certificate for your
 knot domain.
 
 You should now have a running knot server! You can finalize your registration by hitting the
-`initialize` button on the [/knots](/knots) page.
+`initialize` button on the [/knots](https://tangled.sh/knots) page.
 
 ### custom paths
 
