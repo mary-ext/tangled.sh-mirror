@@ -27,6 +27,19 @@ import (
 
 func (h *Handle) processPublicKey(ctx context.Context, did string, record tangled.PublicKey) error {
 	l := log.FromContext(ctx)
+
+	allDids, err := h.db.GetAllDids()
+	if err != nil {
+		return err
+	}
+
+	// only process public keys from known DIDs
+	if !slices.Contains(allDids, did) {
+		reason := "not a known did"
+		l.Debug("rejecting public key record", "reason", reason, "did", did)
+		return nil
+	}
+
 	pk := db.PublicKey{
 		Did:       did,
 		PublicKey: record,
@@ -99,8 +112,8 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 	// presently: we only process PRs from collaborators for pipelines
 	if !slices.Contains(allDids, did) {
 		reason := "not a known did"
-		l.Info("rejecting pull record", "reason", reason)
-		return fmt.Errorf("rejected pull record: %s, %s", reason, did)
+		l.Debug("rejecting pull record", "reason", reason)
+		return nil
 	}
 
 	repoAt, err := syntax.ParseATURI(record.TargetRepo)
@@ -128,8 +141,8 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 
 	if repo.Knot != h.c.Server.Hostname {
 		reason := "not this knot"
-		l.Info("rejecting pull record", "reason", reason)
-		return fmt.Errorf("rejected pull record: %s", reason)
+		l.Debug("rejecting pull record", "reason", reason)
+		return nil
 	}
 
 	didSlashRepo, err := securejoin.SecureJoin(repo.Owner, repo.Name)
