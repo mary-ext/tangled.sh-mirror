@@ -106,6 +106,11 @@
       pkgsCross-gnu64-pkgsStatic-knot = crossPackages.knot;
       pkgsCross-gnu64-pkgsStatic-knot-unwrapped = crossPackages.knot-unwrapped;
       pkgsCross-gnu64-pkgsStatic-spindle = crossPackages.spindle;
+
+      prettier-wrapper = pkgs.runCommandLocal "prettier-wrapper" {nativeBuildInputs = [pkgs.makeWrapper];} ''
+        mkdir -p "$out/bin"
+        makeWrapper ${pkgs.prettier}/bin/prettier "$out/bin/prettier" --add-flags "--plugin=${pkgs.prettier-plugin-go-template}/lib/node_modules/prettier-plugin-go-template/lib/index.js"
+      '';
     });
     defaultPackage = forAllSystems (system: self.packages.${system}.appview);
     formatter = forAllSystems (system: nixpkgsFor.${system}.alejandra);
@@ -129,6 +134,7 @@
           pkgs.redis
           pkgs.coreutils # for those of us who are on systems that use busybox (alpine)
           packages'.lexgen
+          packages'.prettier-wrapper
         ];
         shellHook = ''
           mkdir -p appview/pages/static

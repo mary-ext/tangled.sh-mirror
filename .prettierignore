@@ -1,0 +1,13 @@
+flake.lock
+
+# for now, we don't want these formatted, but let's consider it in the future?
+*.json
+*.md
+*.yml
+*.yaml
+*.jsonc
+*.json
+
+# causes Go template plugin errors: https://github.com/NiklasPor/prettier-plugin-go-template/issues/120
+appview/pages/templates/layouts/repobase.html
+appview/pages/templates/repo/tags.html
