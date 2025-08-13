@@ -200,9 +200,7 @@ func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostRece
 		return err
 	}
 
-	pipelineParseErrors := []string{}
-
-	var pipeline workflow.Pipeline
+	var pipeline workflow.RawPipeline
 	for _, e := range workflowDir {
 		if !e.IsFile {
 			continue
@@ -214,14 +212,10 @@ func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostRece
 			continue
 		}
 
-		wf, err := workflow.FromFile(e.Name, contents)
-		if err != nil {
-			h.l.Error("failed to parse workflow", "err", err, "path", fpath)
-			pipelineParseErrors = append(pipelineParseErrors, fmt.Sprintf("- at %s: %s\n", fpath, err))
-			continue
-		}
-
-		pipeline = append(pipeline, wf)
+		pipeline = append(pipeline, workflow.RawWorkflow{
+			Name:     e.Name,
+			Contents: contents,
+		})
 	}
 
 	trigger := tangled.Pipeline_PushTriggerData{
@@ -242,37 +236,23 @@ func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostRece
 		},
 	}
 
-	cp := compiler.Compile(pipeline)
+	cp := compiler.Compile(compiler.Parse(pipeline))
 	eventJson, err := json.Marshal(cp)
 	if err != nil {
 		return err
 	}
 
 	if pushOptions.verboseCi {
-		hasDiagnostics := false
-		if len(pipelineParseErrors) > 0 {
-			hasDiagnostics = true
-			*clientMsgs = append(*clientMsgs, "error: failed to parse workflow(s):")
-			for _, error := range pipelineParseErrors {
-				*clientMsgs = append(*clientMsgs, error)
-			}
-		}
-		if len(compiler.Diagnostics.Errors) > 0 {
-			hasDiagnostics = true
-			*clientMsgs = append(*clientMsgs, "error(s) on pipeline:")
-			for _, error := range compiler.Diagnostics.Errors {
-				*clientMsgs = append(*clientMsgs, fmt.Sprintf("- %s:", error))
-			}
-		}
-		if len(compiler.Diagnostics.Warnings) > 0 {
-			hasDiagnostics = true
-			*clientMsgs = append(*clientMsgs, "warning(s) on pipeline:")
-			for _, warning := range compiler.Diagnostics.Warnings {
-				*clientMsgs = append(*clientMsgs, fmt.Sprintf("- at %s: %s: %s", warning.Path, warning.Type, warning.Reason))
-			}
-		}
-		if !hasDiagnostics {
+		if compiler.Diagnostics.IsEmpty() {
 			*clientMsgs = append(*clientMsgs, "success: pipeline compiled with no diagnostics")
+		}
+
+		for _, e := range compiler.Diagnostics.Errors {
+			*clientMsgs = append(*clientMsgs, e.String())
+		}
+
+		for _, w := range compiler.Diagnostics.Warnings {
+			*clientMsgs = append(*clientMsgs, w.String())
 		}
 	}
 

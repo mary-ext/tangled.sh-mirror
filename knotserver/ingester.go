@@ -152,7 +152,7 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 		return err
 	}
 
-	var pipeline workflow.Pipeline
+	var pipeline workflow.RawPipeline
 	for _, e := range workflowDir {
 		if !e.IsFile {
 			continue
@@ -164,14 +164,10 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 			continue
 		}
 
-		wf, err := workflow.FromFile(e.Name, contents)
-		if err != nil {
-			// TODO: log here, respond to client that is pushing
-			h.l.Error("failed to parse workflow", "err", err, "path", fpath)
-			continue
-		}
-
-		pipeline = append(pipeline, wf)
+		pipeline = append(pipeline, workflow.RawWorkflow{
+			Name:     e.Name,
+			Contents: contents,
+		})
 	}
 
 	trigger := tangled.Pipeline_PullRequestTriggerData{
@@ -193,7 +189,7 @@ func (h *Handle) processPull(ctx context.Context, did string, record tangled.Rep
 		},
 	}
 
-	cp := compiler.Compile(pipeline)
+	cp := compiler.Compile(compiler.Parse(pipeline))
 	eventJson, err := json.Marshal(cp)
 	if err != nil {
 		return err
