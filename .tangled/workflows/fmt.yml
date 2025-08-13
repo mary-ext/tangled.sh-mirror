@@ -2,18 +2,7 @@ when:
   - event: ["push", "pull_request"]
     branch: ["master"]
 
-dependencies:
-  nixpkgs:
-    - go
-    - alejandra
-
 steps:
-  - name: "nix fmt"
+  - name: "Check formatting"
     command: |
-       alejandra -c nix/**/*.nix flake.nix
-
-  - name: "go fmt"
-    command: |
-       unformatted=$(gofmt -l .)
-       test -z "$unformatted" || (echo "$unformatted" && exit 1)
-
+      nix run .#fmt -- --ci
