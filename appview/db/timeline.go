@@ -137,7 +137,7 @@ func getTimelineStars(e Execer) ([]TimelineEvent, error) {
 }
 
 func getTimelineFollows(e Execer) ([]TimelineEvent, error) {
-	follows, err := GetAllFollows(e, Limit)
+	follows, err := GetFollows(e, Limit)
 	if err != nil {
 		return nil, err
 	}
