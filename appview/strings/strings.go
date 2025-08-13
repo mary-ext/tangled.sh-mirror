@@ -182,7 +182,7 @@ func (s *Strings) dashboard(w http.ResponseWriter, r *http.Request) {
 		followStatus = db.GetFollowStatus(s.Db, loggedInUser.Did, id.DID.String())
 	}
 
-	followers, following, err := db.GetFollowerFollowing(s.Db, id.DID.String())
+	followers, following, err := db.GetFollowerFollowingCount(s.Db, id.DID.String())
 	if err != nil {
 		l.Error("failed to get follow stats", "err", err)
 	}

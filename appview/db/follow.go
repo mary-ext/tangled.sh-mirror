@@ -53,7 +53,7 @@ func DeleteFollowByRkey(e Execer, userDid, rkey string) error {
 	return err
 }
 
-func GetFollowerFollowing(e Execer, did string) (int, int, error) {
+func GetFollowerFollowingCount(e Execer, did string) (int, int, error) {
 	followers, following := 0, 0
 	err := e.QueryRow(
 		`SELECT 

@@ -162,7 +162,7 @@ func getTimelineFollows(e Execer) ([]TimelineEvent, error) {
 
 	followStatMap := make(map[string]FollowStats)
 	for _, s := range subjects {
-		followers, following, err := GetFollowerFollowing(e, s)
+		followers, following, err := GetFollowerFollowingCount(e, s)
 		if err != nil {
 			return nil, err
 		}

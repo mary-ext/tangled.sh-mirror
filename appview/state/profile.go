@@ -118,7 +118,7 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	followers, following, err := db.GetFollowerFollowing(s.db, ident.DID.String())
+	followers, following, err := db.GetFollowerFollowingCount(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
 	}
@@ -186,7 +186,7 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, ident.DID.String())
 	}
 
-	followers, following, err := db.GetFollowerFollowing(s.db, ident.DID.String())
+	followers, following, err := db.GetFollowerFollowingCount(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
 	}
