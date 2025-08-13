@@ -418,11 +418,11 @@ type ProfilePageParams struct {
 }
 
 type ProfileCard struct {
-	UserDid      string
-	UserHandle   string
-	FollowStatus db.FollowStatus
-	Followers    int
-	Following    int
+	UserDid        string
+	UserHandle     string
+	FollowStatus   db.FollowStatus
+	FollowersCount int
+	FollowingCount int
 
 	Profile *db.Profile
 }
@@ -439,6 +439,34 @@ type ReposPageParams struct {
 
 func (p *Pages) ReposPage(w io.Writer, params ReposPageParams) error {
 	return p.execute("user/repos", w, params)
+}
+
+type FollowCard struct {
+	UserDid        string
+	FollowStatus   db.FollowStatus
+	FollowersCount int
+	FollowingCount int
+	Profile        *db.Profile
+}
+
+type FollowersPageParams struct {
+	LoggedInUser *oauth.User
+	Followers    []FollowCard
+	Card         ProfileCard
+}
+
+func (p *Pages) FollowersPage(w io.Writer, params FollowersPageParams) error {
+	return p.execute("user/followers", w, params)
+}
+
+type FollowingPageParams struct {
+	LoggedInUser *oauth.User
+	Following    []FollowCard
+	Card         ProfileCard
+}
+
+func (p *Pages) FollowingPage(w io.Writer, params FollowingPageParams) error {
+	return p.execute("user/following", w, params)
 }
 
 type FollowFragmentParams struct {

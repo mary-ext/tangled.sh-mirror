@@ -1,0 +1,30 @@
+{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }} · followers {{ end }}
+
+{{ define "extrameta" }}
+    <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}'s followers" />
+    <meta property="og:type" content="object" />
+    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}?tab=followers" />
+    <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+{{ end }}
+
+{{ define "content" }}
+<div class="grid grid-cols-1 md:grid-cols-11 gap-4">
+    <div class="md:col-span-3 order-1 md:order-1">
+        {{ template "user/fragments/profileCard" .Card }}
+    </div>
+    <div id="all-followers" class="md:col-span-8 order-2 md:order-2">
+        {{ block "followers" . }}{{ end }}
+    </div>
+</div>
+{{ end }}
+
+{{ define "followers" }}
+  <p class="text-sm font-bold p-2 dark:text-white">ALL FOLLOWERS</p>
+  <div id="followers" class="grid grid-cols-1 gap-4 mb-6">
+    {{ range .Followers }}
+       {{ template "user/fragments/followCard" . }}
+    {{ else }}
+        <p class="px-6 dark:text-white">This user does not have any followers yet.</p>
+    {{ end }}
+  </div>
+{{ end }}

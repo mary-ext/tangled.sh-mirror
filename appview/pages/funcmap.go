@@ -277,6 +277,11 @@ func (p *Pages) funcMap() template.FuncMap {
 		"layoutCenter": func() string {
 			return "col-span-1 md:col-span-8 lg:col-span-6"
 		},
+
+		"normalizeForHtmlId": func(s string) string {
+			// TODO: extend this to handle other cases?
+			return strings.ReplaceAll(s, ":", "_")
+		},
 	}
 }
 

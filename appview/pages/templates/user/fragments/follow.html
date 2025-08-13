@@ -1,5 +1,5 @@
 {{ define "user/fragments/follow" }}
-  <button id="followBtn"
+  <button id="{{ normalizeForHtmlId .UserDid }}"
     class="btn mt-2 w-full flex gap-2 items-center group"
 
     {{ if eq .FollowStatus.String "IsNotFollowing" }}
@@ -9,7 +9,7 @@
     {{ end }}
 
     hx-trigger="click"
-    hx-target="#followBtn"
+    hx-target="#{{ normalizeForHtmlId .UserDid }}"
     hx-swap="outerHTML"
     >
     {{ if eq .FollowStatus.String "IsNotFollowing" }}Follow{{ else }}Unfollow{{ end }}

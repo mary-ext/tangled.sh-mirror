@@ -3,7 +3,7 @@
 {{ define "extrameta" }}
     <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}'s repos" />
     <meta property="og:type" content="object" />
-    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}/repos" />
+    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}?tab=repos" />
     <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
 {{ end }}
 

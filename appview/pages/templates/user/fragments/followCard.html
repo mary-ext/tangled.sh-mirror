@@ -1,0 +1,29 @@
+{{ define "user/fragments/followCard" }}
+{{ $userIdent := resolve .UserDid }}
+<div class="flex flex-col divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-sm">
+  <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800 flex items-center gap-4">
+    <div class="flex-shrink-0 max-h-full w-24 h-24">
+      <img class="object-cover rounded-full p-2" src="{{ fullAvatar $userIdent }}" />
+    </div>
+
+    <div class="flex-1 min-h-0 justify-around flex flex-col">
+      <a href="/{{ $userIdent }}">
+        <span class="font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">{{ $userIdent | truncateAt30 }}</span>
+      </a>
+      <p class="text-sm pb-2 md:pb-2">{{.Profile.Description}}</p>
+      <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+        <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
+        <span id="followers"><a href="/{{ $userIdent }}?tab=followers">{{ .FollowersCount }} followers</a></span>
+        <span class="select-none after:content-['·']"></span>
+        <span id="following"><a href="/{{ $userIdent }}?tab=following">{{ .FollowingCount }} following</a></span>
+      </div>
+    </div>
+    
+    {{ if ne .FollowStatus.String "IsSelf" }}
+      <div class="max-w-24">
+        {{ template "user/fragments/follow" . }}
+      </div>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

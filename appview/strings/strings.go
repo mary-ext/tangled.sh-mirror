@@ -202,7 +202,7 @@ func (s *Strings) dashboard(w http.ResponseWriter, r *http.Request) {
 		followStatus = db.GetFollowStatus(s.Db, loggedInUser.Did, id.DID.String())
 	}
 
-	followers, following, err := db.GetFollowerFollowingCount(s.Db, id.DID.String())
+	followersCount, followingCount, err := db.GetFollowerFollowingCount(s.Db, id.DID.String())
 	if err != nil {
 		l.Error("failed to get follow stats", "err", err)
 	}
@@ -210,12 +210,12 @@ func (s *Strings) dashboard(w http.ResponseWriter, r *http.Request) {
 	s.Pages.StringsDashboard(w, pages.StringsDashboardParams{
 		LoggedInUser: s.OAuth.GetUser(r),
 		Card: pages.ProfileCard{
-			UserDid:      id.DID.String(),
-			UserHandle:   id.Handle.String(),
-			Profile:      profile,
-			FollowStatus: followStatus,
-			Followers:    followers,
-			Following:    following,
+			UserDid:        id.DID.String(),
+			UserHandle:     id.Handle.String(),
+			Profile:        profile,
+			FollowStatus:   followStatus,
+			FollowersCount: followersCount,
+			FollowingCount: followingCount,
 		},
 		Strings: all,
 	})

@@ -171,11 +171,11 @@
         {{ end }}
       {{ end }}
       {{ with $stat }}
-        <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full text-sm">
+        <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
           <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
-          <span id="followers">{{ .Followers }} followers</span>
+          <span id="followers"><a href="/{{ $subjectHandle }}?tab=followers">{{ .Followers }} followers</a></span>
           <span class="select-none after:content-['·']"></span>
-          <span id="following">{{  .Following  }} following</span>
+          <span id="following"><a href="/{{ $subjectHandle }}?tab=following">{{ .Following }} following</a></span>
         </div>
       {{ end }}
     </div>

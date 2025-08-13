@@ -151,13 +151,9 @@ func getTimelineFollows(e Execer) ([]TimelineEvent, error) {
 		return nil, nil
 	}
 
-	profileMap := make(map[string]Profile)
 	profiles, err := GetProfiles(e, FilterIn("did", subjects))
 	if err != nil {
 		return nil, err
-	}
-	for _, p := range profiles {
-		profileMap[p.Did] = p
 	}
 
 	followStatMap := make(map[string]FollowStats)
@@ -174,12 +170,12 @@ func getTimelineFollows(e Execer) ([]TimelineEvent, error) {
 
 	var events []TimelineEvent
 	for _, f := range follows {
-		profile, _ := profileMap[f.SubjectDid]
+		profile, _ := profiles[f.SubjectDid]
 		followStatMap, _ := followStatMap[f.SubjectDid]
 
 		events = append(events, TimelineEvent{
 			Follow:      &f,
-			Profile:     &profile,
+			Profile:     profile,
 			FollowStats: &followStatMap,
 			EventAt:     f.FollowedAt,
 		})

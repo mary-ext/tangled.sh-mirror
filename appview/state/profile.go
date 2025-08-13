@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/gorilla/feeds"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
@@ -27,6 +29,10 @@ func (s *State) Profile(w http.ResponseWriter, r *http.Request) {
 		s.profilePage(w, r)
 	case "repos":
 		s.reposPage(w, r)
+	case "followers":
+		s.followersPage(w, r)
+	case "following":
+		s.followingPage(w, r)
 	}
 }
 
@@ -117,12 +123,12 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		Repos:              pinnedRepos,
 		CollaboratingRepos: pinnedCollaboratingRepos,
 		Card: pages.ProfileCard{
-			UserDid:      ident.DID.String(),
-			UserHandle:   ident.Handle.String(),
-			Profile:      profile,
-			FollowStatus: followStatus,
-			Followers:    followers,
-			Following:    following,
+			UserDid:        ident.DID.String(),
+			UserHandle:     ident.Handle.String(),
+			Profile:        profile,
+			FollowStatus:   followStatus,
+			FollowersCount: followers,
+			FollowingCount: following,
 		},
 		Punchcard:       punchcard,
 		ProfileTimeline: timeline,
@@ -165,13 +171,164 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser: loggedInUser,
 		Repos:        repos,
 		Card: pages.ProfileCard{
-			UserDid:      ident.DID.String(),
-			UserHandle:   ident.Handle.String(),
-			Profile:      profile,
-			FollowStatus: followStatus,
-			Followers:    followers,
-			Following:    following,
+			UserDid:        ident.DID.String(),
+			UserHandle:     ident.Handle.String(),
+			Profile:        profile,
+			FollowStatus:   followStatus,
+			FollowersCount: followers,
+			FollowingCount: following,
 		},
+	})
+}
+
+type FollowsPageParams struct {
+	LoggedInUser *oauth.User
+	Follows      []pages.FollowCard
+	Card         pages.ProfileCard
+}
+
+func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows func(db.Execer, string) ([]db.Follow, error), extractDid func(db.Follow) string) (FollowsPageParams, error) {
+	ident, ok := r.Context().Value("resolvedId").(identity.Identity)
+	if !ok {
+		s.pages.Error404(w)
+		return FollowsPageParams{}, errors.New("identity not found")
+	}
+	did := ident.DID.String()
+
+	profile, err := db.GetProfile(s.db, did)
+	if err != nil {
+		log.Printf("getting profile data for %s: %s", did, err)
+		return FollowsPageParams{}, err
+	}
+
+	loggedInUser := s.oauth.GetUser(r)
+
+	follows, err := fetchFollows(s.db, did)
+	if err != nil {
+		log.Printf("getting followers for %s: %s", did, err)
+		return FollowsPageParams{}, err
+	}
+
+	var loggedInUserFollowing map[string]struct{}
+	if loggedInUser != nil {
+		following, err := db.GetFollowing(s.db, loggedInUser.Did)
+		if err != nil {
+			return FollowsPageParams{}, err
+		}
+		if len(following) > 0 {
+			loggedInUserFollowing = make(map[string]struct{}, len(following))
+			for _, follow := range following {
+				loggedInUserFollowing[follow.SubjectDid] = struct{}{}
+			}
+		}
+	}
+
+	followStatus := db.IsNotFollowing
+	if loggedInUser != nil {
+		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, did)
+	}
+
+	followersCount, followingCount, err := db.GetFollowerFollowingCount(s.db, did)
+	if err != nil {
+		log.Printf("getting follow stats followers for %s: %s", did, err)
+		return FollowsPageParams{}, err
+	}
+
+	if len(follows) == 0 {
+		return FollowsPageParams{
+			LoggedInUser: loggedInUser,
+			Follows:      []pages.FollowCard{},
+			Card: pages.ProfileCard{
+				UserDid:        did,
+				UserHandle:     ident.Handle.String(),
+				Profile:        profile,
+				FollowStatus:   followStatus,
+				FollowersCount: followersCount,
+				FollowingCount: followingCount,
+			},
+		}, nil
+	}
+
+	followDids := make([]string, 0, len(follows))
+	for _, follow := range follows {
+		followDids = append(followDids, extractDid(follow))
+	}
+
+	profiles, err := db.GetProfiles(s.db, db.FilterIn("did", followDids))
+	if err != nil {
+		log.Printf("getting profile for %s: %s", followDids, err)
+		return FollowsPageParams{}, err
+	}
+
+	followCards := make([]pages.FollowCard, 0, len(follows))
+	for _, did := range followDids {
+		followersCount, followingCount, err := db.GetFollowerFollowingCount(s.db, did)
+		if err != nil {
+			log.Printf("getting follow stats for %s: %s", did, err)
+		}
+		followStatus := db.IsNotFollowing
+		if loggedInUserFollowing != nil {
+			if _, exists := loggedInUserFollowing[did]; exists {
+				followStatus = db.IsFollowing
+			} else if loggedInUser.Did == did {
+				followStatus = db.IsSelf
+			}
+		}
+		var profile *db.Profile
+		if p, exists := profiles[did]; exists {
+			profile = p
+		} else {
+			profile = &db.Profile{}
+			profile.Did = did
+		}
+		followCards = append(followCards, pages.FollowCard{
+			UserDid:        did,
+			FollowStatus:   followStatus,
+			FollowersCount: followersCount,
+			FollowingCount: followingCount,
+			Profile:        profile,
+		})
+	}
+
+	return FollowsPageParams{
+		LoggedInUser: loggedInUser,
+		Follows:      followCards,
+		Card: pages.ProfileCard{
+			UserDid:        did,
+			UserHandle:     ident.Handle.String(),
+			Profile:        profile,
+			FollowStatus:   followStatus,
+			FollowersCount: followersCount,
+			FollowingCount: followingCount,
+		},
+	}, nil
+}
+
+func (s *State) followersPage(w http.ResponseWriter, r *http.Request) {
+	followPage, err := s.followPage(w, r, db.GetFollowers, func(f db.Follow) string { return f.UserDid })
+	if err != nil {
+		s.pages.Notice(w, "all-followers", "Failed to load followers")
+		return
+	}
+
+	s.pages.FollowersPage(w, pages.FollowersPageParams{
+		LoggedInUser: followPage.LoggedInUser,
+		Followers:    followPage.Follows,
+		Card:         followPage.Card,
+	})
+}
+
+func (s *State) followingPage(w http.ResponseWriter, r *http.Request) {
+	followPage, err := s.followPage(w, r, db.GetFollowing, func(f db.Follow) string { return f.SubjectDid })
+	if err != nil {
+		s.pages.Notice(w, "all-following", "Failed to load following")
+		return
+	}
+
+	s.pages.FollowingPage(w, pages.FollowingPageParams{
+		LoggedInUser: followPage.LoggedInUser,
+		Following:    followPage.Follows,
+		Card:         followPage.Card,
 	})
 }
 

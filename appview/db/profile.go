@@ -348,7 +348,7 @@ func UpsertProfile(tx *sql.Tx, profile *Profile) error {
 	return tx.Commit()
 }
 
-func GetProfiles(e Execer, filters ...filter) ([]Profile, error) {
+func GetProfiles(e Execer, filters ...filter) (map[string]*Profile, error) {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {
@@ -448,12 +448,7 @@ func GetProfiles(e Execer, filters ...filter) ([]Profile, error) {
 		idxs[did] = idx + 1
 	}
 
-	var profiles []Profile
-	for _, p := range profileMap {
-		profiles = append(profiles, *p)
-	}
-
-	return profiles, nil
+	return profileMap, nil
 }
 
 func GetProfile(e Execer, did string) (*Profile, error) {
