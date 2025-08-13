@@ -6,14 +6,25 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 )
 
+type RawWorkflow struct {
+	Name     string
+	Contents []byte
+}
+
+type RawPipeline = []RawWorkflow
+
 type Compiler struct {
 	Trigger     tangled.Pipeline_TriggerMetadata
 	Diagnostics Diagnostics
 }
 
 type Diagnostics struct {
-	Errors   []error
+	Errors   []Error
 	Warnings []Warning
+}
+
+func (d *Diagnostics) IsEmpty() bool {
+	return len(d.Errors) == 0 && len(d.Warnings) == 0
 }
 
 func (d *Diagnostics) Combine(o Diagnostics) {
@@ -25,18 +36,31 @@ func (d *Diagnostics) AddWarning(path string, kind WarningKind, reason string) {
 	d.Warnings = append(d.Warnings, Warning{path, kind, reason})
 }
 
-func (d *Diagnostics) AddError(err error) {
-	d.Errors = append(d.Errors, err)
+func (d *Diagnostics) AddError(path string, err error) {
+	d.Errors = append(d.Errors, Error{path, err})
 }
 
 func (d Diagnostics) IsErr() bool {
 	return len(d.Errors) != 0
 }
 
+type Error struct {
+	Path  string
+	Error error
+}
+
+func (e Error) String() string {
+	return fmt.Sprintf("error: %s: %s", e.Path, e.Error.Error())
+}
+
 type Warning struct {
 	Path   string
 	Type   WarningKind
 	Reason string
+}
+
+func (w Warning) String() string {
+	return fmt.Sprintf("warning: %s: %s: %s", w.Path, w.Type, w.Reason)
 }
 
 type WarningKind string
@@ -46,14 +70,30 @@ var (
 	InvalidConfiguration WarningKind = "invalid configuration"
 )
 
+func (compiler *Compiler) Parse(p RawPipeline) Pipeline {
+	var pp Pipeline
+
+	for _, w := range p {
+		wf, err := FromFile(w.Name, w.Contents)
+		if err != nil {
+			compiler.Diagnostics.AddError(w.Name, err)
+			continue
+		}
+
+		pp = append(pp, wf)
+	}
+
+	return pp
+}
+
 // convert a repositories' workflow files into a fully compiled pipeline that runners accept
 func (compiler *Compiler) Compile(p Pipeline) tangled.Pipeline {
 	cp := tangled.Pipeline{
 		TriggerMetadata: &compiler.Trigger,
 	}
 
-	for _, w := range p {
-		cw := compiler.compileWorkflow(w)
+	for _, wf := range p {
+		cw := compiler.compileWorkflow(wf)
 
 		// empty workflows are not added to the pipeline
 		if len(cw.Steps) == 0 {
