@@ -44,6 +44,9 @@ func (s *Strings) Router(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 
 	r.
+		Get("/", s.timeline)
+
+	r.
 		With(mw.ResolveIdent()).
 		Route("/{user}", func(r chi.Router) {
 			r.Get("/", s.dashboard)
@@ -70,6 +73,22 @@ func (s *Strings) Router(mw *middleware.Middleware) http.Handler {
 	return r
 }
 
+func (s *Strings) timeline(w http.ResponseWriter, r *http.Request) {
+	l := s.Logger.With("handler", "timeline")
+
+	strings, err := db.GetStrings(s.Db, 50)
+	if err != nil {
+		l.Error("failed to fetch string", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	s.Pages.StringsTimeline(w, pages.StringTimelineParams{
+		LoggedInUser: s.OAuth.GetUser(r),
+		Strings:      strings,
+	})
+}
+
 func (s *Strings) contents(w http.ResponseWriter, r *http.Request) {
 	l := s.Logger.With("handler", "contents")
 
@@ -91,6 +110,7 @@ func (s *Strings) contents(w http.ResponseWriter, r *http.Request) {
 
 	strings, err := db.GetStrings(
 		s.Db,
+		0,
 		db.FilterEq("did", id.DID),
 		db.FilterEq("rkey", rkey),
 	)
@@ -154,6 +174,7 @@ func (s *Strings) dashboard(w http.ResponseWriter, r *http.Request) {
 
 	all, err := db.GetStrings(
 		s.Db,
+		0,
 		db.FilterEq("did", id.DID),
 	)
 	if err != nil {
@@ -225,6 +246,7 @@ func (s *Strings) edit(w http.ResponseWriter, r *http.Request) {
 	// get the string currently being edited
 	all, err := db.GetStrings(
 		s.Db,
+		0,
 		db.FilterEq("did", id.DID),
 		db.FilterEq("rkey", rkey),
 	)
