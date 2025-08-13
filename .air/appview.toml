@@ -5,4 +5,4 @@ root = "."
 
 exclude_regex = [".*_templ.go"]
 include_ext = ["go", "templ", "html", "css"]
-exclude_dir = ["target", "atrium"]
+exclude_dir = ["target", "atrium", "nix"]
