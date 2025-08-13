@@ -8,7 +8,13 @@ import (
 	"os"
 
 	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
+	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
+	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
+	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
+	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/index/upsidedown"
+	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/indexer/base36"
@@ -16,6 +22,13 @@ import (
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pagination"
 	tlog "tangled.org/core/log"
+)
+
+const (
+	issueIndexerAnalyzer = "issueIndexer"
+	issueIndexerDocType  = "issueIndexerDocType"
+
+	unicodeNormalizeName = "uicodeNormalize"
 )
 
 type Indexer struct {
@@ -46,6 +59,56 @@ func (ix *Indexer) Init(ctx context.Context, e db.Execer) {
 	l.Info("Initialized the issue indexer")
 }
 
+func generateIssueIndexMapping() (mapping.IndexMapping, error) {
+	mapping := bleve.NewIndexMapping()
+	docMapping := bleve.NewDocumentMapping()
+
+	textFieldMapping := bleve.NewTextFieldMapping()
+	textFieldMapping.Store = false
+	textFieldMapping.IncludeInAll = false
+
+	boolFieldMapping := bleve.NewBooleanFieldMapping()
+	boolFieldMapping.Store = false
+	boolFieldMapping.IncludeInAll = false
+
+	keywordFieldMapping := bleve.NewKeywordFieldMapping()
+	keywordFieldMapping.Store = false
+	keywordFieldMapping.IncludeInAll = false
+
+	// numericFieldMapping := bleve.NewNumericFieldMapping()
+
+	docMapping.AddFieldMappingsAt("title", textFieldMapping)
+	docMapping.AddFieldMappingsAt("body", textFieldMapping)
+
+	docMapping.AddFieldMappingsAt("repo_at", keywordFieldMapping)
+	docMapping.AddFieldMappingsAt("is_open", boolFieldMapping)
+
+	err := mapping.AddCustomTokenFilter(unicodeNormalizeName, map[string]any{
+		"type": unicodenorm.Name,
+		"form": unicodenorm.NFC,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = mapping.AddCustomAnalyzer(issueIndexerAnalyzer, map[string]any{
+		"type":          custom.Name,
+		"char_filters":  []string{},
+		"tokenizer":     unicode.Name,
+		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mapping.DefaultAnalyzer = issueIndexerAnalyzer
+	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
+	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
+	mapping.DefaultMapping = bleve.NewDocumentDisabledMapping()
+
+	return mapping, nil
+}
+
 func (ix *Indexer) intialize(ctx context.Context) (bool, error) {
 	if ix.indexer != nil {
 		return false, errors.New("indexer is already initialized")
@@ -60,7 +123,10 @@ func (ix *Indexer) intialize(ctx context.Context) (bool, error) {
 		return true, nil
 	}
 
-	mapping := bleve.NewIndexMapping()
+	mapping, err := generateIssueIndexMapping()
+	if err != nil {
+		return false, err
+	}
 	indexer, err = bleve.New(ix.path, mapping)
 	if err != nil {
 		return false, err
@@ -123,6 +189,11 @@ func makeIssueData(issue *models.Issue) *issueData {
 	}
 }
 
+// Type returns the document type, for bleve's mapping.Classifier interface.
+func (i *issueData) Type() string {
+	return issueIndexerDocType
+}
+
 type IssueCommentData struct {
 	Body string `json:"body"`
 }
@@ -151,8 +222,8 @@ func (ix *Indexer) Search(ctx context.Context, opts models.IssueSearchOptions) (
 
 	if opts.Keyword != "" {
 		queries = append(queries, bleve.NewDisjunctionQuery(
-			bleveutil.MatchAndQuery("title", opts.Keyword),
-			bleveutil.MatchAndQuery("body", opts.Keyword),
+			bleveutil.MatchAndQuery("title", opts.Keyword, issueIndexerAnalyzer, 0),
+			bleveutil.MatchAndQuery("body", opts.Keyword, issueIndexerAnalyzer, 0),
 		))
 	}
 	queries = append(queries, bleveutil.KeywordFieldQuery("repo_at", opts.RepoAt))

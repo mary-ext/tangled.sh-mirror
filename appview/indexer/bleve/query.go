@@ -5,9 +5,11 @@ import (
 	"github.com/blevesearch/bleve/v2/search/query"
 )
 
-func MatchAndQuery(field, keyword string) query.Query {
+func MatchAndQuery(field, keyword, analyzer string, fuzziness int) query.Query {
 	q := bleve.NewMatchQuery(keyword)
 	q.FieldVal = field
+	q.Analyzer = analyzer
+	q.Fuzziness = fuzziness
 	return q
 }
 
