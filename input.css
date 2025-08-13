@@ -103,7 +103,7 @@
         }
 
         code {
-            @apply font-mono rounded bg-gray-100 dark:bg-gray-700;
+            @apply font-mono rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white;
         }
     }
 

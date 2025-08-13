@@ -1160,6 +1160,15 @@ func (p *Pages) StringsDashboard(w io.Writer, params StringsDashboardParams) err
 	return p.execute("strings/dashboard", w, params)
 }
 
+type StringTimelineParams struct {
+	LoggedInUser *oauth.User
+	Strings      []db.String
+}
+
+func (p *Pages) StringsTimeline(w io.Writer, params StringTimelineParams) error {
+	return p.execute("strings/timeline", w, params)
+}
+
 type SingleStringParams struct {
 	LoggedInUser     *oauth.User
 	ShowRendered     bool

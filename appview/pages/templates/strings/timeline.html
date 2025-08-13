@@ -1,0 +1,65 @@
+{{ define "title" }} all strings {{ end }}
+
+{{ define "topbar" }}
+  {{ template "layouts/topbar" $ }}
+{{ end }}
+
+{{ define "content" }}
+  {{ block "timeline" $ }}{{ end }}
+{{ end }}
+
+{{ define "timeline" }}
+  <div>
+    <div class="p-6">
+      <p class="text-xl font-bold dark:text-white">All strings</p>
+    </div>
+
+    <div class="flex flex-col gap-4">
+      {{ range $i, $s := .Strings }}
+        <div class="relative">
+          {{ if ne $i 0 }}
+            <div class="absolute left-8 -top-4 w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+          {{ end }}
+          <div class="flex flex-col divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-sm">
+            {{ template "stringCard" $s }}
+          </div>
+        </div>
+      {{ end }}
+    </div>
+  </div>
+{{ end }}
+
+{{ define "stringCard" }}
+  <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
+      <div class="font-medium dark:text-white flex gap-2 items-center">
+        <a href="/strings/{{ resolve .Did.String }}/{{ .Rkey }}">{{ .Filename }}</a>
+      </div>
+      {{ with .Description }}
+        <div class="text-gray-600 dark:text-gray-300 text-sm">
+            {{ . }}
+        </div>
+      {{ end }}
+
+      {{ template "stringCardInfo" . }}
+  </div>
+{{ end }}
+
+{{ define "stringCardInfo" }}
+  {{ $stat := .Stats }}
+  {{ $resolved := resolve .Did.String }}
+  <div class="text-gray-400 pt-4 text-sm font-mono inline-flex items-center gap-2 mt-auto">
+    <a href="/strings/{{ $resolved }}" class="flex items-center">
+        {{ template "user/fragments/picHandle" $resolved }}
+    </a>
+    <span class="select-none [&:before]:content-['·']"></span>
+    <span>{{ $stat.LineCount }} line{{if ne $stat.LineCount 1}}s{{end}}</span>
+    <span class="select-none [&:before]:content-['·']"></span>
+    {{ with .Edited }}
+      <span>edited {{ template "repo/fragments/shortTimeAgo" . }}</span>
+    {{ else }}
+      {{ template "repo/fragments/shortTimeAgo" .Created }}
+    {{ end }}
+  </div>
+{{ end }}
+
+
