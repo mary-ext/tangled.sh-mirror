@@ -131,7 +131,7 @@ func AddString(e Execer, s String) error {
 	return err
 }
 
-func GetStrings(e Execer, filters ...filter) ([]String, error) {
+func GetStrings(e Execer, limit int, filters ...filter) ([]String, error) {
 	var all []String
 
 	var conditions []string
@@ -146,6 +146,11 @@ func GetStrings(e Execer, filters ...filter) ([]String, error) {
 		whereClause = " where " + strings.Join(conditions, " and ")
 	}
 
+	limitClause := ""
+	if limit != 0 {
+		limitClause = fmt.Sprintf(" limit %d ", limit)
+	}
+
 	query := fmt.Sprintf(`select
 			did,
 			rkey,
@@ -154,8 +159,12 @@ func GetStrings(e Execer, filters ...filter) ([]String, error) {
 			content,
 			created,
 			edited
-		from strings %s`,
+		from strings
+		%s
+		order by created desc
+		%s`,
 		whereClause,
+		limitClause,
 	)
 
 	rows, err := e.Query(query, args...)
