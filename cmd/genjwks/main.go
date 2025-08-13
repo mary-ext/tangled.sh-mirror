@@ -30,6 +30,10 @@ func main() {
 		panic(err)
 	}
 
+	if err := key.Set("use", "sig"); err != nil {
+		panic(err)
+	}
+
 	b, err := json.Marshal(key)
 	if err != nil {
 		panic(err)
