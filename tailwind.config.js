@@ -36,7 +36,7 @@ module.exports = {
 					css: {
 						maxWidth: "none",
 						pre: {
-							"@apply font-normal text-black bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700 border": {},
+							"@apply font-normal text-black bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700 border": {},
 						},
 						code: {
 							"@apply font-normal font-mono p-1 rounded text-black bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700": {},
