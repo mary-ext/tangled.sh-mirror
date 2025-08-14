@@ -59,6 +59,7 @@ func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
 		IsDev:      config.Core.Dev,
 		CamoUrl:    config.Camo.Host,
 		CamoSecret: config.Camo.SharedSecret,
+		Sanitizer:  markup.NewSanitizer(),
 	}
 
 	p := &Pages{
@@ -517,14 +518,13 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 	p.rctx.RendererType = markup.RendererTypeRepoMarkdown
 
 	if params.ReadmeFileName != "" {
-		var htmlString string
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
-			htmlString = p.rctx.Sanitize(htmlString)
-			htmlString = p.rctx.RenderMarkdown(params.Readme)
 			params.Raw = false
-			params.HTMLReadme = template.HTML(htmlString)
+			htmlString := p.rctx.RenderMarkdown(params.Readme)
+			sanitized := p.rctx.SanitizeDefault(htmlString)
+			params.HTMLReadme = template.HTML(sanitized)
 		default:
 			params.Raw = true
 		}
@@ -663,7 +663,8 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 			p.rctx.RepoInfo = params.RepoInfo
 			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
 			htmlString := p.rctx.RenderMarkdown(params.Contents)
-			params.RenderedContents = template.HTML(p.rctx.Sanitize(htmlString))
+			sanitized := p.rctx.SanitizeDefault(htmlString)
+			params.RenderedContents = template.HTML(sanitized)
 		}
 	}
 
@@ -1170,9 +1171,10 @@ func (p *Pages) SingleString(w io.Writer, params SingleStringParams) error {
 	if params.ShowRendered {
 		switch markup.GetFormat(params.String.Filename) {
 		case markup.FormatMarkdown:
-			p.rctx.RendererType = markup.RendererTypeDefault
+			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
 			htmlString := p.rctx.RenderMarkdown(params.String.Contents)
-			params.RenderedContents = template.HTML(p.rctx.Sanitize(htmlString))
+			sanitized := p.rctx.SanitizeDefault(htmlString)
+			params.RenderedContents = template.HTML(sanitized)
 		}
 	}
 
