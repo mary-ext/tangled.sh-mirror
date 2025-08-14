@@ -24,6 +24,7 @@ func main() {
 		tangled.GitRefUpdate_Meta_LangBreakdown{},
 		tangled.GitRefUpdate_Pair{},
 		tangled.GraphFollow{},
+		tangled.Knot{},
 		tangled.KnotMember{},
 		tangled.Pipeline{},
 		tangled.Pipeline_CloneOpts{},
