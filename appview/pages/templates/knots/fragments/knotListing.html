@@ -1,51 +1,70 @@
 {{ define "knots/fragments/knotListing" }}
-  <div 
-    id="knot-{{.Id}}"
-    hx-swap-oob="true"
-    class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
-    {{ block "listLeftSide" . }} {{ end }}
-    {{ block "listRightSide" . }} {{ end }}
+  <div id="knot-{{.Id}}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+    {{ block "knotLeftSide" . }} {{ end }}
+    {{ block "knotRightSide" . }} {{ end }}
   </div>
 {{ end }}
 
-{{ define "listLeftSide" }}
+{{ define "knotLeftSide" }}
+  {{ if .Registered }}
+  <a href="/knots/{{ .Domain }}" class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
+    {{ i "hard-drive" "w-4 h-4" }}
+    {{ .Domain }}
+    <span class="text-gray-500">
+      {{ template "repo/fragments/shortTimeAgo" .Created }}
+    </span>
+  </a>
+  {{ else }}
   <div class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
     {{ i "hard-drive" "w-4 h-4" }}
-    {{ if .Registered }}
-      <a href="/knots/{{ .Domain }}">
-        {{ .Domain }}
-      </a>
-    {{ else }}
-      {{ .Domain }}
-    {{ end }}
+    {{ .Domain }}
     <span class="text-gray-500">
       {{ template "repo/fragments/shortTimeAgo" .Created }}
     </span>
   </div>
+  {{ end }}
 {{ end }}
 
-{{ define "listRightSide" }}
+{{ define "knotRightSide" }}
   <div id="right-side" class="flex gap-2">
     {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2 text-sm" }}
     {{ if .Registered }}
       <span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{$style}}">{{ i "shield-check" "w-4 h-4" }} verified</span>
       {{ template "knots/fragments/addMemberModal" . }}
     {{ else }}
-      <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} pending</span>
-      {{ block "initializeButton" . }} {{ end }}
+      <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} unverified</span>
+      {{ block "knotRetryButton" . }} {{ end }}
     {{ end }}
+    {{ block "knotDeleteButton" . }} {{ end }}
   </div>
 {{ end }}
 
-{{ define "initializeButton" }}
+{{ define "knotDeleteButton" }}
   <button
-    class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center group"
-    hx-post="/knots/{{ .Domain }}/init"
-    hx-swap="none"
+    class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+    title="Delete knot"
+    hx-delete="/knots/{{ .Domain }}"
+    hx-swap="outerHTML"
+    hx-target="#knot-{{.Id}}"
+    hx-confirm="Are you sure you want to delete the knot '{{ .Domain }}'?"
   >
-    {{ i "square-play" "w-5 h-5" }}
-    <span class="hidden md:inline">initialize</span>
+    {{ i "trash-2" "w-5 h-5" }}
+    <span class="hidden md:inline">delete</span>
     {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
   </button>
 {{ end }}
 
+
+{{ define "knotRetryButton" }}
+  <button
+    class="btn gap-2 group"
+    title="Retry knot verification"
+    hx-post="/knots/{{ .Domain }}/retry"
+    hx-swap="none"
+    hx-target="#knot-{{.Id}}"
+  >
+    {{ i "rotate-ccw" "w-5 h-5" }}
+    <span class="hidden md:inline">retry</span>
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+  </button>
+{{ end }}

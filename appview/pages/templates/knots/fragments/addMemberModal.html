@@ -1,7 +1,7 @@
 {{ define "knots/fragments/addMemberModal" }}
   <button
     class="btn gap-2 group"
-    title="Add member to this spindle"
+    title="Add member to this knot"
     popovertarget="add-member-{{ .Id }}"
     popovertargetaction="toggle"
   >
@@ -20,7 +20,7 @@
 
 {{ define "addKnotMemberPopover" }}
 <form
-  hx-put="/knots/{{ .Domain }}/member"
+  hx-post="/knots/{{ .Domain }}/add"
   hx-indicator="#spinner"
   hx-swap="none"
   class="flex flex-col gap-2"
@@ -28,16 +28,16 @@
   <label for="member-did-{{ .Id }}" class="uppercase p-0">
     ADD MEMBER
   </label>
-  <p class="text-sm text-gray-500 dark:text-gray-400">Members can create repositories on this knot.</p>
+  <p class="text-sm text-gray-500 dark:text-gray-400">Members can create repositories and run workflows on this knot.</p>
   <input
     type="text"
     id="member-did-{{ .Id }}"
-    name="subject"
+    name="member"
     required
     placeholder="@foo.bsky.social"
   />
   <div class="flex gap-2 pt-2">
-    <button
+    <button 
       type="button"
       popovertarget="add-member-{{ .Id }}"
       popovertargetaction="hide"
@@ -55,4 +55,3 @@
   <div id="add-member-error-{{ .Id }}" class="text-red-500 dark:text-red-400"></div>
 </form>
 {{ end }}
-
