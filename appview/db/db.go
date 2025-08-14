@@ -612,6 +612,31 @@ func Make(dbPath string) (*DB, error) {
 		return nil
 	})
 
+	// drop all knot secrets, add unique constraint to knots
+	//
+	// knots will henceforth use service auth for signed requests
+	runMigration(conn, "no-more-secrets", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			create table registrations_new (
+				id integer primary key autoincrement,
+				domain text not null,
+				did text not null,
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+				registered text,
+				read_only integer not null default 0,
+				unique(domain, did)
+			);
+
+			insert into registrations_new (id, domain, did, created, registered, read_only)
+			select id, domain, did, created, registered, 1 from registrations
+			where registered is not null;
+
+			drop table registrations;
+			alter table registrations_new rename to registrations;
+		`)
+		return err
+	})
+
 	// recreate and add rkey + created columns with default constraint
 	runMigration(conn, "rework-collaborators-table", func(tx *sql.Tx) error {
 		// create new table
