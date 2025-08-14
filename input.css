@@ -102,6 +102,18 @@
           disabled:before:bg-green-400 dark:disabled:before:bg-green-600;
         }
 
+        .prose li:has(input) {
+          list-style: none;
+        }
+
+        .prose li {
+          @apply my-0 py-0;
+        }
+
+        .prose ul, .prose ol {
+          @apply my-1 py-0;
+        }
+
         .prose img {
             display: inline;
             margin: 0;
