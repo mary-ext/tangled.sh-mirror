@@ -5,13 +5,19 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
+	"github.com/alecthomas/chroma/v2"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
+	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -50,7 +56,16 @@ type Sanitizer struct {
 
 func (rctx *RenderContext) RenderMarkdown(source string) string {
 	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithExtensions(
+			extension.GFM,
+			highlighting.NewHighlighting(
+				highlighting.WithFormatOptions(
+					chromahtml.Standalone(false),
+					chromahtml.WithClasses(true),
+				),
+				highlighting.WithCustomStyle(styles.Get("catppuccin-latte")),
+			),
+		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
@@ -201,6 +216,10 @@ func defaultPolicy() *bluemonday.Policy {
 	// checkboxes
 	policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
 	policy.AllowAttrs("checked", "disabled", "data-source-position").OnElements("input")
+
+	// for code blocks
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`chroma`)).OnElements("pre")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(strings.Join(slices.Collect(maps.Values(chroma.StandardTypes)), "|"))).OnElements("span")
 
 	// centering content
 	policy.AllowElements("center")
