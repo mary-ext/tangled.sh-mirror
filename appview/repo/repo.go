@@ -1062,6 +1062,7 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 		r,
 		oauth.WithService(f.Spindle),
 		oauth.WithLxm(lxm),
+		oauth.WithExp(60),
 		oauth.WithDev(rp.config.Core.Dev),
 	)
 	if err != nil {
@@ -1270,6 +1271,7 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 			r,
 			oauth.WithService(f.Spindle),
 			oauth.WithLxm(tangled.RepoListSecretsNSID),
+			oauth.WithExp(60),
 			oauth.WithDev(rp.config.Core.Dev),
 		); err != nil {
 			log.Println("failed to create spindle client", err)

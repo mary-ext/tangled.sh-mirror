@@ -224,9 +224,13 @@ func WithService(service string) ServiceClientOpt {
 		s.service = service
 	}
 }
+
+// Specify the Duration in seconds for the expiry of this token
+//
+// The time of expiry is calculated as time.Now().Unix() + exp
 func WithExp(exp int64) ServiceClientOpt {
 	return func(s *ServiceClientOpts) {
-		s.exp = exp
+		s.exp = time.Now().Unix() + exp
 	}
 }
 
@@ -264,6 +268,12 @@ func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*indigo_
 	authorizedClient, err := o.AuthorizedClient(r)
 	if err != nil {
 		return nil, err
+	}
+
+	// force expiry to atleast 60 seconds in the future
+	sixty := time.Now().Unix() + 60
+	if opts.exp < sixty {
+		opts.exp = sixty
 	}
 
 	resp, err := authorizedClient.ServerGetServiceAuth(r.Context(), opts.Audience(), opts.exp, opts.lxm)
