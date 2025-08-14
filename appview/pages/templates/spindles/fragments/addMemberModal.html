@@ -14,11 +14,11 @@
     id="add-member-{{ .Instance }}"
     popover
     class="bg-white w-full md:w-96 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
-    {{ block "addMemberPopover" . }} {{ end }}
+    {{ block "addSpindleMemberPopover" . }} {{ end }}
   </div>
 {{ end }}
 
-{{ define "addMemberPopover" }}
+{{ define "addSpindleMemberPopover" }}
 <form
   hx-post="/spindles/{{ .Instance }}/add"
   hx-indicator="#spinner"

@@ -8,7 +8,7 @@
 <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
   <div class="flex flex-col gap-6">
     {{ block "about" . }} {{ end }}
-    {{ template "knots/fragments/knotListingFull" . }}
+    {{ block "list" . }} {{ end }}
     {{ block "register" . }} {{ end }}
   </div>
 </section>
@@ -27,13 +27,29 @@
   </section>
 {{ end }}
 
+{{ define "list" }}
+  <section class="rounded w-full flex flex-col gap-2">
+    <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">your knots</h2>
+    <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 w-full">
+      {{ range $registration := .Registrations }}
+        {{ template "knots/fragments/knotListing" . }}
+      {{ else }}
+        <div class="flex items-center justify-center p-2 border-b border-gray-200 dark:border-gray-700 text-gray-500">
+          no knots registered yet
+        </div>
+      {{ end }}
+    </div>
+    <div id="operation-error" class="text-red-500 dark:text-red-400"></div>
+  </section>
+{{ end }}
+
 {{ define "register" }}
-  <section class="rounded max-w-2xl flex flex-col gap-2">
+  <section class="rounded w-full lg:w-fit flex flex-col gap-2">
     <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">register a knot</h2>
-    <p class="mb-2 dark:text-gray-300">Enter the hostname of your knot to generate a key.</p>
+    <p class="mb-2 dark:text-gray-300">Enter the hostname of your knot to get started.</p>
     <form
-      hx-post="/knots/key"
-      class="space-y-4"
+      hx-post="/knots/register"
+      class="max-w-2xl mb-2 space-y-4"
       hx-indicator="#register-button"
       hx-swap="none"
       >
@@ -53,7 +69,7 @@
           >
           <span class="inline-flex items-center gap-2">
             {{ i "plus" "w-4 h-4" }}
-            generate
+            register
           </span>
           <span class="pl-2 hidden group-[.htmx-request]:inline">
             {{ i "loader-circle" "w-4 h-4 animate-spin" }}
@@ -64,6 +80,5 @@
       <div id="registration-error" class="error dark:text-red-400"></div>
     </form>
 
-    <div id="secret"></div>
   </section>
 {{ end }}

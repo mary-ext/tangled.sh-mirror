@@ -1,39 +1,50 @@
-{{ define "title" }}{{ .Registration.Domain }}{{ end }}
+{{ define "title" }}{{ .Registration.Domain }} &middot; knots{{ end }}
 
 {{ define "content" }}
-  <div class="px-6 py-4">
-    <div class="flex justify-between items-center">
-      <div id="left-side" class="flex gap-2 items-center">
-        <h1 class="text-xl font-bold dark:text-white">
-          {{ .Registration.Domain }}
-        </h1>
-        <span class="text-gray-500 text-base">
-          {{ template "repo/fragments/shortTimeAgo" .Registration.Created }}
-        </span>
-      </div>
-      <div id="right-side" class="flex gap-2">
-        {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2" }}
-        {{ if .Registration.Registered }}
-          <span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{$style}}">{{ i "shield-check" "w-4 h-4" }} verified</span>
+<div class="px-6 py-4">
+  <div class="flex justify-between items-center">
+    <h1 class="text-xl font-bold dark:text-white">{{ .Registration.Domain }}</h1>
+    <div id="right-side" class="flex gap-2">
+      {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2" }}
+      {{ $isOwner := and .LoggedInUser (eq .LoggedInUser.Did .Registration.ByDid)  }}
+      {{ if .Registration.IsRegistered }}
+        <span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{$style}}">{{ i "shield-check" "w-4 h-4" }} verified</span>
+        {{ if $isOwner }}
           {{ template "knots/fragments/addMemberModal" .Registration }}
-        {{ else }}
-          <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} pending</span>
         {{ end }}
-      </div>
-    </div>
-    <div id="operation-error" class="dark:text-red-400"></div>
-  </div>
+      {{ else if .Registration.IsReadOnly }}
+        <span class="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 {{$style}}">
+          {{ i "shield-alert" "w-4 h-4" }} read-only
+        </span>
+        {{ if $isOwner }}
+          {{ block "retryButton" .Registration }} {{ end }}
+        {{ end }}
+      {{ else }}
+        <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} unverified</span>
+        {{ if $isOwner }}
+          {{ block "retryButton" .Registration }} {{ end }}
+        {{ end }}
+      {{ end }}
 
-  {{ if .Members }}
-    <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
-      <div class="flex flex-col gap-2">
-        {{ block "knotMember" . }} {{ end }}
-      </div>
-    </section>
-  {{ end }}
+      {{ if $isOwner }}
+        {{ block "deleteButton" .Registration }} {{ end }}
+      {{ end }}
+    </div>
+  </div>
+  <div id="operation-error" class="dark:text-red-400"></div>
+</div>
+
+{{ if .Members }}
+  <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
+    <div class="flex flex-col gap-2">
+      {{ block "member" . }} {{ end }}
+    </div>
+  </section>
+{{ end }}
 {{ end }}
 
-{{ define "knotMember" }}
+
+{{ define "member" }}
   {{ range .Members }}
     <div>
       <div class="flex justify-between items-center">
@@ -41,6 +52,9 @@
           {{ template "user/fragments/picHandleLink" . }}
           <span class="ml-2 font-mono text-gray-500">{{.}}</span>
         </div>
+        {{ if ne $.LoggedInUser.Did . }}
+          {{ block "removeMemberButton" (list $ . ) }} {{ end }}
+        {{ end }}
       </div>
       <div class="ml-2 pl-2 pt-2 border-l border-gray-200 dark:border-gray-700">
         {{ $repos := index $.Repos . }}
@@ -53,10 +67,61 @@
           </div>
         {{ else }}
           <div class="text-gray-500 dark:text-gray-400">
-            No repositories created yet.
+            No repositories configured yet.
           </div>
         {{ end }}
       </div>
     </div>
   {{ end }}
 {{ end }}
+
+{{ define "deleteButton" }}
+  <button
+    class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+    title="Delete knot"
+    hx-delete="/knots/{{ .Domain }}"
+    hx-swap="outerHTML"
+    hx-confirm="Are you sure you want to delete the knot '{{ .Domain }}'?"
+    hx-headers='{"shouldRedirect": "true"}'
+  >
+    {{ i "trash-2" "w-5 h-5" }}
+    <span class="hidden md:inline">delete</span> 
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+  </button>
+{{ end }}
+
+
+{{ define "retryButton" }}
+  <button
+    class="btn gap-2 group"
+    title="Retry knot verification"
+    hx-post="/knots/{{ .Domain }}/retry"
+    hx-swap="none"
+    hx-headers='{"shouldRefresh": "true"}'
+  >
+    {{ i "rotate-ccw" "w-5 h-5" }}
+    <span class="hidden md:inline">retry</span> 
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+  </button>
+{{ end }}
+
+
+{{ define "removeMemberButton" }}
+  {{ $root := index . 0 }}
+  {{ $member := index . 1 }}
+  {{ $memberHandle := resolve $member }}
+    <button
+      class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+      title="Remove member"
+      hx-post="/knots/{{ $root.Registration.Domain }}/remove"
+      hx-swap="none"
+      hx-vals='{"member": "{{$member}}" }'
+      hx-confirm="Are you sure you want to remove {{ $memberHandle }} from this knot?"
+    >
+      {{ i "user-minus" "w-4 h-4" }}
+      remove
+      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </button>
+{{ end }}
+
+

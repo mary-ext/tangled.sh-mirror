@@ -1,11 +1,11 @@
 {{ define "spindles/fragments/spindleListing" }}
   <div id="spindle-{{.Id}}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
-    {{ block "leftSide" . }} {{ end }}
-    {{ block "rightSide" . }} {{ end }}
+    {{ block "spindleLeftSide" . }} {{ end }}
+    {{ block "spindleRightSide" . }} {{ end }}
   </div>
 {{ end }}
 
-{{ define "leftSide" }}
+{{ define "spindleLeftSide" }}
   {{ if .Verified }}
   <a href="/spindles/{{ .Instance }}" class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
     {{ i "hard-drive" "w-4 h-4" }}
@@ -25,7 +25,7 @@
   {{ end }}
 {{ end }}
 
-{{ define "rightSide" }}
+{{ define "spindleRightSide" }}
   <div id="right-side" class="flex gap-2">
     {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2 text-sm" }}
     {{ if .Verified }}
@@ -33,13 +33,13 @@
       {{ template "spindles/fragments/addMemberModal" . }}
     {{ else }}
       <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} unverified</span>
-      {{ block "retryButton" . }} {{ end }}
+      {{ block "spindleRetryButton" . }} {{ end }}
     {{ end }}
-    {{ block "deleteButton" . }} {{ end }}
+    {{ block "spindleDeleteButton" . }} {{ end }}
   </div>
 {{ end }}
 
-{{ define "deleteButton" }}
+{{ define "spindleDeleteButton" }}
   <button
     class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
     title="Delete spindle"
@@ -55,7 +55,7 @@
 {{ end }}
 
 
-{{ define "retryButton" }}
+{{ define "spindleRetryButton" }}
   <button
     class="btn gap-2 group"
     title="Retry spindle verification"
