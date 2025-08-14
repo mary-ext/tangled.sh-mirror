@@ -1,4 +1,4 @@
-package spindleverify
+package serververify
 
 import (
 	"context"
@@ -17,7 +17,7 @@ var (
 	FetchError = errors.New("failed to fetch owner")
 )
 
-// TODO: move this to "spindleclient" or similar
+// fetchOwner fetches the owner DID from a server's /owner endpoint
 func fetchOwner(ctx context.Context, domain string, dev bool) (string, error) {
 	scheme := "https"
 	if dev {
@@ -61,9 +61,9 @@ func (e *OwnerMismatch) Error() string {
 	return fmt.Sprintf("owner mismatch: %q != %q", e.expected, e.observed)
 }
 
-func RunVerification(ctx context.Context, instance, expectedOwner string, dev bool) error {
-	// begin verification
-	observedOwner, err := fetchOwner(ctx, instance, dev)
+// RunVerification verifies that the server at the given domain has the expected owner
+func RunVerification(ctx context.Context, domain, expectedOwner string, dev bool) error {
+	observedOwner, err := fetchOwner(ctx, domain, dev)
 	if err != nil {
 		return fmt.Errorf("%w: %w", FetchError, err)
 	}
@@ -78,8 +78,8 @@ func RunVerification(ctx context.Context, instance, expectedOwner string, dev bo
 	return nil
 }
 
-// mark this spindle as verified in the DB and add this user as its owner
-func MarkVerified(d *db.DB, e *rbac.Enforcer, instance, owner string) (int64, error) {
+// MarkSpindleVerified marks a spindle as verified in the DB and adds the user as its owner
+func MarkSpindleVerified(d *db.DB, e *rbac.Enforcer, instance, owner string) (int64, error) {
 	tx, err := d.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("failed to create txn: %w", err)
@@ -115,4 +115,46 @@ func MarkVerified(d *db.DB, e *rbac.Enforcer, instance, owner string) (int64, er
 	}
 
 	return rowId, nil
+}
+
+// MarkKnotVerified marks a knot as verified and sets up ownership/permissions
+func MarkKnotVerified(d *db.DB, e *rbac.Enforcer, domain, owner string) error {
+	tx, err := d.BeginTx(context.Background(), nil)
+	if err != nil {
+		return fmt.Errorf("failed to start tx: %w", err)
+	}
+	defer func() {
+		tx.Rollback()
+		e.E.LoadPolicy()
+	}()
+
+	// mark as registered
+	err = db.Register(tx, domain)
+	if err != nil {
+		return fmt.Errorf("failed to register domain: %w", err)
+	}
+
+	// add basic acls for this domain
+	err = e.AddKnot(domain)
+	if err != nil {
+		return fmt.Errorf("failed to add knot to enforcer: %w", err)
+	}
+
+	// add this did as owner of this domain
+	err = e.AddKnotOwner(domain, owner)
+	if err != nil {
+		return fmt.Errorf("failed to add knot owner to enforcer: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit changes: %w", err)
+	}
+
+	err = e.E.SavePolicy()
+	if err != nil {
+		return fmt.Errorf("failed to update ACLs: %w", err)
+	}
+
+	return nil
 }
