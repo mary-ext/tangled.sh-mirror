@@ -1713,6 +1713,11 @@ func (s *Pulls) resubmitStackedPullHelper(
 
 	// deleted pulls are marked as deleted in the DB
 	for _, p := range deletions {
+		// do not do delete already merged PRs
+		if p.State == db.PullMerged {
+			continue
+		}
+
 		err := db.DeletePull(tx, p.RepoAt, p.PullId)
 		if err != nil {
 			log.Println("failed to delete pull", err, p.PullId)
@@ -1752,6 +1757,11 @@ func (s *Pulls) resubmitStackedPullHelper(
 	for id := range updated {
 		op, _ := origById[id]
 		np, _ := newById[id]
+
+		// do not update already merged PRs
+		if op.State == db.PullMerged {
+			continue
+		}
 
 		submission := np.Submissions[np.LastRoundNumber()]
 
