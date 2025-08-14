@@ -600,6 +600,28 @@ func Make(dbPath string) (*DB, error) {
 		return nil
 	})
 
+	// make registrations.secret nullable for unified registration flow
+	runMigration(db, "make-registrations-secret-nullable", func(tx *sql.Tx) error {
+		// sqlite doesn't support ALTER COLUMN, so we need to recreate the table
+		_, err := tx.Exec(`
+			create table registrations_new (
+				id integer primary key autoincrement,
+				domain text not null unique,
+				did text not null,
+				secret text,
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+				registered text
+			);
+
+			insert into registrations_new (id, domain, did, secret, created, registered)
+			select id, domain, did, secret, created, registered from registrations;
+
+			drop table registrations;
+			alter table registrations_new rename to registrations;
+		`)
+		return err
+	})
+
 	// recreate and add rkey + created columns with default constraint
 	runMigration(db, "rework-collaborators-table", func(tx *sql.Tx) error {
 		// create new table
