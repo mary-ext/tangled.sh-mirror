@@ -147,7 +147,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 	r.Mount("/settings", s.SettingsRouter())
 	r.Mount("/strings", s.StringsRouter(mw))
-	r.Mount("/knots", s.KnotsRouter(mw))
+	r.Mount("/knots", s.KnotsRouter())
 	r.Mount("/spindles", s.SpindlesRouter())
 	r.Mount("/signup", s.SignupRouter())
 	r.Mount("/", s.OAuthRouter())
@@ -195,7 +195,7 @@ func (s *State) SpindlesRouter() http.Handler {
 	return spindles.Router()
 }
 
-func (s *State) KnotsRouter(mw *middleware.Middleware) http.Handler {
+func (s *State) KnotsRouter() http.Handler {
 	logger := log.New("knots")
 
 	knots := &knots.Knots{
@@ -209,7 +209,7 @@ func (s *State) KnotsRouter(mw *middleware.Middleware) http.Handler {
 		Logger:     logger,
 	}
 
-	return knots.Router(mw)
+	return knots.Router()
 }
 
 func (s *State) StringsRouter(mw *middleware.Middleware) http.Handler {

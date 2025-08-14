@@ -14,7 +14,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/spindleverify"
+	"tangled.sh/tangled.sh/core/appview/serververify"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
 )
@@ -475,13 +475,13 @@ func (i *Ingester) ingestSpindle(e *models.Event) error {
 			return err
 		}
 
-		err = spindleverify.RunVerification(context.Background(), instance, did, i.Config.Core.Dev)
+		err = serververify.RunVerification(context.Background(), instance, did, i.Config.Core.Dev)
 		if err != nil {
 			l.Error("failed to add spindle to db", "err", err, "instance", instance)
 			return err
 		}
 
-		_, err = spindleverify.MarkVerified(ddb, i.Enforcer, instance, did)
+		_, err = serververify.MarkSpindleVerified(ddb, i.Enforcer, instance, did)
 		if err != nil {
 			return fmt.Errorf("failed to mark verified: %w", err)
 		}

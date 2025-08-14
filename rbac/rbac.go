@@ -100,6 +100,11 @@ func (e *Enforcer) RemoveSpindle(spindle string) error {
 	return err
 }
 
+func (e *Enforcer) RemoveKnot(knot string) error {
+	_, err := e.E.DeleteDomains(knot)
+	return err
+}
+
 func (e *Enforcer) GetKnotsForUser(did string) ([]string, error) {
 	keepFunc := isNotSpindle
 	stripFunc := unSpindle

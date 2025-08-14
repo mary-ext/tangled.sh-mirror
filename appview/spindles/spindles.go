@@ -15,7 +15,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
-	verify "tangled.sh/tangled.sh/core/appview/spindleverify"
+	"tangled.sh/tangled.sh/core/appview/serververify"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
@@ -227,14 +227,14 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// begin verification
-	err = verify.RunVerification(r.Context(), instance, user.Did, s.Config.Core.Dev)
+	err = serververify.RunVerification(r.Context(), instance, user.Did, s.Config.Core.Dev)
 	if err != nil {
 		l.Error("verification failed", "err", err)
 		s.Pages.HxRefresh(w)
 		return
 	}
 
-	_, err = verify.MarkVerified(s.Db, s.Enforcer, instance, user.Did)
+	_, err = serververify.MarkSpindleVerified(s.Db, s.Enforcer, instance, user.Did)
 	if err != nil {
 		l.Error("failed to mark verified", "err", err)
 		s.Pages.HxRefresh(w)
@@ -400,16 +400,16 @@ func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// begin verification
-	err = verify.RunVerification(r.Context(), instance, user.Did, s.Config.Core.Dev)
+	err = serververify.RunVerification(r.Context(), instance, user.Did, s.Config.Core.Dev)
 	if err != nil {
 		l.Error("verification failed", "err", err)
 
-		if errors.Is(err, verify.FetchError) {
-			s.Pages.Notice(w, noticeId, err.Error())
+		if errors.Is(err, serververify.FetchError) {
+			s.Pages.Notice(w, noticeId, "Failed to verify knot, unable to fetch owner.")
 			return
 		}
 
-		if e, ok := err.(*verify.OwnerMismatch); ok {
+		if e, ok := err.(*serververify.OwnerMismatch); ok {
 			s.Pages.Notice(w, noticeId, e.Error())
 			return
 		}
@@ -418,7 +418,7 @@ func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rowId, err := verify.MarkVerified(s.Db, s.Enforcer, instance, user.Did)
+	rowId, err := serververify.MarkSpindleVerified(s.Db, s.Enforcer, instance, user.Did)
 	if err != nil {
 		l.Error("failed to mark verified", "err", err)
 		s.Pages.Notice(w, noticeId, err.Error())
