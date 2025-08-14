@@ -426,8 +426,11 @@ schema = 3
     version = "v0.3.1"
     hash = "sha256-PAd8M2Z8t6rVRBII+Rg8Bz+QaJIwbW64bfyqsv31kgc="
   [mod."github.com/yuin/goldmark"]
-    version = "v1.4.13"
-    hash = "sha256-GVwFKZY6moIS6I0ZGuio/WtDif+lkZRfqWS6b4AAJyI="
+    version = "v1.4.15"
+    hash = "sha256-MvSOT6dwf5hVYkIg4MnqMpsy5ZtWZ7amAE7Zo9HkEa0="
+  [mod."github.com/yuin/goldmark-highlighting/v2"]
+    version = "v2.0.0-20230729083705-37449abec8cc"
+    hash = "sha256-HpiwU7jIeDUAg2zOpTIiviQir8dpRPuXYh2nqFFccpg="
   [mod."gitlab.com/yawning/secp256k1-voi"]
     version = "v0.0.0-20230925100816-f2616030848b"
     hash = "sha256-X8INg01LTg13iOuwPI3uOhPN7r01sPZtmtwJ2sudjCA="
