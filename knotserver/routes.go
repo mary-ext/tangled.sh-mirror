@@ -3,9 +3,7 @@ package knotserver
 import (
 	"compress/gzip"
 	"context"
-	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1206,58 +1204,6 @@ func (h *Handle) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		l.Error("setting default branch", "error", err.Error())
 		return
 	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *Handle) Init(w http.ResponseWriter, r *http.Request) {
-	l := h.l.With("handler", "Init")
-
-	if h.knotInitialized {
-		writeError(w, "knot already initialized", http.StatusConflict)
-		return
-	}
-
-	data := struct {
-		Did string `json:"did"`
-	}{}
-
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		l.Error("failed to decode request body", "error", err.Error())
-		writeError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if data.Did == "" {
-		l.Error("empty DID in request", "did", data.Did)
-		writeError(w, "did is empty", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.db.AddDid(data.Did); err != nil {
-		l.Error("failed to add DID", "error", err.Error())
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	h.jc.AddDid(data.Did)
-
-	if err := h.e.AddKnotOwner(rbac.ThisServer, data.Did); err != nil {
-		l.Error("adding owner", "error", err.Error())
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := h.fetchAndAddKeys(r.Context(), data.Did); err != nil {
-		l.Error("fetching and adding keys", "error", err.Error())
-		writeError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	close(h.init)
-
-	mac := hmac.New(sha256.New, []byte(h.c.Server.Secret))
-	mac.Write([]byte("ok"))
-	w.Header().Add("X-Signature", hex.EncodeToString(mac.Sum(nil)))
 
 	w.WriteHeader(http.StatusNoContent)
 }
