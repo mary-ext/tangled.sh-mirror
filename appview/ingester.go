@@ -14,7 +14,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/spindleverify"
+	"tangled.sh/tangled.sh/core/appview/serververify"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
 )
@@ -64,6 +64,10 @@ func (i *Ingester) Ingest() processFunc {
 				err = i.ingestSpindleMember(e)
 			case tangled.SpindleNSID:
 				err = i.ingestSpindle(e)
+			case tangled.KnotMemberNSID:
+				err = i.ingestKnotMember(e)
+			case tangled.KnotNSID:
+				err = i.ingestKnot(e)
 			case tangled.StringNSID:
 				err = i.ingestString(e)
 			}
@@ -475,13 +479,13 @@ func (i *Ingester) ingestSpindle(e *models.Event) error {
 			return err
 		}
 
-		err = spindleverify.RunVerification(context.Background(), instance, did, i.Config.Core.Dev)
+		err = serververify.RunVerification(context.Background(), instance, did, i.Config.Core.Dev)
 		if err != nil {
 			l.Error("failed to add spindle to db", "err", err, "instance", instance)
 			return err
 		}
 
-		_, err = spindleverify.MarkVerified(ddb, i.Enforcer, instance, did)
+		_, err = serververify.MarkSpindleVerified(ddb, i.Enforcer, instance, did)
 		if err != nil {
 			return fmt.Errorf("failed to mark verified: %w", err)
 		}
@@ -605,6 +609,159 @@ func (i *Ingester) ingestString(e *models.Event) error {
 		}
 
 		return nil
+	}
+
+	return nil
+}
+
+func (i *Ingester) ingestKnotMember(e *models.Event) error {
+	did := e.Did
+	var err error
+
+	l := i.Logger.With("handler", "ingestKnotMember")
+	l = l.With("nsid", e.Commit.Collection)
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.KnotMember{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			l.Error("invalid record", "err", err)
+			return err
+		}
+
+		// only knot owner can invite to knots
+		ok, err := i.Enforcer.IsKnotInviteAllowed(did, record.Domain)
+		if err != nil || !ok {
+			return fmt.Errorf("failed to enforce permissions: %w", err)
+		}
+
+		memberId, err := i.IdResolver.ResolveIdent(context.Background(), record.Subject)
+		if err != nil {
+			return err
+		}
+
+		if memberId.Handle.IsInvalidHandle() {
+			return err
+		}
+
+		err = i.Enforcer.AddKnotMember(record.Domain, memberId.DID.String())
+		if err != nil {
+			return fmt.Errorf("failed to update ACLs: %w", err)
+		}
+
+		l.Info("added knot member")
+	case models.CommitOperationDelete:
+		// we don't store knot members in a table (like we do for spindle)
+		// and we can't remove this just yet. possibly fixed if we switch
+		// to either:
+		//   1. a knot_members table like with spindle and store the rkey
+		// 	 2. use the knot host as the rkey
+		//
+		// TODO: implement member deletion
+		l.Info("skipping knot member delete", "did", did, "rkey", e.Commit.RKey)
+	}
+
+	return nil
+}
+
+func (i *Ingester) ingestKnot(e *models.Event) error {
+	did := e.Did
+	var err error
+
+	l := i.Logger.With("handler", "ingestKnot")
+	l = l.With("nsid", e.Commit.Collection)
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.Knot{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			l.Error("invalid record", "err", err)
+			return err
+		}
+
+		domain := e.Commit.RKey
+
+		ddb, ok := i.Db.Execer.(*db.DB)
+		if !ok {
+			return fmt.Errorf("failed to index profile record, invalid db cast")
+		}
+
+		err := db.AddKnot(ddb, domain, did)
+		if err != nil {
+			l.Error("failed to add knot to db", "err", err, "domain", domain)
+			return err
+		}
+
+		err = serververify.RunVerification(context.Background(), domain, did, i.Config.Core.Dev)
+		if err != nil {
+			l.Error("failed to verify knot", "err", err, "domain", domain)
+			return err
+		}
+
+		err = serververify.MarkKnotVerified(ddb, i.Enforcer, domain, did)
+		if err != nil {
+			return fmt.Errorf("failed to mark verified: %w", err)
+		}
+
+		return nil
+
+	case models.CommitOperationDelete:
+		domain := e.Commit.RKey
+
+		ddb, ok := i.Db.Execer.(*db.DB)
+		if !ok {
+			return fmt.Errorf("failed to index profile record, invalid db cast")
+		}
+
+		// get record from db first
+		registration, err := db.RegistrationByDomain(ddb, domain)
+		if err != nil {
+			return fmt.Errorf("failed to get registration: %w", err)
+		}
+
+		// only allow deletion by the owner
+		if registration.ByDid != did {
+			return fmt.Errorf("unauthorized deletion attempt")
+		}
+
+		tx, err := ddb.Begin()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			tx.Rollback()
+			i.Enforcer.E.LoadPolicy()
+		}()
+
+		err = db.DeleteKnot(
+			tx,
+			db.FilterEq("did", did),
+			db.FilterEq("domain", domain),
+		)
+		if err != nil {
+			return err
+		}
+
+		if registration.Registered != nil {
+			err = i.Enforcer.RemoveKnot(domain)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return err
+		}
+
+		err = i.Enforcer.E.SavePolicy()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
