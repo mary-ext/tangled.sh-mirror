@@ -27,11 +27,6 @@ type Handle struct {
 	l        *slog.Logger
 	n        *notifier.Notifier
 	resolver *idresolver.Resolver
-
-	// init is a channel that is closed when the knot has been initailized
-	// i.e. when the first user (knot owner) has been added.
-	init            chan struct{}
-	knotInitialized bool
 }
 
 func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger, n *notifier.Notifier) (http.Handler, error) {
@@ -45,7 +40,6 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		jc:       jc,
 		n:        n,
 		resolver: idresolver.DefaultResolver(),
-		init:     make(chan struct{}),
 	}
 
 	err := e.AddKnot(rbac.ThisServer)
@@ -53,30 +47,34 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
 	}
 
+	err = h.configureOwner()
+	if err != nil {
+		return nil, err
+	}
+	h.l.Info("owner set", "did", h.c.Server.Owner)
+
 	err = h.jc.StartJetstream(ctx, h.processMessages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
-	// Check if the knot knows about any Dids;
-	// if it does, it is already initialized and we can repopulate the
-	// Jetstream subscriptions.
-	dids, err := db.GetAllDids()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get all Dids: %w", err)
-	}
+	h.jc.AddDid(h.c.Server.Owner)
 
-	if len(dids) > 0 {
-		h.knotInitialized = true
-		close(h.init)
-		for _, d := range dids {
-			h.jc.AddDid(d)
-		}
+	// check if the knot knows about any dids
+	dids, err := h.db.GetAllDids()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all dids: %w", err)
+	}
+	for _, d := range dids {
+		jc.AddDid(d)
 	}
 
 	r.Get("/", h.Index)
 	r.Get("/capabilities", h.Capabilities)
 	r.Get("/version", h.Version)
+	r.Get("/owner", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(h.c.Server.Owner))
+	})
 	r.Route("/{did}", func(r chi.Router) {
 		// Repo routes
 		r.Route("/{name}", func(r chi.Router) {
@@ -154,9 +152,6 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	// Socket that streams git oplogs
 	r.Get("/events", h.Events)
 
-	// Initialize the knot with an owner and public key.
-	r.With(h.VerifySignature).Post("/init", h.Init)
-
 	// Health check. Used for two-way verification with appview.
 	r.With(h.VerifySignature).Get("/health", h.Health)
 
@@ -210,4 +205,38 @@ func (h *Handle) Version(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprintf(w, "knotserver/%s", version)
+}
+
+func (h *Handle) configureOwner() error {
+	cfgOwner := h.c.Server.Owner
+
+	rbacDomain := "thisserver"
+
+	existing, err := h.e.GetKnotUsersByRole("server:owner", rbacDomain)
+	if err != nil {
+		return err
+	}
+
+	switch len(existing) {
+	case 0:
+		// no owner configured, continue
+	case 1:
+		// find existing owner
+		existingOwner := existing[0]
+
+		// no ownership change, this is okay
+		if existingOwner == h.c.Server.Owner {
+			break
+		}
+
+		// remove existing owner
+		err = h.e.RemoveKnotOwner(rbacDomain, existingOwner)
+		if err != nil {
+			return nil
+		}
+	default:
+		return fmt.Errorf("more than one owner in DB, try deleting %q and starting over", h.c.Server.DBPath)
+	}
+
+	return h.e.AddKnotOwner(rbacDomain, cfgOwner)
 }
