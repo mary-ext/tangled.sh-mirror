@@ -261,6 +261,7 @@ func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
 }
 
 type LoginParams struct {
+	ReturnUrl string
 }
 
 func (p *Pages) Login(w io.Writer, params LoginParams) error {

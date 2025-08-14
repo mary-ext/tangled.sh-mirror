@@ -103,7 +103,7 @@ func (o *OAuth) GetSession(r *http.Request) (*sessioncache.OAuthSession, bool, e
 	if err != nil {
 		return nil, false, fmt.Errorf("error parsing expiry time: %w", err)
 	}
-	if expiry.Sub(time.Now()) <= 5*time.Minute {
+	if time.Until(expiry) <= 5*time.Minute {
 		privateJwk, err := helpers.ParseJWKFromBytes([]byte(session.DpopPrivateJwk))
 		if err != nil {
 			return nil, false, err
@@ -315,7 +315,7 @@ func (o *OAuth) ClientMetadata() ClientMetadata {
 	redirectURIs := makeRedirectURIs(clientURI)
 
 	if o.config.Core.Dev {
-		clientURI = fmt.Sprintf("http://127.0.0.1:3000")
+		clientURI = "http://127.0.0.1:3000"
 		redirectURIs = makeRedirectURIs(clientURI)
 
 		query := url.Values{}

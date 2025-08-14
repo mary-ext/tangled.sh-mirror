@@ -31,6 +31,7 @@ type OAuthRequest struct {
 	PkceVerifier        string
 	DpopAuthserverNonce string
 	DpopPrivateJwk      string
+	ReturnUrl           string
 }
 
 type SessionStore struct {

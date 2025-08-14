@@ -109,7 +109,10 @@ func (o *OAuthHandler) jwks(w http.ResponseWriter, r *http.Request) {
 func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		o.pages.Login(w, pages.LoginParams{})
+		returnURL := r.URL.Query().Get("return_url")
+		o.pages.Login(w, pages.LoginParams{
+			ReturnUrl: returnURL,
+		})
 	case http.MethodPost:
 		handle := r.FormValue("handle")
 
@@ -194,6 +197,7 @@ func (o *OAuthHandler) login(w http.ResponseWriter, r *http.Request) {
 			DpopAuthserverNonce: parResp.DpopAuthserverNonce,
 			DpopPrivateJwk:      string(dpopKeyJson),
 			State:               parResp.State,
+			ReturnUrl:           r.FormValue("return_url"),
 		})
 		if err != nil {
 			log.Println("failed to save oauth request:", err)
@@ -311,7 +315,12 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	returnUrl := oauthRequest.ReturnUrl
+	if returnUrl == "" {
+		returnUrl = "/"
+	}
+
+	http.Redirect(w, r, returnUrl, http.StatusFound)
 }
 
 func (o *OAuthHandler) logout(w http.ResponseWriter, r *http.Request) {
