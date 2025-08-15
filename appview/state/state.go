@@ -28,10 +28,10 @@ import (
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/jetstream"
-	"tangled.sh/tangled.sh/core/knotclient"
 	tlog "tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
+	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
 )
 
 type State struct {
@@ -329,17 +329,17 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		existingRepo, err := db.GetRepo(s.db, user.Did, repoName)
 		if err == nil && existingRepo != nil {
-			s.pages.Notice(w, "repo", fmt.Sprintf("A repo by this name already exists on %s", existingRepo.Knot))
+			s.pages.Notice(w, "repo", fmt.Sprintf("You already have a repository by this name on %s", existingRepo.Knot))
 			return
 		}
 
-		secret, err := db.GetRegistrationKey(s.db, domain)
-		if err != nil {
-			s.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", domain))
-			return
-		}
+		client, err := s.oauth.ServiceClient(
+			r,
+			oauth.WithService(domain),
+			oauth.WithLxm(tangled.RepoCreateNSID),
+			oauth.WithDev(s.config.Core.Dev),
+		)
 
-		client, err := knotclient.NewSignedClient(domain, secret, s.config.Core.Dev)
 		if err != nil {
 			s.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return
@@ -394,20 +394,27 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
-		resp, err := client.NewRepo(user.Did, repoName, defaultBranch)
-		if err != nil {
-			s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
-			return
-		}
+		err = tangled.RepoCreate(
+			r.Context(),
+			client,
+			&tangled.RepoCreate_Input{
+				Default_branch: &defaultBranch,
+				Did:            user.Did,
+				Name:           repoName,
+			},
+		)
 
-		switch resp.StatusCode {
-		case http.StatusConflict:
-			s.pages.Notice(w, "repo", "A repository with that name already exists.")
+		if err != nil {
+			xe, err := xrpcerr.Unmarshal(err.Error())
+			if err != nil {
+				log.Println(err)
+				s.pages.Notice(w, "repo", "Failed to create repository on knot server.")
+				return
+			}
+
+			log.Println(xe.Error())
+			s.pages.Notice(w, "repo", fmt.Sprintf("Failed to create repository on knot server: %s.", xe.Message))
 			return
-		case http.StatusInternalServerError:
-			s.pages.Notice(w, "repo", "Failed to create repository on knot. Try again later.")
-		case http.StatusNoContent:
-			// continue
 		}
 
 		repo.AtUri = atresp.Uri

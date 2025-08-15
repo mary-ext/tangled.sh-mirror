@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/oauth"
@@ -118,7 +119,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	var forkInfo *types.ForkInfo
 	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
-		forkInfo, err = getForkInfo(repoInfo, rp, f, user, signedClient)
+		forkInfo, err = getForkInfo(r, repoInfo, rp, f, user, signedClient)
 		if err != nil {
 			log.Printf("Failed to fetch fork information: %v", err)
 			return
@@ -231,6 +232,7 @@ func (rp *Repo) getLanguageInfo(
 }
 
 func getForkInfo(
+	r *http.Request,
 	repoInfo repoinfo.RepoInfo,
 	rp *Repo,
 	f *reporesolver.ResolvedRepo,
@@ -270,10 +272,33 @@ func getForkInfo(
 		return &forkInfo, nil
 	}
 
-	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)
-	if err != nil || newHiddenRefResp.StatusCode != http.StatusNoContent {
-		log.Printf("failed to update tracking branch: %s", err)
+	client, err := rp.oauth.ServiceClient(
+		r,
+		oauth.WithService(f.Knot),
+		oauth.WithLxm(tangled.RepoHiddenRefNSID),
+		oauth.WithDev(rp.config.Core.Dev),
+	)
+	if err != nil {
+		log.Printf("failed to connect to knot server: %v", err)
 		return nil, err
+	}
+
+	resp, err := tangled.RepoHiddenRef(
+		r.Context(),
+		client,
+		&tangled.RepoHiddenRef_Input{
+			ForkRef:   f.Ref,
+			RemoteRef: f.Ref,
+			Repo:      string(f.RepoAt),
+		},
+	)
+	if err != nil || !resp.Success {
+		if err != nil {
+			log.Printf("failed to update tracking branch: %s", err)
+		} else {
+			log.Printf("failed to update tracking branch: success=false")
+		}
+		return nil, fmt.Errorf("failed to update tracking branch")
 	}
 
 	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)

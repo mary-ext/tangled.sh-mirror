@@ -2,10 +2,8 @@ package pulls
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"sort"
@@ -25,6 +23,7 @@ import (
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/tid"
 	"tangled.sh/tangled.sh/core/types"
+	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -96,7 +95,7 @@ func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		mergeCheckResponse := s.mergeCheck(f, pull, stack)
+		mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
 		resubmitResult := pages.Unknown
 		if user.Did == pull.OwnerDid {
 			resubmitResult = s.resubmitCheck(f, pull, stack)
@@ -161,7 +160,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	mergeCheckResponse := s.mergeCheck(f, pull, stack)
+	mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
 	resubmitResult := pages.Unknown
 	if user != nil && user.Did == pull.OwnerDid {
 		resubmitResult = s.resubmitCheck(f, pull, stack)
@@ -226,24 +225,21 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Pulls) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) types.MergeCheckResponse {
+func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) types.MergeCheckResponse {
 	if pull.State == db.PullMerged {
 		return types.MergeCheckResponse{}
 	}
 
-	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	client, err := s.oauth.ServiceClient(
+		r,
+		oauth.WithService(f.Knot),
+		oauth.WithLxm(tangled.RepoMergeCheckNSID),
+		oauth.WithDev(s.config.Core.Dev),
+	)
 	if err != nil {
-		log.Printf("failed to get registration key: %v", err)
+		log.Printf("failed to connect to knot server: %v", err)
 		return types.MergeCheckResponse{
-			Error: "failed to check merge status: this knot is unregistered",
-		}
-	}
-
-	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to setup signed client for %s; ignoring: %v", f.Knot, err)
-		return types.MergeCheckResponse{
-			Error: "failed to check merge status",
+			Error: "failed to check merge status: could not connect to knot server",
 		}
 	}
 
@@ -257,43 +253,53 @@ func (s *Pulls) mergeCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db
 		patch = mergeable.CombinedPatch()
 	}
 
-	resp, err := ksClient.MergeCheck([]byte(patch), f.OwnerDid(), f.RepoName, pull.TargetBranch)
+	resp, err := tangled.RepoMergeCheck(
+		r.Context(),
+		client,
+		&tangled.RepoMergeCheck_Input{
+			Did:    f.OwnerDid(),
+			Name:   f.RepoName,
+			Branch: pull.TargetBranch,
+			Patch:  patch,
+		},
+	)
 	if err != nil {
-		log.Println("failed to check for mergeability:", err)
-		return types.MergeCheckResponse{
-			Error: "failed to check merge status",
+		xe, parseErr := xrpcerr.Unmarshal(err.Error())
+		if parseErr != nil {
+			log.Printf("failed to check for mergeability: %v", err)
+			return types.MergeCheckResponse{
+				Error: "failed to check merge status",
+			}
 		}
-	}
-	switch resp.StatusCode {
-	case 404:
+		log.Printf("failed to check for mergeability: %s", xe.Error())
 		return types.MergeCheckResponse{
-			Error: "failed to check merge status: this knot does not support PRs",
-		}
-	case 400:
-		return types.MergeCheckResponse{
-			Error: "failed to check merge status: does this knot support PRs?",
+			Error: fmt.Sprintf("failed to check merge status: %s", xe.Message),
 		}
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("failed to read merge check response body")
-		return types.MergeCheckResponse{
-			Error: "failed to check merge status: knot is not speaking the right language",
-		}
-	}
-	defer resp.Body.Close()
-
-	var mergeCheckResponse types.MergeCheckResponse
-	err = json.Unmarshal(respBody, &mergeCheckResponse)
-	if err != nil {
-		log.Println("failed to unmarshal merge check response", err)
-		return types.MergeCheckResponse{
-			Error: "failed to check merge status: knot is not speaking the right language",
+	// convert xrpc response to internal types
+	conflicts := make([]types.ConflictInfo, len(resp.Conflicts))
+	for i, conflict := range resp.Conflicts {
+		conflicts[i] = types.ConflictInfo{
+			Filename: conflict.Filename,
+			Reason:   conflict.Reason,
 		}
 	}
 
-	return mergeCheckResponse
+	result := types.MergeCheckResponse{
+		IsConflicted: resp.Is_conflicted,
+		Conflicts:    conflicts,
+	}
+
+	if resp.Message != nil {
+		result.Message = *resp.Message
+	}
+
+	if resp.Error != nil {
+		result.Error = *resp.Error
+	}
+
+	return result
 }
 
 func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
@@ -923,16 +929,14 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 		return
 	}
 
-	secret, err := db.GetRegistrationKey(s.db, fork.Knot)
+	client, err := s.oauth.ServiceClient(
+		r,
+		oauth.WithService(fork.Knot),
+		oauth.WithLxm(tangled.RepoHiddenRefNSID),
+		oauth.WithDev(s.config.Core.Dev),
+	)
 	if err != nil {
-		log.Println("failed to fetch registration key:", err)
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-		return
-	}
-
-	sc, err := knotclient.NewSignedClient(fork.Knot, secret, s.config.Core.Dev)
-	if err != nil {
-		log.Println("failed to create signed client:", err)
+		log.Printf("failed to connect to knot server: %v", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
@@ -944,17 +948,37 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 		return
 	}
 
-	resp, err := sc.NewHiddenRef(user.Did, fork.Name, sourceBranch, targetBranch)
+	resp, err := tangled.RepoHiddenRef(
+		r.Context(),
+		client,
+		&tangled.RepoHiddenRef_Input{
+			ForkRef:   sourceBranch,
+			RemoteRef: targetBranch,
+			Repo:      fork.AtUri,
+		},
+	)
 	if err != nil {
-		log.Println("failed to create hidden ref:", err, resp.StatusCode)
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		xe, parseErr := xrpcerr.Unmarshal(err.Error())
+		if parseErr != nil {
+			log.Printf("failed to create hidden ref: %v", err)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		} else {
+			log.Printf("failed to create hidden ref: %s", xe.Error())
+			if xe.Tag == "AccessControl" {
+				s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
+			} else {
+				s.pages.Notice(w, "pull", fmt.Sprintf("Failed to create pull request: %s", xe.Message))
+			}
+		}
 		return
 	}
 
-	switch resp.StatusCode {
-	case 404:
-	case 400:
-		s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
+	if !resp.Success {
+		errorMsg := "Failed to create pull request"
+		if resp.Error != nil {
+			errorMsg = fmt.Sprintf("Failed to create pull request: %s", *resp.Error)
+		}
+		s.pages.Notice(w, "pull", errorMsg)
 		return
 	}
 
@@ -1524,24 +1548,33 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secret, err := db.GetRegistrationKey(s.db, forkRepo.Knot)
-	if err != nil {
-		log.Printf("failed to get registration key for %s: %s", forkRepo.Knot, err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-
 	// update the hidden tracking branch to latest
-	signedClient, err := knotclient.NewSignedClient(forkRepo.Knot, secret, s.config.Core.Dev)
+	client, err := s.oauth.ServiceClient(
+		r,
+		oauth.WithService(forkRepo.Knot),
+		oauth.WithLxm(tangled.RepoHiddenRefNSID),
+		oauth.WithDev(s.config.Core.Dev),
+	)
 	if err != nil {
-		log.Printf("failed to create signed client for %s: %s", forkRepo.Knot, err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		log.Printf("failed to connect to knot server: %v", err)
 		return
 	}
 
-	resp, err := signedClient.NewHiddenRef(forkRepo.Did, forkRepo.Name, pull.PullSource.Branch, pull.TargetBranch)
-	if err != nil || resp.StatusCode != http.StatusNoContent {
-		log.Printf("failed to update tracking branch: %s", err)
+	resp, err := tangled.RepoHiddenRef(
+		r.Context(),
+		client,
+		&tangled.RepoHiddenRef_Input{
+			ForkRef:   pull.PullSource.Branch,
+			RemoteRef: pull.TargetBranch,
+			Repo:      forkRepo.AtUri,
+		},
+	)
+	if err != nil || !resp.Success {
+		if err != nil {
+			log.Printf("failed to update tracking branch: %s", err)
+		} else {
+			log.Printf("failed to update tracking branch: success=false")
+		}
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
 		return
 	}
@@ -1958,9 +1991,14 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 
 	patch := pullsToMerge.CombinedPatch()
 
-	secret, err := db.GetRegistrationKey(s.db, f.Knot)
+	client, err := s.oauth.ServiceClient(
+		r,
+		oauth.WithService(f.Knot),
+		oauth.WithLxm(tangled.RepoMergeNSID),
+		oauth.WithDev(s.config.Core.Dev),
+	)
 	if err != nil {
-		log.Printf("no registration key found for domain %s: %s\n", f.Knot, err)
+		log.Printf("failed to connect to knot server: %v", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
 		return
 	}
@@ -1977,24 +2015,34 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 		log.Printf("failed to get primary email: %s", err)
 	}
 
-	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, s.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
-		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
-		return
+	authorName := ident.Handle.String()
+	mergeInput := &tangled.RepoMerge_Input{
+		Did:           f.OwnerDid(),
+		Name:          f.RepoName,
+		Branch:        pull.TargetBranch,
+		Patch:         patch,
+		CommitMessage: &pull.Title,
+		AuthorName:    &authorName,
 	}
 
-	// Merge the pull request
-	resp, err := ksClient.Merge([]byte(patch), f.OwnerDid(), f.RepoName, pull.TargetBranch, pull.Title, pull.Body, ident.Handle.String(), email.Address)
-	if err != nil {
-		log.Printf("failed to merge pull request: %s", err)
-		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
-		return
+	if pull.Body != "" {
+		mergeInput.CommitBody = &pull.Body
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("knotserver returned non-OK status code for merge: %d", resp.StatusCode)
-		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+	if email.Address != "" {
+		mergeInput.AuthorEmail = &email.Address
+	}
+
+	err = tangled.RepoMerge(r.Context(), client, mergeInput)
+	if err != nil {
+		xe, parseErr := xrpcerr.Unmarshal(err.Error())
+		if parseErr != nil {
+			log.Printf("failed to merge pull request: %v", err)
+			s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
+		} else {
+			log.Printf("failed to merge pull request: %s", xe.Error())
+			s.pages.Notice(w, "pull-merge-error", fmt.Sprintf("Failed to merge pull request: %s", xe.Message))
+		}
 		return
 	}
 
