@@ -177,6 +177,8 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 		switch a.rctx.RendererType {
 		case RendererTypeRepoMarkdown:
 			switch n := n.(type) {
+			case *ast.Heading:
+				a.rctx.anchorHeadingTransformer(n)
 			case *ast.Link:
 				a.rctx.relativeLinkTransformer(n)
 			case *ast.Image:
@@ -185,6 +187,8 @@ func (a *MarkdownTransformer) Transform(node *ast.Document, reader text.Reader, 
 			}
 		case RendererTypeDefault:
 			switch n := n.(type) {
+			case *ast.Heading:
+				a.rctx.anchorHeadingTransformer(n)
 			case *ast.Image:
 				a.rctx.imageFromKnotAstTransformer(n)
 				a.rctx.camoImageLinkAstTransformer(n)
@@ -199,7 +203,7 @@ func (rctx *RenderContext) relativeLinkTransformer(link *ast.Link) {
 
 	dst := string(link.Destination)
 
-	if isAbsoluteUrl(dst) {
+	if isAbsoluteUrl(dst) || isFragment(dst) || isMail(dst) {
 		return
 	}
 
@@ -240,6 +244,32 @@ func (rctx *RenderContext) imageFromKnotAstTransformer(img *ast.Image) {
 	img.Destination = []byte(rctx.imageFromKnotTransformer(dst))
 }
 
+func (rctx *RenderContext) anchorHeadingTransformer(h *ast.Heading) {
+	idGeneric, exists := h.AttributeString("id")
+	if !exists {
+		return // no id, nothing to do
+	}
+	id, ok := idGeneric.([]byte)
+	if !ok {
+		return
+	}
+
+	// create anchor link
+	anchor := ast.NewLink()
+	anchor.Destination = fmt.Appendf(nil, "#%s", string(id))
+	anchor.SetAttribute([]byte("class"), []byte("anchor"))
+
+	// create icon text
+	iconText := ast.NewString([]byte("#"))
+	anchor.AppendChild(anchor, iconText)
+
+	// set class on heading
+	h.SetAttribute([]byte("class"), []byte("heading"))
+
+	// append anchor to heading
+	h.AppendChild(h, anchor)
+}
+
 // actualPath decides when to join the file path with the
 // current repository directory (essentially only when the link
 // destination is relative. if it's absolute then we assume the
@@ -258,4 +288,12 @@ func isAbsoluteUrl(link string) bool {
 		return false
 	}
 	return parsed.IsAbs()
+}
+
+func isFragment(link string) bool {
+	return strings.HasPrefix(link, "#")
+}
+
+func isMail(link string) bool {
+	return strings.HasPrefix(link, "mailto:")
 }
