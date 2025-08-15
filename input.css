@@ -136,6 +136,8 @@
 
         .prose li:has(input) {
           list-style: none;
+        .prose a.footnote-backref {
+          @apply no-underline;
         }
 
         .prose li {

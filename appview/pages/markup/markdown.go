@@ -56,6 +56,9 @@ func (rctx *RenderContext) RenderMarkdown(source string) string {
 				),
 				highlighting.WithCustomStyle(styles.Get("catppuccin-latte")),
 			),
+			extension.NewFootnote(
+				extension.WithFootnoteIDPrefix([]byte("footnote")),
+			),
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
