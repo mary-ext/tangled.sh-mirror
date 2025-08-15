@@ -134,8 +134,30 @@
           disabled:before:bg-green-400 dark:disabled:before:bg-green-600;
         }
 
+        .prose hr {
+          @apply my-2;
+        }
+
         .prose li:has(input) {
-          list-style: none;
+          @apply list-none;
+        }
+
+        .prose ul:has(input) {
+          @apply pl-2;
+        }
+
+        .prose .heading .anchor {
+          @apply no-underline mx-2 opacity-0;
+        }
+
+        .prose .heading:hover .anchor {
+          @apply opacity-70;
+        }
+
+        .prose .heading .anchor:hover {
+          @apply opacity-70;
+        }
+
         .prose a.footnote-backref {
           @apply no-underline;
         }
