@@ -13,16 +13,24 @@
     @font-face {
         font-family: "InterVariable";
         src: url("/static/fonts/InterVariable-Italic.woff2") format("woff2");
-        font-weight: 400;
+        font-weight: normal;
         font-style: italic;
         font-display: swap;
     }
 
     @font-face {
         font-family: "InterVariable";
-        src: url("/static/fonts/InterVariable.woff2") format("woff2");
-        font-weight: 600;
+        src: url("/static/fonts/InterDisplay-Bold.woff2") format("woff2");
+        font-weight: bold;
         font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "InterVariable";
+        src: url("/static/fonts/InterDisplay-BoldItalic.woff2") format("woff2");
+        font-weight: bold;
+        font-style: italic;
         font-display: swap;
     }
 
@@ -30,6 +38,30 @@
         font-family: "IBMPlexMono";
         src: url("/static/fonts/IBMPlexMono-Regular.woff2") format("woff2");
         font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "IBMPlexMono";
+        src: url("/static/fonts/IBMPlexMono-Italic.woff2") format("woff2");
+        font-weight: normal;
+        font-style: italic;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "IBMPlexMono";
+        src: url("/static/fonts/IBMPlexMono-Bold.woff2") format("woff2");
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: "IBMPlexMono";
+        src: url("/static/fonts/IBMPlexMono-BoldItalic.woff2") format("woff2");
+        font-weight: bold;
         font-style: italic;
         font-display: swap;
     }
