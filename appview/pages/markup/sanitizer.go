@@ -64,6 +64,7 @@ func defaultPolicy() *bluemonday.Policy {
 
 	// for code blocks
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`chroma`)).OnElements("pre")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`anchor|footnote-ref|footnote-backref`)).OnElements("a")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(strings.Join(slices.Collect(maps.Values(chroma.StandardTypes)), "|"))).OnElements("span")
 
 	// centering content
