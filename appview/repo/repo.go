@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/config"
@@ -33,14 +35,13 @@ import (
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
 	"tangled.sh/tangled.sh/core/types"
+	"tangled.sh/tangled.sh/core/xrpc/serviceauth"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 
-	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
 type Repo struct {
@@ -54,6 +55,7 @@ type Repo struct {
 	enforcer      *rbac.Enforcer
 	notifier      notify.Notifier
 	logger        *slog.Logger
+	serviceAuth   *serviceauth.ServiceAuth
 }
 
 func New(
@@ -960,26 +962,33 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("removed repo record ", f.RepoAt().String())
 
-	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
+	client, err := rp.oauth.ServiceClient(
+		r,
+		oauth.WithService(f.Knot),
+		oauth.WithLxm(tangled.RepoDeleteNSID),
+		oauth.WithDev(rp.config.Core.Dev),
+	)
 	if err != nil {
-		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
+		log.Println("failed to connect to knot server:", err)
 		return
 	}
 
-	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
+	err = tangled.RepoDelete(
+		r.Context(),
+		client,
+		&tangled.RepoDelete_Input{
+			Did:  f.OwnerDid(),
+			Name: f.Name,
+		},
+	)
 	if err != nil {
-		log.Println("failed to create client to ", f.Knot)
-		return
-	}
-
-	ksResp, err := ksClient.RemoveRepo(f.OwnerDid(), f.Name)
-	if err != nil {
-		log.Printf("failed to make request to %s: %s", f.Knot, err)
-		return
-	}
-
-	if ksResp.StatusCode != http.StatusNoContent {
-		log.Println("failed to remove repo from knot, continuing anyway ", f.Knot)
+		xe, parseErr := xrpcerr.Unmarshal(err.Error())
+		if parseErr != nil {
+			log.Printf("failed to delete repo from knot %s: %s", f.Knot, err)
+		} else {
+			log.Printf("failed to delete repo from knot %s: %s", f.Knot, xe.Error())
+		}
+		// Continue anyway since we want to clean up local state
 	} else {
 		log.Println("removed repo from knot ", f.Knot)
 	}
@@ -1055,26 +1064,29 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
+	client, err := rp.oauth.ServiceClient(
+		r,
+		oauth.WithService(f.Knot),
+		oauth.WithLxm(tangled.RepoSetDefaultBranchNSID),
+		oauth.WithDev(rp.config.Core.Dev),
+	)
 	if err != nil {
-		log.Printf("no key found for domain %s: %s\n", f.Knot, err)
+		log.Println("failed to connect to knot server:", err)
+		rp.pages.Notice(w, noticeId, "Failed to connect to knot server.")
 		return
 	}
 
-	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
-	if err != nil {
-		log.Println("failed to create client to ", f.Knot)
-		return
-	}
-
-	ksResp, err := ksClient.SetDefaultBranch(f.OwnerDid(), f.Name, branch)
-	if err != nil {
-		log.Printf("failed to make request to %s: %s", f.Knot, err)
-		return
-	}
-
-	if ksResp.StatusCode != http.StatusNoContent {
-		rp.pages.Notice(w, "repo-settings", "Failed to set default branch. Try again later.")
+	xe := tangled.RepoSetDefaultBranch(
+		r.Context(),
+		client,
+		&tangled.RepoSetDefaultBranch_Input{
+			Repo:          f.RepoAt().String(),
+			DefaultBranch: branch,
+		},
+	)
+	if err := xrpcclient.HandleXrpcErr(xe); err != nil {
+		log.Println("xrpc failed", "err", xe)
+		rp.pages.Notice(w, noticeId, err.Error())
 		return
 	}
 
@@ -1373,30 +1385,42 @@ func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
-		secret, err := db.GetRegistrationKey(rp.db, f.Knot)
+		client, err := rp.oauth.ServiceClient(
+			r,
+			oauth.WithService(f.Knot),
+			oauth.WithLxm(tangled.RepoForkSyncNSID),
+			oauth.WithDev(rp.config.Core.Dev),
+		)
 		if err != nil {
-			rp.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", f.Knot))
+			rp.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return
 		}
 
-		client, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
-		if err != nil {
-			rp.pages.Notice(w, "repo", "Failed to reach knot server.")
+		repoInfo := f.RepoInfo(user)
+		if repoInfo.Source == nil {
+			rp.pages.Notice(w, "repo", "This repository is not a fork.")
 			return
 		}
 
-		var uri string
-		if rp.config.Core.Dev {
-			uri = "http"
-		} else {
-			uri = "https"
-		}
-		forkName := fmt.Sprintf("%s", f.Name)
-		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.Repo.Name)
-
-		_, err = client.SyncRepoFork(user.Did, forkSourceUrl, forkName, ref)
+		err = tangled.RepoForkSync(
+			r.Context(),
+			client,
+			&tangled.RepoForkSync_Input{
+				Did:    user.Did,
+				Name:   f.Name,
+				Source: repoInfo.Source.RepoAt().String(),
+				Branch: ref,
+			},
+		)
 		if err != nil {
-			rp.pages.Notice(w, "repo", "Failed to sync repository fork.")
+			xe, parseErr := xrpcerr.Unmarshal(err.Error())
+			if parseErr != nil {
+				log.Printf("failed to sync repository fork: %s", err)
+				rp.pages.Notice(w, "repo", "Failed to sync repository fork.")
+			} else {
+				log.Printf("failed to sync repository fork: %s", xe.Error())
+				rp.pages.Notice(w, "repo", fmt.Sprintf("Failed to sync repository fork: %s", xe.Message))
+			}
 			return
 		}
 
@@ -1459,15 +1483,16 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			// repo with this name already exists, append random string
 			forkName = fmt.Sprintf("%s-%s", forkName, randomString(3))
 		}
-		secret, err := db.GetRegistrationKey(rp.db, knot)
-		if err != nil {
-			rp.pages.Notice(w, "repo", fmt.Sprintf("No registration key found for knot %s.", knot))
-			return
-		}
+		client, err := rp.oauth.ServiceClient(
+			r,
+			oauth.WithService(knot),
+			oauth.WithLxm(tangled.RepoForkNSID),
+			oauth.WithDev(rp.config.Core.Dev),
+		)
 
-		client, err := knotclient.NewSignedClient(knot, secret, rp.config.Core.Dev)
 		if err != nil {
-			rp.pages.Notice(w, "repo", "Failed to reach knot server.")
+			log.Printf("error creating client for knot server: %v", err)
+			rp.pages.Notice(w, "repo", "Failed to connect to knot server.")
 			return
 		}
 
@@ -1503,20 +1528,27 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
-		resp, err := client.ForkRepo(user.Did, forkSourceUrl, forkName)
-		if err != nil {
-			rp.pages.Notice(w, "repo", "Failed to create repository on knot server.")
-			return
-		}
+		err = tangled.RepoFork(
+			r.Context(),
+			client,
+			&tangled.RepoFork_Input{
+				Did:    user.Did,
+				Name:   &forkName,
+				Source: forkSourceUrl,
+			},
+		)
 
-		switch resp.StatusCode {
-		case http.StatusConflict:
-			rp.pages.Notice(w, "repo", "A repository with that name already exists.")
+		if err != nil {
+			xe, err := xrpcerr.Unmarshal(err.Error())
+			if err != nil {
+				log.Println(err)
+				rp.pages.Notice(w, "repo", "Failed to create repository on knot server.")
+				return
+			}
+
+			log.Println(xe.Error())
+			rp.pages.Notice(w, "repo", fmt.Sprintf("Failed to create repository on knot server: %s.", xe.Message))
 			return
-		case http.StatusInternalServerError:
-			rp.pages.Notice(w, "repo", "Failed to create repository on knot. Try again later.")
-		case http.StatusNoContent:
-			// continue
 		}
 
 		xrpcClient, err := rp.oauth.AuthorizedClient(r)
