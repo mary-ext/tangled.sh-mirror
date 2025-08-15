@@ -157,6 +157,19 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	return state, nil
 }
 
+func (s *State) Favicon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=31536000") // one year
+	w.Header().Set("ETag", `"favicon-svg-v1"`)
+
+	if match := r.Header.Get("If-None-Match"); match == `"favicon-svg-v1"` {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	s.pages.Favicon(w)
+}
+
 func (s *State) TermsOfService(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	s.pages.TermsOfService(w, pages.TermsOfServiceParams{

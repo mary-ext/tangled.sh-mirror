@@ -32,6 +32,9 @@ func (s *State) Router() http.Handler {
 		s.pages,
 	)
 
+	router.Get("/favicon.svg", s.Favicon)
+	router.Get("/favicon.ico", s.Favicon)
+
 	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		pat := chi.URLParam(r, "*")
 		if strings.HasPrefix(pat, "did:") || strings.HasPrefix(pat, "@") {

@@ -260,6 +260,10 @@ func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
 	return p.executeOrReload(name, w, "layouts/repobase", params)
 }
 
+func (p *Pages) Favicon(w io.Writer) error {
+	return p.executePlain("favicon", w, nil)
+}
+
 type LoginParams struct {
 }
 
