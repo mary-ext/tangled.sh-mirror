@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -20,6 +21,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/idresolver"
@@ -639,6 +641,16 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 
 		if title == "" || body == "" {
 			rp.pages.Notice(w, "issues", "Title and body are required")
+			return
+		}
+
+		sanitizer := markup.NewSanitizer()
+		if st := strings.TrimSpace(sanitizer.SanitizeDescription(title)); st == "" {
+			rp.pages.Notice(w, "issues", "Title is empty after HTML sanitization")
+			return
+		}
+		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(body)); sb == "" {
+			rp.pages.Notice(w, "issues", "Body is empty after HTML sanitization")
 			return
 		}
 

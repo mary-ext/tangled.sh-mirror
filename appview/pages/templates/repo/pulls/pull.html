@@ -122,7 +122,7 @@
                    {{ end }}
                  </div>
                  <div class="flex items-center">
-                   <span>{{ .Title }}</span>
+                   <span>{{ .Title | description }}</span>
                    {{ if gt (len .Body) 0 }}
                    <button
                        class="py-1/2 px-1 mx-2 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
