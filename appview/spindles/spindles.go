@@ -442,7 +442,7 @@ func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("HX-Reswap", "outerHTML")
-	s.Pages.SpindleListing(w, pages.SpindleListingParams{verifiedSpindle[0]})
+	s.Pages.SpindleListing(w, pages.SpindleListingParams{Spindle: verifiedSpindle[0]})
 }
 
 func (s *Spindles) addMember(w http.ResponseWriter, r *http.Request) {

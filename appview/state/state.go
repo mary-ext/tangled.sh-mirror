@@ -81,7 +81,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 
 	repoResolver := reporesolver.New(config, enforcer, res, d)
 
-	wrapper := db.DbWrapper{d}
+	wrapper := db.DbWrapper{Execer: d}
 	jc, err := jetstream.NewJetstreamClient(
 		config.Jetstream.Endpoint,
 		"appview",
