@@ -60,7 +60,7 @@
             <a
               href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}"
               class="dark:text-white">
-              {{ .Title }}
+              {{ .Title | description }}
               <span class="text-gray-500 dark:text-gray-400">
                 #{{ .PullId }}
               </span>

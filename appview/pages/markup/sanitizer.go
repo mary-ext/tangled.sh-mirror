@@ -11,12 +11,14 @@ import (
 )
 
 type Sanitizer struct {
-	defaultPolicy *bluemonday.Policy
+	defaultPolicy     *bluemonday.Policy
+	descriptionPolicy *bluemonday.Policy
 }
 
 func NewSanitizer() Sanitizer {
 	return Sanitizer{
-		defaultPolicy: defaultPolicy(),
+		defaultPolicy:     defaultPolicy(),
+		descriptionPolicy: descriptionPolicy(),
 	}
 }
 
@@ -87,6 +89,22 @@ func defaultPolicy() *bluemonday.Policy {
 		"margin-top",
 		"margin-bottom",
 	)
+
+	return policy
+}
+
+func descriptionPolicy() *bluemonday.Policy {
+	policy := bluemonday.NewPolicy()
+	policy.AllowStandardURLs()
+
+	// allow italics and bold.
+	policy.AllowElements("i", "b", "em", "strong")
+
+	// allow code.
+	policy.AllowElements("code")
+
+	// allow links
+	policy.AllowAttrs("href", "target", "rel").OnElements("a")
 
 	return policy
 }

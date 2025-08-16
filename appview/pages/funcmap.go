@@ -19,7 +19,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/go-enry/go-enry/v2"
-	"github.com/microcosm-cc/bluemonday"
 	"tangled.sh/tangled.sh/core/appview/filetree"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 )
@@ -207,10 +206,17 @@ func (p *Pages) funcMap() template.FuncMap {
 			}
 			return v.Slice(0, min(n, v.Len())).Interface()
 		},
-
 		"markdown": func(text string) template.HTML {
-			rctx := &markup.RenderContext{RendererType: markup.RendererTypeDefault}
-			return template.HTML(bluemonday.UGCPolicy().Sanitize(rctx.RenderMarkdown(text)))
+			p.rctx.RendererType = markup.RendererTypeDefault
+			htmlString := p.rctx.RenderMarkdown(text)
+			sanitized := p.rctx.SanitizeDefault(htmlString)
+			return template.HTML(sanitized)
+		},
+		"description": func(text string) template.HTML {
+			p.rctx.RendererType = markup.RendererTypeDefault
+			htmlString := p.rctx.RenderMarkdown(text)
+			sanitized := p.rctx.SanitizeDescription(htmlString)
+			return template.HTML(sanitized)
 		},
 		"isNil": func(t any) bool {
 			// returns false for other "zero" values

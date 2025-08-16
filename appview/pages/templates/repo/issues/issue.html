@@ -13,7 +13,7 @@
 {{ define "repoContent" }}
   <header class="pb-4">
     <h1 class="text-2xl">
-      {{ .Issue.Title }}
+      {{ .Issue.Title | description }}
       <span class="text-gray-500 dark:text-gray-400">
         #{{ .Issue.IssueId }}
       </span>

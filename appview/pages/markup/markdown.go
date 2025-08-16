@@ -164,6 +164,10 @@ func (rctx *RenderContext) SanitizeDefault(html string) string {
 	return rctx.Sanitizer.defaultPolicy.Sanitize(html)
 }
 
+func (rctx *RenderContext) SanitizeDescription(html string) string {
+	return rctx.Sanitizer.descriptionPolicy.Sanitize(html)
+}
+
 type MarkdownTransformer struct {
 	rctx *RenderContext
 }
