@@ -206,11 +206,16 @@ func (p *Pages) funcMap() template.FuncMap {
 			}
 			return v.Slice(0, min(n, v.Len())).Interface()
 		},
-
 		"markdown": func(text string) template.HTML {
 			p.rctx.RendererType = markup.RendererTypeDefault
 			htmlString := p.rctx.RenderMarkdown(text)
 			sanitized := p.rctx.SanitizeDefault(htmlString)
+			return template.HTML(sanitized)
+		},
+		"description": func(text string) template.HTML {
+			p.rctx.RendererType = markup.RendererTypeDefault
+			htmlString := p.rctx.RenderMarkdown(text)
+			sanitized := p.rctx.SanitizeDescription(htmlString)
 			return template.HTML(sanitized)
 		},
 		"isNil": func(t any) bool {

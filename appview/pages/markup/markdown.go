@@ -161,7 +161,11 @@ func visitNode(ctx *RenderContext, node *htmlparse.Node) {
 }
 
 func (rctx *RenderContext) SanitizeDefault(html string) string {
-	return rctx.Sanitizer.defaultPolicy.Sanitize(html)
+	return rctx.Sanitizer.SanitizeDefault(html)
+}
+
+func (rctx *RenderContext) SanitizeDescription(html string) string {
+	return rctx.Sanitizer.SanitizeDescription(html)
 }
 
 type MarkdownTransformer struct {
