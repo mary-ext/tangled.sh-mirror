@@ -55,6 +55,12 @@ fussed about this.
 - Avoid noisy commit messages like "wip" or "final fix"—rewrite history
 before submitting if necessary.
 
+## code formatting
+
+We use a variety of tools to format our code, and multiplex them with
+[`treefmt`](https://treefmt.com): all you need to do to format your changes
+is run `nix run .#fmt` (or just `treefmt` if you're in the devshell).
+
 ## proposals for bigger changes
 
 Small fixes like typos, minor bugs, or trivial refactors can be

@@ -107,13 +107,34 @@
       pkgsCross-gnu64-pkgsStatic-knot-unwrapped = crossPackages.knot-unwrapped;
       pkgsCross-gnu64-pkgsStatic-spindle = crossPackages.spindle;
 
-      prettier-wrapper = pkgs.runCommandLocal "prettier-wrapper" {nativeBuildInputs = [pkgs.makeWrapper];} ''
-        mkdir -p "$out/bin"
-        makeWrapper ${pkgs.prettier}/bin/prettier "$out/bin/prettier" --add-flags "--plugin=${pkgs.prettier-plugin-go-template}/lib/node_modules/prettier-plugin-go-template/lib/index.js"
-      '';
+      treefmt-wrapper = pkgs.treefmt.withConfig {
+        settings.formatter = {
+          alejandra = {
+            command = pkgs.lib.getExe pkgs.alejandra;
+            includes = ["*.nix"];
+          };
+
+          gofmt = {
+            command = pkgs.lib.getExe' pkgs.go "gofmt";
+            options = ["-w"];
+            includes = ["*.go"];
+          };
+
+          prettier = let
+            wrapper = pkgs.runCommandLocal "prettier-wrapper" {nativeBuildInputs = [pkgs.makeWrapper];} ''
+              makeWrapper ${pkgs.prettier}/bin/prettier "$out" --add-flags "--plugin=${pkgs.prettier-plugin-go-template}/lib/node_modules/prettier-plugin-go-template/lib/index.js"
+            '';
+          in {
+            command = wrapper;
+            options = ["-w"];
+            includes = ["*.html"];
+            # causes Go template plugin errors: https://github.com/NiklasPor/prettier-plugin-go-template/issues/120
+            excludes = ["appview/pages/templates/layouts/repobase.html" "appview/pages/templates/repo/tags.html"];
+          };
+        };
+      };
     });
     defaultPackage = forAllSystems (system: self.packages.${system}.appview);
-    formatter = forAllSystems (system: nixpkgsFor.${system}.alejandra);
     devShells = forAllSystems (system: let
       pkgs = nixpkgsFor.${system};
       packages' = self.packages.${system};
@@ -134,7 +155,7 @@
           pkgs.redis
           pkgs.coreutils # for those of us who are on systems that use busybox (alpine)
           packages'.lexgen
-          packages'.prettier-wrapper
+          packages'.treefmt-wrapper
         ];
         shellHook = ''
           mkdir -p appview/pages/static
@@ -164,6 +185,10 @@
           ${pkgs.tailwindcss}/bin/tailwindcss -w -i input.css -o ./appview/pages/static/tw.css
         '';
     in {
+      fmt = {
+        type = "app";
+        program = pkgs.lib.getExe packages'.treefmt-wrapper;
+      };
       watch-appview = {
         type = "app";
         program = toString (pkgs.writeShellScript "watch-appview" ''
