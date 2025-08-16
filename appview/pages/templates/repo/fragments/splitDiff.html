@@ -1,61 +1,116 @@
 {{ define "repo/fragments/splitDiff" }}
-{{ $name := .Id }}
-{{- $lineNrStyle := "min-w-[3.5rem] flex-shrink-0 select-none text-right bg-white dark:bg-gray-800" -}}
-{{- $linkStyle := "text-gray-400 dark:text-gray-500 hover:underline" -}}
-{{- $lineNrSepStyle := "pr-2 border-r border-gray-200 dark:border-gray-700" -}}
-{{- $containerStyle := "flex min-w-full items-center target:border target:rounded-sm target:border-yellow-200 target:dark:border-yellow-700 scroll-mt-20" -}}
-{{- $emptyStyle := "bg-gray-200/30 dark:bg-gray-700/30" -}}
-{{- $addStyle := "bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400" -}}
-{{- $delStyle := "bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 " -}}
-{{- $ctxStyle := "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400" -}}
-{{- $opStyle := "w-5 flex-shrink-0 select-none text-center" -}}
-<div class="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
-<pre class="overflow-x-auto col-span-1"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}<div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none text-center">&middot;&middot;&middot;</div>
- {{- range .LeftLines -}}
-   {{- if .IsEmpty -}}
-     <div class="{{ $emptyStyle }} {{ $containerStyle }}">
-       <div class="{{$lineNrStyle}} {{$lineNrSepStyle}}"><span aria-hidden="true" class="invisible">{{.LineNumber}}</span></div>
-       <div class="{{ $opStyle }}"><span aria-hidden="true" class="invisible">{{ .Op.String }}</span></div>
-       <div class="px-2 invisible" aria-hidden="true">{{ .Content }}</div>
-     </div>
-   {{- else if eq .Op.String "-" -}}
-     <div class="{{ $delStyle }} {{ $containerStyle }}" id="{{$name}}-O{{.LineNumber}}">
-       <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}"><a class="{{$linkStyle}}" href="#{{$name}}-O{{.LineNumber}}">{{ .LineNumber }}</a></div>
-       <div class="{{ $opStyle }}">{{ .Op.String }}</div>
-       <div class="px-2">{{ .Content }}</div>
-     </div>
-   {{- else if eq .Op.String " " -}}
-     <div class="{{ $ctxStyle }} {{ $containerStyle }}" id="{{$name}}-O{{.LineNumber}}">
-       <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}"><a class="{{$linkStyle}}" href="#{{$name}}-O{{.LineNumber}}">{{ .LineNumber }}</a></div>
-       <div class="{{ $opStyle }}">{{ .Op.String }}</div>
-       <div class="px-2">{{ .Content }}</div>
-     </div>
-   {{- end -}}
- {{- end -}}
- {{- end -}}</div></div></pre>
+  {{ $name := .Id }}
+  {{- $lineNrStyle := "min-w-[3.5rem] flex-shrink-0 select-none text-right bg-white dark:bg-gray-800" -}}
+  {{- $linkStyle := "text-gray-400 dark:text-gray-500 hover:underline" -}}
+  {{- $lineNrSepStyle := "pr-2 border-r border-gray-200 dark:border-gray-700" -}}
+  {{- $containerStyle := "flex min-w-full items-center target:border target:rounded-sm target:border-yellow-200 target:dark:border-yellow-700 scroll-mt-20" -}}
+  {{- $emptyStyle := "bg-gray-200/30 dark:bg-gray-700/30" -}}
+  {{- $addStyle := "bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-400" -}}
+  {{- $delStyle := "bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-400 " -}}
+  {{- $ctxStyle := "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400" -}}
+  {{- $opStyle := "w-5 flex-shrink-0 select-none text-center" -}}
+  <div class="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700">
+    <pre
+      class="overflow-x-auto col-span-1"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}
+      <div
+        class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none text-center">
+        &middot;&middot;&middot;
+      </div>
+      {{- range .LeftLines -}}
+        {{- if .IsEmpty -}}
+          <div class="{{ $emptyStyle }} {{ $containerStyle }}">
+            <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}">
+              <span aria-hidden="true" class="invisible">
+                {{ .LineNumber }}
+              </span>
+            </div>
+            <div class="{{ $opStyle }}">
+              <span aria-hidden="true" class="invisible">{{ .Op.String }}</span>
+            </div>
+            <div class="px-2 invisible" aria-hidden="true">{{ .Content }}</div>
+          </div>
+        {{- else if eq .Op.String "-" -}}
+          <div
+            class="{{ $delStyle }} {{ $containerStyle }}"
+            id="{{ $name }}-O{{ .LineNumber }}">
+            <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}">
+              <a
+                class="{{ $linkStyle }}"
+                href="#{{ $name }}-O{{ .LineNumber }}">
+                {{ .LineNumber }}
+              </a>
+            </div>
+            <div class="{{ $opStyle }}">{{ .Op.String }}</div>
+            <div class="px-2">{{ .Content }}</div>
+          </div>
+        {{- else if eq .Op.String " " -}}
+          <div
+            class="{{ $ctxStyle }} {{ $containerStyle }}"
+            id="{{ $name }}-O{{ .LineNumber }}">
+            <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}">
+              <a
+                class="{{ $linkStyle }}"
+                href="#{{ $name }}-O{{ .LineNumber }}">
+                {{ .LineNumber }}
+              </a>
+            </div>
+            <div class="{{ $opStyle }}">{{ .Op.String }}</div>
+            <div class="px-2">{{ .Content }}</div>
+          </div>
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    </div></div></pre>
 
-<pre class="overflow-x-auto col-span-1"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}<div class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none text-center">&middot;&middot;&middot;</div>
- {{- range .RightLines -}}
-   {{- if .IsEmpty -}}
-     <div class="{{ $emptyStyle }} {{ $containerStyle }}">
-       <div class="{{$lineNrStyle}} {{$lineNrSepStyle}}"><span aria-hidden="true" class="invisible">{{.LineNumber}}</span></div>
-       <div class="{{ $opStyle }}"><span aria-hidden="true" class="invisible">{{ .Op.String }}</span></div>
-       <div class="px-2 invisible" aria-hidden="true">{{ .Content }}</div>
-     </div>
-   {{- else if eq .Op.String "+" -}}
-     <div class="{{ $addStyle }} {{ $containerStyle }}" id="{{$name}}-N{{.LineNumber}}">
-       <div class="{{$lineNrStyle}} {{$lineNrSepStyle}}"><a class="{{$linkStyle}}" href="#{{$name}}-N{{.LineNumber}}">{{ .LineNumber }}</a></div>
-       <div class="{{ $opStyle }}">{{ .Op.String }}</div>
-       <div class="px-2" >{{ .Content }}</div>
-     </div>
-   {{- else if eq .Op.String " " -}}
-     <div class="{{ $ctxStyle }} {{ $containerStyle }}" id="{{$name}}-N{{.LineNumber}}">
-       <div class="{{$lineNrStyle}} {{$lineNrSepStyle}}"><a class="{{$linkStyle}}" href="#{{$name}}-N{{.LineNumber}}">{{ .LineNumber }}</a></div>
-       <div class="{{ $opStyle }}">{{ .Op.String }}</div>
-       <div class="px-2">{{ .Content }}</div>
-     </div>
-   {{- end -}}
- {{- end -}}
- {{- end -}}</div></div></pre>
-</div>
+    <pre
+      class="overflow-x-auto col-span-1"><div class="overflow-x-auto"><div class="min-w-full inline-block">{{- range .TextFragments -}}
+      <div
+        class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 select-none text-center">
+        &middot;&middot;&middot;
+      </div>
+      {{- range .RightLines -}}
+        {{- if .IsEmpty -}}
+          <div class="{{ $emptyStyle }} {{ $containerStyle }}">
+            <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}">
+              <span aria-hidden="true" class="invisible">
+                {{ .LineNumber }}
+              </span>
+            </div>
+            <div class="{{ $opStyle }}">
+              <span aria-hidden="true" class="invisible">{{ .Op.String }}</span>
+            </div>
+            <div class="px-2 invisible" aria-hidden="true">{{ .Content }}</div>
+          </div>
+        {{- else if eq .Op.String "+" -}}
+          <div
+            class="{{ $addStyle }} {{ $containerStyle }}"
+            id="{{ $name }}-N{{ .LineNumber }}">
+            <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}">
+              <a
+                class="{{ $linkStyle }}"
+                href="#{{ $name }}-N{{ .LineNumber }}">
+                {{ .LineNumber }}
+              </a>
+            </div>
+            <div class="{{ $opStyle }}">{{ .Op.String }}</div>
+            <div class="px-2">{{ .Content }}</div>
+          </div>
+        {{- else if eq .Op.String " " -}}
+          <div
+            class="{{ $ctxStyle }} {{ $containerStyle }}"
+            id="{{ $name }}-N{{ .LineNumber }}">
+            <div class="{{ $lineNrStyle }} {{ $lineNrSepStyle }}">
+              <a
+                class="{{ $linkStyle }}"
+                href="#{{ $name }}-N{{ .LineNumber }}">
+                {{ .LineNumber }}
+              </a>
+            </div>
+            <div class="{{ $opStyle }}">{{ .Op.String }}</div>
+            <div class="px-2">{{ .Content }}</div>
+          </div>
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}</div></div></pre>
+  </div>
 {{ end }}

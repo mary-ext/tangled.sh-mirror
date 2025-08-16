@@ -1,33 +1,53 @@
 {{ define "user/fragments/editPins" }}
   {{ $profile := .Profile }}
-    <form
-        hx-post="/profile/pins"
-        hx-disabled-elt="#save-btn,#cancel-btn"
-        hx-swap="none"
-        hx-indicator="#spinner">
-      <div class="flex items-center justify-between mb-2">
-        <p class="text-sm font-bold p-2 dark:text-white">SELECT PINNED REPOS</p>
-        <div class="flex items-center gap-2">
-          <button id="save-btn" type="submit" class="btn px-2 flex items-center gap-2 no-underline text-sm">
-            {{ i "check" "w-3 h-3" }} save 
-            <span id="spinner" class="group">
-              {{ i "loader-circle" "w-3 h-3 animate-spin hidden group-[.htmx-request]:inline" }}
-            </span>
+  <form
+    hx-post="/profile/pins"
+    hx-disabled-elt="#save-btn,#cancel-btn"
+    hx-swap="none"
+    hx-indicator="#spinner">
+    <div class="flex items-center justify-between mb-2">
+      <p class="text-sm font-bold p-2 dark:text-white">SELECT PINNED REPOS</p>
+      <div class="flex items-center gap-2">
+        <button
+          id="save-btn"
+          type="submit"
+          class="btn px-2 flex items-center gap-2 no-underline text-sm">
+          {{ i "check" "w-3 h-3" }} save
+          <span id="spinner" class="group">
+            {{ i "loader-circle" "w-3 h-3 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
+        </button>
+        <a
+          href="/{{ .LoggedInUser.Did }}"
+          class="w-full no-underline hover:no-underline">
+          <button
+            id="cancel-btn"
+            type="button"
+            class="btn px-2 w-full flex items-center gap-2 no-underline text-sm">
+            {{ i "x" "w-3 h-3" }} cancel
           </button>
-          <a href="/{{.LoggedInUser.Did}}" class="w-full no-underline hover:no-underline">
-            <button id="cancel-btn" type="button" class="btn px-2 w-full flex items-center gap-2 no-underline text-sm">
-              {{ i "x" "w-3 h-3" }} cancel
-            </button>
-          </a>
-        </div>
+        </a>
       </div>
-      <div id="repos" class="grid grid-cols-1 gap-1 mb-6 bg-white dark:bg-gray-800  border border-gray-200 dark:border-gray-700">
-        {{ range $idx, $r := .AllRepos }}
-        <div class="flex items-center gap-2 text-base p-2 border-b border-gray-200 dark:border-gray-700">
-          <input type="checkbox" id="repo-{{$idx}}" name="pinnedRepo{{$idx}}" value="{{.RepoAt}}" {{if .IsPinned}}checked{{end}}>
-          <label for="repo-{{$idx}}" class="my-0 py-0 normal-case font-normal w-full">
+    </div>
+    <div
+      id="repos"
+      class="grid grid-cols-1 gap-1 mb-6 bg-white dark:bg-gray-800  border border-gray-200 dark:border-gray-700">
+      {{ range $idx, $r := .AllRepos }}
+        <div
+          class="flex items-center gap-2 text-base p-2 border-b border-gray-200 dark:border-gray-700">
+          <input
+            type="checkbox"
+            id="repo-{{ $idx }}"
+            name="pinnedRepo{{ $idx }}"
+            value="{{ .RepoAt }}"
+            {{ if .IsPinned }}checked{{ end }} />
+          <label
+            for="repo-{{ $idx }}"
+            class="my-0 py-0 normal-case font-normal w-full">
             <div class="flex justify-between items-center w-full">
-              <span class="flex-shrink-0 overflow-hidden text-ellipsis ">{{ resolve .Did }}/{{.Name}}</span>
+              <span class="flex-shrink-0 overflow-hidden text-ellipsis ">
+                {{ resolve .Did }}/{{ .Name }}
+              </span>
               <div class="flex gap-1 items-center">
                 {{ i "star" "size-4 fill-current" }}
                 <span>{{ .RepoStats.StarCount }}</span>
@@ -35,8 +55,7 @@
             </div>
           </label>
         </div>
-        {{ end }}
-      </div>
-
-    </form>
+      {{ end }}
+    </div>
+  </form>
 {{ end }}

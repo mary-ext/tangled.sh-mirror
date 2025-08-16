@@ -1,22 +1,25 @@
-{{ define "title" }}strings by {{ or .Card.UserHandle .Card.UserDid  }}{{ end }}
+{{ define "title" }}strings by {{ or .Card.UserHandle .Card.UserDid }}{{ end }}
 
 {{ define "extrameta" }}
-    <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid  }}" />
-    <meta property="og:type" content="profile" />
-    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid  }}" />
-    <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+  <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
+  <meta property="og:type" content="profile" />
+  <meta
+    property="og:url"
+    content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}" />
+  <meta
+    property="og:description"
+    content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
 {{ end }}
 
-
 {{ define "content" }}
-<div class="grid grid-cols-1 md:grid-cols-11 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-11 gap-4">
     <div class="md:col-span-3 order-1 md:order-1">
-        {{ template "user/fragments/profileCard" .Card }}
+      {{ template "user/fragments/profileCard" .Card }}
     </div>
     <div id="all-strings" class="md:col-span-8 order-2 md:order-2">
-        {{ block "allStrings" . }}{{ end }}
+      {{ block "allStrings" . }}{{ end }}
     </div>
-</div>
+  </div>
 {{ end }}
 
 {{ define "allStrings" }}
@@ -25,7 +28,9 @@
     {{ range .Strings }}
       {{ template "singleString" (list $ .) }}
     {{ else }}
-      <p class="px-6 dark:text-white">This user does not have any strings yet.</p>
+      <p class="px-6 dark:text-white">
+        This user does not have any strings yet.
+      </p>
     {{ end }}
   </div>
 {{ end }}
@@ -35,17 +40,22 @@
   {{ $s := index . 1 }}
   <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
     <div class="font-medium dark:text-white flex gap-2 items-center">
-        <a href="/strings/{{ or $root.Card.UserHandle $root.Card.UserDid  }}/{{ $s.Rkey }}">{{ $s.Filename }}</a>
+      <a
+        href="/strings/{{ or $root.Card.UserHandle $root.Card.UserDid }}/{{ $s.Rkey }}">
+        {{ $s.Filename }}
+      </a>
     </div>
     {{ with $s.Description }}
       <div class="text-gray-600 dark:text-gray-300 text-sm">
-          {{ . }}
+        {{ . }}
       </div>
     {{ end }}
 
     {{ $stat := $s.Stats }}
     <div class="text-gray-400 pt-4 text-sm font-mono inline-flex gap-2 mt-auto">
-      <span>{{ $stat.LineCount }} line{{if ne $stat.LineCount 1}}s{{end}}</span>
+      <span>
+        {{ $stat.LineCount }} line{{ if ne $stat.LineCount 1 }}s{{ end }}
+      </span>
       <span class="select-none [&:before]:content-['·']"></span>
       {{ with $s.Edited }}
         <span>edited {{ template "repo/fragments/shortTimeAgo" . }}</span>

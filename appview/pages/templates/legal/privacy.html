@@ -1,133 +1,223 @@
-{{ define "title" }} privacy policy {{ end }}
+{{ define "title" }}privacy policy{{ end }}
 {{ define "content" }}
-<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="max-w-4xl mx-auto px-4 py-8">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-        <div class="prose prose-gray dark:prose-invert max-w-none">
+      <div class="prose prose-gray dark:prose-invert max-w-none">
         <h1>Privacy Policy</h1>
 
-        <p><strong>Last updated:</strong> {{ now.Format "January 2, 2006" }}</p>
+        <p>
+          <strong>Last updated:</strong>
+          {{ now.Format "January 2, 2006" }}
+        </p>
 
-        <p>This Privacy Policy describes how Tangled ("we," "us," or "our") collects, uses, and shares your personal information when you use our platform and services (the "Service").</p>
+        <p>
+          This Privacy Policy describes how Tangled ("we," "us," or "our")
+          collects, uses, and shares your personal information when you use our
+          platform and services (the "Service").
+        </p>
 
         <h2>1. Information We Collect</h2>
 
         <h3>Account Information</h3>
         <p>When you create an account, we collect:</p>
         <ul>
-            <li>Your chosen username</li>
-            <li>Email address</li>
-            <li>Profile information you choose to provide</li>
-            <li>Authentication data</li>
+          <li>Your chosen username</li>
+          <li>Email address</li>
+          <li>Profile information you choose to provide</li>
+          <li>Authentication data</li>
         </ul>
 
         <h3>Content and Activity</h3>
         <p>We store:</p>
         <ul>
-            <li>Code repositories and associated metadata</li>
-            <li>Issues, pull requests, and comments</li>
-            <li>Activity logs and usage patterns</li>
-            <li>Public keys for authentication</li>
+          <li>Code repositories and associated metadata</li>
+          <li>Issues, pull requests, and comments</li>
+          <li>Activity logs and usage patterns</li>
+          <li>Public keys for authentication</li>
         </ul>
 
         <h2>2. Data Location and Hosting</h2>
-        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 my-6">
-            <h3 class="text-blue-800 dark:text-blue-200 font-semibold mb-2">EU Data Hosting</h3>
-            <p class="text-blue-700 dark:text-blue-300">
-                <strong>All Tangled service data is hosted within the European Union.</strong> Specifically:
-            </p>
-            <ul class="text-blue-700 dark:text-blue-300 mt-2">
-                <li><strong>Personal Data Servers (PDS):</strong> Accounts hosted on Tangled PDS (*.tngl.sh) are located in Finland</li>
-                <li><strong>Application Data:</strong> All other service data is stored on EU-based servers</li>
-                <li><strong>Data Processing:</strong> All data processing occurs within EU jurisdiction</li>
-            </ul>
+        <div
+          class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 my-6">
+          <h3 class="text-blue-800 dark:text-blue-200 font-semibold mb-2">
+            EU Data Hosting
+          </h3>
+          <p class="text-blue-700 dark:text-blue-300">
+            <strong>
+              All Tangled service data is hosted within the European Union.
+            </strong>
+            Specifically:
+          </p>
+          <ul class="text-blue-700 dark:text-blue-300 mt-2">
+            <li>
+              <strong>Personal Data Servers (PDS):</strong>
+              Accounts hosted on Tangled PDS (*.tngl.sh) are located in Finland
+            </li>
+            <li>
+              <strong>Application Data:</strong>
+              All other service data is stored on EU-based servers
+            </li>
+            <li>
+              <strong>Data Processing:</strong>
+              All data processing occurs within EU jurisdiction
+            </li>
+          </ul>
         </div>
 
-        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 my-6">
-            <h3 class="text-yellow-800 dark:text-yellow-200 font-semibold mb-2">External PDS Notice</h3>
-            <p class="text-yellow-700 dark:text-yellow-300">
-                <strong>Important:</strong> If your account is hosted on Bluesky's PDS or other self-hosted Personal Data Servers (not *.tngl.sh), we do not control that data. The data protection, storage location, and privacy practices for such accounts are governed by the respective PDS provider's policies, not this Privacy Policy. We only control data processing within our own services and infrastructure.
-            </p>
+        <div
+          class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 my-6">
+          <h3 class="text-yellow-800 dark:text-yellow-200 font-semibold mb-2">
+            External PDS Notice
+          </h3>
+          <p class="text-yellow-700 dark:text-yellow-300">
+            <strong>Important:</strong>
+            If your account is hosted on Bluesky's PDS or other self-hosted
+            Personal Data Servers (not *.tngl.sh), we do not control that data.
+            The data protection, storage location, and privacy practices for
+            such accounts are governed by the respective PDS provider's
+            policies, not this Privacy Policy. We only control data processing
+            within our own services and infrastructure.
+          </p>
         </div>
 
         <h2>3. Third-Party Data Processors</h2>
-        <p>We only share your data with the following third-party processors:</p>
+        <p>
+          We only share your data with the following third-party processors:
+        </p>
 
         <h3>Resend (Email Services)</h3>
         <ul>
-            <li><strong>Purpose:</strong> Sending transactional emails (account verification, notifications)</li>
-            <li><strong>Data Shared:</strong> Email address and necessary message content</li>
-            <li><strong>Location:</strong> EU-compliant email delivery service</li>
+          <li>
+            <strong>Purpose:</strong>
+            Sending transactional emails (account verification, notifications)
+          </li>
+          <li>
+            <strong>Data Shared:</strong>
+            Email address and necessary message content
+          </li>
+          <li>
+            <strong>Location:</strong>
+            EU-compliant email delivery service
+          </li>
         </ul>
 
         <h3>Cloudflare (Image Caching)</h3>
         <ul>
-            <li><strong>Purpose:</strong> Caching and optimizing image delivery</li>
-            <li><strong>Data Shared:</strong> Public images and associated metadata for caching purposes</li>
-            <li><strong>Location:</strong> Global CDN with EU data protection compliance</li>
+          <li>
+            <strong>Purpose:</strong>
+            Caching and optimizing image delivery
+          </li>
+          <li>
+            <strong>Data Shared:</strong>
+            Public images and associated metadata for caching purposes
+          </li>
+          <li>
+            <strong>Location:</strong>
+            Global CDN with EU data protection compliance
+          </li>
         </ul>
 
         <h2>4. How We Use Your Information</h2>
         <p>We use your information to:</p>
         <ul>
-            <li>Provide and maintain the Service</li>
-            <li>Process your transactions and requests</li>
-            <li>Send you technical notices and support messages</li>
-            <li>Improve and develop new features</li>
-            <li>Ensure security and prevent fraud</li>
-            <li>Comply with legal obligations</li>
+          <li>Provide and maintain the Service</li>
+          <li>Process your transactions and requests</li>
+          <li>Send you technical notices and support messages</li>
+          <li>Improve and develop new features</li>
+          <li>Ensure security and prevent fraud</li>
+          <li>Comply with legal obligations</li>
         </ul>
 
         <h2>5. Data Sharing and Disclosure</h2>
-        <p>We do not sell, trade, or rent your personal information. We may share your information only in the following circumstances:</p>
+        <p>
+          We do not sell, trade, or rent your personal information. We may share
+          your information only in the following circumstances:
+        </p>
         <ul>
-            <li>With the third-party processors listed above</li>
-            <li>When required by law or legal process</li>
-            <li>To protect our rights, property, or safety, or that of our users</li>
-            <li>In connection with a merger, acquisition, or sale of assets (with appropriate protections)</li>
+          <li>With the third-party processors listed above</li>
+          <li>When required by law or legal process</li>
+          <li>
+            To protect our rights, property, or safety, or that of our users
+          </li>
+          <li>
+            In connection with a merger, acquisition, or sale of assets (with
+            appropriate protections)
+          </li>
         </ul>
 
         <h2>6. Data Security</h2>
-        <p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet is 100% secure.</p>
+        <p>
+          We implement appropriate technical and organizational measures to
+          protect your personal information against unauthorized access,
+          alteration, disclosure, or destruction. However, no method of
+          transmission over the Internet is 100% secure.
+        </p>
 
         <h2>7. Data Retention</h2>
-        <p>We retain your personal information for as long as necessary to provide the Service and fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required by law.</p>
+        <p>
+          We retain your personal information for as long as necessary to
+          provide the Service and fulfill the purposes outlined in this Privacy
+          Policy, unless a longer retention period is required by law.
+        </p>
 
         <h2>8. Your Rights</h2>
         <p>Under applicable data protection laws, you have the right to:</p>
         <ul>
-            <li>Access your personal information</li>
-            <li>Correct inaccurate information</li>
-            <li>Request deletion of your information</li>
-            <li>Object to processing of your information</li>
-            <li>Data portability</li>
-            <li>Withdraw consent (where applicable)</li>
+          <li>Access your personal information</li>
+          <li>Correct inaccurate information</li>
+          <li>Request deletion of your information</li>
+          <li>Object to processing of your information</li>
+          <li>Data portability</li>
+          <li>Withdraw consent (where applicable)</li>
         </ul>
 
         <h2>9. Cookies and Tracking</h2>
         <p>We use cookies and similar technologies to:</p>
         <ul>
-            <li>Maintain your login session</li>
-            <li>Remember your preferences</li>
-            <li>Analyze usage patterns to improve the Service</li>
+          <li>Maintain your login session</li>
+          <li>Remember your preferences</li>
+          <li>Analyze usage patterns to improve the Service</li>
         </ul>
         <p>You can control cookie settings through your browser preferences.</p>
 
         <h2>10. Children's Privacy</h2>
-        <p>The Service is not intended for children under 16 years of age. We do not knowingly collect personal information from children under 16. If we become aware that we have collected such information, we will take steps to delete it.</p>
+        <p>
+          The Service is not intended for children under 16 years of age. We do
+          not knowingly collect personal information from children under 16. If
+          we become aware that we have collected such information, we will take
+          steps to delete it.
+        </p>
 
         <h2>11. International Data Transfers</h2>
-        <p>While all our primary data processing occurs within the EU, some of our third-party processors may process data outside the EU. When this occurs, we ensure appropriate safeguards are in place, such as Standard Contractual Clauses or adequacy decisions.</p>
+        <p>
+          While all our primary data processing occurs within the EU, some of
+          our third-party processors may process data outside the EU. When this
+          occurs, we ensure appropriate safeguards are in place, such as
+          Standard Contractual Clauses or adequacy decisions.
+        </p>
 
         <h2>12. Changes to This Privacy Policy</h2>
-        <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.</p>
+        <p>
+          We may update this Privacy Policy from time to time. We will notify
+          you of any changes by posting the new Privacy Policy on this page and
+          updating the "Last updated" date.
+        </p>
 
         <h2>13. Contact Information</h2>
-        <p>If you have any questions about this Privacy Policy or wish to exercise your rights, please contact us through our platform or via email.</p>
+        <p>
+          If you have any questions about this Privacy Policy or wish to
+          exercise your rights, please contact us through our platform or via
+          email.
+        </p>
 
-        <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
-            <p>This Privacy Policy complies with the EU General Data Protection Regulation (GDPR) and other applicable data protection laws.</p>
+        <div
+          class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
+          <p>
+            This Privacy Policy complies with the EU General Data Protection
+            Regulation (GDPR) and other applicable data protection laws.
+          </p>
         </div>
-        </div>
+      </div>
     </div>
-</div>
+  </div>
 {{ end }}

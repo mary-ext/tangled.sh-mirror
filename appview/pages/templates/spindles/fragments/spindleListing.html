@@ -1,27 +1,31 @@
 {{ define "spindles/fragments/spindleListing" }}
-  <div id="spindle-{{.Id}}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
-    {{ block "leftSide" . }} {{ end }}
-    {{ block "rightSide" . }} {{ end }}
+  <div
+    id="spindle-{{ .Id }}"
+    class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+    {{ block "leftSide" . }}{{ end }}
+    {{ block "rightSide" . }}{{ end }}
   </div>
 {{ end }}
 
 {{ define "leftSide" }}
   {{ if .Verified }}
-  <a href="/spindles/{{ .Instance }}" class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
-    {{ i "hard-drive" "w-4 h-4" }}
-    {{ .Instance }}
-    <span class="text-gray-500">
-      {{ template "repo/fragments/shortTimeAgo" .Created }}
-    </span>
-  </a>
+    <a
+      href="/spindles/{{ .Instance }}"
+      class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
+      {{ i "hard-drive" "w-4 h-4" }}
+      {{ .Instance }}
+      <span class="text-gray-500">
+        {{ template "repo/fragments/shortTimeAgo" .Created }}
+      </span>
+    </a>
   {{ else }}
-  <div class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
-    {{ i "hard-drive" "w-4 h-4" }}
-    {{ .Instance }}
-    <span class="text-gray-500">
-      {{ template "repo/fragments/shortTimeAgo" .Created }}
-    </span>
-  </div>
+    <div class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
+      {{ i "hard-drive" "w-4 h-4" }}
+      {{ .Instance }}
+      <span class="text-gray-500">
+        {{ template "repo/fragments/shortTimeAgo" .Created }}
+      </span>
+    </div>
   {{ end }}
 {{ end }}
 
@@ -29,13 +33,19 @@
   <div id="right-side" class="flex gap-2">
     {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2 text-sm" }}
     {{ if .Verified }}
-      <span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{$style}}">{{ i "shield-check" "w-4 h-4" }} verified</span>
+      <span
+        class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{ $style }}">
+        {{ i "shield-check" "w-4 h-4" }} verified
+      </span>
       {{ template "spindles/fragments/addMemberModal" . }}
     {{ else }}
-      <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} unverified</span>
-      {{ block "retryButton" . }} {{ end }}
+      <span
+        class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{ $style }}">
+        {{ i "shield-off" "w-4 h-4" }} unverified
+      </span>
+      {{ block "retryButton" . }}{{ end }}
     {{ end }}
-    {{ block "deleteButton" . }} {{ end }}
+    {{ block "deleteButton" . }}{{ end }}
   </div>
 {{ end }}
 
@@ -45,15 +55,13 @@
     title="Delete spindle"
     hx-delete="/spindles/{{ .Instance }}"
     hx-swap="outerHTML"
-    hx-target="#spindle-{{.Id}}"
-    hx-confirm="Are you sure you want to delete the spindle '{{ .Instance }}'?"
-  >
+    hx-target="#spindle-{{ .Id }}"
+    hx-confirm="Are you sure you want to delete the spindle '{{ .Instance }}'?">
     {{ i "trash-2" "w-5 h-5" }}
-    <span class="hidden md:inline">delete</span> 
+    <span class="hidden md:inline">delete</span>
     {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
   </button>
 {{ end }}
-
 
 {{ define "retryButton" }}
   <button
@@ -61,10 +69,9 @@
     title="Retry spindle verification"
     hx-post="/spindles/{{ .Instance }}/retry"
     hx-swap="none"
-    hx-target="#spindle-{{.Id}}"
-  >
+    hx-target="#spindle-{{ .Id }}">
     {{ i "rotate-ccw" "w-5 h-5" }}
-    <span class="hidden md:inline">retry</span> 
+    <span class="hidden md:inline">retry</span>
     {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
   </button>
 {{ end }}

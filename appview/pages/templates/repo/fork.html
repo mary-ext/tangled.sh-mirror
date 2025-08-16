@@ -1,38 +1,47 @@
 {{ define "title" }}fork &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
-<div class="p-6">
-  <p class="text-xl font-bold dark:text-white">Fork {{ .RepoInfo.FullName }}</p>
-</div>
-<div class="p-6 bg-white dark:bg-gray-800 drop-shadow-sm rounded">
-  <form hx-post="/{{ .RepoInfo.FullName }}/fork" class="space-y-12" hx-swap="none">
-    <fieldset class="space-y-3">
-      <legend class="dark:text-white">Select a knot to fork into</legend>
-      <div class="space-y-2">
-        <div class="flex flex-col">
-        {{ range .Knots }}
-          <div class="flex items-center">
-            <input
-                type="radio"
-                name="knot"
-                value="{{ . }}"
-                class="mr-2"
-                id="domain-{{ . }}"
-                />
-            <span class="dark:text-white">{{ . }}</span>
+  <div class="p-6">
+    <p class="text-xl font-bold dark:text-white">
+      Fork {{ .RepoInfo.FullName }}
+    </p>
+  </div>
+  <div class="p-6 bg-white dark:bg-gray-800 drop-shadow-sm rounded">
+    <form
+      hx-post="/{{ .RepoInfo.FullName }}/fork"
+      class="space-y-12"
+      hx-swap="none">
+      <fieldset class="space-y-3">
+        <legend class="dark:text-white">Select a knot to fork into</legend>
+        <div class="space-y-2">
+          <div class="flex flex-col">
+            {{ range .Knots }}
+              <div class="flex items-center">
+                <input
+                  type="radio"
+                  name="knot"
+                  value="{{ . }}"
+                  class="mr-2"
+                  id="domain-{{ . }}" />
+                <span class="dark:text-white">{{ . }}</span>
+              </div>
+            {{ else }}
+              <p class="dark:text-white">No knots available.</p>
+            {{ end }}
           </div>
-        {{ else }}
-        <p class="dark:text-white">No knots available.</p>
-        {{ end }}
         </div>
-      </div>
-      <p class="text-sm text-gray-500 dark:text-gray-400">A knot hosts repository data. <a href="/knots" class="underline">Learn how to register your own knot.</a></p>
-    </fieldset>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          A knot hosts repository data.
+          <a href="/knots" class="underline">
+            Learn how to register your own knot.
+          </a>
+        </p>
+      </fieldset>
 
-    <div class="space-y-2">
-      <button type="submit" class="btn">fork repo</button>
-      <div id="repo" class="error"></div>
-    </div>
-  </form>
-</div>
+      <div class="space-y-2">
+        <button type="submit" class="btn">fork repo</button>
+        <div id="repo" class="error"></div>
+      </div>
+    </form>
+  </div>
 {{ end }}

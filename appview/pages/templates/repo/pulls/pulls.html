@@ -1,147 +1,166 @@
 {{ define "title" }}pulls &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "extrameta" }}
-    {{ $title := "pulls"}}
-    {{ $url := printf "https://tangled.sh/%s/pulls" .RepoInfo.FullName }}
+  {{ $title := "pulls" }}
+  {{ $url := printf "https://tangled.sh/%s/pulls" .RepoInfo.FullName }}
 
-    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
 {{ define "repoContent" }}
-    <div class="flex justify-between items-center">
-        <div class="flex gap-4">
-            <a
-                href="?state=open"
-                class="flex items-center gap-2 {{ if .FilteringBy.IsOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-            >
-                {{ i "git-pull-request" "w-4 h-4" }}
-                <span>{{ .RepoInfo.Stats.PullCount.Open }} open</span>
-            </a>
-            <a
-                href="?state=merged"
-                class="flex items-center gap-2 {{ if .FilteringBy.IsMerged }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-            >
-                {{ i "git-merge" "w-4 h-4" }}
-                <span>{{ .RepoInfo.Stats.PullCount.Merged }} merged</span>
-            </a>
-            <a
-                href="?state=closed"
-                class="flex items-center gap-2 {{ if .FilteringBy.IsClosed }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-            >
-                {{ i "ban" "w-4 h-4" }}
-                <span>{{ .RepoInfo.Stats.PullCount.Closed }} closed</span>
-            </a>
-        </div>
-        <a
-            href="/{{ .RepoInfo.FullName }}/pulls/new"
-            class="btn-create text-sm flex items-center gap-2 no-underline hover:no-underline hover:text-white"
-        >
-            {{ i "git-pull-request-create" "w-4 h-4" }}
-            <span>new</span>
-        </a>
+  <div class="flex justify-between items-center">
+    <div class="flex gap-4">
+      <a
+        href="?state=open"
+        class="flex items-center gap-2 {{ if .FilteringBy.IsOpen }}
+          font-bold
+        {{ else }}
+          text-gray-500 dark:text-gray-400
+        {{ end }}">
+        {{ i "git-pull-request" "w-4 h-4" }}
+        <span>{{ .RepoInfo.Stats.PullCount.Open }} open</span>
+      </a>
+      <a
+        href="?state=merged"
+        class="flex items-center gap-2 {{ if .FilteringBy.IsMerged }}
+          font-bold
+        {{ else }}
+          text-gray-500 dark:text-gray-400
+        {{ end }}">
+        {{ i "git-merge" "w-4 h-4" }}
+        <span>{{ .RepoInfo.Stats.PullCount.Merged }} merged</span>
+      </a>
+      <a
+        href="?state=closed"
+        class="flex items-center gap-2 {{ if .FilteringBy.IsClosed }}
+          font-bold
+        {{ else }}
+          text-gray-500 dark:text-gray-400
+        {{ end }}">
+        {{ i "ban" "w-4 h-4" }}
+        <span>{{ .RepoInfo.Stats.PullCount.Closed }} closed</span>
+      </a>
     </div>
-    <div class="error" id="pulls"></div>
+    <a
+      href="/{{ .RepoInfo.FullName }}/pulls/new"
+      class="btn-create text-sm flex items-center gap-2 no-underline hover:no-underline hover:text-white">
+      {{ i "git-pull-request-create" "w-4 h-4" }}
+      <span>new</span>
+    </a>
+  </div>
+  <div class="error" id="pulls"></div>
 {{ end }}
 
 {{ define "repoAfter" }}
-    <div class="flex flex-col gap-2 mt-2">
-        {{ range .Pulls }}
-          <div class="rounded bg-white dark:bg-gray-800">
-            <div class="px-6 py-4 z-5">
-                <div class="pb-2">
-                    <a href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}" class="dark:text-white">
-                        {{ .Title }}
-                        <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
-                    </a>
-                </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
-                    {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
-                    {{ $icon := "ban" }}
+  <div class="flex flex-col gap-2 mt-2">
+    {{ range .Pulls }}
+      <div class="rounded bg-white dark:bg-gray-800">
+        <div class="px-6 py-4 z-5">
+          <div class="pb-2">
+            <a
+              href="/{{ $.RepoInfo.FullName }}/pulls/{{ .PullId }}"
+              class="dark:text-white">
+              {{ .Title }}
+              <span class="text-gray-500 dark:text-gray-400">
+                #{{ .PullId }}
+              </span>
+            </a>
+          </div>
+          <div
+            class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
+            {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+            {{ $icon := "ban" }}
 
-                    {{ if .State.IsOpen }}
-                        {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
-                        {{ $icon = "git-pull-request" }}
-                    {{ else if .State.IsMerged }}
-                        {{ $bgColor = "bg-purple-600 dark:bg-purple-700" }}
-                        {{ $icon = "git-merge" }}
-                    {{ end }}
-
-
-                    <span
-                        class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm"
-                    >
-                        {{ i $icon "w-3 h-3 mr-1.5 text-white" }}
-                        <span class="text-white">{{ .State.String }}</span>
-                    </span>
-
-                    <span class="ml-1">
-                        {{ template "user/fragments/picHandleLink" .OwnerDid }}
-                    </span>
-
-                    <span class="before:content-['·']">
-                        {{ template "repo/fragments/time" .Created }}
-                    </span>
+            {{ if .State.IsOpen }}
+              {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+              {{ $icon = "git-pull-request" }}
+            {{ else if .State.IsMerged }}
+              {{ $bgColor = "bg-purple-600 dark:bg-purple-700" }}
+              {{ $icon = "git-merge" }}
+            {{ end }}
 
 
-                    {{ $latestRound := .LastRoundNumber }}
-                    {{ $lastSubmission := index .Submissions $latestRound }}
+            <span
+              class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm">
+              {{ i $icon "w-3 h-3 mr-1.5 text-white" }}
+              <span class="text-white">{{ .State.String }}</span>
+            </span>
 
-                    <span class="before:content-['·']">
-                      {{ $commentCount := len $lastSubmission.Comments }}
-                      {{ $s := "s" }}
-                      {{ if eq $commentCount 1 }}
-                        {{ $s = "" }}
-                      {{ end }}
+            <span class="ml-1">
+              {{ template "user/fragments/picHandleLink" .OwnerDid }}
+            </span>
 
-                      {{ len $lastSubmission.Comments}} comment{{$s}}
-                    </span>
+            <span class="before:content-['·']">
+              {{ template "repo/fragments/time" .Created }}
+            </span>
 
-                    <span class="before:content-['·']">
-                      round
-                      <span class="font-mono">
-                        #{{ .LastRoundNumber }}
-                      </span>
-                    </span>
+            {{ $latestRound := .LastRoundNumber }}
+            {{ $lastSubmission := index .Submissions $latestRound }}
 
-                    {{ $pipeline := index $.Pipelines .LatestSha }}
-                    {{ if and $pipeline $pipeline.Id }}
-                      <span class="before:content-['·']"></span>
-                      {{ template "repo/pipelines/fragments/pipelineSymbol" $pipeline }}
-                    {{ end }}
-                </div>
-              </div>
-              {{ if .StackId }}
-                {{ $otherPulls := index $.Stacks .StackId }}
-                {{ if gt (len $otherPulls) 0 }}
-                  <details class="bg-white dark:bg-gray-800 group">
-                    <summary class="pb-4 px-6 text-xs list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
-                      {{ $s := "s" }}
-                      {{ if eq (len $otherPulls) 1 }}
-                        {{ $s = "" }}
-                      {{ end }}
-                      <div class="group-open:hidden flex items-center gap-2">
-                        {{ i "chevrons-up-down" "w-4 h-4" }} expand {{ len $otherPulls }} pull{{$s}} in this stack
-                      </div>
-                      <div class="hidden group-open:flex items-center gap-2">
-                        {{ i "chevrons-down-up" "w-4 h-4" }} hide {{ len $otherPulls }} pull{{$s}} in this stack
-                      </div>
-                    </summary>
-                    {{ block "pullList" (list $otherPulls $) }} {{ end }}
-                  </details>
-                {{ end }}
+
+            <span class="before:content-['·']">
+              {{ $commentCount := len $lastSubmission.Comments }}
+              {{ $s := "s" }}
+              {{ if eq $commentCount 1 }}
+                {{ $s = "" }}
               {{ end }}
-            </div>
+
+              {{ len $lastSubmission.Comments }}
+              comment{{ $s }}
+            </span>
+
+            <span class="before:content-['·']">
+              round
+              <span class="font-mono">
+                #{{ .LastRoundNumber }}
+              </span>
+            </span>
+
+            {{ $pipeline := index $.Pipelines .LatestSha }}
+            {{ if and $pipeline $pipeline.Id }}
+              <span class="before:content-['·']"></span>
+              {{ template "repo/pipelines/fragments/pipelineSymbol" $pipeline }}
+            {{ end }}
+          </div>
+        </div>
+        {{ if .StackId }}
+          {{ $otherPulls := index $.Stacks .StackId }}
+          {{ if gt (len $otherPulls) 0 }}
+            <details class="bg-white dark:bg-gray-800 group">
+              <summary
+                class="pb-4 px-6 text-xs list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
+                {{ $s := "s" }}
+                {{ if eq (len $otherPulls) 1 }}
+                  {{ $s = "" }}
+                {{ end }}
+                <div class="group-open:hidden flex items-center gap-2">
+                  {{ i "chevrons-up-down" "w-4 h-4" }} expand
+                  {{ len $otherPulls }} pull{{ $s }} in this stack
+                </div>
+                <div class="hidden group-open:flex items-center gap-2">
+                  {{ i "chevrons-down-up" "w-4 h-4" }} hide
+                  {{ len $otherPulls }} pull{{ $s }} in this stack
+                </div>
+              </summary>
+              {{ block "pullList" (list $otherPulls $) }}{{ end }}
+            </details>
+          {{ end }}
         {{ end }}
-    </div>
+      </div>
+    {{ end }}
+  </div>
 {{ end }}
 
 {{ define "pullList" }}
   {{ $list := index . 0 }}
   {{ $root := index . 1 }}
-  <div class="grid grid-cols-1 rounded-b border-b border-t border-gray-200 dark:border-gray-900 divide-y divide-gray-200 dark:divide-gray-900">
+  <div
+    class="grid grid-cols-1 rounded-b border-b border-t border-gray-200 dark:border-gray-900 divide-y divide-gray-200 dark:divide-gray-900">
     {{ range $pull := $list }}
       {{ $pipeline := index $root.Pipelines $pull.LatestSha }}
-      <a href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
+      <a
+        href="/{{ $root.RepoInfo.FullName }}/pulls/{{ $pull.PullId }}"
+        class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
         <div class="flex gap-2 items-center px-6">
           <div class="flex-grow min-w-0 w-full py-2">
             {{ template "repo/pulls/fragments/summarizedHeader" (list $pull $pipeline) }}

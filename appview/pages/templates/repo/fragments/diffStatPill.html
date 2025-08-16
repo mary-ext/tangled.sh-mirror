@@ -1,13 +1,24 @@
 {{ define "repo/fragments/diffStatPill" }}
   <div class="flex items-center font-mono text-sm">
     {{ if and .Insertions .Deletions }}
-      <span class="rounded-l p-1 select-none bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400">+{{ .Insertions }}</span>
-      <span class="rounded-r p-1 select-none bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400">-{{ .Deletions }}</span>
+      <span
+        class="rounded-l p-1 select-none bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400">
+        +{{ .Insertions }}
+      </span>
+      <span
+        class="rounded-r p-1 select-none bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400">
+        -{{ .Deletions }}
+      </span>
     {{ else if .Insertions }}
-      <span class="rounded p-1 select-none bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400">+{{ .Insertions }}</span>
+      <span
+        class="rounded p-1 select-none bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400">
+        +{{ .Insertions }}
+      </span>
     {{ else if .Deletions }}
-      <span class="rounded p-1 select-none bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400">-{{ .Deletions }}</span>
+      <span
+        class="rounded p-1 select-none bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400">
+        -{{ .Deletions }}
+      </span>
     {{ end }}
   </div>
 {{ end }}
-

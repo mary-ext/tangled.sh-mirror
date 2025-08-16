@@ -1,19 +1,27 @@
 {{ define "repo/fragments/timeWrapper" }}
-<time datetime="{{ .Time | iso8601DateTimeFmt }}" title="{{ .Time | longTimeFmt }}">{{ .Content }}</time>
+  <time
+    datetime="{{ .Time | iso8601DateTimeFmt }}"
+    title="{{ .Time | longTimeFmt }}">
+    {{ .Content }}
+  </time>
 {{ end }}
 
 {{ define "repo/fragments/time" }}
-{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (. | relTimeFmt)) }}
+  {{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (. | relTimeFmt)) }}
 {{ end }}
 
 {{ define "repo/fragments/shortTime" }}
-{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (. | shortRelTimeFmt)) }}
+  {{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (. | shortRelTimeFmt)) }}
 {{ end }}
 
 {{ define "repo/fragments/shortTimeAgo" }}
-{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (print (. | shortRelTimeFmt) " ago")) }}
+  {{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (print (. | shortRelTimeFmt) " ago")) }}
 {{ end }}
 
 {{ define "repo/fragments/duration" }}
-<time datetime="{{ . | iso8601DurationFmt }}" title="{{ . | longDurationFmt }}">{{ . | durationFmt }}</time>
+  <time
+    datetime="{{ . | iso8601DurationFmt }}"
+    title="{{ . | longDurationFmt }}">
+    {{ . | durationFmt }}
+  </time>
 {{ end }}

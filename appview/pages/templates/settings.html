@@ -5,180 +5,207 @@
     <p class="text-xl font-bold dark:text-white">Settings</p>
   </div>
   <div class="flex flex-col">
-    {{ block "profile" . }} {{ end }}
-    {{ block "keys" . }} {{ end }}
-    {{ block "emails" . }} {{ end }}
+    {{ block "profile" . }}{{ end }}
+    {{ block "keys" . }}{{ end }}
+    {{ block "emails" . }}{{ end }}
   </div>
 {{ end }}
 
 {{ define "profile" }}
-<h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">profile</h2>
-<section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
-  <dl class="grid grid-cols-[auto_1fr] gap-x-4 dark:text-gray-200">
-    {{ if .LoggedInUser.Handle }}
-    <dt class="font-bold">handle</dt>
-    <dd>@{{ .LoggedInUser.Handle }}</dd>
-    {{ end }}
-    <dt class="font-bold">did</dt>
-    <dd>{{ .LoggedInUser.Did }}</dd>
-    <dt class="font-bold">pds</dt>
-    <dd>{{ .LoggedInUser.Pds }}</dd>
-  </dl>
-</section>
+  <h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">
+    profile
+  </h2>
+  <section
+    class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 dark:text-gray-200">
+      {{ if .LoggedInUser.Handle }}
+        <dt class="font-bold">handle</dt>
+        <dd>@{{ .LoggedInUser.Handle }}</dd>
+      {{ end }}
+      <dt class="font-bold">did</dt>
+      <dd>{{ .LoggedInUser.Did }}</dd>
+      <dt class="font-bold">pds</dt>
+      <dd>{{ .LoggedInUser.Pds }}</dd>
+    </dl>
+  </section>
 {{ end }}
 
 {{ define "keys" }}
-<h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">ssh keys</h2>
-<section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
-  <p class="mb-8 dark:text-gray-300">SSH public keys added here will be broadcasted to knots that you are a member of, <br> allowing you to push to repositories there.</p>
-  <div id="key-list" class="flex flex-col gap-6 mb-8">
-    {{ range $index, $key := .PubKeys }}
-    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-      <div class="flex flex-col gap-1">
-        <div class="inline-flex items-center gap-4">
-          {{ i "key" "w-3 h-3 dark:text-gray-300" }}
-          <p class="font-bold dark:text-white">{{ .Name }}</p>
+  <h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">
+    ssh keys
+  </h2>
+  <section
+    class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+    <p class="mb-8 dark:text-gray-300">
+      SSH public keys added here will be broadcasted to knots that you are a
+      member of,
+      <br />
+      allowing you to push to repositories there.
+    </p>
+    <div id="key-list" class="flex flex-col gap-6 mb-8">
+      {{ range $index, $key := .PubKeys }}
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+          <div class="flex flex-col gap-1">
+            <div class="inline-flex items-center gap-4">
+              {{ i "key" "w-3 h-3 dark:text-gray-300" }}
+              <p class="font-bold dark:text-white">{{ .Name }}</p>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              added {{ template "repo/fragments/time" .Created }}
+            </p>
+            <div class="overflow-x-auto whitespace-nowrap flex-1 max-w-full">
+              <code class="text-sm text-gray-500 dark:text-gray-400">
+                {{ .Key }}
+              </code>
+            </div>
+          </div>
+          <button
+            class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+            title="Delete key"
+            hx-delete="/settings/keys?name={{ urlquery .Name }}&rkey={{ urlquery .Rkey }}&key={{ urlquery .Key }}"
+            hx-confirm="Are you sure you want to delete the key '{{ .Name }}'?">
+            {{ i "trash-2" "w-5 h-5" }}
+            <span class="hidden md:inline">delete</span>
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </button>
         </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400">added {{ template "repo/fragments/time" .Created }}</p>
-        <div class="overflow-x-auto whitespace-nowrap flex-1 max-w-full">
-          <code class="text-sm text-gray-500 dark:text-gray-400">{{ .Key }}</code>
-        </div>
-      </div>
-      <button
-        class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
-        title="Delete key"
-        hx-delete="/settings/keys?name={{urlquery .Name}}&rkey={{urlquery .Rkey}}&key={{urlquery .Key}}"
-        hx-confirm="Are you sure you want to delete the key '{{ .Name }}'?"
-      >
-        {{ i "trash-2" "w-5 h-5" }}
-        <span class="hidden md:inline">delete</span> 
-        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-      </button>
+      {{ end }}
     </div>
-    {{ end }}
-  </div>
-  <form
+    <form
       hx-put="/settings/keys"
       hx-indicator="#add-sshkey-spinner"
       hx-swap="none"
-      class="max-w-2xl mb-8 space-y-4"
-      >
+      class="max-w-2xl mb-8 space-y-4">
       <input
-          type="text"
-          id="name"
-          name="name"
-          placeholder="key name"
-          required
-          class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"/>
+        type="text"
+        id="name"
+        name="name"
+        placeholder="key name"
+        required
+        class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400" />
 
       <input
-          id="key"
-          name="key"
-          placeholder="ssh-rsa AAAAAA..."
-          required
-          class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"/>
-
-      <button class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center" type="submit">
-          <span>add key</span>
-          <span id="add-sshkey-spinner" class="group">
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </span>
-      </button>
-
-      <div id="settings-keys" class="error dark:text-red-400"></div>
-  </form>
-</section>
-{{ end }}
-
-{{ define "emails" }}
-<h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">email addresses</h2>
-<section class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
-<p class="mb-8 dark:text-gray-300">Commits authored using emails listed here will be associated with your Tangled profile.</p>
-  <div id="email-list" class="flex flex-col gap-6 mb-8">
-    {{ range $index, $email := .Emails }}
-    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-      <div class="flex flex-col gap-2">
-        <div class="inline-flex items-center gap-4">
-          {{ i "mail" "w-3 h-3 dark:text-gray-300" }}
-          <p class="font-bold dark:text-white">{{ .Address }}</p>
-          <div class="inline-flex items-center gap-1">
-            {{ if .Verified }}
-            <span class="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">verified</span>
-            {{ else }}
-            <span class="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-1 rounded">unverified</span>
-            {{ end }}
-            {{ if .Primary }}
-            <span class="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">primary</span>
-            {{ end }}
-          </div>
-        </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400">added {{ template "repo/fragments/time" .CreatedAt }}</p>
-      </div>
-      <div class="flex gap-2 items-center">
-        {{ if not .Verified }}
-        <button
-          class="btn flex gap-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-          hx-post="/settings/emails/verify/resend" 
-          hx-swap="none"
-          href="#"
-          hx-vals='{"email": "{{ .Address }}"}'>
-          {{ i "rotate-cw" "w-5 h-5" }}
-          <span class="hidden md:inline">resend</span> 
-        </button>
-        {{ end }}
-        {{ if and (not .Primary) .Verified }}
-        <a 
-          class="text-sm dark:text-blue-400 dark:hover:text-blue-300"
-          hx-post="/settings/emails/primary" 
-          hx-swap="none"
-          href="#"
-          hx-vals='{"email": "{{ .Address }}"}'>
-          set as primary
-        </a>
-        {{ end }}
-        {{ if not .Primary }}
-        <form
-          hx-delete="/settings/emails"
-          hx-confirm="Are you sure you wish to delete the email '{{ .Address }}'?"
-          hx-indicator="#delete-email-{{ $index }}-spinner"
-        >
-          <input type="hidden" name="email" value="{{ .Address }}">
-          <button
-            class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex gap-2 items-center"
-            title="Delete email"
-            type="submit"
-          >
-            {{ i "trash-2" "w-5 h-5" }}
-            <span class="hidden md:inline">delete</span> 
-            <span id="delete-email-{{ $index }}-spinner" class="group">
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </span>
-          </button>
-        </form>
-        {{ end }}
-      </div>
-    </div>
-    {{ end }}
-  </div>
-  <form
-      hx-put="/settings/emails"
-      hx-swap="none"
-      class="max-w-2xl mb-8 space-y-4"
-      hx-indicator="#add-email-spinner"
-      >
-      <input
-          type="email"
-          id="email"
-          name="email"
-          placeholder="your@email.com"
-          required
-          class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"
-      >
+        id="key"
+        name="key"
+        placeholder="ssh-rsa AAAAAA..."
+        required
+        class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400" />
 
       <button
         class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center"
-        type="submit"
-      >
+        type="submit">
+        <span>add key</span>
+        <span id="add-sshkey-spinner" class="group">
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </span>
+      </button>
+
+      <div id="settings-keys" class="error dark:text-red-400"></div>
+    </form>
+  </section>
+{{ end }}
+
+{{ define "emails" }}
+  <h2 class="text-sm font-bold py-2 px-6 uppercase dark:text-gray-300">
+    email addresses
+  </h2>
+  <section
+    class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-6 py-4 mb-6 w-full lg:w-fit">
+    <p class="mb-8 dark:text-gray-300">
+      Commits authored using emails listed here will be associated with your
+      Tangled profile.
+    </p>
+    <div id="email-list" class="flex flex-col gap-6 mb-8">
+      {{ range $index, $email := .Emails }}
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+          <div class="flex flex-col gap-2">
+            <div class="inline-flex items-center gap-4">
+              {{ i "mail" "w-3 h-3 dark:text-gray-300" }}
+              <p class="font-bold dark:text-white">{{ .Address }}</p>
+              <div class="inline-flex items-center gap-1">
+                {{ if .Verified }}
+                  <span
+                    class="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">
+                    verified
+                  </span>
+                {{ else }}
+                  <span
+                    class="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-1 rounded">
+                    unverified
+                  </span>
+                {{ end }}
+                {{ if .Primary }}
+                  <span
+                    class="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
+                    primary
+                  </span>
+                {{ end }}
+              </div>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              added {{ template "repo/fragments/time" .CreatedAt }}
+            </p>
+          </div>
+          <div class="flex gap-2 items-center">
+            {{ if not .Verified }}
+              <button
+                class="btn flex gap-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                hx-post="/settings/emails/verify/resend"
+                hx-swap="none"
+                href="#"
+                hx-vals='{"email": "{{ .Address }}"}'>
+                {{ i "rotate-cw" "w-5 h-5" }}
+                <span class="hidden md:inline">resend</span>
+              </button>
+            {{ end }}
+            {{ if and (not .Primary) .Verified }}
+              <a
+                class="text-sm dark:text-blue-400 dark:hover:text-blue-300"
+                hx-post="/settings/emails/primary"
+                hx-swap="none"
+                href="#"
+                hx-vals='{"email": "{{ .Address }}"}'>
+                set as primary
+              </a>
+            {{ end }}
+            {{ if not .Primary }}
+              <form
+                hx-delete="/settings/emails"
+                hx-confirm="Are you sure you wish to delete the email '{{ .Address }}'?"
+                hx-indicator="#delete-email-{{ $index }}-spinner">
+                <input type="hidden" name="email" value="{{ .Address }}" />
+                <button
+                  class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex gap-2 items-center"
+                  title="Delete email"
+                  type="submit">
+                  {{ i "trash-2" "w-5 h-5" }}
+                  <span class="hidden md:inline">delete</span>
+                  <span id="delete-email-{{ $index }}-spinner" class="group">
+                    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+                  </span>
+                </button>
+              </form>
+            {{ end }}
+          </div>
+        </div>
+      {{ end }}
+    </div>
+    <form
+      hx-put="/settings/emails"
+      hx-swap="none"
+      class="max-w-2xl mb-8 space-y-4"
+      hx-indicator="#add-email-spinner">
+      <input
+        type="email"
+        id="email"
+        name="email"
+        placeholder="your@email.com"
+        required
+        class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400" />
+
+      <button
+        class="btn dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex gap-2 items-center"
+        type="submit">
         <span>add email</span>
         <span id="add-email-spinner" class="group">
           {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
@@ -186,7 +213,9 @@
       </button>
 
       <div id="settings-emails-error" class="error dark:text-red-400"></div>
-      <div id="settings-emails-success" class="success dark:text-green-400"></div>
-  </form>
-</section>
+      <div
+        id="settings-emails-success"
+        class="success dark:text-green-400"></div>
+    </form>
+  </section>
 {{ end }}

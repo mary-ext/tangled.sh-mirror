@@ -1,34 +1,27 @@
 {{ define "repo/fragments/reaction" }}
-    <button
-        id="reactIndi-{{ .Kind }}"
-        class="flex justify-center items-center min-w-8 min-h-8 rounded border
+  <button
+    id="reactIndi-{{ .Kind }}"
+    class="flex justify-center items-center min-w-8 min-h-8 rounded border
             leading-4 px-3 gap-1
             {{ if eq .Count 0 }}
-                hidden
-            {{ end }}
+      hidden
+    {{ end }}
             {{ if .IsReacted }}
-                bg-sky-100
-                border-sky-400
-                dark:bg-sky-900
-                dark:border-sky-500
-            {{ else }}
-                border-gray-200
-                hover:bg-gray-50
-                hover:border-gray-300
-                dark:border-gray-700
-                dark:hover:bg-gray-700
-                dark:hover:border-gray-600
-            {{ end }}
+      bg-sky-100 border-sky-400 dark:bg-sky-900 dark:border-sky-500
+    {{ else }}
+      border-gray-200 hover:bg-gray-50 hover:border-gray-300
+      dark:border-gray-700 dark:hover:bg-gray-700 dark:hover:border-gray-600
+    {{ end }}
             "
-        {{ if .IsReacted }}
-            hx-delete="/react?subject={{ .ThreadAt }}&kind={{ .Kind }}"
-        {{ else }}
-            hx-post="/react?subject={{ .ThreadAt }}&kind={{ .Kind }}"
-        {{ end }}
-        hx-swap="outerHTML"
-        hx-trigger="click from:(#reactBtn-{{ .Kind }}, #reactIndi-{{ .Kind }})"
-        hx-disabled-elt="this"
-    >
-        <span>{{ .Kind }}</span> <span>{{ .Count }}</span>
-    </button>
+    {{ if .IsReacted }}
+      hx-delete="/react?subject={{ .ThreadAt }}&kind={{ .Kind }}"
+    {{ else }}
+      hx-post="/react?subject={{ .ThreadAt }}&kind={{ .Kind }}"
+    {{ end }}
+    hx-swap="outerHTML"
+    hx-trigger="click from:(#reactBtn-{{ .Kind }}, #reactIndi-{{ .Kind }})"
+    hx-disabled-elt="this">
+    <span>{{ .Kind }}</span>
+    <span>{{ .Count }}</span>
+  </button>
 {{ end }}

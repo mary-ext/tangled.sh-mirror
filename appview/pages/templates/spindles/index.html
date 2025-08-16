@@ -1,24 +1,26 @@
 {{ define "title" }}spindles{{ end }}
 
 {{ define "content" }}
-<div class="px-6 py-4">
-  <h1 class="text-xl font-bold dark:text-white">Spindles</h1>
-</div>
-
-<section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
-  <div class="flex flex-col gap-6">
-    {{ block "about" . }} {{ end }}
-    {{ block "list" . }} {{ end }}
-    {{ block "register" . }} {{ end }}
+  <div class="px-6 py-4">
+    <h1 class="text-xl font-bold dark:text-white">Spindles</h1>
   </div>
-</section>
+
+  <section
+    class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
+    <div class="flex flex-col gap-6">
+      {{ block "about" . }}{{ end }}
+      {{ block "list" . }}{{ end }}
+      {{ block "register" . }}{{ end }}
+    </div>
+  </section>
 {{ end }}
 
 {{ define "about" }}
   <section class="rounded flex flex-col gap-2">
     <p class="dark:text-gray-300">
       Spindles are small CI runners.
-      <a href="https://tangled.sh/@tangled.sh/core/blob/master/docs/spindle/hosting.md">
+      <a
+        href="https://tangled.sh/@tangled.sh/core/blob/master/docs/spindle/hosting.md">
         Checkout the documentation if you're interested in self-hosting.
       </a>
     </p>
@@ -27,12 +29,16 @@
 
 {{ define "list" }}
   <section class="rounded w-full flex flex-col gap-2">
-    <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">your spindles</h2>
-    <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 w-full">
+    <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">
+      your spindles
+    </h2>
+    <div
+      class="flex flex-col rounded border border-gray-200 dark:border-gray-700 w-full">
       {{ range $spindle := .Spindles }}
         {{ template "spindles/fragments/spindleListing" . }}
       {{ else }}
-        <div class="flex items-center justify-center p-2 border-b border-gray-200 dark:border-gray-700 text-gray-500">
+        <div
+          class="flex items-center justify-center p-2 border-b border-gray-200 dark:border-gray-700 text-gray-500">
           no spindles registered yet
         </div>
       {{ end }}
@@ -43,14 +49,17 @@
 
 {{ define "register" }}
   <section class="rounded w-full lg:w-fit flex flex-col gap-2">
-    <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">register a spindle</h2>
-    <p class="mb-2 dark:text-gray-300">Enter the hostname of your spindle to get started.</p>
+    <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">
+      register a spindle
+    </h2>
+    <p class="mb-2 dark:text-gray-300">
+      Enter the hostname of your spindle to get started.
+    </p>
     <form
       hx-post="/spindles/register"
       class="max-w-2xl mb-2 space-y-4"
       hx-indicator="#register-button"
-      hx-swap="none"
-      >
+      hx-swap="none">
       <div class="flex gap-2">
         <input
           type="text"
@@ -58,13 +67,11 @@
           name="instance"
           placeholder="spindle.example.com"
           required
-          class="flex-1 w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400 px-3 py-2 border rounded"
-        >
+          class="flex-1 w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400 px-3 py-2 border rounded" />
         <button
           type="submit"
           id="register-button"
-          class="btn rounded flex items-center py-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 group"
-          >
+          class="btn rounded flex items-center py-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 group">
           <span class="inline-flex items-center gap-2">
             {{ i "plus" "w-4 h-4" }}
             register
@@ -77,6 +84,5 @@
 
       <div id="register-error" class="dark:text-red-400"></div>
     </form>
-
   </section>
 {{ end }}

@@ -1,4 +1,6 @@
-{{ define "title" }}{{ .Tab }} settings &middot; {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}
+  {{ .Tab }} settings &middot; {{ .RepoInfo.FullName }}
+{{ end }}
 
 {{ define "repoContent" }}
   <section class="w-full grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -22,13 +24,20 @@
         unless you specify a different branch.
       </p>
     </div>
-    <form hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default" class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
-      <select id="branch" name="branch" required class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
-        <option value="" disabled selected >
-          Choose a default branch
-        </option>
+    <form
+      hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default"
+      class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
+      <select
+        id="branch"
+        name="branch"
+        required
+        class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+        <option value="" disabled selected>Choose a default branch</option>
         {{ range .Branches }}
-          <option value="{{ .Name }}" class="py-1" {{ if .IsDefault }}selected{{ end }} >
+          <option
+            value="{{ .Name }}"
+            class="py-1"
+            {{ if .IsDefault }}selected{{ end }}>
             {{ .Name }}
           </option>
         {{ end }}
@@ -43,26 +52,31 @@
 
 {{ define "deleteRepo" }}
   {{ if .RepoInfo.Roles.RepoDeleteAllowed }}
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-    <div class="col-span-1 md:col-span-2">
-      <h2 class="text-sm pb-2 uppercase text-red-500 dark:text-red-400 font-bold">Delete Repository</h2>
-      <p class="text-red-500 dark:text-red-400 ">
-        Deleting a repository is irreversible and permanent. Be certain before deleting a repository.
-      </p>
-    </div>
-    <div class="col-span-1 md:col-span-1 md:justify-self-end">
-      <button 
-        class="btn group text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex gap-2 items-center"  
-        type="button"
-        hx-delete="/{{ $.RepoInfo.FullName }}/settings/delete"
-        hx-confirm="Are you sure you want to delete {{ $.RepoInfo.FullName }}?">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <div class="col-span-1 md:col-span-2">
+        <h2
+          class="text-sm pb-2 uppercase text-red-500 dark:text-red-400 font-bold">
+          Delete Repository
+        </h2>
+        <p class="text-red-500 dark:text-red-400 ">
+          Deleting a repository is irreversible and permanent. Be certain before
+          deleting a repository.
+        </p>
+      </div>
+      <div class="col-span-1 md:col-span-1 md:justify-self-end">
+        <button
+          class="btn group text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex gap-2 items-center"
+          type="button"
+          hx-delete="/{{ $.RepoInfo.FullName }}/settings/delete"
+          hx-confirm="Are you sure you want to delete {{ $.RepoInfo.FullName }}?">
           {{ i "trash-2" "size-4" }}
           delete
-          <span class="ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline">
+          <span
+            class="ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline">
             {{ i "loader-circle" "w-4 h-4" }}
           </span>
-      </button>
+        </button>
+      </div>
     </div>
-  </div>
   {{ end }}
 {{ end }}

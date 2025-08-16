@@ -1,12 +1,14 @@
 {{ define "repo/fragments/diffOpts" }}
-  <section class="flex flex-col gap-2 overflow-x-auto text-sm px-6 py-2 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
+  <section
+    class="flex flex-col gap-2 overflow-x-auto text-sm px-6 py-2 border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
     <strong class="text-sm uppercase dark:text-gray-200">options</strong>
     {{ $active := "unified" }}
     {{ if .Split }}
       {{ $active = "split" }}
     {{ end }}
     {{ $values := list "unified" "split" }}
-    {{ block "tabSelector" (dict "Name" "diff" "Values" $values "Active" $active) }} {{ end }}
+    {{ block "tabSelector" (dict "Name" "diff" "Values" $values "Active" $active) }}
+    {{ end }}
   </section>
 {{ end }}
 
@@ -14,14 +16,20 @@
   {{ $name := .Name }}
   {{ $all := .Values }}
   {{ $active := .Active }}
-  <div class="flex justify-between divide-x divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+  <div
+    class="flex justify-between divide-x divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
     {{ $activeTab := "bg-white dark:bg-gray-700 shadow-sm" }}
     {{ $inactiveTab := "bg-gray-100 dark:bg-gray-800 shadow-inner" }}
     {{ range $index, $value := $all }}
       {{ $isActive := eq $value $active }}
-      <a href="?{{ $name }}={{ $value }}"
-         class="py-2 text-sm w-full block hover:no-underline text-center {{ if $isActive }} {{$activeTab }} {{ else }} {{ $inactiveTab }} {{ end }}">
-       {{ $value }}
+      <a
+        href="?{{ $name }}={{ $value }}"
+        class="py-2 text-sm w-full block hover:no-underline text-center {{ if $isActive }}
+          {{ $activeTab }}
+        {{ else }}
+          {{ $inactiveTab }}
+        {{ end }}">
+        {{ $value }}
       </a>
     {{ end }}
   </div>

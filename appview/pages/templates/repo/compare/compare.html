@@ -1,5 +1,6 @@
 {{ define "title" }}
-  comparing {{ .Base }} and {{ .Head }} on {{ .RepoInfo.FullName }}
+  comparing {{ .Base }} and {{ .Head }} on
+  {{ .RepoInfo.FullName }}
 {{ end }}
 
 {{ define "repoContent" }}
@@ -23,14 +24,14 @@
     {{ end }}
 
     {{ block "contentAfterLayout" . }}
-    <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4">
-      <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
-        {{ block "contentAfterLeft" . }} {{ end }}
+      <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
+          {{ block "contentAfterLeft" . }}{{ end }}
+        </div>
+        <main class="col-span-1 md:col-span-10">
+          {{ block "contentAfter" . }}{{ end }}
+        </main>
       </div>
-      <main class="col-span-1 md:col-span-10">
-        {{ block "contentAfter" . }}{{ end }}
-      </main>
-    </div>
     {{ end }}
   </div>
 {{ end }}
@@ -43,7 +44,7 @@
 
 {{ define "contentAfter" }}
   {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff .DiffOpts) }}
-{{end}}
+{{ end }}
 
 {{ define "contentAfterLeft" }}
   <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
@@ -52,4 +53,4 @@
   <div class="sticky top-0 flex-grow max-h-screen">
     {{ template "repo/fragments/diffChangedFiles" .Diff }}
   </div>
-{{end}}
+{{ end }}

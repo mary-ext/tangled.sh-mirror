@@ -19,16 +19,20 @@
         {{ $commentCount := len $lastSubmission.Comments }}
         {{ if and $pipeline $pipeline.Id }}
           {{ template "repo/pipelines/fragments/pipelineSymbol" $pipeline }}
-          <span class="before:content-['·'] before:select-none text-gray-500 dark:text-gray-400"></span>
+          <span
+            class="before:content-['·'] before:select-none text-gray-500 dark:text-gray-400"></span>
         {{ end }}
         <span>
           <div class="inline-flex items-center gap-1">
             {{ i "message-square" "w-3 h-3 md:hidden" }}
             {{ $commentCount }}
-            <span class="hidden md:inline">comment{{if ne $commentCount 1}}s{{end}}</span>
+            <span class="hidden md:inline">
+              comment{{ if ne $commentCount 1 }}s{{ end }}
+            </span>
           </div>
         </span>
-        <span class="before:content-['·'] before:select-none text-gray-500 dark:text-gray-400"></span>
+        <span
+          class="before:content-['·'] before:select-none text-gray-500 dark:text-gray-400"></span>
         <span>
           <span class="hidden md:inline">round</span>
           <span class="font-mono">#{{ $latestRound }}</span>
@@ -37,4 +41,3 @@
     </div>
   {{ end }}
 {{ end }}
-

@@ -1,11 +1,11 @@
 {{ define "repo/fragments/og" }}
-    {{ $title := or .Title .RepoInfo.FullName }}
-    {{ $description := or .Description .RepoInfo.Description }}
-    {{ $url := or .Url (printf "https://tangled.sh/%s" .RepoInfo.FullName) }}
+  {{ $title := or .Title .RepoInfo.FullName }}
+  {{ $description := or .Description .RepoInfo.Description }}
+  {{ $url := or .Url (printf "https://tangled.sh/%s" .RepoInfo.FullName) }}
 
 
-    <meta property="og:title" content="{{ unescapeHtml $title }}" />
-    <meta property="og:type" content="object" />
-    <meta property="og:url" content="{{ $url }}" />
-    <meta property="og:description" content="{{ $description }}" />
+  <meta property="og:title" content="{{ unescapeHtml $title }}" />
+  <meta property="og:type" content="object" />
+  <meta property="og:url" content="{{ $url }}" />
+  <meta property="og:description" content="{{ $description }}" />
 {{ end }}

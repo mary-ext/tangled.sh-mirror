@@ -1,15 +1,24 @@
 {{ define "repo/pipelines/fragments/logBlock" }}
-<div id="lines" hx-swap-oob="beforeend">
-  <details id="step-{{ .Id }}" {{if not .Collapsed}}open{{end}} class="group pb-2 rounded-sm border border-gray-200 dark:border-gray-700">
-    <summary class="sticky top-0 pt-2 px-2 group-open:pb-2 group-open:mb-2 list-none cursor-pointer group-open:border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:text-gray-500 hover:dark:text-gray-400">
-      <div class="group-open:hidden flex items-center gap-1">
-        {{ i "chevron-right" "w-4 h-4" }} {{ .Name }}
+  <div id="lines" hx-swap-oob="beforeend">
+    <details
+      id="step-{{ .Id }}"
+      {{ if not .Collapsed }}open{{ end }}
+      class="group pb-2 rounded-sm border border-gray-200 dark:border-gray-700">
+      <summary
+        class="sticky top-0 pt-2 px-2 group-open:pb-2 group-open:mb-2 list-none cursor-pointer group-open:border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:text-gray-500 hover:dark:text-gray-400">
+        <div class="group-open:hidden flex items-center gap-1">
+          {{ i "chevron-right" "w-4 h-4" }}
+          {{ .Name }}
+        </div>
+        <div class="hidden group-open:flex items-center gap-1">
+          {{ i "chevron-down" "w-4 h-4" }}
+          {{ .Name }}
+        </div>
+      </summary>
+      <div class="font-mono whitespace-pre overflow-x-auto px-2">
+        <div class="text-blue-600 dark:text-blue-300">{{ .Command }}</div>
+        <div id="step-body-{{ .Id }}"></div>
       </div>
-      <div class="hidden group-open:flex items-center gap-1">
-        {{ i "chevron-down" "w-4 h-4" }} {{ .Name }}
-      </div>
-    </summary>
-    <div class="font-mono whitespace-pre overflow-x-auto px-2"><div class="text-blue-600 dark:text-blue-300">{{ .Command }}</div><div id="step-body-{{ .Id }}"></div></div>
-  </details>
-</div>
+    </details>
+  </div>
 {{ end }}

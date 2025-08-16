@@ -1,14 +1,14 @@
 {{ define "title" }}
-    {{ .Pull.Title }} &middot; pull #{{ .Pull.PullId }} &middot; {{ .RepoInfo.FullName }}
+  {{ .Pull.Title }} &middot; pull #{{ .Pull.PullId }} &middot;
+  {{ .RepoInfo.FullName }}
 {{ end }}
 
 {{ define "extrameta" }}
-    {{ $title := printf "%s &middot; pull #%d &middot; %s" .Pull.Title .Pull.PullId .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/pulls/%d" .RepoInfo.FullName .Pull.PullId }}
+  {{ $title := printf "%s &middot; pull #%d &middot; %s" .Pull.Title .Pull.PullId .RepoInfo.FullName }}
+  {{ $url := printf "https://tangled.sh/%s/pulls/%d" .RepoInfo.FullName .Pull.PullId }}
 
-    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
-
 
 {{ define "repoContent" }}
   {{ template "repo/pulls/fragments/pullHeader" . }}
@@ -21,14 +21,14 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-    <section id="submissions" class="mt-4">
-      <div class="flex flex-col gap-4">
-        {{ block "submissions" . }} {{ end }}
-      </div>
-    </section>
+  <section id="submissions" class="mt-4">
+    <div class="flex flex-col gap-4">
+      {{ block "submissions" . }}{{ end }}
+    </div>
+  </section>
 
-    <div id="pull-close"></div>
-    <div id="pull-reopen"></div>
+  <div id="pull-close"></div>
+  <div id="pull-reopen"></div>
 {{ end }}
 
 {{ define "submissions" }}
@@ -37,123 +37,157 @@
   {{ $repoName := .RepoInfo.FullName }}
   {{ range $idx, $item := .Pull.Submissions }}
     {{ with $item }}
-    <details {{ if eq $idx $lastIdx }}open{{ end }}>
-        <summary id="round-#{{ .RoundNumber }}" class="list-none cursor-pointer">
+      <details {{ if eq $idx $lastIdx }}open{{ end }}>
+        <summary
+          id="round-#{{ .RoundNumber }}"
+          class="list-none cursor-pointer">
           <div class="flex flex-wrap gap-2 items-center">
             <!-- round number -->
-            <div class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-3 py-2 dark:text-white">
-              <span class="flex items-center">{{ i "hash" "w-4 h-4" }}{{ .RoundNumber }}</span>
+            <div
+              class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-3 py-2 dark:text-white">
+              <span class="flex items-center">
+                {{ i "hash" "w-4 h-4" }}{{ .RoundNumber }}
+              </span>
             </div>
             <!-- round summary -->
-            <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 p-2 text-gray-500 dark:text-gray-400">
+            <div
+              class="rounded drop-shadow-sm bg-white dark:bg-gray-800 p-2 text-gray-500 dark:text-gray-400">
               <span class="gap-1 flex items-center">
                 {{ $owner := resolve $.Pull.OwnerDid }}
                 {{ $re := "re" }}
                 {{ if eq .RoundNumber 0 }}
                   {{ $re = "" }}
                 {{ end }}
-                <span class="hidden md:inline">{{$re}}submitted</span>
-                by {{ template "user/fragments/picHandleLink" $.Pull.OwnerDid }}
+                <span class="hidden md:inline">{{ $re }}submitted</span>
+                by
+                {{ template "user/fragments/picHandleLink" $.Pull.OwnerDid }}
                 <span class="select-none before:content-['\00B7']"></span>
-                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500" href="#round-#{{ .RoundNumber }}">{{ template "repo/fragments/shortTime" .Created }}</a>
+                <a
+                  class="text-gray-500 dark:text-gray-400 hover:text-gray-500"
+                  href="#round-#{{ .RoundNumber }}">
+                  {{ template "repo/fragments/shortTime" .Created }}
+                </a>
                 <span class="select-none before:content-['·']"></span>
                 {{ $s := "s" }}
                 {{ if eq (len .Comments) 1 }}
                   {{ $s = "" }}
                 {{ end }}
-                {{ len .Comments }} comment{{$s}}
+                {{ len .Comments }}
+                comment{{ $s }}
               </span>
             </div>
 
-            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
-               hx-boost="true"
-               href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}">
+            <a
+              class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
+              hx-boost="true"
+              href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{ .RoundNumber }}">
               {{ i "file-diff" "w-4 h-4" }}
               <span class="hidden md:inline">diff</span>
               {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </a>
             {{ if not (eq .RoundNumber 0) }}
-            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
-               hx-boost="true"
-               href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}/interdiff">
-              {{ i "chevrons-left-right-ellipsis" "w-4 h-4 rotate-90" }}
-              <span class="hidden md:inline">interdiff</span>
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </a>
-            <span id="interdiff-error-{{.RoundNumber}}"></span>
+              <a
+                class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
+                hx-boost="true"
+                href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{ .RoundNumber }}/interdiff">
+                {{ i "chevrons-left-right-ellipsis" "w-4 h-4 rotate-90" }}
+                <span class="hidden md:inline">interdiff</span>
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+              </a>
+              <span id="interdiff-error-{{ .RoundNumber }}"></span>
             {{ end }}
           </div>
         </summary>
 
         {{ if .IsFormatPatch }}
-        {{ $patches := .AsFormatPatch }}
-        {{ $round := .RoundNumber }}
-        <details class="group py-2 md:ml-[3.5rem] text-gray-500 dark:text-gray-400 flex flex-col gap-2 relative text-sm">
-          <summary class="py-1 list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
-            {{ $s := "s" }}
-            {{ if eq (len $patches) 1 }}
-            {{ $s = "" }}
-            {{ end }}
-            <div class="group-open:hidden flex items-center gap-2 ml-2">
-              {{ i "chevrons-up-down" "w-4 h-4" }} expand {{ len $patches }} commit{{$s}}
-            </div>
-            <div class="hidden group-open:flex items-center gap-2 ml-2">
-              {{ i "chevrons-down-up" "w-4 h-4" }} hide {{ len $patches }} commit{{$s}}
-            </div>
-          </summary>
-          {{ range $patches }}
-             <div id="commit-{{.SHA}}" class="py-1 px-2 relative w-full md:max-w-3/5 md:w-fit flex flex-col">
-               <div class="flex items-center gap-2">
-                 {{ i "git-commit-horizontal" "w-4 h-4" }}
-                 <div class="text-sm text-gray-500 dark:text-gray-400">
-                   <!-- attempt to resolve $fullRepo: this is possible only on non-deleted forks and branches -->
-                   {{ $fullRepo := "" }}
-                   {{ if and $.Pull.IsForkBased $.Pull.PullSource.Repo }}
-                     {{ $fullRepo = printf "%s/%s" $owner $.Pull.PullSource.Repo.Name }}
-                   {{ else if $.Pull.IsBranchBased }}
-                     {{ $fullRepo = $.RepoInfo.FullName }}
-                   {{ end }}
+          {{ $patches := .AsFormatPatch }}
+          {{ $round := .RoundNumber }}
+          <details
+            class="group py-2 md:ml-[3.5rem] text-gray-500 dark:text-gray-400 flex flex-col gap-2 relative text-sm">
+            <summary
+              class="py-1 list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
+              {{ $s := "s" }}
+              {{ if eq (len $patches) 1 }}
+                {{ $s = "" }}
+              {{ end }}
+              <div class="group-open:hidden flex items-center gap-2 ml-2">
+                {{ i "chevrons-up-down" "w-4 h-4" }} expand {{ len $patches }}
+                commit{{ $s }}
+              </div>
+              <div class="hidden group-open:flex items-center gap-2 ml-2">
+                {{ i "chevrons-down-up" "w-4 h-4" }} hide {{ len $patches }}
+                commit{{ $s }}
+              </div>
+            </summary>
+            {{ range $patches }}
+              <div
+                id="commit-{{ .SHA }}"
+                class="py-1 px-2 relative w-full md:max-w-3/5 md:w-fit flex flex-col">
+                <div class="flex items-center gap-2">
+                  {{ i "git-commit-horizontal" "w-4 h-4" }}
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <!-- attempt to resolve $fullRepo: this is possible only on non-deleted forks and branches -->
+                    {{ $fullRepo := "" }}
+                    {{ if and $.Pull.IsForkBased $.Pull.PullSource.Repo }}
+                      {{ $fullRepo = printf "%s/%s" $owner $.Pull.PullSource.Repo.Name }}
+                    {{ else if $.Pull.IsBranchBased }}
+                      {{ $fullRepo = $.RepoInfo.FullName }}
+                    {{ end }}
 
-                   <!-- if $fullRepo was resolved, link to it, otherwise just span without a link -->
-                   {{ if $fullRepo }}
-                     <a href="/{{ $fullRepo }}/commit/{{ .SHA }}" class="font-mono text-gray-500 dark:text-gray-400">{{ slice .SHA 0 8 }}</a>
-                   {{ else }}
-                     <span class="font-mono">{{ slice .SHA 0 8 }}</span>
-                   {{ end }}
-                 </div>
-                 <div class="flex items-center">
-                   <span>{{ .Title }}</span>
-                   {{ if gt (len .Body) 0 }}
-                   <button
-                       class="py-1/2 px-1 mx-2 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
-                       hx-on:click="document.getElementById('body-{{$round}}-{{.SHA}}').classList.toggle('hidden')"
-                       >
-                       {{ i "ellipsis" "w-3 h-3" }}
-                   </button>
-                     {{ end }}
-                 </div>
-               </div>
-               {{ if gt (len .Body) 0 }}
-               <p id="body-{{$round}}-{{.SHA}}" class="hidden mt-1 text-sm pb-2">
-                 {{ nl2br .Body }}
-               </p>
-               {{ end }}
-             </div>
-          {{ end }}
-        </details>
+
+                    <!-- if $fullRepo was resolved, link to it, otherwise just span without a link -->
+                    {{ if $fullRepo }}
+                      <a
+                        href="/{{ $fullRepo }}/commit/{{ .SHA }}"
+                        class="font-mono text-gray-500 dark:text-gray-400">
+                        {{ slice .SHA 0 8 }}
+                      </a>
+                    {{ else }}
+                      <span class="font-mono">{{ slice .SHA 0 8 }}</span>
+                    {{ end }}
+                  </div>
+                  <div class="flex items-center">
+                    <span>{{ .Title }}</span>
+                    {{ if gt (len .Body) 0 }}
+                      <button
+                        class="py-1/2 px-1 mx-2 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
+                        hx-on:click="document.getElementById('body-{{ $round }}-{{ .SHA }}').classList.toggle('hidden')">
+                        {{ i "ellipsis" "w-3 h-3" }}
+                      </button>
+                    {{ end }}
+                  </div>
+                </div>
+                {{ if gt (len .Body) 0 }}
+                  <p
+                    id="body-{{ $round }}-{{ .SHA }}"
+                    class="hidden mt-1 text-sm pb-2">
+                    {{ nl2br .Body }}
+                  </p>
+                {{ end }}
+              </div>
+            {{ end }}
+          </details>
         {{ end }}
 
 
         <div class="md:pl-[3.5rem] flex flex-col gap-2 mt-2 relative">
           {{ range $cidx, $c := .Comments }}
-            <div id="comment-{{$c.ID}}" class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
+            <div
+              id="comment-{{ $c.ID }}"
+              class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
               {{ if gt $cidx 0 }}
-              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+                <div
+                  class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
               {{ end }}
-              <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <div
+                class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 {{ template "user/fragments/picHandleLink" $c.OwnerDid }}
                 <span class="before:content-['·']"></span>
-                <a class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" href="#comment-{{.ID}}">{{ template "repo/fragments/time" $c.Created }}</a>
+                <a
+                  class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                  href="#comment-{{ .ID }}">
+                  {{ template "repo/fragments/time" $c.Created }}
+                </a>
               </div>
               <div class="prose dark:prose-invert">
                 {{ $c.Body | markdown }}
@@ -161,60 +195,68 @@
             </div>
           {{ end }}
 
-          {{ block "pipelineStatus" (list $ .) }} {{ end }}
+          {{ block "pipelineStatus" (list $ .) }}{{ end }}
 
           {{ if eq $lastIdx .RoundNumber }}
-            {{ block "mergeStatus" $ }} {{ end }}
-            {{ block "resubmitStatus" $ }} {{ end }}
+            {{ block "mergeStatus" $ }}{{ end }}
+            {{ block "resubmitStatus" $ }}{{ end }}
           {{ end }}
 
           {{ if $.LoggedInUser }}
             {{ template "repo/pulls/fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck "Stack" $.Stack) }}
           {{ else }}
-            <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm px-6 py-4 w-fit dark:text-white">
-              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
-              <a href="/login" class="underline">login</a> to join the discussion
+            <div
+              class="bg-white dark:bg-gray-800 rounded drop-shadow-sm px-6 py-4 w-fit dark:text-white">
+              <div
+                class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+              <a href="/login" class="underline">login</a>
+              to join the discussion
             </div>
           {{ end }}
         </div>
-    </details>
+      </details>
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "mergeStatus" }}
   {{ if .Pull.State.IsClosed }}
-  <div class="bg-gray-50 dark:bg-gray-700 border border-black dark:border-gray-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="flex items-center gap-2 text-black dark:text-white">
-      {{ i "ban" "w-4 h-4" }}
-      <span class="font-medium">closed without merging</span
-      >
+    <div
+      class="bg-gray-50 dark:bg-gray-700 border border-black dark:border-gray-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="flex items-center gap-2 text-black dark:text-white">
+        {{ i "ban" "w-4 h-4" }}
+        <span class="font-medium">closed without merging</span>
+      </div>
     </div>
-  </div>
   {{ else if .Pull.State.IsMerged }}
-  <div class="bg-purple-50 dark:bg-purple-900 border border-purple-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="flex items-center gap-2 text-purple-500 dark:text-purple-300">
-      {{ i "git-merge" "w-4 h-4" }}
-      <span class="font-medium">pull request successfully merged</span
-      >
+    <div
+      class="bg-purple-50 dark:bg-purple-900 border border-purple-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="flex items-center gap-2 text-purple-500 dark:text-purple-300">
+        {{ i "git-merge" "w-4 h-4" }}
+        <span class="font-medium">pull request successfully merged</span>
+      </div>
     </div>
-  </div>
   {{ else if .Pull.State.IsDeleted }}
-  <div class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="flex items-center gap-2 text-red-500 dark:text-red-300">
-      {{ i "git-pull-request-closed" "w-4 h-4" }}
-      <span class="font-medium">This pull has been deleted (possibly by jj abandon or jj squash)</span>
+    <div
+      class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="flex items-center gap-2 text-red-500 dark:text-red-300">
+        {{ i "git-pull-request-closed" "w-4 h-4" }}
+        <span class="font-medium">
+          This pull has been deleted (possibly by jj abandon or jj squash)
+        </span>
+      </div>
     </div>
-  </div>
   {{ else if and .MergeCheck .MergeCheck.Error }}
-    <div class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div
+      class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
       <div class="flex items-center gap-2 text-red-500 dark:text-red-300">
         {{ i "triangle-alert" "w-4 h-4" }}
         <span class="font-medium">{{ .MergeCheck.Error }}</span>
       </div>
     </div>
   {{ else if and .MergeCheck .MergeCheck.IsConflicted }}
-    <div class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+    <div
+      class="bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
       <div class="flex flex-col gap-2 text-red-500 dark:text-red-300">
         <div class="flex items-center gap-2">
           {{ i "triangle-alert" "w-4 h-4" }}
@@ -224,15 +266,15 @@
           <ul class="space-y-1">
             {{ range .MergeCheck.Conflicts }}
               {{ if .Filename }}
-              <li class="flex items-center">
-                {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
-                <span class="font-mono">{{ .Filename }}</span>
-              </li>
+                <li class="flex items-center">
+                  {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
+                  <span class="font-mono">{{ .Filename }}</span>
+                </li>
               {{ else if .Reason }}
-              <li class="flex items-center">
-                {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
-                <span>{{.Reason}}</span>
-              </li>
+                <li class="flex items-center">
+                  {{ i "file-warning" "w-4 h-4 mr-1.5 text-red-500 dark:text-red-300" }}
+                  <span>{{ .Reason }}</span>
+                </li>
               {{ end }}
             {{ end }}
           </ul>
@@ -240,23 +282,27 @@
       </div>
     </div>
   {{ else if .MergeCheck }}
-  <div class="bg-green-50 dark:bg-green-900 border border-green-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="flex items-center gap-2 text-green-500 dark:text-green-300">
-      {{ i "circle-check-big" "w-4 h-4" }}
-      <span class="font-medium">no conflicts, ready to merge</span>
+    <div
+      class="bg-green-50 dark:bg-green-900 border border-green-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="flex items-center gap-2 text-green-500 dark:text-green-300">
+        {{ i "circle-check-big" "w-4 h-4" }}
+        <span class="font-medium">no conflicts, ready to merge</span>
+      </div>
     </div>
-  </div>
   {{ end }}
 {{ end }}
 
 {{ define "resubmitStatus" }}
   {{ if .ResubmitCheck.Yes }}
-  <div class="bg-amber-50 dark:bg-amber-900 border border-amber-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
-    <div class="flex items-center gap-2 text-amber-500 dark:text-amber-300">
-      {{ i "triangle-alert" "w-4 h-4" }}
-      <span class="font-medium">this branch has been updated, consider resubmitting</span>
+    <div
+      class="bg-amber-50 dark:bg-amber-900 border border-amber-500 rounded drop-shadow-sm px-6 py-2 relative w-fit">
+      <div class="flex items-center gap-2 text-amber-500 dark:text-amber-300">
+        {{ i "triangle-alert" "w-4 h-4" }}
+        <span class="font-medium">
+          this branch has been updated, consider resubmitting
+        </span>
+      </div>
     </div>
-  </div>
   {{ end }}
 {{ end }}
 
@@ -267,28 +313,31 @@
   {{ with $pipeline }}
     {{ $id := .Id }}
     {{ if .Statuses }}
-      <div class="max-w-80 grid grid-cols-1 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+      <div
+        class="max-w-80 grid grid-cols-1 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
         {{ range $name, $all := .Statuses }}
-        <a href="/{{ $root.RepoInfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
-          <div
-            class="flex gap-2 items-center justify-between p-2">
-            {{ $lastStatus := $all.Latest }}
-            {{ $kind := $lastStatus.Status.String }}
+          <a
+            href="/{{ $root.RepoInfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}"
+            class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
+            <div class="flex gap-2 items-center justify-between p-2">
+              {{ $lastStatus := $all.Latest }}
+              {{ $kind := $lastStatus.Status.String }}
 
-            <div id="left" class="flex items-center gap-2 flex-shrink-0">
-              {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
-              {{ $name }}
+
+              <div id="left" class="flex items-center gap-2 flex-shrink-0">
+                {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
+                {{ $name }}
+              </div>
+              <div id="right" class="flex items-center gap-2 flex-shrink-0">
+                <span class="font-bold">{{ $kind }}</span>
+                {{ if .TimeTaken }}
+                  {{ template "repo/fragments/duration" .TimeTaken }}
+                {{ else }}
+                  {{ template "repo/fragments/shortTimeAgo" $lastStatus.Created }}
+                {{ end }}
+              </div>
             </div>
-            <div id="right" class="flex items-center gap-2 flex-shrink-0">
-              <span class="font-bold">{{ $kind }}</span>
-              {{ if .TimeTaken }}
-              {{ template "repo/fragments/duration" .TimeTaken }}
-              {{ else }}
-              {{ template "repo/fragments/shortTimeAgo" $lastStatus.Created }}
-              {{ end }}
-            </div>
-          </div>
-        </a>
+          </a>
         {{ end }}
       </div>
     {{ end }}

@@ -1,48 +1,94 @@
 {{ define "layouts/footer" }}
-<div class="w-full p-4 md:p-8 bg-white dark:bg-gray-800 rounded-t drop-shadow-sm">
-  <div class="container mx-auto max-w-7xl px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-start text-gray-600 dark:text-gray-400 text-sm gap-8">
-      <div class="mb-4 md:mb-0">
-        <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic">
-          tangled<sub>alpha</sub>
-        </a>
-      </div>
-
-      {{ $headerStyle := "text-gray-900 dark:text-gray-200 font-bold text-xs uppercase tracking-wide mb-1" }}
-      {{ $linkStyle := "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" }}
-      {{ $iconStyle := "w-4 h-4 flex-shrink-0" }}
-      <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 sm:gap-6 md:gap-2 gap-6 flex-1">
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">legal</div>
-          <a href="/terms" class="{{ $linkStyle }}">{{ i "file-text" $iconStyle }} terms of service</a>
-          <a href="/privacy" class="{{ $linkStyle }}">{{ i "shield" $iconStyle }} privacy policy</a>
+  <div
+    class="w-full p-4 md:p-8 bg-white dark:bg-gray-800 rounded-t drop-shadow-sm">
+    <div class="container mx-auto max-w-7xl px-4">
+      <div
+        class="flex flex-col lg:flex-row justify-between items-start text-gray-600 dark:text-gray-400 text-sm gap-8">
+        <div class="mb-4 md:mb-0">
+          <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic">
+            tangled
+            <sub>alpha</sub>
+          </a>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">resources</div>
-          <a href="https://blog.tangled.sh" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "book-open" $iconStyle }} blog</a>
-          <a href="https://tangled.sh/@tangled.sh/core/tree/master/docs" class="{{ $linkStyle }}">{{ i "book" $iconStyle }} docs</a>
-          <a href="https://tangled.sh/@tangled.sh/core" class="{{ $linkStyle }}">{{ i "code" $iconStyle }} source</a>
+        {{ $headerStyle := "text-gray-900 dark:text-gray-200 font-bold text-xs uppercase tracking-wide mb-1" }}
+        {{ $linkStyle := "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" }}
+        {{ $iconStyle := "w-4 h-4 flex-shrink-0" }}
+        <div
+          class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 sm:gap-6 md:gap-2 gap-6 flex-1">
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">legal</div>
+            <a href="/terms" class="{{ $linkStyle }}">
+              {{ i "file-text" $iconStyle }} terms of service
+            </a>
+            <a href="/privacy" class="{{ $linkStyle }}">
+              {{ i "shield" $iconStyle }} privacy policy
+            </a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">resources</div>
+            <a
+              href="https://blog.tangled.sh"
+              class="{{ $linkStyle }}"
+              target="_blank"
+              rel="noopener noreferrer">
+              {{ i "book-open" $iconStyle }} blog
+            </a>
+            <a
+              href="https://tangled.sh/@tangled.sh/core/tree/master/docs"
+              class="{{ $linkStyle }}">
+              {{ i "book" $iconStyle }} docs
+            </a>
+            <a
+              href="https://tangled.sh/@tangled.sh/core"
+              class="{{ $linkStyle }}">
+              {{ i "code" $iconStyle }} source
+            </a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">social</div>
+            <a
+              href="https://chat.tangled.sh"
+              class="{{ $linkStyle }}"
+              target="_blank"
+              rel="noopener noreferrer">
+              {{ i "message-circle" $iconStyle }} discord
+            </a>
+            <a
+              href="https://web.libera.chat/#tangled"
+              class="{{ $linkStyle }}"
+              target="_blank"
+              rel="noopener noreferrer">
+              {{ i "hash" $iconStyle }} irc
+            </a>
+            <a
+              href="https://bsky.app/profile/tangled.sh"
+              class="{{ $linkStyle }}"
+              target="_blank"
+              rel="noopener noreferrer">
+              {{ template "user/fragments/bluesky" $iconStyle }} bluesky
+            </a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">contact</div>
+            <a href="mailto:team@tangled.sh" class="{{ $linkStyle }}">
+              {{ i "mail" "w-4 h-4 flex-shrink-0" }} team@tangled.sh
+            </a>
+            <a href="mailto:security@tangled.sh" class="{{ $linkStyle }}">
+              {{ i "shield-check" "w-4 h-4 flex-shrink-0" }} security@tangled.sh
+            </a>
+          </div>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">social</div>
-          <a href="https://chat.tangled.sh" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "message-circle" $iconStyle }} discord</a>
-          <a href="https://web.libera.chat/#tangled" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "hash" $iconStyle }} irc</a>
-          <a href="https://bsky.app/profile/tangled.sh" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ template "user/fragments/bluesky" $iconStyle }} bluesky</a>
+        <div class="text-center lg:text-right flex-shrink-0">
+          <div class="text-xs">
+            &copy; 2025 Tangled Labs Oy. All rights reserved.
+          </div>
         </div>
-
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">contact</div>
-          <a href="mailto:team@tangled.sh" class="{{ $linkStyle }}">{{ i "mail" "w-4 h-4 flex-shrink-0" }} team@tangled.sh</a>
-          <a href="mailto:security@tangled.sh" class="{{ $linkStyle }}">{{ i "shield-check" "w-4 h-4 flex-shrink-0" }} security@tangled.sh</a>
-        </div>
-      </div>
-
-      <div class="text-center lg:text-right flex-shrink-0">
-        <div class="text-xs">&copy; 2025 Tangled Labs Oy. All rights reserved.</div>
       </div>
     </div>
   </div>
-</div>
 {{ end }}

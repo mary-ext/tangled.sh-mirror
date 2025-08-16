@@ -1,63 +1,71 @@
 {{ define "user/login" }}
-    <!doctype html>
-    <html lang="en" class="dark:bg-gray-900">
-        <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <meta property="og:title" content="login · tangled" />
-            <meta property="og:url" content="https://tangled.sh/login" />
-            <meta property="og:description" content="login to for tangled" />
-            <script src="/static/htmx.min.js"></script>
-            <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
-            <title>login &middot; tangled</title>
-        </head>
-        <body class="flex items-center justify-center min-h-screen">
-            <main class="max-w-md px-6 -mt-4">
-                <h1 class="text-center text-2xl font-semibold italic dark:text-white" >
-                    tangled
-                </h1>
-                <h2 class="text-center text-xl italic dark:text-white">
-                    tightly-knit social coding.
-                </h2>
-                <form
-                    class="mt-4 max-w-sm mx-auto"
-                    hx-post="/login"
-                    hx-swap="none"
-                    hx-disabled-elt="#login-button"
-                >
-                    <div class="flex flex-col">
-                        <label for="handle">handle</label>
-                        <input
-                            type="text"
-                            id="handle"
-                            name="handle"
-                            tabindex="1"
-                            required
-                            placeholder="akshay.tngl.sh"
-                        />
-                        <span class="text-sm text-gray-500 mt-1">
-                            Use your <a href="https://atproto.com">ATProto</a>
-                            handle to log in. If you're unsure, this is likely
-                            your Tangled (<code>.tngl.sh</code>) or <a href="https://bsky.app">Bluesky</a> (<code>.bsky.social</code>) account.
-                        </span>
-                    </div>
-                    <input type="hidden" name="return_url" value="{{ .ReturnUrl }}">
+  <!doctype html>
+  <html lang="en" class="dark:bg-gray-900">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta property="og:title" content="login · tangled" />
+      <meta property="og:url" content="https://tangled.sh/login" />
+      <meta property="og:description" content="login to for tangled" />
+      <script src="/static/htmx.min.js"></script>
+      <link
+        rel="stylesheet"
+        href="/static/tw.css?{{ cssContentHash }}"
+        type="text/css" />
+      <title>login &middot; tangled</title>
+    </head>
+    <body class="flex items-center justify-center min-h-screen">
+      <main class="max-w-md px-6 -mt-4">
+        <h1 class="text-center text-2xl font-semibold italic dark:text-white">
+          tangled
+        </h1>
+        <h2 class="text-center text-xl italic dark:text-white">
+          tightly-knit social coding.
+        </h2>
+        <form
+          class="mt-4 max-w-sm mx-auto"
+          hx-post="/login"
+          hx-swap="none"
+          hx-disabled-elt="#login-button">
+          <div class="flex flex-col">
+            <label for="handle">handle</label>
+            <input
+              type="text"
+              id="handle"
+              name="handle"
+              tabindex="1"
+              required
+              placeholder="akshay.tngl.sh" />
+            <span class="text-sm text-gray-500 mt-1">
+              Use your
+              <a href="https://atproto.com">ATProto</a>
+              handle to log in. If you're unsure, this is likely your Tangled (
+              <code>.tngl.sh</code>
+              ) or
+              <a href="https://bsky.app">Bluesky</a>
+              (
+              <code>.bsky.social</code>
+              ) account.
+            </span>
+          </div>
+          <input type="hidden" name="return_url" value="{{ .ReturnUrl }}" />
 
-                    <button
-                        class="btn w-full my-2 mt-6 text-base "
-                        type="submit"
-                        id="login-button"
-                        tabindex="3"
-                    >
-                        <span>login</span>
-                    </button>
-                </form>
-                <p class="text-sm text-gray-500">
-                  Don't have an account? <a href="/signup" class="underline">Create an account</a> on Tangled now!
-                </p>
+          <button
+            class="btn w-full my-2 mt-6 text-base "
+            type="submit"
+            id="login-button"
+            tabindex="3">
+            <span>login</span>
+          </button>
+        </form>
+        <p class="text-sm text-gray-500">
+          Don't have an account?
+          <a href="/signup" class="underline">Create an account</a>
+          on Tangled now!
+        </p>
 
-                <p id="login-msg" class="error w-full"></p>
-            </main>
-        </body>
-    </html>
+        <p id="login-msg" class="error w-full"></p>
+      </main>
+    </body>
+  </html>
 {{ end }}

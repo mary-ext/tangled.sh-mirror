@@ -1,30 +1,24 @@
 {{ define "repo/fragments/reactionsPopUp" }}
-    <details
-        id="reactionsPopUp"
-        class="relative inline-block"
-    >
-        <summary
-            class="flex justify-center items-center min-w-8 min-h-8 rounded border border-gray-200 dark:border-gray-700
+  <details id="reactionsPopUp" class="relative inline-block">
+    <summary
+      class="flex justify-center items-center min-w-8 min-h-8 rounded border border-gray-200 dark:border-gray-700
                 hover:bg-gray-50
                 hover:border-gray-300
                 dark:hover:bg-gray-700
                 dark:hover:border-gray-600
-                cursor-pointer list-none"
-        >
-            {{ i "smile" "size-4" }}
-        </summary>
-        <div
-            class="absolute flex left-0 z-10 mt-4 rounded bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 shadow-lg"
-        >
-            {{ range $kind := . }}
-                <button
-                    id="reactBtn-{{ $kind }}"
-                    class="size-12 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    hx-on:click="this.parentElement.parentElement.removeAttribute('open')"
-                >
-                    {{ $kind }}
-                </button>
-            {{ end }}
-        </div>
-    </details>
+                cursor-pointer list-none">
+      {{ i "smile" "size-4" }}
+    </summary>
+    <div
+      class="absolute flex left-0 z-10 mt-4 rounded bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 shadow-lg">
+      {{ range $kind := . }}
+        <button
+          id="reactBtn-{{ $kind }}"
+          class="size-12 hover:bg-gray-100 dark:hover:bg-gray-700"
+          hx-on:click="this.parentElement.parentElement.removeAttribute('open')">
+          {{ $kind }}
+        </button>
+      {{ end }}
+    </div>
+  </details>
 {{ end }}

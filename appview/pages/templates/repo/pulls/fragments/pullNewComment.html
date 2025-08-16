@@ -1,40 +1,37 @@
 {{ define "repo/pulls/fragments/pullNewComment" }}
-<div
-  id="pull-comment-card-{{ .RoundNumber }}"
-  class="bg-white dark:bg-gray-800 rounded drop-shadow-sm p-4 relative w-full flex flex-col gap-2">
-  <div class="text-sm text-gray-500 dark:text-gray-400">
-    {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
-  </div>
-  <form
-    hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .RoundNumber }}/comment"
-    hx-indicator="#create-comment-spinner"
-    hx-swap="none"
-    class="w-full flex flex-wrap gap-2"
-  >
-    <textarea
+  <div
+    id="pull-comment-card-{{ .RoundNumber }}"
+    class="bg-white dark:bg-gray-800 rounded drop-shadow-sm p-4 relative w-full flex flex-col gap-2">
+    <div class="text-sm text-gray-500 dark:text-gray-400">
+      {{ didOrHandle .LoggedInUser.Did .LoggedInUser.Handle }}
+    </div>
+    <form
+      hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .RoundNumber }}/comment"
+      hx-indicator="#create-comment-spinner"
+      hx-swap="none"
+      class="w-full flex flex-wrap gap-2">
+      <textarea
         name="body"
         class="w-full p-2 rounded border border-gray-200"
-        placeholder="Add to the discussion..."></textarea
-    >
-    <button type="submit" class="btn flex items-center gap-2">
+        placeholder="Add to the discussion..."></textarea>
+      <button type="submit" class="btn flex items-center gap-2">
         {{ i "message-square" "w-4 h-4" }}
         <span>comment</span>
         <span id="create-comment-spinner" class="group">
           {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </span>
-    </button>
-    <button
-      type="button"
-      class="btn flex items-center gap-2 group"
-      hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .RoundNumber }}/actions"
-      hx-swap="outerHTML"
-      hx-target="#pull-comment-card-{{ .RoundNumber }}"
-    >
-      {{ i "x" "w-4 h-4" }}
-      <span>cancel</span>
-      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-    </button>
-    <div id="pull-comment"></div>
-  </form>
-</div>
+      </button>
+      <button
+        type="button"
+        class="btn flex items-center gap-2 group"
+        hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .RoundNumber }}/actions"
+        hx-swap="outerHTML"
+        hx-target="#pull-comment-card-{{ .RoundNumber }}">
+        {{ i "x" "w-4 h-4" }}
+        <span>cancel</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
+      <div id="pull-comment"></div>
+    </form>
+  </div>
 {{ end }}

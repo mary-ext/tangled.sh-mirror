@@ -3,10 +3,9 @@
     class="btn gap-2 group"
     title="Add member to this spindle"
     popovertarget="add-member-{{ .Id }}"
-    popovertargetaction="toggle"
-  >
+    popovertargetaction="toggle">
     {{ i "user-plus" "w-5 h-5" }}
-    <span class="hidden md:inline">add member</span> 
+    <span class="hidden md:inline">add member</span>
     {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
   </button>
 
@@ -14,45 +13,45 @@
     id="add-member-{{ .Id }}"
     popover
     class="bg-white w-full md:w-96 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
-    {{ block "addKnotMemberPopover" . }} {{ end }}
+    {{ block "addKnotMemberPopover" . }}{{ end }}
   </div>
 {{ end }}
 
 {{ define "addKnotMemberPopover" }}
-<form
-  hx-put="/knots/{{ .Domain }}/member"
-  hx-indicator="#spinner"
-  hx-swap="none"
-  class="flex flex-col gap-2"
->
-  <label for="member-did-{{ .Id }}" class="uppercase p-0">
-    ADD MEMBER
-  </label>
-  <p class="text-sm text-gray-500 dark:text-gray-400">Members can create repositories on this knot.</p>
-  <input
-    type="text"
-    id="member-did-{{ .Id }}"
-    name="subject"
-    required
-    placeholder="@foo.bsky.social"
-  />
-  <div class="flex gap-2 pt-2">
-    <button
-      type="button"
-      popovertarget="add-member-{{ .Id }}"
-      popovertargetaction="hide"
-      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-      >
-      {{ i "x" "size-4" }} cancel
-    </button>
-    <button type="submit" class="btn w-1/2 flex items-center">
-      <span class="inline-flex gap-2 items-center">{{ i "user-plus" "size-4" }} add</span>
-      <span id="spinner" class="group">
-        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-      </span>
-    </button>
-  </div>
-  <div id="add-member-error-{{ .Id }}" class="text-red-500 dark:text-red-400"></div>
-</form>
+  <form
+    hx-put="/knots/{{ .Domain }}/member"
+    hx-indicator="#spinner"
+    hx-swap="none"
+    class="flex flex-col gap-2">
+    <label for="member-did-{{ .Id }}" class="uppercase p-0">ADD MEMBER</label>
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Members can create repositories on this knot.
+    </p>
+    <input
+      type="text"
+      id="member-did-{{ .Id }}"
+      name="subject"
+      required
+      placeholder="@foo.bsky.social" />
+    <div class="flex gap-2 pt-2">
+      <button
+        type="button"
+        popovertarget="add-member-{{ .Id }}"
+        popovertargetaction="hide"
+        class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+        {{ i "x" "size-4" }} cancel
+      </button>
+      <button type="submit" class="btn w-1/2 flex items-center">
+        <span class="inline-flex gap-2 items-center">
+          {{ i "user-plus" "size-4" }} add
+        </span>
+        <span id="spinner" class="group">
+          {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </span>
+      </button>
+    </div>
+    <div
+      id="add-member-error-{{ .Id }}"
+      class="text-red-500 dark:text-red-400"></div>
+  </form>
 {{ end }}
-

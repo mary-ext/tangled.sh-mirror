@@ -1,81 +1,103 @@
-{{ define "title" }}{{ .Path }} at {{ .Ref }} &middot; {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}
+  {{ .Path }} at {{ .Ref }} &middot; {{ .RepoInfo.FullName }}
+{{ end }}
 
 {{ define "extrameta" }}
-    {{ template "repo/fragments/meta" . }}
+  {{ template "repo/fragments/meta" . }}
 
-    {{ $title := printf "%s at %s &middot; %s" .Path .Ref .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/blob/%s/%s" .RepoInfo.FullName .Ref .Path }}
+  {{ $title := printf "%s at %s &middot; %s" .Path .Ref .RepoInfo.FullName }}
+  {{ $url := printf "https://tangled.sh/%s/blob/%s/%s" .RepoInfo.FullName .Ref .Path }}
 
-    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
-
+  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
 {{ define "repoContent" }}
-    {{ $lines := split .Contents }}
-    {{ $tot_lines := len $lines }}
-    {{ $tot_chars := len (printf "%d" $tot_lines) }}
-    {{ $code_number_style := "text-gray-400 dark:text-gray-500 left-0 bg-white dark:bg-gray-800 text-right mr-6 select-none inline-block w-12" }}
-    {{ $linkstyle := "no-underline hover:underline" }}
-    <div class="pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
-        <div class="flex flex-col md:flex-row md:justify-between gap-2">
-            <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap text-gray-400 dark:text-gray-500">
-                {{ range $idx, $value := .BreadCrumbs }}
-                    {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
-                        <a
-                            href="{{ index . 1 }}"
-                            class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}"
-                            >{{ pathUnescape (index . 0) }}</a
-                        >
-                        /
-                    {{ else }}
-                        <span class="text-bold text-black dark:text-white"
-                            >{{ pathUnescape (index . 0) }}</span
-                        >
-                    {{ end }}
-                {{ end }}
-            </div>
-            <div id="file-info" class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
-                <span>at <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Ref }}">{{ .Ref }}</a></span>
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <span>{{ .Lines }} lines</span>
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <span>{{ byteFmt .SizeHint }}</span>
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <a href="/{{ .RepoInfo.FullName }}/raw/{{ .Ref }}/{{ .Path }}">view raw</a>
-                {{ if .RenderToggle }}
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <a
-                href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .ShowRendered }}"
-                hx-boost="true"
-                >view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}</a>
-                {{ end }}
-            </div>
-        </div>
-    </div>
-    {{ if and .IsBinary .Unsupported }}
-        <p class="text-center text-gray-400 dark:text-gray-500">
-            Previews are not supported for this file type.
-        </p>
-    {{ else if .IsBinary }}
-        <div class="text-center">
-            {{ if .IsImage }}
-                <img src="{{ .ContentSrc }}"
-                     alt="{{ .Path }}"
-                     class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded" />
-            {{ else if .IsVideo }}
-                <video controls class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded">
-                    <source src="{{ .ContentSrc }}">
-                    Your browser does not support the video tag.
-                </video>
-            {{ end }}
-        </div>
-    {{ else }}
-    <div class="overflow-auto relative">
-        {{ if .ShowRendered }}
-        <div id="blob-contents" class="prose dark:prose-invert">{{ .RenderedContents }}</div>
-        {{ else }}
-        <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ $.Contents | escapeHtml }}</div>
+  {{ $lines := split .Contents }}
+  {{ $tot_lines := len $lines }}
+  {{ $tot_chars := len (printf "%d" $tot_lines) }}
+  {{ $code_number_style := "text-gray-400 dark:text-gray-500 left-0 bg-white dark:bg-gray-800 text-right mr-6 select-none inline-block w-12" }}
+  {{ $linkstyle := "no-underline hover:underline" }}
+  <div
+    class="pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
+    <div class="flex flex-col md:flex-row md:justify-between gap-2">
+      <div
+        id="breadcrumbs"
+        class="overflow-x-auto whitespace-nowrap text-gray-400 dark:text-gray-500">
+        {{ range $idx, $value := .BreadCrumbs }}
+          {{ if ne $idx (sub (len $.BreadCrumbs) 1) }}
+            <a
+              href="{{ index . 1 }}"
+              class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}">
+              {{ pathUnescape (index . 0) }}
+            </a>
+            /
+          {{ else }}
+            <span class="text-bold text-black dark:text-white">
+              {{ pathUnescape (index . 0) }}
+            </span>
+          {{ end }}
         {{ end }}
+      </div>
+      <div
+        id="file-info"
+        class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
+        <span>
+          at
+          <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Ref }}">{{ .Ref }}</a>
+        </span>
+        <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+        <span>{{ .Lines }} lines</span>
+        <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+        <span>{{ byteFmt .SizeHint }}</span>
+        <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+        <a href="/{{ .RepoInfo.FullName }}/raw/{{ .Ref }}/{{ .Path }}">
+          view raw
+        </a>
+        {{ if .RenderToggle }}
+          <span
+            class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+          <a
+            href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .ShowRendered }}"
+            hx-boost="true">
+            view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}
+          </a>
+        {{ end }}
+      </div>
     </div>
-    {{ end }}
+  </div>
+  {{ if and .IsBinary .Unsupported }}
+    <p class="text-center text-gray-400 dark:text-gray-500">
+      Previews are not supported for this file type.
+    </p>
+  {{ else if .IsBinary }}
+    <div class="text-center">
+      {{ if .IsImage }}
+        <img
+          src="{{ .ContentSrc }}"
+          alt="{{ .Path }}"
+          class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded" />
+      {{ else if .IsVideo }}
+        <video
+          controls
+          class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded">
+          <source src="{{ .ContentSrc }}" />
+          Your browser does not support the video tag.
+        </video>
+      {{ end }}
+    </div>
+  {{ else }}
+    <div class="overflow-auto relative">
+      {{ if .ShowRendered }}
+        <div id="blob-contents" class="prose dark:prose-invert">
+          {{ .RenderedContents }}
+        </div>
+      {{ else }}
+        <div
+          id="blob-contents"
+          class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">
+          {{ $.Contents | escapeHtml }}
+        </div>
+      {{ end }}
+    </div>
+  {{ end }}
 {{ end }}

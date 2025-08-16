@@ -11,12 +11,14 @@
         {{ $description = .Profile.Description }}
       {{ end }}
       <label class="m-0 p-0" for="description">bio</label>
-      <textarea 
-        type="text" 
-        class="py-1 px-1 w-full" 
-        name="description" 
+      <textarea
+        type="text"
+        class="py-1 px-1 w-full"
+        name="description"
         rows="3"
-        placeholder="write a bio">{{ $description }}</textarea>
+        placeholder="write a bio">
+{{ $description }}</textarea
+      >
     </div>
 
     <div class="flex flex-col gap-1">
@@ -27,7 +29,11 @@
           {{ $location = .Profile.Location }}
         {{ end }}
         <span class="flex-shrink-0">{{ i "map-pin" "size-4" }}</span>
-        <input type="text" class="py-1 px-1 w-full" name="location" value="{{ $location }}">
+        <input
+          type="text"
+          class="py-1 px-1 w-full"
+          name="location"
+          value="{{ $location }}" />
       </div>
     </div>
 
@@ -38,8 +44,15 @@
         {{ if and .Profile .Profile.IncludeBluesky }}
           {{ $includeBsky = true }}
         {{ end }}
-        <input type="checkbox" id="includeBluesky" name="includeBluesky" value="on" {{if $includeBsky}}checked{{end}}>
-        <label for="includeBluesky" class="my-0 py-0 normal-case font-normal">Link to Bluesky account</label>
+        <input
+          type="checkbox"
+          id="includeBluesky"
+          name="includeBluesky"
+          value="on"
+          {{ if $includeBsky }}checked{{ end }} />
+        <label for="includeBluesky" class="my-0 py-0 normal-case font-normal">
+          Link to Bluesky account
+        </label>
       </div>
 
       {{ $profile := .Profile }}
@@ -51,9 +64,15 @@
           {{ end }}
         {{ end }}
 
+
         <div class="flex items-center gap-2 w-full">
           <span class="flex-shrink-0">{{ i "link" "size-4" }}</span>
-          <input type="text" class="py-1 px-1 w-full" name="link{{$idx}}" value="{{ $link }}" placeholder="social link {{add $idx 1}}">
+          <input
+            type="text"
+            class="py-1 px-1 w-full"
+            name="link{{ $idx }}"
+            value="{{ $link }}"
+            placeholder="social link {{ add $idx 1 }}" />
         </div>
       {{ end }}
     </div>
@@ -61,27 +80,35 @@
     <div class="flex flex-col gap-1">
       <label class="m-0 p-0">vanity stats</label>
       {{ range $idx, $s := (sequence 2) }}
-          {{ $stat := "" }}
-          {{ if and $profile $profile.Stats }}
-            {{ if lt $idx (len $profile.Stats) }}
-              {{ $s := index $profile.Stats $idx }}
-              {{ $stat = $s.Kind }}
-            {{ end }}
+        {{ $stat := "" }}
+        {{ if and $profile $profile.Stats }}
+          {{ if lt $idx (len $profile.Stats) }}
+            {{ $s := index $profile.Stats $idx }}
+            {{ $stat = $s.Kind }}
           {{ end }}
+        {{ end }}
 
-          {{ block "stat" (list $idx $stat) }} {{ end }}
+        {{ block "stat" (list $idx $stat) }}{{ end }}
       {{ end }}
     </div>
 
     <div class="flex items-center gap-2 justify-between">
-      <button id="save-btn" type="submit" class="btn p-1 w-full flex items-center gap-2 no-underline text-sm">
+      <button
+        id="save-btn"
+        type="submit"
+        class="btn p-1 w-full flex items-center gap-2 no-underline text-sm">
         {{ i "check" "size-4" }} save
         <span id="spinner" class="group">
           {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </span>
       </button>
-      <a href="/{{.LoggedInUser.Did}}" class="w-full no-underline hover:no-underline">
-        <button id="cancel-btn" type="button" class="btn p-1 w-full flex items-center gap-2 no-underline text-sm">
+      <a
+        href="/{{ .LoggedInUser.Did }}"
+        class="w-full no-underline hover:no-underline">
+        <button
+          id="cancel-btn"
+          type="button"
+          class="btn p-1 w-full flex items-center gap-2 no-underline text-sm">
           {{ i "x" "size-4" }} cancel
         </button>
       </a>
@@ -92,20 +119,25 @@
 {{ define "stat" }}
   {{ $id := index . 0 }}
   {{ $stat := index . 1 }}
-  <select class="stat-group w-full p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700 text-sm" id="stat{{$id}}" name="stat{{$id}}">
+  <select
+    class="stat-group w-full p-1 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700 text-sm"
+    id="stat{{ $id }}"
+    name="stat{{ $id }}">
     <option value="">choose stat</option>
     {{ $stats := assoc
-      "merged-pull-request-count" "Merged PR Count" 
-      "closed-pull-request-count" "Closed PR Count" 
-      "open-pull-request-count" "Open PR Count" 
-      "open-issue-count" "Open Issue Count" 
-      "closed-issue-count" "Closed Issue Count" 
-      "repository-count" "Repository Count" 
+      "merged-pull-request-count" "Merged PR Count"
+      "closed-pull-request-count" "Closed PR Count"
+      "open-pull-request-count" "Open PR Count"
+      "open-issue-count" "Open Issue Count"
+      "closed-issue-count" "Closed Issue Count"
+      "repository-count" "Repository Count"
     }}
     {{ range $s := $stats }}
-    {{ $value := index $s 0 }}
-    {{ $label := index $s 1 }}
-      <option value="{{ $value }}"{{ if eq $stat $value }} selected{{ end }}>{{ $label }}</option>
+      {{ $value := index $s 0 }}
+      {{ $label := index $s 1 }}
+      <option value="{{ $value }}" {{ if eq $stat $value }}selected{{ end }}>
+        {{ $label }}
+      </option>
     {{ end }}
   </select>
 {{ end }}

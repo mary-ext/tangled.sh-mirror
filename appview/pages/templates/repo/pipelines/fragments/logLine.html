@@ -1,4 +1,5 @@
 {{ define "repo/pipelines/fragments/logLine" }}
-<div id="step-body-{{ .Id }}" hx-swap-oob="beforeend" class="whitespace-pre"><p>{{ .Content }}</p></div>
+  <div id="step-body-{{ .Id }}" hx-swap-oob="beforeend" class="whitespace-pre">
+    <p>{{ .Content }}</p>
+  </div>
 {{ end }}
-

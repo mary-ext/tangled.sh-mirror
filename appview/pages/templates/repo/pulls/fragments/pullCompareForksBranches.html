@@ -1,25 +1,23 @@
 {{ define "repo/pulls/fragments/pullCompareForksBranches" }}
-    <div class="flex flex-wrap gap-2 items-center">
-        <select
-            name="sourceBranch"
-            class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
-        >
-            <option disabled selected>source branch</option>
+  <div class="flex flex-wrap gap-2 items-center">
+    <select
+      name="sourceBranch"
+      class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600">
+      <option disabled selected>source branch</option>
 
-            {{ $recent := index .SourceBranches 0 }}
-            {{ range .SourceBranches }}
-                {{ $isRecent := eq .Reference.Name $recent.Reference.Name }}
-                <option
-                    value="{{ .Reference.Name }}"
-                    {{ if $isRecent }}
-                        selected
-                    {{ end }}
-                    class="py-1"
-                >
-                    {{ .Reference.Name }}
-                    {{ if $isRecent }}(new){{ end }}
-                </option>
-            {{ end }}
-        </select>
-    </div>
+      {{ $recent := index .SourceBranches 0 }}
+      {{ range .SourceBranches }}
+        {{ $isRecent := eq .Reference.Name $recent.Reference.Name }}
+        <option
+          value="{{ .Reference.Name }}"
+          {{ if $isRecent }}
+            selected
+          {{ end }}
+          class="py-1">
+          {{ .Reference.Name }}
+          {{ if $isRecent }}(new){{ end }}
+        </option>
+      {{ end }}
+    </select>
+  </div>
 {{ end }}

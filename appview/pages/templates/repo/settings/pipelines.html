@@ -1,4 +1,6 @@
-{{ define "title" }}{{ .Tab }} settings &middot; {{ .RepoInfo.FullName }}{{ end }}
+{{ define "title" }}
+  {{ .Tab }} settings &middot; {{ .RepoInfo.FullName }}
+{{ end }}
 
 {{ define "repoContent" }}
   <section class="w-full grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -22,37 +24,51 @@
       <p class="text-gray-500 dark:text-gray-400">
         Choose a spindle to execute your workflows on. Only repository owners
         can configure spindles. Spindles can be selfhosted,
-        <a class="text-gray-500 dark:text-gray-400 underline" href="https://tangled.sh/@tangled.sh/core/blob/master/docs/spindle/hosting.md">
+        <a
+          class="text-gray-500 dark:text-gray-400 underline"
+          href="https://tangled.sh/@tangled.sh/core/blob/master/docs/spindle/hosting.md">
           click to learn more.
         </a>
       </p>
     </div>
     {{ if not $.RepoInfo.Roles.IsOwner }}
-      <div class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
+      <div
+        class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
         {{ or $.CurrentSpindle "No spindle configured" }}
       </div>
     {{ else }}
-      <form hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle" class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
+      <form
+        hx-post="/{{ $.RepoInfo.FullName }}/settings/spindle"
+        class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
         <select
           id="spindle"
           name="spindle"
           required
           class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
           {{/* For some reason, we can't use an empty string in a <select> in all scenarios unless it is preceded by a disabled select?? No idea, could just be a Firefox thing? */}}
-          <option value="[[none]]" class="py-1" {{ if not $.CurrentSpindle }}selected{{ end }}>
+          <option
+            value="[[none]]"
+            class="py-1"
+            {{ if not $.CurrentSpindle }}selected{{ end }}>
             {{ if not $.CurrentSpindle }}
-            Choose a spindle
+              Choose a spindle
             {{ else }}
-            Disable pipelines
+              Disable pipelines
             {{ end }}
           </option>
           {{ range $.Spindles }}
-            <option value="{{ . }}" class="py-1" {{ if eq . $.CurrentSpindle }}selected{{ end }}>
+            <option
+              value="{{ . }}"
+              class="py-1"
+              {{ if eq . $.CurrentSpindle }}selected{{ end }}>
               {{ . }}
             </option>
           {{ end }}
         </select>
-        <button class="btn flex gap-2 items-center" type="submit" {{ if not $.RepoInfo.Roles.IsOwner }}disabled{{ end }}>
+        <button
+          class="btn flex gap-2 items-center"
+          type="submit"
+          {{ if not $.RepoInfo.Roles.IsOwner }}disabled{{ end }}>
           {{ i "check" "size-4" }}
           {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
@@ -66,16 +82,17 @@
     <div class="col-span-1 md:col-span-2">
       <h2 class="text-sm pb-2 uppercase font-bold">SECRETS</h2>
       <p class="text-gray-500 dark:text-gray-400">
-      Secrets are accessible in workflow runs via environment variables. Anyone
-      with collaborator access to this repository can add and use secrets in
-      workflow runs.
+        Secrets are accessible in workflow runs via environment variables.
+        Anyone with collaborator access to this repository can add and use
+        secrets in workflow runs.
       </p>
     </div>
     <div class="col-span-1 md:col-span-1 md:justify-self-end">
       {{ template "addSecretButton" . }}
     </div>
   </div>
-  <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
+  <div
+    class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
     {{ range .Secrets }}
       {{ template "repo/settings/fragments/secretListing" (list $ .) }}
     {{ else }}
@@ -100,46 +117,47 @@
     class="bg-white w-full md:w-96 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
     {{ template "addSecretModal" . }}
   </div>
-{{ end}}
+{{ end }}
 
 {{ define "addSecretModal" }}
-<form
-  hx-put="/{{ $.RepoInfo.FullName }}/settings/secrets"
-  hx-indicator="#spinner"
-  hx-swap="none"
-  class="flex flex-col gap-2"
->
-  <p class="uppercase p-0">ADD SECRET</p>
-  <p class="text-sm text-gray-500 dark:text-gray-400">Secrets are available as environment variables in the workflow.</p>
-  <input
-    type="text"
-    id="secret-key"
-    name="key"
-    required
-    placeholder="SECRET_NAME"
-  />
-  <textarea
-    type="text"
-    id="secret-value"
-    name="value"
-    required
-    placeholder="secret value"></textarea>
-  <div class="flex gap-2 pt-2">
-    <button
-      type="button"
-      popovertarget="add-secret-modal"
-      popovertargetaction="hide"
-      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-      >
-      {{ i "x" "size-4" }} cancel
-    </button>
-    <button type="submit" class="btn w-1/2 flex items-center">
-      <span class="inline-flex gap-2 items-center">{{ i "plus" "size-4" }} add</span>
-      <span id="spinner" class="group">
-        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-      </span>
-    </button>
-  </div>
-  <div id="add-secret-error" class="text-red-500 dark:text-red-400"></div>
-</form>
+  <form
+    hx-put="/{{ $.RepoInfo.FullName }}/settings/secrets"
+    hx-indicator="#spinner"
+    hx-swap="none"
+    class="flex flex-col gap-2">
+    <p class="uppercase p-0">ADD SECRET</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Secrets are available as environment variables in the workflow.
+    </p>
+    <input
+      type="text"
+      id="secret-key"
+      name="key"
+      required
+      placeholder="SECRET_NAME" />
+    <textarea
+      type="text"
+      id="secret-value"
+      name="value"
+      required
+      placeholder="secret value"></textarea>
+    <div class="flex gap-2 pt-2">
+      <button
+        type="button"
+        popovertarget="add-secret-modal"
+        popovertargetaction="hide"
+        class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+        {{ i "x" "size-4" }} cancel
+      </button>
+      <button type="submit" class="btn w-1/2 flex items-center">
+        <span class="inline-flex gap-2 items-center">
+          {{ i "plus" "size-4" }} add
+        </span>
+        <span id="spinner" class="group">
+          {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </span>
+      </button>
+    </div>
+    <div id="add-secret-error" class="text-red-500 dark:text-red-400"></div>
+  </form>
 {{ end }}

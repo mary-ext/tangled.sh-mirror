@@ -1,41 +1,47 @@
-{{ define "title" }}{{.Spindle.Instance}} &middot; spindles{{ end }}
+{{ define "title" }}{{ .Spindle.Instance }} &middot; spindles{{ end }}
 
 {{ define "content" }}
-<div class="px-6 py-4">
-  <div class="flex justify-between items-center">
-    <h1 class="text-xl font-bold dark:text-white">{{ .Spindle.Instance }}</h1>
-    <div id="right-side" class="flex gap-2">
-      {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2" }}
-      {{ $isOwner := and .LoggedInUser (eq .LoggedInUser.Did .Spindle.Owner)  }}
-      {{ if .Spindle.Verified }}
-        <span class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{$style}}">{{ i "shield-check" "w-4 h-4" }} verified</span>
-        {{ if $isOwner }}
-          {{ template "spindles/fragments/addMemberModal" .Spindle }}
+  <div class="px-6 py-4">
+    <div class="flex justify-between items-center">
+      <h1 class="text-xl font-bold dark:text-white">{{ .Spindle.Instance }}</h1>
+      <div id="right-side" class="flex gap-2">
+        {{ $style := "px-2 py-1 rounded flex items-center flex-shrink-0 gap-2" }}
+        {{ $isOwner := and .LoggedInUser (eq .LoggedInUser.Did .Spindle.Owner) }}
+        {{ if .Spindle.Verified }}
+          <span
+            class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {{ $style }}">
+            {{ i "shield-check" "w-4 h-4" }} verified
+          </span>
+          {{ if $isOwner }}
+            {{ template "spindles/fragments/addMemberModal" .Spindle }}
+          {{ end }}
+        {{ else }}
+          <span
+            class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{ $style }}">
+            {{ i "shield-off" "w-4 h-4" }} unverified
+          </span>
+          {{ if $isOwner }}
+            {{ block "retryButton" .Spindle }}{{ end }}
+          {{ end }}
         {{ end }}
-      {{ else }}
-        <span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {{$style}}">{{ i "shield-off" "w-4 h-4" }} unverified</span>
-        {{ if $isOwner }}
-          {{ block "retryButton" .Spindle }} {{ end }}
-        {{ end }}
-      {{ end }}
 
-      {{ if $isOwner }}
-        {{ block "deleteButton" .Spindle }} {{ end }}
-      {{ end }}
+        {{ if $isOwner }}
+          {{ block "deleteButton" .Spindle }}{{ end }}
+        {{ end }}
+      </div>
     </div>
+    <div id="operation-error" class="dark:text-red-400"></div>
   </div>
-  <div id="operation-error" class="dark:text-red-400"></div>
-</div>
 
-{{ if .Members }}
-  <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
-    <div class="flex flex-col gap-2">
-      {{ block "member" . }} {{ end }}
-    </div>
-  </section>
+  {{ if .Members }}
+    <section
+      class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
+      <div class="flex flex-col gap-2">
+        {{ block "member" . }}{{ end }}
+      </div>
+    </section>
+  {{ end }}
 {{ end }}
-{{ end }}
-
 
 {{ define "member" }}
   {{ range .Members }}
@@ -45,7 +51,7 @@
           {{ template "user/fragments/picHandleLink" . }}
         </div>
         {{ if ne $.LoggedInUser.Did . }}
-          {{ block "removeMemberButton" (list $ . ) }} {{ end }}
+          {{ block "removeMemberButton" (list $ . ) }}{{ end }}
         {{ end }}
       </div>
       <div class="ml-2 pl-2 pt-2 border-l border-gray-200 dark:border-gray-700">
@@ -74,14 +80,12 @@
     hx-delete="/spindles/{{ .Instance }}"
     hx-swap="outerHTML"
     hx-confirm="Are you sure you want to delete the spindle '{{ .Instance }}'?"
-    hx-headers='{"shouldRedirect": "true"}'
-  >
+    hx-headers='{"shouldRedirect": "true"}'>
     {{ i "trash-2" "w-5 h-5" }}
-    <span class="hidden md:inline">delete</span> 
+    <span class="hidden md:inline">delete</span>
     {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
   </button>
 {{ end }}
-
 
 {{ define "retryButton" }}
   <button
@@ -89,29 +93,25 @@
     title="Retry spindle verification"
     hx-post="/spindles/{{ .Instance }}/retry"
     hx-swap="none"
-    hx-headers='{"shouldRefresh": "true"}'
-  >
+    hx-headers='{"shouldRefresh": "true"}'>
     {{ i "rotate-ccw" "w-5 h-5" }}
-    <span class="hidden md:inline">retry</span> 
+    <span class="hidden md:inline">retry</span>
     {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
   </button>
 {{ end }}
 
-
 {{ define "removeMemberButton" }}
   {{ $root := index . 0 }}
   {{ $member := index . 1 }}
-    <button
-      class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
-      title="Remove member"
-      hx-post="/spindles/{{ $root.Spindle.Instance }}/remove"
-      hx-swap="none"
-      hx-vals='{"member": "{{$member}}" }'
-      hx-confirm="Are you sure you want to remove {{ resolve $member }} from this instance?"
-    >
-      {{ i "user-minus" "w-4 h-4" }}
-      remove
-      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-    </button>
+  <button
+    class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+    title="Remove member"
+    hx-post="/spindles/{{ $root.Spindle.Instance }}/remove"
+    hx-swap="none"
+    hx-vals='{"member": "{{ $member }}" }'
+    hx-confirm="Are you sure you want to remove {{ resolve $member }} from this instance?">
+    {{ i "user-minus" "w-4 h-4" }}
+    remove
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+  </button>
 {{ end }}
-

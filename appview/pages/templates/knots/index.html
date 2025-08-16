@@ -1,26 +1,30 @@
 {{ define "title" }}knots{{ end }}
 
 {{ define "content" }}
-<div class="px-6 py-4">
-  <h1 class="text-xl font-bold dark:text-white">Knots</h1>
-</div>
-
-<section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
-  <div class="flex flex-col gap-6">
-    {{ block "about" . }} {{ end }}
-    {{ template "knots/fragments/knotListingFull" . }}
-    {{ block "register" . }} {{ end }}
+  <div class="px-6 py-4">
+    <h1 class="text-xl font-bold dark:text-white">Knots</h1>
   </div>
-</section>
+
+  <section
+    class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
+    <div class="flex flex-col gap-6">
+      {{ block "about" . }}{{ end }}
+      {{ template "knots/fragments/knotListingFull" . }}
+      {{ block "register" . }}{{ end }}
+    </div>
+  </section>
 {{ end }}
 
 {{ define "about" }}
   <section class="rounded flex flex-col gap-2">
     <p class="dark:text-gray-300">
-      Knots are lightweight headless servers that enable users to host Git repositories with ease.
-      Knots are designed for either single or multi-tenant use which is perfect for self-hosting on a Raspberry Pi at home, or larger “community” servers.
-      When creating a repository, you can choose a knot to store it on.
-      <a href="https://tangled.sh/@tangled.sh/core/blob/master/docs/knot-hosting.md">
+      Knots are lightweight headless servers that enable users to host Git
+      repositories with ease. Knots are designed for either single or
+      multi-tenant use which is perfect for self-hosting on a Raspberry Pi at
+      home, or larger “community” servers. When creating a repository, you can
+      choose a knot to store it on.
+      <a
+        href="https://tangled.sh/@tangled.sh/core/blob/master/docs/knot-hosting.md">
         Checkout the documentation if you're interested in self-hosting.
       </a>
     </p>
@@ -29,14 +33,17 @@
 
 {{ define "register" }}
   <section class="rounded max-w-2xl flex flex-col gap-2">
-    <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">register a knot</h2>
-    <p class="mb-2 dark:text-gray-300">Enter the hostname of your knot to generate a key.</p>
+    <h2 class="text-sm font-bold py-2 uppercase dark:text-gray-300">
+      register a knot
+    </h2>
+    <p class="mb-2 dark:text-gray-300">
+      Enter the hostname of your knot to generate a key.
+    </p>
     <form
       hx-post="/knots/key"
       class="space-y-4"
       hx-indicator="#register-button"
-      hx-swap="none"
-      >
+      hx-swap="none">
       <div class="flex gap-2">
         <input
           type="text"
@@ -44,13 +51,11 @@
           name="domain"
           placeholder="knot.example.com"
           required
-          class="flex-1 w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400 px-3 py-2 border rounded"
-        >
+          class="flex-1 w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400 px-3 py-2 border rounded" />
         <button
           type="submit"
           id="register-button"
-          class="btn rounded flex items-center py-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 group"
-          >
+          class="btn rounded flex items-center py-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 group">
           <span class="inline-flex items-center gap-2">
             {{ i "plus" "w-4 h-4" }}
             generate

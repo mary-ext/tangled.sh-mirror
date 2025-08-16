@@ -1,5 +1,6 @@
 {{ define "title" }}
-  compare refs on {{ .RepoInfo.FullName }}
+  compare refs on
+  {{ .RepoInfo.FullName }}
 {{ end }}
 
 {{ define "repoContent" }}
@@ -9,21 +10,27 @@
 {{ define "repoAfter" }}
   {{ $brs := take .Branches 5 }}
   {{ if $brs }}
-    <section class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto">
+    <section
+      class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto">
       <div class="flex flex-col items-center">
         <p class="text-center text-black dark:text-white">
-        Recently updated branches in this repository:
+          Recently updated branches in this repository:
         </p>
-          <div class="mt-4 grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 w-full md:w-1/2">
-            {{ range $br := $brs }}
-            <a href="/{{ $.RepoInfo.FullName }}/compare?head={{ $br.Name | urlquery }}" class="no-underline hover:no-underline">
+        <div
+          class="mt-4 grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 w-full md:w-1/2">
+          {{ range $br := $brs }}
+            <a
+              href="/{{ $.RepoInfo.FullName }}/compare?head={{ $br.Name | urlquery }}"
+              class="no-underline hover:no-underline">
               <div class="flex items-center justify-between p-2">
                 {{ $br.Name }}
-                <span class="text-gray-500 dark:text-gray-400">{{ template "repo/fragments/time" $br.Commit.Committer.When }}</span>
+                <span class="text-gray-500 dark:text-gray-400">
+                  {{ template "repo/fragments/time" $br.Commit.Committer.When }}
+                </span>
               </div>
             </a>
-            {{ end }}
-          </div>
+          {{ end }}
+        </div>
       </div>
     </section>
   {{ end }}
