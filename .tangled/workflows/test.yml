@@ -12,6 +12,10 @@ steps:
     command: |
       mkdir -p appview/pages/static; touch appview/pages/static/x
 
+  - name: run vet
+    command: |
+      go vet ./...
+
   - name: run all tests
     environment:
       CGO_ENABLED: 1
