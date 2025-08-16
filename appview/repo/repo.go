@@ -734,14 +734,34 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		protocol = "https"
 	}
+
 	blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, filePath)
-	resp, err := http.Get(blobURL)
+
+	req, err := http.NewRequest("GET", blobURL, nil)
 	if err != nil {
-		log.Println("failed to reach knotserver:", err)
+		log.Println("failed to create request", err)
+		return
+	}
+
+	// forward the If-None-Match header
+	if clientETag := r.Header.Get("If-None-Match"); clientETag != "" {
+		req.Header.Set("If-None-Match", clientETag)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("failed to reach knotserver", err)
 		rp.pages.Error503(w)
 		return
 	}
 	defer resp.Body.Close()
+
+	// forward 304 not modified
+	if resp.StatusCode == http.StatusNotModified {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("knotserver returned non-OK status for raw blob %s: %d", blobURL, resp.StatusCode)
