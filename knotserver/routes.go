@@ -286,22 +286,27 @@ func (h *Handle) BlobRaw(w http.ResponseWriter, r *http.Request) {
 		mimeType = "image/svg+xml"
 	}
 
+	contentHash := sha256.Sum256(contents)
+	eTag := fmt.Sprintf("\"%x\"", contentHash)
+
 	// allow image, video, and text/plain files to be served directly
 	switch {
-	case strings.HasPrefix(mimeType, "image/"):
-		// allowed
-	case strings.HasPrefix(mimeType, "video/"):
-		// allowed
+	case strings.HasPrefix(mimeType, "image/"), strings.HasPrefix(mimeType, "video/"):
+		if clientETag := r.Header.Get("If-None-Match"); clientETag == eTag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Set("ETag", eTag)
+
 	case strings.HasPrefix(mimeType, "text/plain"):
-		// allowed
+		w.Header().Set("Cache-Control", "public, no-cache")
+
 	default:
 		l.Error("attempted to serve disallowed file type", "mimetype", mimeType)
 		writeError(w, "only image, video, and text files can be accessed directly", http.StatusForbidden)
 		return
 	}
 
-	w.Header().Set("Cache-Control", "public, max-age=86400") // cache for 24 hours
-	w.Header().Set("ETag", fmt.Sprintf("%x", sha256.Sum256(contents)))
 	w.Header().Set("Content-Type", mimeType)
 	w.Write(contents)
 }
