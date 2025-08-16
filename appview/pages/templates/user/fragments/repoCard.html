@@ -21,7 +21,7 @@
       </div>
       {{ with .Description }}
         <div class="text-gray-600 dark:text-gray-300 text-sm">
-          {{ . }}
+          {{ . | description }}
         </div>
       {{ end }}
 

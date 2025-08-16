@@ -45,7 +45,7 @@
           href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}"
           class="no-underline hover:underline"
           >
-          {{ .Title }}
+          {{ .Title | description }}
           <span class="text-gray-500">#{{ .IssueId }}</span>
       </a>
     </div>

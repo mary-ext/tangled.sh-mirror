@@ -19,6 +19,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/knotclient"
@@ -738,6 +739,11 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 		if isPatchBased && !patchutil.IsFormatPatch(patch) {
 			if title == "" {
 				s.pages.Notice(w, "pull", "Title is required for git-diff patches.")
+				return
+			}
+			sanitizer := markup.NewSanitizer()
+			if st := strings.TrimSpace(sanitizer.SanitizeDescription(title)); (st) == "" {
+				s.pages.Notice(w, "pull", "Title is empty after HTML sanitization")
 				return
 			}
 		}
