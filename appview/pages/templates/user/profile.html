@@ -78,7 +78,8 @@
         class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex flex-wrap items-center gap-2">
           {{ i "book-plus" "w-4 h-4" }}
-          created {{ len . }}
+          created
+          {{ len . }}
           {{ if eq (len .) 1 }}repository{{ else }}repositories{{ end }}
         </div>
       </summary>
@@ -117,7 +118,8 @@
 
 
           <div>
-            created {{ len $items }}
+            created
+            {{ len $items }}
             {{ if eq (len $items) 1 }}issue{{ else }}issues{{ end }}
           </div>
 
@@ -191,7 +193,8 @@
 
 
           <div>
-            created {{ len $items }}
+            created
+            {{ len $items }}
             {{ if eq (len $items) 1 }}
               pull request
             {{ else }}

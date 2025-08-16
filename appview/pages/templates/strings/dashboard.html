@@ -54,7 +54,8 @@
     {{ $stat := $s.Stats }}
     <div class="text-gray-400 pt-4 text-sm font-mono inline-flex gap-2 mt-auto">
       <span>
-        {{ $stat.LineCount }} line{{ if ne $stat.LineCount 1 }}s{{ end }}
+        {{ $stat.LineCount }}
+        line{{ if ne $stat.LineCount 1 }}s{{ end }}
       </span>
       <span class="select-none [&:before]:content-['·']"></span>
       {{ with $s.Edited }}

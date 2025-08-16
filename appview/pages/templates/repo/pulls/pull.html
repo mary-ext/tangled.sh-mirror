@@ -111,11 +111,13 @@
                 {{ $s = "" }}
               {{ end }}
               <div class="group-open:hidden flex items-center gap-2 ml-2">
-                {{ i "chevrons-up-down" "w-4 h-4" }} expand {{ len $patches }}
+                {{ i "chevrons-up-down" "w-4 h-4" }} expand
+                {{ len $patches }}
                 commit{{ $s }}
               </div>
               <div class="hidden group-open:flex items-center gap-2 ml-2">
-                {{ i "chevrons-down-up" "w-4 h-4" }} hide {{ len $patches }}
+                {{ i "chevrons-down-up" "w-4 h-4" }} hide
+                {{ len $patches }}
                 commit{{ $s }}
               </div>
             </summary>
