@@ -47,41 +47,42 @@
 
 
 {{ define "branchSelector" }}
-  <div class="flex gap-2 items-center items-stretch justify-center">
-    <select
-        onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
-        class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
-    >
-        <optgroup label="branches ({{len .Branches}})" class="bold text-sm">
-            {{ range .Branches }}
-                <option
-                    value="{{ .Reference.Name }}"
-                    class="py-1"
-                    {{ if eq .Reference.Name $.Ref }}
-                        selected
-                    {{ end }}
-                >
-                    {{ .Reference.Name }}
-                </option>
-            {{ end }}
-        </optgroup>
-        <optgroup label="tags ({{len .Tags}})" class="bold text-sm">
-            {{ range .Tags }}
-                <option
-                    value="{{ .Reference.Name }}"
-                    class="py-1"
-                    {{ if eq .Reference.Name $.Ref }}
-                        selected
-                    {{ end }}
-                >
-                    {{ .Reference.Name }}
-                </option>
-            {{ else }}
-                <option class="py-1" disabled>no tags found</option>
-            {{ end }}
-        </optgroup>
-    </select>
-    <div class="flex items-center gap-2">
+  <div class="flex gap-2 items-center justify-between w-full">
+    <div class="flex gap-2 items-center">
+      <select
+          onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
+          class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
+      >
+          <optgroup label="branches ({{len .Branches}})" class="bold text-sm">
+              {{ range .Branches }}
+                  <option
+                      value="{{ .Reference.Name }}"
+                      class="py-1"
+                      {{ if eq .Reference.Name $.Ref }}
+                          selected
+                      {{ end }}
+                  >
+                      {{ .Reference.Name }}
+                  </option>
+              {{ end }}
+          </optgroup>
+          <optgroup label="tags ({{len .Tags}})" class="bold text-sm">
+              {{ range .Tags }}
+                  <option
+                      value="{{ .Reference.Name }}"
+                      class="py-1"
+                      {{ if eq .Reference.Name $.Ref }}
+                          selected
+                      {{ end }}
+                  >
+                      {{ .Reference.Name }}
+                  </option>
+              {{ else }}
+                  <option class="py-1" disabled>no tags found</option>
+              {{ end }}
+          </optgroup>
+      </select>
+      <div class="flex items-center gap-2">
     {{ $isOwner := and .LoggedInUser .RepoInfo.Roles.IsOwner }}
     {{ $isCollaborator := and .LoggedInUser .RepoInfo.Roles.IsCollaborator }}
     {{ if and (or $isOwner $isCollaborator) .ForkInfo .ForkInfo.IsFork }}
@@ -115,15 +116,21 @@
           <span>sync</span>
         </button>
     {{ end }}
-        <a
-            href="/{{ .RepoInfo.FullName }}/compare?base={{ $.Ref | urlquery }}"
-            class="btn flex items-center gap-2 no-underline hover:no-underline"
-            title="Compare branches or tags"
-        >
-            {{ i "git-compare" "w-4 h-4" }}
-        </a>
+          <a
+              href="/{{ .RepoInfo.FullName }}/compare?base={{ $.Ref | urlquery }}"
+              class="btn flex items-center gap-2 no-underline hover:no-underline"
+              title="Compare branches or tags"
+          >
+              {{ i "git-compare" "w-4 h-4" }}
+          </a>
+      </div>
     </div>
-</div>
+    
+    <!-- Clone dropdown in top right -->
+    <div class="flex items-center">
+        {{ template "repo/fragments/cloneDropdown" . }}
+    </div>
+  </div>
 {{ end }}
 
 {{ define "fileTree" }}
@@ -363,6 +370,4 @@
                 {{- end -}}</article>
         </section>
     {{- end -}}
-
-    {{ template "repo/fragments/cloneInstructions" . }}
 {{ end }}

@@ -1,0 +1,104 @@
+{{ define "repo/fragments/cloneDropdown" }}
+    {{ $knot := .RepoInfo.Knot }}
+    {{ if eq $knot "knot1.tangled.sh" }}
+        {{ $knot = "tangled.sh" }}
+    {{ end }}
+
+    <details id="clone-dropdown" class="relative inline-block text-left group">
+        <summary class="btn-create cursor-pointer list-none flex items-center gap-2">
+            {{ i "download" "w-4 h-4" }}
+            <span>code</span>
+            <span class="group-open:hidden">
+                {{ i "chevron-down" "w-4 h-4" }}
+            </span>
+            <span class="hidden group-open:flex">
+                {{ i "chevron-up" "w-4 h-4" }}
+            </span>
+        </summary>
+
+        <div class="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white z-[9999]">
+            <div class="p-4">
+                <div class="mb-3">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Clone this repository</h3>
+                </div>
+
+                <!-- HTTPS Clone -->
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">HTTPS</label>
+                    <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded">
+                        <code
+                            class="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-l select-all cursor-pointer whitespace-nowrap overflow-x-auto"
+                            onclick="window.getSelection().selectAllChildren(this)"
+                            data-url="https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}"
+                        >https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}</code>
+                        <button
+                            onclick="copyToClipboard(this, this.previousElementSibling.getAttribute('data-url'))"
+                            class="px-3 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border-l border-gray-300 dark:border-gray-600"
+                            title="Copy to clipboard"
+                        >
+                            {{ i "copy" "w-4 h-4" }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SSH Clone -->
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">SSH</label>
+                    <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded">
+                        <code
+                            class="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-l select-all cursor-pointer whitespace-nowrap overflow-x-auto"
+                            onclick="window.getSelection().selectAllChildren(this)"
+                            data-url="git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}"
+                        >git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code>
+                        <button
+                            onclick="copyToClipboard(this, this.previousElementSibling.getAttribute('data-url'))"
+                            class="px-3 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border-l border-gray-300 dark:border-gray-600"
+                            title="Copy to clipboard"
+                        >
+                            {{ i "copy" "w-4 h-4" }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Note for self-hosted -->
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        For self-hosted knots, clone URLs may differ based on your setup.
+                    </p>
+
+                <!-- Download Archive -->
+                <div class="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
+                    <a
+                        href="/{{ .RepoInfo.FullName }}/archive/{{ .Ref | urlquery }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm"
+                    >
+                        {{ i "download" "w-4 h-4" }}
+                        Download tar.gz
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </details>
+
+    <script>
+        function copyToClipboard(button, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalContent = button.innerHTML;
+                button.innerHTML = `{{ i "copy-check" "w-4 h-4" }}`;
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                }, 2000);
+            });
+        }
+
+        // Close clone dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const cloneDropdown = document.getElementById('clone-dropdown');
+            if (cloneDropdown && cloneDropdown.hasAttribute('open')) {
+                if (!cloneDropdown.contains(event.target)) {
+                    cloneDropdown.removeAttribute('open');
+                }
+            }
+        });
+    </script>
+{{ end }}
