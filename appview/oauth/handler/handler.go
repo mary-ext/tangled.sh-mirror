@@ -253,6 +253,12 @@ func (o *OAuthHandler) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if iss != oauthRequest.AuthserverIss {
+		log.Println("mismatched iss:", iss, "!=", oauthRequest.AuthserverIss, "for state:", state)
+		o.pages.Notice(w, "login-msg", "Failed to authenticate. Try again later.")
+		return
+	}
+
 	self := o.oauth.ClientMetadata()
 
 	oauthClient, err := client.NewClient(
