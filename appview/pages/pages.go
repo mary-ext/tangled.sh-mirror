@@ -408,7 +408,7 @@ func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
 	return p.execute("repo/fork", w, params)
 }
 
-type ProfilePageParams struct {
+type ProfileHomePageParams struct {
 	LoggedInUser       *oauth.User
 	Repos              []db.Repo
 	CollaboratingRepos []db.Repo
@@ -427,7 +427,7 @@ type ProfileCard struct {
 	Profile *db.Profile
 }
 
-func (p *Pages) ProfilePage(w io.Writer, params ProfilePageParams) error {
+func (p *Pages) ProfileHomePage(w io.Writer, params ProfileHomePageParams) error {
 	return p.execute("user/profile", w, params)
 }
 
