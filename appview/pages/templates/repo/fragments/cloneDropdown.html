@@ -7,7 +7,7 @@
     <details id="clone-dropdown" class="relative inline-block text-left group">
         <summary class="btn-create cursor-pointer list-none flex items-center gap-2">
             {{ i "download" "w-4 h-4" }}
-            <span>code</span>
+            <span class="hidden md:inline">code</span>
             <span class="group-open:hidden">
                 {{ i "chevron-down" "w-4 h-4" }}
             </span>
@@ -16,7 +16,7 @@
             </span>
         </summary>
 
-        <div class="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white z-[9999]">
+        <div class="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 drop-shadow-sm dark:text-white z-[9999]">
             <div class="p-4">
                 <div class="mb-3">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Clone this repository</h3>
@@ -84,7 +84,7 @@
         function copyToClipboard(button, text) {
             navigator.clipboard.writeText(text).then(() => {
                 const originalContent = button.innerHTML;
-                button.innerHTML = `{{ i "copy-check" "w-4 h-4" }}`;
+                button.innerHTML = `{{ i "check" "w-4 h-4" }}`;
                 setTimeout(() => {
                     button.innerHTML = originalContent;
                 }, 2000);

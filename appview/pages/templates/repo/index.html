@@ -14,16 +14,17 @@
         {{ end }}
         <div class="flex items-center justify-between pb-5">
           {{ block "branchSelector" . }}{{ end }}
-          <div class="flex md:hidden items-center gap-4">
-            <a href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}" class="inline-flex items-center text-sm gap-1">
+          <div class="flex md:hidden items-center gap-2">
+            <a href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}" class="inline-flex items-center text-sm gap-1 font-bold">
               {{ i "git-commit-horizontal" "w-4" "h-4" }} {{ .TotalCommits }}
             </a>
-            <a href="/{{ .RepoInfo.FullName }}/branches" class="inline-flex items-center text-sm gap-1">
+            <a href="/{{ .RepoInfo.FullName }}/branches" class="inline-flex items-center text-sm gap-1 font-bold">
               {{ i "git-branch" "w-4" "h-4" }} {{ len .Branches }}
             </a>
-            <a href="/{{ .RepoInfo.FullName }}/tags" class="inline-flex items-center text-sm gap-1">
+            <a href="/{{ .RepoInfo.FullName }}/tags" class="inline-flex items-center text-sm gap-1 font-bold">
               {{ i "tags" "w-4" "h-4" }} {{ len .Tags }}
             </a>
+            {{ template "repo/fragments/cloneDropdown" . }}
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -125,9 +126,9 @@
           </a>
       </div>
     </div>
-    
+
     <!-- Clone dropdown in top right -->
-    <div class="flex items-center">
+    <div class="hidden md:flex items-center ">
         {{ template "repo/fragments/cloneDropdown" . }}
     </div>
   </div>
