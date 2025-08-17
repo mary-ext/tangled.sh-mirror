@@ -1,134 +1,92 @@
 {{ define "repo/fragments/interdiff" }}
-  {{ $repo := index . 0 }}
-  {{ $x := index . 1 }}
-  {{ $opts := index . 2 }}
-  {{ $fileTree := fileTree $x.AffectedFiles }}
-  {{ $diff := $x.Files }}
-  {{ $last := sub (len $diff) 1 }}
-  {{ $isSplit := $opts.Split }}
+{{ $repo := index . 0 }}
+{{ $x := index . 1 }}
+{{ $opts := index . 2 }}
+{{ $fileTree := fileTree $x.AffectedFiles }}
+{{ $diff := $x.Files }}
+{{ $last := sub (len $diff) 1 }}
+{{ $isSplit := $opts.Split }}
 
-
-  <div class="flex flex-col gap-4">
-    {{ range $idx, $hunk := $diff }}
-      {{ with $hunk }}
-        <section
-          class="border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
-          <div id="file-{{ .Name }}">
-            <div id="diff-file">
-              <details {{ if not (.Status.IsOnlyInOne) }}open{{ end }}>
-                <summary class="list-none cursor-pointer sticky top-0">
-                  <div
-                    id="diff-file-header"
-                    class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
-                    <div
-                      id="left-side-items"
-                      class="p-2 flex gap-2 items-center overflow-x-auto">
-                      <div
-                        class="flex gap-1 items-center"
-                        style="direction: ltr;">
-                        {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
-                        {{ if .Status.IsOk }}
-                          <span
-                            class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">
-                            CHANGED
-                          </span>
-                        {{ else if .Status.IsUnchanged }}
-                          <span
-                            class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">
-                            UNCHANGED
-                          </span>
-                        {{ else if .Status.IsOnlyInOne }}
-                          <span
-                            class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">
-                            REVERTED
-                          </span>
-                        {{ else if .Status.IsOnlyInTwo }}
-                          <span
-                            class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">
-                            NEW
-                          </span>
-                        {{ else if .Status.IsRebased }}
-                          <span
-                            class="bg-amber-100 text-amber-700 dark:bg-amber-800/50 dark:text-amber-400 {{ $markerstyle }}">
-                            REBASED
-                          </span>
-                        {{ else }}
-                          <span
-                            class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">
-                            ERROR
-                          </span>
-                        {{ end }}
-                      </div>
-
-                      <div
-                        class="flex gap-2 items-center overflow-x-auto"
-                        style="direction: rtl;">
-                        <a
-                          class="dark:text-white whitespace-nowrap overflow-x-auto"
-                          href="">
-                          {{ .Name }}
-                        </a>
-                      </div>
-                    </div>
-
-                    {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" }}
-                    <div id="right-side-items" class="p-2 flex items-center">
-                      <a
-                        title="top of file"
-                        href="#file-{{ .Name }}"
-                        class="{{ $iconstyle }}">
-                        {{ i "arrow-up-to-line" "w-4 h-4" }}
-                      </a>
-                      {{ if gt $idx 0 }}
-                        {{ $prev := index $diff (sub $idx 1) }}
-                        <a
-                          title="previous file"
-                          href="#file-{{ $prev.Name }}"
-                          class="{{ $iconstyle }}">
-                          {{ i "arrow-up" "w-4 h-4" }}
-                        </a>
-                      {{ end }}
-
-                      {{ if lt $idx $last }}
-                        {{ $next := index $diff (add $idx 1) }}
-                        <a
-                          title="next file"
-                          href="#file-{{ $next.Name }}"
-                          class="{{ $iconstyle }}">
-                          {{ i "arrow-down" "w-4 h-4" }}
-                        </a>
-                      {{ end }}
-                    </div>
-                  </div>
-                </summary>
-
-                <div class="transition-all duration-700 ease-in-out">
-                  {{ if .Status.IsUnchanged }}
-                    <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-                      This file has not been changed.
-                    </p>
-                  {{ else if .Status.IsRebased }}
-                    <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-                      This patch was likely rebased, as context lines do not
-                      match.
-                    </p>
-                  {{ else if .Status.IsError }}
-                    <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-                      Failed to calculate interdiff for this file.
-                    </p>
-                  {{ else }}
-                    {{ if $isSplit }}
-                      {{- template "repo/fragments/splitDiff" .Split -}}
+<div class="flex flex-col gap-4">
+  {{ range $idx, $hunk := $diff }}
+    {{ with $hunk }}
+    <section class="border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
+      <div id="file-{{ .Name }}">
+        <div id="diff-file">
+          <details {{ if not (.Status.IsOnlyInOne) }}open{{end}}>
+            <summary class="list-none cursor-pointer sticky top-0">
+              <div id="diff-file-header" class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
+                <div id="left-side-items" class="p-2 flex gap-2 items-center overflow-x-auto">
+                  <div class="flex gap-1 items-center" style="direction: ltr;">
+                    {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
+                    {{ if .Status.IsOk }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">CHANGED</span>
+                    {{ else if .Status.IsUnchanged }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">UNCHANGED</span>
+                    {{ else if .Status.IsOnlyInOne }}
+                      <span class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">REVERTED</span>
+                    {{ else if .Status.IsOnlyInTwo }}
+                      <span class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">NEW</span>
+                    {{ else if .Status.IsRebased }}
+                      <span class="bg-amber-100 text-amber-700 dark:bg-amber-800/50 dark:text-amber-400 {{ $markerstyle }}">REBASED</span>
                     {{ else }}
-                      {{- template "repo/fragments/unifiedDiff" . -}}
+                      <span class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">ERROR</span>
                     {{ end }}
-                  {{- end -}}
+                  </div>
+
+                  <div class="flex gap-2 items-center overflow-x-auto" style="direction: rtl;">
+                    <a class="dark:text-white whitespace-nowrap overflow-x-auto" href="">
+                      {{ .Name }}
+                    </a>
+                  </div>
                 </div>
-              </details>
+
+                {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" }}
+                <div id="right-side-items" class="p-2 flex items-center">
+                  <a title="top of file" href="#file-{{ .Name }}" class="{{ $iconstyle }}">{{ i "arrow-up-to-line" "w-4 h-4" }}</a>
+                  {{ if gt $idx 0 }}
+                    {{ $prev := index $diff (sub $idx 1) }}
+                    <a title="previous file" href="#file-{{ $prev.Name }}" class="{{ $iconstyle }}">{{ i "arrow-up" "w-4 h-4" }}</a>
+                  {{ end }}
+
+                  {{ if lt $idx $last }}
+                    {{ $next := index $diff (add $idx 1) }}
+                    <a title="next file" href="#file-{{ $next.Name }}" class="{{ $iconstyle }}">{{ i "arrow-down" "w-4 h-4" }}</a>
+                  {{ end }}
+                </div>
+
+              </div>
+            </summary>
+
+            <div class="transition-all duration-700 ease-in-out">
+              {{ if .Status.IsUnchanged }}
+                <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                This file has not been changed.
+                </p>
+              {{ else if .Status.IsRebased }}
+                <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                This patch was likely rebased, as context lines do not match.
+                </p>
+              {{ else if .Status.IsError }}
+                <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                Failed to calculate interdiff for this file.
+                </p>
+              {{ else }}
+                {{ if $isSplit }}
+                  {{- template "repo/fragments/splitDiff" .Split -}}
+                {{ else }}
+                  {{- template "repo/fragments/unifiedDiff" . -}}
+                {{ end }}
+              {{- end -}}
             </div>
-          </div>
-        </section>
-      {{ end }}
+
+          </details>
+
+        </div>
+      </div>
+    </section>
     {{ end }}
-  </div>
+  {{ end }}
+</div>
 {{ end }}
+

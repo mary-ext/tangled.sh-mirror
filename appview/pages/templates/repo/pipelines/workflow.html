@@ -1,23 +1,20 @@
-{{ define "title" }}
-  {{ .Workflow }} &middot; pipeline {{ .Pipeline.Id }} &middot;
-  {{ .RepoInfo.FullName }}
-{{ end }}
+{{ define "title" }} {{ .Workflow }} &middot; pipeline {{ .Pipeline.Id }} &middot; {{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "extrameta" }}
-  {{ $title := "pipelines" }}
-  {{ $url := printf "https://tangled.sh/%s/pipelines" .RepoInfo.FullName }}
-  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+    {{ $title := "pipelines"}}
+    {{ $url := printf "https://tangled.sh/%s/pipelines" .RepoInfo.FullName }}
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
 {{ define "repoContent" }}
-  <section class="w-full grid grid-cols-1 md:grid-cols-4 gap-2 mt-2">
-    <div class="col-span-1">
-      {{ block "sidebar" . }}{{ end }}
-    </div>
-    <div class="col-span-1 md:col-span-3">
-      {{ block "logs" . }}{{ end }}
-    </div>
-  </section>
+<section class="w-full grid grid-cols-1 md:grid-cols-4 gap-2 mt-2">
+  <div class="col-span-1">
+    {{ block "sidebar" . }} {{ end }}
+  </div>
+  <div class="col-span-1 md:col-span-3">
+    {{ block "logs" . }} {{ end }}
+  </div>
+</section>
 {{ end }}
 
 {{ define "sidebar" }}
@@ -28,47 +25,39 @@
 
   {{ with .Pipeline }}
     {{ $id := .Id }}
-    <div
-      class="sticky top-2 grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+    <div class="sticky top-2 grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
       {{ range $name, $all := .Statuses }}
-        <a
-          href="/{{ $.RepoInfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}"
-          class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
-          <div
-            class="flex gap-2 items-center justify-between p-2 {{ if eq $name $active }}
-              {{ $activeTab }}
-            {{ else }}
-              {{ $inactiveTab }}
-            {{ end }}">
-            {{ $lastStatus := $all.Latest }}
-            {{ $kind := $lastStatus.Status.String }}
+      <a href="/{{ $.RepoInfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
+        <div
+          class="flex gap-2 items-center justify-between p-2 {{ if eq $name $active }} {{ $activeTab }} {{ else }} {{ $inactiveTab }} {{ end }}">
+          {{ $lastStatus := $all.Latest }}
+          {{ $kind := $lastStatus.Status.String }}
 
-
-            <div id="left" class="flex items-center gap-2 flex-shrink-0">
-              {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
-              {{ $name }}
-            </div>
-            <div id="right" class="flex items-center gap-2 flex-shrink-0">
-              <span class="font-bold">{{ $kind }}</span>
-              {{ if .TimeTaken }}
-                {{ template "repo/fragments/duration" .TimeTaken }}
-              {{ else }}
-                {{ template "repo/fragments/shortTimeAgo" $lastStatus.Created }}
-              {{ end }}
-            </div>
+          <div id="left" class="flex items-center gap-2 flex-shrink-0">
+            {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
+            {{ $name }}
           </div>
-        </a>
+          <div id="right" class="flex items-center gap-2 flex-shrink-0">
+            <span class="font-bold">{{ $kind }}</span>
+            {{ if .TimeTaken }}
+            {{ template "repo/fragments/duration" .TimeTaken }}
+            {{ else }}
+            {{ template "repo/fragments/shortTimeAgo" $lastStatus.Created }}
+            {{ end }}
+          </div>
+        </div>
+      </a>
       {{ end }}
     </div>
   {{ end }}
 {{ end }}
 
 {{ define "logs" }}
-  <div
-    id="log-stream"
-    class="text-sm"
-    hx-ext="ws"
-    ws-connect="/{{ $.RepoInfo.FullName }}/pipelines/{{ .Pipeline.Id }}/workflow/{{ .Workflow }}/logs">
-    <div id="lines" class="flex flex-col gap-2"></div>
+  <div id="log-stream"
+       class="text-sm"
+       hx-ext="ws"
+       ws-connect="/{{ $.RepoInfo.FullName }}/pipelines/{{ .Pipeline.Id }}/workflow/{{ .Workflow }}/logs">
+    <div id="lines" class="flex flex-col gap-2">
+    </div>
   </div>
 {{ end }}

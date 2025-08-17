@@ -1,24 +1,16 @@
 {{ define "repo/settings/fragments/sidebar" }}
   {{ $active := .Tab }}
   {{ $tabs := .Tabs }}
-  <div
-    class="sticky top-2 grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 shadow-inner">
+  <div class="sticky top-2 grid grid-cols-1 rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 shadow-inner">
     {{ $activeTab := "bg-white dark:bg-gray-700 drop-shadow-sm" }}
     {{ $inactiveTab := "bg-gray-100 dark:bg-gray-800" }}
     {{ range $tabs }}
-      <a
-        href="/{{ $.RepoInfo.FullName }}/settings?tab={{ .Name }}"
-        class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
-        <div
-          class="flex gap-3 items-center p-2 {{ if eq .Name $active }}
-            {{ $activeTab }}
-          {{ else }}
-            {{ $inactiveTab }}
-          {{ end }}">
-          {{ i .Icon "size-4" }}
-          {{ .Name }}
-        </div>
-      </a>
+    <a href="/{{ $.RepoInfo.FullName }}/settings?tab={{.Name}}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
+      <div class="flex gap-3 items-center p-2 {{ if eq .Name $active }} {{ $activeTab }} {{ else }} {{ $inactiveTab }} {{ end }}">
+        {{ i .Icon "size-4" }}
+        {{ .Name }}
+      </div>
+    </a>
     {{ end }}
   </div>
 {{ end }}

@@ -1,36 +1,30 @@
-{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }} · repos{{ end }}
+{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }} · repos {{ end }}
 
 {{ define "extrameta" }}
-  <meta
-    property="og:title"
-    content="{{ or .Card.UserHandle .Card.UserDid }}'s repos" />
-  <meta property="og:type" content="object" />
-  <meta
-    property="og:url"
-    content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}/repos" />
-  <meta
-    property="og:description"
-    content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+    <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}'s repos" />
+    <meta property="og:type" content="object" />
+    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}/repos" />
+    <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
 {{ end }}
 
 {{ define "content" }}
-  <div class="grid grid-cols-1 md:grid-cols-11 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-11 gap-4">
     <div class="md:col-span-3 order-1 md:order-1">
-      {{ template "user/fragments/profileCard" .Card }}
+        {{ template "user/fragments/profileCard" .Card }}
     </div>
     <div id="all-repos" class="md:col-span-8 order-2 md:order-2">
-      {{ block "ownRepos" . }}{{ end }}
+        {{ block "ownRepos" . }}{{ end }}
     </div>
-  </div>
+</div>
 {{ end }}
 
 {{ define "ownRepos" }}
   <p class="text-sm font-bold p-2 dark:text-white">ALL REPOSITORIES</p>
   <div id="repos" class="grid grid-cols-1 gap-4 mb-6">
     {{ range .Repos }}
-      {{ template "user/fragments/repoCard" (list $ . false) }}
+       {{ template "user/fragments/repoCard" (list $ . false) }}
     {{ else }}
-      <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
+        <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
     {{ end }}
   </div>
 {{ end }}

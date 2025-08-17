@@ -1,122 +1,90 @@
-{{ define "title" }}
-  {{ range .BreadCrumbs }}{{ pathUnescape (index . 0) }}/{{ end }} at
-  {{ .Ref }}
-  &middot;
-  {{ .RepoInfo.FullName }}
-{{ end }}
+{{ define "title"}}{{ range .BreadCrumbs }}{{ pathUnescape (index . 0)}}/{{ end }} at {{ .Ref }} &middot; {{ .RepoInfo.FullName }}{{ end }}
+
 
 {{ define "extrameta" }}
 
-  {{ $path := "" }}
-  {{ range .BreadCrumbs }}
+    {{ $path := "" }}
+    {{ range .BreadCrumbs }}
     {{ $path = printf "%s/%s" $path (index . 0) }}
-  {{ end }}
+    {{ end }}
 
-  {{ template "repo/fragments/meta" . }}
-  {{ $title := printf "%s at %s &middot; %s" $path .Ref .RepoInfo.FullName }}
-  {{ $url := printf "https://tangled.sh/%s/tree/%s%s" .RepoInfo.FullName .Ref $path }}
+    {{ template "repo/fragments/meta" . }}
+    {{ $title := printf "%s at %s &middot; %s" $path .Ref .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/tree/%s%s" .RepoInfo.FullName .Ref $path }}
 
-  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
-{{ define "repoContent" }}
-  <main>
-    <div class="tree">
-      {{ $linkstyle := "no-underline hover:underline" }}
 
+{{define "repoContent"}}
+<main>
+  <div class="tree">
+    {{ $linkstyle := "no-underline hover:underline" }}
 
-      <div
-        class="pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
-        <div class="flex flex-col md:flex-row md:justify-between gap-2">
-          <div
-            id="breadcrumbs"
-            class="overflow-x-auto whitespace-nowrap text-gray-400 dark:text-gray-500">
-            {{ range .BreadCrumbs }}
-              <a
-                href="{{ index . 1 }}"
-                class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}">
-                {{ pathUnescape (index . 0) }}
-              </a>
-              /
-            {{ end }}
-          </div>
-          <div
-            id="dir-info"
-            class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
-            {{ $stats := .TreeStats }}
+    <div class="pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
+      <div class="flex flex-col md:flex-row md:justify-between gap-2">
+        <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap text-gray-400 dark:text-gray-500">
+          {{ range .BreadCrumbs }}
+            <a href="{{ index . 1}}" class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}">{{ pathUnescape (index . 0) }}</a> /
+          {{ end }}
+        </div>
+        <div id="dir-info" class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
+          {{ $stats := .TreeStats }}
 
+          <span>at <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}">{{ $.Ref }}</a></span>
+          {{ if eq $stats.NumFolders 1 }}
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+            <span>{{ $stats.NumFolders }} folder</span>
+          {{ else if gt $stats.NumFolders 1 }}
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+            <span>{{ $stats.NumFolders }} folders</span>
+          {{ end }}
 
-            <span>
-              at
-              <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}">
-                {{ $.Ref }}
-              </a>
-            </span>
-            {{ if eq $stats.NumFolders 1 }}
-              <span
-                class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-              <span>{{ $stats.NumFolders }} folder</span>
-            {{ else if gt $stats.NumFolders 1 }}
-              <span
-                class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-              <span>{{ $stats.NumFolders }} folders</span>
-            {{ end }}
+          {{ if eq $stats.NumFiles 1 }}
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+            <span>{{ $stats.NumFiles }} file</span>
+          {{ else if gt $stats.NumFiles 1 }}
+            <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+            <span>{{ $stats.NumFiles }} files</span>
+          {{ end }}
 
-            {{ if eq $stats.NumFiles 1 }}
-              <span
-                class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-              <span>{{ $stats.NumFiles }} file</span>
-            {{ else if gt $stats.NumFiles 1 }}
-              <span
-                class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-              <span>{{ $stats.NumFiles }} files</span>
-            {{ end }}
-
-          </div>
         </div>
       </div>
-
-      {{ range .Files }}
-        <div class="grid grid-cols-12 gap-4 items-center py-1">
-          <div class="col-span-6 md:col-span-4">
-            {{ $link := printf "/%s/%s/%s/%s/%s" $.RepoInfo.FullName "tree" (urlquery $.Ref) $.TreePath .Name }}
-            {{ $icon := "folder" }}
-            {{ $iconStyle := "size-4 fill-current" }}
-
-            {{ if .IsFile }}
-              {{ $icon = "file" }}
-              {{ $iconStyle = "size-4" }}
-            {{ end }}
-            <a href="{{ $link }}" class="{{ $linkstyle }}">
-              <div class="flex items-center gap-2">
-                {{ i $icon $iconStyle "flex-shrink-0" }}
-                <span class="truncate">{{ .Name }}</span>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-span-0 md:col-span-6 hidden md:block overflow-hidden">
-            {{ with .LastCommit }}
-              <a
-                href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash }}"
-                class="text-gray-500 dark:text-gray-400 block truncate">
-                {{ .Message }}
-              </a>
-            {{ end }}
-          </div>
-
-          <div class="col-span-6 md:col-span-2 text-right">
-            {{ with .LastCommit }}
-              <a
-                href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash }}"
-                class="text-gray-500 dark:text-gray-400">
-                {{ template "repo/fragments/time" .When }}
-              </a>
-            {{ end }}
-          </div>
-        </div>
-      {{ end }}
-
     </div>
-  </main>
-{{ end }}
+
+    {{ range .Files }}
+      <div class="grid grid-cols-12 gap-4 items-center py-1">
+        <div class="col-span-6 md:col-span-4">
+          {{ $link := printf "/%s/%s/%s/%s/%s" $.RepoInfo.FullName "tree" (urlquery $.Ref) $.TreePath .Name }}
+          {{ $icon := "folder" }}
+          {{ $iconStyle := "size-4 fill-current" }}
+
+          {{ if .IsFile }}
+            {{ $icon = "file" }}
+            {{ $iconStyle = "size-4" }}
+          {{ end }}
+          <a href="{{ $link }}" class="{{ $linkstyle }}">
+            <div class="flex items-center gap-2">
+              {{ i $icon $iconStyle "flex-shrink-0" }}
+              <span class="truncate">{{ .Name }}</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-span-0 md:col-span-6 hidden md:block overflow-hidden">
+          {{ with .LastCommit }}
+            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash }}" class="text-gray-500 dark:text-gray-400 block truncate">{{ .Message }}</a>
+          {{ end }}
+        </div>
+
+        <div class="col-span-6 md:col-span-2 text-right">
+          {{ with .LastCommit }}
+            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash }}" class="text-gray-500 dark:text-gray-400">{{ template "repo/fragments/time" .When }}</a>
+          {{ end }}
+        </div>
+      </div>
+    {{ end }}
+
+  </div>
+</main>
+{{end}}

@@ -10,147 +10,98 @@
   {{ $parent := $commit.Parent }}
   {{ $last := sub (len $diff) 1 }}
 
-
   <div class="flex flex-col gap-4">
     {{ range $idx, $hunk := $diff }}
       {{ with $hunk }}
-        <section
-          class="border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
-          <div id="file-{{ .Name.New }}">
-            <div id="diff-file">
-              <details open>
-                <summary class="list-none cursor-pointer sticky top-0">
-                  <div
-                    id="diff-file-header"
-                    class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
-                    <div
-                      id="left-side-items"
-                      class="p-2 flex gap-2 items-center overflow-x-auto">
-                      <div class="flex gap-1 items-center">
-                        {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
-                        {{ if .IsNew }}
-                          <span
-                            class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">
-                            ADDED
-                          </span>
-                        {{ else if .IsDelete }}
-                          <span
-                            class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">
-                            DELETED
-                          </span>
-                        {{ else if .IsCopy }}
-                          <span
-                            class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">
-                            COPIED
-                          </span>
-                        {{ else if .IsRename }}
-                          <span
-                            class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">
-                            RENAMED
-                          </span>
-                        {{ else }}
-                          <span
-                            class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">
-                            MODIFIED
-                          </span>
-                        {{ end }}
-
-                        {{ template "repo/fragments/diffStatPill" .Stats }}
-                      </div>
-
-                      <div class="flex gap-2 items-center overflow-x-auto">
-                        {{ if .IsDelete }}
-                          <a
-                            class="dark:text-white whitespace-nowrap overflow-x-auto"
-                            {{ if $this }}
-                              href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}"
-                            {{ end }}>
-                            {{ .Name.Old }}
-                          </a>
-                        {{ else if (or .IsCopy .IsRename) }}
-                          <a
-                            class="dark:text-white whitespace-nowrap overflow-x-auto"
-                            {{ if $parent }}
-                              href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}"
-                            {{ end }}>
-                            {{ .Name.Old }}
-                          </a>
-                          {{ i "arrow-right" "w-4 h-4" }}
-                          <a
-                            class="dark:text-white whitespace-nowrap overflow-x-auto"
-                            {{ if $this }}
-                              href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"
-                            {{ end }}>
-                            {{ .Name.New }}
-                          </a>
-                        {{ else }}
-                          <a
-                            class="dark:text-white whitespace-nowrap overflow-x-auto"
-                            {{ if $this }}
-                              href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"
-                            {{ end }}>
-                            {{ .Name.New }}
-                          </a>
-                        {{ end }}
-                      </div>
-                    </div>
-
-                    {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" }}
-                    <div id="right-side-items" class="p-2 flex items-center">
-                      <a
-                        title="top of file"
-                        href="#file-{{ .Name.New }}"
-                        class="{{ $iconstyle }}">
-                        {{ i "arrow-up-to-line" "w-4 h-4" }}
-                      </a>
-                      {{ if gt $idx 0 }}
-                        {{ $prev := index $diff (sub $idx 1) }}
-                        <a
-                          title="previous file"
-                          href="#file-{{ $prev.Name.New }}"
-                          class="{{ $iconstyle }}">
-                          {{ i "arrow-up" "w-4 h-4" }}
-                        </a>
+      <section class="border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm">
+        <div id="file-{{ .Name.New }}">
+          <div id="diff-file">
+            <details open>
+              <summary class="list-none cursor-pointer sticky top-0">
+                <div id="diff-file-header" class="rounded cursor-pointer bg-white dark:bg-gray-800 flex justify-between">
+                  <div id="left-side-items" class="p-2 flex gap-2 items-center overflow-x-auto">
+                    <div class="flex gap-1 items-center">
+                      {{ $markerstyle := "diff-type p-1 mr-1 font-mono text-sm rounded select-none" }}
+                      {{ if .IsNew }}
+                      <span class="bg-green-100 text-green-700 dark:bg-green-800/50 dark:text-green-400 {{ $markerstyle }}">ADDED</span>
+                      {{ else if .IsDelete }}
+                      <span class="bg-red-100 text-red-700 dark:bg-red-800/50 dark:text-red-400 {{ $markerstyle }}">DELETED</span>
+                      {{ else if .IsCopy }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">COPIED</span>
+                      {{ else if .IsRename }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">RENAMED</span>
+                      {{ else }}
+                      <span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 {{ $markerstyle }}">MODIFIED</span>
                       {{ end }}
 
-                      {{ if lt $idx $last }}
-                        {{ $next := index $diff (add $idx 1) }}
-                        <a
-                          title="next file"
-                          href="#file-{{ $next.Name.New }}"
-                          class="{{ $iconstyle }}">
-                          {{ i "arrow-down" "w-4 h-4" }}
-                        </a>
+                      {{ template "repo/fragments/diffStatPill" .Stats }}
+                    </div>
+
+                    <div class="flex gap-2 items-center overflow-x-auto">
+                      {{ if .IsDelete }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this }}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.Old }}"{{end}}>
+                        {{ .Name.Old }}
+                      </a>
+                      {{ else if (or .IsCopy .IsRename) }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $parent}}href="/{{ $repo }}/blob/{{ $parent }}/{{ .Name.Old }}"{{end}}>
+                        {{ .Name.Old }}
+                      </a>
+                      {{ i "arrow-right" "w-4 h-4" }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
+                        {{ .Name.New }}
+                      </a>
+                      {{ else }}
+                      <a class="dark:text-white whitespace-nowrap overflow-x-auto" {{if $this}}href="/{{ $repo }}/blob/{{ $this }}/{{ .Name.New }}"{{end}}>
+                        {{ .Name.New }}
+                      </a>
                       {{ end }}
                     </div>
                   </div>
-                </summary>
 
-                <div class="transition-all duration-700 ease-in-out">
-                  {{ if .IsDelete }}
-                    <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-                      This file has been deleted.
-                    </p>
-                  {{ else if .IsCopy }}
-                    <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-                      This file has been copied.
-                    </p>
-                  {{ else if .IsBinary }}
-                    <p class="text-center text-gray-400 dark:text-gray-500 p-4">
-                      This is a binary file and will not be displayed.
-                    </p>
-                  {{ else }}
-                    {{ if $isSplit }}
-                      {{- template "repo/fragments/splitDiff" .Split -}}
-                    {{ else }}
-                      {{- template "repo/fragments/unifiedDiff" . -}}
+                  {{ $iconstyle := "p-1 mx-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" }}
+                  <div id="right-side-items" class="p-2 flex items-center">
+                    <a title="top of file" href="#file-{{ .Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up-to-line" "w-4 h-4" }}</a>
+                    {{ if gt $idx 0 }}
+                      {{ $prev := index $diff (sub $idx 1) }}
+                      <a title="previous file" href="#file-{{ $prev.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-up" "w-4 h-4" }}</a>
                     {{ end }}
-                  {{- end -}}
+
+                    {{ if lt $idx $last }}
+                      {{ $next := index $diff (add $idx 1) }}
+                      <a title="next file" href="#file-{{ $next.Name.New }}" class="{{ $iconstyle }}">{{ i "arrow-down" "w-4 h-4" }}</a>
+                    {{ end }}
+                  </div>
+
                 </div>
-              </details>
-            </div>
+              </summary>
+
+              <div class="transition-all duration-700 ease-in-out">
+                {{ if .IsDelete }}
+                  <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                  This file has been deleted.
+                  </p>
+                {{ else if .IsCopy }}
+                  <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                  This file has been copied.
+                  </p>
+                {{ else if .IsBinary }}
+                  <p class="text-center text-gray-400 dark:text-gray-500 p-4">
+                  This is a binary file and will not be displayed.
+                  </p>
+                {{ else }}
+                  {{ if $isSplit }}
+                    {{- template "repo/fragments/splitDiff" .Split -}}
+                  {{ else }}
+                    {{- template "repo/fragments/unifiedDiff" . -}}
+                  {{ end }}
+                {{- end -}}
+              </div>
+
+            </details>
+
           </div>
-        </section>
+        </div>
+      </section>
       {{ end }}
     {{ end }}
   </div>

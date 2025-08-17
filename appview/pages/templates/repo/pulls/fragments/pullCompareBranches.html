@@ -1,48 +1,45 @@
 {{ define "repo/pulls/fragments/pullCompareBranches" }}
-  <div id="patch-upload">
-    <label for="targetBranch" class="dark:text-white">
-      select a source branch
-    </label>
-    <div class="flex flex-wrap gap-2 items-center">
-      <select
-        name="sourceBranch"
-        class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600">
-        <option disabled selected>source branch</option>
+    <div id="patch-upload">
+        <label for="targetBranch" class="dark:text-white">select a source branch</label>
+        <div class="flex flex-wrap gap-2 items-center">
+            <select
+                name="sourceBranch"
+                class="p-1 border border-gray-200 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
+            >
+                <option disabled selected>source branch</option>
 
-        {{ $recent := index .Branches 0 }}
-        {{ range .Branches }}
-          {{ $isRecent := eq .Reference.Name $recent.Reference.Name }}
-          {{ $preset := false }}
-          {{ if $.SourceBranch }}
-            {{ $preset = eq .Reference.Name $.SourceBranch }}
-          {{ else }}
-            {{ $preset = $isRecent }}
-          {{ end }}
-
-
-          <option
-            value="{{ .Reference.Name }}"
-            {{ if $preset }}
-              selected
-            {{ end }}
-            class="py-1">
-            {{ .Reference.Name }}
-            {{ if $isRecent }}(new){{ end }}
-          </option>
-        {{ end }}
-      </select>
+                {{ $recent := index .Branches 0 }}
+                {{ range .Branches }}
+                    {{ $isRecent := eq .Reference.Name $recent.Reference.Name }}
+                    {{ $preset := false }}
+                    {{ if $.SourceBranch }}
+                        {{ $preset = eq .Reference.Name $.SourceBranch }}
+                    {{ else }}
+                        {{ $preset = $isRecent }}
+                    {{ end }}
+                    
+                    <option
+                        value="{{ .Reference.Name }}"
+                        {{ if $preset }}
+                            selected
+                        {{ end }}
+                        class="py-1"
+                    >
+                        {{ .Reference.Name }}
+                        {{ if $isRecent }}(new){{ end }}
+                    </option>
+                {{ end }}
+            </select>
+        </div>
     </div>
-  </div>
 
-  <div class="flex items-center gap-2">
-    <input type="checkbox" id="isStacked" name="isStacked" value="on" />
-    <label for="isStacked" class="my-0 py-0 normal-case font-normal">
-      Submit as stacked PRs
-    </label>
-  </div>
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="isStacked" name="isStacked" value="on">
+      <label for="isStacked" class="my-0 py-0 normal-case font-normal">Submit as stacked PRs</label>
+    </div>
 
-  <p class="mt-4">
-    Title and description are optional; if left out, they will be extracted from
-    the first commit.
-  </p>
+    <p class="mt-4">
+        Title and description are optional; if left out, they will be extracted
+        from the first commit.
+    </p>
 {{ end }}

@@ -2,38 +2,33 @@
   {{ $repoinfo := .RepoInfo }}
   {{ $pipeline := .Pipeline }}
   {{ $id := $pipeline.Id }}
-  <div
-    class="absolute z-[9999] bg-white dark:bg-gray-900 text-black dark:text-white rounded shadow-sm w-80 top-full mt-2 p-2">
+  <div class="absolute z-[9999] bg-white dark:bg-gray-900 text-black dark:text-white rounded shadow-sm w-80 top-full mt-2 p-2">
     <div class="flex flex-col divide-y divide-gray-200 dark:divide-gray-700">
       {{ range $name, $all := $pipeline.Statuses }}
-        <a
-          href="/{{ $repoinfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}"
-          class="hover:no-underline">
-          <div class="flex items-center justify-between p-2">
-            {{ $lastStatus := $all.Latest }}
-            {{ $kind := $lastStatus.Status.String }}
+      <a href="/{{ $repoinfo.FullName }}/pipelines/{{ $id }}/workflow/{{ $name }}" class="hover:no-underline">
+        <div class="flex items-center justify-between p-2">
+          {{ $lastStatus := $all.Latest }}
+          {{ $kind := $lastStatus.Status.String }}
 
-
-            <div id="left" class="flex items-center gap-2 flex-shrink-0">
-              {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
-              {{ $name }}
-            </div>
-            <div id="right" class="flex items-center gap-2 flex-shrink-0">
-              <span class="font-bold">{{ $kind }}</span>
-              {{ if .TimeTaken }}
-                {{ template "repo/fragments/duration" .TimeTaken }}
-              {{ else }}
-                {{ template "repo/fragments/shortTimeAgo" $pipeline.Created }}
-              {{ end }}
-            </div>
+          <div id="left" class="flex items-center gap-2 flex-shrink-0">
+            {{ template "repo/pipelines/fragments/workflowSymbol" $all }}
+            {{ $name }}
           </div>
-        </a>
-      {{ else }}
-        <div
-          class="flex items-center gap-2 p-2 italic text-gray-600 dark:text-gray-400 ">
-          {{ i "hourglass" "size-4" }}
-          Waiting for spindle ...
+          <div id="right" class="flex items-center gap-2 flex-shrink-0">
+            <span class="font-bold">{{ $kind }}</span>
+            {{ if .TimeTaken }}
+            {{ template "repo/fragments/duration" .TimeTaken }}
+            {{ else }}
+            {{ template "repo/fragments/shortTimeAgo" $pipeline.Created }}
+            {{ end }}
+          </div>
         </div>
+      </a>
+      {{ else }}
+      <div class="flex items-center gap-2 p-2 italic text-gray-600 dark:text-gray-400 ">
+        {{ i "hourglass" "size-4" }}
+        Waiting for spindle ...
+      </div>
       {{ end }}
     </div>
   </div>

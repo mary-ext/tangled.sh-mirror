@@ -1,143 +1,138 @@
-{{ define "title" }}
-  {{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot;
-  {{ .RepoInfo.FullName }}
-{{ end }}
+{{ define "title" }}{{ .Issue.Title }} &middot; issue #{{ .Issue.IssueId }} &middot; {{ .RepoInfo.FullName }}{{ end }}
+
 
 {{ define "extrameta" }}
-  {{ $title := printf "%s &middot; issue #%d &middot; %s" .Issue.Title .Issue.IssueId .RepoInfo.FullName }}
-  {{ $url := printf "https://tangled.sh/%s/issues/%d" .RepoInfo.FullName .Issue.IssueId }}
+    {{ $title := printf "%s &middot; issue #%d &middot; %s" .Issue.Title .Issue.IssueId .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/issues/%d" .RepoInfo.FullName .Issue.IssueId }}
 
-  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
 {{ define "repoContent" }}
-  <header class="pb-4">
-    <h1 class="text-2xl">
+    <header class="pb-4">
+      <h1 class="text-2xl">
       {{ .Issue.Title }}
-      <span class="text-gray-500 dark:text-gray-400">
-        #{{ .Issue.IssueId }}
-      </span>
-    </h1>
-  </header>
+      <span class="text-gray-500 dark:text-gray-400">#{{ .Issue.IssueId }}</span>
+      </h1>
+    </header>
 
-  {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
-  {{ $icon := "ban" }}
-  {{ if eq .State "open" }}
-    {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
-    {{ $icon = "circle-dot" }}
-  {{ end }}
-
-
-  <section class="mt-2">
-    <div class="inline-flex items-center gap-2">
-      <div
-        id="state"
-        class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}">
-        {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
-        <span class="text-white">{{ .State }}</span>
-      </div>
-      <span
-        class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
-        opened by
-        {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
-        {{ template "user/fragments/picHandleLink" $owner }}
-        <span class="select-none before:content-['\00B7']"></span>
-        {{ template "repo/fragments/time" .Issue.Created }}
-      </span>
-    </div>
-
-    {{ if .Issue.Body }}
-      <article id="body" class="mt-8 prose dark:prose-invert">
-        {{ .Issue.Body | markdown }}
-      </article>
+    {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+    {{ $icon := "ban" }}
+    {{ if eq .State "open" }}
+        {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+        {{ $icon = "circle-dot" }}
     {{ end }}
 
+    <section class="mt-2">
+        <div class="inline-flex items-center gap-2">
+            <div id="state"
+                class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}">
+                {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
+                <span class="text-white">{{ .State }}</span>
+            </div>
+            <span class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
+                opened by
+                {{ $owner := didOrHandle .Issue.OwnerDid .IssueOwnerHandle }}
+                {{ template "user/fragments/picHandleLink" $owner }}
+               <span class="select-none before:content-['\00B7']"></span>
+                {{ template "repo/fragments/time" .Issue.Created }}
+            </span>
+        </div>
 
-    <div class="flex items-center gap-2 mt-2">
-      {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
-      {{ range $kind := .OrderedReactionKinds }}
-        {{ template "repo/fragments/reaction"
-          (dict
-          "Kind"      $kind
-          "Count"     (index $.Reactions $kind)
-          "IsReacted" (index $.UserReacted $kind)
-          "ThreadAt"  $.Issue.IssueAt)
-        }}
-      {{ end }}
-    </div>
-  </section>
+        {{ if .Issue.Body }}
+            <article id="body" class="mt-8 prose dark:prose-invert">
+                {{ .Issue.Body | markdown }}
+            </article>
+        {{ end }}
+
+        <div class="flex items-center gap-2 mt-2">
+            {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
+            {{ range $kind := .OrderedReactionKinds }}
+                {{
+                    template "repo/fragments/reaction"
+                    (dict
+                        "Kind"      $kind
+                        "Count"     (index $.Reactions $kind)
+                        "IsReacted" (index $.UserReacted $kind)
+                        "ThreadAt"  $.Issue.IssueAt)
+                }}
+            {{ end }}
+        </div>
+    </section>
 {{ end }}
 
 {{ define "repoAfter" }}
-  <section id="comments" class="my-2 mt-2 space-y-2 relative">
-    {{ range $index, $comment := .Comments }}
-      <div
-        id="comment-{{ .CommentId }}"
-        class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
-        {{ if gt $index 0 }}
-          <div
-            class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+    <section id="comments" class="my-2 mt-2 space-y-2 relative">
+        {{ range $index, $comment := .Comments }}
+            <div
+                id="comment-{{ .CommentId }}"
+                class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
+                {{ if gt $index 0 }}
+                <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
+                {{ end }}
+                {{ template "repo/issues/fragments/issueComment" (dict "RepoInfo" $.RepoInfo "LoggedInUser" $.LoggedInUser "Issue" $.Issue "Comment" .)}}
+            </div>
         {{ end }}
-        {{ template "repo/issues/fragments/issueComment" (dict "RepoInfo" $.RepoInfo "LoggedInUser" $.LoggedInUser "Issue" $.Issue "Comment" .) }}
-      </div>
-    {{ end }}
-  </section>
+    </section>
 
-  {{ block "newComment" . }}{{ end }}
+    {{ block "newComment" . }} {{ end }}
 
 {{ end }}
 
 {{ define "newComment" }}
   {{ if .LoggedInUser }}
-    <form
+  <form
       id="comment-form"
       hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
-      hx-on::after-request="if(event.detail.successful) this.reset()">
-      <div
-        class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-full md:w-3/5">
-        <div class="text-sm pb-2 text-gray-500 dark:text-gray-400">
-          {{ template "user/fragments/picHandleLink" (didOrHandle .LoggedInUser.Did .LoggedInUser.Handle) }}
-        </div>
-        <textarea
-          id="comment-textarea"
-          name="body"
-          class="w-full p-2 rounded border border-gray-200 dark:border-gray-700"
-          placeholder="Add to the discussion. Markdown is supported."
-          onkeyup="updateCommentForm()"></textarea>
-        <div id="issue-comment"></div>
-        <div id="issue-action" class="error"></div>
+      hx-on::after-request="if(event.detail.successful) this.reset()"
+  >
+    <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-full md:w-3/5">
+      <div class="text-sm pb-2 text-gray-500 dark:text-gray-400">
+        {{ template "user/fragments/picHandleLink" (didOrHandle .LoggedInUser.Did .LoggedInUser.Handle) }}
       </div>
+          <textarea
+              id="comment-textarea"
+              name="body"
+              class="w-full p-2 rounded border border-gray-200 dark:border-gray-700"
+              placeholder="Add to the discussion. Markdown is supported."
+              onkeyup="updateCommentForm()"
+          ></textarea>
+          <div id="issue-comment"></div>
+      <div id="issue-action" class="error"></div>
+    </div>
 
-      <div class="flex gap-2 mt-2">
+    <div class="flex gap-2 mt-2">
         <button
-          id="comment-button"
-          hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
-          type="submit"
-          hx-disabled-elt="#comment-button"
-          class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group"
-          disabled>
-          {{ i "message-square-plus" "w-4 h-4" }}
-          comment
-          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            id="comment-button"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+            type="submit"
+            hx-disabled-elt="#comment-button"
+            class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group"
+            disabled
+        >
+            {{ i "message-square-plus" "w-4 h-4" }}
+            comment
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
 
         {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.OwnerDid) }}
         {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
         {{ $isRepoOwner := .RepoInfo.Roles.IsOwner }}
         {{ if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "open") }}
-          <button
+        <button
             id="close-button"
             type="button"
             class="btn flex items-center gap-2"
             hx-indicator="#close-spinner"
-            hx-trigger="click">
+            hx-trigger="click"
+        >
             {{ i "ban" "w-4 h-4" }}
             close
             <span id="close-spinner" class="group">
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </span>
-          </button>
-          <div
+        </button>
+        <div
             id="close-with-comment"
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
             hx-trigger="click from:#close-button"
@@ -145,41 +140,44 @@
             hx-target="#issue-comment"
             hx-indicator="#close-spinner"
             hx-vals="js:{body: document.getElementById('comment-textarea').value.trim() !== '' ? document.getElementById('comment-textarea').value : ''}"
-            hx-swap="none"></div>
-          <div
+            hx-swap="none"
+        >
+        </div>
+        <div
             id="close-issue"
             hx-disabled-elt="#close-issue"
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/close"
             hx-trigger="click from:#close-button"
             hx-target="#issue-action"
             hx-indicator="#close-spinner"
-            hx-swap="none"></div>
-          <script>
-            document.addEventListener("htmx:configRequest", function (evt) {
-              if (evt.target.id === "close-with-comment") {
-                const commentText = document
-                  .getElementById("comment-textarea")
-                  .value.trim();
-                if (commentText === "") {
-                  evt.detail.parameters = {};
-                  evt.preventDefault();
+            hx-swap="none"
+        >
+        </div>
+        <script>
+            document.addEventListener('htmx:configRequest', function(evt) {
+                if (evt.target.id === 'close-with-comment') {
+                    const commentText = document.getElementById('comment-textarea').value.trim();
+                    if (commentText === '') {
+                        evt.detail.parameters = {};
+                        evt.preventDefault();
+                    }
                 }
-              }
             });
-          </script>
+        </script>
         {{ else if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "closed") }}
-          <button
+        <button
             type="button"
             class="btn flex items-center gap-2"
             hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/reopen"
             hx-indicator="#reopen-spinner"
-            hx-swap="none">
+            hx-swap="none"
+        >
             {{ i "refresh-ccw-dot" "w-4 h-4" }}
             reopen
             <span id="reopen-spinner" class="group">
               {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </span>
-          </button>
+        </button>
         {{ end }}
 
         <script>
@@ -217,13 +215,11 @@
             updateCommentForm();
         });
         </script>
-      </div>
-    </form>
+    </div>
+  </form>
   {{ else }}
-    <div
-      class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-fit">
-      <a href="/login" class="underline">login</a>
-      to join the discussion
+    <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-fit">
+      <a href="/login" class="underline">login</a> to join the discussion
     </div>
   {{ end }}
 {{ end }}

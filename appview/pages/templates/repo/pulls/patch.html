@@ -1,42 +1,37 @@
 {{ define "title" }}
-  patch of {{ .Pull.Title }} &middot; round #{{ .Round }} &middot; pull
-  #{{ .Pull.PullId }} &middot;
-  {{ .RepoInfo.FullName }}
+    patch of {{ .Pull.Title }} &middot; round #{{ .Round }} &middot; pull #{{ .Pull.PullId }} &middot; {{ .RepoInfo.FullName }}
 {{ end }}
+
 
 {{ define "extrameta" }}
-  {{ $title := printf "patch of %s &middot; pull #%d &middot; %s" .Pull.Title .Pull.PullId .RepoInfo.FullName }}
-  {{ $url := printf "https://tangled.sh/%s/pulls/%d/round/%d" .RepoInfo.FullName .Pull.PullId .Round }}
-
-  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+    {{ $title := printf "patch of %s &middot; pull #%d &middot; %s" .Pull.Title .Pull.PullId .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/pulls/%d/round/%d" .RepoInfo.FullName .Pull.PullId .Round }}
+    
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
+
 {{ define "content" }}
-  <section>
+<section>
     <section
-      class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
-      <div class="flex gap-3 items-center mb-3">
-        <a
-          href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/"
-          class="flex items-center gap-2 font-medium">
-          {{ i "arrow-left" "w-5 h-5" }}
-          back
-        </a>
-        <span class="select-none before:content-['\00B7']"></span>
-        round
-        <span class="flex items-center">
-          {{ i "hash" "w-4 h-4" }}{{ .Round }}
-        </span>
-        <span class="select-none before:content-['\00B7']"></span>
-        <a
-          href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Round }}.patch">
-          view raw
-        </a>
-      </div>
-      <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-      {{ template "repo/pulls/fragments/pullHeader" . }}
+        class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white"
+    >
+        <div class="flex gap-3 items-center mb-3">
+            <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/" class="flex items-center gap-2 font-medium">
+              {{ i "arrow-left" "w-5 h-5" }}
+              back
+            </a>
+            <span class="select-none before:content-['\00B7']"></span>
+            round<span class="flex items-center">{{ i "hash" "w-4 h-4" }}{{ .Round }}</span>
+            <span class="select-none before:content-['\00B7']"></span>
+            <a href="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Round }}.patch">
+                view raw
+            </a>
+        </div>
+        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+    {{ template "repo/pulls/fragments/pullHeader" . }}
     </section>
-  </section>
+</section>
 {{ end }}
 
 {{ define "topbarLayout" }}
@@ -52,14 +47,14 @@
     {{ end }}
 
     {{ block "contentAfterLayout" . }}
-      <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4">
-        <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
-          {{ block "contentAfterLeft" . }}{{ end }}
-        </div>
-        <main class="col-span-1 md:col-span-10">
-          {{ block "contentAfter" . }}{{ end }}
-        </main>
+    <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4">
+      <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
+        {{ block "contentAfterLeft" . }} {{ end }}
       </div>
+      <main class="col-span-1 md:col-span-10">
+        {{ block "contentAfter" . }}{{ end }}
+      </main>
+    </div>
     {{ end }}
   </div>
 {{ end }}
@@ -72,7 +67,7 @@
 
 {{ define "contentAfter" }}
   {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff .DiffOpts) }}
-{{ end }}
+{{end}}
 
 {{ define "contentAfterLeft" }}
   <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
@@ -81,4 +76,4 @@
   <div class="sticky top-0 flex-grow max-h-screen">
     {{ template "repo/fragments/diffChangedFiles" .Diff }}
   </div>
-{{ end }}
+{{end}}

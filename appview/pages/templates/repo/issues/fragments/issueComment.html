@@ -1,61 +1,58 @@
 {{ define "repo/issues/fragments/issueComment" }}
   {{ with .Comment }}
-    <div id="comment-container-{{ .CommentId }}">
-      <div
-        class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400 text-sm flex-wrap">
-        {{ template "user/fragments/picHandleLink" .OwnerDid }}
+  <div id="comment-container-{{.CommentId}}">
+    <div class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400 text-sm flex-wrap">
+      {{ template "user/fragments/picHandleLink" .OwnerDid }}
 
-
-        <!-- show user "hats" -->
-        {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
-        {{ if $isIssueAuthor }}
-          <span class="before:content-['·']"></span>
-          author
-        {{ end }}
-
-
+      <!-- show user "hats" -->
+      {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
+      {{ if $isIssueAuthor }}
         <span class="before:content-['·']"></span>
-        <a
+        author
+      {{ end }}
+
+     <span class="before:content-['·']"></span>
+      <a
           href="#{{ .CommentId }}"
           class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-400 hover:underline no-underline"
           id="{{ .CommentId }}">
-          {{ if .Deleted }}
-            deleted
-            {{ template "repo/fragments/time" .Deleted }}
-          {{ else if .Edited }}
-            edited
-            {{ template "repo/fragments/time" .Edited }}
-          {{ else }}
-            {{ template "repo/fragments/time" .Created }}
-          {{ end }}
-        </a>
-
-        {{ $isCommentOwner := and $.LoggedInUser (eq $.LoggedInUser.Did .OwnerDid) }}
-        {{ if and $isCommentOwner (not .Deleted) }}
-          <button
-            class="btn px-2 py-1 text-sm"
-            hx-get="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/edit"
-            hx-swap="outerHTML"
-            hx-target="#comment-container-{{ .CommentId }}">
-            {{ i "pencil" "w-4 h-4" }}
-          </button>
-          <button
-            class="btn px-2 py-1 text-sm text-red-500 flex gap-2 items-center group"
-            hx-delete="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/"
-            hx-confirm="Are you sure you want to delete your comment?"
-            hx-swap="outerHTML"
-            hx-target="#comment-container-{{ .CommentId }}">
-            {{ i "trash-2" "w-4 h-4" }}
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </button>
+        {{ if .Deleted }}
+          deleted {{ template "repo/fragments/time" .Deleted }}
+        {{ else if .Edited }}
+          edited {{ template "repo/fragments/time" .Edited }}
+        {{ else }}
+          {{ template "repo/fragments/time" .Created }}
         {{ end }}
+      </a>
 
-      </div>
-      {{ if not .Deleted }}
-        <div class="prose dark:prose-invert">
-          {{ .Body | markdown }}
-        </div>
+      {{ $isCommentOwner := and $.LoggedInUser (eq $.LoggedInUser.Did .OwnerDid) }}
+      {{ if and $isCommentOwner (not .Deleted) }}
+      <button
+        class="btn px-2 py-1 text-sm"
+        hx-get="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/edit"
+        hx-swap="outerHTML"
+        hx-target="#comment-container-{{.CommentId}}"
+        >
+        {{ i "pencil" "w-4 h-4" }}
+      </button>
+      <button
+        class="btn px-2 py-1 text-sm text-red-500 flex gap-2 items-center group"
+        hx-delete="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/"
+        hx-confirm="Are you sure you want to delete your comment?"
+        hx-swap="outerHTML"
+        hx-target="#comment-container-{{.CommentId}}"
+        >
+        {{ i "trash-2" "w-4 h-4" }}
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
       {{ end }}
+
     </div>
+    {{ if not .Deleted }}
+    <div class="prose dark:prose-invert">
+      {{ .Body | markdown }}
+    </div>
+    {{ end }}
+  </div>
   {{ end }}
 {{ end }}

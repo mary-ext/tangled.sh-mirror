@@ -4,9 +4,7 @@
       <summary class="cursor-pointer list-none pt-1">
         <span class="tree-directory inline-flex items-center gap-2 ">
           {{ i "folder" "flex-shrink-0 size-4 fill-current" }}
-          <span class="filename truncate text-black dark:text-white">
-            {{ .Name }}
-          </span>
+          <span class="filename truncate text-black dark:text-white">{{ .Name }}</span>
         </span>
       </summary>
       <div class="ml-1 pl-2 border-l border-gray-200 dark:border-gray-700">
@@ -18,11 +16,7 @@
   {{ else if .Name }}
     <div class="tree-file flex items-center gap-2 pt-1">
       {{ i "file" "flex-shrink-0 size-4" }}
-      <a
-        href="#file-{{ .Path }}"
-        class="filename truncate text-black dark:text-white no-underline hover:underline">
-        {{ .Name }}
-      </a>
+      <a href="#file-{{ .Path }}" class="filename truncate text-black dark:text-white no-underline hover:underline">{{ .Name }}</a>
     </div>
   {{ else }}
     {{ range $child := .Children }}
@@ -30,3 +24,4 @@
     {{ end }}
   {{ end }}
 {{ end }}
+

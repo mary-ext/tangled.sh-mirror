@@ -1,34 +1,20 @@
 {{ define "repo/fragments/artifact" }}
-  {{ $unique := .Artifact.BlobCid.String }}
-  <div
-    id="artifact-{{ $unique }}"
-    class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
-    <div id="left-side" class="flex items-center gap-2 min-w-0 max-w-[60%]">
-      {{ i "box" "w-4 h-4" }}
-      <a
-        href="/{{ .RepoInfo.FullName }}/tags/{{ .Artifact.Tag.String }}/download/{{ .Artifact.Name | urlquery }}"
-        class="no-underline hover:no-underline">
-        {{ .Artifact.Name }}
-      </a>
-      <span class="text-gray-500 dark:text-gray-400 pl-2 text-sm">
-        {{ byteFmt .Artifact.Size }}
-      </span>
-    </div>
+{{ $unique := .Artifact.BlobCid.String }}
+  <div id="artifact-{{ $unique }}" class="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700">
+      <div id="left-side" class="flex items-center gap-2 min-w-0 max-w-[60%]">
+        {{ i "box" "w-4 h-4" }}
+        <a href="/{{ .RepoInfo.FullName }}/tags/{{ .Artifact.Tag.String }}/download/{{ .Artifact.Name | urlquery }}" class="no-underline hover:no-underline">
+          {{ .Artifact.Name }}
+        </a>
+        <span class="text-gray-500 dark:text-gray-400 pl-2 text-sm">{{ byteFmt .Artifact.Size }}</span>
+      </div>
 
-    <div
-      id="right-side"
-      class="text-gray-500 dark:text-gray-400 flex items-center flex-shrink-0 gap-2 text-sm">
-      <span class="hidden md:inline">
-        {{ template "repo/fragments/time" .Artifact.CreatedAt }}
-      </span>
-      <span class="       md:hidden">
-        {{ template "repo/fragments/shortTime" .Artifact.CreatedAt }}
-      </span>
+    <div id="right-side" class="text-gray-500 dark:text-gray-400 flex items-center flex-shrink-0 gap-2 text-sm">
+      <span class="hidden md:inline">{{ template "repo/fragments/time" .Artifact.CreatedAt }}</span>
+      <span class="       md:hidden">{{ template "repo/fragments/shortTime" .Artifact.CreatedAt }}</span>
 
       <span class="select-none after:content-['·'] hidden md:inline"></span>
-      <span class="truncate max-w-[100px] hidden md:inline">
-        {{ .Artifact.MimeType }}
-      </span>
+      <span class="truncate max-w-[100px] hidden md:inline">{{ .Artifact.MimeType }}</span>
 
       {{ if and .LoggedInUser (eq .LoggedInUser.Did .Artifact.Did) }}
         <button

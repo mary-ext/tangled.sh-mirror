@@ -1,54 +1,55 @@
 {{ define "repo/fragments/cloneInstructions" }}
-  {{ $knot := .RepoInfo.Knot }}
-  {{ if eq $knot "knot1.tangled.sh" }}
-    {{ $knot = "tangled.sh" }}
-  {{ end }}
-  <section
-    class="mt-4 p-6 rounded drop-shadow-sm bg-white dark:bg-gray-800 dark:text-white w-full mx-auto overflow-auto flex flex-col gap-4">
-    <div class="flex flex-col gap-2">
-      <strong>push</strong>
-      <div class="md:pl-4 overflow-x-auto whitespace-nowrap">
-        <code class="dark:text-gray-100">
-          git remote add origin
-          git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}
-        </code>
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-2">
-      <strong>clone</strong>
-      <div class="md:pl-4 flex flex-col gap-2">
-        <div class="flex items-center gap-3">
-          <span
-            class="bg-gray-100 dark:bg-gray-700 p-1 mr-1 font-mono text-sm rounded select-none dark:text-white">
-            HTTP
-          </span>
-          <div class="overflow-x-auto whitespace-nowrap flex-1">
-            <code class="dark:text-gray-100">
-              git clone
-              https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}
-            </code>
-          </div>
+    {{ $knot := .RepoInfo.Knot }}
+    {{ if eq $knot "knot1.tangled.sh" }}
+        {{ $knot = "tangled.sh" }}
+    {{ end }}
+    <section
+        class="mt-4 p-6 rounded drop-shadow-sm bg-white dark:bg-gray-800 dark:text-white w-full mx-auto overflow-auto flex flex-col gap-4"
+    >
+        <div class="flex flex-col gap-2">
+            <strong>push</strong>
+            <div class="md:pl-4 overflow-x-auto whitespace-nowrap">
+                <code class="dark:text-gray-100"
+                    >git remote add origin
+                    git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code
+                >
+            </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span
-            class="bg-gray-100 dark:bg-gray-700 p-1 mr-1 font-mono text-sm rounded select-none dark:text-white">
-            SSH
-          </span>
-          <div class="overflow-x-auto whitespace-nowrap flex-1">
-            <code class="dark:text-gray-100">
-              git clone
-              git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}
-            </code>
-          </div>
-        </div>
-      </div>
-    </div>
+        <div class="flex flex-col gap-2">
+            <strong>clone</strong>
+            <div class="md:pl-4 flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                    <span
+                        class="bg-gray-100 dark:bg-gray-700 p-1 mr-1 font-mono text-sm rounded select-none dark:text-white"
+                        >HTTP</span
+                    >
+                    <div class="overflow-x-auto whitespace-nowrap flex-1">
+                        <code class="dark:text-gray-100"
+                            >git clone
+                            https://tangled.sh/{{ .RepoInfo.OwnerWithAt }}/{{ .RepoInfo.Name }}</code
+                        >
+                    </div>
+                </div>
 
-    <p class="py-2 text-gray-500 dark:text-gray-400">
-      Note that for self-hosted knots, clone URLs may be different based on your
-      setup.
-    </p>
-  </section>
+                <div class="flex items-center gap-3">
+                    <span
+                        class="bg-gray-100 dark:bg-gray-700 p-1 mr-1 font-mono text-sm rounded select-none dark:text-white"
+                        >SSH</span
+                    >
+                    <div class="overflow-x-auto whitespace-nowrap flex-1">
+                        <code class="dark:text-gray-100"
+                            >git clone
+                            git@{{ $knot }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="py-2 text-gray-500 dark:text-gray-400">
+            Note that for self-hosted knots, clone URLs may be different based
+            on your setup.
+        </p>
+    </section>
 {{ end }}

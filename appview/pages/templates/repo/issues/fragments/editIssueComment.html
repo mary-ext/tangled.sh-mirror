@@ -1,56 +1,51 @@
 {{ define "repo/issues/fragments/editIssueComment" }}
   {{ with .Comment }}
-    <div id="comment-container-{{ .CommentId }}">
-      <div
-        class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400 text-sm flex-wrap">
-        {{ $owner := didOrHandle $.LoggedInUser.Did $.LoggedInUser.Handle }}
-        <a href="/{{ $owner }}" class="no-underline hover:underline">
-          {{ $owner }}
-        </a>
+  <div id="comment-container-{{.CommentId}}">
+    <div class="flex items-center gap-2 mb-2 text-gray-500 dark:text-gray-400 text-sm flex-wrap">
+      {{ $owner := didOrHandle $.LoggedInUser.Did $.LoggedInUser.Handle }}
+      <a href="/{{ $owner }}" class="no-underline hover:underline">{{ $owner }}</a>
 
-        <!-- show user "hats" -->
-        {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
-        {{ if $isIssueAuthor }}
-          <span class="before:content-['·']"></span>
-          author
-        {{ end }}
+      <!-- show user "hats" -->
+      {{ $isIssueAuthor := eq .OwnerDid $.Issue.OwnerDid }}
+      {{ if $isIssueAuthor }}
+      <span class="before:content-['·']"></span>
+        author
+      {{ end }}
 
-
-        <span class="before:content-['·']"></span>
-        <a
+      <span class="before:content-['·']"></span>
+      <a
           href="#{{ .CommentId }}"
           class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-400 hover:underline no-underline"
           id="{{ .CommentId }}">
-          {{ template "repo/fragments/time" .Created }}
-        </a>
+        {{ template "repo/fragments/time" .Created }}
+      </a>
 
-        <button
-          class="btn px-2 py-1 flex items-center gap-2 text-sm group"
-          hx-post="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/edit"
-          hx-include="#edit-textarea-{{ .CommentId }}"
-          hx-target="#comment-container-{{ .CommentId }}"
-          hx-swap="outerHTML">
-          {{ i "check" "w-4 h-4" }}
-          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-        </button>
-        <button
-          class="btn px-2 py-1  flex items-center gap-2 text-sm"
-          hx-get="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/"
-          hx-target="#comment-container-{{ .CommentId }}"
-          hx-swap="outerHTML">
-          {{ i "x" "w-4 h-4" }}
-        </button>
-        <span id="comment-{{ .CommentId }}-status"></span>
-      </div>
-
-      <div>
-        <textarea
-          id="edit-textarea-{{ .CommentId }}"
-          name="body"
-          class="w-full p-2 border rounded min-h-[100px]">
-{{ .Body }}</textarea
-        >
-      </div>
+      <button
+        class="btn px-2 py-1 flex items-center gap-2 text-sm group"
+        hx-post="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/edit"
+        hx-include="#edit-textarea-{{ .CommentId }}"
+        hx-target="#comment-container-{{ .CommentId }}"
+        hx-swap="outerHTML">
+        {{ i "check" "w-4 h-4" }}
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
+      <button
+        class="btn px-2 py-1  flex items-center gap-2 text-sm"
+        hx-get="/{{ $.RepoInfo.FullName }}/issues/{{ .Issue }}/comment/{{ .CommentId }}/"
+        hx-target="#comment-container-{{ .CommentId }}"
+        hx-swap="outerHTML">
+        {{ i "x" "w-4 h-4" }}
+      </button>
+      <span id="comment-{{.CommentId}}-status"></span>
     </div>
+
+    <div>
+      <textarea
+        id="edit-textarea-{{ .CommentId }}"
+        name="body"
+        class="w-full p-2 border rounded min-h-[100px]">{{ .Body }}</textarea>
+    </div>
+  </div>
   {{ end }}
 {{ end }}
+

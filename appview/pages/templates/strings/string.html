@@ -1,17 +1,10 @@
-{{ define "title" }}
-  {{ .String.Filename }} · by
-  {{ didOrHandle .Owner.DID.String .Owner.Handle.String }}
-{{ end }}
+{{ define "title" }}{{ .String.Filename }} · by {{ didOrHandle .Owner.DID.String .Owner.Handle.String }}{{ end }}
 
 {{ define "extrameta" }}
   {{ $ownerId := didOrHandle .Owner.DID.String .Owner.Handle.String }}
-  <meta
-    property="og:title"
-    content="{{ .String.Filename }} · by {{ $ownerId }}" />
+  <meta property="og:title" content="{{ .String.Filename }} · by {{ $ownerId }}" />
   <meta property="og:type" content="object" />
-  <meta
-    property="og:url"
-    content="https://tangled.sh/strings/{{ $ownerId }}/{{ .String.Rkey }}" />
+  <meta property="og:url" content="https://tangled.sh/strings/{{ $ownerId }}/{{ .String.Rkey }}" />
   <meta property="og:description" content="{{ .String.Description }}" />
 {{ end }}
 
@@ -20,24 +13,21 @@
 {{ end }}
 
 {{ define "content" }}
-  {{ $ownerId := didOrHandle .Owner.DID.String .Owner.Handle.String }}
+{{ $ownerId := didOrHandle .Owner.DID.String .Owner.Handle.String }}
   <section id="string-header" class="mb-4 py-2 px-6 dark:text-white">
     <div class="text-lg flex items-center justify-between">
       <div>
         <a href="/strings/{{ $ownerId }}">{{ $ownerId }}</a>
         <span class="select-none">/</span>
-        <a href="/strings/{{ $ownerId }}/{{ .String.Rkey }}" class="font-bold">
-          {{ .String.Filename }}
-        </a>
+        <a href="/strings/{{ $ownerId }}/{{ .String.Rkey }}" class="font-bold">{{ .String.Filename }}</a>
       </div>
       {{ if and .LoggedInUser (eq .LoggedInUser.Did .String.Did) }}
         <div class="flex gap-2 text-base">
-          <a
-            class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
-            hx-boost="true"
-            href="/strings/{{ .String.Did }}/{{ .String.Rkey }}/edit">
+          <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
+             hx-boost="true"
+             href="/strings/{{ .String.Did }}/{{ .String.Rkey }}/edit">
             {{ i "pencil" "size-4" }}
-            <span class="hidden md:inline">edit</span>
+            <span class="hidden md:inline">edit</span> 
             {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </a>
           <button
@@ -45,9 +35,10 @@
             title="Delete string"
             hx-delete="/strings/{{ .String.Did }}/{{ .String.Rkey }}/"
             hx-swap="none"
-            hx-confirm="Are you sure you want to delete the gist `{{ .String.Filename }}`?">
+            hx-confirm="Are you sure you want to delete the gist `{{ .String.Filename }}`?"
+          >
             {{ i "trash-2" "size-4" }}
-            <span class="hidden md:inline">delete</span>
+            <span class="hidden md:inline">delete</span> 
             {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </button>
         </div>
@@ -59,17 +50,14 @@
       {{ end }}
     </span>
   </section>
-  <section
-    class="bg-white dark:bg-gray-800 px-6 py-4 rounded relative w-full dark:text-white">
-    <div
-      class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-sm md:text-base pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
+  <section class="bg-white dark:bg-gray-800 px-6 py-4 rounded relative w-full dark:text-white">
+    <div class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-sm md:text-base pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
       <span>
         {{ .String.Filename }}
         <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
         <span>
           {{ with .String.Edited }}
-            edited
-            {{ template "repo/fragments/shortTimeAgo" . }}
+            edited {{ template "repo/fragments/shortTimeAgo" . }}
           {{ else }}
             {{ template "repo/fragments/shortTimeAgo" .String.Created }}
           {{ end }}
@@ -82,25 +70,18 @@
         <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
         <a href="/strings/{{ $ownerId }}/{{ .String.Rkey }}/raw">view raw</a>
         {{ if .RenderToggle }}
-          <span
-            class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-          <a href="?code={{ .ShowRendered }}" hx-boost="true">
-            view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}
-          </a>
+        <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+        <a href="?code={{ .ShowRendered }}" hx-boost="true">
+          view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}
+        </a>
         {{ end }}
       </div>
     </div>
     <div class="overflow-auto relative">
       {{ if .ShowRendered }}
-        <div id="blob-contents" class="prose dark:prose-invert">
-          {{ .RenderedContents }}
-        </div>
+      <div id="blob-contents" class="prose dark:prose-invert">{{ .RenderedContents }}</div>
       {{ else }}
-        <div
-          id="blob-contents"
-          class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">
-          {{ .String.Contents | escapeHtml }}
-        </div>
+      <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ .String.Contents | escapeHtml }}</div>
       {{ end }}
     </div>
   </section>

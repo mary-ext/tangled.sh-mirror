@@ -1,22 +1,18 @@
 {{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }}{{ end }}
 
 {{ define "extrameta" }}
-  <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
-  <meta property="og:type" content="profile" />
-  <meta
-    property="og:url"
-    content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}" />
-  <meta
-    property="og:description"
-    content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+    <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}" />
+    <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
 {{ end }}
 
 {{ define "content" }}
-  <div class="grid grid-cols-1 md:grid-cols-11 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-11 gap-4">
     <div class="md:col-span-3 order-1 md:order-1">
       <div class="grid grid-cols-1 gap-4">
         {{ template "user/fragments/profileCard" .Card }}
-        {{ block "punchcard" .Punchcard }}{{ end }}
+        {{ block "punchcard" .Punchcard }} {{ end }}
       </div>
     </div>
     <div id="all-repos" class="md:col-span-4 order-2 md:order-2">
@@ -26,9 +22,9 @@
       </div>
     </div>
     <div class="md:col-span-4 order-3 md:order-3">
-      {{ block "profileTimeline" . }}{{ end }}
+        {{ block "profileTimeline" . }}{{ end }}
     </div>
-  </div>
+</div>
 {{ end }}
 
 {{ define "profileTimeline" }}
@@ -37,32 +33,30 @@
     {{ with .ProfileTimeline }}
       {{ range $idx, $byMonth := .ByMonth }}
         {{ with $byMonth }}
-          <div
-            class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm">
-            {{ if eq $idx 0 }}
+        <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm">
+          {{ if eq $idx 0 }}
 
-            {{ else }}
-              {{ $s := "s" }}
-              {{ if eq $idx 1 }}
-                {{ $s = "" }}
-              {{ end }}
-              <p class="text-sm font-bold dark:text-white mb-2">
-                {{ $idx }} month{{ $s }} ago
-              </p>
+          {{ else }}
+            {{ $s := "s" }}
+            {{ if eq $idx 1 }}
+              {{ $s = "" }}
             {{ end }}
+            <p class="text-sm font-bold dark:text-white mb-2">{{$idx}} month{{$s}} ago</p>
+          {{ end }}
 
-            {{ if .IsEmpty }}
-              <div class="text-gray-500 dark:text-gray-400">
-                No activity for this month
-              </div>
-            {{ else }}
-              <div class="flex flex-col gap-1">
-                {{ block "repoEvents"  .RepoEvents }}{{ end }}
-                {{ block "issueEvents" .IssueEvents }}{{ end }}
-                {{ block "pullEvents"  .PullEvents }}{{ end }}
-              </div>
-            {{ end }}
-          </div>
+          {{ if .IsEmpty }}
+            <div class="text-gray-500 dark:text-gray-400">
+              No activity for this month
+            </div>
+          {{ else }}
+            <div class="flex flex-col gap-1">
+              {{ block "repoEvents"  .RepoEvents }} {{ end }}
+              {{ block "issueEvents" .IssueEvents }} {{ end }}
+              {{ block "pullEvents"  .PullEvents }} {{ end }}
+            </div>
+          {{ end }}
+        </div>
+
         {{ end }}
       {{ else }}
         <p class="dark:text-white">This user does not have any activity yet.</p>
@@ -74,13 +68,10 @@
 {{ define "repoEvents" }}
   {{ if gt (len .) 0 }}
     <details>
-      <summary
-        class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
+      <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex flex-wrap items-center gap-2">
           {{ i "book-plus" "w-4 h-4" }}
-          created
-          {{ len . }}
-          {{ if eq (len .) 1 }}repository{{ else }}repositories{{ end }}
+          created {{ len . }} {{if eq (len .) 1 }}repository{{else}}repositories{{end}}
         </div>
       </summary>
       <div class="py-2 text-sm flex flex-col gap-3 mb-2">
@@ -93,9 +84,7 @@
                 {{ i "book-plus" "w-4 h-4" }}
               {{ end }}
             </span>
-            <a
-              href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}"
-              class="no-underline hover:underline">
+            <a href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
               {{- .Repo.Name -}}
             </a>
           </div>
@@ -111,30 +100,24 @@
 
   {{ if gt (len $items) 0 }}
     <details>
-      <summary
-        class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
+      <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex flex-wrap items-center gap-2">
           {{ i "circle-dot" "w-4 h-4" }}
 
-
           <div>
-            created
-            {{ len $items }}
-            {{ if eq (len $items) 1 }}issue{{ else }}issues{{ end }}
+            created {{ len $items }} {{if eq (len $items) 1 }}issue{{else}}issues{{end}} 
           </div>
 
           {{ if gt $stats.Open 0 }}
-            <span
-              class="px-2 py-1/2 text-sm rounded text-white bg-green-600 dark:bg-green-700">
-              {{ $stats.Open }} open
+            <span class="px-2 py-1/2 text-sm rounded text-white bg-green-600 dark:bg-green-700">
+              {{$stats.Open}} open
             </span>
           {{ end }}
 
           {{ if gt $stats.Closed 0 }}
-            <span
-              class="px-2 py-1/2 text-sm rounded text-white bg-gray-800 dark:bg-gray-700">
-              {{ $stats.Closed }} closed
-            </span>
+          <span class="px-2 py-1/2 text-sm rounded text-white bg-gray-800 dark:bg-gray-700">
+            {{$stats.Closed}} closed
+          </span>
           {{ end }}
 
         </div>
@@ -144,7 +127,6 @@
           {{ $repoOwner := resolve .Metadata.Repo.Did }}
           {{ $repoName := .Metadata.Repo.Name }}
           {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
-
 
           <div class="flex gap-2 text-gray-600 dark:text-gray-300">
             {{ if .Open }}
@@ -157,21 +139,15 @@
               </span>
             {{ end }}
             <div class="flex-none min-w-8 text-right">
-              <span class="text-gray-500 dark:text-gray-400">
-                #{{ .IssueId }}
-              </span>
+              <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
             </div>
             <div class="break-words max-w-full">
-              <a
-                href="/{{ $repoUrl }}/issues/{{ .IssueId }}"
-                class="no-underline hover:underline">
+              <a href="/{{$repoUrl}}/issues/{{ .IssueId }}" class="no-underline hover:underline">
                 {{ .Title -}}
               </a>
               on
-              <a
-                href="/{{ $repoUrl }}"
-                class="no-underline hover:underline whitespace-nowrap">
-                {{ $repoUrl }}
+              <a href="/{{$repoUrl}}" class="no-underline hover:underline whitespace-nowrap">
+                {{$repoUrl}}
               </a>
             </div>
           </div>
@@ -186,41 +162,31 @@
   {{ $stats := .Stats }}
   {{ if gt (len $items) 0 }}
     <details>
-      <summary
-        class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
+      <summary class="list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
         <div class="flex flex-wrap items-center gap-2">
           {{ i "git-pull-request" "w-4 h-4" }}
 
-
           <div>
-            created
-            {{ len $items }}
-            {{ if eq (len $items) 1 }}
-              pull request
-            {{ else }}
-              pull requests
-            {{ end }}
+            created {{ len $items }} {{if eq (len $items) 1 }}pull request{{else}}pull requests{{end}} 
           </div>
 
           {{ if gt $stats.Open 0 }}
-            <span
-              class="px-2 py-1/2 text-sm rounded text-white bg-green-600 dark:bg-green-700">
-              {{ $stats.Open }} open
+            <span class="px-2 py-1/2 text-sm rounded text-white bg-green-600 dark:bg-green-700">
+              {{$stats.Open}} open
             </span>
           {{ end }}
 
           {{ if gt $stats.Merged 0 }}
-            <span
-              class="px-2 py-1/2 text-sm rounded text-white bg-purple-600 dark:bg-purple-700">
-              {{ $stats.Merged }} merged
+            <span class="px-2 py-1/2 text-sm rounded text-white bg-purple-600 dark:bg-purple-700">
+              {{$stats.Merged}} merged
             </span>
           {{ end }}
 
+
           {{ if gt $stats.Closed 0 }}
-            <span
-              class="px-2 py-1/2 text-sm rounded text-white bg-gray-800 dark:bg-gray-700">
-              {{ $stats.Closed }} closed
-            </span>
+          <span class="px-2 py-1/2 text-sm rounded text-white bg-gray-800 dark:bg-gray-700">
+            {{$stats.Closed}} closed
+          </span>
           {{ end }}
 
         </div>
@@ -230,7 +196,6 @@
           {{ $repoOwner := resolve .Repo.Did }}
           {{ $repoName := .Repo.Name }}
           {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
-
 
           <div class="flex gap-2 text-gray-600 dark:text-gray-300">
             {{ if .State.IsOpen }}
@@ -247,21 +212,15 @@
               </span>
             {{ end }}
             <div class="flex-none min-w-8 text-right">
-              <span class="text-gray-500 dark:text-gray-400">
-                #{{ .PullId }}
-              </span>
+              <span class="text-gray-500 dark:text-gray-400">#{{ .PullId }}</span>
             </div>
             <div class="break-words max-w-full">
-              <a
-                href="/{{ $repoUrl }}/pulls/{{ .PullId }}"
-                class="no-underline hover:underline">
+              <a href="/{{$repoUrl}}/pulls/{{ .PullId }}" class="no-underline hover:underline">
                 {{ .Title -}}
               </a>
               on
-              <a
-                href="/{{ $repoUrl }}"
-                class="no-underline hover:underline whitespace-nowrap">
-                {{ $repoUrl }}
+              <a href="/{{$repoUrl}}" class="no-underline hover:underline whitespace-nowrap">
+                {{$repoUrl}}
               </a>
             </div>
           </div>
@@ -273,20 +232,16 @@
 
 {{ define "ownRepos" }}
   <div>
-    <div
-      class="text-sm font-bold p-2 pr-0 dark:text-white flex items-center justify-between gap-2">
-      <a
-        href="/@{{ or $.Card.UserHandle $.Card.UserDid }}?tab=repos"
+    <div class="text-sm font-bold p-2 pr-0 dark:text-white flex items-center justify-between gap-2">
+      <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}?tab=repos"
         class="flex text-black dark:text-white items-center gap-2 no-underline hover:no-underline group">
         <span>PINNED REPOS</span>
-        <span
-          class="flex gap-1 items-center font-normal text-sm text-gray-500 dark:text-gray-400 ">
-          view all
-          {{ i "chevron-right" "w-4 h-4" }}
+        <span class="flex gap-1 items-center font-normal text-sm text-gray-500 dark:text-gray-400 ">
+          view all {{ i "chevron-right" "w-4 h-4" }}
         </span>
       </a>
       {{ if and .LoggedInUser (eq .LoggedInUser.Did .Card.UserDid) }}
-        <button
+        <button 
           hx-get="profile/edit-pins"
           hx-target="#all-repos"
           class="btn py-0 font-normal text-sm flex gap-2 items-center group">
@@ -300,9 +255,7 @@
       {{ range .Repos }}
         {{ template "user/fragments/repoCard" (list $ . false) }}
       {{ else }}
-        <p class="px-6 dark:text-white">
-          This user does not have any repos yet.
-        </p>
+          <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
       {{ end }}
     </div>
   </div>
@@ -316,7 +269,7 @@
         {{ range .CollaboratingRepos }}
           {{ template "user/fragments/repoCard" (list $ . true) }}
         {{ else }}
-          <p class="px-6 dark:text-white">This user is not collaborating.</p>
+            <p class="px-6 dark:text-white">This user is not collaborating.</p>
         {{ end }}
       </div>
     </div>
@@ -355,7 +308,8 @@
           <div class="w-full h-full flex justify-center items-center">
             <div
               class="aspect-square rounded-full transition-all duration-300 {{ $theme }} max-w-full max-h-full"
-              title="{{ .Date.Format "2006-01-02" }}: {{ .Count }} commits"></div>
+              title="{{ .Date.Format "2006-01-02" }}: {{ .Count }} commits">
+            </div>
           </div>
         {{ end }}
       </div>

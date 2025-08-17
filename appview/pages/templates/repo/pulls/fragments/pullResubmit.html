@@ -1,61 +1,65 @@
 {{ define "repo/pulls/fragments/pullResubmit" }}
   <div
-    id="resubmit-pull-card"
-    class="rounded relative border bg-amber-50 dark:bg-amber-900 border-amber-200 dark:border-amber-500 px-6 py-2">
-    <div class="flex items-center gap-2 text-amber-500 dark:text-amber-50">
-      {{ i "pencil" "w-4 h-4" }}
-      <span class="font-medium">resubmit your patch</span>
-    </div>
+      id="resubmit-pull-card"
+      class="rounded relative border bg-amber-50 dark:bg-amber-900 border-amber-200 dark:border-amber-500 px-6 py-2">
 
-    <div class="mt-2 text-sm text-gray-700 dark:text-gray-200">
-      You can update this patch to address any reviews. This will begin a new
-      round of reviews, but you'll still be able to view your previous
-      submissions and feedback.
-    </div>
+      <div class="flex items-center gap-2 text-amber-500 dark:text-amber-50">
+        {{ i "pencil" "w-4 h-4" }}
+        <span class="font-medium">resubmit your patch</span>
+      </div>
 
-    <div class="mt-4 flex flex-col">
-      <form
-        hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
-        hx-swap="none"
-        class="w-full flex flex-wrap gap-2"
-        hx-indicator="#resubmit-spinner">
-        <textarea
-          name="patch"
-          class="w-full p-2 mb-2"
-          placeholder="Paste your updated patch here."
-          rows="15">
-            {{ .Pull.LatestPatch }}
-          </textarea
+      <div class="mt-2 text-sm text-gray-700 dark:text-gray-200">
+        You can update this patch to address any reviews. 
+        This will begin a new round of reviews,
+        but you'll still be able to view your previous submissions and feedback.
+      </div>
+
+      <div class="mt-4 flex flex-col">
+        <form 
+          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit" 
+          hx-swap="none"
+          class="w-full flex flex-wrap gap-2"
+          hx-indicator="#resubmit-spinner"
         >
-        <button
-          type="submit"
-          class="btn flex items-center gap-2"
-          {{ if or .Pull.State.IsClosed }}
-            disabled
-          {{ end }}>
-          {{ i "rotate-ccw" "w-4 h-4" }}
-          <span>resubmit</span>
-          <span id="resubmit-spinner" class="group">
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </span>
-        </button>
-        <button
-          type="button"
-          class="btn flex items-center gap-2"
-          hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Pull.LastRoundNumber }}/actions"
-          hx-swap="outerHTML"
-          hx-target="#resubmit-pull-card"
-          hx-indicator="#cancel-resubmit-spinner">
-          {{ i "x" "w-4 h-4" }}
-          <span>cancel</span>
-          <span id="cancel-resubmit-spinner" class="group">
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </span>
-        </button>
-      </form>
+          <textarea
+            name="patch"
+            class="w-full p-2 mb-2"
+            placeholder="Paste your updated patch here."
+            rows="15"
+          >
+            {{.Pull.LatestPatch}}
+          </textarea>
+          <button
+              type="submit"
+              class="btn flex items-center gap-2"
+              {{ if or .Pull.State.IsClosed }}
+              disabled
+              {{ end }}
+          >
+            {{ i "rotate-ccw" "w-4 h-4" }}
+            <span>resubmit</span>
+            <span id="resubmit-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
+          </button>
+          <button
+            type="button"
+            class="btn flex items-center gap-2"
+            hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ .Pull.LastRoundNumber }}/actions"
+            hx-swap="outerHTML"
+            hx-target="#resubmit-pull-card"
+            hx-indicator="#cancel-resubmit-spinner"
+          >
+            {{ i "x" "w-4 h-4" }}
+            <span>cancel</span>
+            <span id="cancel-resubmit-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
+          </button>
+        </form>
 
-      <div id="resubmit-error" class="error"></div>
-      <div id="resubmit-success" class="success"></div>
-    </div>
+        <div id="resubmit-error" class="error"></div>
+        <div id="resubmit-success" class="success"></div>
+      </div>
   </div>
 {{ end }}

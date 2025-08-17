@@ -1,81 +1,74 @@
 {{ define "title" }}new repo{{ end }}
 
 {{ define "content" }}
-  <div class="p-6">
-    <p class="text-xl font-bold dark:text-white">Create a new repository</p>
-  </div>
-  <div class="p-6 bg-white dark:bg-gray-800 drop-shadow-sm rounded">
-    <form
-      hx-post="/repo/new"
-      class="space-y-12"
-      hx-swap="none"
-      hx-indicator="#spinner">
-      <div class="space-y-2">
-        <label for="name" class="-mb-1 dark:text-white">Repository name</label>
-        <input
+<div class="p-6">
+  <p class="text-xl font-bold dark:text-white">Create a new repository</p>
+</div>
+<div class="p-6 bg-white dark:bg-gray-800 drop-shadow-sm rounded">
+  <form hx-post="/repo/new" class="space-y-12" hx-swap="none" hx-indicator="#spinner">
+    <div class="space-y-2">
+      <label for="name" class="-mb-1 dark:text-white">Repository name</label>
+      <input
           type="text"
           id="name"
           name="name"
           required
-          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600" />
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          All repositories are publicly visible.
-        </p>
+          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600"
+          />
+      <p class="text-sm text-gray-500 dark:text-gray-400">All repositories are publicly visible.</p>
 
-        <label for="branch" class="dark:text-white">Default branch</label>
-        <input
+      <label for="branch" class="dark:text-white">Default branch</label>
+      <input
           type="text"
           id="branch"
           name="branch"
           value="main"
           required
-          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600"
+          />
 
-        <label for="description" class="dark:text-white">Description</label>
-        <input
+      <label for="description" class="dark:text-white">Description</label>
+      <input
           type="text"
           id="description"
           name="description"
-          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600" />
-      </div>
+          class="w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600"
+          />
+    </div>
 
-      <fieldset class="space-y-3">
-        <legend class="dark:text-white">Select a knot</legend>
-        <div class="space-y-2">
-          <div class="flex flex-col">
-            {{ range .Knots }}
-              <div class="flex items-center">
-                <input
-                  type="radio"
-                  name="domain"
-                  value="{{ . }}"
-                  class="mr-2"
-                  id="domain-{{ . }}" />
-                <span class="dark:text-white">{{ . }}</span>
-              </div>
-            {{ else }}
-              <p class="dark:text-white">No knots available.</p>
-            {{ end }}
-          </div>
-        </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          A knot hosts repository data.
-          <a href="/knots" class="underline">
-            Learn how to register your own knot.
-          </a>
-        </p>
-      </fieldset>
-
+    <fieldset class="space-y-3">
+      <legend class="dark:text-white">Select a knot</legend>
       <div class="space-y-2">
+        <div class="flex flex-col">
+        {{ range .Knots }}
+          <div class="flex items-center">
+            <input
+                type="radio"
+                name="domain"
+                value="{{ . }}"
+                class="mr-2"
+                id="domain-{{ . }}"
+                />
+            <span class="dark:text-white">{{ . }}</span>
+          </div>
+        {{ else }}
+        <p class="dark:text-white">No knots available.</p>
+        {{ end }}
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400">A knot hosts repository data. <a href="/knots" class="underline">Learn how to register your own knot.</a></p>
+    </fieldset>
+
+    <div class="space-y-2">
         <button type="submit" class="btn-create flex items-center gap-2">
-          {{ i "book-plus" "w-4 h-4" }}
-          create repo
-          <span id="create-pull-spinner" class="group">
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </span>
+            {{ i "book-plus" "w-4 h-4" }}
+            create repo
+            <span id="create-pull-spinner" class="group">
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
         </button>
         <div id="repo" class="error"></div>
-      </div>
-    </form>
-  </div>
+    </div>
+  </form>
+</div>
 {{ end }}

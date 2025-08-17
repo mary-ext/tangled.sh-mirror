@@ -1,25 +1,26 @@
 {{ define "repo/fragments/repoStar" }}
-  <button
-    id="starBtn"
-    class="btn disabled:opacity-50 disabled:cursor-not-allowed flex gap-2 items-center group"
-    {{ if .IsStarred }}
-      hx-delete="/star?subject={{ .RepoAt }}&countHint={{ .Stats.StarCount }}"
-    {{ else }}
-      hx-post="/star?subject={{ .RepoAt }}&countHint={{ .Stats.StarCount }}"
-    {{ end }}
+    <button
+        id="starBtn"
+        class="btn disabled:opacity-50 disabled:cursor-not-allowed flex gap-2 items-center group"
+        {{ if .IsStarred }}
+            hx-delete="/star?subject={{ .RepoAt }}&countHint={{ .Stats.StarCount }}"
+        {{ else }}
+            hx-post="/star?subject={{ .RepoAt }}&countHint={{ .Stats.StarCount }}"
+        {{ end }}
 
-    hx-trigger="click"
-    hx-target="this"
-    hx-swap="outerHTML"
-    hx-disabled-elt="#starBtn">
-    {{ if .IsStarred }}
-      {{ i "star" "w-4 h-4 fill-current" }}
-    {{ else }}
-      {{ i "star" "w-4 h-4" }}
-    {{ end }}
-    <span class="text-sm">
-      {{ .Stats.StarCount }}
-    </span>
-    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-  </button>
+        hx-trigger="click"
+        hx-target="this"
+        hx-swap="outerHTML"
+        hx-disabled-elt="#starBtn"
+    >
+        {{ if .IsStarred }}
+            {{ i "star" "w-4 h-4 fill-current" }}
+        {{ else }}
+            {{ i "star" "w-4 h-4" }}
+        {{ end }}
+        <span class="text-sm">
+            {{ .Stats.StarCount }}
+        </span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </button>
 {{ end }}

@@ -1,26 +1,28 @@
 {{ define "repo/fragments/compareAllowPull" }}
-  <div
-    class="flex items-baseline justify-normal gap-4"
-    id="allow-pull"
-    hx-oob-swap="true">
-    <p>
-      This comparison can be turned into a pull request to be reviewed and
-      discussed.
-    </p>
+    <div
+        class="flex items-baseline justify-normal gap-4"
+        id="allow-pull"
+        hx-oob-swap="true"
+    >
+        <p>
+            This comparison can be turned into a pull request to be reviewed and
+            discussed.
+        </p>
 
-    {{ $newPullUrl := printf "/%s/pulls/new?strategy=branch&targetBranch=%s&sourceBranch=%s" .RepoInfo.FullName .Base .Head }}
+        {{ $newPullUrl := printf "/%s/pulls/new?strategy=branch&targetBranch=%s&sourceBranch=%s" .RepoInfo.FullName .Base .Head }}
 
 
-    <div class="flex justify-start items-center gap-2 mt-2">
-      <a
-        href="{{ $newPullUrl }}"
-        class="btn flex items-center gap-2 no-underline hover:no-underline">
-        {{ i "git-pull-request-create" "w-4 h-4" }}
-        create pull
-        <span id="create-pull-spinner" class="group">
-          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-        </span>
-      </a>
+        <div class="flex justify-start items-center gap-2 mt-2">
+            <a
+                href="{{ $newPullUrl }}"
+                class="btn flex items-center gap-2 no-underline hover:no-underline"
+            >
+                {{ i "git-pull-request-create" "w-4 h-4" }}
+                create pull
+                <span id="create-pull-spinner" class="group">
+                    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+                </span>
+            </a>
+        </div>
     </div>
-  </div>
 {{ end }}

@@ -1,137 +1,133 @@
 {{ define "title" }}{{ .RepoInfo.FullName }} at {{ .Ref }}{{ end }}
 
-{{ define "extrameta" }}
-  {{ template "repo/fragments/meta" . }}
 
-  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
+{{ define "extrameta" }}
+    {{ template "repo/fragments/meta" . }}
+
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
 {{ end }}
 
 {{ define "repoContent" }}
-  <main>
-    {{ if .Languages }}
-      {{ block "repoLanguages" . }}{{ end }}
-    {{ end }}
-    <div class="flex items-center justify-between pb-5">
-      {{ block "branchSelector" . }}{{ end }}
-      <div class="flex md:hidden items-center gap-4">
-        <a
-          href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}"
-          class="inline-flex items-center text-sm gap-1">
-          {{ i "git-commit-horizontal" "w-4" "h-4" }}
-          {{ .TotalCommits }}
-        </a>
-        <a
-          href="/{{ .RepoInfo.FullName }}/branches"
-          class="inline-flex items-center text-sm gap-1">
-          {{ i "git-branch" "w-4" "h-4" }}
-          {{ len .Branches }}
-        </a>
-        <a
-          href="/{{ .RepoInfo.FullName }}/tags"
-          class="inline-flex items-center text-sm gap-1">
-          {{ i "tags" "w-4" "h-4" }}
-          {{ len .Tags }}
-        </a>
-      </div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-      {{ block "fileTree" . }}{{ end }}
-      {{ block "rightInfo" . }}{{ end }}
-    </div>
-  </main>
+    <main>
+        {{ if .Languages }}
+            {{ block "repoLanguages" . }}{{ end }}
+        {{ end }}
+        <div class="flex items-center justify-between pb-5">
+          {{ block "branchSelector" . }}{{ end }}
+          <div class="flex md:hidden items-center gap-4">
+            <a href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}" class="inline-flex items-center text-sm gap-1">
+              {{ i "git-commit-horizontal" "w-4" "h-4" }} {{ .TotalCommits }}
+            </a>
+            <a href="/{{ .RepoInfo.FullName }}/branches" class="inline-flex items-center text-sm gap-1">
+              {{ i "git-branch" "w-4" "h-4" }} {{ len .Branches }}
+            </a>
+            <a href="/{{ .RepoInfo.FullName }}/tags" class="inline-flex items-center text-sm gap-1">
+              {{ i "tags" "w-4" "h-4" }} {{ len .Tags }}
+            </a>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {{ block "fileTree" . }}{{ end }}
+            {{ block "rightInfo" . }}{{ end }}
+        </div>
+    </main>
 {{ end }}
 
 {{ define "repoLanguages" }}
-  <div class="flex gap-[1px] -m-6 mb-6 overflow-hidden rounded-t">
-    {{ range $value := .Languages }}
-      <div
-        title="{{ or $value.Name "Other" }} {{ printf "%.1f" $value.Percentage }}%"
-        class="h-[4px] rounded-full"
-        style="background-color: {{ $value.Color }}; width: {{ $value.Percentage }}%"></div>
-    {{ end }}
-  </div>
+    <div class="flex gap-[1px] -m-6 mb-6 overflow-hidden rounded-t">
+        {{ range $value := .Languages }}
+            <div
+                title='{{ or $value.Name "Other" }} {{ printf "%.1f" $value.Percentage }}%'
+                class="h-[4px] rounded-full"
+                style="background-color: {{ $value.Color }}; width: {{ $value.Percentage }}%"
+            ></div>
+        {{ end }}
+    </div>
 {{ end }}
+
 
 {{ define "branchSelector" }}
   <div class="flex gap-2 items-center items-stretch justify-center">
     <select
-      onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
-      class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
-      <optgroup label="branches ({{ len .Branches }})" class="bold text-sm">
-        {{ range .Branches }}
-          <option
-            value="{{ .Reference.Name }}"
-            class="py-1"
-            {{ if eq .Reference.Name $.Ref }}
-              selected
-            {{ end }}>
-            {{ .Reference.Name }}
-          </option>
-        {{ end }}
-      </optgroup>
-      <optgroup label="tags ({{ len .Tags }})" class="bold text-sm">
-        {{ range .Tags }}
-          <option
-            value="{{ .Reference.Name }}"
-            class="py-1"
-            {{ if eq .Reference.Name $.Ref }}
-              selected
-            {{ end }}>
-            {{ .Reference.Name }}
-          </option>
-        {{ else }}
-          <option class="py-1" disabled>no tags found</option>
-        {{ end }}
-      </optgroup>
+        onchange="window.location.href = '/{{ .RepoInfo.FullName }}/tree/' + encodeURIComponent(this.value)"
+        class="p-1 border max-w-32 border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700"
+    >
+        <optgroup label="branches ({{len .Branches}})" class="bold text-sm">
+            {{ range .Branches }}
+                <option
+                    value="{{ .Reference.Name }}"
+                    class="py-1"
+                    {{ if eq .Reference.Name $.Ref }}
+                        selected
+                    {{ end }}
+                >
+                    {{ .Reference.Name }}
+                </option>
+            {{ end }}
+        </optgroup>
+        <optgroup label="tags ({{len .Tags}})" class="bold text-sm">
+            {{ range .Tags }}
+                <option
+                    value="{{ .Reference.Name }}"
+                    class="py-1"
+                    {{ if eq .Reference.Name $.Ref }}
+                        selected
+                    {{ end }}
+                >
+                    {{ .Reference.Name }}
+                </option>
+            {{ else }}
+                <option class="py-1" disabled>no tags found</option>
+            {{ end }}
+        </optgroup>
     </select>
     <div class="flex items-center gap-2">
-      {{ $isOwner := and .LoggedInUser .RepoInfo.Roles.IsOwner }}
-      {{ $isCollaborator := and .LoggedInUser .RepoInfo.Roles.IsCollaborator }}
-      {{ if and (or $isOwner $isCollaborator) .ForkInfo .ForkInfo.IsFork }}
+    {{ $isOwner := and .LoggedInUser .RepoInfo.Roles.IsOwner }}
+    {{ $isCollaborator := and .LoggedInUser .RepoInfo.Roles.IsCollaborator }}
+    {{ if and (or $isOwner $isCollaborator) .ForkInfo .ForkInfo.IsFork }}
         {{ $disabled := "" }}
         {{ $title := "" }}
         {{ if eq .ForkInfo.Status 0 }}
-          {{ $disabled = "disabled" }}
-          {{ $title = "This branch is not behind the upstream" }}
+            {{ $disabled = "disabled" }}
+            {{ $title = "This branch is not behind the upstream" }}
         {{ else if eq .ForkInfo.Status 2 }}
-          {{ $disabled = "disabled" }}
-          {{ $title = "This branch has conflicts that must be resolved" }}
+            {{ $disabled = "disabled" }}
+            {{ $title = "This branch has conflicts that must be resolved" }}
         {{ else if eq .ForkInfo.Status 3 }}
-          {{ $disabled = "disabled" }}
-          {{ $title = "This branch does not exist on the upstream" }}
+            {{ $disabled = "disabled" }}
+            {{ $title = "This branch does not exist on the upstream" }}
         {{ end }}
 
-
         <button
-          id="syncBtn"
-          {{ $disabled }}
-          {{ if $title }}title="{{ $title }}"{{ end }}
-          class="btn flex gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed"
-          hx-post="/{{ .RepoInfo.FullName }}/fork/sync"
-          hx-trigger="click"
-          hx-swap="none">
+            id="syncBtn"
+            {{ $disabled }}
+            {{ if $title }}title="{{ $title }}"{{ end }}
+            class="btn flex gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            hx-post="/{{ .RepoInfo.FullName }}/fork/sync"
+            hx-trigger="click"
+            hx-swap="none"
+        >
           {{ if $disabled }}
-            {{ i "refresh-cw-off" "w-4 h-4" }}
+              {{ i "refresh-cw-off" "w-4 h-4" }}
           {{ else }}
-            {{ i "refresh-cw" "w-4 h-4" }}
+              {{ i "refresh-cw" "w-4 h-4" }}
           {{ end }}
           <span>sync</span>
         </button>
-      {{ end }}
-      <a
-        href="/{{ .RepoInfo.FullName }}/compare?base={{ $.Ref | urlquery }}"
-        class="btn flex items-center gap-2 no-underline hover:no-underline"
-        title="Compare branches or tags">
-        {{ i "git-compare" "w-4 h-4" }}
-      </a>
+    {{ end }}
+        <a
+            href="/{{ .RepoInfo.FullName }}/compare?base={{ $.Ref | urlquery }}"
+            class="btn flex items-center gap-2 no-underline hover:no-underline"
+            title="Compare branches or tags"
+        >
+            {{ i "git-compare" "w-4 h-4" }}
+        </a>
     </div>
-  </div>
+</div>
 {{ end }}
 
 {{ define "fileTree" }}
-  <div
-    id="file-tree"
-    class="col-span-1 pr-2 md:border-r md:border-gray-200 dark:md:border-gray-700">
+  <div id="file-tree" class="col-span-1 pr-2 md:border-r md:border-gray-200 dark:md:border-gray-700" >
     {{ $linkstyle := "no-underline hover:underline dark:text-white" }}
 
     {{ range .Files }}
@@ -156,11 +152,7 @@
 
         <div class="text-xs col-span-1 text-right">
           {{ with .LastCommit }}
-            <a
-              href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash }}"
-              class="text-gray-500 dark:text-gray-400">
-              {{ template "repo/fragments/time" .When }}
-            </a>
+            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash }}" class="text-gray-500 dark:text-gray-400">{{ template "repo/fragments/time" .When }}</a>
           {{ end }}
         </div>
       </div>
@@ -169,176 +161,149 @@
 {{ end }}
 
 {{ define "rightInfo" }}
-  <div id="right-info" class="hidden md:block col-span-1">
-    {{ block "commitLog" . }}{{ end }}
-    {{ block "branchList" . }}{{ end }}
-    {{ block "tagList" . }}{{ end }}
-  </div>
+    <div id="right-info" class="hidden md:block col-span-1">
+      {{ block "commitLog" . }} {{ end }}
+      {{ block "branchList" . }} {{ end }}
+      {{ block "tagList" . }} {{ end }}
+    </div>
 {{ end }}
 
 {{ define "commitLog" }}
-  <div id="commit-log" class="md:col-span-1 px-2 pb-4">
-    <div class="flex justify-between items-center">
-      <a
-        href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}"
-        class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
-        {{ i "logs" "w-4 h-4" }} commits
-        <span
-          class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">
-          {{ .TotalCommits }}
-        </span>
-      </a>
-    </div>
-    <div class="flex flex-col gap-6">
-      {{ range .CommitsTrunc }}
-        <div>
-          <div id="commit-message">
-            {{ $messageParts := splitN .Message "\n\n" 2 }}
-            <div class="text-base cursor-pointer">
-              <div>
-                <div>
-                  <a
-                    href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
-                    class="inline no-underline hover:underline dark:text-white">
-                    {{ index $messageParts 0 }}
-                  </a>
-                  {{ if gt (len $messageParts) 1 }}
-
-                    <button
-                      class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
-                      hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')">
-                      {{ i "ellipsis" "w-3 h-3" }}
-                    </button>
-                  {{ end }}
-                </div>
-                {{ if gt (len $messageParts) 1 }}
-                  <p
-                    class="hidden mt-1 text-sm cursor-text pb-2 dark:text-gray-300">
-                    {{ nl2br (index $messageParts 1) }}
-                  </p>
-                {{ end }}
-              </div>
-            </div>
-          </div>
-
-          <!-- commit info bar -->
-          <div
-            class="text-xs mt-2 text-gray-500 dark:text-gray-400 flex items-center flex-wrap">
-            {{ $verified := $.VerifiedCommits.IsVerified .Hash.String }}
-            {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
-            {{ if $verified }}
-              {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}
-            {{ end }}
-            <span class="font-mono">
+<div id="commit-log" class="md:col-span-1 px-2 pb-4">
+  <div class="flex justify-between items-center">
+    <a href="/{{ .RepoInfo.FullName }}/commits/{{ .Ref | urlquery }}" class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
+      {{ i "logs" "w-4 h-4" }} commits
+      <span class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">{{ .TotalCommits }}</span>
+    </a>
+  </div>
+  <div class="flex flex-col gap-6">
+    {{ range .CommitsTrunc }}
+    <div>
+      <div id="commit-message">
+        {{ $messageParts := splitN .Message "\n\n" 2 }}
+        <div class="text-base cursor-pointer">
+          <div>
+            <div>
               <a
                 href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
-                class="no-underline hover:underline {{ $hashStyle }} px-2 py-1 rounded flex items-center gap-2">
-                {{ slice .Hash.String 0 8 }}
-                {{ if $verified }}
-                  {{ i "shield-check" "w-3 h-3" }}
+                class="inline no-underline hover:underline dark:text-white"
+                >{{ index $messageParts 0 }}</a
+              >
+              {{ if gt (len $messageParts) 1 }}
+
+              <button
+                class="py-1/2 px-1 bg-gray-200 hover:bg-gray-400 rounded dark:bg-gray-700 dark:hover:bg-gray-600"
+                hx-on:click="this.parentElement.nextElementSibling.classList.toggle('hidden')"
+                >
+                {{ i "ellipsis" "w-3 h-3" }}
+              </button>
                 {{ end }}
-              </a>
-            </span>
-            <span class="mx-1 before:content-['·'] before:select-none"></span>
-            <span>
-              {{ $didOrHandle := index $.EmailToDidOrHandle .Author.Email }}
-              <a
-                href="{{ if $didOrHandle }}
-                  /{{ $didOrHandle }}
-                {{ else }}
-                  mailto:{{ .Author.Email }}
-                {{ end }}"
-                class="text-gray-500 dark:text-gray-400 no-underline hover:underline">
-                {{ if $didOrHandle }}
-                  {{ template "user/fragments/picHandleLink" $didOrHandle }}
-                {{ else }}
-                  {{ .Author.Name }}
+            </div>
+                {{ if gt (len $messageParts) 1 }}
+                <p
+                class="hidden mt-1 text-sm cursor-text pb-2 dark:text-gray-300"
+                >
+                {{ nl2br (index $messageParts 1) }}
+                </p>
                 {{ end }}
-              </a>
-            </span>
-            <div
-              class="inline-block px-1 select-none after:content-['·']"></div>
-            {{ template "repo/fragments/time" .Committer.When }}
-
-
-            <!-- tags/branches -->
-            {{ $tagsForCommit := index $.TagMap .Hash.String }}
-            {{ if gt (len $tagsForCommit) 0 }}
-              <div
-                class="inline-block px-1 select-none after:content-['·']"></div>
-            {{ end }}
-            {{ range $tagsForCommit }}
-              <span
-                class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-[2px] inline-flex items-center">
-                {{ . }}
-              </span>
-            {{ end }}
-
-
-            <!-- ci status -->
-            {{ $pipeline := index $.Pipelines .Hash.String }}
-            {{ if and $pipeline (gt (len $pipeline.Statuses) 0) }}
-              <div
-                class="inline-block px-1 select-none after:content-['·']"></div>
-              {{ template "repo/pipelines/fragments/pipelineSymbolLong" (dict "RepoInfo" $.RepoInfo "Pipeline" $pipeline) }}
-            {{ end }}
           </div>
         </div>
-      {{ end }}
+      </div>
+
+      <!-- commit info bar -->
+      <div class="text-xs mt-2 text-gray-500 dark:text-gray-400 flex items-center flex-wrap">
+          {{ $verified := $.VerifiedCommits.IsVerified .Hash.String }}
+          {{ $hashStyle := "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900" }}
+          {{ if $verified }}
+              {{ $hashStyle = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 rounded" }}
+          {{ end }}
+          <span class="font-mono">
+              <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Hash.String }}"
+                 class="no-underline hover:underline {{ $hashStyle }} px-2 py-1 rounded flex items-center gap-2">
+                 {{ slice .Hash.String 0 8 }}
+                 {{ if $verified }}
+                 {{ i "shield-check" "w-3 h-3" }}
+                 {{ end }}
+              </a>
+          </span>
+        <span
+          class="mx-1 before:content-['·'] before:select-none"
+          ></span>
+        <span>
+          {{ $didOrHandle := index $.EmailToDidOrHandle .Author.Email }}
+          <a
+            href="{{ if $didOrHandle }}
+            /{{ $didOrHandle }}
+            {{ else }}
+            mailto:{{ .Author.Email }}
+            {{ end }}"
+            class="text-gray-500 dark:text-gray-400 no-underline hover:underline"
+            >{{ if $didOrHandle }}
+            {{ template "user/fragments/picHandleLink" $didOrHandle }}
+            {{ else }}
+            {{ .Author.Name }}
+            {{ end }}</a
+          >
+        </span>
+        <div class="inline-block px-1 select-none after:content-['·']"></div>
+        {{ template "repo/fragments/time" .Committer.When }}
+
+        <!-- tags/branches -->
+        {{ $tagsForCommit := index $.TagMap .Hash.String }}
+        {{ if gt (len $tagsForCommit) 0 }}
+          <div class="inline-block px-1 select-none after:content-['·']"></div>
+        {{ end }}
+        {{ range $tagsForCommit }}
+          <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-[2px] inline-flex items-center">
+            {{ . }}
+          </span>
+        {{ end }}
+
+        <!-- ci status -->
+        {{ $pipeline := index $.Pipelines .Hash.String }}
+        {{ if and $pipeline (gt (len $pipeline.Statuses) 0) }}
+          <div class="inline-block px-1 select-none after:content-['·']"></div>
+          {{ template "repo/pipelines/fragments/pipelineSymbolLong" (dict "RepoInfo" $.RepoInfo "Pipeline" $pipeline) }}
+        {{ end }}
+      </div>
     </div>
+    {{ end }}
   </div>
+</div>
 {{ end }}
 
 {{ define "branchList" }}
   {{ if gt (len .BranchesTrunc) 0 }}
-    <div
-      id="branches"
-      class="md:col-span-1 px-2 py-4 border-t border-gray-200 dark:border-gray-700">
-      <a
-        href="/{{ .RepoInfo.FullName }}/branches"
-        class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
+    <div id="branches" class="md:col-span-1 px-2 py-4 border-t border-gray-200 dark:border-gray-700">
+      <a href="/{{ .RepoInfo.FullName }}/branches" class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
         {{ i "git-branch" "w-4 h-4" }} branches
-        <span
-          class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">
-          {{ len .Branches }}
-        </span>
+        <span class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">{{ len .Branches }}</span>
       </a>
       <div class="flex flex-col gap-1">
         {{ range .BranchesTrunc }}
-          <div
-            class="text-base flex items-center justify-between overflow-hidden">
-            <div class="flex items-center gap-2 min-w-0 flex-1">
-              <a
-                href="/{{ $.RepoInfo.FullName }}/tree/{{ .Reference.Name | urlquery }}"
-                class="inline-block truncate no-underline hover:underline dark:text-white">
-                {{ .Reference.Name }}
-              </a>
-              {{ if .Commit }}
-                <span
-                  class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·'] shrink-0"></span>
-                <span
-                  class="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 shrink-0">
-                  {{ template "repo/fragments/time" .Commit.Committer.When }}
-                </span>
-              {{ end }}
-              {{ if .IsDefault }}
-                <span
-                  class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·'] shrink-0"></span>
-                <span
-                  class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono shrink-0">
-                  default
-                </span>
-              {{ end }}
-            </div>
-            {{ if ne $.Ref .Reference.Name }}
-              <a
-                href="/{{ $.RepoInfo.FullName }}/compare/{{ $.Ref | urlquery }}...{{ .Reference.Name | urlquery }}"
-                class="text-xs flex gap-2 items-center shrink-0 ml-2"
-                title="Compare branches or tags">
-                {{ i "git-compare" "w-3 h-3" }} compare
-              </a>
+        <div class="text-base flex items-center justify-between overflow-hidden">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Reference.Name | urlquery }}"
+              class="inline-block truncate no-underline hover:underline dark:text-white">
+              {{ .Reference.Name }}
+            </a>
+            {{ if .Commit }}
+            <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·'] shrink-0"></span>
+            <span class="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ template "repo/fragments/time" .Commit.Committer.When }}</span>
+            {{ end }}
+            {{ if .IsDefault }}
+            <span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·'] shrink-0"></span>
+            <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono shrink-0">default</span>
             {{ end }}
           </div>
+          {{ if ne $.Ref .Reference.Name }}
+            <a href="/{{ $.RepoInfo.FullName }}/compare/{{ $.Ref | urlquery }}...{{ .Reference.Name | urlquery }}"
+              class="text-xs flex gap-2 items-center shrink-0 ml-2"
+              title="Compare branches or tags">
+              {{ i "git-compare" "w-3 h-3" }} compare
+            </a>
+          {{ end }}
+        </div>
         {{ end }}
       </div>
     </div>
@@ -347,50 +312,34 @@
 
 {{ define "tagList" }}
   {{ if gt (len .TagsTrunc) 0 }}
-    <div
-      id="tags"
-      class="md:col-span-1 px-2 py-4 border-t border-gray-200 dark:border-gray-700">
+    <div id="tags" class="md:col-span-1 px-2 py-4 border-t border-gray-200 dark:border-gray-700">
       <div class="flex justify-between items-center">
-        <a
-          href="/{{ .RepoInfo.FullName }}/tags"
-          class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
+        <a href="/{{ .RepoInfo.FullName }}/tags" class="flex items-center gap-2 pb-2 cursor-pointer font-bold hover:text-gray-600 dark:hover:text-gray-300 hover:no-underline">
           {{ i "tags" "w-4 h-4" }} tags
-          <span
-            class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">
-            {{ len .Tags }}
-          </span>
+          <span class="bg-gray-100 dark:bg-gray-700 font-normal rounded py-1/2 px-1 text-sm">{{ len .Tags }}</span>
         </a>
       </div>
       <div class="flex flex-col gap-1">
         {{ range $idx, $tag := .TagsTrunc }}
-          {{ with $tag }}
-            <div>
-              <div class="text-base flex items-center gap-2">
-                <a
-                  href="/{{ $.RepoInfo.FullName }}/tree/{{ .Reference.Name | urlquery }}"
-                  class="inline no-underline hover:underline dark:text-white">
-                  {{ .Reference.Name }}
-                </a>
-              </div>
-              <div>
-                {{ with .Tag }}
-                  <span class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ template "repo/fragments/time" .Tagger.When }}
-                  </span>
-                {{ end }}
-                {{ if eq $idx 0 }}
-                  {{ with .Tag }}
-                    <span
-                      class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>
-                  {{ end }}
-                  <span
-                    class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono">
-                    latest
-                  </span>
-                {{ end }}
-              </div>
-            </div>
-          {{ end }}
+        {{ with $tag }}
+        <div>
+          <div class="text-base flex items-center gap-2">
+            <a href="/{{ $.RepoInfo.FullName }}/tree/{{ .Reference.Name | urlquery }}"
+              class="inline no-underline hover:underline dark:text-white">
+              {{ .Reference.Name }}
+            </a>
+          </div>
+          <div>
+            {{ with .Tag }}
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ template "repo/fragments/time" .Tagger.When }}</span>
+            {{ end }}
+            {{ if eq $idx 0 }}
+              {{ with .Tag }}<span class="px-1 text-gray-500 dark:text-gray-400 select-none after:content-['·']"></span>{{ end }}
+              <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-xs font-mono">latest</span>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
         {{ end }}
       </div>
     </div>
@@ -398,25 +347,22 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-  {{- if or .HTMLReadme .Readme -}}
-    <section
-      class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto overflow-auto {{ if not .Raw }}
-        prose dark:prose-invert dark:[&_pre]:bg-gray-900
-        dark:[&_code]:text-gray-300 dark:[&_pre_code]:bg-gray-900
-        dark:[&_pre]:border dark:[&_pre]:border-gray-700
-      {{ end }}">
-      <article class="{{ if .Raw }}whitespace-pre{{ end }}">
-        {{- if .Raw -}}
-          <pre class="dark:bg-gray-800 dark:text-white overflow-x-auto">
+    {{- if or .HTMLReadme .Readme -}}
+        <section
+            class="p-6 mt-4 rounded-br rounded-bl bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm w-full mx-auto overflow-auto {{ if not .Raw }}
+                prose dark:prose-invert dark:[&_pre]:bg-gray-900
+                dark:[&_code]:text-gray-300 dark:[&_pre_code]:bg-gray-900
+                dark:[&_pre]:border dark:[&_pre]:border-gray-700
+            {{ end }}"
+        >
+            <article class="{{ if .Raw }}whitespace-pre{{ end }}">{{- if .Raw -}}<pre class="dark:bg-gray-800 dark:text-white overflow-x-auto">
                         {{- .Readme -}}
-                    </pre
-          >
-        {{- else -}}
-          {{ .HTMLReadme }}
-        {{- end -}}
-      </article>
-    </section>
-  {{- end -}}
+                    </pre>
+                {{- else -}}
+                    {{ .HTMLReadme }}
+                {{- end -}}</article>
+        </section>
+    {{- end -}}
 
-  {{ template "repo/fragments/cloneInstructions" . }}
+    {{ template "repo/fragments/cloneInstructions" . }}
 {{ end }}

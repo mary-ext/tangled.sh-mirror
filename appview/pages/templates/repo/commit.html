@@ -1,116 +1,83 @@
-{{ define "title" }}
-  commit {{ .Diff.Commit.This }} &middot;
-  {{ .RepoInfo.FullName }}
-{{ end }}
+{{ define "title" }} commit {{ .Diff.Commit.This }} &middot; {{ .RepoInfo.FullName }} {{ end }}
 
 {{ define "extrameta" }}
-  {{ $title := printf "commit %s &middot; %s" .Diff.Commit.This .RepoInfo.FullName }}
-  {{ $url := printf "https://tangled.sh/%s/commit/%s" .RepoInfo.FullName .Diff.Commit.This }}
+    {{ $title := printf "commit %s &middot; %s" .Diff.Commit.This .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.sh/%s/commit/%s" .RepoInfo.FullName .Diff.Commit.This }}
 
-  {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
+
 
 {{ define "repoContent" }}
 
-  {{ $repo := .RepoInfo.FullName }}
-  {{ $commit := .Diff.Commit }}
+{{ $repo := .RepoInfo.FullName }}
+{{ $commit := .Diff.Commit }}
 
-
-  <section class="commit dark:text-white">
-    <div id="commit-message">
-      {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
-      <div>
-        <p class="pb-2">{{ index $messageParts 0 }}</p>
-        {{ if gt (len $messageParts) 1 }}
-          <p class="mt-1 cursor-text pb-2 text-sm">
-            {{ nl2br (index $messageParts 1) }}
-          </p>
-        {{ end }}
-      </div>
+<section class="commit dark:text-white">
+  <div id="commit-message">
+    {{ $messageParts := splitN $commit.Message "\n\n" 2 }}
+    <div>
+      <p class="pb-2">{{ index $messageParts 0 }}</p>
+      {{ if gt (len $messageParts) 1 }}
+      <p class="mt-1 cursor-text pb-2 text-sm">{{ nl2br (index $messageParts 1) }}</p>
+      {{ end }}
     </div>
+  </div>
 
-    <div class="flex items-center space-x-2">
+  <div class="flex items-center space-x-2">
       <p class="text-sm text-gray-500 dark:text-gray-300">
-        {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
+          {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
 
-        {{ if $didOrHandle }}
-          <a
-            href="/{{ $didOrHandle }}"
-            class="no-underline hover:underline text-gray-500 dark:text-gray-300">
-            {{ $didOrHandle }}
-          </a>
-        {{ else }}
-          <a
-            href="mailto:{{ $commit.Author.Email }}"
-            class="no-underline hover:underline text-gray-500 dark:text-gray-300">
-            {{ $commit.Author.Name }}
-          </a>
-        {{ end }}
-        <span class="px-1 select-none before:content-['\00B7']"></span>
-        {{ template "repo/fragments/time" $commit.Author.When }}
-        <span class="px-1 select-none before:content-['\00B7']"></span>
+          {{ if $didOrHandle }}
+            <a href="/{{ $didOrHandle }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ $didOrHandle }}</a>
+          {{ else }}
+            <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ $commit.Author.Name }}</a>
+          {{ end }}
+          <span class="px-1 select-none before:content-['\00B7']"></span>
+          {{ template "repo/fragments/time" $commit.Author.When }}
+          <span class="px-1 select-none before:content-['\00B7']"></span>
       </p>
 
       <p class="flex items-center text-sm text-gray-500 dark:text-gray-300">
-        <a
-          href="/{{ $repo }}/commit/{{ $commit.This }}"
-          class="no-underline hover:underline text-gray-500 dark:text-gray-300">
-          {{ slice $commit.This 0 8 }}
-        </a>
-        {{ if $commit.Parent }}
+          <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.This 0 8 }}</a>
+          {{ if $commit.Parent }}
           {{ i "arrow-left" "w-3 h-3 mx-1" }}
-          <a
-            href="/{{ $repo }}/commit/{{ $commit.Parent }}"
-            class="no-underline hover:underline text-gray-500 dark:text-gray-300">
-            {{ slice $commit.Parent 0 8 }}
-          </a>
-        {{ end }}
+          <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.Parent 0 8 }}</a>
+          {{ end }}
       </p>
 
       {{ if .VerifiedCommit.IsVerified $commit.This }}
-        <div class="group relative inline-block text-sm">
-          <div
-            class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded cursor-pointer">
-            <div class="flex items-center gap-2">
-              {{ i "shield-check" "w-4 h-4" }}
-              verified
-            </div>
-          </div>
-          <div
-            class="absolute z-[9999] hidden group-hover:block bg-white dark:bg-gray-900 text-sm text-black dark:text-white rounded-md shadow-md p-4 w-80 top-full mt-2">
-            <div class="mb-1">
-              This commit was signed with the committer's
-              <span class="text-green-600 font-semibold">known signature</span>
-              .
-            </div>
-            <div class="flex items-center gap-2 my-2">
-              {{ i "user" "w-4 h-4" }}
-              {{ $committerDidOrHandle := index $.EmailToDidOrHandle $commit.Committer.Email }}
-              <a href="/{{ $committerDidOrHandle }}">
-                {{ template "user/fragments/picHandleLink" $committerDidOrHandle }}
-              </a>
-            </div>
-            <div class="my-1 pt-2 text-xs border-t">
-              <div class="text-gray-600 dark:text-gray-300">
-                SSH Key Fingerprint:
+      <div class="group relative inline-block text-sm">
+          <div class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded cursor-pointer">
+              <div class="flex items-center gap-2">
+                  {{ i "shield-check" "w-4 h-4" }}
+                  verified
               </div>
-              <div class="break-all">
-                {{ .VerifiedCommit.Fingerprint $commit.This }}
-              </div>
-            </div>
           </div>
-        </div>
+          <div class="absolute z-[9999] hidden group-hover:block bg-white dark:bg-gray-900 text-sm text-black dark:text-white rounded-md shadow-md p-4 w-80 top-full mt-2">
+              <div class="mb-1">This commit was signed with the committer's <span class="text-green-600 font-semibold">known signature</span>.</div>
+              <div class="flex items-center gap-2 my-2">
+                  {{ i "user" "w-4 h-4" }}
+                  {{ $committerDidOrHandle := index $.EmailToDidOrHandle $commit.Committer.Email }}
+                  <a href="/{{ $committerDidOrHandle }}">{{ template "user/fragments/picHandleLink" $committerDidOrHandle }}</a>
+              </div>
+              <div class="my-1 pt-2 text-xs border-t">
+                  <div class="text-gray-600 dark:text-gray-300">SSH Key Fingerprint:</div>
+                  <div class="break-all">{{ .VerifiedCommit.Fingerprint $commit.This }}</div>
+              </div>
+          </div>
+      </div>
       {{ end }}
-
 
       <div class="text-sm">
         {{ if $.Pipeline }}
           {{ template "repo/pipelines/fragments/pipelineSymbolLong" (dict "Pipeline" $.Pipeline "RepoInfo" $.RepoInfo) }}
         {{ end }}
       </div>
-    </div>
-  </section>
-{{ end }}
+  </div>
+
+</section>
+{{end}}
 
 {{ define "topbarLayout" }}
   <header class="px-1 col-span-full" style="z-index: 20;">
@@ -125,14 +92,14 @@
     {{ end }}
 
     {{ block "contentAfterLayout" . }}
-      <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4">
-        <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
-          {{ block "contentAfterLeft" . }}{{ end }}
-        </div>
-        <main class="col-span-1 md:col-span-10">
-          {{ block "contentAfter" . }}{{ end }}
-        </main>
+    <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4">
+      <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
+        {{ block "contentAfterLeft" . }} {{ end }}
       </div>
+      <main class="col-span-1 md:col-span-10">
+        {{ block "contentAfter" . }}{{ end }}
+      </main>
+    </div>
     {{ end }}
   </div>
 {{ end }}
@@ -145,7 +112,7 @@
 
 {{ define "contentAfter" }}
   {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff .DiffOpts) }}
-{{ end }}
+{{end}}
 
 {{ define "contentAfterLeft" }}
   <div class="flex flex-col gap-4 col-span-1 md:col-span-2">
@@ -154,4 +121,4 @@
   <div class="sticky top-0 flex-grow max-h-screen">
     {{ template "repo/fragments/diffChangedFiles" .Diff }}
   </div>
-{{ end }}
+{{end}}
