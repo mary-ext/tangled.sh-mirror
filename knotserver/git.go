@@ -135,6 +135,10 @@ func (d *Handle) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedR
 			hostname = strings.Split(hostname, ":")[0]
 		}
 
+		if hostname == "knot1.tangled.sh" {
+			hostname = "tangled.sh"
+		}
+
 		fmt.Fprintf(w, " Try:\ngit remote set-url --push origin git@%s:%s/%s\n\n... and push again.", hostname, ownerHandle, unqualifiedRepoName)
 	}
 	fmt.Fprintf(w, "\n\n")
