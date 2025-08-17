@@ -120,17 +120,17 @@
             includes = ["*.go"];
           };
 
-          prettier = let
-            wrapper = pkgs.runCommandLocal "prettier-wrapper" {nativeBuildInputs = [pkgs.makeWrapper];} ''
-              makeWrapper ${pkgs.prettier}/bin/prettier "$out" --add-flags "--plugin=${pkgs.prettier-plugin-go-template}/lib/node_modules/prettier-plugin-go-template/lib/index.js"
-            '';
-          in {
-            command = wrapper;
-            options = ["-w"];
-            includes = ["*.html"];
-            # causes Go template plugin errors: https://github.com/NiklasPor/prettier-plugin-go-template/issues/120
-            excludes = ["appview/pages/templates/layouts/repobase.html" "appview/pages/templates/repo/tags.html"];
-          };
+          # prettier = let
+          #   wrapper = pkgs.runCommandLocal "prettier-wrapper" {nativeBuildInputs = [pkgs.makeWrapper];} ''
+          #     makeWrapper ${pkgs.prettier}/bin/prettier "$out" --add-flags "--plugin=${pkgs.prettier-plugin-go-template}/lib/node_modules/prettier-plugin-go-template/lib/index.js"
+          #   '';
+          # in {
+          #   command = wrapper;
+          #   options = ["-w"];
+          #   includes = ["*.html"];
+          #   # causes Go template plugin errors: https://github.com/NiklasPor/prettier-plugin-go-template/issues/120
+          #   excludes = ["appview/pages/templates/layouts/repobase.html" "appview/pages/templates/repo/tags.html"];
+          # };
         };
       };
     });
