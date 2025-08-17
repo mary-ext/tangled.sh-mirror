@@ -20,11 +20,6 @@ type TimelineEvent struct {
 	*FollowStats
 }
 
-type FollowStats struct {
-	Followers int
-	Following int
-}
-
 const Limit = 50
 
 // TODO: this gathers heterogenous events from different sources and aggregates
@@ -156,16 +151,9 @@ func getTimelineFollows(e Execer) ([]TimelineEvent, error) {
 		return nil, err
 	}
 
-	followStatMap := make(map[string]FollowStats)
-	for _, s := range subjects {
-		followers, following, err := GetFollowerFollowingCount(e, s)
-		if err != nil {
-			return nil, err
-		}
-		followStatMap[s] = FollowStats{
-			Followers: followers,
-			Following: following,
-		}
+	followStatMap, err := GetFollowerFollowingCounts(e, subjects)
+	if err != nil {
+		return nil, err
 	}
 
 	var events []TimelineEvent

@@ -63,7 +63,7 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) *ProfilePage
 		return nil
 	}
 
-	followersCount, followingCount, err := db.GetFollowerFollowingCount(s.db, did)
+	followStats, err := db.GetFollowerFollowingCount(s.db, did)
 	if err != nil {
 		log.Printf("getting follow stats for %s: %s", did, err)
 	}
@@ -82,8 +82,8 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) *ProfilePage
 			UserHandle:     ident.Handle.String(),
 			Profile:        profile,
 			FollowStatus:   followStatus,
-			FollowersCount: followersCount,
-			FollowingCount: followingCount,
+			FollowersCount: followStats.Followers,
+			FollowingCount: followStats.Following,
 		},
 	}
 }
@@ -241,6 +241,11 @@ func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows 
 		return FollowsPageParams{}, err
 	}
 
+	followStatsMap, err := db.GetFollowerFollowingCounts(s.db, followDids)
+	if err != nil {
+		log.Printf("getting follow counts for %s: %s", followDids, err)
+	}
+
 	var loggedInUserFollowing map[string]struct{}
 	if loggedInUser != nil {
 		following, err := db.GetFollowing(s.db, loggedInUser.Did)
@@ -257,9 +262,9 @@ func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows 
 
 	followCards := make([]pages.FollowCard, 0, len(follows))
 	for _, did := range followDids {
-		followersCount, followingCount, err := db.GetFollowerFollowingCount(s.db, did)
-		if err != nil {
-			log.Printf("getting follow stats for %s: %s", did, err)
+		followStats, exists := followStatsMap[did]
+		if !exists {
+			followStats = db.FollowStats{}
 		}
 		followStatus := db.IsNotFollowing
 		if loggedInUserFollowing != nil {
@@ -279,8 +284,8 @@ func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows 
 		followCards = append(followCards, pages.FollowCard{
 			UserDid:        did,
 			FollowStatus:   followStatus,
-			FollowersCount: followersCount,
-			FollowingCount: followingCount,
+			FollowersCount: followStats.Followers,
+			FollowingCount: followStats.Following,
 			Profile:        profile,
 		})
 	}

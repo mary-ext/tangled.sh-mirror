@@ -55,7 +55,12 @@ func DeleteFollowByRkey(e Execer, userDid, rkey string) error {
 	return err
 }
 
-func GetFollowerFollowingCount(e Execer, did string) (int, int, error) {
+type FollowStats struct {
+	Followers int
+	Following int
+}
+
+func GetFollowerFollowingCount(e Execer, did string) (FollowStats, error) {
 	followers, following := 0, 0
 	err := e.QueryRow(
 		`SELECT
@@ -63,9 +68,80 @@ func GetFollowerFollowingCount(e Execer, did string) (int, int, error) {
 		COUNT(CASE WHEN user_did = ? THEN 1 END) AS following
 		FROM follows;`, did, did).Scan(&followers, &following)
 	if err != nil {
-		return 0, 0, err
+		return FollowStats{}, err
 	}
-	return followers, following, nil
+	return FollowStats{
+		Followers: followers,
+		Following: following,
+	}, nil
+}
+
+func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]FollowStats, error) {
+	if len(dids) == 0 {
+		return nil, nil
+	}
+
+	placeholders := make([]string, len(dids))
+	for i := range placeholders {
+		placeholders[i] = "?"
+	}
+	placeholderStr := strings.Join(placeholders, ",")
+
+	args := make([]any, len(dids)*2)
+	for i, did := range dids {
+		args[i] = did
+		args[i+len(dids)] = did
+	}
+
+	query := fmt.Sprintf(`
+		select
+			coalesce(f.did, g.did) as did,
+			coalesce(f.followers, 0) as followers,
+			coalesce(g.following, 0) as following
+		from (
+			select subject_did as did, count(*) as followers
+			from follows
+			where subject_did in (%s)
+			group by subject_did
+		) f
+		full outer join (
+			select user_did as did, count(*) as following
+			from follows
+			where user_did in (%s)
+			group by user_did
+		) g on f.did = g.did`,
+		placeholderStr, placeholderStr)
+
+	result := make(map[string]FollowStats)
+
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var did string
+		var followers, following int
+		if err := rows.Scan(&did, &followers, &following); err != nil {
+			return nil, err
+		}
+		result[did] = FollowStats{
+			Followers: followers,
+			Following: following,
+		}
+	}
+
+	for _, did := range dids {
+		if _, exists := result[did]; !exists {
+			result[did] = FollowStats{
+				Followers: 0,
+				Following: 0,
+			}
+		}
+	}
+
+	return result, nil
 }
 
 func GetFollows(e Execer, limit int, filters ...filter) ([]Follow, error) {
