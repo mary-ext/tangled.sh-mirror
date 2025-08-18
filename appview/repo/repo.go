@@ -28,6 +28,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	xrpcclient "tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/knotclient"
@@ -1453,21 +1454,23 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case http.MethodPost:
+		l := rp.logger.With("handler", "ForkRepo")
 
-		knot := r.FormValue("knot")
-		if knot == "" {
+		targetKnot := r.FormValue("knot")
+		if targetKnot == "" {
 			rp.pages.Notice(w, "repo", "Invalid form submission&mdash;missing knot domain.")
 			return
 		}
+		l = l.With("targetKnot", targetKnot)
 
-		ok, err := rp.enforcer.E.Enforce(user.Did, knot, knot, "repo:create")
+		ok, err := rp.enforcer.E.Enforce(user.Did, targetKnot, targetKnot, "repo:create")
 		if err != nil || !ok {
 			rp.pages.Notice(w, "repo", "You do not have permission to create a repo in this knot.")
 			return
 		}
 
-		forkName := fmt.Sprintf("%s", f.Name)
-
+		// choose a name for a fork
+		forkName := f.Name
 		// this check is *only* to see if the forked repo name already exists
 		// in the user's account.
 		existingRepo, err := db.GetRepo(rp.db, user.Did, f.Name)
@@ -1483,78 +1486,32 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			// repo with this name already exists, append random string
 			forkName = fmt.Sprintf("%s-%s", forkName, randomString(3))
 		}
-		client, err := rp.oauth.ServiceClient(
-			r,
-			oauth.WithService(knot),
-			oauth.WithLxm(tangled.RepoForkNSID),
-			oauth.WithDev(rp.config.Core.Dev),
-		)
+		l = l.With("forkName", forkName)
 
-		if err != nil {
-			log.Printf("error creating client for knot server: %v", err)
-			rp.pages.Notice(w, "repo", "Failed to connect to knot server.")
-			return
-		}
-
-		var uri string
+		uri := "https"
 		if rp.config.Core.Dev {
 			uri = "http"
-		} else {
-			uri = "https"
 		}
+
 		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.Repo.Name)
+		l = l.With("cloneUrl", forkSourceUrl)
+
 		sourceAt := f.RepoAt().String()
 
+		// create an atproto record for this fork
 		rkey := tid.TID()
 		repo := &db.Repo{
 			Did:    user.Did,
 			Name:   forkName,
-			Knot:   knot,
+			Knot:   targetKnot,
 			Rkey:   rkey,
 			Source: sourceAt,
 		}
 
-		tx, err := rp.db.BeginTx(r.Context(), nil)
-		if err != nil {
-			log.Println(err)
-			rp.pages.Notice(w, "repo", "Failed to save repository information.")
-			return
-		}
-		defer func() {
-			tx.Rollback()
-			err = rp.enforcer.E.LoadPolicy()
-			if err != nil {
-				log.Println("failed to rollback policies")
-			}
-		}()
-
-		err = tangled.RepoFork(
-			r.Context(),
-			client,
-			&tangled.RepoFork_Input{
-				Did:    user.Did,
-				Name:   &forkName,
-				Source: forkSourceUrl,
-			},
-		)
-
-		if err != nil {
-			xe, err := xrpcerr.Unmarshal(err.Error())
-			if err != nil {
-				log.Println(err)
-				rp.pages.Notice(w, "repo", "Failed to create repository on knot server.")
-				return
-			}
-
-			log.Println(xe.Error())
-			rp.pages.Notice(w, "repo", fmt.Sprintf("Failed to create repository on knot server: %s.", xe.Message))
-			return
-		}
-
 		xrpcClient, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
-			log.Println("failed to get authorized client", err)
-			rp.pages.Notice(w, "repo", "Failed to create repository.")
+			l.Error("failed to create xrpcclient", "err", err)
+			rp.pages.Notice(w, "repo", "Failed to fork repository.")
 			return
 		}
 
@@ -1573,11 +1530,67 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 				}},
 		})
 		if err != nil {
-			log.Printf("failed to create record: %s", err)
+			l.Error("failed to write to PDS", "err", err)
 			rp.pages.Notice(w, "repo", "Failed to announce repository creation.")
 			return
 		}
-		log.Println("created repo record: ", atresp.Uri)
+
+		aturi := atresp.Uri
+		l = l.With("aturi", aturi)
+		l.Info("wrote to PDS")
+
+		tx, err := rp.db.BeginTx(r.Context(), nil)
+		if err != nil {
+			l.Info("txn failed", "err", err)
+			rp.pages.Notice(w, "repo", "Failed to save repository information.")
+			return
+		}
+
+		// The rollback function reverts a few things on failure:
+		// - the pending txn
+		// - the ACLs
+		// - the atproto record created
+		rollback := func() {
+			err1 := tx.Rollback()
+			err2 := rp.enforcer.E.LoadPolicy()
+			err3 := rollbackRecord(context.Background(), aturi, xrpcClient)
+
+			// ignore txn complete errors, this is okay
+			if errors.Is(err1, sql.ErrTxDone) {
+				err1 = nil
+			}
+
+			if errs := errors.Join(err1, err2, err3); errs != nil {
+				l.Error("failed to rollback changes", "errs", errs)
+				return
+			}
+		}
+		defer rollback()
+
+		client, err := rp.oauth.ServiceClient(
+			r,
+			oauth.WithService(targetKnot),
+			oauth.WithLxm(tangled.RepoCreateNSID),
+			oauth.WithDev(rp.config.Core.Dev),
+		)
+		if err != nil {
+			l.Error("could not create service client", "err", err)
+			rp.pages.Notice(w, "repo", "Failed to connect to knot server.")
+			return
+		}
+
+		err = tangled.RepoCreate(
+			r.Context(),
+			client,
+			&tangled.RepoCreate_Input{
+				Rkey:   rkey,
+				Source: &forkSourceUrl,
+			},
+		)
+		if err := xrpcclient.HandleXrpcErr(err); err != nil {
+			rp.pages.Notice(w, "repo", err.Error())
+			return
+		}
 
 		err = db.AddRepo(tx, repo)
 		if err != nil {
@@ -1588,7 +1601,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 		// acls
 		p, _ := securejoin.SecureJoin(user.Did, forkName)
-		err = rp.enforcer.AddRepo(user.Did, knot, p)
+		err = rp.enforcer.AddRepo(user.Did, targetKnot, p)
 		if err != nil {
 			log.Println(err)
 			rp.pages.Notice(w, "repo", "Failed to set up repository permissions.")
@@ -1609,9 +1622,34 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// reset the ATURI because the transaction completed successfully
+		aturi = ""
+
+		rp.notifier.NewRepo(r.Context(), repo)
 		rp.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Handle, forkName))
-		return
 	}
+}
+
+// this is used to rollback changes made to the PDS
+//
+// it is a no-op if the provided ATURI is empty
+func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client) error {
+	if aturi == "" {
+		return nil
+	}
+
+	parsed := syntax.ATURI(aturi)
+
+	collection := parsed.Collection().String()
+	repo := parsed.Authority().String()
+	rkey := parsed.RecordKey().String()
+
+	_, err := xrpcc.RepoDeleteRecord(ctx, &comatproto.RepoDeleteRecord_Input{
+		Collection: collection,
+		Repo:       repo,
+		Rkey:       rkey,
+	})
+	return err
 }
 
 func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {

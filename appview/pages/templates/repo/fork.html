@@ -5,7 +5,7 @@
   <p class="text-xl font-bold dark:text-white">Fork {{ .RepoInfo.FullName }}</p>
 </div>
 <div class="p-6 bg-white dark:bg-gray-800 drop-shadow-sm rounded">
-  <form hx-post="/{{ .RepoInfo.FullName }}/fork" class="space-y-12" hx-swap="none">
+  <form hx-post="/{{ .RepoInfo.FullName }}/fork" class="space-y-12" hx-swap="none" hx-indicator="#spinner">
     <fieldset class="space-y-3">
       <legend class="dark:text-white">Select a knot to fork into</legend>
       <div class="space-y-2">
@@ -30,7 +30,13 @@
     </fieldset>
 
     <div class="space-y-2">
-      <button type="submit" class="btn">fork repo</button>
+      <button type="submit" class="btn-create flex items-center gap-2">
+          {{ i "git-fork" "w-4 h-4" }}
+          fork repo
+          <span id="spinner" class="group">
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
+      </button>
       <div id="repo" class="error"></div>
     </div>
   </form>
