@@ -78,7 +78,6 @@
         @supports (font-variation-settings: normal) {
             html {
                 font-feature-settings:
-                    "ss01" 1,
                     "kern" 1,
                     "liga" 1,
                     "cv05" 1,
