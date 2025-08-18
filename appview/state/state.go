@@ -263,6 +263,10 @@ func validateRepoName(name string) error {
 	return nil
 }
 
+func stripGitExt(name string) string {
+	return strings.TrimSuffix(name, ".git")
+}
+
 func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -297,6 +301,8 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			s.pages.Notice(w, "repo", err.Error())
 			return
 		}
+
+		repoName = stripGitExt(repoName)
 
 		defaultBranch := r.FormValue("branch")
 		if defaultBranch == "" {
