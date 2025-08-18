@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -103,32 +102,16 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 	l = l.With("target_branch", record.TargetBranch)
 
 	if record.Source == nil {
-		reason := "not a branch-based pull request"
-		l.Info("ignoring pull record", "reason", reason)
-		return fmt.Errorf("ignoring pull record: %s", reason)
+		return fmt.Errorf("ignoring pull record: not a branch-based pull request")
 	}
 
 	if record.Source.Repo != nil {
-		reason := "fork based pull"
-		l.Info("ignoring pull record", "reason", reason)
-		return fmt.Errorf("ignoring pull record: %s", reason)
-	}
-
-	allDids, err := h.db.GetAllDids()
-	if err != nil {
-		return err
-	}
-
-	// presently: we only process PRs from collaborators for pipelines
-	if !slices.Contains(allDids, did) {
-		reason := "not a known did"
-		l.Info("rejecting pull record", "reason", reason)
-		return fmt.Errorf("rejected pull record: %s, %s", reason, did)
+		return fmt.Errorf("ignoring pull record: fork based pull")
 	}
 
 	repoAt, err := syntax.ParseATURI(record.TargetRepo)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse ATURI: %w", err)
 	}
 
 	// resolve this aturi to extract the repo record
@@ -144,35 +127,33 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 
 	resp, err := comatproto.RepoGetRecord(ctx, &xrpcc, "", tangled.RepoNSID, repoAt.Authority().String(), repoAt.RecordKey().String())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to resolver repo: %w", err)
 	}
 
 	repo := resp.Value.Val.(*tangled.Repo)
 
 	if repo.Knot != h.c.Server.Hostname {
-		reason := "not this knot"
-		l.Info("rejecting pull record", "reason", reason)
-		return fmt.Errorf("rejected pull record: %s", reason)
+		return fmt.Errorf("rejected pull record: not this knot, %s != %s", repo.Knot, h.c.Server.Hostname)
 	}
 
 	didSlashRepo, err := securejoin.SecureJoin(repo.Owner, repo.Name)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to construct relative repo path: %w", err)
 	}
 
 	repoPath, err := securejoin.SecureJoin(h.c.Repo.ScanPath, didSlashRepo)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to construct absolute repo path: %w", err)
 	}
 
 	gr, err := git.Open(repoPath, record.Source.Branch)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open git repository: %w", err)
 	}
 
 	workflowDir, err := gr.FileTree(ctx, workflow.WorkflowDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open workflow directory: %w", err)
 	}
 
 	var pipeline workflow.RawPipeline
@@ -215,7 +196,7 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 	cp := compiler.Compile(compiler.Parse(pipeline))
 	eventJson, err := json.Marshal(cp)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal pipeline event: %w", err)
 	}
 
 	// do not run empty pipelines

@@ -7,8 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -103,41 +101,6 @@ func (s *SignedClient) NewRepo(did, repoName, defaultBranch string) (*http.Respo
 	}
 
 	return s.client.Do(req)
-}
-
-func (s *SignedClient) RepoLanguages(ownerDid, repoName, ref string) (*types.RepoLanguageResponse, error) {
-	const (
-		Method = "GET"
-	)
-	endpoint := fmt.Sprintf("/%s/%s/languages/%s", ownerDid, repoName, url.PathEscape(ref))
-
-	req, err := s.newRequest(Method, endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var result types.RepoLanguageResponse
-	if resp.StatusCode != http.StatusOK {
-		log.Println("failed to calculate languages", resp.Status)
-		return &types.RepoLanguageResponse{}, nil
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
 }
 
 func (s *SignedClient) RepoForkAheadBehind(ownerDid, source, name, branch, hiddenRef string) (*http.Response, error) {

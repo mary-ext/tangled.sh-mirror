@@ -1,239 +1,298 @@
 package knotserver
 
 import (
+	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"log/slog"
+	"log"
 	"net/http"
-	"runtime/debug"
+	"net/url"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/gliderlabs/ssh"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/jetstream"
-	"tangled.sh/tangled.sh/core/knotserver/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.sh/tangled.sh/core/knotserver/db"
-	"tangled.sh/tangled.sh/core/knotserver/xrpc"
-	tlog "tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/notifier"
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/types"
 )
 
-type Handle struct {
-	c        *config.Config
-	db       *db.DB
-	jc       *jetstream.JetstreamClient
-	e        *rbac.Enforcer
-	l        *slog.Logger
-	n        *notifier.Notifier
-	resolver *idresolver.Resolver
+func (h *Handle) Index(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("This is a knot server. More info at https://tangled.sh"))
 }
 
-func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger, n *notifier.Notifier) (http.Handler, error) {
-	r := chi.NewRouter()
+func (h *Handle) Capabilities(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 
-	h := Handle{
-		c:        c,
-		db:       db,
-		e:        e,
-		l:        l,
-		jc:       jc,
-		n:        n,
-		resolver: idresolver.DefaultResolver(),
+	capabilities := map[string]any{
+		"pull_requests": map[string]any{
+			"format_patch":       true,
+			"patch_submissions":  true,
+			"branch_submissions": true,
+			"fork_submissions":   true,
+		},
+		"xrpc": true,
 	}
 
-	err := e.AddKnot(rbac.ThisServer)
+	jsonData, err := json.Marshal(capabilities)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup enforcer: %w", err)
+		http.Error(w, "Failed to serialize JSON", http.StatusInternalServerError)
+		return
 	}
 
-	// configure owner
-	if err = h.configureOwner(); err != nil {
-		return nil, err
-	}
-	h.l.Info("owner set", "did", h.c.Server.Owner)
-	h.jc.AddDid(h.c.Server.Owner)
-
-	// configure known-dids in jetstream consumer
-	dids, err := h.db.GetAllDids()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get all dids: %w", err)
-	}
-	for _, d := range dids {
-		jc.AddDid(d)
-	}
-
-	err = h.jc.StartJetstream(ctx, h.processMessages)
-	if err != nil {
-		return nil, fmt.Errorf("failed to start jetstream: %w", err)
-	}
-
-	r.Get("/", h.Index)
-	r.Get("/capabilities", h.Capabilities)
-	r.Get("/version", h.Version)
-	r.Get("/owner", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(h.c.Server.Owner))
-	})
-	r.Route("/{did}", func(r chi.Router) {
-		// Repo routes
-		r.Route("/{name}", func(r chi.Router) {
-			r.Route("/collaborator", func(r chi.Router) {
-				r.Use(h.VerifySignature)
-				r.Post("/add", h.AddRepoCollaborator)
-			})
-
-			r.Route("/languages", func(r chi.Router) {
-				r.With(h.VerifySignature)
-				r.Get("/", h.RepoLanguages)
-				r.Get("/{ref}", h.RepoLanguages)
-			})
-
-			r.Get("/", h.RepoIndex)
-			r.Get("/info/refs", h.InfoRefs)
-			r.Post("/git-upload-pack", h.UploadPack)
-			r.Post("/git-receive-pack", h.ReceivePack)
-			r.Get("/compare/{rev1}/{rev2}", h.Compare) // git diff-tree compare of two objects
-
-			r.With(h.VerifySignature).Post("/hidden-ref/{forkRef}/{remoteRef}", h.NewHiddenRef)
-
-			r.Route("/merge", func(r chi.Router) {
-				r.With(h.VerifySignature)
-				r.Post("/", h.Merge)
-				r.Post("/check", h.MergeCheck)
-			})
-
-			r.Route("/tree/{ref}", func(r chi.Router) {
-				r.Get("/", h.RepoIndex)
-				r.Get("/*", h.RepoTree)
-			})
-
-			r.Route("/blob/{ref}", func(r chi.Router) {
-				r.Get("/*", h.Blob)
-			})
-
-			r.Route("/raw/{ref}", func(r chi.Router) {
-				r.Get("/*", h.BlobRaw)
-			})
-
-			r.Get("/log/{ref}", h.Log)
-			r.Get("/archive/{file}", h.Archive)
-			r.Get("/commit/{ref}", h.Diff)
-			r.Get("/tags", h.Tags)
-			r.Route("/branches", func(r chi.Router) {
-				r.Get("/", h.Branches)
-				r.Get("/{branch}", h.Branch)
-				r.Route("/default", func(r chi.Router) {
-					r.Get("/", h.DefaultBranch)
-					r.With(h.VerifySignature).Put("/", h.SetDefaultBranch)
-				})
-			})
-		})
-	})
-
-	// xrpc apis
-	r.Mount("/xrpc", h.XrpcRouter())
-
-	// Create a new repository.
-	r.Route("/repo", func(r chi.Router) {
-		r.Use(h.VerifySignature)
-		r.Delete("/", h.RemoveRepo)
-		r.Route("/fork", func(r chi.Router) {
-			r.Post("/", h.RepoFork)
-			r.Post("/sync/*", h.RepoForkSync)
-			r.Get("/sync/*", h.RepoForkAheadBehind)
-		})
-	})
-
-	r.Route("/member", func(r chi.Router) {
-		r.Use(h.VerifySignature)
-		r.Put("/add", h.AddMember)
-	})
-
-	// Socket that streams git oplogs
-	r.Get("/events", h.Events)
-
-	// Health check. Used for two-way verification with appview.
-	r.With(h.VerifySignature).Get("/health", h.Health)
-
-	// All public keys on the knot.
-	r.Get("/keys", h.Keys)
-
-	return r, nil
+	w.Write(jsonData)
 }
 
-func (h *Handle) XrpcRouter() http.Handler {
-	logger := tlog.New("knots")
+func (h *Handle) RepoIndex(w http.ResponseWriter, r *http.Request) {
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	l := h.l.With("path", path, "handler", "RepoIndex")
+	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
-	serviceAuth := serviceauth.NewServiceAuth(h.l, h.resolver, h.c.Server.Did().String())
-
-	xrpc := &xrpc.Xrpc{
-		Config:      h.c,
-		Db:          h.db,
-		Ingester:    h.jc,
-		Enforcer:    h.e,
-		Logger:      logger,
-		Notifier:    h.n,
-		Resolver:    h.resolver,
-		ServiceAuth: serviceAuth,
-	}
-	return xrpc.Router()
-}
-
-// version is set during build time.
-var version string
-
-func (h *Handle) Version(w http.ResponseWriter, r *http.Request) {
-	if version == "" {
-		info, ok := debug.ReadBuildInfo()
-		if !ok {
-			http.Error(w, "failed to read build info", http.StatusInternalServerError)
+	gr, err := git.Open(path, ref)
+	if err != nil {
+		plain, err2 := git.PlainOpen(path)
+		if err2 != nil {
+			l.Error("opening repo", "error", err2.Error())
+			notFound(w)
 			return
 		}
+		branches, _ := plain.Branches()
 
-		var modVer string
-		for _, mod := range info.Deps {
-			if mod.Path == "tangled.sh/tangled.sh/knotserver" {
-				version = mod.Version
-				break
+		log.Println(err)
+
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			resp := types.RepoIndexResponse{
+				IsEmpty:  true,
+				Branches: branches,
 			}
-		}
-
-		if modVer == "" {
-			version = "unknown"
+			writeJSON(w, resp)
+			return
+		} else {
+			l.Error("opening repo", "error", err.Error())
+			notFound(w)
+			return
 		}
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "knotserver/%s", version)
+	var (
+		commits  []*object.Commit
+		total    int
+		branches []types.Branch
+		files    []types.NiceTree
+		tags     []object.Tag
+	)
+
+	var wg sync.WaitGroup
+	errorsCh := make(chan error, 5)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cs, err := gr.Commits(0, 60)
+		if err != nil {
+			errorsCh <- fmt.Errorf("commits: %w", err)
+			return
+		}
+		commits = cs
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		t, err := gr.TotalCommits()
+		if err != nil {
+			errorsCh <- fmt.Errorf("calculating total: %w", err)
+			return
+		}
+		total = t
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		bs, err := gr.Branches()
+		if err != nil {
+			errorsCh <- fmt.Errorf("fetching branches: %w", err)
+			return
+		}
+		branches = bs
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ts, err := gr.Tags()
+		if err != nil {
+			errorsCh <- fmt.Errorf("fetching tags: %w", err)
+			return
+		}
+		tags = ts
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		fs, err := gr.FileTree(r.Context(), "")
+		if err != nil {
+			errorsCh <- fmt.Errorf("fetching filetree: %w", err)
+			return
+		}
+		files = fs
+	}()
+
+	wg.Wait()
+	close(errorsCh)
+
+	// show any errors
+	for err := range errorsCh {
+		l.Error("loading repo", "error", err.Error())
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rtags := []*types.TagReference{}
+	for _, tag := range tags {
+		var target *object.Tag
+		if tag.Target != plumbing.ZeroHash {
+			target = &tag
+		}
+		tr := types.TagReference{
+			Tag: target,
+		}
+
+		tr.Reference = types.Reference{
+			Name: tag.Name,
+			Hash: tag.Hash.String(),
+		}
+
+		if tag.Message != "" {
+			tr.Message = tag.Message
+		}
+
+		rtags = append(rtags, &tr)
+	}
+
+	var readmeContent string
+	var readmeFile string
+	for _, readme := range h.c.Repo.Readme {
+		content, _ := gr.FileContent(readme)
+		if len(content) > 0 {
+			readmeContent = string(content)
+			readmeFile = readme
+		}
+	}
+
+	if ref == "" {
+		mainBranch, err := gr.FindMainBranch()
+		if err != nil {
+			writeError(w, err.Error(), http.StatusInternalServerError)
+			l.Error("finding main branch", "error", err.Error())
+			return
+		}
+		ref = mainBranch
+	}
+
+	resp := types.RepoIndexResponse{
+		IsEmpty:        false,
+		Ref:            ref,
+		Commits:        commits,
+		Description:    getDescription(path),
+		Readme:         readmeContent,
+		ReadmeFileName: readmeFile,
+		Files:          files,
+		Branches:       branches,
+		Tags:           rtags,
+		TotalCommits:   total,
+	}
+
+	writeJSON(w, resp)
 }
 
-func (h *Handle) configureOwner() error {
-	cfgOwner := h.c.Server.Owner
+func (h *Handle) RepoTree(w http.ResponseWriter, r *http.Request) {
+	treePath := chi.URLParam(r, "*")
+	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
-	rbacDomain := "thisserver"
+	l := h.l.With("handler", "RepoTree", "ref", ref, "treePath", treePath)
 
-	existing, err := h.e.GetKnotUsersByRole("server:owner", rbacDomain)
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	gr, err := git.Open(path, ref)
 	if err != nil {
-		return err
+		notFound(w)
+		return
 	}
 
-	switch len(existing) {
-	case 0:
-		// no owner configured, continue
-	case 1:
-		// find existing owner
-		existingOwner := existing[0]
+	files, err := gr.FileTree(r.Context(), treePath)
+	if err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		l.Error("file tree", "error", err.Error())
+		return
+	}
 
-		// no ownership change, this is okay
-		if existingOwner == h.c.Server.Owner {
-			break
-		}
+	resp := types.RepoTreeResponse{
+		Ref:         ref,
+		Parent:      treePath,
+		Description: getDescription(path),
+		DotDot:      filepath.Dir(treePath),
+		Files:       files,
+	}
 
-		// remove existing owner
-		err = h.e.RemoveKnotOwner(rbacDomain, existingOwner)
-		if err != nil {
-			return nil
+	writeJSON(w, resp)
+}
+
+func (h *Handle) BlobRaw(w http.ResponseWriter, r *http.Request) {
+	treePath := chi.URLParam(r, "*")
+	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
+
+	l := h.l.With("handler", "BlobRaw", "ref", ref, "treePath", treePath)
+
+	path, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, didPath(r))
+	gr, err := git.Open(path, ref)
+	if err != nil {
+		notFound(w)
+		return
+	}
+
+	contents, err := gr.RawContent(treePath)
+	if err != nil {
+		writeError(w, err.Error(), http.StatusBadRequest)
+		l.Error("file content", "error", err.Error())
+		return
+	}
+
+	mimeType := http.DetectContentType(contents)
+
+	// exception for svg
+	if filepath.Ext(treePath) == ".svg" {
+		mimeType = "image/svg+xml"
+	}
+
+	contentHash := sha256.Sum256(contents)
+	eTag := fmt.Sprintf("\"%x\"", contentHash)
+
+	// allow image, video, and text/plain files to be served directly
+	switch {
+	case strings.HasPrefix(mimeType, "image/"), strings.HasPrefix(mimeType, "video/"):
+		if clientETag := r.Header.Get("If-None-Match"); clientETag == eTag {
+			w.WriteHeader(http.StatusNotModified)
+			return
 		}
+		w.Header().Set("ETag", eTag)
+
+	case strings.HasPrefix(mimeType, "text/plain"):
+		w.Header().Set("Cache-Control", "public, no-cache")
+
 	default:
 		l.Error("attempted to serve disallowed file type", "mimetype", mimeType)
 		writeError(w, "only image, video, and text files can be accessed directly", http.StatusForbidden)

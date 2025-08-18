@@ -277,6 +277,14 @@ func (e *Enforcer) IsSpindleInviteAllowed(user, domain string) (bool, error) {
 	return e.isInviteAllowed(user, intoSpindle(domain))
 }
 
+func (e *Enforcer) IsRepoCreateAllowed(user, domain string) (bool, error) {
+	return e.E.Enforce(user, domain, domain, "repo:create")
+}
+
+func (e *Enforcer) IsRepoDeleteAllowed(user, domain string) (bool, error) {
+	return e.E.Enforce(user, domain, domain, "repo:delete")
+}
+
 func (e *Enforcer) IsPushAllowed(user, domain, repo string) (bool, error) {
 	return e.E.Enforce(user, domain, repo, "repo:push")
 }

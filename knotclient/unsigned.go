@@ -248,3 +248,38 @@ func (us *UnsignedClient) Compare(ownerDid, repoName, rev1, rev2 string) (*types
 
 	return &formatPatchResponse, nil
 }
+
+func (s *UnsignedClient) RepoLanguages(ownerDid, repoName, ref string) (*types.RepoLanguageResponse, error) {
+	const (
+		Method = "GET"
+	)
+	endpoint := fmt.Sprintf("/%s/%s/languages/%s", ownerDid, repoName, url.PathEscape(ref))
+
+	req, err := s.newRequest(Method, endpoint, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.RepoLanguageResponse
+	if resp.StatusCode != http.StatusOK {
+		log.Println("failed to calculate languages", resp.Status)
+		return &types.RepoLanguageResponse{}, nil
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
