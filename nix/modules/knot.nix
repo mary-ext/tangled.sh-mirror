@@ -93,6 +93,12 @@ in
             description = "Internal address for inter-service communication";
           };
 
+          owner = mkOption {
+            type = types.str;
+            example = "did:plc:qfpnj4og54vl56wngdriaxug";
+            description = "DID of owner (required)";
+          };
+
           secretFile = mkOption {
             type = lib.types.path;
             example = "KNOT_SERVER_SECRET=<hash>";
@@ -199,6 +205,7 @@ in
             "KNOT_SERVER_LISTEN_ADDR=${cfg.server.listenAddr}"
             "KNOT_SERVER_DB_PATH=${cfg.server.dbPath}"
             "KNOT_SERVER_HOSTNAME=${cfg.server.hostname}"
+            "KNOT_SERVER_OWNER=${cfg.server.owner}"
           ];
           EnvironmentFile = cfg.server.secretFile;
           ExecStart = "${cfg.package}/bin/knot server";

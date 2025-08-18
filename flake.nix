@@ -252,7 +252,7 @@
               rootDir=$(jj --ignore-working-copy root || git rev-parse --show-toplevel) || (echo "error: can't find repo root?"; exit 1)
               cd "$rootDir"
 
-              rm api/tangled/*
+              rm -f api/tangled/*
               lexgen --build-file lexicon-build-config.json lexicons
               sed -i.bak 's/\tutil/\/\/\tutil/' api/tangled/*
               ${pkgs.gotools}/bin/goimports -w api/tangled/*
