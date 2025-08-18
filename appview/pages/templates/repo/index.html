@@ -84,39 +84,6 @@
           </optgroup>
       </select>
       <div class="flex items-center gap-2">
-    {{ $isOwner := and .LoggedInUser .RepoInfo.Roles.IsOwner }}
-    {{ $isCollaborator := and .LoggedInUser .RepoInfo.Roles.IsCollaborator }}
-    {{ if and (or $isOwner $isCollaborator) .ForkInfo .ForkInfo.IsFork }}
-        {{ $disabled := "" }}
-        {{ $title := "" }}
-        {{ if eq .ForkInfo.Status 0 }}
-            {{ $disabled = "disabled" }}
-            {{ $title = "This branch is not behind the upstream" }}
-        {{ else if eq .ForkInfo.Status 2 }}
-            {{ $disabled = "disabled" }}
-            {{ $title = "This branch has conflicts that must be resolved" }}
-        {{ else if eq .ForkInfo.Status 3 }}
-            {{ $disabled = "disabled" }}
-            {{ $title = "This branch does not exist on the upstream" }}
-        {{ end }}
-
-        <button
-            id="syncBtn"
-            {{ $disabled }}
-            {{ if $title }}title="{{ $title }}"{{ end }}
-            class="btn flex gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed"
-            hx-post="/{{ .RepoInfo.FullName }}/fork/sync"
-            hx-trigger="click"
-            hx-swap="none"
-        >
-          {{ if $disabled }}
-              {{ i "refresh-cw-off" "w-4 h-4" }}
-          {{ else }}
-              {{ i "refresh-cw" "w-4 h-4" }}
-          {{ end }}
-          <span>sync</span>
-        </button>
-    {{ end }}
           <a
               href="/{{ .RepoInfo.FullName }}/compare?base={{ $.Ref | urlquery }}"
               class="btn flex items-center gap-2 no-underline hover:no-underline"

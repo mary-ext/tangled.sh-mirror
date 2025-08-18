@@ -286,6 +286,9 @@ func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*indigo_
 			AccessJwt: resp.Token,
 		},
 		Host: opts.Host(),
+		Client: &http.Client{
+			Timeout: time.Second * 5,
+		},
 	}, nil
 }
 

@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"slices"
@@ -11,9 +9,7 @@ import (
 
 	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/types"
@@ -105,29 +101,29 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(user)
 
-	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
-	if err != nil {
-		log.Printf("failed to get registration key for %s: %s", f.Knot, err)
-		rp.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-	}
+	// secret, err := db.GetRegistrationKey(rp.db, f.Knot)
+	// if err != nil {
+	// 	log.Printf("failed to get registration key for %s: %s", f.Knot, err)
+	// 	rp.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	// }
 
-	signedClient, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
-		return
-	}
+	// signedClient, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
+	// if err != nil {
+	// 	log.Printf("failed to create signed client for %s: %s", f.Knot, err)
+	// 	return
+	// }
 
-	var forkInfo *types.ForkInfo
-	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
-		forkInfo, err = getForkInfo(r, repoInfo, rp, f, result.Ref, user, signedClient)
-		if err != nil {
-			log.Printf("Failed to fetch fork information: %v", err)
-			return
-		}
-	}
+	// 	var forkInfo *types.ForkInfo
+	// 	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
+	//		forkInfo, err = getForkInfo(r, repoInfo, rp, f, result.Ref, user, signedClient)
+	// 		if err != nil {
+	// 			log.Printf("Failed to fetch fork information: %v", err)
+	// 			return
+	// 		}
+	// 	}
 
 	// TODO: a bit dirty
-	languageInfo, err := rp.getLanguageInfo(f, signedClient, result.Ref, ref == "")
+	languageInfo, err := rp.getLanguageInfo(f, us, result.Ref, ref == "")
 	if err != nil {
 		log.Printf("failed to compute language percentages: %s", err)
 		// non-fatal
@@ -144,13 +140,13 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
-		LoggedInUser:       user,
-		RepoInfo:           repoInfo,
-		TagMap:             tagMap,
-		RepoIndexResponse:  *result,
-		CommitsTrunc:       commitsTrunc,
-		TagsTrunc:          tagsTrunc,
-		ForkInfo:           forkInfo,
+		LoggedInUser:      user,
+		RepoInfo:          repoInfo,
+		TagMap:            tagMap,
+		RepoIndexResponse: *result,
+		CommitsTrunc:      commitsTrunc,
+		TagsTrunc:         tagsTrunc,
+		// ForkInfo:           forkInfo, // TODO: reinstate this after xrpc properly lands
 		BranchesTrunc:      branchesTrunc,
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
 		VerifiedCommits:    vc,
@@ -161,7 +157,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 func (rp *Repo) getLanguageInfo(
 	f *reporesolver.ResolvedRepo,
-	signedClient *knotclient.SignedClient,
+	us *knotclient.UnsignedClient,
 	currentRef string,
 	isDefaultRef bool,
 ) ([]types.RepoLanguageDetails, error) {
@@ -174,7 +170,7 @@ func (rp *Repo) getLanguageInfo(
 
 	if err != nil || langs == nil {
 		// non-fatal, fetch langs from ks
-		ls, err := signedClient.RepoLanguages(f.OwnerDid(), f.Name, currentRef)
+		ls, err := us.RepoLanguages(f.OwnerDid(), f.Name, currentRef)
 		if err != nil {
 			return nil, err
 		}
@@ -232,91 +228,138 @@ func (rp *Repo) getLanguageInfo(
 	return languageStats, nil
 }
 
-func getForkInfo(
-	r *http.Request,
-	repoInfo repoinfo.RepoInfo,
-	rp *Repo,
-	f *reporesolver.ResolvedRepo,
-	currentRef string,
-	user *oauth.User,
-	signedClient *knotclient.SignedClient,
-) (*types.ForkInfo, error) {
-	if user == nil {
-		return nil, nil
-	}
-
-	forkInfo := types.ForkInfo{
-		IsFork: repoInfo.Source != nil,
-		Status: types.UpToDate,
-	}
-
-	if !forkInfo.IsFork {
-		forkInfo.IsFork = false
-		return &forkInfo, nil
-	}
-
-	us, err := knotclient.NewUnsignedClient(repoInfo.Source.Knot, rp.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to create unsigned client for %s", repoInfo.Source.Knot)
-		return nil, err
-	}
-
-	result, err := us.Branches(repoInfo.Source.Did, repoInfo.Source.Name)
-	if err != nil {
-		log.Println("failed to reach knotserver", err)
-		return nil, err
-	}
-
-	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
-		return branch.Name == currentRef
-	}) {
-		forkInfo.Status = types.MissingBranch
-		return &forkInfo, nil
-	}
-
-	client, err := rp.oauth.ServiceClient(
-		r,
-		oauth.WithService(f.Knot),
-		oauth.WithLxm(tangled.RepoHiddenRefNSID),
-		oauth.WithDev(rp.config.Core.Dev),
-	)
-	if err != nil {
-		log.Printf("failed to connect to knot server: %v", err)
-		return nil, err
-	}
-
-	resp, err := tangled.RepoHiddenRef(
-		r.Context(),
-		client,
-		&tangled.RepoHiddenRef_Input{
-			ForkRef:   currentRef,
-			RemoteRef: currentRef,
-			Repo:      f.RepoAt().String(),
-		},
-	)
-	if err != nil || !resp.Success {
-		if err != nil {
-			log.Printf("failed to update tracking branch: %s", err)
-		} else {
-			log.Printf("failed to update tracking branch: success=false")
-		}
-		return nil, fmt.Errorf("failed to update tracking branch")
-	}
-
-	hiddenRef := fmt.Sprintf("hidden/%s/%s", currentRef, currentRef)
-
-	var status types.AncestorCheckResponse
-	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt()), repoInfo.Name, currentRef, hiddenRef)
-	if err != nil {
-		log.Printf("failed to check if fork is ahead/behind: %s", err)
-		return nil, err
-	}
-
-	if err := json.NewDecoder(forkSyncableResp.Body).Decode(&status); err != nil {
-		log.Printf("failed to decode fork status: %s", err)
-		return nil, err
-	}
-
-	forkInfo.Status = status.Status
-	return &forkInfo, nil
-}
+// func getForkInfo(
+// 	r *http.Request,
+// 	repoInfo repoinfo.RepoInfo,
+// 	rp *Repo,
+// 	f *reporesolver.ResolvedRepo,
+// 	currentRef string,
+// 	user *oauth.User,
+// 	signedClient *knotclient.SignedClient,
+// ) (*types.ForkInfo, error) {
+// 	if user == nil {
+// 		return nil, nil
+// 	}
+//
+// 	forkInfo := types.ForkInfo{
+// 		IsFork: repoInfo.Source != nil,
+// 		Status: types.UpToDate,
+// 	}
+//
+// 	if !forkInfo.IsFork {
+// 		forkInfo.IsFork = false
+// 		return &forkInfo, nil
+// 	}
+//
+// 	us, err := knotclient.NewUnsignedClient(repoInfo.Source.Knot, rp.config.Core.Dev)
+// 	if err != nil {
+// 		log.Printf("failed to create unsigned client for %s", repoInfo.Source.Knot)
+// 		return nil, err
+// 	}
+//
+// 	result, err := us.Branches(repoInfo.Source.Did, repoInfo.Source.Name)
+// 	if err != nil {
+// 		log.Println("failed to reach knotserver", err)
+// 		return nil, err
+// 	}
+//
+// 	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
+// 		return branch.Name == currentRef
+// 	}) {
+// 		forkInfo.Status = types.MissingBranch
+// 		return &forkInfo, nil
+// 	}
+//
+// <<<<<<< Conflict 1 of 2
+// %%%%%%% Changes from base #1 to side #1
+//  	client, err := rp.oauth.ServiceClient(
+//  		r,
+//  		oauth.WithService(f.Knot),
+//  		oauth.WithLxm(tangled.RepoHiddenRefNSID),
+//  		oauth.WithDev(rp.config.Core.Dev),
+//  	)
+//  	if err != nil {
+//  		log.Printf("failed to connect to knot server: %v", err)
+// %%%%%%% Changes from base #2 to side #2
+// -	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, currentRef, currentRef)
+// +	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)
+//  	if err != nil || newHiddenRefResp.StatusCode != http.StatusNoContent {
+//  		log.Printf("failed to update tracking branch: %s", err)
+// +++++++ Contents of side #3
+// 	client, err := rp.oauth.ServiceClient(
+// 		r,
+// 		oauth.WithService(f.Knot),
+// 		oauth.WithLxm(tangled.RepoHiddenRefNSID),
+// 		oauth.WithDev(rp.config.Core.Dev),
+// 	)
+// 	if err != nil {
+// 		log.Printf("failed to connect to knot server: %v", err)
+// >>>>>>> Conflict 1 of 2 ends
+// 		return nil, err
+// 	}
+//
+// <<<<<<< Conflict 2 of 2
+// %%%%%%% Changes from base #1 to side #1
+//  	resp, err := tangled.RepoHiddenRef(
+//  		r.Context(),
+//  		client,
+//  		&tangled.RepoHiddenRef_Input{
+// -			ForkRef:   f.Ref,
+// -			RemoteRef: f.Ref,
+// +			ForkRef:   currentRef,
+// +			RemoteRef: currentRef,
+//  			Repo:      f.RepoAt().String(),
+//  		},
+//  	)
+//  	if err != nil || !resp.Success {
+//  		if err != nil {
+//  			log.Printf("failed to update tracking branch: %s", err)
+//  		} else {
+//  			log.Printf("failed to update tracking branch: success=false")
+//  		}
+//  		return nil, fmt.Errorf("failed to update tracking branch")
+//  	}
+//
+// -	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
+// +	hiddenRef := fmt.Sprintf("hidden/%s/%s", currentRef, currentRef)
+//
+// %%%%%%% Changes from base #2 to side #2
+// -	hiddenRef := fmt.Sprintf("hidden/%s/%s", currentRef, currentRef)
+// +	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
+//
+// +++++++ Contents of side #3
+// 	resp, err := tangled.RepoHiddenRef(
+// 		r.Context(),
+// 		client,
+// 		&tangled.RepoHiddenRef_Input{
+// 			ForkRef:   currentRef,
+// 			RemoteRef: currentRef,
+// 			Repo:      f.RepoAt().String(),
+// 		},
+// 	)
+// 	if err != nil || !resp.Success {
+// 		if err != nil {
+// 			log.Printf("failed to update tracking branch: %s", err)
+// 		} else {
+// 			log.Printf("failed to update tracking branch: success=false")
+// 		}
+// 		return nil, fmt.Errorf("failed to update tracking branch")
+// 	}
+//
+// 	hiddenRef := fmt.Sprintf("hidden/%s/%s", currentRef, currentRef)
+// >>>>>>> Conflict 2 of 2 ends
+// 	var status types.AncestorCheckResponse
+// 	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt()), repoInfo.Name, currentRef, hiddenRef)
+// 	if err != nil {
+// 		log.Printf("failed to check if fork is ahead/behind: %s", err)
+// 		return nil, err
+// 	}
+//
+// 	if err := json.NewDecoder(forkSyncableResp.Body).Decode(&status); err != nil {
+// 		log.Printf("failed to decode fork status: %s", err)
+// 		return nil, err
+// 	}
+//
+// 	forkInfo.Status = status.Status
+// 	return &forkInfo, nil
+// }
