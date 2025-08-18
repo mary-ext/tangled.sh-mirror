@@ -24,27 +24,15 @@
           {{ block "mainLayout" . }}
             <div class="px-1 col-span-1 md:col-start-3 md:col-span-8 flex flex-col gap-4">
               {{ block "contentLayout" . }}
-                <div class="col-span-1 md:col-span-2">
-                  {{ block "contentLeft" . }} {{ end }}
-                </div>
                 <main class="col-span-1 md:col-span-8">
                   {{ block "content" . }}{{ end }}
                 </main>
-                <div class="col-span-1 md:col-span-2">
-                  {{ block "contentRight" . }} {{ end }}
-                </div>
               {{ end }}
   
               {{ block "contentAfterLayout" . }}
-                <div class="col-span-1 md:col-span-2">
-                  {{ block "contentAfterLeft" . }} {{ end }}
-                </div>
                 <main class="col-span-1 md:col-span-8">
                   {{ block "contentAfter" . }}{{ end }}
                 </main>
-                <div class="col-span-1 md:col-span-2">
-                  {{ block "contentAfterRight" . }} {{ end }}
-                </div>
               {{ end }}
             </div>
           {{ end }}
