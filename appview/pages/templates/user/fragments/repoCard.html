@@ -14,9 +14,9 @@
 
         {{ $repoOwner := resolve .Did }}
         {{- if $fullName -}}
-          <a href="/{{ $repoOwner }}/{{ .Name }}">{{ $repoOwner }}/{{ .Name }}</a>
+          <a href="/{{ $repoOwner }}/{{ .Name }}" class="truncate">{{ $repoOwner }}/{{ .Name }}</a>
         {{- else -}}
-          <a href="/{{ $repoOwner }}/{{ .Name }}">{{ .Name }}</a>
+          <a href="/{{ $repoOwner }}/{{ .Name }}" class="truncate">{{ .Name }}</a>
         {{- end -}}
       </div>
       {{ with .Description }}

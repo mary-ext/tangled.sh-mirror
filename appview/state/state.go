@@ -199,6 +199,19 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *State) TopStarredReposLastWeek(w http.ResponseWriter, r *http.Request) {
+	repos, err := db.GetTopStarredReposLastWeek(s.db)
+	if err != nil {
+		log.Println(err)
+		s.pages.Notice(w, "topstarredrepos", "Unable to load.")
+		return
+	}
+
+	s.pages.TopStarredReposLastWeek(w, pages.TopStarredReposLastWeekParams{
+		Repos: repos,
+	})
+}
+
 func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 	user := chi.URLParam(r, "user")
 	user = strings.TrimPrefix(user, "@")

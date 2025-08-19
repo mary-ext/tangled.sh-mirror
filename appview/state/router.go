@@ -112,6 +112,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Handle("/static/*", s.pages.Static())
 
 	r.Get("/", s.Timeline)
+	r.Get("/timeline/trending", s.TopStarredReposLastWeek)
 
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {

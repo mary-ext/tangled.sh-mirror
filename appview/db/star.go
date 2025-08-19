@@ -47,7 +47,7 @@ func AddStar(e Execer, star *Star) error {
 // Get a star record
 func GetStar(e Execer, starredByDid string, repoAt syntax.ATURI) (*Star, error) {
 	query := `
-	select starred_by_did, repo_at, created, rkey 
+	select starred_by_did, repo_at, created, rkey
 	from stars
 	where starred_by_did = ? and repo_at = ?`
 	row := e.QueryRow(query, starredByDid, repoAt)
@@ -119,7 +119,7 @@ func GetStars(e Execer, limit int, filters ...filter) ([]Star, error) {
 	}
 
 	repoQuery := fmt.Sprintf(
-		`select starred_by_did, repo_at, created, rkey 
+		`select starred_by_did, repo_at, created, rkey
 		from stars
 		%s
 		order by created desc
@@ -187,7 +187,7 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 	var stars []Star
 
 	rows, err := e.Query(`
-		select 
+		select
 			s.starred_by_did,
 			s.repo_at,
 			s.rkey,
@@ -243,4 +243,73 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 	}
 
 	return stars, nil
+}
+
+// GetTopStarredReposLastWeek returns the top 8 most starred repositories from the last week
+func GetTopStarredReposLastWeek(e Execer) ([]Repo, error) {
+	// first, get the top repo URIs by star count from the last week
+	query := `
+		with recent_starred_repos as (
+			select distinct repo_at
+			from stars
+			where created >= datetime('now', '-7 days')
+		),
+		repo_star_counts as (
+			select
+				s.repo_at,
+				count(*) as star_count
+			from stars s
+			join recent_starred_repos rsr on s.repo_at = rsr.repo_at
+			group by s.repo_at
+		)
+		select rsc.repo_at
+		from repo_star_counts rsc
+		order by rsc.star_count desc
+		limit 8
+	`
+
+	rows, err := e.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var repoUris []string
+	for rows.Next() {
+		var repoUri string
+		err := rows.Scan(&repoUri)
+		if err != nil {
+			return nil, err
+		}
+		repoUris = append(repoUris, repoUri)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(repoUris) == 0 {
+		return []Repo{}, nil
+	}
+
+	// get full repo data
+	repos, err := GetRepos(e, 0, FilterIn("at_uri", repoUris))
+	if err != nil {
+		return nil, err
+	}
+
+	// sort repos by the original trending order
+	repoMap := make(map[string]Repo)
+	for _, repo := range repos {
+		repoMap[repo.RepoAt().String()] = repo
+	}
+
+	orderedRepos := make([]Repo, 0, len(repoUris))
+	for _, uri := range repoUris {
+		if repo, exists := repoMap[uri]; exists {
+			orderedRepos = append(orderedRepos, repo)
+		}
+	}
+
+	return orderedRepos, nil
 }

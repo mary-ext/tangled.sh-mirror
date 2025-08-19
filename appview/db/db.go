@@ -470,6 +470,10 @@ func Make(dbPath string) (*DB, error) {
 			id integer primary key autoincrement,
 			name text unique
 		);
+
+		-- indexes for better star query performance
+		create index if not exists idx_stars_created on stars(created);
+		create index if not exists idx_stars_repo_at_created on stars(repo_at, created);
 	`)
 	if err != nil {
 		return nil, err
