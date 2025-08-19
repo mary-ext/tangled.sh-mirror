@@ -10,17 +10,13 @@ import (
 )
 
 func Fork(repoPath, source string) error {
-	_, err := git.PlainClone(repoPath, true, &git.CloneOptions{
-		URL:          source,
-		SingleBranch: false,
-	})
-
-	if err != nil {
+	cloneCmd := exec.Command("git", "clone", "--bare", source, repoPath)
+	if err := cloneCmd.Run(); err != nil {
 		return fmt.Errorf("failed to bare clone repository: %w", err)
 	}
 
-	err = exec.Command("git", "-C", repoPath, "config", "receive.hideRefs", "refs/hidden").Run()
-	if err != nil {
+	configureCmd := exec.Command("git", "-C", repoPath, "config", "receive.hideRefs", "refs/hidden")
+	if err := configureCmd.Run(); err != nil {
 		return fmt.Errorf("failed to configure hidden refs: %w", err)
 	}
 

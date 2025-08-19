@@ -20,7 +20,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
@@ -180,17 +179,6 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 	}
 
 	knot := f.Knot
-	var disableFork bool
-	us, err := knotclient.NewUnsignedClient(knot, f.rr.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to create unsigned client for %s: %v", knot, err)
-	} else {
-		if result, err := us.Branches(f.OwnerDid(), f.Name); err != nil {
-			log.Printf("failed to get branches for %s/%s: %v", f.OwnerDid(), f.Name, err)
-		} else if len(result.Branches) == 0 {
-			disableFork = true
-		}
-	}
 
 	repoInfo := repoinfo.RepoInfo{
 		OwnerDid:    f.OwnerDid(),
@@ -207,9 +195,8 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 			IssueCount: issueCount,
 			PullCount:  pullCount,
 		},
-		DisableFork: disableFork,
-		CurrentDir:  f.CurrentDir,
-		Ref:         f.Ref,
+		CurrentDir: f.CurrentDir,
+		Ref:        f.Ref,
 	}
 
 	if sourceRepo != nil {
