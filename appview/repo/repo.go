@@ -1315,6 +1315,8 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
+	ref := chi.URLParam(r, "ref")
+
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -1345,7 +1347,7 @@ func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 		forkName := fmt.Sprintf("%s", f.Name)
 		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.Repo.Name)
 
-		_, err = client.SyncRepoFork(user.Did, forkSourceUrl, forkName, f.Ref)
+		_, err = client.SyncRepoFork(user.Did, forkSourceUrl, forkName, ref)
 		if err != nil {
 			rp.pages.Notice(w, "repo", "Failed to sync repository fork.")
 			return

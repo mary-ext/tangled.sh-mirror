@@ -142,8 +142,8 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		r.Delete("/", h.RemoveRepo)
 		r.Route("/fork", func(r chi.Router) {
 			r.Post("/", h.RepoFork)
-			r.Post("/sync/{branch}", h.RepoForkSync)
-			r.Get("/sync/{branch}", h.RepoForkAheadBehind)
+			r.Post("/sync/*", h.RepoForkSync)
+			r.Get("/sync/*", h.RepoForkAheadBehind)
 		})
 	})
 

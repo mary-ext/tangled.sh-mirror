@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
@@ -26,9 +26,9 @@ import (
 
 type ResolvedRepo struct {
 	db.Repo
-	OwnerId     identity.Identity
-	Ref         string
-	CurrentDir  string
+	OwnerId    identity.Identity
+	CurrentDir string
+	Ref        string
 
 	rr *RepoResolver
 }
@@ -56,29 +56,14 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 		return nil, fmt.Errorf("malformed middleware")
 	}
 
+	currentDir := path.Dir(extractPathAfterRef(r.URL.EscapedPath()))
 	ref := chi.URLParam(r, "ref")
-
-	if ref == "" {
-		us, err := knotclient.NewUnsignedClient(repo.Knot, rr.config.Core.Dev)
-		if err != nil {
-			return nil, err
-		}
-
-		defaultBranch, err := us.DefaultBranch(id.DID.String(), repo.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		ref = defaultBranch.Branch
-	}
-
-	currentDir := path.Dir(extractPathAfterRef(r.URL.EscapedPath(), ref))
 
 	return &ResolvedRepo{
 		Repo:       *repo,
 		OwnerId:    id,
-		Ref:        ref,
 		CurrentDir: currentDir,
+		Ref:        ref,
 
 		rr: rr,
 	}, nil
@@ -200,12 +185,9 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 	if err != nil {
 		log.Printf("failed to create unsigned client for %s: %v", knot, err)
 	} else {
-		result, err := us.Branches(f.OwnerDid(), f.Name)
-		if err != nil {
+		if result, err := us.Branches(f.OwnerDid(), f.Name); err != nil {
 			log.Printf("failed to get branches for %s/%s: %v", f.OwnerDid(), f.Name, err)
-		}
-
-		if len(result.Branches) == 0 {
+		} else if len(result.Branches) == 0 {
 			disableFork = true
 		}
 	}
@@ -216,7 +198,6 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		Name:        f.Name,
 		RepoAt:      repoAt,
 		Description: f.Description,
-		Ref:         f.Ref,
 		IsStarred:   isStarred,
 		Knot:        knot,
 		Spindle:     f.Spindle,
@@ -228,6 +209,7 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		},
 		DisableFork: disableFork,
 		CurrentDir:  f.CurrentDir,
+		Ref:         f.Ref,
 	}
 
 	if sourceRepo != nil {
@@ -251,22 +233,19 @@ func (f *ResolvedRepo) RolesInRepo(u *oauth.User) repoinfo.RolesInRepo {
 // after the ref. for example:
 //
 //	/@icyphox.sh/foorepo/blob/main/abc/xyz/ => abc/xyz/
-func extractPathAfterRef(fullPath, ref string) string {
+func extractPathAfterRef(fullPath string) string {
 	fullPath = strings.TrimPrefix(fullPath, "/")
 
-	ref = url.PathEscape(ref)
+	// match blob/, tree/, or raw/ followed by any ref and then a slash
+	//
+	// captures everything after the final slash
+	pattern := `(?:blob|tree|raw)/[^/]+/(.*)$`
 
-	prefixes := []string{
-		fmt.Sprintf("blob/%s/", ref),
-		fmt.Sprintf("tree/%s/", ref),
-		fmt.Sprintf("raw/%s/", ref),
-	}
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(fullPath)
 
-	for _, prefix := range prefixes {
-		idx := strings.Index(fullPath, prefix)
-		if idx != -1 {
-			return fullPath[idx+len(prefix):]
-		}
+	if len(matches) > 1 {
+		return matches[1]
 	}
 
 	return ""

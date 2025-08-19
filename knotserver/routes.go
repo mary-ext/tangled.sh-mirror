@@ -710,7 +710,7 @@ func (h *Handle) NewRepo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handle) RepoForkAheadBehind(w http.ResponseWriter, r *http.Request) {
-	l := h.l.With("handler", "RepoForkSync")
+	l := h.l.With("handler", "RepoForkAheadBehind")
 
 	data := struct {
 		Did       string `json:"did"`
@@ -845,20 +845,20 @@ func (h *Handle) RepoForkSync(w http.ResponseWriter, r *http.Request) {
 		name = filepath.Base(source)
 	}
 
-	branch := chi.URLParam(r, "branch")
+	branch := chi.URLParam(r, "*")
 	branch, _ = url.PathUnescape(branch)
 
 	relativeRepoPath := filepath.Join(did, name)
 	repoPath, _ := securejoin.SecureJoin(h.c.Repo.ScanPath, relativeRepoPath)
 
-	gr, err := git.PlainOpen(repoPath)
+	gr, err := git.Open(repoPath, branch)
 	if err != nil {
 		log.Println(err)
 		notFound(w)
 		return
 	}
 
-	err = gr.Sync(branch)
+	err = gr.Sync()
 	if err != nil {
 		l.Error("error syncing repo fork", "error", err.Error())
 		writeError(w, err.Error(), http.StatusInternalServerError)

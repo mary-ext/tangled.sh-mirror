@@ -24,6 +24,7 @@ import (
 
 func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to fully resolve repo", err)
@@ -118,7 +119,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	var forkInfo *types.ForkInfo
 	if user != nil && (repoInfo.Roles.IsOwner() || repoInfo.Roles.IsCollaborator()) {
-		forkInfo, err = getForkInfo(repoInfo, rp, f, user, signedClient)
+		forkInfo, err = getForkInfo(repoInfo, rp, f, result.Ref, user, signedClient)
 		if err != nil {
 			log.Printf("Failed to fetch fork information: %v", err)
 			return
@@ -126,7 +127,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: a bit dirty
-	languageInfo, err := rp.getLanguageInfo(f, signedClient, chi.URLParam(r, "ref") == "")
+	languageInfo, err := rp.getLanguageInfo(f, signedClient, result.Ref, ref == "")
 	if err != nil {
 		log.Printf("failed to compute language percentages: %s", err)
 		// non-fatal
@@ -161,18 +162,19 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 func (rp *Repo) getLanguageInfo(
 	f *reporesolver.ResolvedRepo,
 	signedClient *knotclient.SignedClient,
+	currentRef string,
 	isDefaultRef bool,
 ) ([]types.RepoLanguageDetails, error) {
 	// first attempt to fetch from db
 	langs, err := db.GetRepoLanguages(
 		rp.db,
 		db.FilterEq("repo_at", f.RepoAt()),
-		db.FilterEq("ref", f.Ref),
+		db.FilterEq("ref", currentRef),
 	)
 
 	if err != nil || langs == nil {
 		// non-fatal, fetch langs from ks
-		ls, err := signedClient.RepoLanguages(f.OwnerDid(), f.Name, f.Ref)
+		ls, err := signedClient.RepoLanguages(f.OwnerDid(), f.Name, currentRef)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +185,7 @@ func (rp *Repo) getLanguageInfo(
 		for l, s := range ls.Languages {
 			langs = append(langs, db.RepoLanguage{
 				RepoAt:       f.RepoAt(),
-				Ref:          f.Ref,
+				Ref:          currentRef,
 				IsDefaultRef: isDefaultRef,
 				Language:     l,
 				Bytes:        s,
@@ -234,6 +236,7 @@ func getForkInfo(
 	repoInfo repoinfo.RepoInfo,
 	rp *Repo,
 	f *reporesolver.ResolvedRepo,
+	currentRef string,
 	user *oauth.User,
 	signedClient *knotclient.SignedClient,
 ) (*types.ForkInfo, error) {
@@ -264,22 +267,22 @@ func getForkInfo(
 	}
 
 	if !slices.ContainsFunc(result.Branches, func(branch types.Branch) bool {
-		return branch.Name == f.Ref
+		return branch.Name == currentRef
 	}) {
 		forkInfo.Status = types.MissingBranch
 		return &forkInfo, nil
 	}
 
-	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, f.Ref, f.Ref)
+	newHiddenRefResp, err := signedClient.NewHiddenRef(user.Did, repoInfo.Name, currentRef, currentRef)
 	if err != nil || newHiddenRefResp.StatusCode != http.StatusNoContent {
 		log.Printf("failed to update tracking branch: %s", err)
 		return nil, err
 	}
 
-	hiddenRef := fmt.Sprintf("hidden/%s/%s", f.Ref, f.Ref)
+	hiddenRef := fmt.Sprintf("hidden/%s/%s", currentRef, currentRef)
 
 	var status types.AncestorCheckResponse
-	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt()), repoInfo.Name, f.Ref, hiddenRef)
+	forkSyncableResp, err := signedClient.RepoForkAheadBehind(user.Did, string(f.RepoAt()), repoInfo.Name, currentRef, hiddenRef)
 	if err != nil {
 		log.Printf("failed to check if fork is ahead/behind: %s", err)
 		return nil, err

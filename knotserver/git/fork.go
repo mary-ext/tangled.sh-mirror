@@ -27,10 +27,12 @@ func Fork(repoPath, source string) error {
 	return nil
 }
 
-func (g *GitRepo) Sync(branch string) error {
+func (g *GitRepo) Sync() error {
+	branch := g.h.String()
+
 	fetchOpts := &git.FetchOptions{
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/heads/%s", branch, branch)),
+			config.RefSpec("+" + branch + ":" + branch), // +refs/heads/master:refs/heads/master
 		},
 	}
 
