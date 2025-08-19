@@ -1,0 +1,25 @@
+{{ define "timeline/fragments/topStarredRepos" }}
+<div class="w-full md:mx-0">
+    <div class="p-6">
+        <h3 class="font-bold text-xl text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+            Trending
+            {{ i "trending-up" "size-4 flex-shrink-0" }}
+        </h3>
+    </div>
+    <div class="flex gap-3 overflow-x-auto pb-4 px-4 scrollbar-hide">
+        {{ range $index, $repo := .Repos }}
+            <div class="flex-none w-72 relative h-full">
+                <div class="relative h-full items-stretch border border-gray-200 dark:border-gray-700 rounded-sm">
+                    {{ template "user/fragments/repoCard" (list $ $repo true) }}
+                </div>
+            </div>
+        {{ else }}
+            <div class="py-8 px-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+                <div class="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    No trending repositories this week
+                </div>
+            </div>
+        {{ end }}
+    </div>
+</div>
+{{ end }}

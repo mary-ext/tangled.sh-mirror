@@ -4,20 +4,44 @@
     <meta property="og:title" content="timeline · tangled" />
     <meta property="og:type" content="object" />
     <meta property="og:url" content="https://tangled.sh" />
-    <meta property="og:description" content="see what's tangling" />
+    <meta property="og:description" content="tightly-knit social coding" />
 {{ end }}
 
-{{ define "topbar" }}
-  {{ template "layouts/topbar" $ }}
-{{ end }}
+
+
 
 {{ define "content" }}
     {{ with .LoggedInUser }}
+        {{ block "trending" . }}{{ end }}
         {{ block "timeline" $ }}{{ end }}
     {{ else }}
         {{ block "hero" $ }}{{ end }}
+        {{ block "trending" . }}{{ end }}
         {{ block "timeline" $ }}{{ end }}
     {{ end }}
+{{ end }}
+
+{{ define "trending" }}
+
+    <div
+        hx-get="/timeline/trending"
+        hx-trigger="load"
+        hx-indicator="#starred-loading"
+    >
+        <!-- Loading spinner -->
+        <div id="starred-loading" class="htmx-indicator">
+            <div class="p-6">
+                <h3 class="font-bold text-xl  text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                    Trending
+                    {{ i "trending-up" "size-4 flex-shrink-0" }}
+                </h3>
+            </div>
+            <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading...</span>
+            </div>
+        </div>
+    </div>
 {{ end }}
 
 {{ define "hero" }}
