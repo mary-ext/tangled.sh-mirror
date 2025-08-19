@@ -520,6 +520,7 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 	}
 
 	p.rctx.RepoInfo = params.RepoInfo
+	p.rctx.RepoInfo.Ref = params.Ref
 	p.rctx.RendererType = markup.RendererTypeRepoMarkdown
 
 	if params.ReadmeFileName != "" {

@@ -89,25 +89,6 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("failed to create profile timeline for %s: %s", ident.DID.String(), err)
 	}
 
-	var didsToResolve []string
-	for _, r := range collaboratingRepos {
-		didsToResolve = append(didsToResolve, r.Did)
-	}
-	for _, byMonth := range timeline.ByMonth {
-		for _, pe := range byMonth.PullEvents.Items {
-			didsToResolve = append(didsToResolve, pe.Repo.Did)
-		}
-		for _, ie := range byMonth.IssueEvents.Items {
-			didsToResolve = append(didsToResolve, ie.Metadata.Repo.Did)
-		}
-		for _, re := range byMonth.RepoEvents {
-			didsToResolve = append(didsToResolve, re.Repo.Did)
-			if re.Source != nil {
-				didsToResolve = append(didsToResolve, re.Source.Did)
-			}
-		}
-	}
-
 	followers, following, err := db.GetFollowerFollowingCount(s.db, ident.DID.String())
 	if err != nil {
 		log.Printf("getting follow stats repos for %s: %s", ident.DID.String(), err)
