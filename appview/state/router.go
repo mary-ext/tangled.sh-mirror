@@ -35,10 +35,13 @@ func (s *State) Router() http.Handler {
 	router.Get("/favicon.svg", s.Favicon)
 	router.Get("/favicon.ico", s.Favicon)
 
+	userRouter := s.UserRouter(&middleware)
+	standardRouter := s.StandardRouter(&middleware)
+
 	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		pat := chi.URLParam(r, "*")
 		if strings.HasPrefix(pat, "did:") || strings.HasPrefix(pat, "@") {
-			s.UserRouter(&middleware).ServeHTTP(w, r)
+			userRouter.ServeHTTP(w, r)
 		} else {
 			// Check if the first path element is a valid handle without '@' or a flattened DID
 			pathParts := strings.SplitN(pat, "/", 2)
@@ -61,7 +64,7 @@ func (s *State) Router() http.Handler {
 					return
 				}
 			}
-			s.StandardRouter(&middleware).ServeHTTP(w, r)
+			standardRouter.ServeHTTP(w, r)
 		}
 	})
 
