@@ -278,7 +278,6 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		createdAt := time.Now().Format(time.RFC3339)
-		commentIdInt64 := int64(commentId)
 		ownerDid := user.Did
 		issueAt, err := db.GetIssueAt(rp.db, f.RepoAt(), issueIdInt)
 		if err != nil {
@@ -302,7 +301,6 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 				Val: &tangled.RepoIssueComment{
 					Repo:      &atUri,
 					Issue:     issueAt,
-					CommentId: &commentIdInt64,
 					Owner:     &ownerDid,
 					Body:      body,
 					CreatedAt: createdAt,
@@ -451,7 +449,6 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 			repoAt := record["repo"].(string)
 			issueAt := record["issue"].(string)
 			createdAt := record["createdAt"].(string)
-			commentIdInt64 := int64(commentIdInt)
 
 			_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 				Collection: tangled.RepoIssueCommentNSID,
@@ -462,7 +459,6 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 					Val: &tangled.RepoIssueComment{
 						Repo:      &repoAt,
 						Issue:     issueAt,
-						CommentId: &commentIdInt64,
 						Owner:     &comment.OwnerDid,
 						Body:      newBody,
 						CreatedAt: createdAt,
@@ -687,11 +683,10 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			Rkey:       issue.Rkey,
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoIssue{
-					Repo:    atUri,
-					Title:   title,
-					Body:    &body,
-					Owner:   user.Did,
-					IssueId: int64(issue.IssueId),
+					Repo:  atUri,
+					Title: title,
+					Body:  &body,
+					Owner: user.Did,
 				},
 			},
 		})
