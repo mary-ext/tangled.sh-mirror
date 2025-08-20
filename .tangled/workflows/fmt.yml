@@ -2,6 +2,8 @@ when:
   - event: ["push", "pull_request"]
     branch: ["master"]
 
+engine: nixery
+
 steps:
   - name: "Check formatting"
     command: |
