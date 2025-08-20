@@ -674,35 +674,32 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 		}
 	}
 
-	if params.Lines < 5000 {
-		c := params.Contents
-		formatter := chromahtml.New(
-			chromahtml.InlineCode(false),
-			chromahtml.WithLineNumbers(true),
-			chromahtml.WithLinkableLineNumbers(true, "L"),
-			chromahtml.Standalone(false),
-			chromahtml.WithClasses(true),
-		)
+	c := params.Contents
+	formatter := chromahtml.New(
+		chromahtml.InlineCode(false),
+		chromahtml.WithLineNumbers(true),
+		chromahtml.WithLinkableLineNumbers(true, "L"),
+		chromahtml.Standalone(false),
+		chromahtml.WithClasses(true),
+	)
 
-		lexer := lexers.Get(filepath.Base(params.Path))
-		if lexer == nil {
-			lexer = lexers.Fallback
-		}
-
-		iterator, err := lexer.Tokenise(nil, c)
-		if err != nil {
-			return fmt.Errorf("chroma tokenize: %w", err)
-		}
-
-		var code bytes.Buffer
-		err = formatter.Format(&code, style, iterator)
-		if err != nil {
-			return fmt.Errorf("chroma format: %w", err)
-		}
-
-		params.Contents = code.String()
+	lexer := lexers.Get(filepath.Base(params.Path))
+	if lexer == nil {
+		lexer = lexers.Fallback
 	}
 
+	iterator, err := lexer.Tokenise(nil, c)
+	if err != nil {
+		return fmt.Errorf("chroma tokenize: %w", err)
+	}
+
+	var code bytes.Buffer
+	err = formatter.Format(&code, style, iterator)
+	if err != nil {
+		return fmt.Errorf("chroma format: %w", err)
+	}
+
+	params.Contents = code.String()
 	params.Active = "overview"
 	return p.executeRepo("repo/blob", w, params)
 }
