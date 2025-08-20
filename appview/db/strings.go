@@ -50,14 +50,6 @@ func (s String) Stats() StringStats {
 func (s String) Validate() error {
 	var err error
 
-	if !strings.Contains(s.Filename, ".") {
-		err = errors.Join(err, fmt.Errorf("missing filename extension"))
-	}
-
-	if strings.HasSuffix(s.Filename, ".") {
-		err = errors.Join(err, fmt.Errorf("filename ends with `.`"))
-	}
-
 	if utf8.RuneCountInString(s.Filename) > 140 {
 		err = errors.Join(err, fmt.Errorf("filename too long"))
 	}
@@ -113,7 +105,7 @@ func AddString(e Execer, s String) error {
 			filename = excluded.filename,
 			description = excluded.description,
 			content = excluded.content,
-			edited = case 
+			edited = case
 				when
 					strings.content != excluded.content
 					or strings.filename != excluded.filename

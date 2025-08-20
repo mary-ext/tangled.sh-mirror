@@ -7,7 +7,6 @@ import (
 	"path"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
@@ -288,11 +287,6 @@ func (s *Strings) edit(w http.ResponseWriter, r *http.Request) {
 			fail("Empty filename.", nil)
 			return
 		}
-		if !strings.Contains(filename, ".") {
-			// TODO: make this a htmx form validation
-			fail("No extension provided for filename.", nil)
-			return
-		}
 
 		content := r.FormValue("content")
 		if content == "" {
@@ -373,11 +367,6 @@ func (s *Strings) create(w http.ResponseWriter, r *http.Request) {
 		filename := r.FormValue("filename")
 		if filename == "" {
 			fail("Empty filename.", nil)
-			return
-		}
-		if !strings.Contains(filename, ".") {
-			// TODO: make this a htmx form validation
-			fail("No extension provided for filename.", nil)
 			return
 		}
 
