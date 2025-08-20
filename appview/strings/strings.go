@@ -456,7 +456,7 @@ func (s *Strings) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Did != id.DID.String() {
-		fail("You cannot delete this gist", fmt.Errorf("unauthorized deletion, %s != %s", user.Did, id.DID.String()))
+		fail("You cannot delete this string", fmt.Errorf("unauthorized deletion, %s != %s", user.Did, id.DID.String()))
 		return
 	}
 
