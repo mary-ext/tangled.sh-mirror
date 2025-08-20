@@ -129,6 +129,7 @@ func (d *Handle) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedR
 	// If the appview gave us the repository owner's handle we can attempt to
 	// construct the correct ssh url.
 	ownerHandle := r.Header.Get("x-tangled-repo-owner-handle")
+	ownerHandle = strings.TrimPrefix(ownerHandle, "@")
 	if ownerHandle != "" && !strings.ContainsAny(ownerHandle, ":") {
 		hostname := d.c.Server.Hostname
 		if strings.Contains(hostname, ":") {
