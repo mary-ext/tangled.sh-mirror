@@ -9,11 +9,7 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": [
-          "issue",
-          "body",
-          "createdAt"
-        ],
+        "required": ["issue", "body", "createdAt"],
         "properties": {
           "issue": {
             "type": "string",
@@ -22,9 +18,6 @@
           "repo": {
             "type": "string",
             "format": "at-uri"
-          },
-          "commentId": {
-            "type": "integer"
           },
           "owner": {
             "type": "string",
