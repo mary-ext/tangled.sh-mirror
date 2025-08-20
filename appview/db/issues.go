@@ -49,6 +49,77 @@ func (i *Issue) AtUri() syntax.ATURI {
 	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", i.OwnerDid, tangled.RepoIssueNSID, i.Rkey))
 }
 
+func IssueFromRecord(did, rkey string, record tangled.RepoIssue) Issue {
+	created, err := time.Parse(time.RFC3339, record.CreatedAt)
+	if err != nil {
+		created = time.Now()
+	}
+
+	body := ""
+	if record.Body != nil {
+		body = *record.Body
+	}
+
+	return Issue{
+		RepoAt:   syntax.ATURI(record.Repo),
+		OwnerDid: record.Owner,
+		Rkey:     rkey,
+		Created:  created,
+		Title:    record.Title,
+		Body:     body,
+		Open:     true, // new issues are open by default
+	}
+}
+
+func ResolveIssueFromAtUri(e Execer, issueUri syntax.ATURI) (syntax.ATURI, int, error) {
+	ownerDid := issueUri.Authority().String()
+	issueRkey := issueUri.RecordKey().String()
+
+	var repoAt string
+	var issueId int
+
+	query := `select repo_at, issue_id from issues where owner_did = ? and rkey = ?`
+	err := e.QueryRow(query, ownerDid, issueRkey).Scan(&repoAt, &issueId)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return syntax.ATURI(repoAt), issueId, nil
+}
+
+func IssueCommentFromRecord(e Execer, did, rkey string, record tangled.RepoIssueComment) (Comment, error) {
+	created, err := time.Parse(time.RFC3339, record.CreatedAt)
+	if err != nil {
+		created = time.Now()
+	}
+
+	ownerDid := did
+	if record.Owner != nil {
+		ownerDid = *record.Owner
+	}
+
+	issueUri, err := syntax.ParseATURI(record.Issue)
+	if err != nil {
+		return Comment{}, err
+	}
+
+	repoAt, issueId, err := ResolveIssueFromAtUri(e, issueUri)
+	if err != nil {
+		return Comment{}, err
+	}
+
+	comment := Comment{
+		OwnerDid: ownerDid,
+		RepoAt:   repoAt,
+		Rkey:     rkey,
+		Body:     record.Body,
+		Issue:    issueId,
+		Created:  &created,
+	}
+
+	return comment, nil
+}
+
 func NewIssue(tx *sql.Tx, issue *Issue) error {
 	defer tx.Rollback()
 
