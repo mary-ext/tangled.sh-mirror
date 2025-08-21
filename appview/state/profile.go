@@ -175,24 +175,19 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *State) feedFromRequest(w http.ResponseWriter, r *http.Request) *feeds.Feed {
+func (s *State) AtomFeedPage(w http.ResponseWriter, r *http.Request) {
 	ident, ok := r.Context().Value("resolvedId").(identity.Identity)
 	if !ok {
 		s.pages.Error404(w)
-		return nil
+		return
 	}
 
-	feed, err := s.GetProfileFeed(r.Context(), ident.Handle.String(), ident.DID.String())
+	feed, err := s.getProfileFeed(r.Context(), &ident)
 	if err != nil {
 		s.pages.Error500(w)
-		return nil
+		return
 	}
 
-	return feed
-}
-
-func (s *State) AtomFeedPage(w http.ResponseWriter, r *http.Request) {
-	feed := s.feedFromRequest(w, r)
 	if feed == nil {
 		return
 	}
@@ -207,82 +202,119 @@ func (s *State) AtomFeedPage(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(atom))
 }
 
-func (s *State) GetProfileFeed(ctx context.Context, handle string, did string) (*feeds.Feed, error) {
-	timeline, err := db.MakeProfileTimeline(s.db, did)
+func (s *State) getProfileFeed(ctx context.Context, id *identity.Identity) (*feeds.Feed, error) {
+	timeline, err := db.MakeProfileTimeline(s.db, id.DID.String())
 	if err != nil {
 		return nil, err
 	}
 
 	author := &feeds.Author{
-		Name: fmt.Sprintf("@%s", handle),
+		Name: fmt.Sprintf("@%s", id.Handle),
 	}
-	feed := &feeds.Feed{
-		Title:   fmt.Sprintf("timeline feed for %s", author.Name),
-		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s", s.config.Core.AppviewHost, handle), Type: "text/html", Rel: "alternate"},
+
+	feed := feeds.Feed{
+		Title:   fmt.Sprintf("%s's timeline", author.Name),
+		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s", s.config.Core.AppviewHost, id.Handle), Type: "text/html", Rel: "alternate"},
 		Items:   make([]*feeds.Item, 0),
 		Updated: time.UnixMilli(0),
 		Author:  author,
 	}
+
 	for _, byMonth := range timeline.ByMonth {
-		for _, pull := range byMonth.PullEvents.Items {
-			owner, err := s.idResolver.ResolveIdent(ctx, pull.Repo.Did)
-			if err != nil {
-				return nil, err
-			}
-			feed.Items = append(feed.Items, &feeds.Item{
-				Title:   fmt.Sprintf("%s created pull request '%s' in @%s/%s", author.Name, pull.Title, owner.Handle, pull.Repo.Name),
-				Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/pulls/%d", s.config.Core.AppviewHost, owner.Handle, pull.Repo.Name, pull.PullId), Type: "text/html", Rel: "alternate"},
-				Created: pull.Created,
-				Author:  author,
-			})
-			for _, submission := range pull.Submissions {
-				feed.Items = append(feed.Items, &feeds.Item{
-					Title:   fmt.Sprintf("%s submitted pull request '%s' (round #%d) in @%s/%s", author.Name, pull.Title, submission.RoundNumber, owner.Handle, pull.Repo.Name),
-					Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/pulls/%d", s.config.Core.AppviewHost, owner.Handle, pull.Repo.Name, pull.PullId), Type: "text/html", Rel: "alternate"},
-					Created: submission.Created,
-					Author:  author,
-				})
-			}
+		if err := s.addPullRequestItems(ctx, &feed, byMonth.PullEvents.Items, author); err != nil {
+			return nil, err
 		}
-		for _, issue := range byMonth.IssueEvents.Items {
-			owner, err := s.idResolver.ResolveIdent(ctx, issue.Metadata.Repo.Did)
-			if err != nil {
-				return nil, err
-			}
-			feed.Items = append(feed.Items, &feeds.Item{
-				Title:   fmt.Sprintf("%s created issue '%s' in @%s/%s", author.Name, issue.Title, owner.Handle, issue.Metadata.Repo.Name),
-				Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/issues/%d", s.config.Core.AppviewHost, owner.Handle, issue.Metadata.Repo.Name, issue.IssueId), Type: "text/html", Rel: "alternate"},
-				Created: issue.Created,
-				Author:  author,
-			})
+		if err := s.addIssueItems(ctx, &feed, byMonth.IssueEvents.Items, author); err != nil {
+			return nil, err
 		}
-		for _, repo := range byMonth.RepoEvents {
-			var title string
-			if repo.Source != nil {
-				id, err := s.idResolver.ResolveIdent(ctx, repo.Source.Did)
-				if err != nil {
-					return nil, err
-				}
-				title = fmt.Sprintf("%s forked repository @%s/%s to '%s'", author.Name, id.Handle, repo.Source.Name, repo.Repo.Name)
-			} else {
-				title = fmt.Sprintf("%s created repository '%s'", author.Name, repo.Repo.Name)
-			}
-			feed.Items = append(feed.Items, &feeds.Item{
-				Title:   title,
-				Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s", s.config.Core.AppviewHost, handle, repo.Repo.Name), Type: "text/html", Rel: "alternate"},
-				Created: repo.Repo.Created,
-				Author:  author,
-			})
+		if err := s.addRepoItems(ctx, &feed, byMonth.RepoEvents, author); err != nil {
+			return nil, err
 		}
 	}
+
 	slices.SortFunc(feed.Items, func(a *feeds.Item, b *feeds.Item) int {
 		return int(b.Created.UnixMilli()) - int(a.Created.UnixMilli())
 	})
+
 	if len(feed.Items) > 0 {
 		feed.Updated = feed.Items[0].Created
 	}
 
-	return feed, nil
+	return &feed, nil
+}
+
+func (s *State) addPullRequestItems(ctx context.Context, feed *feeds.Feed, pulls []*db.Pull, author *feeds.Author) error {
+	for _, pull := range pulls {
+		owner, err := s.idResolver.ResolveIdent(ctx, pull.Repo.Did)
+		if err != nil {
+			return err
+		}
+
+		// Add pull request creation item
+		feed.Items = append(feed.Items, s.createPullRequestItem(pull, owner, author))
+	}
+	return nil
+}
+
+func (s *State) addIssueItems(ctx context.Context, feed *feeds.Feed, issues []*db.Issue, author *feeds.Author) error {
+	for _, issue := range issues {
+		owner, err := s.idResolver.ResolveIdent(ctx, issue.Metadata.Repo.Did)
+		if err != nil {
+			return err
+		}
+
+		feed.Items = append(feed.Items, s.createIssueItem(issue, owner, author))
+	}
+	return nil
+}
+
+func (s *State) addRepoItems(ctx context.Context, feed *feeds.Feed, repos []db.RepoEvent, author *feeds.Author) error {
+	for _, repo := range repos {
+		item, err := s.createRepoItem(ctx, repo, author)
+		if err != nil {
+			return err
+		}
+		feed.Items = append(feed.Items, item)
+	}
+	return nil
+}
+
+func (s *State) createPullRequestItem(pull *db.Pull, owner *identity.Identity, author *feeds.Author) *feeds.Item {
+	return &feeds.Item{
+		Title:   fmt.Sprintf("%s created pull request '%s' in @%s/%s", author.Name, pull.Title, owner.Handle, pull.Repo.Name),
+		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/pulls/%d", s.config.Core.AppviewHost, owner.Handle, pull.Repo.Name, pull.PullId), Type: "text/html", Rel: "alternate"},
+		Created: pull.Created,
+		Author:  author,
+	}
+}
+
+func (s *State) createIssueItem(issue *db.Issue, owner *identity.Identity, author *feeds.Author) *feeds.Item {
+	return &feeds.Item{
+		Title:   fmt.Sprintf("%s created issue '%s' in @%s/%s", author.Name, issue.Title, owner.Handle, issue.Metadata.Repo.Name),
+		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/issues/%d", s.config.Core.AppviewHost, owner.Handle, issue.Metadata.Repo.Name, issue.IssueId), Type: "text/html", Rel: "alternate"},
+		Created: issue.Created,
+		Author:  author,
+	}
+}
+
+func (s *State) createRepoItem(ctx context.Context, repo db.RepoEvent, author *feeds.Author) (*feeds.Item, error) {
+	var title string
+	if repo.Source != nil {
+		sourceOwner, err := s.idResolver.ResolveIdent(ctx, repo.Source.Did)
+		if err != nil {
+			return nil, err
+		}
+		title = fmt.Sprintf("%s forked repository @%s/%s to '%s'", author.Name, sourceOwner.Handle, repo.Source.Name, repo.Repo.Name)
+	} else {
+		title = fmt.Sprintf("%s created repository '%s'", author.Name, repo.Repo.Name)
+	}
+
+	return &feeds.Item{
+		Title:   title,
+		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s", s.config.Core.AppviewHost, author.Name[1:], repo.Repo.Name), Type: "text/html", Rel: "alternate"}, // Remove @ prefix
+		Created: repo.Repo.Created,
+		Author:  author,
+	}, nil
 }
 
 func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {
