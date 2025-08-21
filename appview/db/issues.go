@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	mathrand "math/rand/v2"
 	"strings"
 	"time"
 
@@ -109,12 +110,13 @@ func IssueCommentFromRecord(e Execer, did, rkey string, record tangled.RepoIssue
 	}
 
 	comment := Comment{
-		OwnerDid: ownerDid,
-		RepoAt:   repoAt,
-		Rkey:     rkey,
-		Body:     record.Body,
-		Issue:    issueId,
-		Created:  &created,
+		OwnerDid:  ownerDid,
+		RepoAt:    repoAt,
+		Rkey:      rkey,
+		Body:      record.Body,
+		Issue:     issueId,
+		CommentId: mathrand.IntN(1000000),
+		Created:   &created,
 	}
 
 	return comment, nil
@@ -621,6 +623,38 @@ func DeleteComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) error 
 			deleted = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 		where repo_at = ? and issue_id = ? and comment_id = ?
 		`, repoAt, issueId, commentId)
+	return err
+}
+
+func UpdateCommentByRkey(e Execer, ownerDid, rkey, newBody string) error {
+	_, err := e.Exec(
+		`
+		update comments
+		set body = ?,
+			edited = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+		where owner_did = ? and rkey = ?
+		`, newBody, ownerDid, rkey)
+	return err
+}
+
+func DeleteCommentByRkey(e Execer, ownerDid, rkey string) error {
+	_, err := e.Exec(
+		`
+		update comments
+		set body = "",
+			deleted = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+		where owner_did = ? and rkey = ?
+		`, ownerDid, rkey)
+	return err
+}
+
+func UpdateIssueByRkey(e Execer, ownerDid, rkey, title, body string) error {
+	_, err := e.Exec(`update issues set title = ?, body = ? where owner_did = ? and rkey = ?`, title, body, ownerDid, rkey)
+	return err
+}
+
+func DeleteIssueByRkey(e Execer, ownerDid, rkey string) error {
+	_, err := e.Exec(`delete from issues where owner_did = ? and rkey = ?`, ownerDid, rkey)
 	return err
 }
 

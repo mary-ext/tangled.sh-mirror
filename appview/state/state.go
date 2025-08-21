@@ -100,6 +100,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 			tangled.SpindleNSID,
 			tangled.StringNSID,
 			tangled.RepoIssueNSID,
+			tangled.RepoIssueCommentNSID,
 		},
 		nil,
 		slog.Default(),

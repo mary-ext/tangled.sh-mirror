@@ -74,6 +74,8 @@ func (i *Ingester) Ingest() processFunc {
 				err = i.ingestString(e)
 			case tangled.RepoIssueNSID:
 				err = i.ingestIssue(ctx, e)
+			case tangled.RepoIssueCommentNSID:
+				err = i.ingestIssueComment(e)
 			}
 			l = i.Logger.With("nsid", e.Commit.Collection)
 		}
@@ -855,6 +857,83 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 		if err := db.DeleteIssueByRkey(ddb, did, rkey); err != nil {
 			l.Error("failed to delete", "err", err)
 			return fmt.Errorf("failed to delete issue record: %w", err)
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("unknown operation: %s", e.Commit.Operation)
+}
+
+func (i *Ingester) ingestIssueComment(e *models.Event) error {
+	did := e.Did
+	rkey := e.Commit.RKey
+
+	var err error
+
+	l := i.Logger.With("handler", "ingestIssueComment", "nsid", e.Commit.Collection, "did", did, "rkey", rkey)
+	l.Info("ingesting record")
+
+	ddb, ok := i.Db.Execer.(*db.DB)
+	if !ok {
+		return fmt.Errorf("failed to index issue comment record, invalid db cast")
+	}
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.RepoIssueComment{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			l.Error("invalid record", "err", err)
+			return err
+		}
+
+		comment, err := db.IssueCommentFromRecord(ddb, did, rkey, record)
+		if err != nil {
+			l.Error("failed to parse comment from record", "err", err)
+			return err
+		}
+
+		sanitizer := markup.NewSanitizer()
+		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(comment.Body)); sb == "" {
+			return fmt.Errorf("body is empty after HTML sanitization")
+		}
+
+		err = db.NewIssueComment(ddb, &comment)
+		if err != nil {
+			l.Error("failed to create issue comment", "err", err)
+			return err
+		}
+
+		return nil
+
+	case models.CommitOperationUpdate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.RepoIssueComment{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			l.Error("invalid record", "err", err)
+			return err
+		}
+
+		sanitizer := markup.NewSanitizer()
+		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(record.Body)); sb == "" {
+			return fmt.Errorf("body is empty after HTML sanitization")
+		}
+
+		err = db.UpdateCommentByRkey(ddb, did, rkey, record.Body)
+		if err != nil {
+			l.Error("failed to update issue comment", "err", err)
+			return err
+		}
+
+		return nil
+
+	case models.CommitOperationDelete:
+		if err := db.DeleteCommentByRkey(ddb, did, rkey); err != nil {
+			l.Error("failed to delete", "err", err)
+			return fmt.Errorf("failed to delete issue comment record: %w", err)
 		}
 
 		return nil
