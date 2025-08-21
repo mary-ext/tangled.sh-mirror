@@ -37,7 +37,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/gorilla/feeds"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -287,127 +286,6 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-}
-
-func (rp *Repo) getRepoFeed(ctx context.Context, f *reporesolver.ResolvedRepo) (*feeds.Feed, error) {
-	const feedLimitPerType = 100
-
-	pulls, err := db.GetPullsWithLimit(rp.db, feedLimitPerType, db.FilterEq("repo_at", f.RepoAt()))
-	if err != nil {
-		return nil, err
-	}
-
-	issues, err := db.GetIssuesWithLimit(rp.db, feedLimitPerType, db.FilterEq("repo_at", f.RepoAt()))
-	if err != nil {
-		return nil, err
-	}
-
-	feed := &feeds.Feed{
-		Title:   fmt.Sprintf("activity feed for %s", f.OwnerSlashRepo()),
-		Link:    &feeds.Link{Href: fmt.Sprintf("%s/%s", rp.config.Core.AppviewHost, f.OwnerSlashRepo()), Type: "text/html", Rel: "alternate"},
-		Items:   make([]*feeds.Item, 0),
-		Updated: time.UnixMilli(0),
-	}
-
-	for _, pull := range pulls {
-		owner, err := rp.idResolver.ResolveIdent(ctx, pull.OwnerDid)
-		if err != nil {
-			return nil, err
-		}
-
-		var state string
-		if pull.State == db.PullOpen {
-			state = "opened"
-		} else {
-			state = pull.State.String()
-		}
-		mergedAtRounds := ""
-		if pull.State == db.PullMerged {
-			mergedAtRounds = fmt.Sprintf(" (on round #%d)", pull.LastRoundNumber())
-		}
-		item := &feeds.Item{
-			Title:       fmt.Sprintf("[PR #%d] %s", pull.PullId, pull.Title),
-			Description: fmt.Sprintf("@%s %s pull request #%d%s in %s", owner.Handle, state, pull.PullId, mergedAtRounds, f.OwnerSlashRepo()),
-			Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/pulls/%d", rp.config.Core.AppviewHost, f.OwnerSlashRepo(), pull.PullId)},
-			Created:     pull.Created,
-			Author: &feeds.Author{
-				Name: fmt.Sprintf("@%s", owner.Handle),
-			},
-		}
-		feed.Items = append(feed.Items, item)
-
-		for _, round := range pull.Submissions {
-			if round == nil || round.RoundNumber == 0 {
-				continue
-			}
-			item := &feeds.Item{
-				Title:       fmt.Sprintf("[PR #%d] %s (round #%d)", pull.PullId, pull.Title, round.RoundNumber),
-				Description: fmt.Sprintf("@%s submitted changes (at round #%d) on PR #%d in %s", owner.Handle, round.RoundNumber, pull.PullId, f.OwnerSlashRepo()),
-				Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/pulls/%d/round/%d/", rp.config.Core.AppviewHost, f.OwnerSlashRepo(), pull.PullId, round.RoundNumber)},
-				Created:     round.Created,
-				Author: &feeds.Author{
-					Name: fmt.Sprintf("@%s", owner.Handle),
-				},
-			}
-			feed.Items = append(feed.Items, item)
-		}
-	}
-
-	for _, issue := range issues {
-		owner, err := rp.idResolver.ResolveIdent(ctx, issue.OwnerDid)
-		if err != nil {
-			return nil, err
-		}
-		var state string
-		if issue.Open {
-			state = "opened"
-		} else {
-			state = "closed"
-		}
-		item := &feeds.Item{
-			Title:       fmt.Sprintf("[Issue #%d] %s", issue.IssueId, issue.Title),
-			Description: fmt.Sprintf("@%s %s issue #%d in %s", owner.Handle, state, issue.IssueId, f.OwnerSlashRepo()),
-			Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/issues/%d", rp.config.Core.AppviewHost, f.OwnerSlashRepo(), issue.IssueId)},
-			Created:     issue.Created,
-			Author: &feeds.Author{
-				Name: fmt.Sprintf("@%s", owner.Handle),
-			},
-		}
-		feed.Items = append(feed.Items, item)
-	}
-
-	slices.SortFunc(feed.Items, func(a *feeds.Item, b *feeds.Item) int {
-		return int(b.Created.UnixMilli()) - int(a.Created.UnixMilli())
-	})
-	if len(feed.Items) > 0 {
-		feed.Updated = feed.Items[0].Created
-	}
-
-	return feed, nil
-}
-
-func (rp *Repo) RepoAtomFeed(w http.ResponseWriter, r *http.Request) {
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		log.Println("failed to fully resolve repo:", err)
-		return
-	}
-
-	feed, err := rp.getRepoFeed(r.Context(), f)
-	if err != nil {
-		log.Println("failed to get repo feed:", err)
-		rp.pages.Error500(w)
-		return
-	}
-
-	atom, err := feed.ToAtom()
-	if err != nil {
-		rp.pages.Error500(w)
-		return
-	}
-
-	w.Header().Set("content-type", "application/atom+xml")
-	w.Write([]byte(atom))
 }
 
 func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
