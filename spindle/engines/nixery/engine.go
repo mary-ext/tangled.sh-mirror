@@ -195,11 +195,12 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId, wf *m
 	io.Copy(os.Stdout, reader)
 
 	resp, err := e.docker.ContainerCreate(ctx, &container.Config{
-		Image:     addl.image,
-		Cmd:       []string{"cat"},
-		OpenStdin: true, // so cat stays alive :3
-		Tty:       false,
-		Hostname:  "spindle",
+		Image:      addl.image,
+		Cmd:        []string{"cat"},
+		OpenStdin:  true, // so cat stays alive :3
+		Tty:        false,
+		Hostname:   "spindle",
+		WorkingDir: workspaceDir,
 		// TODO(winter): investigate whether environment variables passed here
 		// get propagated to ContainerExec processes
 	}, &container.HostConfig{
