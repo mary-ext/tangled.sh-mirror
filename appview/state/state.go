@@ -193,13 +193,6 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
 	}
 
-	s.pages.Timeline(w, pages.TimelineParams{
-		LoggedInUser: user,
-		Timeline:     timeline,
-	})
-}
-
-func (s *State) TopStarredReposLastWeek(w http.ResponseWriter, r *http.Request) {
 	repos, err := db.GetTopStarredReposLastWeek(s.db)
 	if err != nil {
 		log.Println(err)
@@ -207,8 +200,10 @@ func (s *State) TopStarredReposLastWeek(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	s.pages.TopStarredReposLastWeek(w, pages.TopStarredReposLastWeekParams{
-		Repos: repos,
+	s.pages.Timeline(w, pages.TimelineParams{
+		LoggedInUser: user,
+		Timeline:     timeline,
+		Repos:        repos,
 	})
 }
 

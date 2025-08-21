@@ -7,41 +7,14 @@
     <meta property="og:description" content="tightly-knit social coding" />
 {{ end }}
 
-
-
-
 {{ define "content" }}
-    {{ with .LoggedInUser }}
-        {{ block "trending" . }}{{ end }}
-        {{ block "timeline" $ }}{{ end }}
+    {{ if .LoggedInUser }}
     {{ else }}
         {{ block "hero" $ }}{{ end }}
-        {{ block "trending" . }}{{ end }}
-        {{ block "timeline" $ }}{{ end }}
     {{ end }}
-{{ end }}
 
-{{ define "trending" }}
-
-    <div
-        hx-get="/timeline/trending"
-        hx-trigger="load"
-        hx-indicator="#starred-loading"
-    >
-        <!-- Loading spinner -->
-        <div id="starred-loading" class="htmx-indicator">
-            <div class="p-6">
-                <h3 class="font-bold text-xl  text-gray-900 dark:text-white flex items-center gap-2 mb-3">
-                    Trending
-                    {{ i "trending-up" "size-4 flex-shrink-0" }}
-                </h3>
-            </div>
-            <div class="flex items-center justify-center py-8">
-                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
-                <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading...</span>
-            </div>
-        </div>
-    </div>
+    {{ block "trending" $ }}{{ end }}
+    {{ block "timeline" $ }}{{ end }}
 {{ end }}
 
 {{ define "hero" }}
@@ -67,9 +40,33 @@
     </div>
 {{ end }}
 
+{{ define "trending" }}
+  <div class="w-full md:mx-0 py-4">
+      <div class="px-6 pb-4">
+        <h3 class="text-xl font-bold dark:text-white flex items-center gap-2">
+            Trending
+            {{ i "trending-up" "size-4 flex-shrink-0" }}
+        </h3>
+      </div>
+      <div class="flex gap-4 overflow-x-auto scrollbar-hide items-stretch">
+          {{ range $index, $repo := .Repos }}
+            <div class="flex-none h-full border border-gray-200 dark:border-gray-700 rounded-sm w-96">
+              {{ template "user/fragments/repoCard" (list $ $repo true) }}
+            </div>
+          {{ else }}
+              <div class="py-8 px-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+                  <div class="text-sm text-gray-500 dark:text-gray-400 text-center">
+                      No trending repositories this week
+                  </div>
+              </div>
+          {{ end }}
+      </div>
+  </div>
+{{ end }}
+
 {{ define "timeline" }}
-    <div>
-        <div class="p-6">
+    <div class="py-4">
+        <div class="px-6 pb-4">
             <p class="text-xl font-bold dark:text-white">Timeline</p>
         </div>
 

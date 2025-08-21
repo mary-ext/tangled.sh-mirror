@@ -299,19 +299,11 @@ func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
 type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []db.TimelineEvent
+	Repos        []db.Repo
 }
 
 func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
 	return p.execute("timeline/timeline", w, params)
-}
-
-type TopStarredReposLastWeekParams struct {
-	LoggedInUser *oauth.User
-	Repos        []db.Repo
-}
-
-func (p *Pages) TopStarredReposLastWeek(w io.Writer, params TopStarredReposLastWeekParams) error {
-	return p.executePlain("timeline/fragments/topStarredRepos", w, params)
 }
 
 type SettingsParams struct {

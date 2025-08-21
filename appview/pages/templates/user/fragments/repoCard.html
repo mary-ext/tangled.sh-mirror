@@ -4,7 +4,7 @@
   {{ $fullName := index . 2 }}
 
   {{ with $repo }}
-    <div class="py-4 px-6 gap-2 flex flex-col drop-shadow-sm rounded bg-white dark:bg-gray-800">
+    <div class="py-4 px-6 gap-1 flex flex-col drop-shadow-sm rounded bg-white dark:bg-gray-800 min-h-32">
       <div class="font-medium dark:text-white flex items-center">
         {{ if .Source }}
           {{ i "git-fork" "w-4 h-4 mr-1.5 shrink-0" }}
@@ -20,7 +20,7 @@
         {{- end -}}
       </div>
       {{ with .Description }}
-        <div class="text-gray-600 dark:text-gray-300 text-sm">
+        <div class="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">
           {{ . | description }}
         </div>
       {{ end }}
