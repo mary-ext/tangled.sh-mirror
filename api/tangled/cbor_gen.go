@@ -5726,29 +5726,6 @@ func (t *RepoIssue) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Owner (string) (string)
-	if len("owner") > 1000000 {
-		return xerrors.Errorf("Value in field \"owner\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("owner"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("owner")); err != nil {
-		return err
-	}
-
-	if len(t.Owner) > 1000000 {
-		return xerrors.Errorf("Value in field t.Owner was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Owner))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Owner)); err != nil {
-		return err
-	}
-
 	// t.Title (string) (string)
 	if len("title") > 1000000 {
 		return xerrors.Errorf("Value in field \"title\" was too long")
@@ -5880,17 +5857,6 @@ func (t *RepoIssue) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.LexiconTypeID = string(sval)
-			}
-			// t.Owner (string) (string)
-		case "owner":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Owner = string(sval)
 			}
 			// t.Title (string) (string)
 		case "title":
