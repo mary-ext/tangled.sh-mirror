@@ -3,23 +3,24 @@ package state
 import (
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
+	"tangled.sh/tangled.sh/core/appview/db"
 )
 
 func (s *State) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("resolvedId").(identity.Identity)
-	knot := r.Context().Value("knot").(string)
-	repo := chi.URLParam(r, "repo")
+	repo := r.Context().Value("repo").(*db.Repo)
 
 	scheme := "https"
 	if s.config.Core.Dev {
 		scheme = "http"
 	}
 
-	targetURL := fmt.Sprintf("%s://%s/%s/%s/info/refs?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
+	targetURL := fmt.Sprintf("%s://%s/%s/%s/info/refs?%s", scheme, repo.Knot, user.DID, repo.Name, r.URL.RawQuery)
 	s.proxyRequest(w, r, targetURL)
 
 }
@@ -30,15 +31,14 @@ func (s *State) UploadPack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to resolve user", http.StatusInternalServerError)
 		return
 	}
-	knot := r.Context().Value("knot").(string)
-	repo := chi.URLParam(r, "repo")
+	repo := r.Context().Value("repo").(*db.Repo)
 
 	scheme := "https"
 	if s.config.Core.Dev {
 		scheme = "http"
 	}
 
-	targetURL := fmt.Sprintf("%s://%s/%s/%s/git-upload-pack?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
+	targetURL := fmt.Sprintf("%s://%s/%s/%s/git-upload-pack?%s", scheme, repo.Knot, user.DID, repo.Name, r.URL.RawQuery)
 	s.proxyRequest(w, r, targetURL)
 }
 
@@ -48,15 +48,14 @@ func (s *State) ReceivePack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to resolve user", http.StatusInternalServerError)
 		return
 	}
-	knot := r.Context().Value("knot").(string)
-	repo := chi.URLParam(r, "repo")
+	repo := r.Context().Value("repo").(*db.Repo)
 
 	scheme := "https"
 	if s.config.Core.Dev {
 		scheme = "http"
 	}
 
-	targetURL := fmt.Sprintf("%s://%s/%s/%s/git-receive-pack?%s", scheme, knot, user.DID, repo, r.URL.RawQuery)
+	targetURL := fmt.Sprintf("%s://%s/%s/%s/git-receive-pack?%s", scheme, repo.Knot, user.DID, repo.Name, r.URL.RawQuery)
 	s.proxyRequest(w, r, targetURL)
 }
 
@@ -85,9 +84,7 @@ func (s *State) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL s
 	defer resp.Body.Close()
 
 	// Copy response headers
-	for k, v := range resp.Header {
-		w.Header()[k] = v
-	}
+	maps.Copy(w.Header(), resp.Header)
 
 	// Set response status code
 	w.WriteHeader(resp.StatusCode)
