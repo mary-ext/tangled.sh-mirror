@@ -8,6 +8,7 @@
     <div class="col-span-1 md:col-span-3 flex flex-col gap-6 p-2">
       {{ template "branchSettings" . }}
       {{ template "deleteRepo" . }}
+      <div id="operation-error" class="text-red-500 dark:text-red-400"></div>
     </div>
   </section>
 {{ end }}
@@ -22,7 +23,7 @@
         unless you specify a different branch.
       </p>
     </div>
-    <form hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default" class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
+    <form hx-put="/{{ $.RepoInfo.FullName }}/settings/branches/default" hx-swap="none" class="col-span-1 md:col-span-1 md:justify-self-end group flex gap-2 items-stretch">
       <select id="branch" name="branch" required class="p-1 max-w-64 border border-gray-200 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
         <option value="" disabled selected >
           Choose a default branch
@@ -54,6 +55,7 @@
       <button 
         class="btn group text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex gap-2 items-center"  
         type="button"
+        hx-swap="none"
         hx-delete="/{{ $.RepoInfo.FullName }}/settings/delete"
         hx-confirm="Are you sure you want to delete {{ $.RepoInfo.FullName }}?">
           {{ i "trash-2" "size-4" }}

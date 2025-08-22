@@ -19,6 +19,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/patchutil"
@@ -28,6 +29,7 @@ import (
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
@@ -218,17 +220,14 @@ func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *
 		return types.MergeCheckResponse{}
 	}
 
-	client, err := s.oauth.ServiceClient(
-		r,
-		oauth.WithService(f.Knot),
-		oauth.WithLxm(tangled.RepoMergeCheckNSID),
-		oauth.WithDev(s.config.Core.Dev),
-	)
-	if err != nil {
-		log.Printf("failed to connect to knot server: %v", err)
-		return types.MergeCheckResponse{
-			Error: "failed to check merge status: could not connect to knot server",
-		}
+	scheme := "https"
+	if s.config.Core.Dev {
+		scheme = "http"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+
+	xrpcc := indigoxrpc.Client{
+		Host: host,
 	}
 
 	patch := pull.LatestPatch()
@@ -893,19 +892,8 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 			Repo:      fork.RepoAt().String(),
 		},
 	)
-	if err != nil {
-		xe, parseErr := xrpcerr.Unmarshal(err.Error())
-		if parseErr != nil {
-			log.Printf("failed to create hidden ref: %v", err)
-			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-		} else {
-			log.Printf("failed to create hidden ref: %s", xe.Error())
-			if xe.Tag == "AccessControl" {
-				s.pages.Notice(w, "pull", "Branch based pull requests are not supported on this knot.")
-			} else {
-				s.pages.Notice(w, "pull", fmt.Sprintf("Failed to create pull request: %s", xe.Message))
-			}
-		}
+	if err := xrpcclient.HandleXrpcErr(err); err != nil {
+		s.pages.Notice(w, "pull", err.Error())
 		return
 	}
 
@@ -1501,13 +1489,13 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 			Repo:      forkRepo.RepoAt().String(),
 		},
 	)
-	if err != nil || !resp.Success {
-		if err != nil {
-			log.Printf("failed to update tracking branch: %s", err)
-		} else {
-			log.Printf("failed to update tracking branch: success=false")
-		}
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+	if err := xrpcclient.HandleXrpcErr(err); err != nil {
+		s.pages.Notice(w, "resubmit-error", err.Error())
+		return
+	}
+	if !resp.Success {
+		log.Println("Failed to update tracking ref.", "err", resp.Error)
+		s.pages.Notice(w, "resubmit-error", "Failed to update tracking ref.")
 		return
 	}
 
@@ -1932,18 +1920,6 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	patch := pullsToMerge.CombinedPatch()
-
-	client, err := s.oauth.ServiceClient(
-		r,
-		oauth.WithService(f.Knot),
-		oauth.WithLxm(tangled.RepoMergeNSID),
-		oauth.WithDev(s.config.Core.Dev),
-	)
-	if err != nil {
-		log.Printf("failed to connect to knot server: %v", err)
-		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
-		return
-	}
 
 	ident, err := s.idResolver.ResolveIdent(r.Context(), pull.OwnerDid)
 	if err != nil {
