@@ -73,13 +73,13 @@ func (h *Handle) processKnotMember(ctx context.Context, event *models.Event) err
 	}
 	l.Info("added member from firehose", "member", record.Subject)
 
-	if err := h.db.AddDid(did); err != nil {
+	if err := h.db.AddDid(record.Subject); err != nil {
 		l.Error("failed to add did", "error", err)
 		return fmt.Errorf("failed to add did: %w", err)
 	}
-	h.jc.AddDid(did)
+	h.jc.AddDid(record.Subject)
 
-	if err := h.fetchAndAddKeys(ctx, did); err != nil {
+	if err := h.fetchAndAddKeys(ctx, record.Subject); err != nil {
 		return fmt.Errorf("failed to fetch and add keys: %w", err)
 	}
 

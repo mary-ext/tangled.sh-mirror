@@ -338,6 +338,14 @@ func (p *Pages) UserEmailsSettings(w io.Writer, params UserEmailsSettingsParams)
 	return p.execute("user/settings/emails", w, params)
 }
 
+type KnotBannerParams struct {
+	Registrations []db.Registration
+}
+
+func (p *Pages) KnotBanner(w io.Writer, params KnotBannerParams) error {
+	return p.executePlain("knots/fragments/banner", w, params)
+}
+
 type KnotsParams struct {
 	LoggedInUser  *oauth.User
 	Registrations []db.Registration
@@ -360,7 +368,7 @@ func (p *Pages) Knot(w io.Writer, params KnotParams) error {
 }
 
 type KnotListingParams struct {
-	db.Registration
+	*db.Registration
 }
 
 func (p *Pages) KnotListing(w io.Writer, params KnotListingParams) error {

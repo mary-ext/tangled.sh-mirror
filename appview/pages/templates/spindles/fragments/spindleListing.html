@@ -9,7 +9,9 @@
   {{ if .Verified }}
   <a href="/spindles/{{ .Instance }}" class="hover:no-underline flex items-center gap-2 min-w-0 max-w-[60%]">
     {{ i "hard-drive" "w-4 h-4" }}
-    {{ .Instance }}
+    <span class="hover:underline">
+      {{ .Instance }}
+    </span>
     <span class="text-gray-500">
       {{ template "repo/fragments/shortTimeAgo" .Created }}
     </span>

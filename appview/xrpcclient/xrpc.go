@@ -3,10 +3,14 @@ package xrpcclient
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
+	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	oauth "tangled.sh/icyphox.sh/atproto-oauth"
 )
 
@@ -101,4 +105,25 @@ func (c *Client) ServerGetServiceAuth(ctx context.Context, aud string, exp int64
 	}
 
 	return &out, nil
+}
+
+// produces a more manageable error
+func HandleXrpcErr(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var xrpcerr *indigoxrpc.Error
+	if ok := errors.As(err, &xrpcerr); !ok {
+		return fmt.Errorf("Recieved invalid XRPC error response.")
+	}
+
+	switch xrpcerr.StatusCode {
+	case http.StatusNotFound:
+		return fmt.Errorf("XRPC is unsupported on this knot, consider upgrading your knot.")
+	case http.StatusUnauthorized:
+		return fmt.Errorf("Unauthorized XRPC request.")
+	default:
+		return fmt.Errorf("Failed to perform operation. Try again later.")
+	}
 }

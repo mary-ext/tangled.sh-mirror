@@ -3,6 +3,7 @@ package knots
 import (
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -49,12 +50,17 @@ func (k *Knots) Router() http.Handler {
 	r.With(middleware.AuthMiddleware(k.OAuth)).Post("/{domain}/add", k.addMember)
 	r.With(middleware.AuthMiddleware(k.OAuth)).Post("/{domain}/remove", k.removeMember)
 
+	r.With(middleware.AuthMiddleware(k.OAuth)).Get("/upgradeBanner", k.banner)
+
 	return r
 }
 
 func (k *Knots) knots(w http.ResponseWriter, r *http.Request) {
 	user := k.OAuth.GetUser(r)
-	registrations, err := db.RegistrationsByDid(k.Db, user.Did)
+	registrations, err := db.GetRegistrations(
+		k.Db,
+		db.FilterEq("did", user.Did),
+	)
 	if err != nil {
 		k.Logger.Error("failed to fetch knot registrations", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -89,19 +95,8 @@ func (k *Knots) dashboard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
-
-	// Find the specific registration for this domain
-	var registration *db.Registration
-	for _, reg := range registrations {
-		if reg.Domain == domain && reg.ByDid == user.Did && reg.Registered != nil {
-			registration = &reg
-			break
-		}
-	}
-
-	if registration == nil {
-		l.Error("registration not found or not verified")
-		http.Error(w, "Not found", http.StatusNotFound)
+	if len(registrations) != 1 {
+		l.Error("got incorret number of registrations", "got", len(registrations), "expected", 1)
 		return
 	}
 	registration := registrations[0]
@@ -518,10 +513,14 @@ func (k *Knots) addMember(w http.ResponseWriter, r *http.Request) {
 		db.FilterIsNot("registered", "null"),
 	)
 	if err != nil {
-		l.Error("failed to retrieve domain registration", "err", err)
-		http.Error(w, "Not found", http.StatusNotFound)
+		l.Error("failed to get registration", "err", err)
 		return
 	}
+	if len(registrations) != 1 {
+		l.Error("got incorret number of registrations", "got", len(registrations), "expected", 1)
+		return
+	}
+	registration := registrations[0]
 
 	noticeId := fmt.Sprintf("add-member-error-%d", registration.Id)
 	defaultErr := "Failed to add member. Try again later."
@@ -678,4 +677,29 @@ func (k *Knots) removeMember(w http.ResponseWriter, r *http.Request) {
 
 	// ok
 	k.Pages.HxRefresh(w)
+}
+
+func (k *Knots) banner(w http.ResponseWriter, r *http.Request) {
+	user := k.OAuth.GetUser(r)
+	l := k.Logger.With("handler", "removeMember")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
+	registrations, err := db.GetRegistrations(
+		k.Db,
+		db.FilterEq("did", user.Did),
+		db.FilterEq("read_only", 1),
+	)
+	if err != nil {
+		l.Error("non-fatal: failed to get registrations")
+		return
+	}
+
+	if registrations == nil {
+		return
+	}
+
+	k.Pages.KnotBanner(w, pages.KnotBannerParams{
+		Registrations: registrations,
+	})
 }

@@ -24,14 +24,17 @@ import (
 )
 
 func Knotstream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client) (*ec.Consumer, error) {
-	knots, err := db.GetCompletedRegistrations(d)
+	knots, err := db.GetRegistrations(
+		d,
+		db.FilterIsNot("registered", "null"),
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	srcs := make(map[ec.Source]struct{})
 	for _, k := range knots {
-		s := ec.NewKnotSource(k)
+		s := ec.NewKnotSource(k.Domain)
 		srcs[s] = struct{}{}
 	}
 
