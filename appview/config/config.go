@@ -17,7 +17,7 @@ type CoreConfig struct {
 	Dev                     bool   `env:"DEV, default=false"`
 	DisallowedNicknamesFile string `env:"DISALLOWED_NICKNAMES_FILE"`
 
-	// temporarily, to add users to default spindle
+	// temporarily, to add users to default knot and spindle
 	AppPassword string `env:"APP_PASSWORD"`
 }
 

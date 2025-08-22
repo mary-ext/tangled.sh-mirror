@@ -255,8 +255,12 @@ func (h *Handle) processCollaborator(ctx context.Context, event *models.Event) e
 	didSlashRepo, _ := securejoin.SecureJoin(owner.DID.String(), repo.Name)
 
 	// check perms for this user
-	if ok, err := h.e.IsCollaboratorInviteAllowed(did, rbac.ThisServer, didSlashRepo); !ok || err != nil {
-		return fmt.Errorf("insufficient permissions: %w", err)
+	ok, err := h.e.IsCollaboratorInviteAllowed(did, rbac.ThisServer, didSlashRepo)
+	if err != nil {
+		return fmt.Errorf("failed to check permissions: %w", err)
+	}
+	if !ok {
+		return fmt.Errorf("insufficient permissions: %s, %s, %s", did, "IsCollaboratorInviteAllowed", didSlashRepo)
 	}
 
 	if err := h.db.AddDid(subjectId.DID.String()); err != nil {
@@ -298,7 +302,7 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 		return fmt.Errorf("error reading response body: %w", err)
 	}
 
-	for _, key := range strings.Split(string(plaintext), "\n") {
+	for key := range strings.SplitSeq(string(plaintext), "\n") {
 		if key == "" {
 			continue
 		}

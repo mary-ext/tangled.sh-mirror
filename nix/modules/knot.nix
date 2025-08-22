@@ -99,12 +99,6 @@ in
             description = "DID of owner (required)";
           };
 
-          secretFile = mkOption {
-            type = lib.types.path;
-            example = "KNOT_SERVER_SECRET=<hash>";
-            description = "File containing secret key provided by appview (required)";
-          };
-
           dbPath = mkOption {
             type = types.path;
             default = "${cfg.stateDir}/knotserver.db";
@@ -207,7 +201,6 @@ in
             "KNOT_SERVER_HOSTNAME=${cfg.server.hostname}"
             "KNOT_SERVER_OWNER=${cfg.server.owner}"
           ];
-          EnvironmentFile = cfg.server.secretFile;
           ExecStart = "${cfg.package}/bin/knot server";
           Restart = "always";
         };

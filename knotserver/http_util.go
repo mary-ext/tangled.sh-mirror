@@ -20,13 +20,3 @@ func writeError(w http.ResponseWriter, msg string, status int) {
 func notFound(w http.ResponseWriter) {
 	writeError(w, "not found", http.StatusNotFound)
 }
-
-func writeMsg(w http.ResponseWriter, msg string) {
-	writeJSON(w, map[string]string{"msg": msg})
-}
-
-func writeConflict(w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusConflict)
-	json.NewEncoder(w).Encode(data)
-}

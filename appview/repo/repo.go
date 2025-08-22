@@ -863,45 +863,33 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		fail("Failed to write record to PDS.", err)
 		return
 	}
-	l = l.With("at-uri", resp.Uri)
+
+	aturi := resp.Uri
+	l = l.With("at-uri", aturi)
 	l.Info("wrote record to PDS")
-
-	l.Info("adding to knot")
-	secret, err := db.GetRegistrationKey(rp.db, f.Knot)
-	if err != nil {
-		fail("Failed to add to knot.", err)
-		return
-	}
-
-	ksClient, err := knotclient.NewSignedClient(f.Knot, secret, rp.config.Core.Dev)
-	if err != nil {
-		fail("Failed to add to knot.", err)
-		return
-	}
-
-	ksResp, err := ksClient.AddCollaborator(f.OwnerDid(), f.Name, collaboratorIdent.DID.String())
-	if err != nil {
-		fail("Knot was unreachable.", err)
-		return
-	}
-
-	if ksResp.StatusCode != http.StatusNoContent {
-		fail(fmt.Sprintf("Knot returned unexpected status code: %d.", ksResp.StatusCode), nil)
-		return
-	}
 
 	tx, err := rp.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		fail("Failed to add collaborator.", err)
 		return
 	}
-	defer func() {
-		tx.Rollback()
-		err = rp.enforcer.E.LoadPolicy()
-		if err != nil {
-			fail("Failed to add collaborator.", err)
+
+	rollback := func() {
+		err1 := tx.Rollback()
+		err2 := rp.enforcer.E.LoadPolicy()
+		err3 := rollbackRecord(context.Background(), aturi, client)
+
+		// ignore txn complete errors, this is okay
+		if errors.Is(err1, sql.ErrTxDone) {
+			err1 = nil
 		}
-	}()
+
+		if errs := errors.Join(err1, err2, err3); errs != nil {
+			l.Error("failed to rollback changes", "errs", errs)
+			return
+		}
+	}
+	defer rollback()
 
 	err = rp.enforcer.AddCollaborator(collaboratorIdent.DID.String(), f.Knot, f.DidSlashRepo())
 	if err != nil {
@@ -932,6 +920,9 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		fail("Failed to update collaborator permissions.", err)
 		return
 	}
+
+	// clear aturi to when everything is successful
+	aturi = ""
 
 	rp.pages.HxRefresh(w)
 }
@@ -1207,66 +1198,6 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 	case "pipelines":
 		rp.pipelineSettings(w, r)
 	}
-
-	// user := rp.oauth.GetUser(r)
-	// repoCollaborators, err := f.Collaborators(r.Context())
-	// if err != nil {
-	// 	log.Println("failed to get collaborators", err)
-	// }
-
-	// isCollaboratorInviteAllowed := false
-	// if user != nil {
-	// 	ok, err := rp.enforcer.IsCollaboratorInviteAllowed(user.Did, f.Knot, f.DidSlashRepo())
-	// 	if err == nil && ok {
-	// 		isCollaboratorInviteAllowed = true
-	// 	}
-	// }
-
-	// us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
-	// if err != nil {
-	// 	log.Println("failed to create unsigned client", err)
-	// 	return
-	// }
-
-	// result, err := us.Branches(f.OwnerDid(), f.Name)
-	// if err != nil {
-	// 	log.Println("failed to reach knotserver", err)
-	// 	return
-	// }
-
-	// // all spindles that this user is a member of
-	// spindles, err := rp.enforcer.GetSpindlesForUser(user.Did)
-	// if err != nil {
-	// 	log.Println("failed to fetch spindles", err)
-	// 	return
-	// }
-
-	// var secrets []*tangled.RepoListSecrets_Secret
-	// if f.Spindle != "" {
-	// 	if spindleClient, err := rp.oauth.ServiceClient(
-	// 		r,
-	// 		oauth.WithService(f.Spindle),
-	// 		oauth.WithLxm(tangled.RepoListSecretsNSID),
-	// 		oauth.WithDev(rp.config.Core.Dev),
-	// 	); err != nil {
-	// 		log.Println("failed to create spindle client", err)
-	// 	} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt().String()); err != nil {
-	// 		log.Println("failed to fetch secrets", err)
-	// 	} else {
-	// 		secrets = resp.Secrets
-	// 	}
-	// }
-
-	// rp.pages.RepoSettings(w, pages.RepoSettingsParams{
-	// 	LoggedInUser:                user,
-	// 	RepoInfo:                    f.RepoInfo(user),
-	// 	Collaborators:               repoCollaborators,
-	// 	IsCollaboratorInviteAllowed: isCollaboratorInviteAllowed,
-	// 	Branches:                    result.Branches,
-	// 	Spindles:                    spindles,
-	// 	CurrentSpindle:              f.Spindle,
-	// 	Secrets:                     secrets,
-	// })
 }
 
 func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {

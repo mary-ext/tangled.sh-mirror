@@ -47,7 +47,6 @@ func (h *InternalHandle) PushAllowed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-	return
 }
 
 func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +62,6 @@ func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
 		data = append(data, j)
 	}
 	writeJSON(w, data)
-	return
 }
 
 type PushOptions struct {

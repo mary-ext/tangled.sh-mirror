@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -25,7 +26,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
 )
@@ -353,13 +353,16 @@ func pubKeyFromJwk(jwks string) (jwk.Key, error) {
 	return pubKey, nil
 }
 
+var (
+	tangledHandle  = "tangled.sh"
+	tangledDid     = "did:plc:wshs7t2adsemcrrd4snkeqli"
+	defaultSpindle = "spindle.tangled.sh"
+	defaultKnot    = "knot1.tangled.sh"
+)
+
 func (o *OAuthHandler) addToDefaultSpindle(did string) {
 	// use the tangled.sh app password to get an accessJwt
 	// and create an sh.tangled.spindle.member record with that
-
-	defaultSpindle := "spindle.tangled.sh"
-	appPassword := o.config.Core.AppPassword
-
 	spindleMembers, err := db.GetSpindleMembers(
 		o.db,
 		db.FilterEq("instance", "spindle.tangled.sh"),
@@ -375,65 +378,10 @@ func (o *OAuthHandler) addToDefaultSpindle(did string) {
 		return
 	}
 
-	// TODO: hardcoded tangled handle and did for now
-	tangledHandle := "tangled.sh"
-	tangledDid := "did:plc:wshs7t2adsemcrrd4snkeqli"
-
-	if appPassword == "" {
-		log.Println("no app password configured, skipping spindle member addition")
-		return
-	}
-
 	log.Printf("adding %s to default spindle", did)
-
-	resolved, err := o.idResolver.ResolveIdent(context.Background(), tangledDid)
+	session, err := o.createAppPasswordSession()
 	if err != nil {
-		log.Printf("failed to resolve tangled.sh DID %s: %v", tangledDid, err)
-		return
-	}
-
-	pdsEndpoint := resolved.PDSEndpoint()
-	if pdsEndpoint == "" {
-		log.Printf("no PDS endpoint found for tangled.sh DID %s", tangledDid)
-		return
-	}
-
-	sessionPayload := map[string]string{
-		"identifier": tangledHandle,
-		"password":   appPassword,
-	}
-	sessionBytes, err := json.Marshal(sessionPayload)
-	if err != nil {
-		log.Printf("failed to marshal session payload: %v", err)
-		return
-	}
-
-	sessionURL := pdsEndpoint + "/xrpc/com.atproto.server.createSession"
-	sessionReq, err := http.NewRequestWithContext(context.Background(), "POST", sessionURL, bytes.NewBuffer(sessionBytes))
-	if err != nil {
-		log.Printf("failed to create session request: %v", err)
-		return
-	}
-	sessionReq.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	sessionResp, err := client.Do(sessionReq)
-	if err != nil {
-		log.Printf("failed to create session: %v", err)
-		return
-	}
-	defer sessionResp.Body.Close()
-
-	if sessionResp.StatusCode != http.StatusOK {
-		log.Printf("failed to create session: HTTP %d", sessionResp.StatusCode)
-		return
-	}
-
-	var session struct {
-		AccessJwt string `json:"accessJwt"`
-	}
-	if err := json.NewDecoder(sessionResp.Body).Decode(&session); err != nil {
-		log.Printf("failed to decode session response: %v", err)
+		log.Printf("failed to create session: %s", err)
 		return
 	}
 
@@ -444,44 +392,8 @@ func (o *OAuthHandler) addToDefaultSpindle(did string) {
 		CreatedAt:     time.Now().Format(time.RFC3339),
 	}
 
-	recordBytes, err := json.Marshal(record)
-	if err != nil {
-		log.Printf("failed to marshal spindle member record: %v", err)
-		return
-	}
-
-	payload := map[string]interface{}{
-		"repo":       tangledDid,
-		"collection": tangled.SpindleMemberNSID,
-		"rkey":       tid.TID(),
-		"record":     json.RawMessage(recordBytes),
-	}
-
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("failed to marshal request payload: %v", err)
-		return
-	}
-
-	url := pdsEndpoint + "/xrpc/com.atproto.repo.putRecord"
-	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		log.Printf("failed to create HTTP request: %v", err)
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+session.AccessJwt)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("failed to add user to default spindle: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("failed to add user to default spindle: HTTP %d", resp.StatusCode)
+	if err := session.putRecord(record); err != nil {
+		log.Printf("failed to add member to default knot: %s", err)
 		return
 	}
 
@@ -489,34 +401,138 @@ func (o *OAuthHandler) addToDefaultSpindle(did string) {
 }
 
 func (o *OAuthHandler) addToDefaultKnot(did string) {
-	defaultKnot := "knot1.tangled.sh"
+	// use the tangled.sh app password to get an accessJwt
+	// and create an sh.tangled.spindle.member record with that
 
-	log.Printf("adding %s to default knot", did)
-	err := o.enforcer.AddKnotMember(defaultKnot, did)
+	allKnots, err := o.enforcer.GetKnotsForUser(did)
 	if err != nil {
-		log.Println("failed to add user to knot1.tangled.sh: ", err)
-		return
-	}
-	err = o.enforcer.E.SavePolicy()
-	if err != nil {
-		log.Println("failed to add user to knot1.tangled.sh: ", err)
+		log.Printf("failed to get knot members for did %s: %v", did, err)
 		return
 	}
 
-	secret, err := db.GetRegistrationKey(o.db, defaultKnot)
-	if err != nil {
-		log.Println("failed to get registration key for knot1.tangled.sh")
-		return
-	}
-	signedClient, err := knotclient.NewSignedClient(defaultKnot, secret, o.config.Core.Dev)
-	resp, err := signedClient.AddMember(did)
-	if err != nil {
-		log.Println("failed to add user to knot1.tangled.sh: ", err)
+	if slices.Contains(allKnots, defaultKnot) {
+		log.Printf("did %s is already a member of the default knot", did)
 		return
 	}
 
-	if resp.StatusCode != http.StatusNoContent {
-		log.Println("failed to add user to knot1.tangled.sh: ", resp.StatusCode)
+	log.Printf("adding %s to default knot", did)
+	session, err := o.createAppPasswordSession()
+	if err != nil {
+		log.Printf("failed to create session: %s", err)
 		return
 	}
+
+	record := tangled.KnotMember{
+		LexiconTypeID: "sh.tangled.knot.member",
+		Subject:       did,
+		Domain:        defaultKnot,
+		CreatedAt:     time.Now().Format(time.RFC3339),
+	}
+
+	if err := session.putRecord(record); err != nil {
+		log.Printf("failed to add member to default knot: %s", err)
+		return
+	}
+
+	log.Printf("successfully added %s to default Knot", did)
+}
+
+// create a session using apppasswords
+type session struct {
+	AccessJwt   string `json:"accessJwt"`
+	PdsEndpoint string
+}
+
+func (o *OAuthHandler) createAppPasswordSession() (*session, error) {
+	appPassword := o.config.Core.AppPassword
+	if appPassword == "" {
+		return nil, fmt.Errorf("no app password configured, skipping member addition")
+	}
+
+	resolved, err := o.idResolver.ResolveIdent(context.Background(), tangledDid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve tangled.sh DID %s: %v", tangledDid, err)
+	}
+
+	pdsEndpoint := resolved.PDSEndpoint()
+	if pdsEndpoint == "" {
+		return nil, fmt.Errorf("no PDS endpoint found for tangled.sh DID %s", tangledDid)
+	}
+
+	sessionPayload := map[string]string{
+		"identifier": tangledHandle,
+		"password":   appPassword,
+	}
+	sessionBytes, err := json.Marshal(sessionPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal session payload: %v", err)
+	}
+
+	sessionURL := pdsEndpoint + "/xrpc/com.atproto.server.createSession"
+	sessionReq, err := http.NewRequestWithContext(context.Background(), "POST", sessionURL, bytes.NewBuffer(sessionBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session request: %v", err)
+	}
+	sessionReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	sessionResp, err := client.Do(sessionReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %v", err)
+	}
+	defer sessionResp.Body.Close()
+
+	if sessionResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to create session: HTTP %d", sessionResp.StatusCode)
+	}
+
+	var session session
+	if err := json.NewDecoder(sessionResp.Body).Decode(&session); err != nil {
+		return nil, fmt.Errorf("failed to decode session response: %v", err)
+	}
+
+	session.PdsEndpoint = pdsEndpoint
+
+	return &session, nil
+}
+
+func (s *session) putRecord(record any) error {
+	recordBytes, err := json.Marshal(record)
+	if err != nil {
+		return fmt.Errorf("failed to marshal knot member record: %w", err)
+	}
+
+	payload := map[string]any{
+		"repo":       tangledDid,
+		"collection": tangled.KnotMemberNSID,
+		"rkey":       tid.TID(),
+		"record":     json.RawMessage(recordBytes),
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request payload: %w", err)
+	}
+
+	url := s.PdsEndpoint + "/xrpc/com.atproto.repo.putRecord"
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+s.AccessJwt)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to add user to default Knot: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to add user to default Knot: HTTP %d", resp.StatusCode)
+	}
+
+	return nil
 }
