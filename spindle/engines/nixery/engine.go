@@ -305,12 +305,12 @@ func (e *Engine) RunStep(ctx context.Context, wid models.WorkflowId, w *models.W
 		envs.AddEnv(k, v)
 	}
 	envs.AddEnv("HOME", homeDir)
-	e.l.Debug("envs for step", "step", step.Name, "envs", envs.Slice())
 
 	mkExecResp, err := e.docker.ContainerExecCreate(ctx, addl.container, container.ExecOptions{
 		Cmd:          []string{"bash", "-c", step.command},
 		AttachStdout: true,
 		AttachStderr: true,
+		Env:          envs,
 	})
 	if err != nil {
 		return fmt.Errorf("creating exec: %w", err)
