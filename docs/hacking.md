@@ -55,16 +55,12 @@ An end-to-end knot setup requires setting up a machine with
 quite cumbersome. So the nix flake provides a
 `nixosConfiguration` to do so.
 
-To begin, head to `http://localhost:3000/knots` in the browser
-and create a knot with hostname `localhost:6000`. This will
-generate a knot secret. Set `$TANGLED_VM_KNOT_SECRET` to it,
-ideally in a `.envrc` with [direnv](https://direnv.net) so you
-don't lose it.
+To begin, grab your DID from http://localhost:3000/settings.
+Then, set `TANGLED_VM_KNOT_OWNER` and
+`TANGLED_VM_SPINDLE_OWNER` to your DID.
 
-You will also need to set the `$TANGLED_VM_SPINDLE_OWNER`
-variable to some value. If you don't want to [set up a
-spindle](#running-a-spindle), you can use any placeholder
-value.
+If you don't want to [set up a spindle](#running-a-spindle),
+you can use any placeholder value.
 
 You can now start a lightweight NixOS VM like so:
 
@@ -75,8 +71,16 @@ nix run --impure .#vm
 ```
 
 This starts a knot on port 6000, a spindle on port 6555
-with `ssh` exposed on port 2222. You can push repositories
-to this VM with this ssh config block on your main machine:
+with `ssh` exposed on port 2222.
+
+Once the services are running, head to
+http://localhost:3000/knots and hit verify (and similarly,
+http://localhost:3000/spindles to verify your spindle). It
+should verify the ownership of the services instantly if
+everything went smoothly.
+
+You can push repositories to this VM with this ssh config
+block on your main machine:
 
 ```bash
 Host nixos-shell
@@ -95,14 +99,10 @@ git push local-dev main
 
 ## running a spindle
 
-You will need to find out your DID by entering your login handle into
-<https://pdsls.dev/>. Set `$TANGLED_VM_SPINDLE_OWNER` to your DID.
-
-The above VM should already be running a spindle on `localhost:6555`.
-You can head to the spindle dashboard on `http://localhost:3000/spindles`,
-and register a spindle with hostname `localhost:6555`. It should instantly
-be verified. You can then configure each repository to use this spindle
-and run CI jobs.
+The above VM should already be running a spindle on
+`localhost:6555`. Head to http://localhost:3000/spindles and
+hit verify. You can then configure each repository to use
+this spindle and run CI jobs.
 
 Of interest when debugging spindles:
 
