@@ -201,6 +201,9 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId, wf *m
 		Tty:        false,
 		Hostname:   "spindle",
 		WorkingDir: workspaceDir,
+		Labels: map[string]string{
+			"sh.tangled.pipeline/workflow_id": wid.String(),
+		},
 		// TODO(winter): investigate whether environment variables passed here
 		// get propagated to ContainerExec processes
 	}, &container.HostConfig{
