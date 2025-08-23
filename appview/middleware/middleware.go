@@ -234,7 +234,7 @@ func (mw Middleware) ResolvePull() middlewareFunc {
 			f, err := mw.repoResolver.Resolve(r)
 			if err != nil {
 				log.Println("failed to fully resolve repo", err)
-				http.Error(w, "invalid repo url", http.StatusNotFound)
+				mw.pages.ErrorKnot404(w)
 				return
 			}
 
@@ -283,7 +283,7 @@ func (mw Middleware) GoImport() middlewareFunc {
 			f, err := mw.repoResolver.Resolve(r)
 			if err != nil {
 				log.Println("failed to fully resolve repo", err)
-				http.Error(w, "invalid repo url", http.StatusNotFound)
+				mw.pages.ErrorKnot404(w)
 				return
 			}
 

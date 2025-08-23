@@ -1272,6 +1272,10 @@ func (p *Pages) Error404(w io.Writer) error {
 	return p.execute("errors/404", w, nil)
 }
 
+func (p *Pages) ErrorKnot404(w io.Writer) error {
+	return p.execute("errors/knot404", w, nil)
+}
+
 func (p *Pages) Error503(w io.Writer) error {
 	return p.execute("errors/503", w, nil)
 }

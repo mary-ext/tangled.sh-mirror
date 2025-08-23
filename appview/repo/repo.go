@@ -125,12 +125,14 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	repolog, err := us.Log(f.OwnerDid(), f.Name, ref, page)
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
 
 	tagResult, err := us.Tags(f.OwnerDid(), f.Name)
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
@@ -146,6 +148,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	branchResult, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
@@ -312,6 +315,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/commit/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref))
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
@@ -382,6 +386,7 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tree/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, treePath))
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
@@ -451,6 +456,7 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 
 	result, err := us.Tags(f.OwnerDid(), f.Name)
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
@@ -508,6 +514,7 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 
 	result, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
@@ -537,6 +544,7 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, filePath))
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
@@ -1260,6 +1268,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 
 	result, err := us.Branches(f.OwnerDid(), f.Name)
 	if err != nil {
+		rp.pages.Error503(w)
 		log.Println("failed to reach knotserver", err)
 		return
 	}
