@@ -375,9 +375,22 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		protocol = "https"
 	}
+
+	// if the tree path has a trailing slash, let's strip it
+	// so we don't 404
+	treePath = strings.TrimSuffix(treePath, "/")
+
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tree/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, treePath))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	// uhhh so knotserver returns a 500 if the entry isn't found in
+	// the requested tree path, so let's stick to not-OK here.
+	// we can fix this once we build out the xrpc apis for these operations.
+	if resp.StatusCode != http.StatusOK {
+		rp.pages.Error404(w)
 		return
 	}
 
@@ -525,6 +538,11 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, filePath))
 	if err != nil {
 		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		rp.pages.Error404(w)
 		return
 	}
 
