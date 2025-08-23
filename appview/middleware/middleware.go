@@ -217,7 +217,7 @@ func (mw Middleware) ResolveRepo() middlewareFunc {
 			if err != nil {
 				// invalid did or handle
 				log.Println("failed to resolve repo")
-				mw.pages.Error404(w)
+				mw.pages.ErrorKnot404(w)
 				return
 			}
 

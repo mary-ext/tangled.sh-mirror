@@ -1,9 +1,32 @@
 {{ define "title" }}503 &middot; tangled{{ end }}
 
 {{ define "content" }}
-    <h1>503 &mdash; unable to reach knot</h1>
-    <p>
-        We were unable to reach the knot hosting this repository. Try again
-        later.
-    </p>
+<div class="flex flex-col items-center justify-center min-h-[60vh] text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg drop-shadow-sm p-8 max-w-lg mx-auto">
+        <div class="mb-6">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                {{ i "server-off" "w-8 h-8 text-blue-500 dark:text-blue-400" }}
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                503 &mdash; service unavailable
+            </h1>
+            <p class="text-gray-600 dark:text-gray-300">
+                We were unable to reach the knot hosting this repository. The service may be temporarily unavailable.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mt-6">
+                <button onclick="location.reload()" class="btn-create px-4 py-2 rounded flex items-center gap-2 no-underline hover:no-underline hover:text-white">
+                    {{ i "refresh-cw" "w-4 h-4" }}
+                    try again
+                </button>
+                <a href="/" class="btn px-4 py-2 rounded flex items-center gap-2 no-underline hover:no-underline text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    {{ i "arrow-left" "w-4 h-4" }}
+                    back to timeline
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {{ end }}
