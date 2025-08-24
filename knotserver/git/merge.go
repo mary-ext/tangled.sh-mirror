@@ -160,23 +160,17 @@ func (g *GitRepo) checkPatch(tmpDir, patchFile string) error {
 	return nil
 }
 
-func (g *GitRepo) applyPatch(tmpDir, patchFile string, opts *MergeOptions) error {
+func (g *GitRepo) applyPatch(tmpDir, patchFile string, opts MergeOptions) error {
 	var stderr bytes.Buffer
 	var cmd *exec.Cmd
 
+	exec.Command("git", "-C", tmpDir, "config", "advice.mergeConflict", "false").Run()
+
 	// if patch is a format-patch, apply using 'git am'
 	if opts.FormatPatch {
-		amCmd := exec.Command("git", "-C", tmpDir, "am", patchFile)
-		amCmd.Stderr = &stderr
-		if err := amCmd.Run(); err != nil {
-			return fmt.Errorf("patch application failed: %s", stderr.String())
-		}
-		return nil
-	}
-
-	// else, apply using 'git apply' and commit it manually
-	exec.Command("git", "-C", tmpDir, "config", "advice.mergeConflict", "false").Run()
-	if opts != nil {
+		cmd = exec.Command("git", "-C", tmpDir, "am", patchFile)
+	} else {
+		// else, apply using 'git apply' and commit it manually
 		applyCmd := exec.Command("git", "-C", tmpDir, "apply", patchFile)
 		applyCmd.Stderr = &stderr
 		if err := applyCmd.Run(); err != nil {
@@ -213,9 +207,6 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, opts *MergeOptions) error
 		}
 
 		cmd = exec.Command("git", commitArgs...)
-	} else {
-		// If no commit message specified, use git-am which automatically creates a commit
-		cmd = exec.Command("git", "-C", tmpDir, "am", patchFile)
 	}
 
 	cmd.Stderr = &stderr
@@ -255,11 +246,7 @@ func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 	return result
 }
 
-func (g *GitRepo) Merge(patchData []byte, targetBranch string) error {
-	return g.MergeWithOptions(patchData, targetBranch, nil)
-}
-
-func (g *GitRepo) MergeWithOptions(patchData []byte, targetBranch string, opts *MergeOptions) error {
+func (g *GitRepo) MergeWithOptions(patchData []byte, targetBranch string, opts MergeOptions) error {
 	patchFile, err := g.createTempFileWithPatch(patchData)
 	if err != nil {
 		return &ErrMerge{

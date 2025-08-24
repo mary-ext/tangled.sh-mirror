@@ -67,7 +67,7 @@ func (x *Xrpc) Merge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mo := &git.MergeOptions{}
+	mo := git.MergeOptions{}
 	if data.AuthorName != nil {
 		mo.AuthorName = *data.AuthorName
 	}
