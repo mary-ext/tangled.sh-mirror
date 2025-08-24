@@ -9,7 +9,7 @@
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "required": ["did", "name"],
+          "required": ["did", "name", "rkey"],
           "properties": {
             "did": {
               "type": "string",
@@ -19,6 +19,10 @@
             "name": {
               "type": "string",
               "description": "Name of the repository to delete"
+            },
+            "rkey": {
+              "type": "string",
+              "description": "Rkey of the repository record"
             }
           }
         }

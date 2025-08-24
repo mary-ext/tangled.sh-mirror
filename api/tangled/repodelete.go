@@ -20,6 +20,8 @@ type RepoDelete_Input struct {
 	Did string `json:"did" cborgen:"did"`
 	// name: Name of the repository to delete
 	Name string `json:"name" cborgen:"name"`
+	// rkey: Rkey of the repository record
+	Rkey string `json:"rkey" cborgen:"rkey"`
 }
 
 // RepoDelete calls the XRPC method "sh.tangled.repo.delete".

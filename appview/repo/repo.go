@@ -972,6 +972,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		&tangled.RepoDelete_Input{
 			Did:  f.OwnerDid(),
 			Name: f.Name,
+			Rkey: f.Rkey,
 		},
 	)
 	if err := xrpcclient.HandleXrpcErr(err); err != nil {

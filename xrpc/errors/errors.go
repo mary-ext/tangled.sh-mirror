@@ -86,6 +86,13 @@ var RepoExistsError = func(r string) XrpcError {
 	)
 }
 
+var RecordExistsError = func(r string) XrpcError {
+	return NewXrpcError(
+		WithTag("RecordExists"),
+		WithError(fmt.Errorf("repo already exists: %s", r)),
+	)
+}
+
 func GenericError(err error) XrpcError {
 	return NewXrpcError(
 		WithTag("Generic"),
