@@ -85,11 +85,13 @@ type ConflictInfo struct {
 
 // MergeOptions specifies the configuration for a merge operation
 type MergeOptions struct {
-	CommitMessage string
-	CommitBody    string
-	AuthorName    string
-	AuthorEmail   string
-	FormatPatch   bool
+	CommitMessage  string
+	CommitBody     string
+	AuthorName     string
+	AuthorEmail    string
+	CommitterName  string
+	CommitterEmail string
+	FormatPatch    bool
 }
 
 func (e ErrMerge) Error() string {
@@ -164,6 +166,9 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, opts MergeOptions) error 
 	var stderr bytes.Buffer
 	var cmd *exec.Cmd
 
+	// configure default git user before merge
+	exec.Command("git", "-C", tmpDir, "config", "user.name", opts.CommitterName).Run()
+	exec.Command("git", "-C", tmpDir, "config", "user.email", opts.CommitterEmail).Run()
 	exec.Command("git", "-C", tmpDir, "config", "advice.mergeConflict", "false").Run()
 
 	// if patch is a format-patch, apply using 'git am'
@@ -188,17 +193,10 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, opts MergeOptions) error 
 		authorName := opts.AuthorName
 		authorEmail := opts.AuthorEmail
 
-		if authorEmail == "" {
-			authorEmail = "noreply@tangled.sh"
-		}
-
-		if authorName == "" {
-			authorName = "Tangled"
-		}
-
-		if authorName != "" {
+		if authorName != "" && authorEmail != "" {
 			commitArgs = append(commitArgs, "--author", fmt.Sprintf("%s <%s>", authorName, authorEmail))
 		}
+		// else, will default to knot's global user.name & user.email configured via `KNOT_GIT_USER_*` env variables
 
 		commitArgs = append(commitArgs, "-m", opts.CommitMessage)
 

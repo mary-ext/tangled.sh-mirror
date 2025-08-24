@@ -27,6 +27,12 @@ type Server struct {
 	Dev bool `env:"DEV, default=false"`
 }
 
+type Git struct {
+	// user name & email used as committer
+	UserName     string `env:"USER_NAME, default=Tangled"`
+	UserEmail    string `env:"USER_EMAIL, default=noreply@tangled.sh"`
+}
+
 func (s Server) Did() syntax.DID {
 	return syntax.DID(fmt.Sprintf("did:web:%s", s.Hostname))
 }
@@ -34,6 +40,7 @@ func (s Server) Did() syntax.DID {
 type Config struct {
 	Repo            Repo   `env:",prefix=KNOT_REPO_"`
 	Server          Server `env:",prefix=KNOT_SERVER_"`
+	Git             Git    `env:",prefix=KNOT_GIT_"`
 	AppViewEndpoint string `env:"APPVIEW_ENDPOINT, default=https://tangled.sh"`
 }
 
