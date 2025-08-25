@@ -1,0 +1,64 @@
+{{ define "title" }}{{ .Tab }} settings{{ end }}
+
+{{ define "content" }}
+  <div class="p-6">
+    <p class="text-xl font-bold dark:text-white">Settings</p>
+  </div>
+  <div class="bg-white dark:bg-gray-800">
+    <section class="w-full grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
+      <div class="col-span-1">
+        {{ template "user/settings/fragments/sidebar" . }}
+      </div>
+      <div class="col-span-1 md:col-span-3 flex flex-col gap-6">
+        {{ template "profileInfo" . }}
+      </div>
+    </section>
+  </div>
+{{ end }}
+
+{{ define "profileInfo" }}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+    <div class="col-span-1 md:col-span-2">
+      <h2 class="text-sm pb-2 uppercase font-bold">Profile</h2>
+      <p class="text-gray-500 dark:text-gray-400">
+        Your account information from your AT Protocol identity.
+      </p>
+    </div>
+    <div class="col-span-1 md:col-span-1 md:justify-self-end">
+    </div>
+  </div>
+  <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
+    <div class="flex items-center justify-between p-4">
+      <div class="hover:no-underline flex flex-col gap-1 min-w-0 max-w-[80%]">
+        {{ if .LoggedInUser.Handle }}
+        <span class="font-bold">
+          @{{ .LoggedInUser.Handle }}
+        </span>
+        <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
+          <span>Handle</span>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+    <div class="flex items-center justify-between p-4">
+      <div class="hover:no-underline flex flex-col gap-1 min-w-0 max-w-[80%]">
+        <span class="font-mono text-xs">
+          {{ .LoggedInUser.Did }}
+        </span>
+        <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
+          <span>Decentralized Identifier (DID)</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-between p-4">
+      <div class="hover:no-underline flex flex-col gap-1 min-w-0 max-w-[80%]">
+        <span class="font-bold">
+          {{ .LoggedInUser.Pds }}
+        </span>
+        <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
+          <span>Personal Data Server (PDS)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+{{ end }}

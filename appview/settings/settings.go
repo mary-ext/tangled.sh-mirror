@@ -33,19 +33,33 @@ type Settings struct {
 	Config *config.Config
 }
 
+type tab = map[string]any
+
+var (
+	settingsTabs []tab = []tab{
+		{"Name": "profile", "Icon": "user"},
+		{"Name": "keys", "Icon": "key"},
+		{"Name": "emails", "Icon": "mail"},
+	}
+)
+
 func (s *Settings) Router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.AuthMiddleware(s.OAuth))
 
-	r.Get("/", s.settings)
+	// settings pages
+	r.Get("/", s.profileSettings)
+	r.Get("/profile", s.profileSettings)
 
 	r.Route("/keys", func(r chi.Router) {
+		r.Get("/", s.keysSettings)
 		r.Put("/", s.keys)
 		r.Delete("/", s.keys)
 	})
 
 	r.Route("/emails", func(r chi.Router) {
+		r.Get("/", s.emailsSettings)
 		r.Put("/", s.emails)
 		r.Delete("/", s.emails)
 		r.Get("/verify", s.emailsVerify)
@@ -56,22 +70,43 @@ func (s *Settings) Router() http.Handler {
 	return r
 }
 
-func (s *Settings) settings(w http.ResponseWriter, r *http.Request) {
+func (s *Settings) profileSettings(w http.ResponseWriter, r *http.Request) {
+	user := s.OAuth.GetUser(r)
+
+	s.Pages.UserProfileSettings(w, pages.UserProfileSettingsParams{
+		LoggedInUser: user,
+		Tabs:         settingsTabs,
+		Tab:          "profile",
+	})
+}
+
+func (s *Settings) keysSettings(w http.ResponseWriter, r *http.Request) {
 	user := s.OAuth.GetUser(r)
 	pubKeys, err := db.GetPublicKeysForDid(s.Db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}
 
+	s.Pages.UserKeysSettings(w, pages.UserKeysSettingsParams{
+		LoggedInUser: user,
+		PubKeys:      pubKeys,
+		Tabs:         settingsTabs,
+		Tab:          "keys",
+	})
+}
+
+func (s *Settings) emailsSettings(w http.ResponseWriter, r *http.Request) {
+	user := s.OAuth.GetUser(r)
 	emails, err := db.GetAllEmails(s.Db, user.Did)
 	if err != nil {
 		log.Println(err)
 	}
 
-	s.Pages.Settings(w, pages.SettingsParams{
+	s.Pages.UserEmailsSettings(w, pages.UserEmailsSettingsParams{
 		LoggedInUser: user,
-		PubKeys:      pubKeys,
 		Emails:       emails,
+		Tabs:         settingsTabs,
+		Tab:          "emails",
 	})
 }
 
@@ -201,7 +236,7 @@ func (s *Settings) emails(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.Pages.HxLocation(w, "/settings")
+		s.Pages.HxLocation(w, "/settings/emails")
 		return
 	}
 }
@@ -244,7 +279,7 @@ func (s *Settings) emailsVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+	http.Redirect(w, r, "/settings/emails", http.StatusSeeOther)
 }
 
 func (s *Settings) emailsVerifyResend(w http.ResponseWriter, r *http.Request) {
@@ -339,7 +374,7 @@ func (s *Settings) emailsPrimary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.Pages.HxLocation(w, "/settings")
+	s.Pages.HxLocation(w, "/settings/emails")
 }
 
 func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
@@ -410,7 +445,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.Pages.HxLocation(w, "/settings")
+		s.Pages.HxLocation(w, "/settings/keys")
 		return
 
 	case http.MethodDelete:
@@ -455,7 +490,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("deleted successfully")
 
-		s.Pages.HxLocation(w, "/settings")
+		s.Pages.HxLocation(w, "/settings/keys")
 		return
 	}
 }

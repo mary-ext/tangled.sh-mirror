@@ -306,14 +306,36 @@ func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
 	return p.execute("timeline/timeline", w, params)
 }
 
-type SettingsParams struct {
+type UserProfileSettingsParams struct {
 	LoggedInUser *oauth.User
-	PubKeys      []db.PublicKey
-	Emails       []db.Email
+	Tabs         []map[string]any
+	Tab          string
 }
 
-func (p *Pages) Settings(w io.Writer, params SettingsParams) error {
-	return p.execute("settings", w, params)
+func (p *Pages) UserProfileSettings(w io.Writer, params UserProfileSettingsParams) error {
+	return p.execute("user/settings/profile", w, params)
+}
+
+type UserKeysSettingsParams struct {
+	LoggedInUser *oauth.User
+	PubKeys      []db.PublicKey
+	Tabs         []map[string]any
+	Tab          string
+}
+
+func (p *Pages) UserKeysSettings(w io.Writer, params UserKeysSettingsParams) error {
+	return p.execute("user/settings/keys", w, params)
+}
+
+type UserEmailsSettingsParams struct {
+	LoggedInUser *oauth.User
+	Emails       []db.Email
+	Tabs         []map[string]any
+	Tab          string
+}
+
+func (p *Pages) UserEmailsSettings(w io.Writer, params UserEmailsSettingsParams) error {
+	return p.execute("user/settings/emails", w, params)
 }
 
 type KnotsParams struct {

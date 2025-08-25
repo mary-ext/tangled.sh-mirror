@@ -1,0 +1,31 @@
+{{ define "user/settings/fragments/keyListing" }}
+  {{ $root := index . 0 }}
+  {{ $key := index . 1 }}
+  <div id="key-{{$key.Name}}" class="flex items-center justify-between p-2">
+    <div class="hover:no-underline flex flex-col gap-1 text min-w-0 max-w-[80%]">
+    <div class="flex items-center gap-2">
+      <span>{{ i "key" "w-4" "h-4" }}</span>
+      <span class="font-bold">
+        {{ $key.Name }}
+      </span>
+    </div>
+      <span class="font-mono text-sm text-gray-500 dark:text-gray-400">
+        {{ sshFingerprint $key.Key }}
+      </span>
+      <div class="flex flex-wrap text-sm items-center gap-1 text-gray-500 dark:text-gray-400">
+        <span>added {{ template "repo/fragments/time" $key.Created }}</span>
+      </div>
+    </div>
+    <button
+      class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+      title="Delete key"
+      hx-delete="/settings/keys?name={{urlquery $key.Name}}&rkey={{urlquery $key.Rkey}}&key={{urlquery $key.Key}}"
+      hx-swap="none"
+      hx-confirm="Are you sure you want to delete the key {{ $key.Name }}?"
+    >
+      {{ i "trash-2" "w-5 h-5" }}
+      <span class="hidden md:inline">delete</span>
+      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </button>
+  </div>
+{{ end }}

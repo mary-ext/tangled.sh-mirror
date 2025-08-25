@@ -21,6 +21,7 @@ import (
 	"github.com/go-enry/go-enry/v2"
 	"tangled.sh/tangled.sh/core/appview/filetree"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
+	"tangled.sh/tangled.sh/core/crypto"
 )
 
 func (p *Pages) funcMap() template.FuncMap {
@@ -281,6 +282,13 @@ func (p *Pages) funcMap() template.FuncMap {
 		"normalizeForHtmlId": func(s string) string {
 			// TODO: extend this to handle other cases?
 			return strings.ReplaceAll(s, ":", "_")
+		},
+		"sshFingerprint": func(pubKey string) string {
+			fp, err := crypto.SSHFingerprint(pubKey)
+			if err != nil {
+				return "error"
+			}
+			return fp
 		},
 	}
 }

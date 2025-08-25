@@ -1,0 +1,101 @@
+{{ define "title" }}{{ .Tab }} settings{{ end }}
+
+{{ define "content" }}
+  <div class="p-6">
+    <p class="text-xl font-bold dark:text-white">Settings</p>
+  </div>
+  <div class="bg-white dark:bg-gray-800">
+    <section class="w-full grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
+      <div class="col-span-1">
+        {{ template "user/settings/fragments/sidebar" . }}
+      </div>
+      <div class="col-span-1 md:col-span-3 flex flex-col gap-6">
+        {{ template "sshKeysSettings" . }}
+      </div>
+    </section>
+  </div>
+{{ end }}
+
+{{ define "sshKeysSettings" }}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+    <div class="col-span-1 md:col-span-2">
+      <h2 class="text-sm pb-2 uppercase font-bold">SSH Keys</h2>
+      <p class="text-gray-500 dark:text-gray-400">
+        SSH public keys added here will be broadcasted to knots that you are a member of, 
+        allowing you to push to repositories there.
+      </p>
+    </div>
+    <div class="col-span-1 md:col-span-1 md:justify-self-end">
+      {{ template "addKeyButton" . }}
+    </div>
+  </div>
+  <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
+    {{ range .PubKeys }}
+      {{ template "user/settings/fragments/keyListing" (list $ .) }}
+    {{ else }}
+      <div class="flex items-center justify-center p-2 text-gray-500">
+        no keys added yet
+      </div>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "addKeyButton" }}
+  <button
+    class="btn flex items-center gap-2"
+    popovertarget="add-key-modal"
+    popovertargetaction="toggle">
+    {{ i "plus" "size-4" }}
+    add key
+  </button>
+  <div
+    id="add-key-modal"
+    popover
+    class="bg-white w-full md:w-96 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
+    {{ template "addKeyModal" . }}
+  </div>
+{{ end}}
+
+{{ define "addKeyModal" }}
+<form
+  hx-put="/settings/keys"
+  hx-indicator="#spinner"
+  hx-swap="none"
+  class="flex flex-col gap-2"
+>
+  <p class="uppercase p-0">ADD SSH KEY</p>
+  <p class="text-sm text-gray-500 dark:text-gray-400">SSH keys allow you to push to repositories in knots you're a member of.</p>
+  <input
+    type="text"
+    id="key-name"
+    name="name"
+    required
+    placeholder="key name"
+    class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"
+  />
+  <textarea
+    type="text"
+    id="key-value"
+    name="key"
+    required
+    placeholder="ssh-rsa AAAAB3NzaC1yc2E..."
+    class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"></textarea>
+  <div class="flex gap-2 pt-2">
+    <button
+      type="button"
+      popovertarget="add-key-modal"
+      popovertargetaction="hide"
+      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+      >
+      {{ i "x" "size-4" }} cancel
+    </button>
+    <button type="submit" class="btn w-1/2 flex items-center">
+      <span class="inline-flex gap-2 items-center">{{ i "plus" "size-4" }} add</span>
+      <span id="spinner" class="group">
+        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </span>
+    </button>
+  </div>
+  <div id="settings-keys" class="text-red-500 dark:text-red-400"></div>
+</form>
+{{ end }}

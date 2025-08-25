@@ -1,0 +1,94 @@
+{{ define "title" }}{{ .Tab }} settings{{ end }}
+
+{{ define "content" }}
+  <div class="p-6">
+    <p class="text-xl font-bold dark:text-white">Settings</p>
+  </div>
+  <div class="bg-white dark:bg-gray-800">
+    <section class="w-full grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
+      <div class="col-span-1">
+        {{ template "user/settings/fragments/sidebar" . }}
+      </div>
+      <div class="col-span-1 md:col-span-3 flex flex-col gap-6">
+        {{ template "emailSettings" . }}
+      </div>
+    </section>
+  </div>
+{{ end }}
+
+{{ define "emailSettings" }}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+    <div class="col-span-1 md:col-span-2">
+      <h2 class="text-sm pb-2 uppercase font-bold">Email Addresses</h2>
+      <p class="text-gray-500 dark:text-gray-400">
+        Commits authored using emails listed here will be associated with your Tangled profile.
+      </p>
+    </div>
+    <div class="col-span-1 md:col-span-1 md:justify-self-end">
+      {{ template "addEmailButton" . }}
+    </div>
+  </div>
+  <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
+    {{ range .Emails }}
+      {{ template "user/settings/fragments/emailListing" (list $ .) }}
+    {{ else }}
+      <div class="flex items-center justify-center p-2 text-gray-500">
+        no emails added yet
+      </div>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "addEmailButton" }}
+  <button
+    class="btn flex items-center gap-2"
+    popovertarget="add-email-modal"
+    popovertargetaction="toggle">
+    {{ i "plus" "size-4" }}
+    add email
+  </button>
+  <div
+    id="add-email-modal"
+    popover
+    class="bg-white w-full md:w-96 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
+    {{ template "addEmailModal" . }}
+  </div>
+{{ end}}
+
+{{ define "addEmailModal" }}
+<form
+  hx-put="/settings/emails"
+  hx-indicator="#spinner"
+  hx-swap="none"
+  class="flex flex-col gap-2"
+>
+  <p class="uppercase p-0">ADD EMAIL</p>
+  <p class="text-sm text-gray-500 dark:text-gray-400">Commits using this email will be associated with your profile.</p>
+  <input
+    type="email"
+    id="email-address"
+    name="email"
+    required
+    placeholder="your@email.com"
+    class="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"
+  />
+  <div class="flex gap-2 pt-2">
+    <button
+      type="button"
+      popovertarget="add-email-modal"
+      popovertargetaction="hide"
+      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+      >
+      {{ i "x" "size-4" }} cancel
+    </button>
+    <button type="submit" class="btn w-1/2 flex items-center">
+      <span class="inline-flex gap-2 items-center">{{ i "plus" "size-4" }} add</span>
+      <span id="spinner" class="group">
+        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </span>
+    </button>
+  </div>
+  <div id="settings-emails-error" class="text-red-500 dark:text-red-400"></div>
+  <div id="settings-emails-success" class="text-green-500 dark:text-green-400"></div>
+</form>
+{{ end }}
