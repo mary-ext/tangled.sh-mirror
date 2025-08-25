@@ -2,9 +2,8 @@
 
 After v1.7.0, knot secrets have been deprecated. You no
 longer need a secret from the appview to run a knot. All
-authorized commands between services to knots are managed
-via [Service
-Auth](https://atproto.com/specs/xrpc#inter-service-authentication-jwt).
+authorized commands to knots are managed via [Inter-Service
+Authentication](https://atproto.com/specs/xrpc#inter-service-authentication-jwt).
 Knots will be read-only until upgraded.
 
 Upgrading is quite easy, in essence:
@@ -14,7 +13,7 @@ Upgrading is quite easy, in essence:
 - `KNOT_SERVER_OWNER` is now required on boot, set this to
   your DID. You can find your DID in the
   [settings](https://tangled.sh/settings) page.
-- Restart your knot once you have replace the environment
+- Restart your knot once you have replaced the environment
   variable
 - Head to the [knot dashboard](https://tangled.sh/knots) and
   hit the "retry" button to verify your knot. This simply
@@ -31,9 +30,6 @@ latest revision, and change your config block like so:
    server = {
 -    secretFile = /path/to/secret;
 +    owner = "did:plc:foo";
-     .
-     .
-     .
    };
  };
 ```

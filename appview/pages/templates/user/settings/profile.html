@@ -30,34 +30,34 @@
   <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
     <div class="flex items-center justify-between p-4">
       <div class="hover:no-underline flex flex-col gap-1 min-w-0 max-w-[80%]">
+        <div class="flex flex-wrap text-sm items-center gap-1 text-gray-500 dark:text-gray-400">
+          <span>Handle</span>
+        </div>
         {{ if .LoggedInUser.Handle }}
         <span class="font-bold">
           @{{ .LoggedInUser.Handle }}
         </span>
-        <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
-          <span>Handle</span>
-        </div>
         {{ end }}
       </div>
     </div>
     <div class="flex items-center justify-between p-4">
       <div class="hover:no-underline flex flex-col gap-1 min-w-0 max-w-[80%]">
-        <span class="font-mono text-xs">
-          {{ .LoggedInUser.Did }}
-        </span>
-        <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
+        <div class="flex flex-wrap text-sm items-center gap-1 text-gray-500 dark:text-gray-400">
           <span>Decentralized Identifier (DID)</span>
         </div>
+        <span class="font-mono font-bold">
+          {{ .LoggedInUser.Did }}
+        </span>
       </div>
     </div>
     <div class="flex items-center justify-between p-4">
       <div class="hover:no-underline flex flex-col gap-1 min-w-0 max-w-[80%]">
+        <div class="flex flex-wrap text-sm items-center gap-1 text-gray-500 dark:text-gray-400">
+          <span>Personal Data Server (PDS)</span>
+        </div>
         <span class="font-bold">
           {{ .LoggedInUser.Pds }}
         </span>
-        <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
-          <span>Personal Data Server (PDS)</span>
-        </div>
       </div>
     </div>
   </div>
