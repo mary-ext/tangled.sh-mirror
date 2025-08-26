@@ -22,6 +22,20 @@ type ProfileTimeline struct {
 	ByMonth []ByMonth
 }
 
+func (p *ProfileTimeline) IsEmpty() bool {
+	if p == nil {
+		return true
+	}
+
+	for _, m := range p.ByMonth {
+		if !m.IsEmpty() {
+			return false
+		}
+	}
+
+	return true
+}
+
 type ByMonth struct {
 	RepoEvents  []RepoEvent
 	IssueEvents IssueEvents

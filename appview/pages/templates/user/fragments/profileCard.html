@@ -1,6 +1,5 @@
 {{ define "user/fragments/profileCard" }}
   {{ $userIdent := didOrHandle .UserDid .UserHandle }}
-  <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded drop-shadow-sm max-h-fit">
     <div class="grid grid-cols-3 md:grid-cols-1 gap-1 items-center">
       <div id="avatar" class="col-span-1 flex justify-center items-center">
         <div class="w-3/4 aspect-square relative">
@@ -85,7 +84,6 @@
         <div id="update-profile" class="text-red-400 dark:text-red-500"></div>
       </div>
     </div>
-  </div>
 {{ end }}
 
 {{ define "followerFollowing" }}

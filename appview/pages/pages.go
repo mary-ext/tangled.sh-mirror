@@ -409,21 +409,40 @@ func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
 	return p.execute("repo/fork", w, params)
 }
 
-type ProfileHomePageParams struct {
-	LoggedInUser       *oauth.User
-	Repos              []db.Repo
-	CollaboratingRepos []db.Repo
-	ProfileTimeline    *db.ProfileTimeline
-	Card               ProfileCard
-	Punchcard          db.Punchcard
-}
-
 type ProfileCard struct {
 	UserDid        string
 	UserHandle     string
 	FollowStatus   db.FollowStatus
 	FollowersCount int
 	FollowingCount int
+	Punchcard      *db.Punchcard
+	Profile        *db.Profile
+	Active         string
+}
+
+func (p *ProfileCard) GetTabs() [][]string {
+	tabs := [][]string{
+		{"overview", "overview", "square-chart-gantt"},
+		{"repos", "repos", "book-marked"},
+		{"starred", "starred", "star"},
+	}
+
+	return tabs
+}
+
+type ProfileOverviewParams struct {
+	LoggedInUser       *oauth.User
+	Repos              []db.Repo
+	CollaboratingRepos []db.Repo
+	ProfileTimeline    *db.ProfileTimeline
+	Card               *ProfileCard
+	Active             string
+}
+
+func (p *Pages) ProfileOverview(w io.Writer, params ProfileOverviewParams) error {
+	params.Active = "overview"
+	return p.executeProfile("user/overview", w, params)
+}
 
 	Profile *db.Profile
 }
