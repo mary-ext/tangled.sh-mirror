@@ -444,21 +444,28 @@ func (p *Pages) ProfileOverview(w io.Writer, params ProfileOverviewParams) error
 	return p.executeProfile("user/overview", w, params)
 }
 
-	Profile *db.Profile
-}
-
-func (p *Pages) ProfileHomePage(w io.Writer, params ProfileHomePageParams) error {
-	return p.execute("user/profile", w, params)
-}
-
-type ReposPageParams struct {
+type ProfileReposParams struct {
 	LoggedInUser *oauth.User
 	Repos        []db.Repo
-	Card         ProfileCard
+	Card         *ProfileCard
+	Active       string
 }
 
-func (p *Pages) ReposPage(w io.Writer, params ReposPageParams) error {
-	return p.execute("user/repos", w, params)
+func (p *Pages) ProfileRepos(w io.Writer, params ProfileReposParams) error {
+	params.Active = "repos"
+	return p.executeProfile("user/repos", w, params)
+}
+
+type ProfileStarredParams struct {
+	LoggedInUser *oauth.User
+	Repos        []db.Repo
+	Card         *ProfileCard
+	Active       string
+}
+
+func (p *Pages) ProfileStarred(w io.Writer, params ProfileStarredParams) error {
+	params.Active = "starred"
+	return p.executeProfile("user/starred", w, params)
 }
 
 type FollowCard struct {
@@ -469,24 +476,28 @@ type FollowCard struct {
 	Profile        *db.Profile
 }
 
-type FollowersPageParams struct {
+type ProfileFollowersParams struct {
 	LoggedInUser *oauth.User
 	Followers    []FollowCard
-	Card         ProfileCard
+	Card         *ProfileCard
+	Active       string
 }
 
-func (p *Pages) FollowersPage(w io.Writer, params FollowersPageParams) error {
-	return p.execute("user/followers", w, params)
+func (p *Pages) ProfileFollowers(w io.Writer, params ProfileFollowersParams) error {
+	params.Active = "overview"
+	return p.executeProfile("user/followers", w, params)
 }
 
-type FollowingPageParams struct {
+type ProfileFollowingParams struct {
 	LoggedInUser *oauth.User
 	Following    []FollowCard
-	Card         ProfileCard
+	Card         *ProfileCard
+	Active       string
 }
 
-func (p *Pages) FollowingPage(w io.Writer, params FollowingPageParams) error {
-	return p.execute("user/following", w, params)
+func (p *Pages) ProfileFollowing(w io.Writer, params ProfileFollowingParams) error {
+	params.Active = "overview"
+	return p.executeProfile("user/following", w, params)
 }
 
 type FollowFragmentParams struct {
