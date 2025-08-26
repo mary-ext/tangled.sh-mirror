@@ -145,30 +145,29 @@ func (g *GitRepo) isDefaultBranch(line PostReceiveLine) (bool, error) {
 }
 
 func (m RefUpdateMeta) AsRecord() tangled.GitRefUpdate_Meta {
-	var byEmail []*tangled.GitRefUpdate_Meta_CommitCount_ByEmail_Elem
+	var byEmail []*tangled.GitRefUpdate_IndividualEmailCommitCount
 	for e, v := range m.CommitCount.ByEmail {
-		byEmail = append(byEmail, &tangled.GitRefUpdate_Meta_CommitCount_ByEmail_Elem{
+		byEmail = append(byEmail, &tangled.GitRefUpdate_IndividualEmailCommitCount{
 			Email: e,
 			Count: int64(v),
 		})
 	}
 
-	var langs []*tangled.GitRefUpdate_Pair
+	var langs []*tangled.GitRefUpdate_IndividualLanguageSize
 	for lang, size := range m.LangBreakdown {
-		langs = append(langs, &tangled.GitRefUpdate_Pair{
+		langs = append(langs, &tangled.GitRefUpdate_IndividualLanguageSize{
 			Lang: lang,
 			Size: size,
 		})
 	}
-	langBreakdown := &tangled.GitRefUpdate_Meta_LangBreakdown{
-		Inputs: langs,
-	}
 
 	return tangled.GitRefUpdate_Meta{
-		CommitCount: &tangled.GitRefUpdate_Meta_CommitCount{
+		CommitCount: &tangled.GitRefUpdate_CommitCountBreakdown{
 			ByEmail: byEmail,
 		},
-		IsDefaultRef:  m.IsDefaultRef,
-		LangBreakdown: langBreakdown,
+		IsDefaultRef: m.IsDefaultRef,
+		LangBreakdown: &tangled.GitRefUpdate_LangBreakdown{
+			Inputs: langs,
+		},
 	}
 }
