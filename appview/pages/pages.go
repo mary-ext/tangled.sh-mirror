@@ -202,6 +202,15 @@ func (p *Pages) parseRepoBase(top string) (*template.Template, error) {
 	return p.parse(stack...)
 }
 
+func (p *Pages) parseProfileBase(top string) (*template.Template, error) {
+	stack := []string{
+		"layouts/base",
+		"layouts/profilebase",
+		top,
+	}
+	return p.parse(stack...)
+}
+
 func (p *Pages) executePlain(name string, w io.Writer, params any) error {
 	tpl, err := p.parse(name)
 	if err != nil {
@@ -222,6 +231,15 @@ func (p *Pages) execute(name string, w io.Writer, params any) error {
 
 func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
 	tpl, err := p.parseRepoBase(name)
+	if err != nil {
+		return err
+	}
+
+	return tpl.ExecuteTemplate(w, "layouts/base", params)
+}
+
+func (p *Pages) executeProfile(name string, w io.Writer, params any) error {
+	tpl, err := p.parseProfileBase(name)
 	if err != nil {
 		return err
 	}

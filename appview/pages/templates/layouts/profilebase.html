@@ -1,0 +1,104 @@
+{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }}{{ end }}
+
+{{ define "extrameta" }}
+    <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}?tab={{ .Active }}" />
+    <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+{{ end }}
+
+{{ define "content" }}
+  {{ template "profileTabs" . }}
+  <section class="bg-white dark:bg-gray-800 p-6 rounded w-full dark:text-white">
+    <div class="grid grid-cols-1 md:grid-cols-11 gap-4">
+      <div class="md:col-span-3 order-1 md:order-1">
+        <div class="flex flex-col gap-4">
+          {{ template "user/fragments/profileCard" .Card }}
+          {{ block "punchcard" .Card.Punchcard }} {{ end }}
+        </div>
+      </div>
+      {{ block "profileContent" . }} {{ end }}
+    </div>
+  </section>
+{{ end }}
+
+{{ define "profileTabs" }}
+<nav class="w-full pl-4 overflow-x-auto overflow-y-hidden">
+  <div class="flex z-60">
+    {{ $activeTabStyles := "-mb-px bg-white dark:bg-gray-800" }}
+    {{ $tabs := .Card.GetTabs }}
+    {{ $tabmeta := dict "x" "y" }}
+    {{ range $item := $tabs }}
+      {{ $key := index $item 0 }}
+      {{ $value := index $item 1 }}
+      {{ $icon := index $item 2 }}
+      {{ $meta := index $tabmeta $key }}
+      <a
+        href="?tab={{ $value }}"
+        class="relative -mr-px group no-underline hover:no-underline"
+        hx-boost="true">
+        <div
+          class="px-4 py-1 mr-1 text-black dark:text-white min-w-[80px] text-center relative rounded-t whitespace-nowrap
+           {{ if eq $.Active $key }}
+              {{ $activeTabStyles }}
+           {{ else }}
+              group-hover:bg-gray-100/25 group-hover:dark:bg-gray-700/25
+           {{ end }}
+           ">
+          <span class="flex items-center justify-center">
+            {{ i $icon "w-4 h-4 mr-2" }}
+            {{ $key }}
+            {{ if not (isNil $meta) }}
+            <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm ml-1">{{ $meta }}</span>
+            {{ end }}
+          </span>
+        </div>
+      </a>
+    {{ end }}
+  </div>
+</nav>
+{{ end }}
+
+{{ define "punchcard" }}
+  {{ $now := now }}
+  <div>
+    <p class="px-2 pb-4 flex gap-2 text-sm font-bold dark:text-white">
+      PUNCHCARD
+      <span class="font-mono font-normal text-sm text-gray-500 dark:text-gray-400 ">
+        {{ .Total | int64 | commaFmt }} commits
+      </span>
+    </p>
+      <div class="grid grid-cols-28 md:grid-cols-14 gap-y-3 w-full h-full">
+        {{ range .Punches }}
+          {{ $count := .Count }}
+          {{ $theme := "bg-gray-200 dark:bg-gray-700 size-[4px]" }}
+          {{ if lt $count 1 }}
+            {{ $theme = "bg-gray-200 dark:bg-gray-700 size-[4px]" }}
+          {{ else if lt $count 2 }}
+            {{ $theme = "bg-green-200 dark:bg-green-900 size-[5px]" }}
+          {{ else if lt $count 4 }}
+            {{ $theme = "bg-green-300 dark:bg-green-800 size-[5px]" }}
+          {{ else if lt $count 8 }}
+            {{ $theme = "bg-green-400 dark:bg-green-700 size-[6px]" }}
+          {{ else }}
+            {{ $theme = "bg-green-500 dark:bg-green-600 size-[7px]" }}
+          {{ end }}
+
+          {{ if .Date.After $now }}
+            {{ $theme = "border border-gray-200 dark:border-gray-700 size-[4px]" }}
+          {{ end }}
+          <div class="w-full h-full flex justify-center items-center">
+            <div
+              class="aspect-square rounded-full transition-all duration-300 {{ $theme }} max-w-full max-h-full"
+              title="{{ .Date.Format "2006-01-02" }}: {{ .Count }} commits">
+            </div>
+          </div>
+        {{ end }}
+      </div>
+  </div>
+{{ end }}
+
+{{ define "layouts/profilebase" }}
+    {{ template "layouts/base" . }}
+{{ end }}
+
