@@ -51,68 +51,75 @@
             "maxLength": 40
           },
           "meta": {
-            "type": "object",
-            "required": [
-              "isDefaultRef",
-              "commitCount"
-            ],
-            "properties": {
-              "isDefaultRef": {
-                "type": "boolean",
-                "default": "false"
-              },
-              "langBreakdown": {
-                "type": "object",
-                "properties": {
-                  "inputs": {
-                    "type": "array",
-                    "items": {
-                      "type": "ref",
-                      "ref": "#pair"
-                    }
-                  }
-                }
-              },
-              "commitCount": {
-                "type": "object",
-                "required": [],
-                "properties": {
-                  "byEmail": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "email",
-                        "count"
-                      ],
-                      "properties": {
-                        "email": {
-                          "type": "string"
-                        },
-                        "count": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "type": "ref",
+            "ref": "#meta"
           }
         }
       }
     },
-    "pair": {
+    "meta": {
       "type": "object",
-      "required": [
-        "lang",
-        "size"
-      ],
+      "required": ["isDefaultRef", "commitCount"],
+      "properties": {
+        "isDefaultRef": {
+          "type": "boolean",
+          "default": false
+        },
+        "langBreakdown": {
+          "type": "ref",
+          "ref": "#langBreakdown"
+        },
+        "commitCount": {
+          "type": "ref",
+          "ref": "#commitCountBreakdown"
+        }
+      }
+    },
+    "langBreakdown": {
+      "type": "object",
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "#individualLanguageSize"
+          }
+        }
+      }
+    },
+    "individualLanguageSize": {
+      "type": "object",
+      "required": ["lang", "size"],
       "properties": {
         "lang": {
           "type": "string"
         },
         "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "commitCountBreakdown": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "byEmail": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "#individualEmailCommitCount"
+          }
+        }
+      }
+    },
+    "individualEmailCommitCount": {
+      "type": "object",
+      "required": ["email", "count"],
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "count": {
           "type": "integer"
         }
       }
