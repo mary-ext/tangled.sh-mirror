@@ -21,7 +21,7 @@ type CoreConfig struct {
 	AppPassword string `env:"APP_PASSWORD"`
 
 	// uhhhh this is because knot1 is under icy's did
-	TmpAltAppPassword string `env:"ALT_APP_PASSWORD, required"`
+	TmpAltAppPassword string `env:"ALT_APP_PASSWORD"`
 }
 
 type OAuthConfig struct {

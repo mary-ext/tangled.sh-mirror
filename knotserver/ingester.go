@@ -98,8 +98,8 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 	l := log.FromContext(ctx)
 	l = l.With("handler", "processPull")
 	l = l.With("did", did)
-	l = l.With("target_repo", record.TargetRepo)
-	l = l.With("target_branch", record.TargetBranch)
+	l = l.With("target_repo", record.Target.Repo)
+	l = l.With("target_branch", record.Target.Branch)
 
 	if record.Source == nil {
 		return fmt.Errorf("ignoring pull record: not a branch-based pull request")
@@ -109,7 +109,7 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 		return fmt.Errorf("ignoring pull record: fork based pull")
 	}
 
-	repoAt, err := syntax.ParseATURI(record.TargetRepo)
+	repoAt, err := syntax.ParseATURI(record.Target.Repo)
 	if err != nil {
 		return fmt.Errorf("failed to parse ATURI: %w", err)
 	}
@@ -178,7 +178,7 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 		Action:       "create",
 		SourceBranch: record.Source.Branch,
 		SourceSha:    record.Source.Sha,
-		TargetBranch: record.TargetBranch,
+		TargetBranch: record.Target.Branch,
 	}
 
 	compiler := workflow.Compiler{
