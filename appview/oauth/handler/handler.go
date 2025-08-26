@@ -354,8 +354,9 @@ func pubKeyFromJwk(jwks string) (jwk.Key, error) {
 }
 
 var (
-	tangledHandle  = "tangled.sh"
-	tangledDid     = "did:plc:wshs7t2adsemcrrd4snkeqli"
+	tangledDid = "did:plc:wshs7t2adsemcrrd4snkeqli"
+	icyDid     = "did:plc:hwevmowznbiukdf6uk5dwrrq"
+
 	defaultSpindle = "spindle.tangled.sh"
 	defaultKnot    = "knot1.tangled.sh"
 )
@@ -379,7 +380,7 @@ func (o *OAuthHandler) addToDefaultSpindle(did string) {
 	}
 
 	log.Printf("adding %s to default spindle", did)
-	session, err := o.createAppPasswordSession()
+	session, err := o.createAppPasswordSession(o.config.Core.AppPassword, tangledDid)
 	if err != nil {
 		log.Printf("failed to create session: %s", err)
 		return
@@ -392,8 +393,8 @@ func (o *OAuthHandler) addToDefaultSpindle(did string) {
 		CreatedAt:     time.Now().Format(time.RFC3339),
 	}
 
-	if err := session.putRecord(record); err != nil {
-		log.Printf("failed to add member to default knot: %s", err)
+	if err := session.putRecord(record, tangled.SpindleMemberNSID); err != nil {
+		log.Printf("failed to add member to default spindle: %s", err)
 		return
 	}
 
@@ -416,7 +417,7 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 	}
 
 	log.Printf("adding %s to default knot", did)
-	session, err := o.createAppPasswordSession()
+	session, err := o.createAppPasswordSession(o.config.Core.TmpAltAppPassword, icyDid)
 	if err != nil {
 		log.Printf("failed to create session: %s", err)
 		return
@@ -429,7 +430,7 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 		CreatedAt:     time.Now().Format(time.RFC3339),
 	}
 
-	if err := session.putRecord(record); err != nil {
+	if err := session.putRecord(record, tangled.KnotMemberNSID); err != nil {
 		log.Printf("failed to add member to default knot: %s", err)
 		return
 	}
@@ -441,26 +442,26 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 type session struct {
 	AccessJwt   string `json:"accessJwt"`
 	PdsEndpoint string
+	Did         string
 }
 
-func (o *OAuthHandler) createAppPasswordSession() (*session, error) {
-	appPassword := o.config.Core.AppPassword
+func (o *OAuthHandler) createAppPasswordSession(appPassword, did string) (*session, error) {
 	if appPassword == "" {
 		return nil, fmt.Errorf("no app password configured, skipping member addition")
 	}
 
-	resolved, err := o.idResolver.ResolveIdent(context.Background(), tangledDid)
+	resolved, err := o.idResolver.ResolveIdent(context.Background(), did)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve tangled.sh DID %s: %v", tangledDid, err)
+		return nil, fmt.Errorf("failed to resolve tangled.sh DID %s: %v", did, err)
 	}
 
 	pdsEndpoint := resolved.PDSEndpoint()
 	if pdsEndpoint == "" {
-		return nil, fmt.Errorf("no PDS endpoint found for tangled.sh DID %s", tangledDid)
+		return nil, fmt.Errorf("no PDS endpoint found for tangled.sh DID %s", did)
 	}
 
 	sessionPayload := map[string]string{
-		"identifier": tangledHandle,
+		"identifier": did,
 		"password":   appPassword,
 	}
 	sessionBytes, err := json.Marshal(sessionPayload)
@@ -492,19 +493,20 @@ func (o *OAuthHandler) createAppPasswordSession() (*session, error) {
 	}
 
 	session.PdsEndpoint = pdsEndpoint
+	session.Did = did
 
 	return &session, nil
 }
 
-func (s *session) putRecord(record any) error {
+func (s *session) putRecord(record any, collection string) error {
 	recordBytes, err := json.Marshal(record)
 	if err != nil {
 		return fmt.Errorf("failed to marshal knot member record: %w", err)
 	}
 
 	payload := map[string]any{
-		"repo":       tangledDid,
-		"collection": tangled.KnotMemberNSID,
+		"repo":       s.Did,
+		"collection": collection,
 		"rkey":       tid.TID(),
 		"record":     json.RawMessage(recordBytes),
 	}
@@ -526,12 +528,12 @@ func (s *session) putRecord(record any) error {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to add user to default Knot: %w", err)
+		return fmt.Errorf("failed to add user to default service: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to add user to default Knot: HTTP %d", resp.StatusCode)
+		return fmt.Errorf("failed to add user to default service: HTTP %d", resp.StatusCode)
 	}
 
 	return nil
