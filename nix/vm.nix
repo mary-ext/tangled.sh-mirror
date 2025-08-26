@@ -43,11 +43,11 @@ in
               guest.port = 6000;
             }
             # spindle
-            {
-              from = "host";
-              host.port = 6555;
-              guest.port = 6555;
-            }
+            # {
+            #   from = "host";
+            #   host.port = 6555;
+            #   guest.port = 6555;
+            # }
           ];
           sharedDirectories = {
             # We can't use the 9p mounts directly for most of these
@@ -83,7 +83,7 @@ in
           };
         };
         services.tangled-spindle = {
-          enable = true;
+          enable = false;
           server = {
             owner = envVar "TANGLED_VM_SPINDLE_OWNER";
             hostname = "localhost:6555";

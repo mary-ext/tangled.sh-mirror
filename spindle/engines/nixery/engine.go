@@ -173,16 +173,6 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId, wf *models.Workflow) error {
 	e.l.Info("setting up workflow", "workflow", wid)
 
-	_, err := e.docker.NetworkCreate(ctx, networkName(wid), network.CreateOptions{
-		Driver: "bridge",
-	})
-	if err != nil {
-		return err
-	}
-	e.registerCleanup(wid, func(ctx context.Context) error {
-		return e.docker.NetworkRemove(ctx, networkName(wid))
-	})
-
 	addl := wf.Data.(addlFields)
 
 	reader, err := e.docker.ImagePull(ctx, addl.image, image.PullOptions{})
@@ -193,6 +183,16 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId, wf *m
 	}
 	defer reader.Close()
 	io.Copy(os.Stdout, reader)
+
+	_, err = e.docker.NetworkCreate(ctx, networkName(wid), network.CreateOptions{
+		Driver: "bridge",
+	})
+	if err != nil {
+		return err
+	}
+	e.registerCleanup(wid, func(ctx context.Context) error {
+		return e.docker.NetworkRemove(ctx, networkName(wid))
+	})
 
 	resp, err := e.docker.ContainerCreate(ctx, &container.Config{
 		Image:      addl.image,
@@ -294,20 +294,24 @@ func (e *Engine) RunStep(ctx context.Context, wid models.WorkflowId, w *models.W
 	for _, s := range secrets {
 		workflowEnvs.AddEnv(s.Key, s.Value)
 	}
-
 	step := w.Steps[idx].(Step)
-
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
 	}
-
 	envs := append(EnvVars(nil), workflowEnvs...)
 	for k, v := range step.environment {
 		envs.AddEnv(k, v)
 	}
 	envs.AddEnv("HOME", homeDir)
+
+	e.l.Info("executing step",
+		"workflow_id", wid.String(),
+		"step_index", idx,
+		"step_name", step.Name,
+		"command", step.command,
+	)
 
 	mkExecResp, err := e.docker.ContainerExecCreate(ctx, addl.container, container.ExecOptions{
 		Cmd:          []string{"bash", "-c", step.command},
@@ -327,16 +331,13 @@ func (e *Engine) RunStep(ctx context.Context, wid models.WorkflowId, w *models.W
 
 	select {
 	case <-tailDone:
-
 	case <-ctx.Done():
 		// cleanup will be handled by DestroyWorkflow, since
 		// Docker doesn't provide an API to kill an exec run
 		// (sure, we could grab the PID and kill it ourselves,
 		// but that's wasted effort)
 		e.l.Warn("step timed out", "step", step.Name)
-
 		<-tailDone
-
 		return engine.ErrTimedOut
 	}
 
@@ -346,26 +347,89 @@ func (e *Engine) RunStep(ctx context.Context, wid models.WorkflowId, w *models.W
 	default:
 	}
 
-	execInspectResp, err := e.docker.ContainerExecInspect(ctx, mkExecResp.ID)
+	if err = e.handleStepFailure(ctx, wid, w, idx, mkExecResp.ID); err != nil {
+		return err
+	}
+
+	e.l.Info("step completed successfully",
+		"workflow_id", wid.String(),
+		"step_index", idx,
+		"step_name", step.Name,
+	)
+
+	return nil
+}
+
+// logStepFailure logs detailed information about a failed workflow step
+func (e *Engine) handleStepFailure(
+	ctx context.Context,
+	wid models.WorkflowId,
+	w *models.Workflow,
+	idx int,
+	execID string,
+) error {
+	addl := w.Data.(addlFields)
+	step := w.Steps[idx].(Step)
+
+	inspectResp, err := e.docker.ContainerInspect(ctx, addl.container)
 	if err != nil {
 		return err
 	}
 
-	if execInspectResp.ExitCode != 0 {
-		inspectResp, err := e.docker.ContainerInspect(ctx, addl.container)
-		if err != nil {
-			return err
-		}
-
-		e.l.Error("workflow failed!", "workflow_id", wid.String(), "exit_code", execInspectResp.ExitCode, "oom_killed", inspectResp.State.OOMKilled)
-
-		if inspectResp.State.OOMKilled {
-			return ErrOOMKilled
-		}
-		return engine.ErrWorkflowFailed
+	execInspectResp, err := e.docker.ContainerExecInspect(ctx, execID)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	// no error
+	if execInspectResp.ExitCode == 0 {
+		return nil
+	}
+
+	logFields := []any{
+		"workflow_id", wid.String(),
+		"step_index", idx,
+		"step_name", step.Name,
+		"command", step.command,
+		"container_exit_code", inspectResp.State.ExitCode,
+		"container_oom_killed", inspectResp.State.OOMKilled,
+		"exec_exit_code", execInspectResp.ExitCode,
+	}
+
+	// Add container state information
+	if inspectResp.State != nil {
+		logFields = append(logFields,
+			"container_status", inspectResp.State.Status,
+			"container_running", inspectResp.State.Running,
+			"container_paused", inspectResp.State.Paused,
+			"container_restarting", inspectResp.State.Restarting,
+			"container_dead", inspectResp.State.Dead,
+		)
+
+		if inspectResp.State.Error != "" {
+			logFields = append(logFields, "container_error", inspectResp.State.Error)
+		}
+
+		if inspectResp.State.StartedAt != "" {
+			logFields = append(logFields, "container_started_at", inspectResp.State.StartedAt)
+		}
+
+		if inspectResp.State.FinishedAt != "" {
+			logFields = append(logFields, "container_finished_at", inspectResp.State.FinishedAt)
+		}
+	}
+
+	// Add resource usage if available
+	if inspectResp.HostConfig != nil && inspectResp.HostConfig.Memory > 0 {
+		logFields = append(logFields, "memory_limit", inspectResp.HostConfig.Memory)
+	}
+
+	e.l.Error("workflow step failed!", logFields...)
+
+	if inspectResp.State.OOMKilled {
+		return ErrOOMKilled
+	}
+	return engine.ErrWorkflowFailed
 }
 
 func (e *Engine) tailStep(ctx context.Context, wfLogger *models.WorkflowLogger, execID string, wid models.WorkflowId, stepIdx int, step models.Step) error {
