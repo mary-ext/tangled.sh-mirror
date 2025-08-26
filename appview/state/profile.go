@@ -17,55 +17,46 @@ import (
 	"github.com/gorilla/feeds"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/oauth"
+	// "tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 )
 
 func (s *State) Profile(w http.ResponseWriter, r *http.Request) {
 	tabVal := r.URL.Query().Get("tab")
 	switch tabVal {
-	case "":
-		s.profileHomePage(w, r)
+	case "", "overview":
+		s.profileOverview(w, r)
 	case "repos":
 		s.reposPage(w, r)
 	case "followers":
 		s.followersPage(w, r)
 	case "following":
 		s.followingPage(w, r)
+	case "starred":
+		s.starredPage(w, r)
 	}
 }
 
-type ProfilePageParams struct {
-	Id           identity.Identity
-	LoggedInUser *oauth.User
-	Card         pages.ProfileCard
-}
-
-func (s *State) profilePage(w http.ResponseWriter, r *http.Request) *ProfilePageParams {
+func (s *State) profile(r *http.Request) (*pages.ProfileCard, error) {
 	didOrHandle := chi.URLParam(r, "user")
 	if didOrHandle == "" {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return nil
+		return nil, fmt.Errorf("empty DID or handle")
 	}
 
 	ident, ok := r.Context().Value("resolvedId").(identity.Identity)
 	if !ok {
-		log.Printf("malformed middleware")
-		w.WriteHeader(http.StatusInternalServerError)
-		return nil
+		return nil, fmt.Errorf("failed to resolve ID")
 	}
 	did := ident.DID.String()
 
 	profile, err := db.GetProfile(s.db, did)
 	if err != nil {
-		log.Printf("getting profile data for %s: %s", did, err)
-		s.pages.Error500(w)
-		return nil
+		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	followStats, err := db.GetFollowerFollowingCount(s.db, did)
 	if err != nil {
-		log.Printf("getting follow stats for %s: %s", did, err)
+		return nil, fmt.Errorf("failed to get follower stats: %w", err)
 	}
 
 	loggedInUser := s.oauth.GetUser(r)
@@ -74,160 +65,187 @@ func (s *State) profilePage(w http.ResponseWriter, r *http.Request) *ProfilePage
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, did)
 	}
 
-	return &ProfilePageParams{
-		Id:           ident,
-		LoggedInUser: loggedInUser,
-		Card: pages.ProfileCard{
-			UserDid:        did,
-			UserHandle:     ident.Handle.String(),
-			Profile:        profile,
-			FollowStatus:   followStatus,
-			FollowersCount: followStats.Followers,
-			FollowingCount: followStats.Following,
-		},
+	now := time.Now()
+	startOfYear := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+	punchcard, err := db.MakePunchcard(
+		s.db,
+		db.FilterEq("did", did),
+		db.FilterGte("date", startOfYear.Format(time.DateOnly)),
+		db.FilterLte("date", now.Format(time.DateOnly)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get punchcard for %s: %w", did, err)
 	}
+
+	return &pages.ProfileCard{
+		UserDid:        did,
+		UserHandle:     ident.Handle.String(),
+		Profile:        profile,
+		FollowStatus:   followStatus,
+		FollowersCount: followStats.Followers,
+		FollowingCount: followStats.Following,
+		Punchcard:      punchcard,
+	}, nil
 }
 
-func (s *State) profileHomePage(w http.ResponseWriter, r *http.Request) {
-	pageWithProfile := s.profilePage(w, r)
-	if pageWithProfile == nil {
+func (s *State) profileOverview(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With("handler", "profileHomePage")
+
+	profile, err := s.profile(r)
+	if err != nil {
+		l.Error("failed to build profile card", "err", err)
+		s.pages.Error500(w)
 		return
 	}
+	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
 
-	id := pageWithProfile.Id
 	repos, err := db.GetRepos(
 		s.db,
 		0,
-		db.FilterEq("did", id.DID),
+		db.FilterEq("did", profile.UserDid),
 	)
 	if err != nil {
-		log.Printf("getting repos for %s: %s", id.DID, err)
+		l.Error("failed to fetch repos", "err", err)
 	}
 
-	profile := pageWithProfile.Card.Profile
 	// filter out ones that are pinned
 	pinnedRepos := []db.Repo{}
 	for i, r := range repos {
 		// if this is a pinned repo, add it
-		if slices.Contains(profile.PinnedRepos[:], r.RepoAt()) {
+		if slices.Contains(profile.Profile.PinnedRepos[:], r.RepoAt()) {
 			pinnedRepos = append(pinnedRepos, r)
 		}
 
 		// if there are no saved pins, add the first 4 repos
-		if profile.IsPinnedReposEmpty() && i < 4 {
+		if profile.Profile.IsPinnedReposEmpty() && i < 4 {
 			pinnedRepos = append(pinnedRepos, r)
 		}
 	}
 
-	collaboratingRepos, err := db.CollaboratingIn(s.db, id.DID.String())
+	collaboratingRepos, err := db.CollaboratingIn(s.db, profile.UserDid)
 	if err != nil {
-		log.Printf("getting collaborating repos for %s: %s", id.DID, err)
+		l.Error("failed to fetch collaborating repos", "err", err)
 	}
 
 	pinnedCollaboratingRepos := []db.Repo{}
 	for _, r := range collaboratingRepos {
 		// if this is a pinned repo, add it
-		if slices.Contains(profile.PinnedRepos[:], r.RepoAt()) {
+		if slices.Contains(profile.Profile.PinnedRepos[:], r.RepoAt()) {
 			pinnedCollaboratingRepos = append(pinnedCollaboratingRepos, r)
 		}
 	}
 
-	timeline, err := db.MakeProfileTimeline(s.db, id.DID.String())
+	timeline, err := db.MakeProfileTimeline(s.db, profile.UserDid)
 	if err != nil {
-		log.Printf("failed to create profile timeline for %s: %s", id.DID, err)
+		l.Error("failed to create timeline", "err", err)
 	}
 
-	var didsToResolve []string
-	for _, r := range collaboratingRepos {
-		didsToResolve = append(didsToResolve, r.Did)
-	}
-	for _, byMonth := range timeline.ByMonth {
-		for _, pe := range byMonth.PullEvents.Items {
-			didsToResolve = append(didsToResolve, pe.Repo.Did)
-		}
-		for _, ie := range byMonth.IssueEvents.Items {
-			didsToResolve = append(didsToResolve, ie.Metadata.Repo.Did)
-		}
-		for _, re := range byMonth.RepoEvents {
-			didsToResolve = append(didsToResolve, re.Repo.Did)
-			if re.Source != nil {
-				didsToResolve = append(didsToResolve, re.Source.Did)
-			}
-		}
-	}
-
-	now := time.Now()
-	startOfYear := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
-	punchcard, err := db.MakePunchcard(
-		s.db,
-		db.FilterEq("did", id.DID),
-		db.FilterGte("date", startOfYear.Format(time.DateOnly)),
-		db.FilterLte("date", now.Format(time.DateOnly)),
-	)
-	if err != nil {
-		log.Println("failed to get punchcard for did", "did", id.DID, "err", err)
-	}
-
-	s.pages.ProfileHomePage(w, pages.ProfileHomePageParams{
-		LoggedInUser:       pageWithProfile.LoggedInUser,
+	s.pages.ProfileOverview(w, pages.ProfileOverviewParams{
+		LoggedInUser:       s.oauth.GetUser(r),
+		Card:               profile,
 		Repos:              pinnedRepos,
 		CollaboratingRepos: pinnedCollaboratingRepos,
-		Card:               pageWithProfile.Card,
-		Punchcard:          punchcard,
 		ProfileTimeline:    timeline,
 	})
 }
 
 func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
-	pageWithProfile := s.profilePage(w, r)
-	if pageWithProfile == nil {
+	l := s.logger.With("handler", "reposPage")
+
+	profile, err := s.profile(r)
+	if err != nil {
+		l.Error("failed to build profile card", "err", err)
+		s.pages.Error500(w)
 		return
 	}
+	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
 
-	id := pageWithProfile.Id
 	repos, err := db.GetRepos(
 		s.db,
 		0,
-		db.FilterEq("did", id.DID),
+		db.FilterEq("did", profile.UserDid),
 	)
 	if err != nil {
-		log.Printf("getting repos for %s: %s", id.DID, err)
+		l.Error("failed to get repos", "err", err)
+		s.pages.Error500(w)
+		return
 	}
 
-	s.pages.ReposPage(w, pages.ReposPageParams{
-		LoggedInUser: pageWithProfile.LoggedInUser,
+	err = s.pages.ProfileRepos(w, pages.ProfileReposParams{
+		LoggedInUser: s.oauth.GetUser(r),
 		Repos:        repos,
-		Card:         pageWithProfile.Card,
+		Card:         profile,
+	})
+}
+
+func (s *State) starredPage(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With("handler", "starredPage")
+
+	profile, err := s.profile(r)
+	if err != nil {
+		l.Error("failed to build profile card", "err", err)
+		s.pages.Error500(w)
+		return
+	}
+	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+
+	stars, err := db.GetStars(s.db, 0, db.FilterEq("starred_by_did", profile.UserDid))
+	if err != nil {
+		l.Error("failed to get stars", "err", err)
+		s.pages.Error500(w)
+		return
+	}
+	var repoAts []string
+	for _, s := range stars {
+		repoAts = append(repoAts, string(s.RepoAt))
+	}
+
+	repos, err := db.GetRepos(
+		s.db,
+		0,
+		db.FilterIn("at_uri", repoAts),
+	)
+	if err != nil {
+		l.Error("failed to get repos", "err", err)
+		s.pages.Error500(w)
+		return
+	}
+
+	err = s.pages.ProfileStarred(w, pages.ProfileStarredParams{
+		LoggedInUser: s.oauth.GetUser(r),
+		Repos:        repos,
+		Card:         profile,
 	})
 }
 
 type FollowsPageParams struct {
-	LoggedInUser *oauth.User
-	Follows      []pages.FollowCard
-	Card         pages.ProfileCard
+	Follows []pages.FollowCard
+	Card    *pages.ProfileCard
 }
 
-func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows func(db.Execer, string) ([]db.Follow, error), extractDid func(db.Follow) string) (FollowsPageParams, error) {
-	pageWithProfile := s.profilePage(w, r)
-	if pageWithProfile == nil {
-		return FollowsPageParams{}, nil
-	}
+func (s *State) followPage(
+	r *http.Request,
+	fetchFollows func(db.Execer, string) ([]db.Follow, error),
+	extractDid func(db.Follow) string,
+) (*FollowsPageParams, error) {
+	l := s.logger.With("handler", "reposPage")
 
-	id := pageWithProfile.Id
-	loggedInUser := pageWithProfile.LoggedInUser
-
-	follows, err := fetchFollows(s.db, id.DID.String())
+	profile, err := s.profile(r)
 	if err != nil {
-		log.Printf("getting followers for %s: %s", id.DID, err)
-		return FollowsPageParams{}, err
+		return nil, err
+	}
+	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+
+	loggedInUser := s.oauth.GetUser(r)
+
+	follows, err := fetchFollows(s.db, profile.UserDid)
+	if err != nil {
+		l.Error("failed to fetch follows", "err", err)
+		return nil, err
 	}
 
 	if len(follows) == 0 {
-		return FollowsPageParams{
-			LoggedInUser: loggedInUser,
-			Follows:      []pages.FollowCard{},
-			Card:         pageWithProfile.Card,
-		}, nil
+		return nil, nil
 	}
 
 	followDids := make([]string, 0, len(follows))
@@ -237,8 +255,8 @@ func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows 
 
 	profiles, err := db.GetProfiles(s.db, db.FilterIn("did", followDids))
 	if err != nil {
-		log.Printf("getting profile for %s: %s", followDids, err)
-		return FollowsPageParams{}, err
+		l.Error("failed to get profiles", "followDids", followDids, "err", err)
+		return nil, err
 	}
 
 	followStatsMap, err := db.GetFollowerFollowingCounts(s.db, followDids)
@@ -246,34 +264,29 @@ func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows 
 		log.Printf("getting follow counts for %s: %s", followDids, err)
 	}
 
-	var loggedInUserFollowing map[string]struct{}
+	loggedInUserFollowing := make(map[string]struct{})
 	if loggedInUser != nil {
 		following, err := db.GetFollowing(s.db, loggedInUser.Did)
 		if err != nil {
-			return FollowsPageParams{}, err
+			l.Error("failed to get follow list", "err", err, "loggedInUser", loggedInUser.Did)
+			return nil, err
 		}
-		if len(following) > 0 {
-			loggedInUserFollowing = make(map[string]struct{}, len(following))
-			for _, follow := range following {
-				loggedInUserFollowing[follow.SubjectDid] = struct{}{}
-			}
+		loggedInUserFollowing = make(map[string]struct{}, len(following))
+		for _, follow := range following {
+			loggedInUserFollowing[follow.SubjectDid] = struct{}{}
 		}
 	}
 
-	followCards := make([]pages.FollowCard, 0, len(follows))
-	for _, did := range followDids {
-		followStats, exists := followStatsMap[did]
-		if !exists {
-			followStats = db.FollowStats{}
-		}
+	followCards := make([]pages.FollowCard, len(follows))
+	for i, did := range followDids {
+		followStats := followStatsMap[did]
 		followStatus := db.IsNotFollowing
-		if loggedInUserFollowing != nil {
-			if _, exists := loggedInUserFollowing[did]; exists {
-				followStatus = db.IsFollowing
-			} else if loggedInUser.Did == did {
-				followStatus = db.IsSelf
-			}
+		if _, exists := loggedInUserFollowing[did]; exists {
+			followStatus = db.IsFollowing
+		} else if loggedInUser.Did == did {
+			followStatus = db.IsSelf
 		}
+
 		var profile *db.Profile
 		if p, exists := profiles[did]; exists {
 			profile = p
@@ -281,45 +294,44 @@ func (s *State) followPage(w http.ResponseWriter, r *http.Request, fetchFollows 
 			profile = &db.Profile{}
 			profile.Did = did
 		}
-		followCards = append(followCards, pages.FollowCard{
+		followCards[i] = pages.FollowCard{
 			UserDid:        did,
 			FollowStatus:   followStatus,
 			FollowersCount: followStats.Followers,
 			FollowingCount: followStats.Following,
 			Profile:        profile,
-		})
+		}
 	}
 
-	return FollowsPageParams{
-		LoggedInUser: loggedInUser,
-		Follows:      followCards,
-		Card:         pageWithProfile.Card,
+	return &FollowsPageParams{
+		Follows: followCards,
+		Card:    profile,
 	}, nil
 }
 
 func (s *State) followersPage(w http.ResponseWriter, r *http.Request) {
-	followPage, err := s.followPage(w, r, db.GetFollowers, func(f db.Follow) string { return f.UserDid })
+	followPage, err := s.followPage(r, db.GetFollowers, func(f db.Follow) string { return f.UserDid })
 	if err != nil {
 		s.pages.Notice(w, "all-followers", "Failed to load followers")
 		return
 	}
 
-	s.pages.FollowersPage(w, pages.FollowersPageParams{
-		LoggedInUser: followPage.LoggedInUser,
+	s.pages.ProfileFollowers(w, pages.ProfileFollowersParams{
+		LoggedInUser: s.oauth.GetUser(r),
 		Followers:    followPage.Follows,
 		Card:         followPage.Card,
 	})
 }
 
 func (s *State) followingPage(w http.ResponseWriter, r *http.Request) {
-	followPage, err := s.followPage(w, r, db.GetFollowing, func(f db.Follow) string { return f.SubjectDid })
+	followPage, err := s.followPage(r, db.GetFollowing, func(f db.Follow) string { return f.SubjectDid })
 	if err != nil {
 		s.pages.Notice(w, "all-following", "Failed to load following")
 		return
 	}
 
-	s.pages.FollowingPage(w, pages.FollowingPageParams{
-		LoggedInUser: followPage.LoggedInUser,
+	s.pages.ProfileFollowing(w, pages.ProfileFollowingParams{
+		LoggedInUser: s.oauth.GetUser(r),
 		Following:    followPage.Follows,
 		Card:         followPage.Card,
 	})

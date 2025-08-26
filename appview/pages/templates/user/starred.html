@@ -2,18 +2,18 @@
 
 {{ define "profileContent" }}
   <div id="all-repos" class="md:col-span-8 order-2 md:order-2">
-      {{ block "ownRepos" . }}{{ end }}
+      {{ block "starredRepos" . }}{{ end }}
   </div>
 {{ end }}
 
-{{ define "ownRepos" }}
+{{ define "starredRepos" }}
   <div id="repos" class="grid grid-cols-1 gap-4 mb-6">
     {{ range .Repos }}
       <div class="border border-gray-200 dark:border-gray-700 rounded-sm">
-         {{ template "user/fragments/repoCard" (list $ . false) }}
+         {{ template "user/fragments/repoCard" (list $ . true) }}
       </div>
     {{ else }}
-        <p class="px-6 dark:text-white">This user does not have any repos yet.</p>
+        <p class="px-6 dark:text-white">This user does not have any starred repos yet.</p>
     {{ end }}
   </div>
 {{ end }}

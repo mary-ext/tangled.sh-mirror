@@ -310,9 +310,9 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 
 	slices.SortFunc(repos, func(a, b Repo) int {
 		if a.Created.After(b.Created) {
-			return 1
+			return -1
 		}
-		return -1
+		return 1
 	})
 
 	return repos, nil
