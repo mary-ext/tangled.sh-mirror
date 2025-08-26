@@ -33,27 +33,31 @@ type GitRefUpdate struct {
 	RepoName string `json:"repoName" cborgen:"repoName"`
 }
 
-type GitRefUpdate_Meta struct {
-	CommitCount   *GitRefUpdate_Meta_CommitCount   `json:"commitCount" cborgen:"commitCount"`
-	IsDefaultRef  bool                             `json:"isDefaultRef" cborgen:"isDefaultRef"`
-	LangBreakdown *GitRefUpdate_Meta_LangBreakdown `json:"langBreakdown,omitempty" cborgen:"langBreakdown,omitempty"`
+// GitRefUpdate_CommitCountBreakdown is a "commitCountBreakdown" in the sh.tangled.git.refUpdate schema.
+type GitRefUpdate_CommitCountBreakdown struct {
+	ByEmail []*GitRefUpdate_IndividualEmailCommitCount `json:"byEmail,omitempty" cborgen:"byEmail,omitempty"`
 }
 
-type GitRefUpdate_Meta_CommitCount struct {
-	ByEmail []*GitRefUpdate_Meta_CommitCount_ByEmail_Elem `json:"byEmail,omitempty" cborgen:"byEmail,omitempty"`
-}
-
-type GitRefUpdate_Meta_CommitCount_ByEmail_Elem struct {
+// GitRefUpdate_IndividualEmailCommitCount is a "individualEmailCommitCount" in the sh.tangled.git.refUpdate schema.
+type GitRefUpdate_IndividualEmailCommitCount struct {
 	Count int64  `json:"count" cborgen:"count"`
 	Email string `json:"email" cborgen:"email"`
 }
 
-type GitRefUpdate_Meta_LangBreakdown struct {
-	Inputs []*GitRefUpdate_Pair `json:"inputs,omitempty" cborgen:"inputs,omitempty"`
-}
-
-// GitRefUpdate_Pair is a "pair" in the sh.tangled.git.refUpdate schema.
-type GitRefUpdate_Pair struct {
+// GitRefUpdate_IndividualLanguageSize is a "individualLanguageSize" in the sh.tangled.git.refUpdate schema.
+type GitRefUpdate_IndividualLanguageSize struct {
 	Lang string `json:"lang" cborgen:"lang"`
 	Size int64  `json:"size" cborgen:"size"`
+}
+
+// GitRefUpdate_LangBreakdown is a "langBreakdown" in the sh.tangled.git.refUpdate schema.
+type GitRefUpdate_LangBreakdown struct {
+	Inputs []*GitRefUpdate_IndividualLanguageSize `json:"inputs,omitempty" cborgen:"inputs,omitempty"`
+}
+
+// GitRefUpdate_Meta is a "meta" in the sh.tangled.git.refUpdate schema.
+type GitRefUpdate_Meta struct {
+	CommitCount   *GitRefUpdate_CommitCountBreakdown `json:"commitCount" cborgen:"commitCount"`
+	IsDefaultRef  bool                               `json:"isDefaultRef" cborgen:"isDefaultRef"`
+	LangBreakdown *GitRefUpdate_LangBreakdown        `json:"langBreakdown,omitempty" cborgen:"langBreakdown,omitempty"`
 }

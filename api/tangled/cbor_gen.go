@@ -1202,187 +1202,7 @@ func (t *GitRefUpdate) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *GitRefUpdate_Meta) MarshalCBOR(w io.Writer) error {
-	if t == nil {
-		_, err := w.Write(cbg.CborNull)
-		return err
-	}
-
-	cw := cbg.NewCborWriter(w)
-	fieldCount := 3
-
-	if t.LangBreakdown == nil {
-		fieldCount--
-	}
-
-	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
-		return err
-	}
-
-	// t.CommitCount (tangled.GitRefUpdate_Meta_CommitCount) (struct)
-	if len("commitCount") > 1000000 {
-		return xerrors.Errorf("Value in field \"commitCount\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("commitCount"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("commitCount")); err != nil {
-		return err
-	}
-
-	if err := t.CommitCount.MarshalCBOR(cw); err != nil {
-		return err
-	}
-
-	// t.IsDefaultRef (bool) (bool)
-	if len("isDefaultRef") > 1000000 {
-		return xerrors.Errorf("Value in field \"isDefaultRef\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("isDefaultRef"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("isDefaultRef")); err != nil {
-		return err
-	}
-
-	if err := cbg.WriteBool(w, t.IsDefaultRef); err != nil {
-		return err
-	}
-
-	// t.LangBreakdown (tangled.GitRefUpdate_Meta_LangBreakdown) (struct)
-	if t.LangBreakdown != nil {
-
-		if len("langBreakdown") > 1000000 {
-			return xerrors.Errorf("Value in field \"langBreakdown\" was too long")
-		}
-
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("langBreakdown"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("langBreakdown")); err != nil {
-			return err
-		}
-
-		if err := t.LangBreakdown.MarshalCBOR(cw); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (t *GitRefUpdate_Meta) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = GitRefUpdate_Meta{}
-
-	cr := cbg.NewCborReader(r)
-
-	maj, extra, err := cr.ReadHeader()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err == io.EOF {
-			err = io.ErrUnexpectedEOF
-		}
-	}()
-
-	if maj != cbg.MajMap {
-		return fmt.Errorf("cbor input should be of type map")
-	}
-
-	if extra > cbg.MaxLength {
-		return fmt.Errorf("GitRefUpdate_Meta: map struct too large (%d)", extra)
-	}
-
-	n := extra
-
-	nameBuf := make([]byte, 13)
-	for i := uint64(0); i < n; i++ {
-		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
-				return err
-			}
-			continue
-		}
-
-		switch string(nameBuf[:nameLen]) {
-		// t.CommitCount (tangled.GitRefUpdate_Meta_CommitCount) (struct)
-		case "commitCount":
-
-			{
-
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-					t.CommitCount = new(GitRefUpdate_Meta_CommitCount)
-					if err := t.CommitCount.UnmarshalCBOR(cr); err != nil {
-						return xerrors.Errorf("unmarshaling t.CommitCount pointer: %w", err)
-					}
-				}
-
-			}
-			// t.IsDefaultRef (bool) (bool)
-		case "isDefaultRef":
-
-			maj, extra, err = cr.ReadHeader()
-			if err != nil {
-				return err
-			}
-			if maj != cbg.MajOther {
-				return fmt.Errorf("booleans must be major type 7")
-			}
-			switch extra {
-			case 20:
-				t.IsDefaultRef = false
-			case 21:
-				t.IsDefaultRef = true
-			default:
-				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
-			}
-			// t.LangBreakdown (tangled.GitRefUpdate_Meta_LangBreakdown) (struct)
-		case "langBreakdown":
-
-			{
-
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-					t.LangBreakdown = new(GitRefUpdate_Meta_LangBreakdown)
-					if err := t.LangBreakdown.UnmarshalCBOR(cr); err != nil {
-						return xerrors.Errorf("unmarshaling t.LangBreakdown pointer: %w", err)
-					}
-				}
-
-			}
-
-		default:
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-func (t *GitRefUpdate_Meta_CommitCount) MarshalCBOR(w io.Writer) error {
+func (t *GitRefUpdate_CommitCountBreakdown) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -1399,7 +1219,7 @@ func (t *GitRefUpdate_Meta_CommitCount) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.ByEmail ([]*tangled.GitRefUpdate_Meta_CommitCount_ByEmail_Elem) (slice)
+	// t.ByEmail ([]*tangled.GitRefUpdate_IndividualEmailCommitCount) (slice)
 	if t.ByEmail != nil {
 
 		if len("byEmail") > 1000000 {
@@ -1430,8 +1250,8 @@ func (t *GitRefUpdate_Meta_CommitCount) MarshalCBOR(w io.Writer) error {
 	return nil
 }
 
-func (t *GitRefUpdate_Meta_CommitCount) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = GitRefUpdate_Meta_CommitCount{}
+func (t *GitRefUpdate_CommitCountBreakdown) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = GitRefUpdate_CommitCountBreakdown{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -1450,7 +1270,7 @@ func (t *GitRefUpdate_Meta_CommitCount) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("GitRefUpdate_Meta_CommitCount: map struct too large (%d)", extra)
+		return fmt.Errorf("GitRefUpdate_CommitCountBreakdown: map struct too large (%d)", extra)
 	}
 
 	n := extra
@@ -1471,7 +1291,7 @@ func (t *GitRefUpdate_Meta_CommitCount) UnmarshalCBOR(r io.Reader) (err error) {
 		}
 
 		switch string(nameBuf[:nameLen]) {
-		// t.ByEmail ([]*tangled.GitRefUpdate_Meta_CommitCount_ByEmail_Elem) (slice)
+		// t.ByEmail ([]*tangled.GitRefUpdate_IndividualEmailCommitCount) (slice)
 		case "byEmail":
 
 			maj, extra, err = cr.ReadHeader()
@@ -1488,7 +1308,7 @@ func (t *GitRefUpdate_Meta_CommitCount) UnmarshalCBOR(r io.Reader) (err error) {
 			}
 
 			if extra > 0 {
-				t.ByEmail = make([]*GitRefUpdate_Meta_CommitCount_ByEmail_Elem, extra)
+				t.ByEmail = make([]*GitRefUpdate_IndividualEmailCommitCount, extra)
 			}
 
 			for i := 0; i < int(extra); i++ {
@@ -1510,7 +1330,7 @@ func (t *GitRefUpdate_Meta_CommitCount) UnmarshalCBOR(r io.Reader) (err error) {
 							if err := cr.UnreadByte(); err != nil {
 								return err
 							}
-							t.ByEmail[i] = new(GitRefUpdate_Meta_CommitCount_ByEmail_Elem)
+							t.ByEmail[i] = new(GitRefUpdate_IndividualEmailCommitCount)
 							if err := t.ByEmail[i].UnmarshalCBOR(cr); err != nil {
 								return xerrors.Errorf("unmarshaling t.ByEmail[i] pointer: %w", err)
 							}
@@ -1531,7 +1351,7 @@ func (t *GitRefUpdate_Meta_CommitCount) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *GitRefUpdate_Meta_CommitCount_ByEmail_Elem) MarshalCBOR(w io.Writer) error {
+func (t *GitRefUpdate_IndividualEmailCommitCount) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -1590,8 +1410,8 @@ func (t *GitRefUpdate_Meta_CommitCount_ByEmail_Elem) MarshalCBOR(w io.Writer) er
 	return nil
 }
 
-func (t *GitRefUpdate_Meta_CommitCount_ByEmail_Elem) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = GitRefUpdate_Meta_CommitCount_ByEmail_Elem{}
+func (t *GitRefUpdate_IndividualEmailCommitCount) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = GitRefUpdate_IndividualEmailCommitCount{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -1610,7 +1430,7 @@ func (t *GitRefUpdate_Meta_CommitCount_ByEmail_Elem) UnmarshalCBOR(r io.Reader) 
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("GitRefUpdate_Meta_CommitCount_ByEmail_Elem: map struct too large (%d)", extra)
+		return fmt.Errorf("GitRefUpdate_IndividualEmailCommitCount: map struct too large (%d)", extra)
 	}
 
 	n := extra
@@ -1679,7 +1499,7 @@ func (t *GitRefUpdate_Meta_CommitCount_ByEmail_Elem) UnmarshalCBOR(r io.Reader) 
 
 	return nil
 }
-func (t *GitRefUpdate_Meta_LangBreakdown) MarshalCBOR(w io.Writer) error {
+func (t *GitRefUpdate_LangBreakdown) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -1696,7 +1516,7 @@ func (t *GitRefUpdate_Meta_LangBreakdown) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Inputs ([]*tangled.GitRefUpdate_Pair) (slice)
+	// t.Inputs ([]*tangled.GitRefUpdate_IndividualLanguageSize) (slice)
 	if t.Inputs != nil {
 
 		if len("inputs") > 1000000 {
@@ -1727,8 +1547,8 @@ func (t *GitRefUpdate_Meta_LangBreakdown) MarshalCBOR(w io.Writer) error {
 	return nil
 }
 
-func (t *GitRefUpdate_Meta_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = GitRefUpdate_Meta_LangBreakdown{}
+func (t *GitRefUpdate_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = GitRefUpdate_LangBreakdown{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -1747,7 +1567,7 @@ func (t *GitRefUpdate_Meta_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error)
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("GitRefUpdate_Meta_LangBreakdown: map struct too large (%d)", extra)
+		return fmt.Errorf("GitRefUpdate_LangBreakdown: map struct too large (%d)", extra)
 	}
 
 	n := extra
@@ -1768,7 +1588,7 @@ func (t *GitRefUpdate_Meta_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error)
 		}
 
 		switch string(nameBuf[:nameLen]) {
-		// t.Inputs ([]*tangled.GitRefUpdate_Pair) (slice)
+		// t.Inputs ([]*tangled.GitRefUpdate_IndividualLanguageSize) (slice)
 		case "inputs":
 
 			maj, extra, err = cr.ReadHeader()
@@ -1785,7 +1605,7 @@ func (t *GitRefUpdate_Meta_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error)
 			}
 
 			if extra > 0 {
-				t.Inputs = make([]*GitRefUpdate_Pair, extra)
+				t.Inputs = make([]*GitRefUpdate_IndividualLanguageSize, extra)
 			}
 
 			for i := 0; i < int(extra); i++ {
@@ -1807,7 +1627,7 @@ func (t *GitRefUpdate_Meta_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error)
 							if err := cr.UnreadByte(); err != nil {
 								return err
 							}
-							t.Inputs[i] = new(GitRefUpdate_Pair)
+							t.Inputs[i] = new(GitRefUpdate_IndividualLanguageSize)
 							if err := t.Inputs[i].UnmarshalCBOR(cr); err != nil {
 								return xerrors.Errorf("unmarshaling t.Inputs[i] pointer: %w", err)
 							}
@@ -1828,7 +1648,7 @@ func (t *GitRefUpdate_Meta_LangBreakdown) UnmarshalCBOR(r io.Reader) (err error)
 
 	return nil
 }
-func (t *GitRefUpdate_Pair) MarshalCBOR(w io.Writer) error {
+func (t *GitRefUpdate_IndividualLanguageSize) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
 		return err
@@ -1888,8 +1708,8 @@ func (t *GitRefUpdate_Pair) MarshalCBOR(w io.Writer) error {
 	return nil
 }
 
-func (t *GitRefUpdate_Pair) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = GitRefUpdate_Pair{}
+func (t *GitRefUpdate_IndividualLanguageSize) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = GitRefUpdate_IndividualLanguageSize{}
 
 	cr := cbg.NewCborReader(r)
 
@@ -1908,7 +1728,7 @@ func (t *GitRefUpdate_Pair) UnmarshalCBOR(r io.Reader) (err error) {
 	}
 
 	if extra > cbg.MaxLength {
-		return fmt.Errorf("GitRefUpdate_Pair: map struct too large (%d)", extra)
+		return fmt.Errorf("GitRefUpdate_IndividualLanguageSize: map struct too large (%d)", extra)
 	}
 
 	n := extra
@@ -1965,6 +1785,186 @@ func (t *GitRefUpdate_Pair) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Size = int64(extraI)
+			}
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+func (t *GitRefUpdate_Meta) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+	fieldCount := 3
+
+	if t.LangBreakdown == nil {
+		fieldCount--
+	}
+
+	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
+		return err
+	}
+
+	// t.CommitCount (tangled.GitRefUpdate_CommitCountBreakdown) (struct)
+	if len("commitCount") > 1000000 {
+		return xerrors.Errorf("Value in field \"commitCount\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("commitCount"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("commitCount")); err != nil {
+		return err
+	}
+
+	if err := t.CommitCount.MarshalCBOR(cw); err != nil {
+		return err
+	}
+
+	// t.IsDefaultRef (bool) (bool)
+	if len("isDefaultRef") > 1000000 {
+		return xerrors.Errorf("Value in field \"isDefaultRef\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("isDefaultRef"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("isDefaultRef")); err != nil {
+		return err
+	}
+
+	if err := cbg.WriteBool(w, t.IsDefaultRef); err != nil {
+		return err
+	}
+
+	// t.LangBreakdown (tangled.GitRefUpdate_LangBreakdown) (struct)
+	if t.LangBreakdown != nil {
+
+		if len("langBreakdown") > 1000000 {
+			return xerrors.Errorf("Value in field \"langBreakdown\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("langBreakdown"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("langBreakdown")); err != nil {
+			return err
+		}
+
+		if err := t.LangBreakdown.MarshalCBOR(cw); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *GitRefUpdate_Meta) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = GitRefUpdate_Meta{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("GitRefUpdate_Meta: map struct too large (%d)", extra)
+	}
+
+	n := extra
+
+	nameBuf := make([]byte, 13)
+	for i := uint64(0); i < n; i++ {
+		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		switch string(nameBuf[:nameLen]) {
+		// t.CommitCount (tangled.GitRefUpdate_CommitCountBreakdown) (struct)
+		case "commitCount":
+
+			{
+
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+					t.CommitCount = new(GitRefUpdate_CommitCountBreakdown)
+					if err := t.CommitCount.UnmarshalCBOR(cr); err != nil {
+						return xerrors.Errorf("unmarshaling t.CommitCount pointer: %w", err)
+					}
+				}
+
+			}
+			// t.IsDefaultRef (bool) (bool)
+		case "isDefaultRef":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+			if maj != cbg.MajOther {
+				return fmt.Errorf("booleans must be major type 7")
+			}
+			switch extra {
+			case 20:
+				t.IsDefaultRef = false
+			case 21:
+				t.IsDefaultRef = true
+			default:
+				return fmt.Errorf("booleans are either major type 7, value 20 or 21 (got %d)", extra)
+			}
+			// t.LangBreakdown (tangled.GitRefUpdate_LangBreakdown) (struct)
+		case "langBreakdown":
+
+			{
+
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+					t.LangBreakdown = new(GitRefUpdate_LangBreakdown)
+					if err := t.LangBreakdown.UnmarshalCBOR(cr); err != nil {
+						return xerrors.Errorf("unmarshaling t.LangBreakdown pointer: %w", err)
+					}
+				}
+
 			}
 
 		default:
@@ -6522,140 +6522,6 @@ func (t *RepoIssueState) UnmarshalCBOR(r io.Reader) (err error) {
 
 	return nil
 }
-func (t *RepoPull_Target) MarshalCBOR(w io.Writer) error {
-	if t == nil {
-		_, err := w.Write(cbg.CborNull)
-		return err
-	}
-
-	cw := cbg.NewCborWriter(w)
-
-	if _, err := cw.Write([]byte{162}); err != nil {
-		return err
-	}
-
-	// t.Repo (string) (string)
-	if len("repo") > 1000000 {
-		return xerrors.Errorf("Value in field \"repo\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("repo"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("repo")); err != nil {
-		return err
-	}
-
-	if len(t.Repo) > 1000000 {
-		return xerrors.Errorf("Value in field t.Repo was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Repo))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Repo)); err != nil {
-		return err
-	}
-
-	// t.Branch (string) (string)
-	if len("branch") > 1000000 {
-		return xerrors.Errorf("Value in field \"branch\" was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("branch"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("branch")); err != nil {
-		return err
-	}
-
-	if len(t.Branch) > 1000000 {
-		return xerrors.Errorf("Value in field t.Branch was too long")
-	}
-
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Branch))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Branch)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t *RepoPull_Target) UnmarshalCBOR(r io.Reader) (err error) {
-	*t = RepoPull_Target{}
-
-	cr := cbg.NewCborReader(r)
-
-	maj, extra, err := cr.ReadHeader()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err == io.EOF {
-			err = io.ErrUnexpectedEOF
-		}
-	}()
-
-	if maj != cbg.MajMap {
-		return fmt.Errorf("cbor input should be of type map")
-	}
-
-	if extra > cbg.MaxLength {
-		return fmt.Errorf("RepoPull_Target: map struct too large (%d)", extra)
-	}
-
-	n := extra
-
-	nameBuf := make([]byte, 6)
-	for i := uint64(0); i < n; i++ {
-		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
-				return err
-			}
-			continue
-		}
-
-		switch string(nameBuf[:nameLen]) {
-		// t.Repo (string) (string)
-		case "repo":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Repo = string(sval)
-			}
-			// t.Branch (string) (string)
-		case "branch":
-
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
-				}
-
-				t.Branch = string(sval)
-			}
-
-		default:
-			// Field doesn't exist on this type, so ignore it
-			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
 func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	if t == nil {
 		_, err := w.Write(cbg.CborNull)
@@ -7533,6 +7399,140 @@ func (t *RepoPullStatus) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Status = string(sval)
+			}
+
+		default:
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(r, func(cid.Cid) {}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+func (t *RepoPull_Target) MarshalCBOR(w io.Writer) error {
+	if t == nil {
+		_, err := w.Write(cbg.CborNull)
+		return err
+	}
+
+	cw := cbg.NewCborWriter(w)
+
+	if _, err := cw.Write([]byte{162}); err != nil {
+		return err
+	}
+
+	// t.Repo (string) (string)
+	if len("repo") > 1000000 {
+		return xerrors.Errorf("Value in field \"repo\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("repo"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("repo")); err != nil {
+		return err
+	}
+
+	if len(t.Repo) > 1000000 {
+		return xerrors.Errorf("Value in field t.Repo was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Repo))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Repo)); err != nil {
+		return err
+	}
+
+	// t.Branch (string) (string)
+	if len("branch") > 1000000 {
+		return xerrors.Errorf("Value in field \"branch\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("branch"))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string("branch")); err != nil {
+		return err
+	}
+
+	if len(t.Branch) > 1000000 {
+		return xerrors.Errorf("Value in field t.Branch was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Branch))); err != nil {
+		return err
+	}
+	if _, err := cw.WriteString(string(t.Branch)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *RepoPull_Target) UnmarshalCBOR(r io.Reader) (err error) {
+	*t = RepoPull_Target{}
+
+	cr := cbg.NewCborReader(r)
+
+	maj, extra, err := cr.ReadHeader()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	if maj != cbg.MajMap {
+		return fmt.Errorf("cbor input should be of type map")
+	}
+
+	if extra > cbg.MaxLength {
+		return fmt.Errorf("RepoPull_Target: map struct too large (%d)", extra)
+	}
+
+	n := extra
+
+	nameBuf := make([]byte, 6)
+	for i := uint64(0); i < n; i++ {
+		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			// Field doesn't exist on this type, so ignore it
+			if err := cbg.ScanForLinks(cr, func(cid.Cid) {}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		switch string(nameBuf[:nameLen]) {
+		// t.Repo (string) (string)
+		case "repo":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Repo = string(sval)
+			}
+			// t.Branch (string) (string)
+		case "branch":
+
+			{
+				sval, err := cbg.ReadStringWithMax(cr, 1000000)
+				if err != nil {
+					return err
+				}
+
+				t.Branch = string(sval)
 			}
 
 		default:
