@@ -29,8 +29,8 @@ type Punchcard struct {
 	Punches []Punch
 }
 
-func MakePunchcard(e Execer, filters ...filter) (Punchcard, error) {
-	punchcard := Punchcard{}
+func MakePunchcard(e Execer, filters ...filter) (*Punchcard, error) {
+	punchcard := &Punchcard{}
 	now := time.Now()
 	startOfYear := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
 	endOfYear := time.Date(now.Year(), 12, 31, 0, 0, 0, 0, time.UTC)
@@ -63,7 +63,7 @@ func MakePunchcard(e Execer, filters ...filter) (Punchcard, error) {
 
 	rows, err := e.Query(query, args...)
 	if err != nil {
-		return punchcard, err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -72,7 +72,7 @@ func MakePunchcard(e Execer, filters ...filter) (Punchcard, error) {
 		var date string
 		var count sql.NullInt64
 		if err := rows.Scan(&date, &count); err != nil {
-			return punchcard, err
+			return nil, err
 		}
 
 		punch.Date, err = time.Parse(time.DateOnly, date)
