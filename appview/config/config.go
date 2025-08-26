@@ -19,6 +19,9 @@ type CoreConfig struct {
 
 	// temporarily, to add users to default knot and spindle
 	AppPassword string `env:"APP_PASSWORD"`
+
+	// uhhhh this is because knot1 is under icy's did
+	TmpAltAppPassword string `env:"ALT_APP_PASSWORD, required"`
 }
 
 type OAuthConfig struct {
