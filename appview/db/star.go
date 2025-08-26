@@ -257,14 +257,15 @@ func GetTopStarredReposLastWeek(e Execer) ([]Repo, error) {
 		repo_star_counts as (
 			select
 				s.repo_at,
-				count(*) as star_count
+				count(*) as stars_gained_last_week
 			from stars s
 			join recent_starred_repos rsr on s.repo_at = rsr.repo_at
+			where s.created >= datetime('now', '-7 days')
 			group by s.repo_at
 		)
 		select rsc.repo_at
 		from repo_star_counts rsc
-		order by rsc.star_count desc
+		order by rsc.stars_gained_last_week desc
 		limit 8
 	`
 
