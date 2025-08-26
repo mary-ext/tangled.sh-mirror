@@ -195,13 +195,23 @@ func (h *Handle) configureOwner() error {
 		}
 
 		// remove existing owner
-		err = h.e.RemoveKnotOwner(rbacDomain, existingOwner)
-		if err != nil {
-			return nil
+		if err = h.db.RemoveDid(existingOwner); err != nil {
+			return err
 		}
+		if err = h.e.RemoveKnotOwner(rbacDomain, existingOwner); err != nil {
+			return err
+		}
+
 	default:
 		return fmt.Errorf("more than one owner in DB, try deleting %q and starting over", h.c.Server.DBPath)
 	}
 
-	return h.e.AddKnotOwner(rbacDomain, cfgOwner)
+	if err = h.db.AddDid(cfgOwner); err != nil {
+		return fmt.Errorf("failed to add owner to DB: %w", err)
+	}
+	if err := h.e.AddKnotOwner(rbacDomain, cfgOwner); err != nil {
+		return fmt.Errorf("failed to add owner to RBAC: %w", err)
+	}
+
+	return nil
 }
