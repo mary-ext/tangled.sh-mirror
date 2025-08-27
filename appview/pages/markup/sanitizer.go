@@ -97,6 +97,23 @@ func defaultPolicy() *bluemonday.Policy {
 		"margin-bottom",
 	)
 
+	// math
+	mathAttrs := []string{
+		"accent", "columnalign", "columnlines", "columnspan", "dir", "display",
+		"displaystyle", "encoding", "fence", "form", "largeop", "linebreak",
+		"linethickness", "lspace", "mathcolor", "mathsize", "mathvariant", "minsize",
+		"movablelimits", "notation", "rowalign", "rspace", "rowspacing", "rowspan",
+		"scriptlevel", "stretchy", "symmetric", "title", "voffset", "width",
+	}
+	mathElements := []string{
+		"annotation", "math", "menclose", "merror", "mfrac", "mi", "mmultiscripts",
+		"mn", "mo", "mover", "mpadded", "mprescripts", "mroot", "mrow", "mspace",
+		"msqrt", "mstyle", "msub", "msubsup", "msup", "mtable", "mtd", "mtext",
+		"mtr", "munder", "munderover", "semantics",
+	}
+	policy.AllowNoAttrs().OnElements(mathElements...)
+	policy.AllowAttrs(mathAttrs...).OnElements(mathElements...)
+
 	return policy
 }
 

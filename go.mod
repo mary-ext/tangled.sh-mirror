@@ -39,7 +39,8 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v3 v3.3.3
 	github.com/whyrusleeping/cbor-gen v0.3.1
-	github.com/yuin/goldmark v1.4.15
+	github.com/wyatt915/goldmark-treeblood v0.0.0-20250825231212-5dcbdb2f4b57
+	github.com/yuin/goldmark v1.7.12
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	golang.org/x/crypto v0.40.0
 	golang.org/x/net v0.42.0
@@ -154,6 +155,7 @@ require (
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/wyatt915/treeblood v0.1.15 // indirect
 	gitlab.com/yawning/secp256k1-voi v0.0.0-20230925100816-f2616030848b // indirect
 	gitlab.com/yawning/tuplehash v0.0.0-20230713102510-df83abbf9a02 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect

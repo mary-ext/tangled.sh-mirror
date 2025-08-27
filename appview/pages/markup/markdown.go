@@ -11,6 +11,7 @@ import (
 
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/styles"
+	treeblood "github.com/wyatt915/goldmark-treeblood"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/ast"
@@ -59,6 +60,7 @@ func (rctx *RenderContext) RenderMarkdown(source string) string {
 			extension.NewFootnote(
 				extension.WithFootnoteIDPrefix([]byte("footnote")),
 			),
+			treeblood.MathML(),
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
