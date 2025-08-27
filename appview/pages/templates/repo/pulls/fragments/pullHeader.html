@@ -17,7 +17,6 @@
     {{ $icon = "git-merge" }}
 {{ end }}
 
-{{ $owner := resolve .Pull.PullSource.Repo.Did }}
 <section class="mt-2">
     <div class="flex items-center gap-2">
         <div
@@ -45,6 +44,7 @@
               <span class="text-xs rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white font-mono px-2 mx-1/2 inline-flex items-center">
                 {{ if .Pull.IsForkBased }}
                   {{ if .Pull.PullSource.Repo }}
+                  {{ $owner := resolve .Pull.PullSource.Repo.Did }}
                   <a href="/{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}" class="no-underline hover:underline">{{ $owner }}/{{ .Pull.PullSource.Repo.Name }}</a>:
                   {{- else -}}
                   <span class="italic">[deleted fork]</span>
