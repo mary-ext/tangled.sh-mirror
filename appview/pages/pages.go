@@ -42,8 +42,8 @@ import (
 var Files embed.FS
 
 type Pages struct {
-	mu sync.RWMutex
-	t  map[string]*template.Template
+	mu    sync.RWMutex
+	cache *TmplCache[string, *template.Template]
 
 	avatar      config.AvatarConfig
 	resolver    *idresolver.Resolver
@@ -65,7 +65,7 @@ func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
 
 	p := &Pages{
 		mu:          sync.RWMutex{},
-		t:           make(map[string]*template.Template),
+		cache:       NewTmplCache[string, *template.Template](),
 		dev:         config.Core.Dev,
 		avatar:      config.Avatar,
 		rctx:        rctx,
@@ -74,10 +74,22 @@ func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
 		logger:      slog.Default().With("component", "pages"),
 	}
 
-	// Initial load of all templates
-	p.loadAllTemplates()
+	if p.dev {
+		p.embedFS = os.DirFS(p.templateDir)
+	} else {
+		p.embedFS = Files
+	}
 
 	return p
+}
+
+func (p *Pages) pathToName(s string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(s, "templates/"), ".html")
+}
+
+// reverse of pathToName
+func (p *Pages) nameToPath(s string) string {
+	return "templates/" + s + ".html"
 }
 
 func (p *Pages) fragmentPaths() ([]string, error) {
@@ -105,115 +117,116 @@ func (p *Pages) fragmentPaths() ([]string, error) {
 	return fragmentPaths, nil
 }
 
-func (p *Pages) loadAllTemplates() {
-	if p.dev {
-		p.embedFS = os.DirFS(p.templateDir)
-	} else {
-		p.embedFS = Files
-	}
-
-	l := p.logger.With("handler", "loadAllTemplates")
-	templates := make(map[string]*template.Template)
+func (p *Pages) fragments() (*template.Template, error) {
 	fragmentPaths, err := p.fragmentPaths()
 	if err != nil {
-		l.Error("failed to collect fragments", "err", err)
-		return
+		return nil, err
 	}
+
+	funcs := p.funcMap()
 
 	// parse all fragments together
-	allFragments := template.New("").Funcs(p.funcMap())
+	allFragments := template.New("").Funcs(funcs)
 	for _, f := range fragmentPaths {
-		name := strings.TrimPrefix(f, "templates/")
-		name = strings.TrimSuffix(name, ".html")
-		pf, err := template.New(name).Funcs(p.funcMap()).ParseFS(p.embedFS, f)
+		name := p.pathToName(f)
+
+		pf, err := template.New(name).
+			Funcs(funcs).
+			ParseFS(p.embedFS, f)
 		if err != nil {
-			l.Error("failed to parse fragment", "name", name, "path", f)
-			return
+			return nil, err
 		}
+
 		allFragments, err = allFragments.AddParseTree(name, pf.Tree)
 		if err != nil {
-			l.Error("failed to add parse tree", "name", name, "path", f)
-			return
+			return nil, err
 		}
-		templates[name] = allFragments.Lookup(name)
 	}
-	// Then walk through and setup the rest of the templates
-	err = fs.WalkDir(p.embedFS, "templates", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		if !strings.HasSuffix(path, "html") {
-			return nil
-		}
-		// Skip fragments as they've already been loaded
-		if strings.Contains(path, "fragments/") {
-			return nil
-		}
-		// Skip layouts
-		if strings.Contains(path, "layouts/") {
-			return nil
-		}
-		name := strings.TrimPrefix(path, "templates/")
-		name = strings.TrimSuffix(name, ".html")
-		// Add the page template on top of the base
-		allPaths := []string{}
-		allPaths = append(allPaths, "templates/layouts/*.html")
-		allPaths = append(allPaths, fragmentPaths...)
-		allPaths = append(allPaths, path)
-		tmpl, err := template.New(name).
-			Funcs(p.funcMap()).
-			ParseFS(p.embedFS, allPaths...)
-		if err != nil {
-			return fmt.Errorf("setting up template: %w", err)
-		}
-		templates[name] = tmpl
-		l.Debug("loaded all templates")
-		return nil
-	})
+
+	return allFragments, nil
+}
+
+// parse without memoization
+func (p *Pages) rawParse(stack ...string) (*template.Template, error) {
+	paths, err := p.fragmentPaths()
 	if err != nil {
-		l.Error("walking template dir", "err", err)
-		panic(err)
+		return nil, err
+	}
+	for _, s := range stack {
+		paths = append(paths, p.nameToPath(s))
 	}
 
-	l.Info("loaded all templates", "total", len(templates))
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.t = templates
+	funcs := p.funcMap()
+	top := stack[len(stack)-1]
+	parsed, err := template.New(top).
+		Funcs(funcs).
+		ParseFS(p.embedFS, paths...)
+	if err != nil {
+		return nil, err
+	}
+
+	return parsed, nil
 }
 
-func (p *Pages) executeOrReload(templateName string, w io.Writer, base string, params any) error {
-	// In dev mode, reparse templates from disk before executing
-	if p.dev {
-		p.loadAllTemplates()
+func (p *Pages) parse(stack ...string) (*template.Template, error) {
+	key := strings.Join(stack, "|")
+
+	// never cache in dev mode
+	if cached, exists := p.cache.Get(key); !p.dev && exists {
+		return cached, nil
 	}
 
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	tmpl, exists := p.t[templateName]
-	if !exists {
-		return fmt.Errorf("template not found: %s", templateName)
+	result, err := p.rawParse(stack...)
+	if err != nil {
+		return nil, err
 	}
 
-	if base == "" {
-		return tmpl.Execute(w, params)
-	} else {
-		return tmpl.ExecuteTemplate(w, base, params)
-	}
+	p.cache.Set(key, result)
+	return result, nil
 }
 
-func (p *Pages) execute(name string, w io.Writer, params any) error {
-	return p.executeOrReload(name, w, "layouts/base", params)
+func (p *Pages) parseBase(top string) (*template.Template, error) {
+	stack := []string{
+		"layouts/base",
+		top,
+	}
+	return p.parse(stack...)
+}
+
+func (p *Pages) parseRepoBase(top string) (*template.Template, error) {
+	stack := []string{
+		"layouts/base",
+		"layouts/repobase",
+		top,
+	}
+	return p.parse(stack...)
 }
 
 func (p *Pages) executePlain(name string, w io.Writer, params any) error {
-	return p.executeOrReload(name, w, "", params)
+	tpl, err := p.parse(name)
+	if err != nil {
+		return err
+	}
+
+	return tpl.Execute(w, params)
+}
+
+func (p *Pages) execute(name string, w io.Writer, params any) error {
+	tpl, err := p.parseBase(name)
+	if err != nil {
+		return err
+	}
+
+	return tpl.ExecuteTemplate(w, "layouts/base", params)
 }
 
 func (p *Pages) executeRepo(name string, w io.Writer, params any) error {
-	return p.executeOrReload(name, w, "layouts/repobase", params)
+	tpl, err := p.parseRepoBase(name)
+	if err != nil {
+		return err
+	}
+
+	return tpl.ExecuteTemplate(w, "layouts/base", params)
 }
 
 func (p *Pages) Favicon(w io.Writer) error {
