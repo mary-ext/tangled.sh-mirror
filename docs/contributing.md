@@ -11,7 +11,7 @@ change does and why it's needed
 ### message format
 
 ```
-<service/top-level directory>: <affected package/directory>: <short summary of change>
+<service/top-level directory>/<affected package/directory>: <short summary of change>
 
 
 Optional longer description can go here, if necessary. Explain what the
@@ -23,14 +23,14 @@ auto-link issues/PRs yet.
 Here are some examples:
 
 ```
-appview: state: fix token expiry check in middleware
+appview/state: fix token expiry check in middleware
 
 The previous check did not account for clock drift, leading to premature
 token invalidation.
 ```
 
 ```
-knotserver: git/service: improve error checking in upload-pack
+knotserver/git/service: improve error checking in upload-pack
 ```
 
 
