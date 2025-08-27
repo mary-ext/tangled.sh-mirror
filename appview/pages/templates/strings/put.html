@@ -1,9 +1,5 @@
 {{ define "title" }}publish a new string{{ end }}
 
-{{ define "topbar" }}
-  {{ template "layouts/topbar" $ }}
-{{ end }}
-
 {{ define "content" }}
   <div class="px-6 py-2 mb-4">
     {{ if eq .Action "new" }}
