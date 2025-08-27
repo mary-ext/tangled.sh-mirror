@@ -618,7 +618,7 @@ func (r RepoTreeParams) TreeStats() RepoTreeStats {
 
 func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
 	params.Active = "overview"
-	return p.execute("repo/tree", w, params)
+	return p.executeRepo("repo/tree", w, params)
 }
 
 type RepoBranchesParams struct {
@@ -832,7 +832,7 @@ func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error
 	} else {
 		params.State = "closed"
 	}
-	return p.execute("repo/issues/issue", w, params)
+	return p.executeRepo("repo/issues/issue", w, params)
 }
 
 type RepoNewIssueParams struct {
