@@ -1,0 +1,5 @@
+{{ define "repo/fragments/timeWrapper" }}
+<time datetime="{{ .Time | iso8601DateTimeFmt }}" title="{{ .Time | longTimeFmt }}">{{ .Content }}</time>
+{{ end }}
+
+
