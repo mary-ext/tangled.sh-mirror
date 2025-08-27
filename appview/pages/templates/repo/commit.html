@@ -81,7 +81,7 @@
 
 {{ define "topbarLayout" }}
   <header class="px-1 col-span-full" style="z-index: 20;">
-    {{ template "layouts/topbar" . }}
+    {{ template "layouts/fragments/topbar" . }}
   </header>
 {{ end }}
 
@@ -106,7 +106,7 @@
 
 {{ define "footerLayout" }}
   <footer class="px-1 col-span-full mt-12">
-    {{ template "layouts/footer" . }}
+    {{ template "layouts/fragments/footer" . }}
   </footer>
 {{ end }}
 

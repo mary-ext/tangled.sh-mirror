@@ -8,10 +8,6 @@
   <meta property="og:description" content="{{ .String.Description }}" />
 {{ end }}
 
-{{ define "topbar" }}
-  {{ template "layouts/topbar" $ }}
-{{ end }}
-
 {{ define "content" }}
 {{ $ownerId := didOrHandle .Owner.DID.String .Owner.Handle.String }}
   <section id="string-header" class="mb-4 py-2 px-6 dark:text-white">
