@@ -1,0 +1,4 @@
+{{ define "repo/fragments/duration" }}
+<time datetime="{{ . | iso8601DurationFmt }}" title="{{ . | longDurationFmt }}">{{ . | durationFmt }}</time>
+{{ end }}
+

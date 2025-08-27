@@ -1,0 +1,4 @@
+{{ define "repo/fragments/shortTimeAgo" }}
+{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (print (. | shortRelTimeFmt) " ago")) }}
+{{ end }}
+

@@ -52,7 +52,7 @@
             </div>
           {{ end }}
           <div class="{{ if not $isCurrent }} pl-6 {{ end }} flex-grow min-w-0 w-full py-2">
-            {{ template "repo/pulls/fragments/summarizedHeader" (list $pull $pipeline) }}
+            {{ template "repo/pulls/fragments/summarizedPullHeader" (list $pull $pipeline) }}
           </div>
         </div>
       </a>
