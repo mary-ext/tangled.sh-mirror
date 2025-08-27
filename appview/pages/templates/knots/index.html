@@ -1,8 +1,15 @@
 {{ define "title" }}knots{{ end }}
 
 {{ define "content" }}
-<div class="px-6 py-4">
+<div class="px-6 py-4 flex items-end justify-start gap-4 align-bottom">
   <h1 class="text-xl font-bold dark:text-white">Knots</h1>
+
+  <span class="flex items-center gap-1 text-sm">
+      {{ i "book" "w-3 h-3" }}
+      <a href="https://tangled.sh/@tangled.sh/core/blob/master/docs/knot-hosting.md">
+          docs
+      </a>
+  </span>
 </div>
 
 <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto drop-shadow-sm dark:text-white">
@@ -15,16 +22,14 @@
 {{ end }}
 
 {{ define "about" }}
-  <section class="rounded flex flex-col gap-2">
-    <p class="dark:text-gray-300">
-      Knots are lightweight headless servers that enable users to host Git repositories with ease.
-      Knots are designed for either single or multi-tenant use which is perfect for self-hosting on a Raspberry Pi at home, or larger “community” servers.
-      When creating a repository, you can choose a knot to store it on.
-      <a href="https://tangled.sh/@tangled.sh/core/blob/master/docs/knot-hosting.md">
-        Checkout the documentation if you're interested in self-hosting.
-      </a>
+<section class="rounded">
+    <p class="text-gray-500 dark:text-gray-400">
+        Knots are lightweight headless servers that enable users to host Git repositories with ease.
+        When creating a repository, you can choose a knot to store it on.
     </p>
-  </section>
+
+
+</section>
 {{ end }}
 
 {{ define "list" }}
