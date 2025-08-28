@@ -91,15 +91,15 @@ func (p Pull) AsRecord() tangled.RepoPull {
 	}
 
 	record := tangled.RepoPull{
-		Title:        p.Title,
-		Body:         &p.Body,
-		CreatedAt:    p.Created.Format(time.RFC3339),
+		Title:     p.Title,
+		Body:      &p.Body,
+		CreatedAt: p.Created.Format(time.RFC3339),
 		Target: &tangled.RepoPull_Target{
 			Repo:   p.RepoAt.String(),
 			Branch: p.TargetBranch,
 		},
-		Patch:        p.LatestPatch(),
-		Source:       source,
+		Patch:  p.LatestPatch(),
+		Source: source,
 	}
 	return record
 }
