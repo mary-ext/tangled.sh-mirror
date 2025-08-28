@@ -56,12 +56,12 @@ func DeleteFollowByRkey(e Execer, userDid, rkey string) error {
 }
 
 type FollowStats struct {
-	Followers int
-	Following int
+	Followers int64
+	Following int64
 }
 
 func GetFollowerFollowingCount(e Execer, did string) (FollowStats, error) {
-	followers, following := 0, 0
+	var followers, following int64
 	err := e.QueryRow(
 		`SELECT
 		COUNT(CASE WHEN subject_did = ? THEN 1 END) AS followers,
@@ -122,7 +122,7 @@ func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]FollowStats
 
 	for rows.Next() {
 		var did string
-		var followers, following int
+		var followers, following int64
 		if err := rows.Scan(&did, &followers, &following); err != nil {
 			return nil, err
 		}

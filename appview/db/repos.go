@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"slices"
@@ -36,40 +37,6 @@ func (r Repo) RepoAt() syntax.ATURI {
 func (r Repo) DidSlashRepo() string {
 	p, _ := securejoin.SecureJoin(r.Did, r.Name)
 	return p
-}
-
-func GetAllRepos(e Execer, limit int) ([]Repo, error) {
-	var repos []Repo
-
-	rows, err := e.Query(
-		`select did, name, knot, rkey, description, created, source
-		from repos
-		order by created desc
-		limit ?
-		`,
-		limit,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var repo Repo
-		err := scanRepo(
-			rows, &repo.Did, &repo.Name, &repo.Knot, &repo.Rkey, &repo.Description, &repo.Created, &repo.Source,
-		)
-		if err != nil {
-			return nil, err
-		}
-		repos = append(repos, repo)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return repos, nil
 }
 
 func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
@@ -316,6 +283,30 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 	})
 
 	return repos, nil
+}
+
+func CountRepos(e Execer, filters ...filter) (int64, error) {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	repoQuery := fmt.Sprintf(`select count(1) from repos %s`, whereClause)
+	var count int64
+	err := e.QueryRow(repoQuery, args...).Scan(&count)
+
+	if !errors.Is(err, sql.ErrNoRows) && err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func GetAllReposByDid(e Execer, did string) ([]Repo, error) {
@@ -569,34 +560,4 @@ type RepoStats struct {
 	StarCount  int
 	IssueCount IssueCount
 	PullCount  PullCount
-}
-
-func scanRepo(rows *sql.Rows, did, name, knot, rkey, description *string, created *time.Time, source *string) error {
-	var createdAt string
-	var nullableDescription sql.NullString
-	var nullableSource sql.NullString
-	if err := rows.Scan(did, name, knot, rkey, &nullableDescription, &createdAt, &nullableSource); err != nil {
-		return err
-	}
-
-	if nullableDescription.Valid {
-		*description = nullableDescription.String
-	} else {
-		*description = ""
-	}
-
-	createdAtTime, err := time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		*created = time.Now()
-	} else {
-		*created = createdAtTime
-	}
-
-	if nullableSource.Valid {
-		*source = nullableSource.String
-	} else {
-		*source = ""
-	}
-
-	return nil
 }
