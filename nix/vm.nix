@@ -89,6 +89,8 @@ in
             hostname = "localhost:6555";
             listenAddr = "0.0.0.0:6555";
             dev = true;
+            queueSize = 100;
+            maxJobCount = 2;
             secrets = {
               provider = "sqlite";
             };

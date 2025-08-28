@@ -100,7 +100,8 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	jq := queue.NewQueue(100, 5)
+	jq := queue.NewQueue(cfg.Server.QueueSize, cfg.Server.MaxJobCount)
+	logger.Info("initialized queue", "queueSize", cfg.Server.QueueSize, "numWorkers", cfg.Server.MaxJobCount)
 
 	collections := []string{
 		tangled.SpindleMemberNSID,

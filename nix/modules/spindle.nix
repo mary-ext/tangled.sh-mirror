@@ -55,6 +55,20 @@ in
             description = "DID of owner (required)";
           };
 
+          maxJobCount = mkOption {
+            type = types.int;
+            default = 2;
+            example = 5;
+            description = "Maximum number of concurrent jobs to run";
+          };
+
+          queueSize = mkOption {
+            type = types.int;
+            default = 100;
+            example = 100;
+            description = "Maximum number of jobs queue up";
+          };
+
           secrets = {
             provider = mkOption {
               type = types.str;
@@ -108,6 +122,8 @@ in
             "SPINDLE_SERVER_JETSTREAM=${cfg.server.jetstreamEndpoint}"
             "SPINDLE_SERVER_DEV=${lib.boolToString cfg.server.dev}"
             "SPINDLE_SERVER_OWNER=${cfg.server.owner}"
+            "SPINDLE_SERVER_MAX_JOB_COUNT=${toString cfg.server.maxJobCount}"
+            "SPINDLE_SERVER_QUEUE_SIZE=${toString cfg.server.queueSize}"
             "SPINDLE_SERVER_SECRETS_PROVIDER=${cfg.server.secrets.provider}"
             "SPINDLE_SERVER_SECRETS_OPENBAO_PROXY_ADDR=${cfg.server.secrets.openbao.proxyAddr}"
             "SPINDLE_SERVER_SECRETS_OPENBAO_MOUNT=${cfg.server.secrets.openbao.mount}"
