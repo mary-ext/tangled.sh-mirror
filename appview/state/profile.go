@@ -24,8 +24,6 @@ import (
 func (s *State) Profile(w http.ResponseWriter, r *http.Request) {
 	tabVal := r.URL.Query().Get("tab")
 	switch tabVal {
-	case "", "overview":
-		s.profileOverview(w, r)
 	case "repos":
 		s.reposPage(w, r)
 	case "followers":
@@ -34,6 +32,10 @@ func (s *State) Profile(w http.ResponseWriter, r *http.Request) {
 		s.followingPage(w, r)
 	case "starred":
 		s.starredPage(w, r)
+	case "strings":
+		s.stringsPage(w, r)
+	default:
+		s.profileOverview(w, r)
 	}
 }
 
@@ -52,6 +54,21 @@ func (s *State) profile(r *http.Request) (*pages.ProfileCard, error) {
 	profile, err := db.GetProfile(s.db, did)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	repoCount, err := db.CountRepos(s.db, db.FilterEq("did", did))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repo count: %w", err)
+	}
+
+	stringCount, err := db.CountStrings(s.db, db.FilterEq("did", did))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get string count: %w", err)
+	}
+
+	starredCount, err := db.CountStars(s.db, db.FilterEq("starred_by_did", did))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get starred repo count: %w", err)
 	}
 
 	followStats, err := db.GetFollowerFollowingCount(s.db, did)
@@ -78,13 +95,18 @@ func (s *State) profile(r *http.Request) (*pages.ProfileCard, error) {
 	}
 
 	return &pages.ProfileCard{
-		UserDid:        did,
-		UserHandle:     ident.Handle.String(),
-		Profile:        profile,
-		FollowStatus:   followStatus,
-		FollowersCount: followStats.Followers,
-		FollowingCount: followStats.Following,
-		Punchcard:      punchcard,
+		UserDid:      did,
+		UserHandle:   ident.Handle.String(),
+		Profile:      profile,
+		FollowStatus: followStatus,
+		Stats: pages.ProfileStats{
+			RepoCount:      repoCount,
+			StringCount:    stringCount,
+			StarredCount:   starredCount,
+			FollowersCount: followStats.Followers,
+			FollowingCount: followStats.Following,
+		},
+		Punchcard: punchcard,
 	}, nil
 }
 
@@ -218,6 +240,31 @@ func (s *State) starredPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *State) stringsPage(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With("handler", "stringsPage")
+
+	profile, err := s.profile(r)
+	if err != nil {
+		l.Error("failed to build profile card", "err", err)
+		s.pages.Error500(w)
+		return
+	}
+	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+
+	strings, err := db.GetStrings(s.db, 0, db.FilterEq("did", profile.UserDid))
+	if err != nil {
+		l.Error("failed to get strings", "err", err)
+		s.pages.Error500(w)
+		return
+	}
+
+	err = s.pages.ProfileStrings(w, pages.ProfileStringsParams{
+		LoggedInUser: s.oauth.GetUser(r),
+		Strings:      strings,
+		Card:         profile,
+	})
+}
+
 type FollowsPageParams struct {
 	Follows []pages.FollowCard
 	Card    *pages.ProfileCard
@@ -283,7 +330,7 @@ func (s *State) followPage(
 		followStatus := db.IsNotFollowing
 		if _, exists := loggedInUserFollowing[did]; exists {
 			followStatus = db.IsFollowing
-		} else if loggedInUser.Did == did {
+		} else if loggedInUser != nil && loggedInUser.Did == did {
 			followStatus = db.IsSelf
 		}
 

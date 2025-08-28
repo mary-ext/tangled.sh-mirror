@@ -1,0 +1,45 @@
+{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }} · strings {{ end }}
+
+{{ define "profileContent" }}
+  <div id="all-strings" class="md:col-span-8 order-2 md:order-2">
+    {{ block "allStrings" . }}{{ end }}
+  </div>
+{{ end }}
+
+{{ define "allStrings" }}
+  <div id="strings" class="grid grid-cols-1 gap-4 mb-6">
+    {{ range .Strings }}
+      <div class="border border-gray-200 dark:border-gray-700 rounded-sm">
+        {{ template "singleString" (list $ .) }}
+      </div>
+    {{ else }}
+      <p class="px-6 dark:text-white">This user does not have any strings yet.</p>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "singleString" }}
+  {{ $root := index . 0 }}
+  {{ $s := index . 1 }}
+  <div class="py-4 px-6 rounded bg-white dark:bg-gray-800">
+    <div class="font-medium dark:text-white flex gap-2 items-center">
+        <a href="/strings/{{ or $root.Card.UserHandle $root.Card.UserDid  }}/{{ $s.Rkey }}">{{ $s.Filename }}</a>
+    </div>
+    {{ with $s.Description }}
+      <div class="text-gray-600 dark:text-gray-300 text-sm">
+          {{ . }}
+      </div>
+    {{ end }}
+
+    {{ $stat := $s.Stats }}
+    <div class="text-gray-400 pt-4 text-sm font-mono inline-flex gap-2 mt-auto">
+      <span>{{ $stat.LineCount }} line{{if ne $stat.LineCount 1}}s{{end}}</span>
+      <span class="select-none [&:before]:content-['·']"></span>
+      {{ with $s.Edited }}
+        <span>edited {{ template "repo/fragments/shortTimeAgo" . }}</span>
+      {{ else }}
+        {{ template "repo/fragments/shortTimeAgo" $s.Created }}
+      {{ end }}
+    </div>
+  </div>
+{{ end }}
