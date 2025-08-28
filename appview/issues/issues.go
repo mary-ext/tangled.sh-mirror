@@ -686,7 +686,6 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 					Repo:  atUri,
 					Title: title,
 					Body:  &body,
-					Owner: user.Did,
 				},
 			},
 		})

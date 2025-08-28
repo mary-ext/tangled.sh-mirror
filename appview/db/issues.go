@@ -63,7 +63,7 @@ func IssueFromRecord(did, rkey string, record tangled.RepoIssue) Issue {
 
 	return Issue{
 		RepoAt:   syntax.ATURI(record.Repo),
-		OwnerDid: record.Owner,
+		OwnerDid: did,
 		Rkey:     rkey,
 		Created:  created,
 		Title:    record.Title,
