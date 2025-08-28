@@ -192,10 +192,18 @@ func (s *State) PrivacyPolicy(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *State) HomeOrTimeline(w http.ResponseWriter, r *http.Request) {
+	if s.oauth.GetUser(r) != nil {
+		s.Timeline(w, r)
+		return
+	}
+	s.Home(w, r)
+}
+
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
-	timeline, err := db.MakeTimeline(s.db)
+	timeline, err := db.MakeTimeline(s.db, 50)
 	if err != nil {
 		log.Println(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
@@ -210,6 +218,30 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 
 	s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
+		Timeline:     timeline,
+		Repos:        repos,
+	})
+}
+
+func (s *State) Home(w http.ResponseWriter, r *http.Request) {
+	timeline, err := db.MakeTimeline(s.db, 15)
+	if err != nil {
+		log.Println(err)
+		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
+		return
+	}
+
+	repos, err := db.GetTopStarredReposLastWeek(s.db)
+	if err != nil {
+		log.Println(err)
+		s.pages.Notice(w, "topstarredrepos", "Unable to load.")
+		return
+	}
+
+	timeline = timeline[:5]
+
+	s.pages.Home(w, pages.TimelineParams{
+		LoggedInUser: nil,
 		Timeline:     timeline,
 		Repos:        repos,
 	})
