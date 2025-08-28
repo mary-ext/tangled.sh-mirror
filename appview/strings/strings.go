@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
-	"slices"
 	"strconv"
 	"time"
 
@@ -161,64 +160,7 @@ func (s *Strings) contents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Strings) dashboard(w http.ResponseWriter, r *http.Request) {
-	l := s.Logger.With("handler", "dashboard")
-
-	id, ok := r.Context().Value("resolvedId").(identity.Identity)
-	if !ok {
-		l.Error("malformed middleware")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	l = l.With("did", id.DID, "handle", id.Handle)
-
-	all, err := db.GetStrings(
-		s.Db,
-		0,
-		db.FilterEq("did", id.DID),
-	)
-	if err != nil {
-		l.Error("failed to fetch strings", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	slices.SortFunc(all, func(a, b db.String) int {
-		if a.Created.After(b.Created) {
-			return -1
-		} else {
-			return 1
-		}
-	})
-
-	profile, err := db.GetProfile(s.Db, id.DID.String())
-	if err != nil {
-		l.Error("failed to fetch user profile", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	loggedInUser := s.OAuth.GetUser(r)
-	followStatus := db.IsNotFollowing
-	if loggedInUser != nil {
-		followStatus = db.GetFollowStatus(s.Db, loggedInUser.Did, id.DID.String())
-	}
-
-	followStats, err := db.GetFollowerFollowingCount(s.Db, id.DID.String())
-	if err != nil {
-		l.Error("failed to get follow stats", "err", err)
-	}
-
-	s.Pages.StringsDashboard(w, pages.StringsDashboardParams{
-		LoggedInUser: s.OAuth.GetUser(r),
-		Card: pages.ProfileCard{
-			UserDid:        id.DID.String(),
-			UserHandle:     id.Handle.String(),
-			Profile:        profile,
-			FollowStatus:   followStatus,
-			FollowersCount: followStats.Followers,
-			FollowingCount: followStats.Following,
-		},
-		Strings: all,
-	})
+	http.Redirect(w, r, fmt.Sprintf("/%s?tab=strings", chi.URLParam(r, "user")), http.StatusFound)
 }
 
 func (s *Strings) edit(w http.ResponseWriter, r *http.Request) {
