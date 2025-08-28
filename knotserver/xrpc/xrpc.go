@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/jetstream"
@@ -50,7 +53,88 @@ func (x *Xrpc) Router() http.Handler {
 	// - we can calculate on PR submit/resubmit/gitRefUpdate etc.
 	// - use ETags on clients to keep requests to a minimum
 	r.Post("/"+tangled.RepoMergeCheckNSID, x.MergeCheck)
+
+	// repo query endpoints (no auth required)
+	r.Get("/"+tangled.RepoTreeNSID, x.RepoTree)
+	r.Get("/"+tangled.RepoLogNSID, x.RepoLog)
+	r.Get("/"+tangled.RepoBranchesNSID, x.RepoBranches)
+	r.Get("/"+tangled.RepoTagsNSID, x.RepoTags)
+	r.Get("/"+tangled.RepoBlobNSID, x.RepoBlob)
+	r.Get("/"+tangled.RepoDiffNSID, x.RepoDiff)
+	r.Get("/"+tangled.RepoCompareNSID, x.RepoCompare)
+	r.Get("/"+tangled.RepoGetDefaultBranchNSID, x.RepoGetDefaultBranch)
+	r.Get("/"+tangled.RepoBranchNSID, x.RepoBranch)
+	r.Get("/"+tangled.RepoArchiveNSID, x.RepoArchive)
+	r.Get("/"+tangled.RepoLanguagesNSID, x.RepoLanguages)
+
+	// knot query endpoints (no auth required)
+	r.Get("/"+tangled.KnotListKeysNSID, x.ListKeys)
+
 	return r
+}
+
+// parseRepoParam parses a repo parameter in 'did/repoName' format and returns
+// the full repository path on disk
+func (x *Xrpc) parseRepoParam(repo string) (string, error) {
+	if repo == "" {
+		return "", xrpcerr.NewXrpcError(
+			xrpcerr.WithTag("InvalidRequest"),
+			xrpcerr.WithMessage("missing repo parameter"),
+		)
+	}
+
+	// Parse repo string (did/repoName format)
+	parts := strings.Split(repo, "/")
+	if len(parts) < 2 {
+		return "", xrpcerr.NewXrpcError(
+			xrpcerr.WithTag("InvalidRequest"),
+			xrpcerr.WithMessage("invalid repo format, expected 'did/repoName'"),
+		)
+	}
+
+	did := strings.Join(parts[:len(parts)-1], "/")
+	repoName := parts[len(parts)-1]
+
+	// Construct repository path using the same logic as didPath
+	didRepoPath, err := securejoin.SecureJoin(did, repoName)
+	if err != nil {
+		return "", xrpcerr.NewXrpcError(
+			xrpcerr.WithTag("RepoNotFound"),
+			xrpcerr.WithMessage("failed to access repository"),
+		)
+	}
+
+	repoPath, err := securejoin.SecureJoin(x.Config.Repo.ScanPath, didRepoPath)
+	if err != nil {
+		return "", xrpcerr.NewXrpcError(
+			xrpcerr.WithTag("RepoNotFound"),
+			xrpcerr.WithMessage("failed to access repository"),
+		)
+	}
+
+	return repoPath, nil
+}
+
+// parseStandardParams parses common query parameters used by most handlers
+func (x *Xrpc) parseStandardParams(r *http.Request) (repo, repoPath, ref string, err error) {
+	// Parse repo parameter
+	repo = r.URL.Query().Get("repo")
+	repoPath, err = x.parseRepoParam(repo)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// Parse and unescape ref parameter
+	refParam := r.URL.Query().Get("ref")
+	if refParam == "" {
+		return "", "", "", xrpcerr.NewXrpcError(
+			xrpcerr.WithTag("InvalidRequest"),
+			xrpcerr.WithMessage("missing ref parameter"),
+		)
+	}
+
+	ref, _ = url.QueryUnescape(refParam)
+	return repo, repoPath, ref, nil
 }
 
 func writeError(w http.ResponseWriter, e xrpcerr.XrpcError, status int) {

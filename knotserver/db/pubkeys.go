@@ -1,6 +1,7 @@
 package db
 
 import (
+	"strconv"
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
@@ -98,4 +99,43 @@ func (d *DB) GetPublicKeys(did string) ([]PublicKey, error) {
 	}
 
 	return keys, nil
+}
+
+func (d *DB) GetPublicKeysPaginated(limit int, cursor string) ([]PublicKey, string, error) {
+	var keys []PublicKey
+
+	offset := 0
+	if cursor != "" {
+		if o, err := strconv.Atoi(cursor); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	query := `select key, did, created from public_keys order by created desc limit ? offset ?`
+	rows, err := d.db.Query(query, limit+1, offset) // +1 to check if there are more results
+	if err != nil {
+		return nil, "", err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var publicKey PublicKey
+		if err := rows.Scan(&publicKey.Key, &publicKey.Did, &publicKey.CreatedAt); err != nil {
+			return nil, "", err
+		}
+		keys = append(keys, publicKey)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, "", err
+	}
+
+	// check if there are more results for pagination
+	var nextCursor string
+	if len(keys) > limit {
+		keys = keys[:limit] // remove the extra item
+		nextCursor = strconv.Itoa(offset + limit)
+	}
+
+	return keys, nextCursor, nil
 }
