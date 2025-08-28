@@ -410,21 +410,29 @@ func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
 }
 
 type ProfileCard struct {
-	UserDid        string
-	UserHandle     string
-	FollowStatus   db.FollowStatus
-	FollowersCount int
-	FollowingCount int
-	Punchcard      *db.Punchcard
-	Profile        *db.Profile
-	Active         string
+	UserDid      string
+	UserHandle   string
+	FollowStatus db.FollowStatus
+	Punchcard    *db.Punchcard
+	Profile      *db.Profile
+	Stats        ProfileStats
+	Active       string
 }
 
-func (p *ProfileCard) GetTabs() [][]string {
-	tabs := [][]string{
-		{"overview", "overview", "square-chart-gantt"},
-		{"repos", "repos", "book-marked"},
-		{"starred", "starred", "star"},
+type ProfileStats struct {
+	RepoCount      int64
+	StarredCount   int64
+	StringCount    int64
+	FollowersCount int64
+	FollowingCount int64
+}
+
+func (p *ProfileCard) GetTabs() [][]any {
+	tabs := [][]any{
+		{"overview", "overview", "square-chart-gantt", nil},
+		{"repos", "repos", "book-marked", p.Stats.RepoCount},
+		{"starred", "starred", "star", p.Stats.StarredCount},
+		{"strings", "strings", "line-squiggle", p.Stats.StringCount},
 	}
 
 	return tabs
@@ -468,11 +476,23 @@ func (p *Pages) ProfileStarred(w io.Writer, params ProfileStarredParams) error {
 	return p.executeProfile("user/starred", w, params)
 }
 
+type ProfileStringsParams struct {
+	LoggedInUser *oauth.User
+	Strings      []db.String
+	Card         *ProfileCard
+	Active       string
+}
+
+func (p *Pages) ProfileStrings(w io.Writer, params ProfileStringsParams) error {
+	params.Active = "strings"
+	return p.executeProfile("user/strings", w, params)
+}
+
 type FollowCard struct {
 	UserDid        string
 	FollowStatus   db.FollowStatus
-	FollowersCount int
-	FollowingCount int
+	FollowersCount int64
+	FollowingCount int64
 	Profile        *db.Profile
 }
 

@@ -9,7 +9,7 @@
 
 {{ define "content" }}
   {{ template "profileTabs" . }}
-  <section class="bg-white dark:bg-gray-800 p-6 rounded w-full dark:text-white">
+  <section class="bg-white dark:bg-gray-800 p-6 rounded w-full dark:text-white drop-shadow-sm">
     <div class="grid grid-cols-1 md:grid-cols-11 gap-4">
       <div class="md:col-span-3 order-1 md:order-1">
         <div class="flex flex-col gap-4">
@@ -32,7 +32,7 @@
       {{ $key := index $item 0 }}
       {{ $value := index $item 1 }}
       {{ $icon := index $item 2 }}
-      {{ $meta := index $tabmeta $key }}
+      {{ $meta := index $item 3 }}
       <a
         href="?tab={{ $value }}"
         class="relative -mr-px group no-underline hover:no-underline"
@@ -48,8 +48,8 @@
           <span class="flex items-center justify-center">
             {{ i $icon "w-4 h-4 mr-2" }}
             {{ $key }}
-            {{ if not (isNil $meta) }}
-            <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm ml-1">{{ $meta }}</span>
+            {{ if $meta }}
+              <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm ml-1">{{ $meta }}</span>
             {{ end }}
           </span>
         </div>

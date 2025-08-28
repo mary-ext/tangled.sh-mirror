@@ -92,9 +92,9 @@
   {{ with $root }}
     <div class="flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full text-sm">
       <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
-      <span id="followers"><a href="/{{ $userIdent }}?tab=followers">{{ .FollowersCount }} followers</a></span>
+      <span id="followers"><a href="/{{ $userIdent }}?tab=followers">{{ .Stats.FollowersCount }} followers</a></span>
       <span class="select-none after:content-['·']"></span>
-      <span id="following"><a href="/{{ $userIdent }}?tab=following">{{ .FollowingCount }} following</a></span>
+      <span id="following"><a href="/{{ $userIdent }}?tab=following">{{ .Stats.FollowingCount }} following</a></span>
     </div>
   {{ end }}
 {{ end }}
