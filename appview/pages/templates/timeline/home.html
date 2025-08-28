@@ -1,0 +1,90 @@
+{{ define "title" }}tangled &middot; tightly-knit social coding{{ end }}
+
+{{ define "extrameta" }}
+    <meta property="og:title" content="timeline · tangled" />
+    <meta property="og:type" content="object" />
+    <meta property="og:url" content="https://tangled.sh" />
+    <meta property="og:description" content="tightly-knit social coding" />
+{{ end }}
+
+
+{{ define "content" }}
+  <div class="flex flex-col gap-4">
+    {{ template "timeline/fragments/hero" . }}
+    {{ template "features" . }}
+    {{ template "timeline/fragments/trending" . }}
+    {{ template "timeline/fragments/timeline" . }}
+    <div class="flex justify-end">
+      <a href="/timeline" class="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400">
+        view more
+        {{ i "arrow-right" "size-4" }}
+      </a>
+    </div>
+  </div>
+{{ end }}
+
+
+{{ define "feature" }}
+    {{ $info := index . 0 }}
+    {{ $bullets := index . 1 }}
+    <div class="flex flex-col items-top gap-6 md:flex-row md:gap-12">
+        <div class="flex-1">
+            <h2 class="text-2xl font-bold text-black dark:text-white mb-6">{{ $info.title }}</h2>
+            <ul class="leading-normal">
+                {{ range $bullets }}
+                    <li><p>{{ escapeHtml . }}</p></li>
+                {{ end }}
+            </ul>
+        </div>
+        <div class="flex-shrink-0 w-96 md:w-1/3">
+          <a href="{{ $info.image }}">
+            <img src="{{ $info.image }}" alt="{{ $info.alt }}" class="w-full h-auto rounded" />
+          </a>
+        </div>
+    </div>
+{{ end }}
+
+{{ define "features" }}
+  <div class="prose dark:text-gray-200 space-y-12 px-6 py-4">
+    {{ template "feature" (list
+        (dict
+            "title" "lightweight git repo hosting"
+            "image" "https://assets.tangled.network/what-is-tangled-repo.png"
+            "alt" "A repository hosted on Tangled"
+        )
+        (list
+            "Host your repositories on your own infrastructure using <em>knots</em>&mdash;tiny, headless servers that facilitate git operations."
+            "Add friends to your knot or invite collaborators to your repository."
+            "Guarded by fine-grained role-based access control."
+            "Use SSH to push and pull."
+        )
+    ) }}
+
+    {{ template "feature" (list
+        (dict
+            "title" "improved pull request model"
+            "image" "https://assets.tangled.network/pulls.png"
+            "alt" "Round-based pull requests."
+        )
+        (list
+            "An intuitive and effective round-based pull request flow, with inter-diffing between rounds."
+            "Stacked pull requests using Jujutsu's change IDs."
+            "Paste a <code>git diff</code> or <code>git format-patch</code> for quick drive-by changes."
+        )
+    ) }}
+
+    {{ template "feature" (list
+        (dict
+            "title" "run pipelines using spindles"
+            "image" "https://assets.tangled.network/pipelines.png"
+            "alt" "CI pipeline running on spindle"
+        )
+        (list
+            "Run pipelines on your own infrastructure using <em>spindles</em>&mdash;lightweight CI runners."
+            "Natively supports Nix for package management."
+            "Easily extended to support different execution backends."
+        )
+    ) }}
+  </div>
+{{ end }}
+

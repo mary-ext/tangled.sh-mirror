@@ -20,24 +20,22 @@ type TimelineEvent struct {
 	*FollowStats
 }
 
-const Limit = 50
-
 // TODO: this gathers heterogenous events from different sources and aggregates
 // them in code; if we did this entirely in sql, we could order and limit and paginate easily
-func MakeTimeline(e Execer) ([]TimelineEvent, error) {
+func MakeTimeline(e Execer, limit int) ([]TimelineEvent, error) {
 	var events []TimelineEvent
 
-	repos, err := getTimelineRepos(e)
+	repos, err := getTimelineRepos(e, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	stars, err := getTimelineStars(e)
+	stars, err := getTimelineStars(e, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	follows, err := getTimelineFollows(e)
+	follows, err := getTimelineFollows(e, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -51,15 +49,15 @@ func MakeTimeline(e Execer) ([]TimelineEvent, error) {
 	})
 
 	// Limit the slice to 100 events
-	if len(events) > Limit {
-		events = events[:Limit]
+	if len(events) > limit {
+		events = events[:limit]
 	}
 
 	return events, nil
 }
 
-func getTimelineRepos(e Execer) ([]TimelineEvent, error) {
-	repos, err := GetRepos(e, Limit)
+func getTimelineRepos(e Execer, limit int) ([]TimelineEvent, error) {
+	repos, err := GetRepos(e, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +102,8 @@ func getTimelineRepos(e Execer) ([]TimelineEvent, error) {
 	return events, nil
 }
 
-func getTimelineStars(e Execer) ([]TimelineEvent, error) {
-	stars, err := GetStars(e, Limit)
+func getTimelineStars(e Execer, limit int) ([]TimelineEvent, error) {
+	stars, err := GetStars(e, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +129,8 @@ func getTimelineStars(e Execer) ([]TimelineEvent, error) {
 	return events, nil
 }
 
-func getTimelineFollows(e Execer) ([]TimelineEvent, error) {
-	follows, err := GetFollows(e, Limit)
+func getTimelineFollows(e Execer, limit int) ([]TimelineEvent, error) {
+	follows, err := GetFollows(e, limit)
 	if err != nil {
 		return nil, err
 	}

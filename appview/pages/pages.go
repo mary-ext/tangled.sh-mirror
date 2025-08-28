@@ -1299,6 +1299,10 @@ func (p *Pages) SingleString(w io.Writer, params SingleStringParams) error {
 	return p.execute("strings/string", w, params)
 }
 
+func (p *Pages) Home(w io.Writer, params TimelineParams) error {
+	return p.execute("timeline/home", w, params)
+}
+
 func (p *Pages) Static() http.Handler {
 	if p.dev {
 		return http.StripPrefix("/static/", http.FileServer(http.Dir("appview/pages/static")))

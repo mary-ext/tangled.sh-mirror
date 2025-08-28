@@ -1,0 +1,25 @@
+{{ define "timeline/fragments/trending" }}
+  <div class="w-full md:mx-0 py-4">
+      <div class="px-6 pb-4">
+        <h3 class="text-xl font-bold dark:text-white flex items-center gap-2">
+            Trending
+            {{ i "trending-up" "size-4 flex-shrink-0" }}
+        </h3>
+      </div>
+      <div class="flex gap-4 overflow-x-auto scrollbar-hide items-stretch">
+          {{ range $index, $repo := .Repos }}
+            <div class="flex-none h-full border border-gray-200 dark:border-gray-700 rounded-sm w-96">
+              {{ template "user/fragments/repoCard" (list $ $repo true) }}
+            </div>
+          {{ else }}
+              <div class="py-8 px-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
+                  <div class="text-sm text-gray-500 dark:text-gray-400 text-center">
+                      No trending repositories this week
+                  </div>
+              </div>
+          {{ end }}
+      </div>
+  </div>
+{{ end }}
+
+
