@@ -1,6 +1,8 @@
 package db
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -181,6 +183,30 @@ func GetStars(e Execer, limit int, filters ...filter) ([]Star, error) {
 	}
 
 	return stars, nil
+}
+
+func CountStars(e Execer, filters ...filter) (int64, error) {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	repoQuery := fmt.Sprintf(`select count(1) from stars %s`, whereClause)
+	var count int64
+	err := e.QueryRow(repoQuery, args...).Scan(&count)
+
+	if !errors.Is(err, sql.ErrNoRows) && err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func GetAllStars(e Execer, limit int) ([]Star, error) {
