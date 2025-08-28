@@ -685,17 +685,43 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.Contains(contentType, "text/plain") {
+	// Safely serve content based on type
+	if strings.HasPrefix(contentType, "text/") || isTextualMimeType(contentType) {
+		// Serve all textual content as text/plain for security
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write(body)
 	} else if strings.HasPrefix(contentType, "image/") || strings.HasPrefix(contentType, "video/") {
+		// Serve images and videos with their original content type
 		w.Header().Set("Content-Type", contentType)
 		w.Write(body)
 	} else {
+		// Block potentially dangerous content types
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		w.Write([]byte("unsupported content type"))
 		return
 	}
+}
+
+// isTextualMimeType returns true if the MIME type represents textual content
+// that should be served as text/plain
+func isTextualMimeType(mimeType string) bool {
+	textualTypes := []string{
+		"application/json",
+		"application/xml",
+		"application/yaml",
+		"application/x-yaml",
+		"application/toml",
+		"application/javascript",
+		"application/ecmascript",
+		"message/",
+	}
+
+	for _, t := range textualTypes {
+		if mimeType == t {
+			return true
+		}
+	}
+	return false
 }
 
 // modify the spindle configured for this repo

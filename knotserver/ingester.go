@@ -98,6 +98,11 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 	l := log.FromContext(ctx)
 	l = l.With("handler", "processPull")
 	l = l.With("did", did)
+
+	if record.Target == nil {
+		return fmt.Errorf("ignoring pull record: target repo is nil")
+	}
+
 	l = l.With("target_repo", record.Target.Repo)
 	l = l.With("target_branch", record.Target.Branch)
 
