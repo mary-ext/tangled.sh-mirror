@@ -3,13 +3,20 @@
     <html lang="en" class="dark:bg-gray-900">
         <head>
             <meta charset="UTF-8" />
-            <meta
-                name="viewport"
-                content="width=device-width, initial-scale=1.0"
-            />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <meta name="description" content="Social coding, but for real this time!"/>
             <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
-            <script src="/static/htmx.min.js"></script>
-            <script src="/static/htmx-ext-ws.min.js"></script>
+
+            <script defer src="/static/htmx.min.js"></script>
+            <script defer src="/static/htmx-ext-ws.min.js"></script>
+
+            <!-- preconnect to image cdn -->
+            <link rel="preconnect" href="https://avatar.tangled.sh" />
+            <link rel="preconnect" href="https://camo.tangled.sh" />
+
+            <!-- preload main font -->
+            <link rel="preload" href="/static/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
+
             <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
             <title>{{ block "title" . }}{{ end }} · tangled</title>
             {{ block "extrameta" . }}{{ end }}
