@@ -435,6 +435,11 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 		return
 	}
 
+	if err := o.enforcer.AddKnotMember(defaultKnot, did); err != nil {
+		log.Printf("failed to set up enforcer rules: %s", err)
+		return
+	}
+
 	log.Printf("successfully added %s to default Knot", did)
 }
 
