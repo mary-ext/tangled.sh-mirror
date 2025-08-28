@@ -17,6 +17,8 @@ type Server struct {
 	Owner             string  `env:"OWNER, required"`
 	Secrets           Secrets `env:",prefix=SECRETS_"`
 	LogDir            string  `env:"LOG_DIR, default=/var/log/spindle"`
+	QueueSize         int     `env:"QUEUE_SIZE, default=100"`
+	MaxJobCount       int     `env:"MAX_JOB_COUNT, default=2"` // max number of jobs that run at a time
 }
 
 func (s Server) Did() syntax.DID {
