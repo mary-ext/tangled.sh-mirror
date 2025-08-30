@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -19,6 +20,7 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/commitverify"
 	"tangled.sh/tangled.sh/core/appview/config"
@@ -31,7 +33,6 @@ import (
 	xrpcclient "tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
@@ -92,15 +93,35 @@ func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var uri string
-	if rp.config.Core.Dev {
-		uri = "http"
-	} else {
-		uri = "https"
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
 	}
-	url := fmt.Sprintf("%s://%s/%s/%s/archive/%s.tar.gz", uri, f.Knot, f.OwnerDid(), f.Name, url.PathEscape(refParam))
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
 
-	http.Redirect(w, r, url, http.StatusFound)
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	archiveBytes, err := tangled.RepoArchive(r.Context(), xrpcc, "tar.gz", "", refParam, repo)
+	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.archive", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Error404(w)
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s-%s.tar.gz", f.Name, refParam)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Type", "application/gzip")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(archiveBytes)))
+
+	// Write the archive data directly
+	w.Write(archiveBytes)
 }
 
 func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
@@ -120,55 +141,87 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	limit := int64(60)
+	cursor := ""
+	if page > 1 {
+		// Convert page number to cursor (offset)
+		offset := (page - 1) * int(limit)
+		cursor = strconv.Itoa(offset)
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoLog(r.Context(), xrpcc, cursor, limit, "", ref, repo)
 	if err != nil {
-		log.Println("failed to create unsigned client", err)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.log", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Error404(w)
 		return
 	}
 
-	repolog, err := us.Log(f.OwnerDid(), f.Name, ref, page)
-	if err != nil {
+	var xrpcResp types.RepoLogResponse
+	if err := json.Unmarshal(xrpcBytes, &xrpcResp); err != nil {
+		log.Println("failed to decode XRPC response", err)
 		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	tagResult, err := us.Tags(f.OwnerDid(), f.Name)
+	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
-		return
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.tags", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
 	}
 
 	tagMap := make(map[string][]string)
-	for _, tag := range tagResult.Tags {
-		hash := tag.Hash
-		if tag.Tag != nil {
-			hash = tag.Tag.Target.String()
+	if tagBytes != nil {
+		var tagResp types.RepoTagsResponse
+		if err := json.Unmarshal(tagBytes, &tagResp); err == nil {
+			for _, tag := range tagResp.Tags {
+				tagMap[tag.Hash] = append(tagMap[tag.Hash], tag.Name)
+			}
 		}
-		tagMap[hash] = append(tagMap[hash], tag.Name)
 	}
 
-	branchResult, err := us.Branches(f.OwnerDid(), f.Name)
+	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
-		return
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
 	}
 
-	for _, branch := range branchResult.Branches {
-		hash := branch.Hash
-		tagMap[hash] = append(tagMap[hash], branch.Name)
+	if branchBytes != nil {
+		var branchResp types.RepoBranchesResponse
+		if err := json.Unmarshal(branchBytes, &branchResp); err == nil {
+			for _, branch := range branchResp.Branches {
+				tagMap[branch.Hash] = append(tagMap[branch.Hash], branch.Name)
+			}
+		}
 	}
 
 	user := rp.oauth.GetUser(r)
 
-	emailToDidMap, err := db.GetEmailToDid(rp.db, uniqueEmails(repolog.Commits), true)
+	emailToDidMap, err := db.GetEmailToDid(rp.db, uniqueEmails(xrpcResp.Commits), true)
 	if err != nil {
 		log.Println("failed to fetch email to did mapping", err)
 	}
 
-	vc, err := commitverify.GetVerifiedObjectCommits(rp.db, emailToDidMap, repolog.Commits)
+	vc, err := commitverify.GetVerifiedObjectCommits(rp.db, emailToDidMap, xrpcResp.Commits)
 	if err != nil {
 		log.Println(err)
 	}
@@ -176,7 +229,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	repoInfo := f.RepoInfo(user)
 
 	var shas []string
-	for _, c := range repolog.Commits {
+	for _, c := range xrpcResp.Commits {
 		shas = append(shas, c.Hash.String())
 	}
 	pipelines, err := getPipelineStatuses(rp.db, repoInfo, shas)
@@ -189,7 +242,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:       user,
 		TagMap:             tagMap,
 		RepoInfo:           repoInfo,
-		RepoLogResponse:    *repolog,
+		RepoLogResponse:    xrpcResp,
 		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
 		VerifiedCommits:    vc,
 		Pipelines:          pipelines,
@@ -301,10 +354,6 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ref := chi.URLParam(r, "ref")
-	protocol := "http"
-	if !rp.config.Core.Dev {
-		protocol = "https"
-	}
 
 	var diffOpts types.DiffOpts
 	if d := r.URL.Query().Get("diff"); d == "split" {
@@ -316,23 +365,31 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/commit/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref))
-	if err != nil {
-		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
-		return
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoDiff(r.Context(), xrpcc, ref, repo)
 	if err != nil {
-		log.Printf("Error reading response body: %v", err)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.diff", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Error404(w)
 		return
 	}
 
 	var result types.RepoCommitResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse response:", err)
+	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
+		log.Println("failed to decode XRPC response", err)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -378,41 +435,66 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 	treePath := chi.URLParam(r, "*")
-	protocol := "http"
-	if !rp.config.Core.Dev {
-		protocol = "https"
-	}
 
 	// if the tree path has a trailing slash, let's strip it
 	// so we don't 404
 	treePath = strings.TrimSuffix(treePath, "/")
 
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/tree/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, treePath))
-	if err != nil {
-		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
-		return
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
 	}
 
-	// uhhh so knotserver returns a 500 if the entry isn't found in
-	// the requested tree path, so let's stick to not-OK here.
-	// we can fix this once we build out the xrpc apis for these operations.
-	if resp.StatusCode != http.StatusOK {
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcResp, err := tangled.RepoTree(r.Context(), xrpcc, treePath, ref, repo)
+	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.tree", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
 		rp.pages.Error404(w)
 		return
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %v", err)
-		return
+	// Convert XRPC response to internal types.RepoTreeResponse
+	files := make([]types.NiceTree, len(xrpcResp.Files))
+	for i, xrpcFile := range xrpcResp.Files {
+		file := types.NiceTree{
+			Name:      xrpcFile.Name,
+			Mode:      xrpcFile.Mode,
+			Size:      int64(xrpcFile.Size),
+			IsFile:    xrpcFile.Is_file,
+			IsSubtree: xrpcFile.Is_subtree,
+		}
+
+		// Convert last commit info if present
+		if xrpcFile.Last_commit != nil {
+			commitWhen, _ := time.Parse(time.RFC3339, xrpcFile.Last_commit.When)
+			file.LastCommit = &types.LastCommitInfo{
+				Hash:    plumbing.NewHash(xrpcFile.Last_commit.Hash),
+				Message: xrpcFile.Last_commit.Message,
+				When:    commitWhen,
+			}
+		}
+
+		files[i] = file
 	}
 
-	var result types.RepoTreeResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse response:", err)
-		return
+	result := types.RepoTreeResponse{
+		Ref:   xrpcResp.Ref,
+		Files: files,
+	}
+
+	if xrpcResp.Parent != nil {
+		result.Parent = *xrpcResp.Parent
+	}
+	if xrpcResp.Dotdot != nil {
+		result.DotDot = *xrpcResp.Dotdot
 	}
 
 	// redirects tree paths trying to access a blob; in this case the result.Files is unpopulated,
@@ -451,16 +533,31 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		log.Println("failed to create unsigned client", err)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.tags", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Error404(w)
 		return
 	}
 
-	result, err := us.Tags(f.OwnerDid(), f.Name)
-	if err != nil {
+	var result types.RepoTagsResponse
+	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
+		log.Println("failed to decode XRPC response", err)
 		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
 		return
 	}
 
@@ -496,7 +593,7 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 	rp.pages.RepoTags(w, pages.RepoTagsParams{
 		LoggedInUser:      user,
 		RepoInfo:          f.RepoInfo(user),
-		RepoTagsResponse:  *result,
+		RepoTagsResponse:  result,
 		ArtifactMap:       artifactMap,
 		DanglingArtifacts: danglingArtifacts,
 	})
@@ -509,16 +606,31 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		log.Println("failed to create unsigned client", err)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Error404(w)
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.Name)
-	if err != nil {
+	var result types.RepoBranchesResponse
+	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
+		log.Println("failed to decode XRPC response", err)
 		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
 		return
 	}
 
@@ -528,7 +640,7 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 	rp.pages.RepoBranches(w, pages.RepoBranchesParams{
 		LoggedInUser:         user,
 		RepoInfo:             f.RepoInfo(user),
-		RepoBranchesResponse: *result,
+		RepoBranchesResponse: result,
 	})
 }
 
@@ -541,34 +653,29 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 	ref := chi.URLParam(r, "ref")
 	filePath := chi.URLParam(r, "*")
-	protocol := "http"
+
+	scheme := "http"
 	if !rp.config.Core.Dev {
-		protocol = "https"
+		scheme = "https"
 	}
-	resp, err := http.Get(fmt.Sprintf("%s://%s/%s/%s/blob/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, filePath))
-	if err != nil {
-		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
-		return
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
 	}
 
-	if resp.StatusCode == http.StatusNotFound {
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Repo.Name)
+	resp, err := tangled.RepoBlob(r.Context(), xrpcc, filePath, false, ref, repo)
+	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.blob", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
 		rp.pages.Error404(w)
 		return
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %v", err)
-		return
-	}
-
-	var result types.RepoBlobResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Println("failed to parse response:", err)
-		return
-	}
+	// Use XRPC response directly instead of converting to internal types
 
 	var breadcrumbs [][]string
 	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
@@ -581,7 +688,7 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	showRendered := false
 	renderToggle := false
 
-	if markup.GetFormat(result.Path) == markup.FormatMarkdown {
+	if markup.GetFormat(resp.Path) == markup.FormatMarkdown {
 		renderToggle = true
 		showRendered = r.URL.Query().Get("code") != "true"
 	}
@@ -591,8 +698,8 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	var isVideo bool
 	var contentSrc string
 
-	if result.IsBinary {
-		ext := strings.ToLower(filepath.Ext(result.Path))
+	if resp.IsBinary != nil && *resp.IsBinary {
+		ext := strings.ToLower(filepath.Ext(resp.Path))
 		switch ext {
 		case ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp":
 			isImage = true
@@ -602,27 +709,52 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 			unsupported = true
 		}
 
-		// fetch the actual binary content like in RepoBlobRaw
+		// fetch the raw binary content using sh.tangled.repo.blob xrpc
+		repoName := path.Join("%s/%s", f.OwnerDid(), f.Name)
+		blobURL := fmt.Sprintf("%s://%s/xrpc/sh.tangled.repo.blob?repo=%s&ref=%s&path=%s&raw=true",
+			scheme, f.Knot, url.QueryEscape(repoName), url.QueryEscape(ref), url.QueryEscape(filePath))
 
-		blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Name, ref, filePath)
 		contentSrc = blobURL
 		if !rp.config.Core.Dev {
 			contentSrc = markup.GenerateCamoURL(rp.config.Camo.Host, rp.config.Camo.SharedSecret, blobURL)
 		}
 	}
 
+	lines := 0
+	if resp.IsBinary == nil || !*resp.IsBinary {
+		lines = strings.Count(resp.Content, "\n") + 1
+	}
+
+	var sizeHint uint64
+	if resp.Size != nil {
+		sizeHint = uint64(*resp.Size)
+	} else {
+		sizeHint = uint64(len(resp.Content))
+	}
+
 	user := rp.oauth.GetUser(r)
+
+	// Determine if content is binary (dereference pointer)
+	isBinary := false
+	if resp.IsBinary != nil {
+		isBinary = *resp.IsBinary
+	}
+
 	rp.pages.RepoBlob(w, pages.RepoBlobParams{
-		LoggedInUser:     user,
-		RepoInfo:         f.RepoInfo(user),
-		RepoBlobResponse: result,
-		BreadCrumbs:      breadcrumbs,
-		ShowRendered:     showRendered,
-		RenderToggle:     renderToggle,
-		Unsupported:      unsupported,
-		IsImage:          isImage,
-		IsVideo:          isVideo,
-		ContentSrc:       contentSrc,
+		LoggedInUser:    user,
+		RepoInfo:        f.RepoInfo(user),
+		BreadCrumbs:     breadcrumbs,
+		ShowRendered:    showRendered,
+		RenderToggle:    renderToggle,
+		Unsupported:     unsupported,
+		IsImage:         isImage,
+		IsVideo:         isVideo,
+		ContentSrc:      contentSrc,
+		RepoBlob_Output: resp,
+		Contents:        resp.Content,
+		Lines:           lines,
+		SizeHint:        sizeHint,
+		IsBinary:        isBinary,
 	})
 }
 
@@ -637,12 +769,14 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
 	filePath := chi.URLParam(r, "*")
 
-	protocol := "http"
+	scheme := "http"
 	if !rp.config.Core.Dev {
-		protocol = "https"
+		scheme = "https"
 	}
 
-	blobURL := fmt.Sprintf("%s://%s/%s/%s/raw/%s/%s", protocol, f.Knot, f.OwnerDid(), f.Repo.Name, ref, filePath)
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Repo.Name)
+	blobURL := fmt.Sprintf("%s://%s/xrpc/sh.tangled.repo.blob?repo=%s&ref=%s&path=%s&raw=true",
+		scheme, f.Knot, url.QueryEscape(repo), url.QueryEscape(ref), url.QueryEscape(filePath))
 
 	req, err := http.NewRequest("GET", blobURL, nil)
 	if err != nil {
@@ -685,17 +819,15 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Safely serve content based on type
 	if strings.HasPrefix(contentType, "text/") || isTextualMimeType(contentType) {
-		// Serve all textual content as text/plain for security
+		// serve all textual content as text/plain
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write(body)
 	} else if strings.HasPrefix(contentType, "image/") || strings.HasPrefix(contentType, "video/") {
-		// Serve images and videos with their original content type
+		// serve images and videos with their original content type
 		w.Header().Set("Content-Type", contentType)
 		w.Write(body)
 	} else {
-		// Block potentially dangerous content types
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		w.Write([]byte("unsupported content type"))
 		return
@@ -716,12 +848,7 @@ func isTextualMimeType(mimeType string) bool {
 		"message/",
 	}
 
-	for _, t := range textualTypes {
-		if mimeType == t {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(textualTypes, mimeType)
 }
 
 // modify the spindle configured for this repo
@@ -1227,16 +1354,31 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	user := rp.oauth.GetUser(r)
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		log.Println("failed to create unsigned client", err)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Error503(w)
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.Name)
-	if err != nil {
+	var result types.RepoBranchesResponse
+	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
+		log.Println("failed to decode XRPC response", err)
 		rp.pages.Error503(w)
-		log.Println("failed to reach knotserver", err)
 		return
 	}
 
@@ -1607,20 +1749,34 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		log.Printf("failed to create unsigned client for %s", f.Knot)
-		rp.pages.Error503(w)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.Name)
-	if err != nil {
+	var branchResult types.RepoBranchesResponse
+	if err := json.Unmarshal(branchBytes, &branchResult); err != nil {
+		log.Println("failed to decode XRPC branches response", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to reach knotserver", err)
 		return
 	}
-	branches := result.Branches
+	branches := branchResult.Branches
 
 	sortBranches(branches)
 
@@ -1644,10 +1800,21 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 		head = queryHead
 	}
 
-	tags, err := us.Tags(f.OwnerDid(), f.Name)
+	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.tags", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to reach knotserver", err)
+		return
+	}
+
+	var tags types.RepoTagsResponse
+	if err := json.Unmarshal(tagBytes, &tags); err != nil {
+		log.Println("failed to decode XRPC tags response", err)
+		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}
 
@@ -1699,33 +1866,71 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+
+	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		log.Printf("failed to create unsigned client for %s", f.Knot)
-		rp.pages.Error503(w)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}
 
-	branches, err := us.Branches(f.OwnerDid(), f.Name)
-	if err != nil {
+	var branches types.RepoBranchesResponse
+	if err := json.Unmarshal(branchBytes, &branches); err != nil {
+		log.Println("failed to decode XRPC branches response", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	tags, err := us.Tags(f.OwnerDid(), f.Name)
+	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.tags", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to reach knotserver", err)
 		return
 	}
 
-	formatPatch, err := us.Compare(f.OwnerDid(), f.Name, base, head)
-	if err != nil {
+	var tags types.RepoTagsResponse
+	if err := json.Unmarshal(tagBytes, &tags); err != nil {
+		log.Println("failed to decode XRPC tags response", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
-		log.Println("failed to compare", err)
 		return
 	}
+
+	compareBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, base, head)
+	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.compare", xrpcerr)
+			rp.pages.Error503(w)
+			return
+		}
+		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		return
+	}
+
+	var formatPatch types.RepoFormatPatchResponse
+	if err := json.Unmarshal(compareBytes, &formatPatch); err != nil {
+		log.Println("failed to decode XRPC compare response", err)
+		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+		return
+	}
+
 	diff := patchutil.AsNiceDiff(formatPatch.Patch, base)
 
 	repoinfo := f.RepoInfo(user)

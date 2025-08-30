@@ -763,7 +763,12 @@ type RepoBlobParams struct {
 	ShowRendered     bool
 	RenderToggle     bool
 	RenderedContents template.HTML
-	types.RepoBlobResponse
+	*tangled.RepoBlob_Output
+	// Computed fields for template compatibility
+	Contents string
+	Lines    int
+	SizeHint uint64
+	IsBinary bool
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {

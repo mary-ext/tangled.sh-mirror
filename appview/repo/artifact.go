@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +11,7 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -17,7 +20,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
-	"tangled.sh/tangled.sh/core/knotclient"
+	"tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/tid"
 	"tangled.sh/tangled.sh/core/types"
 )
@@ -33,7 +36,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tag, err := rp.resolveTag(f, tagParam)
+	tag, err := rp.resolveTag(r.Context(), f, tagParam)
 	if err != nil {
 		log.Println("failed to resolve tag", err)
 		rp.pages.Notice(w, "upload", "failed to upload artifact, error in tag resolution")
@@ -140,7 +143,7 @@ func (rp *Repo) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tag, err := rp.resolveTag(f, tagParam)
+	tag, err := rp.resolveTag(r.Context(), f, tagParam)
 	if err != nil {
 		log.Println("failed to resolve tag", err)
 		rp.pages.Notice(w, "upload", "failed to upload artifact, error in tag resolution")
@@ -259,20 +262,35 @@ func (rp *Repo) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte{})
 }
 
-func (rp *Repo) resolveTag(f *reporesolver.ResolvedRepo, tagParam string) (*types.TagReference, error) {
+func (rp *Repo) resolveTag(ctx context.Context, f *reporesolver.ResolvedRepo, tagParam string) (*types.TagReference, error) {
 	tagParam, err := url.QueryUnescape(tagParam)
 	if err != nil {
 		return nil, err
 	}
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, rp.config.Core.Dev)
+	scheme := "http"
+	if !rp.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoTags(ctx, xrpcc, "", 0, repo)
 	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.tags", xrpcerr)
+			return nil, xrpcerr
+		}
+		log.Println("failed to reach knotserver", err)
 		return nil, err
 	}
 
-	result, err := us.Tags(f.OwnerDid(), f.Name)
-	if err != nil {
-		log.Println("failed to reach knotserver", err)
+	var result types.RepoTagsResponse
+	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
+		log.Println("failed to decode XRPC tags response", err)
 		return nil, err
 	}
 

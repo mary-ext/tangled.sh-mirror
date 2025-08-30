@@ -11,6 +11,11 @@
   {{ $last := sub (len $diff) 1 }}
 
   <div class="flex flex-col gap-4">
+    {{ if eq (len $diff) 0 }}
+      <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+        <p>No differences found between the selected revisions.</p>
+      </div>
+    {{ else }}
     {{ range $idx, $hunk := $diff }}
       {{ with $hunk }}
         <details open id="file-{{ .Name.New }}" class="group border border-gray-200 dark:border-gray-700 w-full mx-auto rounded bg-white dark:bg-gray-800 drop-shadow-sm" tabindex="{{ add $idx 1 }}">
@@ -49,6 +54,7 @@
           </div>
         </details>
       {{ end }}
+    {{ end }}
     {{ end }}
   </div>
 {{ end }}
