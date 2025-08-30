@@ -115,7 +115,7 @@ func HandleXrpcErr(err error) error {
 
 	var xrpcerr *indigoxrpc.Error
 	if ok := errors.As(err, &xrpcerr); !ok {
-		return fmt.Errorf("Recieved invalid XRPC error response.")
+		return fmt.Errorf("Recieved invalid XRPC error response: %v", err)
 	}
 
 	switch xrpcerr.StatusCode {
