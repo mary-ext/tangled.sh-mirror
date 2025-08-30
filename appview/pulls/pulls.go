@@ -2,6 +2,7 @@ package pulls
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -21,7 +22,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/knotclient"
 	"tangled.sh/tangled.sh/core/patchutil"
 	"tangled.sh/tangled.sh/core/tid"
 	"tangled.sh/tangled.sh/core/types"
@@ -99,7 +99,7 @@ func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 		mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
 		resubmitResult := pages.Unknown
 		if user.Did == pull.OwnerDid {
-			resubmitResult = s.resubmitCheck(f, pull, stack)
+			resubmitResult = s.resubmitCheck(r, f, pull, stack)
 		}
 
 		s.pages.PullActionsFragment(w, pages.PullActionsParams{
@@ -154,7 +154,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
 	resubmitResult := pages.Unknown
 	if user != nil && user.Did == pull.OwnerDid {
-		resubmitResult = s.resubmitCheck(f, pull, stack)
+		resubmitResult = s.resubmitCheck(r, f, pull, stack)
 	}
 
 	repoInfo := f.RepoInfo(user)
@@ -282,7 +282,7 @@ func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *
 	return result
 }
 
-func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
+func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
 	if pull.State == db.PullMerged || pull.State == db.PullDeleted || pull.PullSource == nil {
 		return pages.Unknown
 	}
@@ -307,17 +307,27 @@ func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack
 		repoName = f.Name
 	}
 
-	us, err := knotclient.NewUnsignedClient(knot, s.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to setup client for %s; ignoring: %v", knot, err)
-		return pages.Unknown
+	scheme := "http"
+	if !s.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
 	}
 
-	result, err := us.Branch(ownerDid, repoName, pull.PullSource.Branch)
+	repo := fmt.Sprintf("%s/%s", ownerDid, repoName)
+	branchResp, err := tangled.RepoBranch(r.Context(), xrpcc, pull.PullSource.Branch, repo)
 	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches", xrpcerr)
+			return pages.Unknown
+		}
 		log.Println("failed to reach knotserver", err)
 		return pages.Unknown
 	}
+
+	targetBranch := branchResp
 
 	latestSourceRev := pull.Submissions[pull.LastRoundNumber()].SourceRev
 
@@ -326,7 +336,7 @@ func (s *Pulls) resubmitCheck(f *reporesolver.ResolvedRepo, pull *db.Pull, stack
 		latestSourceRev = top.Submissions[top.LastRoundNumber()].SourceRev
 	}
 
-	if latestSourceRev != result.Branch.Hash {
+	if latestSourceRev != targetBranch.Hash {
 		return pages.ShouldResubmit
 	}
 
@@ -678,16 +688,31 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+		scheme := "http"
+		if !s.config.Core.Dev {
+			scheme = "https"
+		}
+		host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+		xrpcc := &indigoxrpc.Client{
+			Host: host,
+		}
+
+		repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+		xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 		if err != nil {
-			log.Printf("failed to create unsigned client for %s", f.Knot)
-			s.pages.Error503(w)
+			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+				log.Println("failed to call XRPC repo.branches", xrpcerr)
+				s.pages.Error503(w)
+				return
+			}
+			log.Println("failed to fetch branches", err)
 			return
 		}
 
-		result, err := us.Branches(f.OwnerDid(), f.Name)
-		if err != nil {
-			log.Println("failed to fetch branches", err)
+		var result types.RepoBranchesResponse
+		if err := json.Unmarshal(xrpcBytes, &result); err != nil {
+			log.Println("failed to decode XRPC response", err)
+			s.pages.Error503(w)
 			return
 		}
 
@@ -752,19 +777,41 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
-		if err != nil {
-			log.Printf("failed to create unsigned client to %s: %v", f.Knot, err)
-			s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
-			return
+		// us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+		// if err != nil {
+		// 	log.Printf("failed to create unsigned client to %s: %v", f.Knot, err)
+		// 	s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
+		// 	return
+		// }
+
+		// TODO: make capabilities an xrpc call
+		caps := struct {
+			PullRequests struct {
+				FormatPatch       bool
+				BranchSubmissions bool
+				ForkSubmissions   bool
+				PatchSubmissions  bool
+			}
+		}{
+			PullRequests: struct {
+				FormatPatch       bool
+				BranchSubmissions bool
+				ForkSubmissions   bool
+				PatchSubmissions  bool
+			}{
+				FormatPatch:       true,
+				BranchSubmissions: true,
+				ForkSubmissions:   true,
+				PatchSubmissions:  true,
+			},
 		}
 
-		caps, err := us.Capabilities()
-		if err != nil {
-			log.Println("error fetching knot caps", f.Knot, err)
-			s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
-			return
-		}
+		// caps, err := us.Capabilities()
+		// if err != nil {
+		// 	log.Println("error fetching knot caps", f.Knot, err)
+		// 	s.pages.Notice(w, "pull", "Failed to create a pull request. Try again later.")
+		// 	return
+		// }
 
 		if !caps.PullRequests.FormatPatch {
 			s.pages.Notice(w, "pull", "This knot doesn't support format-patch. Unfortunately, there is no fallback for now.")
@@ -806,18 +853,32 @@ func (s *Pulls) handleBranchBasedPull(
 	sourceBranch string,
 	isStacked bool,
 ) {
-	// Generate a patch using /compare
-	ksClient, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	scheme := "http"
+	if !s.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, targetBranch, sourceBranch)
 	if err != nil {
-		log.Printf("failed to create signed client for %s: %s", f.Knot, err)
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.compare", xrpcerr)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
+		log.Println("failed to compare", err)
+		s.pages.Notice(w, "pull", err.Error())
 		return
 	}
 
-	comparison, err := ksClient.Compare(f.OwnerDid(), f.Name, targetBranch, sourceBranch)
-	if err != nil {
-		log.Println("failed to compare", err)
-		s.pages.Notice(w, "pull", err.Error())
+	var comparison types.RepoFormatPatchResponse
+	if err := json.Unmarshal(xrpcBytes, &comparison); err != nil {
+		log.Println("failed to decode XRPC compare response", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
 
@@ -869,18 +930,6 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 		oauth.WithLxm(tangled.RepoHiddenRefNSID),
 		oauth.WithDev(s.config.Core.Dev),
 	)
-	if err != nil {
-		log.Printf("failed to connect to knot server: %v", err)
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-		return
-	}
-
-	us, err := knotclient.NewUnsignedClient(fork.Knot, s.config.Core.Dev)
-	if err != nil {
-		log.Println("failed to create unsigned client:", err)
-		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
-		return
-	}
 
 	resp, err := tangled.RepoHiddenRef(
 		r.Context(),
@@ -911,10 +960,32 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 	// hiddenRef: hidden/feature-1/main (on repo-fork)
 	// targetBranch: main (on repo-1)
 	// sourceBranch: feature-1 (on repo-fork)
-	comparison, err := us.Compare(fork.Did, fork.Name, hiddenRef, sourceBranch)
+	forkScheme := "http"
+	if !s.config.Core.Dev {
+		forkScheme = "https"
+	}
+	forkHost := fmt.Sprintf("%s://%s", forkScheme, fork.Knot)
+	forkXrpcc := &indigoxrpc.Client{
+		Host: forkHost,
+	}
+
+	forkRepoId := fmt.Sprintf("%s/%s", fork.Did, fork.Name)
+	forkXrpcBytes, err := tangled.RepoCompare(r.Context(), forkXrpcc, forkRepoId, hiddenRef, sourceBranch)
 	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.compare for fork", xrpcerr)
+			s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
+			return
+		}
 		log.Println("failed to compare across branches", err)
 		s.pages.Notice(w, "pull", err.Error())
+		return
+	}
+
+	var comparison types.RepoFormatPatchResponse
+	if err := json.Unmarshal(forkXrpcBytes, &comparison); err != nil {
+		log.Println("failed to decode XRPC compare response for fork", err)
+		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
 
@@ -1211,16 +1282,31 @@ func (s *Pulls) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	us, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	scheme := "http"
+	if !s.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
-		log.Printf("failed to create unsigned client for %s", f.Knot)
-		s.pages.Error503(w)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches", xrpcerr)
+			s.pages.Error503(w)
+			return
+		}
+		log.Println("failed to fetch branches", err)
 		return
 	}
 
-	result, err := us.Branches(f.OwnerDid(), f.Name)
-	if err != nil {
-		log.Println("failed to reach knotserver", err)
+	var result types.RepoBranchesResponse
+	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
+		log.Println("failed to decode XRPC response", err)
+		s.pages.Error503(w)
 		return
 	}
 
@@ -1284,41 +1370,72 @@ func (s *Pulls) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	sourceBranchesClient, err := knotclient.NewUnsignedClient(repo.Knot, s.config.Core.Dev)
+	sourceScheme := "http"
+	if !s.config.Core.Dev {
+		sourceScheme = "https"
+	}
+	sourceHost := fmt.Sprintf("%s://%s", sourceScheme, repo.Knot)
+	sourceXrpcc := &indigoxrpc.Client{
+		Host: sourceHost,
+	}
+
+	sourceRepo := fmt.Sprintf("%s/%s", forkOwnerDid, repo.Name)
+	sourceXrpcBytes, err := tangled.RepoBranches(r.Context(), sourceXrpcc, "", 0, sourceRepo)
 	if err != nil {
-		log.Printf("failed to create unsigned client for %s", repo.Knot)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches for source", xrpcerr)
+			s.pages.Error503(w)
+			return
+		}
+		log.Println("failed to fetch source branches", err)
+		return
+	}
+
+	// Decode source branches
+	var sourceBranches types.RepoBranchesResponse
+	if err := json.Unmarshal(sourceXrpcBytes, &sourceBranches); err != nil {
+		log.Println("failed to decode source branches XRPC response", err)
 		s.pages.Error503(w)
 		return
 	}
 
-	sourceResult, err := sourceBranchesClient.Branches(forkOwnerDid, repo.Name)
+	targetScheme := "http"
+	if !s.config.Core.Dev {
+		targetScheme = "https"
+	}
+	targetHost := fmt.Sprintf("%s://%s", targetScheme, f.Knot)
+	targetXrpcc := &indigoxrpc.Client{
+		Host: targetHost,
+	}
+
+	targetRepo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	targetXrpcBytes, err := tangled.RepoBranches(r.Context(), targetXrpcc, "", 0, targetRepo)
 	if err != nil {
-		log.Println("failed to reach knotserver for source branches", err)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.branches for target", xrpcerr)
+			s.pages.Error503(w)
+			return
+		}
+		log.Println("failed to fetch target branches", err)
 		return
 	}
 
-	targetBranchesClient, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
-	if err != nil {
-		log.Printf("failed to create unsigned client for target knot %s", f.Knot)
+	// Decode target branches
+	var targetBranches types.RepoBranchesResponse
+	if err := json.Unmarshal(targetXrpcBytes, &targetBranches); err != nil {
+		log.Println("failed to decode target branches XRPC response", err)
 		s.pages.Error503(w)
 		return
 	}
 
-	targetResult, err := targetBranchesClient.Branches(f.OwnerDid(), f.Name)
-	if err != nil {
-		log.Println("failed to reach knotserver for target branches", err)
-		return
-	}
-
-	sourceBranches := sourceResult.Branches
-	sort.Slice(sourceBranches, func(i int, j int) bool {
-		return sourceBranches[i].Commit.Committer.When.After(sourceBranches[j].Commit.Committer.When)
+	sort.Slice(sourceBranches.Branches, func(i int, j int) bool {
+		return sourceBranches.Branches[i].Commit.Committer.When.After(sourceBranches.Branches[j].Commit.Committer.When)
 	})
 
 	s.pages.PullCompareForkBranchesFragment(w, pages.PullCompareForkBranchesParams{
 		RepoInfo:       f.RepoInfo(user),
-		SourceBranches: sourceBranches,
-		TargetBranches: targetResult.Branches,
+		SourceBranches: sourceBranches.Branches,
+		TargetBranches: targetBranches.Branches,
 	})
 }
 
@@ -1413,17 +1530,32 @@ func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ksClient, err := knotclient.NewUnsignedClient(f.Knot, s.config.Core.Dev)
+	scheme := "http"
+	if !s.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	xrpcBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, pull.TargetBranch, pull.PullSource.Branch)
 	if err != nil {
-		log.Printf("failed to create client for %s: %s", f.Knot, err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.compare", xrpcerr)
+			s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+			return
+		}
+		log.Printf("compare request failed: %s", err)
+		s.pages.Notice(w, "resubmit-error", err.Error())
 		return
 	}
 
-	comparison, err := ksClient.Compare(f.OwnerDid(), f.Name, pull.TargetBranch, pull.PullSource.Branch)
-	if err != nil {
-		log.Printf("compare request failed: %s", err)
-		s.pages.Notice(w, "resubmit-error", err.Error())
+	var comparison types.RepoFormatPatchResponse
+	if err := json.Unmarshal(xrpcBytes, &comparison); err != nil {
+		log.Println("failed to decode XRPC compare response", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
 		return
 	}
 
@@ -1463,9 +1595,27 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// extract patch by performing compare
-	ksClient, err := knotclient.NewUnsignedClient(forkRepo.Knot, s.config.Core.Dev)
+	forkScheme := "http"
+	if !s.config.Core.Dev {
+		forkScheme = "https"
+	}
+	forkHost := fmt.Sprintf("%s://%s", forkScheme, forkRepo.Knot)
+	forkRepoId := fmt.Sprintf("%s/%s", forkRepo.Did, forkRepo.Name)
+	forkXrpcBytes, err := tangled.RepoCompare(r.Context(), &indigoxrpc.Client{Host: forkHost}, forkRepoId, pull.TargetBranch, pull.PullSource.Branch)
 	if err != nil {
-		log.Printf("failed to create client for %s: %s", forkRepo.Knot, err)
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.compare for fork", xrpcerr)
+			s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+			return
+		}
+		log.Printf("failed to compare branches: %s", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	var forkComparison types.RepoFormatPatchResponse
+	if err := json.Unmarshal(forkXrpcBytes, &forkComparison); err != nil {
+		log.Println("failed to decode XRPC compare response for fork", err)
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
 		return
 	}
@@ -1501,13 +1651,8 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hiddenRef := fmt.Sprintf("hidden/%s/%s", pull.PullSource.Branch, pull.TargetBranch)
-	comparison, err := ksClient.Compare(forkRepo.Did, forkRepo.Name, hiddenRef, pull.PullSource.Branch)
-	if err != nil {
-		log.Printf("failed to compare branches: %s", err)
-		s.pages.Notice(w, "resubmit-error", err.Error())
-		return
-	}
+	// Use the fork comparison we already made
+	comparison := forkComparison
 
 	sourceRev := comparison.Rev2
 	patch := comparison.Patch
