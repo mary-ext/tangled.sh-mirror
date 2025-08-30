@@ -156,15 +156,35 @@ func (h *Handle) Version(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var modVer string
+		var sha string
+		var modified bool
+
 		for _, mod := range info.Deps {
 			if mod.Path == "tangled.sh/tangled.sh/knotserver" {
-				version = mod.Version
+				modVer = mod.Version
 				break
 			}
 		}
 
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.revision":
+				sha = setting.Value
+			case "vcs.modified":
+				modified = setting.Value == "true"
+			}
+		}
+
 		if modVer == "" {
-			version = "unknown"
+			modVer = "unknown"
+		}
+
+		if sha == "" {
+			version = modVer
+		} else if modified {
+			version = fmt.Sprintf("%s (%s with modifications)", modVer, sha)
+		} else {
+			version = fmt.Sprintf("%s (%s)", modVer, sha)
 		}
 	}
 
