@@ -200,167 +200,172 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
-	issueId := chi.URLParam(r, "issue")
-	issueIdInt, err := strconv.Atoi(issueId)
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	body := r.FormValue("body")
+	if body == "" {
+		rp.pages.Notice(w, "issue", "Body is required")
+		return
+	}
+
+	replyToUri := r.FormValue("reply-to")
+	var replyTo *string
+	if replyToUri != "" {
+		uri, err := syntax.ParseATURI(replyToUri)
+		if err != nil {
+			l.Error("failed to get parse replyTo", "err", err, "replyTo", replyToUri)
+			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
+			return
+		}
+		if uri.Collection() != tangled.RepoIssueCommentNSID {
+			l.Error("invalid replyTo collection", "collection", uri.Collection())
+			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
+			return
+		}
+		u := uri.String()
+		replyTo = &u
+	}
+
+	comment := db.IssueComment{
+		Did:     user.Did,
+		Rkey:    tid.TID(),
+		IssueAt: issue.AtUri().String(),
+		ReplyTo: replyTo,
+		Body:    body,
+		Created: time.Now(),
+	}
+	if err = rp.validator.ValidateIssueComment(&comment); err != nil {
+		l.Error("failed to validate comment", "err", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
+		return
+	}
+	record := comment.AsRecord()
+
+	client, err := rp.oauth.AuthorizedClient(r)
 	if err != nil {
-		http.Error(w, "bad issue id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
+		l.Error("failed to get authorized client", "err", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
 		return
 	}
 
-	switch r.Method {
-	case http.MethodPost:
-		body := r.FormValue("body")
-		if body == "" {
-			rp.pages.Notice(w, "issue", "Body is required")
-			return
-		}
-
-		commentId := mathrand.IntN(1000000)
-		rkey := tid.TID()
-
-		err := db.NewIssueComment(rp.db, &db.Comment{
-			OwnerDid:  user.Did,
-			RepoAt:    f.RepoAt(),
-			Issue:     issueIdInt,
-			CommentId: commentId,
-			Body:      body,
-			Rkey:      rkey,
-		})
-		if err != nil {
-			log.Println("failed to create comment", err)
-			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
-			return
-		}
-
-		createdAt := time.Now().Format(time.RFC3339)
-		ownerDid := user.Did
-		issueAt, err := db.GetIssueAt(rp.db, f.RepoAt(), issueIdInt)
-		if err != nil {
-			log.Println("failed to get issue at", err)
-			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
-			return
-		}
-
-		atUri := f.RepoAt().String()
-		client, err := rp.oauth.AuthorizedClient(r)
-		if err != nil {
-			log.Println("failed to get authorized client", err)
-			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
-			return
-		}
-		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
-			Collection: tangled.RepoIssueCommentNSID,
-			Repo:       user.Did,
-			Rkey:       rkey,
-			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.RepoIssueComment{
-					Repo:      &atUri,
-					Issue:     issueAt,
-					Owner:     &ownerDid,
-					Body:      body,
-					CreatedAt: createdAt,
-				},
-			},
-		})
-		if err != nil {
-			log.Println("failed to create comment", err)
-			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
-			return
-		}
-
-		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d#comment-%d", f.OwnerSlashRepo(), issueIdInt, commentId))
+	// create a record first
+	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoIssueCommentNSID,
+		Repo:       comment.Did,
+		Rkey:       comment.Rkey,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &record,
+		},
+	})
+	if err != nil {
+		l.Error("failed to create comment", "err", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
 		return
 	}
+	atUri := resp.Uri
+	defer func() {
+		if err := rollbackRecord(context.Background(), atUri, client); err != nil {
+			l.Error("rollback failed", "err", err)
+		}
+	}()
+
+	commentId, err := db.AddIssueComment(rp.db, comment)
+	if err != nil {
+		l.Error("failed to create comment", "err", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
+		return
+	}
+
+	// reset atUri to make rollback a no-op
+	atUri = ""
+	rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d#comment-%d", f.OwnerSlashRepo(), issue.IssueId, commentId))
 }
 
 func (rp *Issues) IssueComment(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "IssueComment")
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
-	issueId := chi.URLParam(r, "issue")
-	issueIdInt, err := strconv.Atoi(issueId)
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	commentId := chi.URLParam(r, "commentId")
+	comments, err := db.GetIssueComments(
+		rp.db,
+		db.FilterEq("id", commentId),
+	)
 	if err != nil {
-		http.Error(w, "bad issue id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
+		l.Error("failed to fetch comment", "id", commentId)
+		http.Error(w, "failed to fetch comment id", http.StatusBadRequest)
 		return
 	}
-
-	commentId := chi.URLParam(r, "comment_id")
-	commentIdInt, err := strconv.Atoi(commentId)
-	if err != nil {
-		http.Error(w, "bad comment id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
+	if len(comments) != 1 {
+		l.Error("incorrect number of comments returned", "id", commentId, "len(comments)", len(comments))
+		http.Error(w, "invalid comment id", http.StatusBadRequest)
 		return
 	}
+	comment := comments[0]
 
-	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
-	if err != nil {
-		log.Println("failed to get issue", err)
-		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
-		return
-	}
-
-	comment, err := db.GetComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
-	if err != nil {
-		http.Error(w, "bad comment id", http.StatusBadRequest)
-		return
-	}
-
-	rp.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
+	rp.pages.IssueCommentBodyFragment(w, pages.IssueCommentBodyParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(user),
 		Issue:        issue,
-		Comment:      comment,
+		Comment:      &comment,
 	})
 }
 
 func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "EditIssueComment")
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
-	issueId := chi.URLParam(r, "issue")
-	issueIdInt, err := strconv.Atoi(issueId)
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	commentId := chi.URLParam(r, "commentId")
+	comments, err := db.GetIssueComments(
+		rp.db,
+		db.FilterEq("id", commentId),
+	)
 	if err != nil {
-		http.Error(w, "bad issue id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
+		l.Error("failed to fetch comment", "id", commentId)
+		http.Error(w, "failed to fetch comment id", http.StatusBadRequest)
 		return
 	}
-
-	commentId := chi.URLParam(r, "comment_id")
-	commentIdInt, err := strconv.Atoi(commentId)
-	if err != nil {
-		http.Error(w, "bad comment id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
+	if len(comments) != 1 {
+		l.Error("incorrect number of comments returned", "id", commentId, "len(comments)", len(comments))
+		http.Error(w, "invalid comment id", http.StatusBadRequest)
 		return
 	}
+	comment := comments[0]
 
-	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
-	if err != nil {
-		log.Println("failed to get issue", err)
-		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
-		return
-	}
-
-	comment, err := db.GetComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
-	if err != nil {
-		http.Error(w, "bad comment id", http.StatusBadRequest)
-		return
-	}
-
-	if comment.OwnerDid != user.Did {
+	if comment.Did != user.Did {
+		l.Error("unauthorized comment edit", "expectedDid", comment.Did, "gotDid", user.Did)
 		http.Error(w, "you are not the author of this comment", http.StatusUnauthorized)
 		return
 	}
@@ -382,11 +387,14 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
 			return
 		}
-		rkey := comment.Rkey
 
-		// optimistic update
-		edited := time.Now()
-		err = db.EditComment(rp.db, comment.RepoAt, comment.Issue, comment.CommentId, newBody)
+		now := time.Now()
+		newComment := comment
+		newComment.Body = newBody
+		newComment.Edited = &now
+		record := newComment.AsRecord()
+
+		_, err = db.AddIssueComment(rp.db, newComment)
 		if err != nil {
 			log.Println("failed to perferom update-description query", err)
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
@@ -445,13 +453,93 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-}
-
-func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
+func (rp *Issues) ReplyIssueCommentPlaceholder(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "ReplyIssueCommentPlaceholder")
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	commentId := chi.URLParam(r, "commentId")
+	comments, err := db.GetIssueComments(
+		rp.db,
+		db.FilterEq("id", commentId),
+	)
+	if err != nil {
+		l.Error("failed to fetch comment", "id", commentId)
+		http.Error(w, "failed to fetch comment id", http.StatusBadRequest)
+		return
+	}
+	if len(comments) != 1 {
+		l.Error("incorrect number of comments returned", "id", commentId, "len(comments)", len(comments))
+		http.Error(w, "invalid comment id", http.StatusBadRequest)
+		return
+	}
+	comment := comments[0]
+
+	rp.pages.ReplyIssueCommentPlaceholderFragment(w, pages.ReplyIssueCommentPlaceholderParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(user),
+		Issue:        issue,
+		Comment:      &comment,
+	})
+}
+
+func (rp *Issues) ReplyIssueComment(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "ReplyIssueComment")
+	user := rp.oauth.GetUser(r)
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	commentId := chi.URLParam(r, "commentId")
+	comments, err := db.GetIssueComments(
+		rp.db,
+		db.FilterEq("id", commentId),
+	)
+	if err != nil {
+		l.Error("failed to fetch comment", "id", commentId)
+		http.Error(w, "failed to fetch comment id", http.StatusBadRequest)
+		return
+	}
+	if len(comments) != 1 {
+		l.Error("incorrect number of comments returned", "id", commentId, "len(comments)", len(comments))
+		http.Error(w, "invalid comment id", http.StatusBadRequest)
+		return
+	}
+	comment := comments[0]
+
+	rp.pages.ReplyIssueCommentFragment(w, pages.ReplyIssueCommentParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(user),
+		Issue:        issue,
+		Comment:      &comment,
+	})
+}
+
+func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "DeleteIssueComment")
+	user := rp.oauth.GetUser(r)
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
 		return
 	}
 
