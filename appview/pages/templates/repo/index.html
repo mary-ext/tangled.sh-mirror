@@ -35,15 +35,37 @@
 {{ end }}
 
 {{ define "repoLanguages" }}
-    <div class="flex gap-[1px] -m-6 mb-6 overflow-hidden rounded-t">
+    <details class="group -m-6 mb-4">
+      <summary class="flex gap-[1px] h-4 scale-y-50 hover:scale-y-100 origin-top group-open:scale-y-100 transition-all hover:cursor-pointer overflow-hidden rounded-t">
         {{ range $value := .Languages }}
-            <div
-                title='{{ or $value.Name "Other" }} {{ printf "%.1f" $value.Percentage }}%'
-                class="h-[4px] rounded-full"
-                style="background-color: {{ $value.Color }}; width: {{ $value.Percentage }}%"
-            ></div>
+        <div
+          title='{{ or $value.Name "Other" }} {{ printf "%.1f" $value.Percentage }}%'
+          style="background-color: {{ $value.Color }}; width: {{ $value.Percentage }}%"
+        ></div>
         {{ end }}
-    </div>
+      </summary>
+      <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 flex items-center gap-4 flex-wrap">
+        {{ range $value := .Languages }}
+        <div
+          class="flex flex-grow items-center gap-2 text-xs align-items-center justify-center"
+        >
+          <div
+            class="rounded-full h-2 w-2"
+            style="background: radial-gradient(circle at 35% 35%, color-mix(in srgb, {{ $value.Color }} 70%, white), {{ $value.Color }} 30%, color-mix(in srgb, {{ $value.Color }} 85%, black));"
+          >
+          </div>
+          <div>{{ or $value.Name "Other" }}
+            <span class="text-gray-500 dark:text-gray-400">
+              {{ if lt $value.Percentage 0.05 }}
+                0.1%
+              {{ else }}
+                {{ printf "%.1f" $value.Percentage }}%
+              {{ end }}
+            </span></div>
+        </div>
+        {{ end }}
+      </div>
+    </details>
 {{ end }}
 
 
