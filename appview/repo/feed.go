@@ -104,7 +104,7 @@ func (rp *Repo) createPullItems(ctx context.Context, pull *db.Pull, f *reporesol
 }
 
 func (rp *Repo) createIssueItem(ctx context.Context, issue db.Issue, f *reporesolver.ResolvedRepo) (*feeds.Item, error) {
-	owner, err := rp.idResolver.ResolveIdent(ctx, issue.OwnerDid)
+	owner, err := rp.idResolver.ResolveIdent(ctx, issue.Did)
 	if err != nil {
 		return nil, err
 	}

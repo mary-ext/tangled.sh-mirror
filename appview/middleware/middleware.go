@@ -275,6 +275,46 @@ func (mw Middleware) ResolvePull() middlewareFunc {
 	}
 }
 
+// middleware that is tacked on top of /{user}/{repo}/issues/{issue}
+func (mw Middleware) ResolveIssue() middlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f, err := mw.repoResolver.Resolve(r)
+			if err != nil {
+				log.Println("failed to fully resolve repo", err)
+				mw.pages.ErrorKnot404(w)
+				return
+			}
+
+			issueIdStr := chi.URLParam(r, "issue")
+			issueId, err := strconv.Atoi(issueIdStr)
+			if err != nil {
+				log.Println("failed to fully resolve issue ID", err)
+				mw.pages.ErrorKnot404(w)
+				return
+			}
+
+			issues, err := db.GetIssues(
+				mw.db,
+				db.FilterEq("repo_at", f.RepoAt()),
+				db.FilterEq("issue_id", issueId),
+			)
+			if err != nil {
+				log.Println("failed to get issues", "err", err)
+				return
+			}
+			if len(issues) != 1 {
+				log.Println("got incorrect number of issues", "len(issuse)", len(issues))
+				return
+			}
+			issue := issues[0]
+
+			ctx := context.WithValue(r.Context(), "issue", &issue)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 // this should serve the go-import meta tag even if the path is technically
 // a 404 like tangled.sh/oppi.li/go-git/v5
 func (mw Middleware) GoImport() middlewareFunc {

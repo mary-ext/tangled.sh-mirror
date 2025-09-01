@@ -58,7 +58,7 @@ func (n *posthogNotifier) DeleteStar(ctx context.Context, star *db.Star) {
 
 func (n *posthogNotifier) NewIssue(ctx context.Context, issue *db.Issue) {
 	err := n.client.Enqueue(posthog.Capture{
-		DistinctId: issue.OwnerDid,
+		DistinctId: issue.Did,
 		Event:      "new_issue",
 		Properties: posthog.Properties{
 			"repo_at":  issue.RepoAt.String(),
