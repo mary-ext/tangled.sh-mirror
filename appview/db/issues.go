@@ -171,47 +171,72 @@ func IssueCommentFromRecord(e Execer, did, rkey string, record tangled.RepoIssue
 }
 
 func NewIssue(tx *sql.Tx, issue *Issue) error {
-	defer tx.Rollback()
-
+	// ensure sequence exists
 	_, err := tx.Exec(`
 		insert or ignore into repo_issue_seqs (repo_at, next_issue_id)
 		values (?, 1)
-		`, issue.RepoAt)
+	`, issue.RepoAt)
 	if err != nil {
 		return err
 	}
 
-	var nextId int
+	// check if issue already exists
+	var existingRowId, existingIssueId sql.NullInt64
 	err = tx.QueryRow(`
-		update repo_issue_seqs
-		set next_issue_id = next_issue_id + 1
-		where repo_at = ?
+		select rowid, issue_id from issues 
+		where did = ? and rkey = ?
+	`, issue.Did, issue.Rkey).Scan(&existingRowId, &existingIssueId)
+
+	switch {
+	case err == sql.ErrNoRows:
+		return createNewIssue(tx, issue)
+
+	case err != nil:
+		return err
+
+	default:
+		// Case 3: Issue exists - update it
+		return updateIssue(tx, issue, existingRowId.Int64, int(existingIssueId.Int64))
+	}
+}
+
+func createNewIssue(tx *sql.Tx, issue *Issue) error {
+	// get next issue_id
+	var newIssueId int
+	err := tx.QueryRow(`
+		update repo_issue_seqs 
+		set next_issue_id = next_issue_id + 1 
+		where repo_at = ? 
 		returning next_issue_id - 1
-		`, issue.RepoAt).Scan(&nextId)
+	`, issue.RepoAt).Scan(&newIssueId)
 	if err != nil {
 		return err
 	}
 
-	issue.IssueId = nextId
+	// insert new issue
+	row := tx.QueryRow(`
+		insert into issues (repo_at, did, rkey, issue_id, title, body)
+		values (?, ?, ?, ?, ?, ?)
+		returning rowid, issue_id
+	`, issue.RepoAt, issue.Did, issue.Rkey, newIssueId, issue.Title, issue.Body)
 
-	res, err := tx.Exec(`
-		insert into issues (repo_at, owner_did, rkey, issue_at, issue_id, title, body)
-		values (?, ?, ?, ?, ?, ?, ?)
-	`, issue.RepoAt, issue.OwnerDid, issue.Rkey, issue.AtUri(), issue.IssueId, issue.Title, issue.Body)
+	return row.Scan(&issue.Id, &issue.IssueId)
+}
+
+func updateIssue(tx *sql.Tx, issue *Issue, existingRowId int64, existingIssueId int) error {
+	// update existing issue
+	_, err := tx.Exec(`
+		update issues 
+		set title = ?, body = ? 
+		where did = ? and rkey = ?
+	`, issue.Title, issue.Body, issue.Did, issue.Rkey)
 	if err != nil {
 		return err
 	}
 
-	lastID, err := res.LastInsertId()
-	if err != nil {
-		return err
-	}
-	issue.ID = lastID
-
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
+	// set the values from existing record
+	issue.Id = existingRowId
+	issue.IssueId = existingIssueId
 	return nil
 }
 
