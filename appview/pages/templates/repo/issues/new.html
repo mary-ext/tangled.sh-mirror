@@ -3,7 +3,7 @@
 {{ define "repoContent" }}
     <form
         hx-post="/{{ .RepoInfo.FullName }}/issues/new"
-        class="mt-6 space-y-6"
+        class="space-y-6"
         hx-swap="none"
         hx-indicator="#spinner"
     >
@@ -26,7 +26,7 @@
                 <button type="submit" class="btn-create flex items-center gap-2">
                     {{ i "circle-plus" "w-4 h-4" }}
                     create issue
-                    <span id="create-pull-spinner" class="group">
+                    <span id="spinner" class="group">
                         {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
                     </span>
                 </button>

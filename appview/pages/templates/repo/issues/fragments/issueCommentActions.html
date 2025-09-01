@@ -1,0 +1,34 @@
+{{ define "repo/issues/fragments/issueCommentActions" }}
+  {{ $isCommentOwner := and .LoggedInUser (eq .LoggedInUser.Did .Comment.Did) }}
+  {{ if and $isCommentOwner (not .Comment.Deleted) }}
+    <div class="flex flex-wrap items-center gap-4 text-gray-500 dark:text-gray-400 text-sm pt-2">
+      {{ template "edit" . }}
+      {{ template "delete" . }}
+    </div>
+  {{ end }}
+{{ end }}
+
+{{ define "edit" }}
+  <a
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    hx-get="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.Id }}/comment/{{ .Comment.Id }}/edit"
+    hx-swap="outerHTML"
+    hx-target="#comment-body-{{.Comment.Id}}">
+    {{ i "pencil" "size-3" }}
+    edit
+  </a>
+{{ end }}
+
+{{ define "delete" }}
+  <a
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    hx-delete="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.Id }}/comment/{{ .Comment.Id }}/"
+    hx-confirm="Are you sure you want to delete your comment?"
+    hx-swap="outerHTML"
+    hx-target="#comment-body-{{.Comment.Id}}"
+    >
+    {{ i "trash-2" "size-3" }}
+    delete
+    {{ i "loader-circle" "size-3 animate-spin hidden group-[.htmx-request]:inline" }}
+  </a>
+{{ end }}

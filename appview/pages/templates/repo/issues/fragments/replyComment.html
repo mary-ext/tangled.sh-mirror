@@ -1,0 +1,57 @@
+{{ define "repo/issues/fragments/replyComment" }}
+  <form
+      class="p-2 group w-full border-t border-gray-200 dark:border-gray-700 flex flex-col gap-2"
+      id="reply-form-{{ .Comment.Id }}"
+      hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+      hx-on::after-request="if(event.detail.successful) this.reset()"
+  >
+      {{ template "user/fragments/picHandleLink" .LoggedInUser.Did }}
+      <textarea
+        id="reply-{{.Comment.Id}}-textarea"
+        name="body"
+        class="w-full p-2"
+        placeholder="Leave a reply..."
+        autofocus
+        rows="3"></textarea>
+
+      <input
+          type="text"
+          id="reply-to"
+          name="reply-to"
+          required
+          value="{{ .Comment.AtUri }}"
+          class="hidden"
+          />
+      {{ template "replyActions" . }}
+  </form>
+{{ end }}
+
+{{ define "replyActions" }}
+  <div class="flex flex-wrap items-stretch justify-end gap-2 text-gray-500 dark:text-gray-400 text-sm">
+    {{ template "cancel" . }}
+    {{ template "reply" . }}
+  </div>
+{{ end }}
+
+{{ define "cancel" }}
+  <button
+    class="btn text-red-500 dark:text-red-400 flex gap-2 items-center group"
+    hx-get="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment/{{ .Comment.Id }}/replyPlaceholder"
+    hx-target="#reply-form-{{ .Comment.Id }}"
+    hx-swap="outerHTML">
+    {{ i "x" "size-4" }}
+    cancel
+  </button>
+{{ end }}
+
+{{ define "reply" }}
+  <button
+      id="reply-{{ .Comment.Id }}"
+      type="submit"
+      hx-disabled-elt="#reply-{{ .Comment.Id }}"
+      class="btn-create flex items-center gap-2 no-underline hover:no-underline">
+      {{ i "reply" "w-4 h-4 inline group-[.htmx-request]:hidden" }}
+      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      reply
+  </button>
+{{ end }}

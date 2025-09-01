@@ -37,55 +37,53 @@
 {{ end }}
 
 {{ define "repoAfter" }}
-<div class="flex flex-col gap-2 mt-2">
-  {{ range .Issues }}
-  <div class="rounded drop-shadow-sm bg-white px-6 py-4 dark:bg-gray-800 dark:border-gray-700">
-    <div class="pb-2">
-      <a
-          href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}"
-          class="no-underline hover:underline"
-          >
-          {{ .Title | description }}
-          <span class="text-gray-500">#{{ .IssueId }}</span>
-      </a>
-    </div>
-    <p class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
-      {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
-      {{ $icon := "ban" }}
-      {{ $state := "closed" }}
-      {{ if .Open }}
-          {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
-          {{ $icon = "circle-dot" }}
-          {{ $state = "open" }}
-      {{ end }}
-
-      <span class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm">
-          {{ i $icon "w-3 h-3 mr-1.5 text-white dark:text-white" }}
-          <span class="text-white dark:text-white">{{ $state }}</span>
-      </span>
-
-      <span class="ml-1">
-          {{ template "user/fragments/picHandleLink" .OwnerDid }}
-      </span>
-
-      <span class="before:content-['·']">
-        {{ template "repo/fragments/time" .Created }}
-      </span>
-
-      <span class="before:content-['·']">
-        {{ $s := "s" }}
-        {{ if eq .Metadata.CommentCount 1 }}
-        {{ $s = "" }}
+  <div class="flex flex-col gap-2 mt-2">
+    {{ range .Issues }}
+    <div class="rounded drop-shadow-sm bg-white px-6 py-4 dark:bg-gray-800 dark:border-gray-700">
+      <div class="pb-2">
+        <a
+            href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}"
+            class="no-underline hover:underline"
+            >
+            {{ .Title | description }}
+            <span class="text-gray-500">#{{ .IssueId }}</span>
+        </a>
+      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
+        {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+        {{ $icon := "ban" }}
+        {{ $state := "closed" }}
+        {{ if .Open }}
+            {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+            {{ $icon = "circle-dot" }}
+            {{ $state = "open" }}
         {{ end }}
-        <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-500 dark:text-gray-400">{{ .Metadata.CommentCount }} comment{{$s}}</a>
-      </span>
-    </p>
+
+        <span class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm">
+            {{ i $icon "w-3 h-3 mr-1.5 text-white dark:text-white" }}
+            <span class="text-white dark:text-white">{{ $state }}</span>
+        </span>
+
+        <span class="ml-1">
+            {{ template "user/fragments/picHandleLink" .Did }}
+        </span>
+
+        <span class="before:content-['·']">
+          {{ template "repo/fragments/time" .Created }}
+        </span>
+
+        <span class="before:content-['·']">
+          {{ $s := "s" }}
+          {{ if eq (len .Comments) 1 }}
+          {{ $s = "" }}
+          {{ end }}
+          <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-500 dark:text-gray-400">{{ len .Comments }} comment{{$s}}</a>
+        </span>
+      </p>
+    </div>
+    {{ end }}
   </div>
-  {{ end }}
-</div>
-
-{{ block "pagination" . }} {{ end }}
-
+  {{ block "pagination" . }} {{ end }}
 {{ end }}
 
 {{ define "pagination" }}

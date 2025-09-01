@@ -909,7 +909,7 @@ type RepoSingleIssueParams struct {
 	RepoInfo         repoinfo.RepoInfo
 	Active           string
 	Issue            *db.Issue
-	Comments         []db.Comment
+	CommentList      []db.CommentListItem
 	IssueOwnerHandle string
 
 	OrderedReactionKinds []db.ReactionKind
@@ -955,22 +955,44 @@ type EditIssueCommentParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Issue        *db.Issue
-	Comment      *db.Comment
+	Comment      *db.IssueComment
 }
 
 func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentParams) error {
 	return p.executePlain("repo/issues/fragments/editIssueComment", w, params)
 }
 
-type SingleIssueCommentParams struct {
+type ReplyIssueCommentPlaceholderParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Issue        *db.Issue
-	Comment      *db.Comment
+	Comment      *db.IssueComment
 }
 
-func (p *Pages) SingleIssueCommentFragment(w io.Writer, params SingleIssueCommentParams) error {
-	return p.executePlain("repo/issues/fragments/issueComment", w, params)
+func (p *Pages) ReplyIssueCommentPlaceholderFragment(w io.Writer, params ReplyIssueCommentPlaceholderParams) error {
+	return p.executePlain("repo/issues/fragments/replyIssueCommentPlaceholder", w, params)
+}
+
+type ReplyIssueCommentParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Issue        *db.Issue
+	Comment      *db.IssueComment
+}
+
+func (p *Pages) ReplyIssueCommentFragment(w io.Writer, params ReplyIssueCommentParams) error {
+	return p.executePlain("repo/issues/fragments/replyComment", w, params)
+}
+
+type IssueCommentBodyParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Issue        *db.Issue
+	Comment      *db.IssueComment
+}
+
+func (p *Pages) IssueCommentBodyFragment(w io.Writer, params IssueCommentBodyParams) error {
+	return p.executePlain("repo/issues/fragments/issueCommentBody", w, params)
 }
 
 type RepoNewPullParams struct {
