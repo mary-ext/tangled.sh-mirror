@@ -119,7 +119,7 @@ func combineTwo(patch1, patch2 []*gitdiff.File) []*gitdiff.File {
 			// we have f1 and f2, combine them
 			combined, err := combineFiles(f1, f2)
 			if err != nil {
-				fmt.Println(err)
+				// fmt.Println(err)
 			}
 
 			// combined can be nil commit 2 reverted all changes from commit 1
