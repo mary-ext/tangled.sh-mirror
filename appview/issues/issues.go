@@ -402,56 +402,38 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// rkey is optional, it was introduced later
-		if comment.Rkey != "" {
+		if newComment.Rkey != "" {
 			// update the record on pds
-			ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoIssueCommentNSID, user.Did, rkey)
+			ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoIssueCommentNSID, user.Did, comment.Rkey)
 			if err != nil {
-				// failed to get record
-				log.Println(err, rkey)
+				log.Println("failed to get record", "err", err, "did", newComment.Did, "rkey", newComment.Rkey)
 				rp.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "Failed to update description, no record found on PDS.")
 				return
 			}
-			value, _ := ex.Value.MarshalJSON() // we just did get record; it is valid json
-			record, _ := data.UnmarshalJSON(value)
-
-			repoAt := record["repo"].(string)
-			issueAt := record["issue"].(string)
-			createdAt := record["createdAt"].(string)
 
 			_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 				Collection: tangled.RepoIssueCommentNSID,
 				Repo:       user.Did,
-				Rkey:       rkey,
+				Rkey:       newComment.Rkey,
 				SwapRecord: ex.Cid,
 				Record: &lexutil.LexiconTypeDecoder{
-					Val: &tangled.RepoIssueComment{
-						Repo:      &repoAt,
-						Issue:     issueAt,
-						Owner:     &comment.OwnerDid,
-						Body:      newBody,
-						CreatedAt: createdAt,
-					},
+					Val: &record,
 				},
 			})
 			if err != nil {
-				log.Println(err)
+				l.Error("failed to update record on PDS", "err", err)
 			}
 		}
 
-		// optimistic update for htmx
-		comment.Body = newBody
-		comment.Edited = &edited
-
 		// return new comment body with htmx
-		rp.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
+		rp.pages.IssueCommentBodyFragment(w, pages.IssueCommentBodyParams{
 			LoggedInUser: user,
 			RepoInfo:     f.RepoInfo(user),
 			Issue:        issue,
-			Comment:      comment,
+			Comment:      &newComment,
 		})
-		return
-
 	}
+}
 
 func (rp *Issues) ReplyIssueCommentPlaceholder(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "ReplyIssueCommentPlaceholder")
@@ -540,39 +522,36 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
-	issueId := chi.URLParam(r, "issue")
-	issueIdInt, err := strconv.Atoi(issueId)
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	commentId := chi.URLParam(r, "commentId")
+	comments, err := db.GetIssueComments(
+		rp.db,
+		db.FilterEq("id", commentId),
+	)
 	if err != nil {
-		http.Error(w, "bad issue id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
+		l.Error("failed to fetch comment", "id", commentId)
+		http.Error(w, "failed to fetch comment id", http.StatusBadRequest)
 		return
 	}
-
-	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
-	if err != nil {
-		log.Println("failed to get issue", err)
-		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+	if len(comments) != 1 {
+		l.Error("incorrect number of comments returned", "id", commentId, "len(comments)", len(comments))
+		http.Error(w, "invalid comment id", http.StatusBadRequest)
 		return
 	}
+	comment := comments[0]
 
-	commentId := chi.URLParam(r, "comment_id")
-	commentIdInt, err := strconv.Atoi(commentId)
-	if err != nil {
-		http.Error(w, "bad comment id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
-		return
-	}
-
-	comment, err := db.GetComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
-	if err != nil {
-		http.Error(w, "bad comment id", http.StatusBadRequest)
-		return
-	}
-
-	if comment.OwnerDid != user.Did {
+	if comment.Did != user.Did {
+		l.Error("unauthorized action", "expectedDid", comment.Did, "gotDid", user.Did)
 		http.Error(w, "you are not the author of this comment", http.StatusUnauthorized)
 		return
 	}
@@ -584,9 +563,9 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	// optimistic deletion
 	deleted := time.Now()
-	err = db.DeleteComment(rp.db, f.RepoAt(), issueIdInt, commentIdInt)
+	err = db.DeleteIssueComments(rp.db, db.FilterEq("id", comment.Id))
 	if err != nil {
-		log.Println("failed to delete comment")
+		l.Error("failed to delete comment", "err", err)
 		rp.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "failed to delete comment")
 		return
 	}
@@ -614,11 +593,11 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	comment.Deleted = &deleted
 
 	// htmx fragment of comment after deletion
-	rp.pages.SingleIssueCommentFragment(w, pages.SingleIssueCommentParams{
+	rp.pages.IssueCommentBodyFragment(w, pages.IssueCommentBodyParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(user),
 		Issue:        issue,
-		Comment:      comment,
+		Comment:      &comment,
 	})
 }
 
@@ -648,7 +627,16 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issues, err := db.GetIssuesPaginated(rp.db, f.RepoAt(), isOpen, page)
+	openVal := 0
+	if isOpen {
+		openVal = 1
+	}
+	issues, err := db.GetIssuesPaginated(
+		rp.db,
+		page,
+		db.FilterEq("repo_at", f.RepoAt()),
+		db.FilterEq("open", openVal),
+	)
 	if err != nil {
 		log.Println("failed to get issues", err)
 		rp.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
@@ -665,11 +653,12 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "NewIssue")
 	user := rp.oauth.GetUser(r)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -698,19 +687,57 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		issue := &db.Issue{
+			RepoAt:  f.RepoAt(),
+			Rkey:    tid.TID(),
+			Title:   title,
+			Body:    body,
+			Did:     user.Did,
+			Created: time.Now(),
+		}
+		record := issue.AsRecord()
+
+		// create an atproto record
+		client, err := rp.oauth.AuthorizedClient(r)
+		if err != nil {
+			l.Error("failed to get authorized client", "err", err)
+			rp.pages.Notice(w, "issues", "Failed to create issue.")
+			return
+		}
+		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoIssueNSID,
+			Repo:       user.Did,
+			Rkey:       issue.Rkey,
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &record,
+			},
+		})
+		if err != nil {
+			l.Error("failed to create issue", "err", err)
+			rp.pages.Notice(w, "issues", "Failed to create issue.")
+			return
+		}
+		atUri := resp.Uri
+
 		tx, err := rp.db.BeginTx(r.Context(), nil)
 		if err != nil {
 			rp.pages.Notice(w, "issues", "Failed to create issue, try again later")
 			return
 		}
+		rollback := func() {
+			err1 := tx.Rollback()
+			err2 := rollbackRecord(context.Background(), atUri, client)
 
-		issue := &db.Issue{
-			RepoAt:   f.RepoAt(),
-			Rkey:     tid.TID(),
-			Title:    title,
-			Body:     body,
-			OwnerDid: user.Did,
+			if errors.Is(err1, sql.ErrTxDone) {
+				err1 = nil
+			}
+
+			if err := errors.Join(err1, err2); err != nil {
+				l.Error("failed to rollback txn", "err", err)
+			}
 		}
+		defer rollback()
+
 		err = db.NewIssue(tx, issue)
 		if err != nil {
 			log.Println("failed to create issue", err)
@@ -718,34 +745,38 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		client, err := rp.oauth.AuthorizedClient(r)
-		if err != nil {
-			log.Println("failed to get authorized client", err)
-			rp.pages.Notice(w, "issues", "Failed to create issue.")
-			return
-		}
-		atUri := f.RepoAt().String()
-		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
-			Collection: tangled.RepoIssueNSID,
-			Repo:       user.Did,
-			Rkey:       issue.Rkey,
-			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.RepoIssue{
-					Repo:  atUri,
-					Title: title,
-					Body:  &body,
-				},
-			},
-		})
-		if err != nil {
+		if err = tx.Commit(); err != nil {
 			log.Println("failed to create issue", err)
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}
 
+		// everything is successful, do not rollback the atproto record
+		atUri = ""
 		rp.notifier.NewIssue(r.Context(), issue)
-
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	}
+}
+
+// this is used to rollback changes made to the PDS
+//
+// it is a no-op if the provided ATURI is empty
+func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client) error {
+	if aturi == "" {
+		return nil
+	}
+
+	parsed := syntax.ATURI(aturi)
+
+	collection := parsed.Collection().String()
+	repo := parsed.Authority().String()
+	rkey := parsed.RecordKey().String()
+
+	_, err := xrpcc.RepoDeleteRecord(ctx, &comatproto.RepoDeleteRecord_Input{
+		Collection: collection,
+		Repo:       repo,
+		Rkey:       rkey,
+	})
+	return err
 }
