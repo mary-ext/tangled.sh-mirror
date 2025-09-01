@@ -240,90 +240,148 @@ func updateIssue(tx *sql.Tx, issue *Issue, existingRowId int64, existingIssueId 
 	return nil
 }
 
-func GetIssueAt(e Execer, repoAt syntax.ATURI, issueId int) (string, error) {
-	var issueAt string
-	err := e.QueryRow(`select issue_at from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&issueAt)
-	return issueAt, err
-}
+func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Issue, error) {
+	issueMap := make(map[string]*Issue) // at-uri -> issue
 
-func GetIssueOwnerDid(e Execer, repoAt syntax.ATURI, issueId int) (string, error) {
-	var ownerDid string
-	err := e.QueryRow(`select owner_did from issues where repo_at = ? and issue_id = ?`, repoAt, issueId).Scan(&ownerDid)
-	return ownerDid, err
-}
+	var conditions []string
+	var args []any
 
-func GetIssuesPaginated(e Execer, repoAt syntax.ATURI, isOpen bool, page pagination.Page) ([]Issue, error) {
-	var issues []Issue
-	openValue := 0
-	if isOpen {
-		openValue = 1
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
 	}
 
-	rows, err := e.Query(
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	pLower := FilterGte("row_num", page.Offset+1)
+	pUpper := FilterLte("row_num", page.Offset+page.Limit)
+
+	args = append(args, pLower.Arg()...)
+	args = append(args, pUpper.Arg()...)
+	pagination := " where " + pLower.Condition() + " and " + pUpper.Condition()
+
+	query := fmt.Sprintf(
 		`
-		with numbered_issue as (
+		select * from (
 			select
-				i.id,
-				i.owner_did,
-				i.rkey,
-				i.issue_id,
-				i.created,
-				i.title,
-				i.body,
-				i.open,
-				count(c.id) as comment_count,
-				row_number() over (order by i.created desc) as row_num
+				id,
+				did,
+				rkey,
+				repo_at,
+				issue_id,
+				title,
+				body,
+				open,
+				created,
+				edited,
+				deleted,
+				row_number() over (order by created desc) as row_num
 			from
-				issues i
-			left join
-				comments c on i.repo_at = c.repo_at and i.issue_id = c.issue_id
-			where
-				i.repo_at = ? and i.open = ?
-			group by
-				i.id, i.owner_did, i.issue_id, i.created, i.title, i.body, i.open
-		)
-		select
-			id,
-			owner_did,
-			rkey,
-			issue_id,
-			created,
-			title,
-			body,
-			open,
-			comment_count
-		from
-			numbered_issue
-		where
-			row_num between ? and ?`,
-		repoAt, openValue, page.Offset+1, page.Offset+page.Limit)
+				issues
+			%s
+		) ranked_issues
+		%s
+		`,
+		whereClause,
+		pagination,
+	)
+
+	rows, err := e.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query issues table: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var issue Issue
 		var createdAt string
-		var metadata IssueMetadata
-		err := rows.Scan(&issue.ID, &issue.OwnerDid, &issue.Rkey, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open, &metadata.CommentCount)
+		var editedAt, deletedAt sql.Null[string]
+		var rowNum int64
+		err := rows.Scan(
+			&issue.Id,
+			&issue.Did,
+			&issue.Rkey,
+			&issue.RepoAt,
+			&issue.IssueId,
+			&issue.Title,
+			&issue.Body,
+			&issue.Open,
+			&createdAt,
+			&editedAt,
+			&deletedAt,
+			&rowNum,
+		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan issue: %w", err)
 		}
 
-		createdTime, err := time.Parse(time.RFC3339, createdAt)
-		if err != nil {
-			return nil, err
+		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
+			issue.Created = t
 		}
-		issue.Created = createdTime
-		issue.Metadata = &metadata
 
-		issues = append(issues, issue)
+		if editedAt.Valid {
+			if t, err := time.Parse(time.RFC3339, editedAt.V); err == nil {
+				issue.Edited = &t
+			}
+		}
+
+		if deletedAt.Valid {
+			if t, err := time.Parse(time.RFC3339, deletedAt.V); err == nil {
+				issue.Deleted = &t
+			}
+		}
+
+		atUri := issue.AtUri().String()
+		issueMap[atUri] = &issue
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
+	// collect reverse repos
+	repoAts := make([]string, 0, len(issueMap)) // or just []string{}
+	for _, issue := range issueMap {
+		repoAts = append(repoAts, string(issue.RepoAt))
 	}
+
+	repos, err := GetRepos(e, 0, FilterIn("at_uri", repoAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to build repo mappings: %w", err)
+	}
+
+	repoMap := make(map[string]*Repo)
+	for i := range repos {
+		repoMap[string(repos[i].RepoAt())] = &repos[i]
+	}
+
+	for issueAt := range issueMap {
+		i := issueMap[issueAt]
+		r := repoMap[string(i.RepoAt)]
+		i.Repo = r
+	}
+
+	// collect comments
+	issueAts := slices.Collect(maps.Keys(issueMap))
+	comments, err := GetIssueComments(e, FilterIn("issue_at", issueAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query comments: %w", err)
+	}
+
+	for i := range comments {
+		issueAt := comments[i].IssueAt
+		if issue, ok := issueMap[issueAt]; ok {
+			issue.Comments = append(issue.Comments, comments[i])
+		}
+	}
+
+	var issues []Issue
+	for _, i := range issueMap {
+		issues = append(issues, *i)
+	}
+
+	sort.Slice(issues, func(i, j int) bool {
+		return issues[i].Created.After(issues[j].Created)
+	})
 
 	return issues, nil
 }
@@ -375,8 +433,8 @@ func GetIssuesWithLimit(e Execer, limit int, filters ...filter) ([]Issue, error)
 		var issue Issue
 		var issueCreatedAt string
 		err := rows.Scan(
-			&issue.ID,
-			&issue.OwnerDid,
+			&issue.Id,
+			&issue.Did,
 			&issue.RepoAt,
 			&issue.IssueId,
 			&issueCreatedAt,
@@ -405,7 +463,7 @@ func GetIssuesWithLimit(e Execer, limit int, filters ...filter) ([]Issue, error)
 }
 
 func GetIssues(e Execer, filters ...filter) ([]Issue, error) {
-	return GetIssuesWithLimit(e, 0, filters...)
+	return GetIssuesPaginated(e, pagination.FirstPage(), filters...)
 }
 
 // timeframe here is directly passed into the sql query filter, and any
@@ -448,8 +506,8 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 		var issueCreatedAt, repoCreatedAt string
 		var repo Repo
 		err := rows.Scan(
-			&issue.ID,
-			&issue.OwnerDid,
+			&issue.Id,
+			&issue.Did,
 			&issue.Rkey,
 			&issue.RepoAt,
 			&issue.IssueId,
@@ -479,10 +537,6 @@ func GetIssuesByOwnerDid(e Execer, ownerDid string, timeframe string) ([]Issue, 
 		}
 		repo.Created = repoCreatedTime
 
-		issue.Metadata = &IssueMetadata{
-			Repo: &repo,
-		}
-
 		issues = append(issues, issue)
 	}
 
@@ -499,7 +553,7 @@ func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 
 	var issue Issue
 	var createdAt string
-	err := row.Scan(&issue.ID, &issue.OwnerDid, &issue.Rkey, &createdAt, &issue.Title, &issue.Body, &issue.Open)
+	err := row.Scan(&issue.Id, &issue.Did, &issue.Rkey, &createdAt, &issue.Title, &issue.Body, &issue.Open)
 	if err != nil {
 		return nil, err
 	}
@@ -513,231 +567,209 @@ func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 	return &issue, nil
 }
 
-func GetIssueWithComments(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, []Comment, error) {
-	query := `select id, owner_did, rkey, issue_id, created, title, body, open from issues where repo_at = ? and issue_id = ?`
-	row := e.QueryRow(query, repoAt, issueId)
-
-	var issue Issue
-	var createdAt string
-	err := row.Scan(&issue.ID, &issue.OwnerDid, &issue.Rkey, &issue.IssueId, &createdAt, &issue.Title, &issue.Body, &issue.Open)
+func AddIssueComment(e Execer, c IssueComment) (int64, error) {
+	result, err := e.Exec(
+		`insert into issue_comments (
+			did,
+			rkey,
+			issue_at,
+			body,
+			reply_to,
+			created,
+			edited
+		)
+		values (?, ?, ?, ?, ?, ?, null)
+		on conflict(did, rkey) do update set
+			issue_at = excluded.issue_at,
+			body = excluded.body,
+			edited = case
+				when
+					issue_comments.issue_at != excluded.issue_at
+					or issue_comments.body != excluded.body
+					or issue_comments.reply_to != excluded.reply_to
+				then ?
+				else issue_comments.edited
+			end`,
+		c.Did,
+		c.Rkey,
+		c.IssueAt,
+		c.Body,
+		c.ReplyTo,
+		c.Created.Format(time.RFC3339),
+		time.Now().Format(time.RFC3339),
+	)
 	if err != nil {
-		return nil, nil, err
+		return 0, err
 	}
 
-	createdTime, err := time.Parse(time.RFC3339, createdAt)
+	id, err := result.LastInsertId()
 	if err != nil {
-		return nil, nil, err
-	}
-	issue.Created = createdTime
-
-	comments, err := GetComments(e, repoAt, issueId)
-	if err != nil {
-		return nil, nil, err
+		return 0, err
 	}
 
-	return &issue, comments, nil
+	return id, nil
 }
 
-func NewIssueComment(e Execer, comment *Comment) error {
-	query := `insert into comments (owner_did, repo_at, rkey, issue_id, comment_id, body) values (?, ?, ?, ?, ?, ?)`
-	_, err := e.Exec(
-		query,
-		comment.OwnerDid,
-		comment.RepoAt,
-		comment.Rkey,
-		comment.Issue,
-		comment.CommentId,
-		comment.Body,
-	)
+func DeleteIssueComments(e Execer, filters ...filter) error {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`update issue_comments set body = "", deleted = strftime('%%Y-%%m-%%dT%%H:%%M:%%SZ', 'now') %s`, whereClause)
+
+	_, err := e.Exec(query, args...)
 	return err
 }
 
-func GetComments(e Execer, repoAt syntax.ATURI, issueId int) ([]Comment, error) {
-	var comments []Comment
+func GetIssueComments(e Execer, filters ...filter) ([]IssueComment, error) {
+	var comments []IssueComment
 
-	rows, err := e.Query(`
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`
 		select
-			owner_did,
-			issue_id,
-			comment_id,
+			id,
+			did,
 			rkey,
+			issue_at,
+			reply_to,
 			body,
 			created,
 			edited,
 			deleted
 		from
-			comments
-		where
-			repo_at = ? and issue_id = ?
-		order by
-			created asc`,
-		repoAt,
-		issueId,
-	)
-	if err == sql.ErrNoRows {
-		return []Comment{}, nil
-	}
+			issue_comments
+		%s
+		`, whereClause)
+
+	rows, err := e.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	for rows.Next() {
-		var comment Comment
-		var createdAt string
-		var deletedAt, editedAt, rkey sql.NullString
-		err := rows.Scan(&comment.OwnerDid, &comment.Issue, &comment.CommentId, &rkey, &comment.Body, &createdAt, &editedAt, &deletedAt)
+		var comment IssueComment
+		var created string
+		var rkey, edited, deleted, replyTo sql.Null[string]
+		err := rows.Scan(
+			&comment.Id,
+			&comment.Did,
+			&rkey,
+			&comment.IssueAt,
+			&replyTo,
+			&comment.Body,
+			&created,
+			&edited,
+			&deleted,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		createdAtTime, err := time.Parse(time.RFC3339, createdAt)
-		if err != nil {
-			return nil, err
-		}
-		comment.Created = &createdAtTime
-
-		if deletedAt.Valid {
-			deletedTime, err := time.Parse(time.RFC3339, deletedAt.String)
-			if err != nil {
-				return nil, err
-			}
-			comment.Deleted = &deletedTime
-		}
-
-		if editedAt.Valid {
-			editedTime, err := time.Parse(time.RFC3339, editedAt.String)
-			if err != nil {
-				return nil, err
-			}
-			comment.Edited = &editedTime
-		}
-
+		// this is a remnant from old times, newer comments always have rkey
 		if rkey.Valid {
-			comment.Rkey = rkey.String
+			comment.Rkey = rkey.V
+		}
+
+		if t, err := time.Parse(time.RFC3339, created); err == nil {
+			comment.Created = t
+		}
+
+		if edited.Valid {
+			if t, err := time.Parse(time.RFC3339, edited.V); err == nil {
+				comment.Edited = &t
+			}
+		}
+
+		if deleted.Valid {
+			if t, err := time.Parse(time.RFC3339, deleted.V); err == nil {
+				comment.Deleted = &t
+			}
+		}
+
+		if replyTo.Valid {
+			comment.ReplyTo = &replyTo.V
 		}
 
 		comments = append(comments, comment)
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
 	return comments, nil
 }
 
-func GetComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) (*Comment, error) {
-	query := `
-		select
-			owner_did, body, rkey, created, deleted, edited
-		from
-			comments where repo_at = ? and issue_id = ? and comment_id = ?
-	`
-	row := e.QueryRow(query, repoAt, issueId, commentId)
-
-	var comment Comment
-	var createdAt string
-	var deletedAt, editedAt, rkey sql.NullString
-	err := row.Scan(&comment.OwnerDid, &comment.Body, &rkey, &createdAt, &deletedAt, &editedAt)
-	if err != nil {
-		return nil, err
+func DeleteIssues(e Execer, filters ...filter) error {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
 	}
 
-	createdTime, err := time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		return nil, err
-	}
-	comment.Created = &createdTime
-
-	if deletedAt.Valid {
-		deletedTime, err := time.Parse(time.RFC3339, deletedAt.String)
-		if err != nil {
-			return nil, err
-		}
-		comment.Deleted = &deletedTime
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
 	}
 
-	if editedAt.Valid {
-		editedTime, err := time.Parse(time.RFC3339, editedAt.String)
-		if err != nil {
-			return nil, err
-		}
-		comment.Edited = &editedTime
+	query := fmt.Sprintf(`delete from issues %s`, whereClause)
+	_, err := e.Exec(query, args...)
+	return err
+}
+
+func CloseIssues(e Execer, filters ...filter) error {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
 	}
 
-	if rkey.Valid {
-		comment.Rkey = rkey.String
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
 	}
 
-	comment.RepoAt = repoAt
-	comment.Issue = issueId
-	comment.CommentId = commentId
-
-	return &comment, nil
-}
-
-func EditComment(e Execer, repoAt syntax.ATURI, issueId, commentId int, newBody string) error {
-	_, err := e.Exec(
-		`
-		update comments
-		set body = ?,
-			edited = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-		where repo_at = ? and issue_id = ? and comment_id = ?
-		`, newBody, repoAt, issueId, commentId)
+	query := fmt.Sprintf(`update issues set open = 0 %s`, whereClause)
+	_, err := e.Exec(query, args...)
 	return err
 }
 
-func DeleteComment(e Execer, repoAt syntax.ATURI, issueId, commentId int) error {
-	_, err := e.Exec(
-		`
-		update comments
-		set body = "",
-			deleted = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-		where repo_at = ? and issue_id = ? and comment_id = ?
-		`, repoAt, issueId, commentId)
-	return err
-}
+func ReopenIssues(e Execer, filters ...filter) error {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
 
-func UpdateCommentByRkey(e Execer, ownerDid, rkey, newBody string) error {
-	_, err := e.Exec(
-		`
-		update comments
-		set body = ?,
-			edited = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-		where owner_did = ? and rkey = ?
-		`, newBody, ownerDid, rkey)
-	return err
-}
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
 
-func DeleteCommentByRkey(e Execer, ownerDid, rkey string) error {
-	_, err := e.Exec(
-		`
-		update comments
-		set body = "",
-			deleted = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-		where owner_did = ? and rkey = ?
-		`, ownerDid, rkey)
-	return err
-}
-
-func UpdateIssueByRkey(e Execer, ownerDid, rkey, title, body string) error {
-	_, err := e.Exec(`update issues set title = ?, body = ? where owner_did = ? and rkey = ?`, title, body, ownerDid, rkey)
-	return err
-}
-
-func DeleteIssueByRkey(e Execer, ownerDid, rkey string) error {
-	_, err := e.Exec(`delete from issues where owner_did = ? and rkey = ?`, ownerDid, rkey)
-	return err
-}
-
-func CloseIssue(e Execer, repoAt syntax.ATURI, issueId int) error {
-	_, err := e.Exec(`update issues set open = 0 where repo_at = ? and issue_id = ?`, repoAt, issueId)
-	return err
-}
-
-func ReopenIssue(e Execer, repoAt syntax.ATURI, issueId int) error {
-	_, err := e.Exec(`update issues set open = 1 where repo_at = ? and issue_id = ?`, repoAt, issueId)
+	query := fmt.Sprintf(`update issues set open = 1 %s`, whereClause)
+	_, err := e.Exec(query, args...)
 	return err
 }
 
