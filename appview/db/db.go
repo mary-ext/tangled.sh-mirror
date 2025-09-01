@@ -734,6 +734,140 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	// remove issue_at from issues and replace with generated column
+	//
+	// this requires a full table recreation because stored columns
+	// cannot be added via alter
+	//
+	// couple other changes:
+	// - columns renamed to be more consistent
+	// - adds edited and deleted fields
+	//
+	// disable foreign-keys for the next migration
+	conn.ExecContext(ctx, "pragma foreign_keys = off;")
+	runMigration(conn, "remove-issue-at-from-issues", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			create table if not exists issues_new (
+				-- identifiers
+				id integer primary key autoincrement,
+				did text not null,
+				rkey text not null,
+				at_uri text generated always as ('at://' || did || '/' || 'sh.tangled.repo.issue' || '/' || rkey) stored,
+
+				-- at identifiers
+				repo_at text not null,
+
+				-- content
+				issue_id integer not null,
+				title text not null,
+				body text not null,
+				open integer not null default 1,
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+				edited text,  -- timestamp
+				deleted text,  -- timestamp
+
+				unique(did, rkey),
+				unique(repo_at, issue_id),
+				unique(at_uri),
+				foreign key (repo_at) references repos(at_uri) on delete cascade
+			);
+		`)
+		if err != nil {
+			return err
+		}
+
+		// transfer data
+		_, err = tx.Exec(`
+			insert into issues_new (id, did, rkey, repo_at, issue_id, title, body, open, created)
+			select
+				i.id,
+				i.owner_did,
+				i.rkey,
+				i.repo_at,
+				i.issue_id,
+				i.title,
+				i.body,
+				i.open,
+				i.created
+			from issues i;
+		`)
+		if err != nil {
+			return err
+		}
+
+		// drop old table
+		_, err = tx.Exec(`drop table issues`)
+		if err != nil {
+			return err
+		}
+
+		// rename new table
+		_, err = tx.Exec(`alter table issues_new rename to issues`)
+		return err
+	})
+	conn.ExecContext(ctx, "pragma foreign_keys = on;")
+
+	// - renames the comments table to 'issue_comments'
+	// - rework issue comments to update constraints:
+	//   * unique(did, rkey)
+	//   * remove comment-id and just use the global ID
+	//   * foreign key (repo_at, issue_id)
+	// - new columns
+	//   * column "reply_to" which can be any other comment
+	//   * column "at-uri" which is a generated column
+	runMigration(conn, "rework-issue-comments", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			create table if not exists issue_comments (
+				-- identifiers
+				id integer primary key autoincrement,
+				did text not null,
+				rkey text,
+				at_uri text generated always as ('at://' || did || '/' || 'sh.tangled.repo.issue.comment' || '/' || rkey) stored,
+
+				-- at identifiers
+				issue_at text not null,
+				reply_to text, -- at_uri of parent comment
+
+				-- content
+				body text not null,
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+				edited text,
+				deleted text,
+
+				-- constraints
+				unique(did, rkey),
+				unique(at_uri),
+				foreign key (issue_at) references issues(at_uri) on delete cascade
+			);
+		`)
+		if err != nil {
+			return err
+		}
+
+		// transfer data
+		_, err = tx.Exec(`
+			insert into issue_comments (id, did, rkey, issue_at, body, created, edited, deleted)
+			select
+				c.id,
+				c.owner_did,
+				c.rkey,
+				i.at_uri,  -- get at_uri from issues table
+				c.body,
+				c.created,
+				c.edited,
+				c.deleted
+			from comments c
+			join issues i on c.repo_at = i.repo_at and c.issue_id = i.issue_id;
+		`)
+		if err != nil {
+			return err
+		}
+
+		// drop old table
+		_, err = tx.Exec(`drop table comments`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 
