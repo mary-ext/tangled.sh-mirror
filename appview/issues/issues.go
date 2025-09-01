@@ -1,17 +1,19 @@
 package issues
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
-	mathrand "math/rand/v2"
+	"log/slog"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
-	"github.com/bluesky-social/indigo/atproto/data"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 
@@ -24,7 +26,10 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/appview/validator"
+	"tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/idresolver"
+	tlog "tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/tid"
 )
 
@@ -36,6 +41,8 @@ type Issues struct {
 	db           *db.DB
 	config       *config.Config
 	notifier     notify.Notifier
+	logger       *slog.Logger
+	validator    *validator.Validator
 }
 
 func New(
@@ -55,10 +62,13 @@ func New(
 		db:           db,
 		config:       config,
 		notifier:     notifier,
+		logger:       tlog.New("issues"),
+		validator:    validator,
 	}
 }
 
 func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoSingleIssue")
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -66,25 +76,16 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issueId := chi.URLParam(r, "issue")
-	issueIdInt, err := strconv.Atoi(issueId)
-	if err != nil {
-		http.Error(w, "bad issue id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
-		return
-	}
-
-	issue, comments, err := db.GetIssueWithComments(rp.db, f.RepoAt(), issueIdInt)
-	if err != nil {
-		log.Println("failed to get issue and comments", err)
-		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
 		return
 	}
 
 	reactionCountMap, err := db.GetReactionCountMap(rp.db, issue.AtUri())
 	if err != nil {
-		log.Println("failed to get issue reactions")
-		rp.pages.Notice(w, "issues", "Failed to load issue. Try again later.")
+		l.Error("failed to get issue reactions", "err", err)
 	}
 
 	userReactions := map[db.ReactionKind]bool{}
@@ -92,19 +93,11 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		userReactions = db.GetReactionStatusMap(rp.db, user.Did, issue.AtUri())
 	}
 
-	issueOwnerIdent, err := rp.idResolver.ResolveIdent(r.Context(), issue.OwnerDid)
-	if err != nil {
-		log.Println("failed to resolve issue owner", err)
-	}
-
 	rp.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
-		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
-		Issue:        issue,
-		Comments:     comments,
-
-		IssueOwnerHandle: issueOwnerIdent.Handle.String(),
-
+		LoggedInUser:         user,
+		RepoInfo:             f.RepoInfo(user),
+		Issue:                issue,
+		CommentList:          issue.CommentList(),
 		OrderedReactionKinds: db.OrderedReactionKinds,
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
@@ -113,25 +106,18 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "CloseIssue")
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
-	issueId := chi.URLParam(r, "issue")
-	issueIdInt, err := strconv.Atoi(issueId)
-	if err != nil {
-		http.Error(w, "bad issue id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
-		return
-	}
-
-	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
-	if err != nil {
-		log.Println("failed to get issue", err)
-		rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
 		return
 	}
 
@@ -142,44 +128,21 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
 		return user.Did == collab.Did
 	})
-	isIssueOwner := user.Did == issue.OwnerDid
+	isIssueOwner := user.Did == issue.Did
 
 	// TODO: make this more granular
 	if isIssueOwner || isCollaborator {
-
-		closed := tangled.RepoIssueStateClosed
-
-		client, err := rp.oauth.AuthorizedClient(r)
-		if err != nil {
-			log.Println("failed to get authorized client", err)
-			return
-		}
-		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
-			Collection: tangled.RepoIssueStateNSID,
-			Repo:       user.Did,
-			Rkey:       tid.TID(),
-			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.RepoIssueState{
-					Issue: issue.AtUri().String(),
-					State: closed,
-				},
-			},
-		})
-
-		if err != nil {
-			log.Println("failed to update issue state", err)
-			rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
-			return
-		}
-
-		err = db.CloseIssue(rp.db, f.RepoAt(), issueIdInt)
+		err = db.CloseIssues(
+			rp.db,
+			db.FilterEq("id", issue.Id),
+		)
 		if err != nil {
 			log.Println("failed to close issue", err)
 			rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
 			return
 		}
 
-		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueIdInt))
+		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	} else {
 		log.Println("user is not permitted to close issue")
@@ -189,6 +152,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "ReopenIssue")
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -196,18 +160,10 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issueId := chi.URLParam(r, "issue")
-	issueIdInt, err := strconv.Atoi(issueId)
-	if err != nil {
-		http.Error(w, "bad issue id", http.StatusBadRequest)
-		log.Println("failed to parse issue id", err)
-		return
-	}
-
-	issue, err := db.GetIssue(rp.db, f.RepoAt(), issueIdInt)
-	if err != nil {
-		log.Println("failed to get issue", err)
-		rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
 		return
 	}
 
@@ -218,16 +174,19 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
 		return user.Did == collab.Did
 	})
-	isIssueOwner := user.Did == issue.OwnerDid
+	isIssueOwner := user.Did == issue.Did
 
 	if isCollaborator || isIssueOwner {
-		err := db.ReopenIssue(rp.db, f.RepoAt(), issueIdInt)
+		err := db.ReopenIssues(
+			rp.db,
+			db.FilterEq("id", issue.Id),
+		)
 		if err != nil {
 			log.Println("failed to reopen issue", err)
 			rp.pages.Notice(w, "issue-action", "Failed to reopen issue. Try again later.")
 			return
 		}
-		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issueIdInt))
+		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	} else {
 		log.Println("user is not the owner of the repo")
@@ -237,6 +196,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "NewIssueComment")
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -411,7 +371,7 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 			LoggedInUser: user,
 			RepoInfo:     f.RepoInfo(user),
 			Issue:        issue,
-			Comment:      comment,
+			Comment:      &comment,
 		})
 	case http.MethodPost:
 		// extract form value
