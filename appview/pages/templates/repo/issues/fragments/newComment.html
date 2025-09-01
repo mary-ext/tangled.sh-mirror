@@ -1,0 +1,145 @@
+{{ define "repo/issues/fragments/newComment" }}
+  {{ if .LoggedInUser }}
+  <form
+      id="comment-form"
+      hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+      hx-on::after-request="if(event.detail.successful) this.reset()"
+  >
+    <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-full">
+      <div class="text-sm pb-2 text-gray-500 dark:text-gray-400">
+        {{ template "user/fragments/picHandleLink" .LoggedInUser.Did }}
+      </div>
+          <textarea
+              id="comment-textarea"
+              name="body"
+              class="w-full p-2 rounded border border-gray-200 dark:border-gray-700"
+              placeholder="Add to the discussion. Markdown is supported."
+              onkeyup="updateCommentForm()"
+              rows="5"
+          ></textarea>
+          <div id="issue-comment"></div>
+      <div id="issue-action" class="error"></div>
+    </div>
+
+    <div class="flex gap-2 mt-2">
+        <button
+            id="comment-button"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+            type="submit"
+            hx-disabled-elt="#comment-button"
+            class="btn-create p-2 flex items-center gap-2 no-underline hover:no-underline group"
+            disabled
+        >
+            {{ i "message-square-plus" "w-4 h-4" }}
+            comment
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </button>
+
+        {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.Did) }}
+        {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
+        {{ $isRepoOwner := .RepoInfo.Roles.IsOwner }}
+        {{ if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "open") }}
+        <button
+            id="close-button"
+            type="button"
+            class="btn flex items-center gap-2"
+            hx-indicator="#close-spinner"
+            hx-trigger="click"
+        >
+            {{ i "ban" "w-4 h-4" }}
+            close
+            <span id="close-spinner" class="group">
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
+        </button>
+        <div
+            id="close-with-comment"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
+            hx-trigger="click from:#close-button"
+            hx-disabled-elt="#close-with-comment"
+            hx-target="#issue-comment"
+            hx-indicator="#close-spinner"
+            hx-vals="js:{body: document.getElementById('comment-textarea').value.trim() !== '' ? document.getElementById('comment-textarea').value : ''}"
+            hx-swap="none"
+        >
+        </div>
+        <div
+            id="close-issue"
+            hx-disabled-elt="#close-issue"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/close"
+            hx-trigger="click from:#close-button"
+            hx-target="#issue-action"
+            hx-indicator="#close-spinner"
+            hx-swap="none"
+        >
+        </div>
+        <script>
+            document.addEventListener('htmx:configRequest', function(evt) {
+                if (evt.target.id === 'close-with-comment') {
+                    const commentText = document.getElementById('comment-textarea').value.trim();
+                    if (commentText === '') {
+                        evt.detail.parameters = {};
+                        evt.preventDefault();
+                    }
+                }
+            });
+        </script>
+        {{ else if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "closed") }}
+        <button
+            type="button"
+            class="btn flex items-center gap-2"
+            hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/reopen"
+            hx-indicator="#reopen-spinner"
+            hx-swap="none"
+        >
+            {{ i "refresh-ccw-dot" "w-4 h-4" }}
+            reopen
+            <span id="reopen-spinner" class="group">
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </span>
+        </button>
+        {{ end }}
+
+        <script>
+        function updateCommentForm() {
+            const textarea = document.getElementById('comment-textarea');
+            const commentButton = document.getElementById('comment-button');
+            const closeButton = document.getElementById('close-button');
+
+            if (textarea.value.trim() !== '') {
+                commentButton.removeAttribute('disabled');
+            } else {
+                commentButton.setAttribute('disabled', '');
+            }
+
+            if (closeButton) {
+                if (textarea.value.trim() !== '') {
+                    closeButton.innerHTML = `
+{{ i "ban" "w-4 h-4" }}
+<span>close with comment</span>
+<span id="close-spinner" class="group">
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+</span>`;
+                } else {
+                    closeButton.innerHTML = `
+{{ i "ban" "w-4 h-4" }}
+<span>close</span>
+<span id="close-spinner" class="group">
+    {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+</span>`;
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCommentForm();
+        });
+        </script>
+    </div>
+  </form>
+  {{ else }}
+    <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-fit">
+      <a href="/login" class="underline">login</a> to join the discussion
+    </div>
+  {{ end }}
+{{ end }}
