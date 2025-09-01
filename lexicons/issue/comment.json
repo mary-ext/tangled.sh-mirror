@@ -9,19 +9,15 @@
       "key": "tid",
       "record": {
         "type": "object",
-        "required": ["issue", "body", "createdAt"],
+        "required": [
+          "issue",
+          "body",
+          "createdAt"
+        ],
         "properties": {
           "issue": {
             "type": "string",
             "format": "at-uri"
-          },
-          "repo": {
-            "type": "string",
-            "format": "at-uri"
-          },
-          "owner": {
-            "type": "string",
-            "format": "did"
           },
           "body": {
             "type": "string"
@@ -29,6 +25,10 @@
           "createdAt": {
             "type": "string",
             "format": "datetime"
+          },
+          "replyTo": {
+            "type": "string",
+            "format": "at-uri"
           }
         }
       }

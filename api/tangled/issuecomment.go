@@ -21,6 +21,5 @@ type RepoIssueComment struct {
 	Body          string  `json:"body" cborgen:"body"`
 	CreatedAt     string  `json:"createdAt" cborgen:"createdAt"`
 	Issue         string  `json:"issue" cborgen:"issue"`
-	Owner         *string `json:"owner,omitempty" cborgen:"owner,omitempty"`
-	Repo          *string `json:"repo,omitempty" cborgen:"repo,omitempty"`
+	ReplyTo       *string `json:"replyTo,omitempty" cborgen:"replyTo,omitempty"`
 }
