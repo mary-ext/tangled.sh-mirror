@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -790,7 +791,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 	}
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate:
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.RepoIssue{}
 		err = json.Unmarshal(raw, &record)
@@ -814,6 +815,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 			l.Error("failed to begin transaction", "err", err)
 			return err
 		}
+		defer tx.Rollback()
 
 		err = db.NewIssue(tx, &issue)
 		if err != nil {
@@ -821,40 +823,20 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 			return err
 		}
 
-		return nil
-
-	case models.CommitOperationUpdate:
-		raw := json.RawMessage(e.Commit.Record)
-		record := tangled.RepoIssue{}
-		err = json.Unmarshal(raw, &record)
+		err = tx.Commit()
 		if err != nil {
-			l.Error("invalid record", "err", err)
-			return err
-		}
-
-		body := ""
-		if record.Body != nil {
-			body = *record.Body
-		}
-
-		sanitizer := markup.NewSanitizer()
-		if st := strings.TrimSpace(sanitizer.SanitizeDescription(record.Title)); st == "" {
-			return fmt.Errorf("title is empty after HTML sanitization")
-		}
-		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(body)); sb == "" {
-			return fmt.Errorf("body is empty after HTML sanitization")
-		}
-
-		err = db.UpdateIssueByRkey(ddb, did, rkey, record.Title, body)
-		if err != nil {
-			l.Error("failed to update issue", "err", err)
+			l.Error("failed to commit txn", "err", err)
 			return err
 		}
 
 		return nil
 
 	case models.CommitOperationDelete:
-		if err := db.DeleteIssueByRkey(ddb, did, rkey); err != nil {
+		if err := db.DeleteIssues(
+			ddb,
+			db.FilterEq("did", did),
+			db.FilterEq("rkey", rkey),
+		); err != nil {
 			l.Error("failed to delete", "err", err)
 			return fmt.Errorf("failed to delete issue record: %w", err)
 		}
@@ -862,7 +844,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 		return nil
 	}
 
-	return fmt.Errorf("unknown operation: %s", e.Commit.Operation)
+	return nil
 }
 
 func (i *Ingester) ingestIssueComment(e *models.Event) error {
@@ -880,7 +862,7 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 	}
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate:
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.RepoIssueComment{}
 		err = json.Unmarshal(raw, &record)
@@ -898,40 +880,24 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 			return fmt.Errorf("body is empty after HTML sanitization")
 		}
 
-		err = db.NewIssueComment(ddb, &comment)
+		_, err = db.AddIssueComment(ddb, *comment)
 		if err != nil {
 			return fmt.Errorf("failed to create issue comment: %w", err)
 		}
 
 		return nil
 
-	case models.CommitOperationUpdate:
-		raw := json.RawMessage(e.Commit.Record)
-		record := tangled.RepoIssueComment{}
-		err = json.Unmarshal(raw, &record)
-		if err != nil {
-			return fmt.Errorf("invalid record: %w", err)
-		}
-
-		sanitizer := markup.NewSanitizer()
-		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(record.Body)); sb == "" {
-			return fmt.Errorf("body is empty after HTML sanitization")
-		}
-
-		err = db.UpdateCommentByRkey(ddb, did, rkey, record.Body)
-		if err != nil {
-			return fmt.Errorf("failed to update issue comment: %w", err)
-		}
-
-		return nil
-
 	case models.CommitOperationDelete:
-		if err := db.DeleteCommentByRkey(ddb, did, rkey); err != nil {
+		if err := db.DeleteIssueComments(
+			ddb,
+			db.FilterEq("did", did),
+			db.FilterEq("rkey", rkey),
+		); err != nil {
 			return fmt.Errorf("failed to delete issue comment record: %w", err)
 		}
 
 		return nil
 	}
 
-	return fmt.Errorf("unknown operation: %s", e.Commit.Operation)
+	return nil
 }
