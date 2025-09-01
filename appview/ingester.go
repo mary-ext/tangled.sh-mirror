@@ -885,14 +885,12 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 		record := tangled.RepoIssueComment{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			l.Error("invalid record", "err", err)
-			return err
+			return fmt.Errorf("invalid record: %w", err)
 		}
 
 		comment, err := db.IssueCommentFromRecord(ddb, did, rkey, record)
 		if err != nil {
-			l.Error("failed to parse comment from record", "err", err)
-			return err
+			return fmt.Errorf("failed to parse comment from record: %w", err)
 		}
 
 		sanitizer := markup.NewSanitizer()
@@ -902,8 +900,7 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 
 		err = db.NewIssueComment(ddb, &comment)
 		if err != nil {
-			l.Error("failed to create issue comment", "err", err)
-			return err
+			return fmt.Errorf("failed to create issue comment: %w", err)
 		}
 
 		return nil
@@ -913,8 +910,7 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 		record := tangled.RepoIssueComment{}
 		err = json.Unmarshal(raw, &record)
 		if err != nil {
-			l.Error("invalid record", "err", err)
-			return err
+			return fmt.Errorf("invalid record: %w", err)
 		}
 
 		sanitizer := markup.NewSanitizer()
@@ -924,15 +920,13 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 
 		err = db.UpdateCommentByRkey(ddb, did, rkey, record.Body)
 		if err != nil {
-			l.Error("failed to update issue comment", "err", err)
-			return err
+			return fmt.Errorf("failed to update issue comment: %w", err)
 		}
 
 		return nil
 
 	case models.CommitOperationDelete:
 		if err := db.DeleteCommentByRkey(ddb, did, rkey); err != nil {
-			l.Error("failed to delete", "err", err)
 			return fmt.Errorf("failed to delete issue comment record: %w", err)
 		}
 
