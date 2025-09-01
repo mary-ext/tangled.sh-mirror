@@ -1,0 +1,56 @@
+{{ define "repo/issues/fragments/issueCommentHeader" }}
+  <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400 ">
+    {{ template "user/fragments/picHandleLink" .Comment.Did }}
+    {{ template "hats" $ }}
+    {{ template "timestamp" . }}
+    {{ $isCommentOwner := and .LoggedInUser (eq .LoggedInUser.Did .Comment.Did) }}
+    {{ if and $isCommentOwner (not .Comment.Deleted) }}
+      {{ template "edit" . }}
+      {{ template "delete" . }}
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "hats" }}
+  {{ $isIssueAuthor := eq .Comment.Did .Issue.Did }}
+  {{ if $isIssueAuthor }}
+    (author)
+  {{ end }}
+{{ end }}
+
+{{ define "timestamp" }}
+  <a href="#{{ .Comment.Id }}"
+     class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-400 hover:underline no-underline"
+     id="{{ .Comment.Id }}">
+    {{ if .Comment.Deleted }}
+      {{ template "repo/fragments/shortTimeAgo" .Comment.Deleted }}
+    {{ else if .Comment.Edited }}
+      edited {{ template "repo/fragments/shortTimeAgo" .Comment.Edited }}
+    {{ else }}
+      {{ template "repo/fragments/shortTimeAgo" .Comment.Created }}
+    {{ end }}
+  </a>
+{{ end }}
+
+{{ define "edit" }}
+  <a
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    hx-get="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.Id }}/comment/{{ .Comment.Id }}/edit"
+    hx-swap="outerHTML"
+    hx-target="#comment-body-{{.Comment.Id}}">
+    {{ i "pencil" "size-3" }}
+  </a>
+{{ end }}
+
+{{ define "delete" }}
+  <a
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    hx-delete="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.Id }}/comment/{{ .Comment.Id }}/"
+    hx-confirm="Are you sure you want to delete your comment?"
+    hx-swap="outerHTML"
+    hx-target="#comment-body-{{.Comment.Id}}"
+    >
+    {{ i "trash-2" "size-3" }}
+    {{ i "loader-circle" "size-3 animate-spin hidden group-[.htmx-request]:inline" }}
+  </a>
+{{ end }}
