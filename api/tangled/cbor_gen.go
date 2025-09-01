@@ -5898,13 +5898,9 @@ func (t *RepoIssueComment) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 6
+	fieldCount := 5
 
-	if t.Owner == nil {
-		fieldCount--
-	}
-
-	if t.Repo == nil {
+	if t.ReplyTo == nil {
 		fieldCount--
 	}
 
@@ -5933,38 +5929,6 @@ func (t *RepoIssueComment) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string(t.Body)); err != nil {
 		return err
-	}
-
-	// t.Repo (string) (string)
-	if t.Repo != nil {
-
-		if len("repo") > 1000000 {
-			return xerrors.Errorf("Value in field \"repo\" was too long")
-		}
-
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("repo"))); err != nil {
-			return err
-		}
-		if _, err := cw.WriteString(string("repo")); err != nil {
-			return err
-		}
-
-		if t.Repo == nil {
-			if _, err := cw.Write(cbg.CborNull); err != nil {
-				return err
-			}
-		} else {
-			if len(*t.Repo) > 1000000 {
-				return xerrors.Errorf("Value in field t.Repo was too long")
-			}
-
-			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Repo))); err != nil {
-				return err
-			}
-			if _, err := cw.WriteString(string(*t.Repo)); err != nil {
-				return err
-			}
-		}
 	}
 
 	// t.LexiconTypeID (string) (string)
@@ -6009,33 +5973,33 @@ func (t *RepoIssueComment) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Owner (string) (string)
-	if t.Owner != nil {
+	// t.ReplyTo (string) (string)
+	if t.ReplyTo != nil {
 
-		if len("owner") > 1000000 {
-			return xerrors.Errorf("Value in field \"owner\" was too long")
+		if len("replyTo") > 1000000 {
+			return xerrors.Errorf("Value in field \"replyTo\" was too long")
 		}
 
-		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("owner"))); err != nil {
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("replyTo"))); err != nil {
 			return err
 		}
-		if _, err := cw.WriteString(string("owner")); err != nil {
+		if _, err := cw.WriteString(string("replyTo")); err != nil {
 			return err
 		}
 
-		if t.Owner == nil {
+		if t.ReplyTo == nil {
 			if _, err := cw.Write(cbg.CborNull); err != nil {
 				return err
 			}
 		} else {
-			if len(*t.Owner) > 1000000 {
-				return xerrors.Errorf("Value in field t.Owner was too long")
+			if len(*t.ReplyTo) > 1000000 {
+				return xerrors.Errorf("Value in field t.ReplyTo was too long")
 			}
 
-			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Owner))); err != nil {
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.ReplyTo))); err != nil {
 				return err
 			}
-			if _, err := cw.WriteString(string(*t.Owner)); err != nil {
+			if _, err := cw.WriteString(string(*t.ReplyTo)); err != nil {
 				return err
 			}
 		}
@@ -6118,27 +6082,6 @@ func (t *RepoIssueComment) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Body = string(sval)
 			}
-			// t.Repo (string) (string)
-		case "repo":
-
-			{
-				b, err := cr.ReadByte()
-				if err != nil {
-					return err
-				}
-				if b != cbg.CborNull[0] {
-					if err := cr.UnreadByte(); err != nil {
-						return err
-					}
-
-					sval, err := cbg.ReadStringWithMax(cr, 1000000)
-					if err != nil {
-						return err
-					}
-
-					t.Repo = (*string)(&sval)
-				}
-			}
 			// t.LexiconTypeID (string) (string)
 		case "$type":
 
@@ -6161,8 +6104,8 @@ func (t *RepoIssueComment) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Issue = string(sval)
 			}
-			// t.Owner (string) (string)
-		case "owner":
+			// t.ReplyTo (string) (string)
+		case "replyTo":
 
 			{
 				b, err := cr.ReadByte()
@@ -6179,7 +6122,7 @@ func (t *RepoIssueComment) UnmarshalCBOR(r io.Reader) (err error) {
 						return err
 					}
 
-					t.Owner = (*string)(&sval)
+					t.ReplyTo = (*string)(&sval)
 				}
 			}
 			// t.CreatedAt (string) (string)
