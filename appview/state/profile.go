@@ -467,7 +467,7 @@ func (s *State) addPullRequestItems(ctx context.Context, feed *feeds.Feed, pulls
 
 func (s *State) addIssueItems(ctx context.Context, feed *feeds.Feed, issues []*db.Issue, author *feeds.Author) error {
 	for _, issue := range issues {
-		owner, err := s.idResolver.ResolveIdent(ctx, issue.Metadata.Repo.Did)
+		owner, err := s.idResolver.ResolveIdent(ctx, issue.Repo.Did)
 		if err != nil {
 			return err
 		}
@@ -499,8 +499,8 @@ func (s *State) createPullRequestItem(pull *db.Pull, owner *identity.Identity, a
 
 func (s *State) createIssueItem(issue *db.Issue, owner *identity.Identity, author *feeds.Author) *feeds.Item {
 	return &feeds.Item{
-		Title:   fmt.Sprintf("%s created issue '%s' in @%s/%s", author.Name, issue.Title, owner.Handle, issue.Metadata.Repo.Name),
-		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/issues/%d", s.config.Core.AppviewHost, owner.Handle, issue.Metadata.Repo.Name, issue.IssueId), Type: "text/html", Rel: "alternate"},
+		Title:   fmt.Sprintf("%s created issue '%s' in @%s/%s", author.Name, issue.Title, owner.Handle, issue.Repo.Name),
+		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/issues/%d", s.config.Core.AppviewHost, owner.Handle, issue.Repo.Name, issue.IssueId), Type: "text/html", Rel: "alternate"},
 		Created: issue.Created,
 		Author:  author,
 	}
