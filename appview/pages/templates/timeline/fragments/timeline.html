@@ -13,7 +13,7 @@
               {{ with $e }}
                 <div class="flex flex-col divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-sm">
                   {{ if .Repo }}
-                    {{ template "timeline/fragments/repoEvent" (list $ .Repo .Source) }}
+                    {{ template "timeline/fragments/repoEvent" (list $ .) }}
                   {{ else if .Star }}
                     {{ template "timeline/fragments/starEvent" (list $ .Star) }}
                   {{ else if .Follow }}
@@ -29,8 +29,9 @@
 
 {{ define "timeline/fragments/repoEvent" }}
   {{ $root := index . 0 }}
-  {{ $repo := index . 1 }}
-  {{ $source := index . 2 }}
+  {{ $event := index . 1 }}
+  {{ $repo := $event.Repo }}
+  {{ $source := $event.Source }}
   {{ $userHandle := resolve $repo.Did }}
     <div class="pl-6 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2 text-sm">
       {{ template "user/fragments/picHandleLink" $repo.Did }}
@@ -51,7 +52,7 @@
       <span class="text-gray-700 dark:text-gray-400 text-xs">{{ template "repo/fragments/time" $repo.Created }}</span>
     </div>
   {{ with $repo }}
-    {{ template "user/fragments/repoCard" (list $root . true) }}
+    {{ template "user/fragments/repoCard" (list $root . true true (dict "IsStarred" $event.IsStarred "RepoAt" .RepoAt "Stats" (dict "StarCount" $event.StarCount))) }}
   {{ end }}
 {{ end }}
 
