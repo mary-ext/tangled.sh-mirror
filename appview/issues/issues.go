@@ -53,6 +53,7 @@ func New(
 	db *db.DB,
 	config *config.Config,
 	notifier notify.Notifier,
+	validator *validator.Validator,
 ) *Issues {
 	return &Issues{
 		oauth:        oauth,
@@ -102,7 +103,6 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
 	})
-
 }
 
 func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
