@@ -18,11 +18,12 @@ type TimelineEvent struct {
 	// optional: populate only if event is Follow
 	*Profile
 	*FollowStats
+	*FollowStatus
 }
 
 // TODO: this gathers heterogenous events from different sources and aggregates
 // them in code; if we did this entirely in sql, we could order and limit and paginate easily
-func MakeTimeline(e Execer, limit int) ([]TimelineEvent, error) {
+func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
 	var events []TimelineEvent
 
 	repos, err := getTimelineRepos(e, limit)
@@ -35,7 +36,7 @@ func MakeTimeline(e Execer, limit int) ([]TimelineEvent, error) {
 		return nil, err
 	}
 
-	follows, err := getTimelineFollows(e, limit)
+	follows, err := getTimelineFollows(e, limit, loggedInUserDid)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func getTimelineStars(e Execer, limit int) ([]TimelineEvent, error) {
 	return events, nil
 }
 
-func getTimelineFollows(e Execer, limit int) ([]TimelineEvent, error) {
+func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
 	follows, err := GetFollows(e, limit)
 	if err != nil {
 		return nil, err
@@ -159,11 +160,17 @@ func getTimelineFollows(e Execer, limit int) ([]TimelineEvent, error) {
 		profile, _ := profiles[f.SubjectDid]
 		followStatMap, _ := followStatMap[f.SubjectDid]
 
+		followStatus := IsNotFollowing
+		if loggedInUserDid != "" {
+			followStatus = GetFollowStatus(e, loggedInUserDid, f.SubjectDid)
+		}
+
 		events = append(events, TimelineEvent{
-			Follow:      &f,
-			Profile:     profile,
-			FollowStats: &followStatMap,
-			EventAt:     f.FollowedAt,
+			Follow:       &f,
+			Profile:      profile,
+			FollowStats:  &followStatMap,
+			FollowStatus: &followStatus,
+			EventAt:      f.FollowedAt,
 		})
 	}
 

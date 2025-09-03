@@ -17,7 +17,7 @@
                   {{ else if .Star }}
                     {{ template "timeline/fragments/starEvent" (list $ .Star) }}
                   {{ else if .Follow }}
-                    {{ template "timeline/fragments/followEvent" (list $ .Follow .Profile .FollowStats) }}
+                    {{ template "timeline/fragments/followEvent" (list $ .) }}
                   {{ end }}
                 </div>
               {{ end }}
@@ -77,9 +77,10 @@
 
 {{ define "timeline/fragments/followEvent" }}
   {{ $root := index . 0 }}
-  {{ $follow := index . 1 }}
-  {{ $profile := index . 2 }}
-  {{ $stat := index . 3 }}
+  {{ $event := index . 1 }}
+  {{ $follow := $event.Follow }}
+  {{ $profile := $event.Profile }}
+  {{ $stat := $event.FollowStats }}
 
   {{ $userHandle :=  resolve $follow.UserDid }}
   {{ $subjectHandle :=  resolve $follow.SubjectDid }}
@@ -89,28 +90,36 @@
       {{ template "user/fragments/picHandleLink" $subjectHandle }}
       <span class="text-gray-700 dark:text-gray-400 text-xs">{{ template "repo/fragments/time" $follow.FollowedAt }}</span>
   </div>
-  <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800 flex items-center gap-4">
-    <div class="flex-shrink-0 max-h-full w-24 h-24">
-      <img alt="" class="object-cover rounded-full p-2" src="{{ fullAvatar $subjectHandle }}" />
-    </div>
+  <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800 flex flex-col md:flex-row md:items-center gap-4">
+    <div class="flex items-center gap-4 flex-1">
+      <div class="flex-shrink-0 max-h-full w-24 h-24">
+        <img alt="" class="object-cover rounded-full p-2" src="{{ fullAvatar $subjectHandle }}" />
+      </div>
 
-    <div class="flex-1 min-h-0 justify-around flex flex-col">
-      <a href="/{{ $subjectHandle }}">
-        <span class="font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">{{ $subjectHandle | truncateAt30 }}</span>
-      </a>
-      {{ with $profile }}
-        {{ with .Description }}
-          <p class="text-sm pb-2 md:pb-2">{{.}}</p>
+      <div class="flex-1 min-h-0 justify-around flex flex-col">
+        <a href="/{{ $subjectHandle }}">
+          <span class="font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">{{ $subjectHandle | truncateAt30 }}</span>
+        </a>
+        {{ with $profile }}
+          {{ with .Description }}
+            <p class="text-sm pb-2 md:pb-2">{{.}}</p>
+          {{ end }}
         {{ end }}
-      {{ end }}
-      {{ with $stat }}
-        <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-          <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
-          <span id="followers"><a href="/{{ $subjectHandle }}?tab=followers">{{ .Followers }} followers</a></span>
-          <span class="select-none after:content-['·']"></span>
-          <span id="following"><a href="/{{ $subjectHandle }}?tab=following">{{ .Following }} following</a></span>
-        </div>
-      {{ end }}
+        {{ with $stat }}
+          <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+            <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
+            <span id="followers"><a href="/{{ $subjectHandle }}?tab=followers">{{ .Followers }} followers</a></span>
+            <span class="select-none after:content-['·']"></span>
+            <span id="following"><a href="/{{ $subjectHandle }}?tab=following">{{ .Following }} following</a></span>
+          </div>
+        {{ end }}
+      </div>
     </div>
+    
+    {{ if and $root.LoggedInUser (ne $event.FollowStatus.String "IsSelf") }}
+      <div class="flex-shrink-0 w-fit ml-auto">
+        {{ template "user/fragments/follow" (dict "UserDid" $follow.SubjectDid "FollowStatus" $event.FollowStatus) }}
+      </div>
+    {{ end }}
   </div>
 {{ end }}

@@ -203,7 +203,11 @@ func (s *State) HomeOrTimeline(w http.ResponseWriter, r *http.Request) {
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
-	timeline, err := db.MakeTimeline(s.db, 50)
+	var userDid string
+	if user != nil {
+		userDid = user.Did
+	}
+	timeline, err := db.MakeTimeline(s.db, 50, userDid)
 	if err != nil {
 		log.Println(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
@@ -224,7 +228,7 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Home(w http.ResponseWriter, r *http.Request) {
-	timeline, err := db.MakeTimeline(s.db, 15)
+	timeline, err := db.MakeTimeline(s.db, 15, "")
 	if err != nil {
 		log.Println(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
