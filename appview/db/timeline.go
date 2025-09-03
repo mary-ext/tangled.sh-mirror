@@ -19,6 +19,10 @@ type TimelineEvent struct {
 	*Profile
 	*FollowStats
 	*FollowStatus
+
+	// optional: populate only if event is Repo
+	IsStarred bool
+	StarCount int64
 }
 
 // TODO: this gathers heterogenous events from different sources and aggregates
@@ -26,7 +30,7 @@ type TimelineEvent struct {
 func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
 	var events []TimelineEvent
 
-	repos, err := getTimelineRepos(e, limit)
+	repos, err := getTimelineRepos(e, limit, loggedInUserDid)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +61,7 @@ func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent,
 	return events, nil
 }
 
-func getTimelineRepos(e Execer, limit int) ([]TimelineEvent, error) {
+func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
 	repos, err := GetRepos(e, limit)
 	if err != nil {
 		return nil, err
@@ -93,10 +97,22 @@ func getTimelineRepos(e Execer, limit int) ([]TimelineEvent, error) {
 			}
 		}
 
+		var isStarred bool
+		if loggedInUserDid != "" {
+			isStarred = GetStarStatus(e, loggedInUserDid, r.RepoAt())
+		}
+
+		var starCount int64
+		if r.RepoStats != nil {
+			starCount = int64(r.RepoStats.StarCount)
+		}
+
 		events = append(events, TimelineEvent{
-			Repo:    &r,
-			EventAt: r.Created,
-			Source:  source,
+			Repo:      &r,
+			EventAt:   r.Created,
+			Source:    source,
+			IsStarred: isStarred,
+			StarCount: starCount,
 		})
 	}
 
