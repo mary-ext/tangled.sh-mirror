@@ -1,6 +1,6 @@
 {{ define "user/fragments/follow" }}
   <button id="{{ normalizeForHtmlId .UserDid }}"
-    class="btn mt-2 w-full flex gap-2 items-center group"
+    class="btn mt-2 flex gap-2 items-center group"
 
     {{ if eq .FollowStatus.String "IsNotFollowing" }}
     hx-post="/follow?subject={{.UserDid}}"
@@ -12,7 +12,7 @@
     hx-target="#{{ normalizeForHtmlId .UserDid }}"
     hx-swap="outerHTML"
     >
-    {{ if eq .FollowStatus.String "IsNotFollowing" }}Follow{{ else }}Unfollow{{ end }}
+    {{ if eq .FollowStatus.String "IsNotFollowing" }}{{ i "user-round-plus" "w-4 h-4" }} follow{{ else }}{{ i "user-round-minus" "w-4 h-4" }} unfollow{{ end }}
     {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
   </button>
 {{ end }}
