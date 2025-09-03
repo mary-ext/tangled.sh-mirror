@@ -269,17 +269,43 @@ func (p *Pages) CompleteSignup(w io.Writer) error {
 
 type TermsOfServiceParams struct {
 	LoggedInUser *oauth.User
+	Content      template.HTML
 }
 
 func (p *Pages) TermsOfService(w io.Writer, params TermsOfServiceParams) error {
+	filename := "terms.md"
+	filePath := filepath.Join("legal", filename)
+	markdownBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", filename, err)
+	}
+
+	p.rctx.RendererType = markup.RendererTypeDefault
+	htmlString := p.rctx.RenderMarkdown(string(markdownBytes))
+	sanitized := p.rctx.SanitizeDefault(htmlString)
+	params.Content = template.HTML(sanitized)
+
 	return p.execute("legal/terms", w, params)
 }
 
 type PrivacyPolicyParams struct {
 	LoggedInUser *oauth.User
+	Content      template.HTML
 }
 
 func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
+	filename := "privacy.md"
+	filePath := filepath.Join("legal", filename)
+	markdownBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", filename, err)
+	}
+
+	p.rctx.RendererType = markup.RendererTypeDefault
+	htmlString := p.rctx.RenderMarkdown(string(markdownBytes))
+	sanitized := p.rctx.SanitizeDefault(htmlString)
+	params.Content = template.HTML(sanitized)
+
 	return p.execute("legal/privacy", w, params)
 }
 
