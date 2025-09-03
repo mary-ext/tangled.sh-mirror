@@ -94,14 +94,64 @@ func GetStarCount(e Execer, repoAt syntax.ATURI) (int, error) {
 	return stars, nil
 }
 
-func GetStarStatus(e Execer, userDid string, repoAt syntax.ATURI) bool {
-	if _, err := GetStar(e, userDid, repoAt); err != nil {
-		return false
-	} else {
-		return true
+// getStarStatuses returns a map of repo URIs to star status for a given user
+// This is an internal helper function to avoid N+1 queries
+func getStarStatuses(e Execer, userDid string, repoAts []syntax.ATURI) (map[string]bool, error) {
+	if len(repoAts) == 0 || userDid == "" {
+		return make(map[string]bool), nil
 	}
+
+	placeholders := make([]string, len(repoAts))
+	args := make([]any, len(repoAts)+1)
+	args[0] = userDid
+
+	for i, repoAt := range repoAts {
+		placeholders[i] = "?"
+		args[i+1] = repoAt.String()
+	}
+
+	query := fmt.Sprintf(`
+		SELECT repo_at
+		FROM stars
+		WHERE starred_by_did = ? AND repo_at IN (%s)
+	`, strings.Join(placeholders, ","))
+
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[string]bool)
+	// Initialize all repos as not starred
+	for _, repoAt := range repoAts {
+		result[repoAt.String()] = false
+	}
+
+	// Mark starred repos as true
+	for rows.Next() {
+		var repoAt string
+		if err := rows.Scan(&repoAt); err != nil {
+			return nil, err
+		}
+		result[repoAt] = true
+	}
+
+	return result, nil
 }
 
+func GetStarStatus(e Execer, userDid string, repoAt syntax.ATURI) bool {
+	statuses, err := getStarStatuses(e, userDid, []syntax.ATURI{repoAt})
+	if err != nil {
+		return false
+	}
+	return statuses[repoAt.String()]
+}
+
+// GetStarStatuses returns a map of repo URIs to star status for a given user
+func GetStarStatuses(e Execer, userDid string, repoAts []syntax.ATURI) (map[string]bool, error) {
+	return getStarStatuses(e, userDid, repoAts)
+}
 func GetStars(e Execer, limit int, filters ...filter) ([]Star, error) {
 	var conditions []string
 	var args []any
