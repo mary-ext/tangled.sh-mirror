@@ -28,26 +28,26 @@ We store:
 
 ## 2. Data Location and Hosting
 
-> **EU Data Hosting**
-> 
-> **All Tangled service data is hosted within the European Union.**
-> Specifically:
-> 
-> - **Personal Data Servers (PDS):** Accounts hosted on Tangled PDS
->   (*.tngl.sh) are located in Finland
-> - **Application Data:** All other service data is stored on EU-based
->   servers
-> - **Data Processing:** All data processing occurs within EU
->   jurisdiction
+### EU Data Hosting
 
-> **External PDS Notice**
-> 
-> **Important:** If your account is hosted on Bluesky's PDS or other
-> self-hosted Personal Data Servers (not *.tngl.sh), we do not control
-> that data. The data protection, storage location, and privacy
-> practices for such accounts are governed by the respective PDS
-> provider's policies, not this Privacy Policy. We only control data
-> processing within our own services and infrastructure.
+**All Tangled service data is hosted within the European Union.**
+Specifically:
+
+- **Personal Data Servers (PDS):** Accounts hosted on Tangled PDS
+  (*.tngl.sh) are located in Finland
+- **Application Data:** All other service data is stored on EU-based
+  servers
+- **Data Processing:** All data processing occurs within EU
+  jurisdiction
+
+### External PDS Notice
+
+**Important:** If your account is hosted on Bluesky's PDS or other
+self-hosted Personal Data Servers (not *.tngl.sh), we do not control
+that data. The data protection, storage location, and privacy
+practices for such accounts are governed by the respective PDS
+provider's policies, not this Privacy Policy. We only control data
+processing within our own services and infrastructure.
 
 ## 3. Third-Party Data Processors
 
@@ -58,14 +58,18 @@ We only share your data with the following third-party processors:
 - **Purpose:** Sending transactional emails (account verification,
   notifications)
 - **Data Shared:** Email address and necessary message content
-- **Location:** EU-compliant email delivery service
 
 ### Cloudflare (Image Caching)
 
 - **Purpose:** Caching and optimizing image delivery
 - **Data Shared:** Public images and associated metadata for caching
   purposes
-- **Location:** Global CDN with EU data protection compliance
+
+### Posthog (Usage Metrics Tracking)
+
+- **Purpose:** Tracking usage and platform metrics
+- **Data Shared:** Anonymous usage data, IP addresses, DIDs, and browser
+  information
 
 ## 4. How We Use Your Information
 
