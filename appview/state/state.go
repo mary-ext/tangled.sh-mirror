@@ -28,6 +28,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/pages"
 	posthogService "tangled.sh/tangled.sh/core/appview/posthog"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/appview/validator"
 	xrpcclient "tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/idresolver"
@@ -53,6 +54,7 @@ type State struct {
 	knotstream    *eventconsumer.Consumer
 	spindlestream *eventconsumer.Consumer
 	logger        *slog.Logger
+	validator     *validator.Validator
 }
 
 func Make(ctx context.Context, config *config.Config) (*State, error) {
@@ -73,11 +75,10 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	}
 
 	pgs := pages.NewPages(config, res)
-
 	cache := cache.New(config.Redis.Addr)
 	sess := session.New(cache)
-
 	oauth := oauth.NewOAuth(config, sess)
+	validator := validator.New(d)
 
 	posthog, err := posthog.NewWithConfig(config.Posthog.ApiKey, posthog.Config{Endpoint: config.Posthog.Endpoint})
 	if err != nil {
@@ -121,6 +122,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		IdResolver: res,
 		Config:     config,
 		Logger:     tlog.New("ingester"),
+		Validator:  validator,
 	}
 	err = jc.StartJetstream(ctx, ingester.Ingest())
 	if err != nil {
@@ -160,6 +162,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		knotstream,
 		spindlestream,
 		slog.Default(),
+		validator,
 	}
 
 	return state, nil

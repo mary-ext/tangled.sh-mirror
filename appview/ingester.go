@@ -18,6 +18,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/serververify"
+	"tangled.sh/tangled.sh/core/appview/validator"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
 )
@@ -28,6 +29,7 @@ type Ingester struct {
 	IdResolver *idresolver.Resolver
 	Config     *config.Config
 	Logger     *slog.Logger
+	Validator  *validator.Validator
 }
 
 type processFunc func(ctx context.Context, e *models.Event) error
@@ -875,9 +877,8 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 			return fmt.Errorf("failed to parse comment from record: %w", err)
 		}
 
-		sanitizer := markup.NewSanitizer()
-		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(comment.Body)); sb == "" {
-			return fmt.Errorf("body is empty after HTML sanitization")
+		if err := i.Validator.ValidateIssueComment(comment); err != nil {
+			return fmt.Errorf("failed to validate comment: %w", err)
 		}
 
 		_, err = db.AddIssueComment(ddb, *comment)

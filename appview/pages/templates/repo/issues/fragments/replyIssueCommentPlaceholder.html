@@ -1,0 +1,18 @@
+{{ define "repo/issues/fragments/replyIssueCommentPlaceholder" }}
+  <div class="p-2 border-t flex gap-2 items-center border-gray-300 dark:border-gray-700">
+    <img
+        src="{{ tinyAvatar .LoggedInUser.Did }}"
+        alt=""
+        class="rounded-full h-6 w-6 mr-1 border border-gray-300 dark:border-gray-700"
+    />
+    <input
+      class="w-full py-2 border-none focus:outline-none"
+      placeholder="Leave a reply..."
+      hx-get="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment/{{ .Comment.Id }}/reply"
+      hx-trigger="focus"
+      hx-target="closest div"
+      hx-swap="outerHTML"
+      >
+    </input>
+  </div>
+{{ end }}

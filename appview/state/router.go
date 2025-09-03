@@ -232,7 +232,7 @@ func (s *State) StringsRouter(mw *middleware.Middleware) http.Handler {
 }
 
 func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
-	issues := issues.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.notifier)
+	issues := issues.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.notifier, s.validator)
 	return issues.Router(mw)
 }
 

@@ -9,7 +9,7 @@
 {{ end }}
 
 {{ define "repoContent" }}
-    <header class="pb-4">
+    <header class="pb-2">
       <h1 class="text-2xl">
       {{ .Issue.Title | description }}
       <span class="text-gray-500 dark:text-gray-400">#{{ .Issue.IssueId }}</span>
@@ -39,7 +39,7 @@
         </div>
 
         {{ if .Issue.Body }}
-            <article id="body" class="mt-8 prose dark:prose-invert">
+            <article id="body" class="mt-4 prose dark:prose-invert">
                 {{ .Issue.Body | markdown }}
             </article>
         {{ end }}

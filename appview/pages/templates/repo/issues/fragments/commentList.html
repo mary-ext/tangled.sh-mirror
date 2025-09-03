@@ -1,0 +1,64 @@
+{{ define "repo/issues/fragments/commentList" }}
+  <div class="flex flex-col gap-8">
+    {{ range $item := .CommentList }}
+      {{ template "commentListing" (list $ .) }}
+    {{ end }}
+  <div>
+{{ end }}
+
+{{ define "commentListing" }}
+  {{ $root := index . 0 }}
+  {{ $comment := index . 1 }}
+  {{ $params :=
+        (dict
+          "RepoInfo" $root.RepoInfo
+          "LoggedInUser" $root.LoggedInUser
+          "Issue" $root.Issue
+          "Comment" $comment.Self) }}
+
+  <div class="rounded border border-gray-300 dark:border-gray-700 w-full overflow-hidden shadow-sm">
+    {{ template "topLevelComment" $params }}
+
+    <div class="relative ml-4 border-l border-gray-300 dark:border-gray-700">
+      {{ range $index, $reply := $comment.Replies }}
+        <div class="relative ">
+          <!-- Horizontal connector -->
+          <div class="absolute left-0 top-6 w-4 h-px bg-gray-300 dark:bg-gray-700"></div>
+
+          <div class="pl-2">
+            {{
+              template "replyComment"
+              (dict
+                "RepoInfo" $root.RepoInfo
+                "LoggedInUser" $root.LoggedInUser
+                "Issue" $root.Issue
+                "Comment" $reply)
+            }}
+          </div>
+        </div>
+      {{ end }}
+    </div>
+
+    {{ if $root.LoggedInUser }}
+      {{ template "repo/issues/fragments/replyIssueCommentPlaceholder" $params }}
+    {{ else }}
+      <div class="p-2 border-t border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400">
+        <a class="underline" href="/login">login</a> to reply to this discussion
+      </div>
+    {{ end }}
+  </div>
+{{ end }}
+
+{{ define "topLevelComment" }}
+<div class="rounded px-6 py-4 bg-white dark:bg-gray-800">
+  {{ template "repo/issues/fragments/issueCommentHeader" . }}
+  {{ template "repo/issues/fragments/issueCommentBody" . }}
+</div>
+{{ end }}
+
+{{ define "replyComment" }}
+<div class="p-4 w-full mx-auto overflow-hidden">
+  {{ template "repo/issues/fragments/issueCommentHeader" . }}
+  {{ template "repo/issues/fragments/issueCommentBody" . }}
+</div>
+{{ end }}
