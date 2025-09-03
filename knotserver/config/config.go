@@ -29,8 +29,8 @@ type Server struct {
 
 type Git struct {
 	// user name & email used as committer
-	UserName     string `env:"USER_NAME, default=Tangled"`
-	UserEmail    string `env:"USER_EMAIL, default=noreply@tangled.sh"`
+	UserName  string `env:"USER_NAME, default=Tangled"`
+	UserEmail string `env:"USER_EMAIL, default=noreply@tangled.sh"`
 }
 
 func (s Server) Did() syntax.DID {

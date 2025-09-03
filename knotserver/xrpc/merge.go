@@ -81,7 +81,7 @@ func (x *Xrpc) Merge(w http.ResponseWriter, r *http.Request) {
 		mo.CommitMessage = *data.CommitMessage
 	}
 
-	mo.CommitterName =  x.Config.Git.UserName
+	mo.CommitterName = x.Config.Git.UserName
 	mo.CommitterEmail = x.Config.Git.UserEmail
 	mo.FormatPatch = patchutil.IsFormatPatch(data.Patch)
 
