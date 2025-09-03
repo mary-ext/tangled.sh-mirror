@@ -117,35 +117,6 @@ func (p *Pages) fragmentPaths() ([]string, error) {
 	return fragmentPaths, nil
 }
 
-func (p *Pages) fragments() (*template.Template, error) {
-	fragmentPaths, err := p.fragmentPaths()
-	if err != nil {
-		return nil, err
-	}
-
-	funcs := p.funcMap()
-
-	// parse all fragments together
-	allFragments := template.New("").Funcs(funcs)
-	for _, f := range fragmentPaths {
-		name := p.pathToName(f)
-
-		pf, err := template.New(name).
-			Funcs(funcs).
-			ParseFS(p.embedFS, f)
-		if err != nil {
-			return nil, err
-		}
-
-		allFragments, err = allFragments.AddParseTree(name, pf.Tree)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return allFragments, nil
-}
-
 // parse without memoization
 func (p *Pages) rawParse(stack ...string) (*template.Template, error) {
 	paths, err := p.fragmentPaths()
