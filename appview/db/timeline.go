@@ -3,6 +3,8 @@ package db
 import (
 	"sort"
 	"time"
+
+	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
 type TimelineEvent struct {
@@ -30,7 +32,7 @@ type TimelineEvent struct {
 func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
 	var events []TimelineEvent
 
-	repos, err := getTimelineRepos(e, limit)
+	repos, err := getTimelineRepos(e, limit, loggedInUserDid)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +63,7 @@ func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent,
 	return events, nil
 }
 
-func getTimelineRepos(e Execer, limit int) ([]TimelineEvent, error) {
+func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
 	repos, err := GetRepos(e, limit)
 	if err != nil {
 		return nil, err
@@ -88,6 +90,19 @@ func getTimelineRepos(e Execer, limit int) ([]TimelineEvent, error) {
 		uriToRepo[r.RepoAt().String()] = r
 	}
 
+	var starStatuses map[string]bool
+	if loggedInUserDid != "" {
+		var repoAts []syntax.ATURI
+		for _, r := range repos {
+			repoAts = append(repoAts, r.RepoAt())
+		}
+		var err error
+		starStatuses, err = GetStarStatuses(e, loggedInUserDid, repoAts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var events []TimelineEvent
 	for _, r := range repos {
 		var source *Repo
@@ -97,10 +112,22 @@ func getTimelineRepos(e Execer, limit int) ([]TimelineEvent, error) {
 			}
 		}
 
+		var isStarred bool
+		if starStatuses != nil {
+			isStarred = starStatuses[r.RepoAt().String()]
+		}
+
+		var starCount int64
+		if r.RepoStats != nil {
+			starCount = int64(r.RepoStats.StarCount)
+		}
+
 		events = append(events, TimelineEvent{
-			Repo:    &r,
-			EventAt: r.Created,
-			Source:  source,
+			Repo:      &r,
+			EventAt:   r.Created,
+			Source:    source,
+			IsStarred: isStarred,
+			StarCount: starCount,
 		})
 	}
 
@@ -157,6 +184,14 @@ func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]Timeline
 	followStatMap, err := GetFollowerFollowingCounts(e, subjects)
 	if err != nil {
 		return nil, err
+	}
+
+	var followStatuses map[string]FollowStatus
+	if loggedInUserDid != "" {
+		followStatuses, err = GetFollowStatuses(e, loggedInUserDid, subjects)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var events []TimelineEvent

@@ -229,12 +229,72 @@ func (s FollowStatus) String() string {
 	}
 }
 
-func GetFollowStatus(e Execer, userDid, subjectDid string) FollowStatus {
-	if userDid == subjectDid {
-		return IsSelf
-	} else if _, err := GetFollow(e, userDid, subjectDid); err != nil {
-		return IsNotFollowing
-	} else {
-		return IsFollowing
+func getFollowStatuses(e Execer, userDid string, subjectDids []string) (map[string]FollowStatus, error) {
+	if len(subjectDids) == 0 || userDid == "" {
+		return make(map[string]FollowStatus), nil
 	}
+
+	result := make(map[string]FollowStatus)
+
+	for _, subjectDid := range subjectDids {
+		if userDid == subjectDid {
+			result[subjectDid] = IsSelf
+		} else {
+			result[subjectDid] = IsNotFollowing
+		}
+	}
+
+	var querySubjects []string
+	for _, subjectDid := range subjectDids {
+		if userDid != subjectDid {
+			querySubjects = append(querySubjects, subjectDid)
+		}
+	}
+
+	if len(querySubjects) == 0 {
+		return result, nil
+	}
+
+	placeholders := make([]string, len(querySubjects))
+	args := make([]any, len(querySubjects)+1)
+	args[0] = userDid
+
+	for i, subjectDid := range querySubjects {
+		placeholders[i] = "?"
+		args[i+1] = subjectDid
+	}
+
+	query := fmt.Sprintf(`
+		SELECT subject_did
+		FROM follows
+		WHERE user_did = ? AND subject_did IN (%s)
+	`, strings.Join(placeholders, ","))
+
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var subjectDid string
+		if err := rows.Scan(&subjectDid); err != nil {
+			return nil, err
+		}
+		result[subjectDid] = IsFollowing
+	}
+
+	return result, nil
+}
+
+func GetFollowStatus(e Execer, userDid, subjectDid string) FollowStatus {
+	statuses, err := getFollowStatuses(e, userDid, []string{subjectDid})
+	if err != nil {
+		return IsNotFollowing
+	}
+	return statuses[subjectDid]
+}
+
+func GetFollowStatuses(e Execer, userDid string, subjectDids []string) (map[string]FollowStatus, error) {
+	return getFollowStatuses(e, userDid, subjectDids)
 }
