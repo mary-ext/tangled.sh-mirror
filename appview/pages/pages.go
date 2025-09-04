@@ -886,8 +886,23 @@ type RepoSingleIssueParams struct {
 	OrderedReactionKinds []db.ReactionKind
 	Reactions            map[db.ReactionKind]int
 	UserReacted          map[db.ReactionKind]bool
+}
 
-	State string
+func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error {
+	params.Active = "issues"
+	return p.executeRepo("repo/issues/issue", w, params)
+}
+
+type EditIssueParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Issue        *db.Issue
+	Action       string
+}
+
+func (p *Pages) EditIssueFragment(w io.Writer, params EditIssueParams) error {
+	params.Action = "edit"
+	return p.executePlain("repo/issues/fragments/putIssue", w, params)
 }
 
 type ThreadReactionFragmentParams struct {
@@ -901,24 +916,17 @@ func (p *Pages) ThreadReactionFragment(w io.Writer, params ThreadReactionFragmen
 	return p.executePlain("repo/fragments/reaction", w, params)
 }
 
-func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error {
-	params.Active = "issues"
-	if params.Issue.Open {
-		params.State = "open"
-	} else {
-		params.State = "closed"
-	}
-	return p.executeRepo("repo/issues/issue", w, params)
-}
-
 type RepoNewIssueParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
+	Issue        *db.Issue // existing issue if any -- passed when editing
 	Active       string
+	Action       string
 }
 
 func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 	params.Active = "issues"
+	params.Action = "create"
 	return p.executeRepo("repo/issues/new", w, params)
 }
 

@@ -4,6 +4,7 @@
       id="reply-form-{{ .Comment.Id }}"
       hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/comment"
       hx-on::after-request="if(event.detail.successful) this.reset()"
+      hx-disabled-elt="#reply-{{ .Comment.Id }}"
   >
       {{ template "user/fragments/picHandleLink" .LoggedInUser.Did }}
       <textarea
@@ -12,7 +13,11 @@
         class="w-full p-2"
         placeholder="Leave a reply..."
         autofocus
-        rows="3"></textarea>
+        rows="3"
+        hx-trigger="keydown[ctrlKey&&key=='Enter']"
+        hx-target="#reply-form-{{ .Comment.Id }}"
+        hx-get="#"
+        hx-on:htmx:before-request="event.preventDefault(); document.getElementById('reply-form-{{ .Comment.Id }}').requestSubmit()"></textarea>
 
       <input
           type="text"
@@ -48,7 +53,6 @@
   <button
       id="reply-{{ .Comment.Id }}"
       type="submit"
-      hx-disabled-elt="#reply-{{ .Comment.Id }}"
       class="btn-create flex items-center gap-2 no-underline hover:no-underline">
       {{ i "reply" "w-4 h-4 inline group-[.htmx-request]:hidden" }}
       {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}

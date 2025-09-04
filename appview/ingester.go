@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/serververify"
 	"tangled.sh/tangled.sh/core/appview/validator"
 	"tangled.sh/tangled.sh/core/idresolver"
@@ -804,12 +802,8 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 
 		issue := db.IssueFromRecord(did, rkey, record)
 
-		sanitizer := markup.NewSanitizer()
-		if st := strings.TrimSpace(sanitizer.SanitizeDescription(issue.Title)); st == "" {
-			return fmt.Errorf("title is empty after HTML sanitization")
-		}
-		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(issue.Body)); sb == "" {
-			return fmt.Errorf("body is empty after HTML sanitization")
+		if err := i.Validator.ValidateIssue(&issue); err != nil {
+			return fmt.Errorf("failed to validate issue: %w", err)
 		}
 
 		tx, err := ddb.BeginTx(ctx, nil)
@@ -819,7 +813,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 		}
 		defer tx.Rollback()
 
-		err = db.NewIssue(tx, &issue)
+		err = db.PutIssue(tx, &issue)
 		if err != nil {
 			l.Error("failed to create issue", "err", err)
 			return err

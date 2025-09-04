@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -23,7 +22,6 @@ import (
 	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/pages/markup"
 	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 	"tangled.sh/tangled.sh/core/appview/validator"
@@ -103,6 +101,126 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
 	})
+}
+
+func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "EditIssue")
+	user := rp.oauth.GetUser(r)
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		rp.pages.EditIssueFragment(w, pages.EditIssueParams{
+			LoggedInUser: user,
+			RepoInfo:     f.RepoInfo(user),
+			Issue:        issue,
+		})
+	case http.MethodPost:
+		noticeId := "issues"
+		newIssue := issue
+		newIssue.Title = r.FormValue("title")
+		newIssue.Body = r.FormValue("body")
+
+		if err := rp.validator.ValidateIssue(newIssue); err != nil {
+			l.Error("validation error", "err", err)
+			rp.pages.Notice(w, noticeId, fmt.Sprintf("Failed to edit issue: %s", err))
+			return
+		}
+
+		newRecord := newIssue.AsRecord()
+
+		// edit an atproto record
+		client, err := rp.oauth.AuthorizedClient(r)
+		if err != nil {
+			l.Error("failed to get authorized client", "err", err)
+			rp.pages.Notice(w, noticeId, "Failed to edit issue.")
+			return
+		}
+
+		ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoIssueNSID, user.Did, newIssue.Rkey)
+		if err != nil {
+			l.Error("failed to get record", "err", err)
+			rp.pages.Notice(w, noticeId, "Failed to edit issue, no record found on PDS.")
+			return
+		}
+
+		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+			Collection: tangled.RepoIssueNSID,
+			Repo:       user.Did,
+			Rkey:       newIssue.Rkey,
+			SwapRecord: ex.Cid,
+			Record: &lexutil.LexiconTypeDecoder{
+				Val: &newRecord,
+			},
+		})
+		if err != nil {
+			l.Error("failed to edit record on PDS", "err", err)
+			rp.pages.Notice(w, noticeId, "Failed to edit issue on PDS.")
+			return
+		}
+
+		// modify on DB -- TODO: transact this cleverly
+		tx, err := rp.db.Begin()
+		if err != nil {
+			l.Error("failed to edit issue on DB", "err", err)
+			rp.pages.Notice(w, noticeId, "Failed to edit issue.")
+			return
+		}
+		defer tx.Rollback()
+
+		err = db.PutIssue(tx, newIssue)
+		if err != nil {
+			log.Println("failed to edit issue", err)
+			rp.pages.Notice(w, "issues", "Failed to edit issue.")
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			l.Error("failed to edit issue", "err", err)
+			rp.pages.Notice(w, "issues", "Failed to cedit issue.")
+			return
+		}
+
+		rp.pages.HxRefresh(w)
+	}
+}
+
+func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "DeleteIssue")
+	user := rp.oauth.GetUser(r)
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		log.Println("failed to get repo and knot", err)
+		return
+	}
+
+	issue, ok := r.Context().Value("issue").(*db.Issue)
+	if !ok {
+		l.Error("failed to get issue")
+		rp.pages.Error404(w)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		rp.pages.EditIssueFragment(w, pages.EditIssueParams{
+			LoggedInUser: user,
+			RepoInfo:     f.RepoInfo(user),
+			Issue:        issue,
+		})
+	case http.MethodPost:
+	}
 }
 
 func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
@@ -669,32 +787,21 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			RepoInfo:     f.RepoInfo(user),
 		})
 	case http.MethodPost:
-		title := r.FormValue("title")
-		body := r.FormValue("body")
-
-		if title == "" || body == "" {
-			rp.pages.Notice(w, "issues", "Title and body are required")
-			return
-		}
-
-		sanitizer := markup.NewSanitizer()
-		if st := strings.TrimSpace(sanitizer.SanitizeDescription(title)); st == "" {
-			rp.pages.Notice(w, "issues", "Title is empty after HTML sanitization")
-			return
-		}
-		if sb := strings.TrimSpace(sanitizer.SanitizeDefault(body)); sb == "" {
-			rp.pages.Notice(w, "issues", "Body is empty after HTML sanitization")
-			return
-		}
-
 		issue := &db.Issue{
 			RepoAt:  f.RepoAt(),
 			Rkey:    tid.TID(),
-			Title:   title,
-			Body:    body,
+			Title:   r.FormValue("title"),
+			Body:    r.FormValue("body"),
 			Did:     user.Did,
 			Created: time.Now(),
 		}
+
+		if err := rp.validator.ValidateIssue(issue); err != nil {
+			l.Error("validation error", "err", err)
+			rp.pages.Notice(w, "issues", fmt.Sprintf("Failed to create issue: %s", err))
+			return
+		}
+
 		record := issue.AsRecord()
 
 		// create an atproto record
@@ -738,7 +845,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rollback()
 
-		err = db.NewIssue(tx, issue)
+		err = db.PutIssue(tx, issue)
 		if err != nil {
 			log.Println("failed to create issue", err)
 			rp.pages.Notice(w, "issues", "Failed to create issue.")

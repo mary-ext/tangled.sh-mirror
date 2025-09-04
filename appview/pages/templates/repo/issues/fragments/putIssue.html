@@ -1,0 +1,57 @@
+{{ define "repo/issues/fragments/putIssue" }}
+<!-- this form is used for new and edit, .Issue is passed when editing -->
+<form
+  {{ if eq .Action "edit" }}
+    hx-post="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/edit"
+  {{ else }}
+    hx-post="/{{ .RepoInfo.FullName }}/issues/new"
+  {{ end }}
+  hx-swap="none"
+  hx-indicator="#spinner">
+  <div class="flex flex-col gap-2">
+    <div>
+      <label for="title">title</label>
+      <input type="text" name="title" id="title" class="w-full" value="{{ if .Issue }}{{ .Issue.Title }}{{ end }}" />
+    </div>
+    <div>
+      <label for="body">body</label>
+      <textarea
+        name="body"
+        id="body"
+        rows="6"
+        class="w-full resize-y"
+        placeholder="Describe your issue. Markdown is supported."
+        >{{ if .Issue }}{{ .Issue.Body }}{{ end }}</textarea>
+    </div>
+    <div class="flex justify-between">
+      <div id="issues" class="error"></div>
+      <div class="flex gap-2 items-center">
+        <a 
+          class="btn flex items-center gap-2 no-underline hover:no-underline"
+          type="button"
+          {{ if .Issue }}
+            href="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}"
+          {{ else }}
+            href="/{{ .RepoInfo.FullName }}/issues"
+          {{ end }}
+          >
+          {{ i "x" "w-4 h-4" }}
+          cancel
+        </a>
+        <button type="submit" class="btn-create flex items-center gap-2">
+          {{ if eq .Action "edit" }}
+            {{ i "pencil" "w-4 h-4" }}
+            {{ .Action }} issue
+          {{ else }}
+            {{ i "circle-plus" "w-4 h-4" }}
+            {{ .Action }} issue
+          {{ end }}
+          <span id="spinner" class="group">
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+{{ end }}

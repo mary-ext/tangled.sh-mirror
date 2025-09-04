@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages/markup"
 )
 
 func (v *Validator) ValidateIssueComment(comment *db.IssueComment) error {
@@ -26,8 +25,27 @@ func (v *Validator) ValidateIssueComment(comment *db.IssueComment) error {
 		}
 	}
 
-	sanitizer := markup.NewSanitizer()
-	if sb := strings.TrimSpace(sanitizer.SanitizeDefault(comment.Body)); sb == "" {
+	if sb := strings.TrimSpace(v.sanitizer.SanitizeDefault(comment.Body)); sb == "" {
+		return fmt.Errorf("body is empty after HTML sanitization")
+	}
+
+	return nil
+}
+
+func (v *Validator) ValidateIssue(issue *db.Issue) error {
+	if issue.Title == "" {
+		return fmt.Errorf("issue title is empty")
+	}
+
+	if issue.Body == "" {
+		return fmt.Errorf("issue body is empty")
+	}
+
+	if st := strings.TrimSpace(v.sanitizer.SanitizeDescription(issue.Title)); st == "" {
+		return fmt.Errorf("title is empty after HTML sanitization")
+	}
+
+	if sb := strings.TrimSpace(v.sanitizer.SanitizeDefault(issue.Body)); sb == "" {
 		return fmt.Errorf("body is empty after HTML sanitization")
 	}
 
