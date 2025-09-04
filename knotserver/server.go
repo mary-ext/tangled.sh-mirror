@@ -22,19 +22,22 @@ func Command() *cli.Command {
 		Usage:  "run a knot server",
 		Action: Run,
 		Description: `
-Environment variables:
-	KNOT_SERVER_SECRET              (required)
-	KNOT_SERVER_HOSTNAME            (required)
-	KNOT_SERVER_LISTEN_ADDR         (default: 0.0.0.0:5555)
-	KNOT_SERVER_INTERNAL_LISTEN_ADDR (default: 127.0.0.1:5444)
-	KNOT_SERVER_DB_PATH             (default: knotserver.db)
-	KNOT_SERVER_JETSTREAM_ENDPOINT  (default: wss://jetstream1.us-west.bsky.network/subscribe)
-	KNOT_SERVER_DEV                 (default: false)
-	KNOT_REPO_SCAN_PATH             (default: /home/git)
-	KNOT_REPO_README                (comma-separated list)
-	KNOT_REPO_MAIN_BRANCH           (default: main)
-	APPVIEW_ENDPOINT                (default: https://tangled.sh)
-`,
+	Environment variables:
+		KNOT_SERVER_LISTEN_ADDR          (default: 0.0.0.0:5555)
+		KNOT_SERVER_INTERNAL_LISTEN_ADDR (default: 127.0.0.1:5444)
+		KNOT_SERVER_DB_PATH              (default: knotserver.db)
+		KNOT_SERVER_HOSTNAME             (required)
+		KNOT_SERVER_JETSTREAM_ENDPOINT   (default: wss://jetstream1.us-west.bsky.network/subscribe)
+		KNOT_SERVER_OWNER                (required)
+		KNOT_SERVER_LOG_DIDS             (default: true)
+		KNOT_SERVER_DEV                  (default: false)
+		KNOT_REPO_SCAN_PATH              (default: /home/git)
+		KNOT_REPO_README                 (comma-separated list)
+		KNOT_REPO_MAIN_BRANCH            (default: main)
+		KNOT_GIT_USER_NAME               (default: Tangled)
+		KNOT_GIT_USER_EMAIL              (default: noreply@tangled.sh)
+		APPVIEW_ENDPOINT                 (default: https://tangled.sh)
+	`,
 	}
 }
 
