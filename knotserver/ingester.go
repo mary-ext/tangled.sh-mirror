@@ -24,7 +24,7 @@ import (
 	"tangled.sh/tangled.sh/core/workflow"
 )
 
-func (h *Handle) processPublicKey(ctx context.Context, event *models.Event) error {
+func (h *Knot) processPublicKey(ctx context.Context, event *models.Event) error {
 	l := log.FromContext(ctx)
 	raw := json.RawMessage(event.Commit.Record)
 	did := event.Did
@@ -46,7 +46,7 @@ func (h *Handle) processPublicKey(ctx context.Context, event *models.Event) erro
 	return nil
 }
 
-func (h *Handle) processKnotMember(ctx context.Context, event *models.Event) error {
+func (h *Knot) processKnotMember(ctx context.Context, event *models.Event) error {
 	l := log.FromContext(ctx)
 	raw := json.RawMessage(event.Commit.Record)
 	did := event.Did
@@ -86,7 +86,7 @@ func (h *Handle) processKnotMember(ctx context.Context, event *models.Event) err
 	return nil
 }
 
-func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
+func (h *Knot) processPull(ctx context.Context, event *models.Event) error {
 	raw := json.RawMessage(event.Commit.Record)
 	did := event.Did
 
@@ -219,7 +219,7 @@ func (h *Handle) processPull(ctx context.Context, event *models.Event) error {
 }
 
 // duplicated from add collaborator
-func (h *Handle) processCollaborator(ctx context.Context, event *models.Event) error {
+func (h *Knot) processCollaborator(ctx context.Context, event *models.Event) error {
 	raw := json.RawMessage(event.Commit.Record)
 	did := event.Did
 
@@ -280,7 +280,7 @@ func (h *Handle) processCollaborator(ctx context.Context, event *models.Event) e
 	return h.fetchAndAddKeys(ctx, subjectId.DID.String())
 }
 
-func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
+func (h *Knot) fetchAndAddKeys(ctx context.Context, did string) error {
 	l := log.FromContext(ctx)
 
 	keysEndpoint, err := url.JoinPath(h.c.AppViewEndpoint, "keys", did)
@@ -323,7 +323,7 @@ func (h *Handle) fetchAndAddKeys(ctx context.Context, did string) error {
 	return nil
 }
 
-func (h *Handle) processMessages(ctx context.Context, event *models.Event) error {
+func (h *Knot) processMessages(ctx context.Context, event *models.Event) error {
 	if event.Kind != models.EventKindCommit {
 		return nil
 	}

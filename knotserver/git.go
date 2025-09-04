@@ -13,7 +13,7 @@ import (
 	"tangled.sh/tangled.sh/core/knotserver/git/service"
 )
 
-func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
+func (d *Knot) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
 	repoName, err := securejoin.SecureJoin(did, name)
@@ -56,7 +56,7 @@ func (d *Handle) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
+func (d *Knot) UploadPack(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
 	repo, err := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
@@ -105,7 +105,7 @@ func (d *Handle) UploadPack(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (d *Handle) ReceivePack(w http.ResponseWriter, r *http.Request) {
+func (d *Knot) ReceivePack(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
 	_, err := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
@@ -118,7 +118,7 @@ func (d *Handle) ReceivePack(w http.ResponseWriter, r *http.Request) {
 	d.RejectPush(w, r, name)
 }
 
-func (d *Handle) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedRepoName string) {
+func (d *Knot) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedRepoName string) {
 	// A text/plain response will cause git to print each line of the body
 	// prefixed with "remote: ".
 	w.Header().Set("content-type", "text/plain; charset=UTF-8")
