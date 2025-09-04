@@ -19,7 +19,7 @@ import (
 	"tangled.sh/tangled.sh/core/xrpc/serviceauth"
 )
 
-type Handle struct {
+type Knot struct {
 	c        *config.Config
 	db       *db.DB
 	jc       *jetstream.JetstreamClient
@@ -32,7 +32,7 @@ type Handle struct {
 func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger, n *notifier.Notifier) (http.Handler, error) {
 	r := chi.NewRouter()
 
-	h := Handle{
+	h := Knot{
 		c:        c,
 		db:       db,
 		e:        e,
@@ -68,65 +68,39 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
-	r.Get("/", h.Index)
-	r.Get("/capabilities", h.Capabilities)
-	r.Get("/version", h.Version)
-	r.Get("/owner", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(h.c.Server.Owner))
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("This is a knot server. More info at https://tangled.sh"))
 	})
+
+	owner := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(h.c.Server.Owner))
+	}
+	// Deprecated: the sh.tangled.knot.owner xrpc call should be used instead
+	r.Get("/owner", owner)
+
 	r.Route("/{did}", func(r chi.Router) {
-		// Repo routes
 		r.Route("/{name}", func(r chi.Router) {
-
-			r.Route("/languages", func(r chi.Router) {
-				r.Get("/", h.RepoLanguages)
-				r.Get("/{ref}", h.RepoLanguages)
-			})
-
-			r.Get("/", h.RepoIndex)
+			// routes for git operations
 			r.Get("/info/refs", h.InfoRefs)
 			r.Post("/git-upload-pack", h.UploadPack)
 			r.Post("/git-receive-pack", h.ReceivePack)
-			r.Get("/compare/{rev1}/{rev2}", h.Compare) // git diff-tree compare of two objects
-
-			r.Route("/tree/{ref}", func(r chi.Router) {
-				r.Get("/", h.RepoIndex)
-				r.Get("/*", h.RepoTree)
-			})
-
-			r.Route("/blob/{ref}", func(r chi.Router) {
-				r.Get("/*", h.Blob)
-			})
-
-			r.Route("/raw/{ref}", func(r chi.Router) {
-				r.Get("/*", h.BlobRaw)
-			})
-
-			r.Get("/log/{ref}", h.Log)
-			r.Get("/archive/{file}", h.Archive)
-			r.Get("/commit/{ref}", h.Diff)
-			r.Get("/tags", h.Tags)
-			r.Route("/branches", func(r chi.Router) {
-				r.Get("/", h.Branches)
-				r.Get("/{branch}", h.Branch)
-				r.Get("/default", h.DefaultBranch)
-			})
 		})
 	})
 
 	// xrpc apis
-	r.Mount("/xrpc", h.XrpcRouter())
+	r.Route("/xrpc", func(r chi.Router) {
+		r.Get("/_health", h.Version)
+		r.Get("/sh.tangled.knot.owner", owner)
+		r.Mount("/", h.XrpcRouter())
+	})
 
 	// Socket that streams git oplogs
 	r.Get("/events", h.Events)
 
-	// All public keys on the knot.
-	r.Get("/keys", h.Keys)
-
 	return r, nil
 }
 
-func (h *Handle) XrpcRouter() http.Handler {
+func (h *Knot) XrpcRouter() http.Handler {
 	logger := tlog.New("knots")
 
 	serviceAuth := serviceauth.NewServiceAuth(h.l, h.resolver, h.c.Server.Did().String())
@@ -147,7 +121,7 @@ func (h *Handle) XrpcRouter() http.Handler {
 // version is set during build time.
 var version string
 
-func (h *Handle) Version(w http.ResponseWriter, r *http.Request) {
+func (h *Knot) Version(w http.ResponseWriter, r *http.Request) {
 	if version == "" {
 		info, ok := debug.ReadBuildInfo()
 		if !ok {
@@ -192,7 +166,7 @@ func (h *Handle) Version(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "knotserver/%s", version)
 }
 
-func (h *Handle) configureOwner() error {
+func (h *Knot) configureOwner() error {
 	cfgOwner := h.c.Server.Owner
 
 	rbacDomain := "thisserver"

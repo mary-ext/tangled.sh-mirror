@@ -15,7 +15,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
+func (h *Knot) Events(w http.ResponseWriter, r *http.Request) {
 	l := h.l.With("handler", "OpLog")
 	l.Debug("received new connection")
 
@@ -83,7 +83,7 @@ func (h *Handle) Events(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handle) streamOps(conn *websocket.Conn, cursor *int64) error {
+func (h *Knot) streamOps(conn *websocket.Conn, cursor *int64) error {
 	events, err := h.db.GetEvents(*cursor)
 	if err != nil {
 		h.l.Error("failed to fetch events from db", "err", err, "cursor", cursor)
