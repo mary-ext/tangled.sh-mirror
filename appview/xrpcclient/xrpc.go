@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -12,6 +11,13 @@ import (
 	"github.com/bluesky-social/indigo/xrpc"
 	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	oauth "tangled.sh/icyphox.sh/atproto-oauth"
+)
+
+var (
+	ErrXrpcUnsupported  = errors.New("xrpc not supported on this knot")
+	ErrXrpcUnauthorized = errors.New("unauthorized xrpc request")
+	ErrXrpcFailed       = errors.New("xrpc request failed")
+	ErrXrpcInvalid      = errors.New("invalid xrpc request")
 )
 
 type Client struct {
@@ -115,15 +121,15 @@ func HandleXrpcErr(err error) error {
 
 	var xrpcerr *indigoxrpc.Error
 	if ok := errors.As(err, &xrpcerr); !ok {
-		return fmt.Errorf("Recieved invalid XRPC error response: %v", err)
+		return ErrXrpcInvalid
 	}
 
 	switch xrpcerr.StatusCode {
 	case http.StatusNotFound:
-		return fmt.Errorf("XRPC is unsupported on this knot, consider upgrading your knot.")
+		return ErrXrpcUnsupported
 	case http.StatusUnauthorized:
-		return fmt.Errorf("Unauthorized XRPC request.")
+		return ErrXrpcUnauthorized
 	default:
-		return fmt.Errorf("Failed to perform operation. Try again later.")
+		return ErrXrpcFailed
 	}
 }
