@@ -224,7 +224,7 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Home(w http.ResponseWriter, r *http.Request) {
-	timeline, err := db.MakeTimeline(s.db, 15)
+	timeline, err := db.MakeTimeline(s.db, 5)
 	if err != nil {
 		log.Println(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
@@ -237,8 +237,6 @@ func (s *State) Home(w http.ResponseWriter, r *http.Request) {
 		s.pages.Notice(w, "topstarredrepos", "Unable to load.")
 		return
 	}
-
-	timeline = timeline[:5]
 
 	s.pages.Home(w, pages.TimelineParams{
 		LoggedInUser: nil,
