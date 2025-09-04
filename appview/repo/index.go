@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -46,9 +47,16 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		Host: host,
 	}
 
+	var needsKnotUpgrade bool
 	// Build index response from multiple XRPC calls
 	result, err := rp.buildIndexResponse(r.Context(), xrpcc, f, ref)
 	if err != nil {
+		if errors.Is(err, xrpcclient.ErrXrpcUnsupported) {
+			log.Println("failed to call XRPC repo.index", err)
+			needsKnotUpgrade = true
+			return
+		}
+
 		rp.pages.Error503(w)
 		log.Println("failed to build index response", err)
 		return
@@ -133,6 +141,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:      user,
+		NeedsKnotUpgrade:  needsKnotUpgrade,
 		RepoInfo:          repoInfo,
 		TagMap:            tagMap,
 		RepoIndexResponse: *result,

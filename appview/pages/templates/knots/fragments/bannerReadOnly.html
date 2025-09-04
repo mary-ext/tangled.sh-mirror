@@ -1,4 +1,4 @@
-{{ define "knots/fragments/banner" }}
+{{ define "knots/fragments/bannerReadOnly" }}
 <div class="w-full px-6 py-2 -z-15 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800 rounded-b drop-shadow-sm">
   A knot ({{range $i, $r := .Registrations}}{{if ne $i 0}}, {{end}}{{ $r.Domain }}{{ end }})
   that you administer is presently read-only. Consider upgrading this knot to
@@ -6,4 +6,3 @@
   <a href="https://tangled.sh/@tangled.sh/core/blob/master/docs/migrations/knot-1.7.0.md">Click to read the upgrade guide</a>.
 </div>
 {{ end }}
-
