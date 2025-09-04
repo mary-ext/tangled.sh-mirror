@@ -46,6 +46,13 @@ func (i *Issue) AsRecord() tangled.RepoIssue {
 	}
 }
 
+func (i *Issue) State() string {
+	if i.Open {
+		return "open"
+	}
+	return "closed"
+}
+
 type CommentListItem struct {
 	Self    *IssueComment
 	Replies []*IssueComment
@@ -170,7 +177,7 @@ func IssueCommentFromRecord(e Execer, did, rkey string, record tangled.RepoIssue
 	return &comment, nil
 }
 
-func NewIssue(tx *sql.Tx, issue *Issue) error {
+func PutIssue(tx *sql.Tx, issue *Issue) error {
 	// ensure sequence exists
 	_, err := tx.Exec(`
 		insert or ignore into repo_issue_seqs (repo_at, next_issue_id)
@@ -180,23 +187,28 @@ func NewIssue(tx *sql.Tx, issue *Issue) error {
 		return err
 	}
 
-	// check if issue already exists
-	var existingRowId, existingIssueId sql.NullInt64
-	err = tx.QueryRow(`
-		select rowid, issue_id from issues 
-		where did = ? and rkey = ?
-	`, issue.Did, issue.Rkey).Scan(&existingRowId, &existingIssueId)
-
+	issues, err := GetIssues(
+		tx,
+		FilterEq("did", issue.Did),
+		FilterEq("rkey", issue.Rkey),
+	)
 	switch {
-	case err == sql.ErrNoRows:
-		return createNewIssue(tx, issue)
-
 	case err != nil:
 		return err
-
+	case len(issues) == 0:
+		return createNewIssue(tx, issue)
+	case len(issues) != 1: // should be unreachable
+		return fmt.Errorf("invalid number of issues returned: %d", len(issues))
 	default:
-		// Case 3: Issue exists - update it
-		return updateIssue(tx, issue, existingRowId.Int64, int(existingIssueId.Int64))
+		// if content is identical, do not edit
+		existingIssue := issues[0]
+		if existingIssue.Title == issue.Title && existingIssue.Body == issue.Body {
+			return nil
+		}
+
+		issue.Id = existingIssue.Id
+		issue.IssueId = existingIssue.IssueId
+		return updateIssue(tx, issue)
 	}
 }
 
@@ -223,21 +235,14 @@ func createNewIssue(tx *sql.Tx, issue *Issue) error {
 	return row.Scan(&issue.Id, &issue.IssueId)
 }
 
-func updateIssue(tx *sql.Tx, issue *Issue, existingRowId int64, existingIssueId int) error {
+func updateIssue(tx *sql.Tx, issue *Issue) error {
 	// update existing issue
 	_, err := tx.Exec(`
-		update issues 
-		set title = ?, body = ? 
+		update issues
+		set title = ?, body = ?, edited = ?
 		where did = ? and rkey = ?
-	`, issue.Title, issue.Body, issue.Did, issue.Rkey)
-	if err != nil {
-		return err
-	}
-
-	// set the values from existing record
-	issue.Id = existingRowId
-	issue.IssueId = existingIssueId
-	return nil
+	`, issue.Title, issue.Body, time.Now().Format(time.RFC3339), issue.Did, issue.Rkey)
+	return err
 }
 
 func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Issue, error) {

@@ -39,13 +39,7 @@
       {{ end }}
     </div>
 
-    {{ if $root.LoggedInUser }}
-      {{ template "repo/issues/fragments/replyIssueCommentPlaceholder" $params }}
-    {{ else }}
-      <div class="p-2 border-t border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400">
-        <a class="underline" href="/login">login</a> to reply to this discussion
-      </div>
-    {{ end }}
+    {{ template "repo/issues/fragments/replyIssueCommentPlaceholder" $params }}
   </div>
 {{ end }}
 

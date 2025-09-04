@@ -9,55 +9,97 @@
 {{ end }}
 
 {{ define "repoContent" }}
-    <header class="pb-2">
-      <h1 class="text-2xl">
-      {{ .Issue.Title | description }}
-      <span class="text-gray-500 dark:text-gray-400">#{{ .Issue.IssueId }}</span>
-      </h1>
-    </header>
+<section id="issue-{{ .Issue.IssueId }}">
+  {{ template "issueHeader" .Issue }}
+  {{ template "issueInfo" . }}
+  {{ if .Issue.Body }}
+    <article id="body" class="mt-4 prose dark:prose-invert">{{ .Issue.Body | markdown }}</article>
+  {{ end }}
+  {{ template "issueReactions" . }}
+</section>
+{{ end }}
 
-    {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
-    {{ $icon := "ban" }}
-    {{ if eq .State "open" }}
-        {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
-        {{ $icon = "circle-dot" }}
+{{ define "issueHeader" }}
+  <header class="pb-2">
+    <h1 class="text-2xl">
+      {{ .Title | description }}
+      <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
+    </h1>
+  </header>
+{{ end }}
+
+{{ define "issueInfo" }}
+  {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+  {{ $icon := "ban" }}
+  {{ if eq .Issue.State "open" }}
+      {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+      {{ $icon = "circle-dot" }}
+  {{ end }}
+  <div class="inline-flex items-center gap-2">
+    <div id="state"
+      class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}">
+      {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
+      <span class="text-white">{{ .Issue.State }}</span>
+    </div>
+    <span class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
+      opened by
+      {{ template "user/fragments/picHandleLink" .Issue.Did }}
+      <span class="select-none before:content-['\00B7']"></span>
+      {{ if .Issue.Edited }}
+        edited {{ template "repo/fragments/time" .Issue.Edited }}
+      {{ else }}
+        {{ template "repo/fragments/time" .Issue.Created }}
+      {{ end }}
+    </span>
+
+    {{ if and .LoggedInUser (eq .LoggedInUser.Did .Issue.Did) }}
+      {{ template "issueActions" . }}
     {{ end }}
+  </div>
+{{ end }}
 
-    <section class="mt-2">
-        <div class="inline-flex items-center gap-2">
-            <div id="state"
-                class="inline-flex items-center rounded px-3 py-1 {{ $bgColor }}">
-                {{ i $icon "w-4 h-4 mr-1.5 text-white" }}
-                <span class="text-white">{{ .State }}</span>
-            </div>
-            <span class="text-gray-500 dark:text-gray-400 text-sm flex flex-wrap items-center gap-1">
-                opened by
-                {{ template "user/fragments/picHandleLink" .Issue.Did }}
-               <span class="select-none before:content-['\00B7']"></span>
-                {{ template "repo/fragments/time" .Issue.Created }}
-            </span>
-        </div>
+{{ define "issueActions" }}
+  {{ template "editIssue" . }}
+  {{ template "deleteIssue" . }}
+{{ end }}
 
-        {{ if .Issue.Body }}
-            <article id="body" class="mt-4 prose dark:prose-invert">
-                {{ .Issue.Body | markdown }}
-            </article>
-        {{ end }}
+{{ define "editIssue" }}
+  <a
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    hx-get="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/edit"
+    hx-swap="innerHTML"
+    hx-target="#issue-{{.Issue.IssueId}}">
+    {{ i "pencil" "size-3" }}
+  </a>
+{{ end }}
 
-        <div class="flex items-center gap-2 mt-2">
-            {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
-            {{ range $kind := .OrderedReactionKinds }}
-                {{
-                    template "repo/fragments/reaction"
-                    (dict
-                        "Kind"      $kind
-                        "Count"     (index $.Reactions $kind)
-                        "IsReacted" (index $.UserReacted $kind)
-                        "ThreadAt"  $.Issue.AtUri)
-                }}
-            {{ end }}
-        </div>
-    </section>
+{{ define "deleteIssue" }}
+  <a
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    hx-delete="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/delete"
+    hx-confirm="Are you sure you want to delete your issue?"
+    hx-swap="innerHTML"
+    hx-target="#comment-body-{{.Issue.IssueId}}"
+    >
+    {{ i "trash-2" "size-3" }}
+    {{ i "loader-circle" "size-3 animate-spin hidden group-[.htmx-request]:inline" }}
+  </a>
+{{ end }}
+
+{{ define "issueReactions" }}
+  <div class="flex items-center gap-2 mt-2">
+      {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
+      {{ range $kind := .OrderedReactionKinds }}
+          {{
+              template "repo/fragments/reaction"
+              (dict
+                  "Kind"      $kind
+                  "Count"     (index $.Reactions $kind)
+                  "IsReacted" (index $.UserReacted $kind)
+                  "ThreadAt"  $.Issue.AtUri)
+          }}
+      {{ end }}
+  </div>
 {{ end }}
 
 {{ define "repoAfter" }}

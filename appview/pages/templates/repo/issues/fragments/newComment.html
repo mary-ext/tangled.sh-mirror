@@ -38,7 +38,7 @@
         {{ $isIssueAuthor := and .LoggedInUser (eq .LoggedInUser.Did .Issue.Did) }}
         {{ $isRepoCollaborator := .RepoInfo.Roles.IsCollaborator }}
         {{ $isRepoOwner := .RepoInfo.Roles.IsOwner }}
-        {{ if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "open") }}
+        {{ if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) .Issue.Open }}
         <button
             id="close-button"
             type="button"
@@ -84,7 +84,7 @@
                 }
             });
         </script>
-        {{ else if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (eq .State "closed") }}
+        {{ else if and (or $isIssueAuthor $isRepoCollaborator $isRepoOwner) (not .Issue.Open) }}
         <button
             type="button"
             class="btn flex items-center gap-2"
