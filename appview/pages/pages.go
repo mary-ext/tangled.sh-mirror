@@ -356,7 +356,7 @@ type KnotBannerParams struct {
 }
 
 func (p *Pages) KnotBanner(w io.Writer, params KnotBannerParams) error {
-	return p.executePlain("knots/fragments/banner", w, params)
+	return p.executePlain("knots/fragments/bannerRequiresUpgrade", w, params)
 }
 
 type KnotsParams struct {
@@ -616,6 +616,7 @@ type RepoIndexParams struct {
 	VerifiedCommits    commitverify.VerifiedCommits
 	Languages          []types.RepoLanguageDetails
 	Pipelines          map[string]db.Pipeline
+	NeedsKnotUpgrade   bool
 	types.RepoIndexResponse
 }
 
@@ -623,6 +624,10 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 	params.Active = "overview"
 	if params.IsEmpty {
 		return p.executeRepo("repo/empty", w, params)
+	}
+
+	if params.NeedsKnotUpgrade {
+		return p.executeRepo("repo/needsUpgrade", w, params)
 	}
 
 	p.rctx.RepoInfo = params.RepoInfo

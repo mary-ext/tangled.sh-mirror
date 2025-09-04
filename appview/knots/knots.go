@@ -681,25 +681,48 @@ func (k *Knots) removeMember(w http.ResponseWriter, r *http.Request) {
 
 func (k *Knots) banner(w http.ResponseWriter, r *http.Request) {
 	user := k.OAuth.GetUser(r)
-	l := k.Logger.With("handler", "removeMember")
+	l := k.Logger.With("handler", "banner")
 	l = l.With("did", user.Did)
 	l = l.With("handle", user.Handle)
 
-	registrations, err := db.GetRegistrations(
+	allRegistrations, err := db.GetRegistrations(
 		k.Db,
 		db.FilterEq("did", user.Did),
-		db.FilterEq("read_only", 1),
 	)
 	if err != nil {
 		l.Error("non-fatal: failed to get registrations")
 		return
 	}
 
-	if registrations == nil {
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	regs404 := []db.Registration{}
+	for _, reg := range allRegistrations {
+		healthURL := fmt.Sprintf("http://%s/xrpc/_health", reg.Domain)
+
+		fmt.Println(healthURL)
+
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, healthURL, nil)
+		if err != nil {
+			l.Error("failed to create health check request", "domain", reg.Domain, "err", err)
+			continue
+		}
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			l.Error("failed to make health check request", "domain", reg.Domain, "err", err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			regs404 = append(regs404, reg)
+		}
+	}
+	if len(regs404) == 0 {
 		return
 	}
 
 	k.Pages.KnotBanner(w, pages.KnotBannerParams{
-		Registrations: registrations,
+		Registrations: regs404,
 	})
 }

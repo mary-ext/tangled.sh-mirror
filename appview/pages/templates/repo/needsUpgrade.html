@@ -1,0 +1,24 @@
+{{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
+
+{{ define "extrameta" }}
+    {{ template "repo/fragments/meta" . }}
+    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
+{{ end }}
+
+{{ define "repoContent" }}
+  <main>
+      <div class="w-full h-full flex place-content-center {{ if .LoggedInUser }} bg-yellow-100 dark:bg-yellow-900 {{ end }}">
+          <div class="py-6 w-fit flex flex-col gap-4 text-center">
+              {{ if .LoggedInUser }}
+              <p class=" text-yellow-800 dark:text-yellow-200 text-center">
+                  Your knot needs an upgrade. This repository is currently unavailable to users.
+              </p>
+              {{ else }}
+              <p class="text-gray-400 dark:text-gray-500 py-6 text-center">
+                  The knot hosting this repository needs an upgrade. This repository is currently unavailable.
+              </p>
+              {{ end }}
+          </div>
+      </div>
+  </main>
+{{ end }}
