@@ -701,7 +701,7 @@ func (s *State) EditPinsFragment(w http.ResponseWriter, r *http.Request) {
 		log.Printf("getting profile data for %s: %s", user.Did, err)
 	}
 
-	repos, err := db.GetAllReposByDid(s.db, user.Did)
+	repos, err := db.GetRepos(s.db, 0, db.FilterEq("did", user.Did))
 	if err != nil {
 		log.Printf("getting repos for %s: %s", user.Did, err)
 	}
