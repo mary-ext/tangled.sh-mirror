@@ -36,8 +36,7 @@
   <div class="text-gray-400 text-sm font-mono inline-flex gap-4 mt-auto">
     {{ with .Language }}
       <div class="flex gap-2 items-center text-sm">
-        <div class="size-2 rounded-full"
-          style="background: radial-gradient(circle at 35% 35%, color-mix(in srgb, {{ langColor . }} 70%, white), {{ langColor . }} 30%, color-mix(in srgb, {{ langColor . }} 85%, black));"></div>
+        {{ template "repo/fragments/languageBall" . }}
         <span>{{ . }}</span>
       </div>
     {{ end }}
