@@ -56,17 +56,29 @@
       </summary>
       <div class="py-2 text-sm flex flex-col gap-3 mb-2">
         {{ range . }}
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-gray-500 dark:text-gray-400">
-              {{ if .Source }}
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="flex items-center gap-2">
+              <span class="text-gray-500 dark:text-gray-400">
+                {{ if .Source }}
                 {{ i "git-fork" "w-4 h-4" }}
-              {{ else }}
+                {{ else }}
                 {{ i "book-plus" "w-4 h-4" }}
-              {{ end }}
+                {{ end }}
+              </span>
+              <a href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
+                {{- .Repo.Name -}}
+              </a>
             </span>
-            <a href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}" class="no-underline hover:underline">
-              {{- .Repo.Name -}}
-            </a>
+
+            {{ with .Repo.RepoStats }}
+              {{ with .Language }}
+                <div class="flex gap-2 items-center text-xs font-mono text-gray-400 ">
+                  <div class="size-2 rounded-full"
+                    style="background: radial-gradient(circle at 35% 35%, color-mix(in srgb, {{ langColor . }} 70%, white), {{ langColor . }} 30%, color-mix(in srgb, {{ langColor . }} 85%, black));"></div>
+                  <span>{{ . }}</span>
+                </div>
+              {{end }}
+            {{end }}
           </div>
         {{ end }}
       </div>
