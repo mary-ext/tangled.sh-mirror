@@ -34,7 +34,6 @@
           },
           "description": {
             "type": "string",
-            "format": "datetime",
             "minGraphemes": 1,
             "maxGraphemes": 140
           },
