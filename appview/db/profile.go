@@ -132,7 +132,11 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 		*items = append(*items, &pull)
 	}
 
-	issues, err := GetIssuesByOwnerDid(e, forDid, timeframe)
+	issues, err := GetIssues(
+		e,
+		FilterEq("did", forDid),
+		FilterGte("created", time.Now().AddDate(0, -TimeframeMonths, 0)),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting issues by owner did: %w", err)
 	}
