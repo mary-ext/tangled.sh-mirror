@@ -22,6 +22,7 @@ import (
 	"github.com/yuin/goldmark/util"
 	htmlparse "golang.org/x/net/html"
 
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
 )
 
@@ -231,15 +232,16 @@ func (rctx *RenderContext) imageFromKnotTransformer(dst string) string {
 
 	actualPath := rctx.actualPath(dst)
 
+	repoName := fmt.Sprintf("%s/%s", rctx.RepoInfo.OwnerDid, rctx.RepoInfo.Name)
+
+	query := fmt.Sprintf("repo=%s&ref=%s&path=%s&raw=true",
+		repoName, url.PathEscape(rctx.RepoInfo.Ref), actualPath)
+
 	parsedURL := &url.URL{
-		Scheme: scheme,
-		Host:   rctx.Knot,
-		Path: path.Join("/",
-			rctx.RepoInfo.OwnerDid,
-			rctx.RepoInfo.Name,
-			"raw",
-			url.PathEscape(rctx.RepoInfo.Ref),
-			actualPath),
+		Scheme:   scheme,
+		Host:     rctx.Knot,
+		Path:     path.Join("/xrpc", tangled.RepoBlobNSID),
+		RawQuery: query,
 	}
 	newPath := parsedURL.String()
 	return newPath
