@@ -165,6 +165,11 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	return state, nil
 }
 
+func (s *State) Close() error {
+	// other close up logic goes here
+	return s.db.Close()
+}
+
 func (s *State) Favicon(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "public, max-age=31536000") // one year

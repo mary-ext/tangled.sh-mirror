@@ -749,6 +749,10 @@ func runMigration(c *sql.Conn, name string, migrationFn migrationFn) error {
 	return nil
 }
 
+func (d *DB) Close() error {
+	return d.DB.Close()
+}
+
 type filter struct {
 	key string
 	arg any

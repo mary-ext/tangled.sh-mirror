@@ -23,6 +23,9 @@ func main() {
 	}
 
 	state, err := state.Make(ctx, c)
+	defer func() {
+		log.Println(state.Close())
+	}()
 
 	if err != nil {
 		log.Fatal(err)
