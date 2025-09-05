@@ -73,8 +73,7 @@
             {{ with .Repo.RepoStats }}
               {{ with .Language }}
                 <div class="flex gap-2 items-center text-xs font-mono text-gray-400 ">
-                  <div class="size-2 rounded-full"
-                    style="background: radial-gradient(circle at 35% 35%, color-mix(in srgb, {{ langColor . }} 70%, white), {{ langColor . }} 30%, color-mix(in srgb, {{ langColor . }} 85%, black));"></div>
+                  {{ template "repo/fragments/languageBall" . }}
                   <span>{{ . }}</span>
                 </div>
               {{end }}
