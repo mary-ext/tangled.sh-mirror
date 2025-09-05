@@ -56,6 +56,7 @@
       {{ template "issueActions" . }}
     {{ end }}
   </div>
+  <div id="issue-actions-error" class="error"></div>
 {{ end }}
 
 {{ define "issueActions" }}
@@ -76,11 +77,9 @@
 {{ define "deleteIssue" }}
   <a
     class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
-    hx-delete="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/delete"
+    hx-delete="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/"
     hx-confirm="Are you sure you want to delete your issue?"
-    hx-swap="innerHTML"
-    hx-target="#comment-body-{{.Issue.IssueId}}"
-    >
+    hx-swap="none">
     {{ i "trash-2" "size-3" }}
     {{ i "loader-circle" "size-3 animate-spin hidden group-[.htmx-request]:inline" }}
   </a>

@@ -198,29 +198,52 @@ func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
 
 func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "DeleteIssue")
+	noticeId := "issue-actions-error"
+
 	user := rp.oauth.GetUser(r)
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
 	issue, ok := r.Context().Value("issue").(*db.Issue)
 	if !ok {
 		l.Error("failed to get issue")
-		rp.pages.Error404(w)
+		rp.pages.Notice(w, noticeId, "Failed to delete issue.")
+		return
+	}
+	l = l.With("did", issue.Did, "rkey", issue.Rkey)
+
+	// delete from PDS
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		log.Println("failed to get authorized client", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to delete comment.")
+		return
+	}
+	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+		Collection: tangled.RepoIssueNSID,
+		Repo:       issue.Did,
+		Rkey:       issue.Rkey,
+	})
+	if err != nil {
+		// TODO: transact this better
+		l.Error("failed to delete issue from PDS", "err", err)
+		rp.pages.Notice(w, noticeId, "Failed to delete issue.")
 		return
 	}
 
-	switch r.Method {
-	case http.MethodGet:
-		rp.pages.EditIssueFragment(w, pages.EditIssueParams{
-			LoggedInUser: user,
-			RepoInfo:     f.RepoInfo(user),
-			Issue:        issue,
-		})
-	case http.MethodPost:
+	// delete from db
+	if err := db.DeleteIssues(rp.db, db.FilterEq("id", issue.Id)); err != nil {
+		l.Error("failed to delete issue", "err", err)
+		rp.pages.Notice(w, noticeId, "Failed to delete issue.")
+		return
 	}
+
+	// return to all issues page
+	rp.pages.HxRedirect(w, "/"+f.RepoInfo(user).FullName()+"/issues")
 }
 
 func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
@@ -338,19 +361,7 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 	replyToUri := r.FormValue("reply-to")
 	var replyTo *string
 	if replyToUri != "" {
-		uri, err := syntax.ParseATURI(replyToUri)
-		if err != nil {
-			l.Error("failed to get parse replyTo", "err", err, "replyTo", replyToUri)
-			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
-			return
-		}
-		if uri.Collection() != tangled.RepoIssueCommentNSID {
-			l.Error("invalid replyTo collection", "collection", uri.Collection())
-			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
-			return
-		}
-		u := uri.String()
-		replyTo = &u
+		replyTo = &replyToUri
 	}
 
 	comment := db.IssueComment{
@@ -697,7 +708,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
-			Collection: tangled.GraphFollowNSID,
+			Collection: tangled.RepoIssueCommentNSID,
 			Repo:       user.Did,
 			Rkey:       comment.Rkey,
 		})
