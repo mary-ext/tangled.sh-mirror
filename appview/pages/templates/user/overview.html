@@ -115,8 +115,8 @@
       </summary>
       <div class="py-2 text-sm flex flex-col gap-3 mb-2">
         {{ range $items }}
-          {{ $repoOwner := resolve .Metadata.Repo.Did }}
-          {{ $repoName := .Metadata.Repo.Name }}
+          {{ $repoOwner := resolve .Repo.Did }}
+          {{ $repoName := .Repo.Name }}
           {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
 
           <div class="flex gap-2 text-gray-600 dark:text-gray-300">

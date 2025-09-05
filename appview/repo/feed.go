@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/pagination"
 	"tangled.sh/tangled.sh/core/appview/reporesolver"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -23,7 +24,11 @@ func (rp *Repo) getRepoFeed(ctx context.Context, f *reporesolver.ResolvedRepo) (
 		return nil, err
 	}
 
-	issues, err := db.GetIssuesWithLimit(rp.db, feedLimitPerType, db.FilterEq("repo_at", f.RepoAt()))
+	issues, err := db.GetIssuesPaginated(
+		rp.db,
+		pagination.Page{Limit: feedLimitPerType},
+		db.FilterEq("repo_at", f.RepoAt()),
+	)
 	if err != nil {
 		return nil, err
 	}
