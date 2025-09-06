@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
 
 	"github.com/go-chi/chi/v5"
 	"tangled.sh/tangled.sh/core/idresolver"
@@ -82,10 +81,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	})
 
 	// xrpc apis
-	r.Route("/xrpc", func(r chi.Router) {
-		r.Get("/_health", h.Version)
-		r.Mount("/", h.XrpcRouter())
-	})
+	r.Mount("/xrpc", h.XrpcRouter())
 
 	// Socket that streams git oplogs
 	r.Get("/events", h.Events)
@@ -109,54 +105,6 @@ func (h *Knot) XrpcRouter() http.Handler {
 		ServiceAuth: serviceAuth,
 	}
 	return xrpc.Router()
-}
-
-// version is set during build time.
-var version string
-
-func (h *Knot) Version(w http.ResponseWriter, r *http.Request) {
-	if version == "" {
-		info, ok := debug.ReadBuildInfo()
-		if !ok {
-			http.Error(w, "failed to read build info", http.StatusInternalServerError)
-			return
-		}
-
-		var modVer string
-		var sha string
-		var modified bool
-
-		for _, mod := range info.Deps {
-			if mod.Path == "tangled.sh/tangled.sh/knotserver" {
-				modVer = mod.Version
-				break
-			}
-		}
-
-		for _, setting := range info.Settings {
-			switch setting.Key {
-			case "vcs.revision":
-				sha = setting.Value
-			case "vcs.modified":
-				modified = setting.Value == "true"
-			}
-		}
-
-		if modVer == "" {
-			modVer = "unknown"
-		}
-
-		if sha == "" {
-			version = modVer
-		} else if modified {
-			version = fmt.Sprintf("%s (%s with modifications)", modVer, sha)
-		} else {
-			version = fmt.Sprintf("%s (%s)", modVer, sha)
-		}
-	}
-
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "knotserver/%s", version)
 }
 
 func (h *Knot) configureOwner() error {
