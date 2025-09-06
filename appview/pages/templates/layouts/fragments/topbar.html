@@ -21,13 +21,6 @@
             </div>
         </div>
     </nav>
-    {{ if .LoggedInUser }}
-      <div id="upgrade-banner"
-           hx-get="/knots/upgradeBanner"
-           hx-trigger="load"
-           hx-swap="innerHTML">
-      </div>
-    {{ end }}
 {{ end }}
 
 {{ define "newButton" }}

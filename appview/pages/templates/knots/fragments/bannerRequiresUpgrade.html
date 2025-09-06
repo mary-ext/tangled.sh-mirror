@@ -1,7 +1,7 @@
 {{ define "knots/fragments/bannerRequiresUpgrade" }}
-<div class="prose mx-auto w-96 px-6 py-2  bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800 rounded-b drop-shadow-sm">
-  The following knots that you administer require upgrade to be compatible with the latest version of Tangled:
-  <ul>
+<div class="px-6 py-2">
+  The following knots that you administer will have to be upgraded to be compatible with the latest version of Tangled:
+  <ul class="list-disc mx-12 my-2">
     {{range $i, $r := .Registrations}}
     <li>{{ $r.Domain }}</li>
     {{ end }}
