@@ -51,6 +51,11 @@ var MissingActorDidError = NewXrpcError(
 	WithMessage("actor DID not supplied"),
 )
 
+var OwnerNotFoundError = NewXrpcError(
+	WithTag("OwnerNotFound"),
+	WithMessage("owner not set for this service"),
+)
+
 var AuthError = func(err error) XrpcError {
 	return NewXrpcError(
 		WithTag("Auth"),
