@@ -228,6 +228,42 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *State) UpgradeBanner(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
+	l := s.logger.With("handler", "UpgradeBanner")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
+	regs, err := db.GetRegistrations(
+		s.db,
+		db.FilterEq("did", user.Did),
+		db.FilterEq("needs_upgrade", 1),
+	)
+	if err != nil {
+		l.Error("non-fatal: failed to get registrations")
+		return
+	}
+
+	spindles, err := db.GetSpindles(
+		s.db,
+		db.FilterEq("did", user.Did),
+		db.FilterEq("needs_upgrade", 1),
+	)
+	if err != nil {
+		l.Error("non-fatal: failed to get spindles")
+		return
+	}
+
+	if regs == nil && spindles == nil {
+		return
+	}
+
+	s.pages.UpgradeBanner(w, pages.UpgradeBannerParams{
+		Registrations: regs,
+		Spindles:      spindles,
+	})
+}
+
 func (s *State) Home(w http.ResponseWriter, r *http.Request) {
 	timeline, err := db.MakeTimeline(s.db, 5)
 	if err != nil {
@@ -278,7 +314,7 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 
 	for _, k := range pubKeys {
 		key := strings.TrimRight(k.Key, "\n")
-		w.Write([]byte(fmt.Sprintln(key)))
+		fmt.Fprintln(w, key)
 	}
 }
 

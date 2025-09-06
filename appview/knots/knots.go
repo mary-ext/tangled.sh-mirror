@@ -3,7 +3,6 @@ package knots
 import (
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -17,6 +16,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/serververify"
+	"tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/eventconsumer"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
@@ -49,8 +49,6 @@ func (k *Knots) Router() http.Handler {
 	r.With(middleware.AuthMiddleware(k.OAuth)).Post("/{domain}/retry", k.retry)
 	r.With(middleware.AuthMiddleware(k.OAuth)).Post("/{domain}/add", k.addMember)
 	r.With(middleware.AuthMiddleware(k.OAuth)).Post("/{domain}/remove", k.removeMember)
-
-	r.With(middleware.AuthMiddleware(k.OAuth)).Get("/upgradeBanner", k.banner)
 
 	return r
 }
@@ -399,8 +397,8 @@ func (k *Knots) retry(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		l.Error("verification failed", "err", err)
 
-		if errors.Is(err, serververify.FetchError) {
-			k.Pages.Notice(w, noticeId, "Failed to verify knot, unable to fetch owner.")
+		if errors.Is(err, xrpcclient.ErrXrpcUnsupported) {
+			k.Pages.Notice(w, noticeId, "Failed to verify knot, XRPC queries are unsupported on this knot, consider upgrading!")
 			return
 		}
 
@@ -420,10 +418,10 @@ func (k *Knots) retry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if this knot was previously read-only, then emit a record too
+	// if this knot requires upgrade, then emit a record too
 	//
 	// this is part of migrating from the old knot system to the new one
-	if registration.ReadOnly {
+	if registration.NeedsUpgrade {
 		// re-announce by registering under same rkey
 		client, err := k.OAuth.AuthorizedClient(r)
 		if err != nil {
@@ -484,8 +482,6 @@ func (k *Knots) retry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	updatedRegistration := registrations[0]
-
-	log.Println(updatedRegistration)
 
 	w.Header().Set("HX-Reswap", "outerHTML")
 	k.Pages.KnotListing(w, pages.KnotListingParams{
@@ -677,52 +673,4 @@ func (k *Knots) removeMember(w http.ResponseWriter, r *http.Request) {
 
 	// ok
 	k.Pages.HxRefresh(w)
-}
-
-func (k *Knots) banner(w http.ResponseWriter, r *http.Request) {
-	user := k.OAuth.GetUser(r)
-	l := k.Logger.With("handler", "banner")
-	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
-
-	allRegistrations, err := db.GetRegistrations(
-		k.Db,
-		db.FilterEq("did", user.Did),
-	)
-	if err != nil {
-		l.Error("non-fatal: failed to get registrations")
-		return
-	}
-
-	httpClient := &http.Client{Timeout: 5 * time.Second}
-	regs404 := []db.Registration{}
-	for _, reg := range allRegistrations {
-		healthURL := fmt.Sprintf("http://%s/xrpc/_health", reg.Domain)
-
-		fmt.Println(healthURL)
-
-		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, healthURL, nil)
-		if err != nil {
-			l.Error("failed to create health check request", "domain", reg.Domain, "err", err)
-			continue
-		}
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			l.Error("failed to make health check request", "domain", reg.Domain, "err", err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == http.StatusNotFound {
-			regs404 = append(regs404, reg)
-		}
-	}
-	if len(regs404) == 0 {
-		return
-	}
-
-	k.Pages.KnotBanner(w, pages.KnotBannerParams{
-		Registrations: regs404,
-	})
 }

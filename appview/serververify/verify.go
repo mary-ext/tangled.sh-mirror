@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"strings"
-	"time"
 
+	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
+	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/rbac"
 )
 
@@ -24,32 +23,17 @@ func fetchOwner(ctx context.Context, domain string, dev bool) (string, error) {
 		scheme = "http"
 	}
 
-	url := fmt.Sprintf("%s://%s/owner", scheme, domain)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", err
+	host := fmt.Sprintf("%s://%s", scheme, domain)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
 	}
 
-	client := &http.Client{
-		Timeout: 1 * time.Second,
+	res, err := tangled.Owner(ctx, xrpcc)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		return "", xrpcerr
 	}
 
-	resp, err := client.Do(req.WithContext(ctx))
-	if err != nil || resp.StatusCode != 200 {
-		return "", fmt.Errorf("failed to fetch /owner")
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024)) // read atmost 1kb of data
-	if err != nil {
-		return "", fmt.Errorf("failed to read /owner response: %w", err)
-	}
-
-	did := strings.TrimSpace(string(body))
-	if did == "" {
-		return "", fmt.Errorf("empty DID in /owner response")
-	}
-
-	return did, nil
+	return res.Owner, nil
 }
 
 type OwnerMismatch struct {
@@ -65,7 +49,7 @@ func (e *OwnerMismatch) Error() string {
 func RunVerification(ctx context.Context, domain, expectedOwner string, dev bool) error {
 	observedOwner, err := fetchOwner(ctx, domain, dev)
 	if err != nil {
-		return fmt.Errorf("%w: %w", FetchError, err)
+		return err
 	}
 
 	if observedOwner != expectedOwner {

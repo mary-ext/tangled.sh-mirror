@@ -703,6 +703,37 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	// repurpose the read-only column to "needs-upgrade"
+	runMigration(conn, "rename-registrations-read-only-to-needs-upgrade", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table registrations rename column read_only to needs_upgrade;
+		`)
+		return err
+	})
+
+	// require all knots to upgrade after the release of total xrpc
+	runMigration(conn, "migrate-knots-to-total-xrpc", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			update registrations set needs_upgrade = 1;
+		`)
+		return err
+	})
+
+	// require all knots to upgrade after the release of total xrpc
+	runMigration(conn, "migrate-spindles-to-xrpc-owner", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table spindles add column needs_upgrade integer not null default 0;
+		`)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`
+			update spindles set needs_upgrade = 1;
+		`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 

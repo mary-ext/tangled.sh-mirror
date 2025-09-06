@@ -203,9 +203,6 @@ func (s *Spindle) Router() http.Handler {
 		w.Write(motd)
 	})
 	mux.HandleFunc("/events", s.Events)
-	mux.HandleFunc("/owner", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(s.cfg.Server.Owner))
-	})
 	mux.HandleFunc("/logs/{knot}/{rkey}/{name}", s.Logs)
 
 	mux.Mount("/xrpc", s.XrpcRouter())

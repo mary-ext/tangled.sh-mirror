@@ -35,9 +35,16 @@ type Xrpc struct {
 func (x *Xrpc) Router() http.Handler {
 	r := chi.NewRouter()
 
-	r.With(x.ServiceAuth.VerifyServiceAuth).Post("/"+tangled.RepoAddSecretNSID, x.AddSecret)
-	r.With(x.ServiceAuth.VerifyServiceAuth).Post("/"+tangled.RepoRemoveSecretNSID, x.RemoveSecret)
-	r.With(x.ServiceAuth.VerifyServiceAuth).Get("/"+tangled.RepoListSecretsNSID, x.ListSecrets)
+	r.Group(func(r chi.Router) {
+		r.Use(x.ServiceAuth.VerifyServiceAuth)
+
+		r.Post("/"+tangled.RepoAddSecretNSID, x.AddSecret)
+		r.Post("/"+tangled.RepoRemoveSecretNSID, x.RemoveSecret)
+		r.Get("/"+tangled.RepoListSecretsNSID, x.ListSecrets)
+	})
+
+	// service query endpoints (no auth required)
+	r.Get("/"+tangled.OwnerNSID, x.Owner)
 
 	return r
 }

@@ -16,6 +16,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/serververify"
+	"tangled.sh/tangled.sh/core/appview/xrpcclient"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
@@ -404,8 +405,8 @@ func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		l.Error("verification failed", "err", err)
 
-		if errors.Is(err, serververify.FetchError) {
-			s.Pages.Notice(w, noticeId, "Failed to verify knot, unable to fetch owner.")
+		if errors.Is(err, xrpcclient.ErrXrpcUnsupported) {
+			s.Pages.Notice(w, noticeId, "Failed to verify spindle, XRPC queries are unsupported on this spindle, consider upgrading!")
 			return
 		}
 
@@ -442,7 +443,7 @@ func (s *Spindles) retry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("HX-Reswap", "outerHTML")
-	s.Pages.SpindleListing(w, pages.SpindleListingParams{verifiedSpindle[0]})
+	s.Pages.SpindleListing(w, pages.SpindleListingParams{Spindle: verifiedSpindle[0]})
 }
 
 func (s *Spindles) addMember(w http.ResponseWriter, r *http.Request) {

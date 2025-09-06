@@ -10,17 +10,17 @@ import (
 // Registration represents a knot registration. Knot would've been a better
 // name but we're stuck with this for historical reasons.
 type Registration struct {
-	Id         int64
-	Domain     string
-	ByDid      string
-	Created    *time.Time
-	Registered *time.Time
-	ReadOnly   bool
+	Id           int64
+	Domain       string
+	ByDid        string
+	Created      *time.Time
+	Registered   *time.Time
+	NeedsUpgrade bool
 }
 
 func (r *Registration) Status() Status {
-	if r.ReadOnly {
-		return ReadOnly
+	if r.NeedsUpgrade {
+		return NeedsUpgrade
 	} else if r.Registered != nil {
 		return Registered
 	} else {
@@ -32,8 +32,8 @@ func (r *Registration) IsRegistered() bool {
 	return r.Status() == Registered
 }
 
-func (r *Registration) IsReadOnly() bool {
-	return r.Status() == ReadOnly
+func (r *Registration) IsNeedsUpgrade() bool {
+	return r.Status() == NeedsUpgrade
 }
 
 func (r *Registration) IsPending() bool {
@@ -45,7 +45,7 @@ type Status uint32
 const (
 	Registered Status = iota
 	Pending
-	ReadOnly
+	NeedsUpgrade
 )
 
 func GetRegistrations(e Execer, filters ...filter) ([]Registration, error) {
@@ -64,7 +64,7 @@ func GetRegistrations(e Execer, filters ...filter) ([]Registration, error) {
 	}
 
 	query := fmt.Sprintf(`
-		select id, domain, did, created, registered, read_only
+		select id, domain, did, created, registered, needs_upgrade
 		from registrations
 		%s
 		order by created
@@ -80,10 +80,10 @@ func GetRegistrations(e Execer, filters ...filter) ([]Registration, error) {
 	for rows.Next() {
 		var createdAt string
 		var registeredAt sql.Null[string]
-		var readOnly int
+		var needsUpgrade int
 		var reg Registration
 
-		err = rows.Scan(&reg.Id, &reg.Domain, &reg.ByDid, &createdAt, &registeredAt, &readOnly)
+		err = rows.Scan(&reg.Id, &reg.Domain, &reg.ByDid, &createdAt, &registeredAt, &needsUpgrade)
 		if err != nil {
 			return nil, err
 		}
@@ -98,8 +98,8 @@ func GetRegistrations(e Execer, filters ...filter) ([]Registration, error) {
 			}
 		}
 
-		if readOnly != 0 {
-			reg.ReadOnly = true
+		if needsUpgrade != 0 {
+			reg.NeedsUpgrade = true
 		}
 
 		registrations = append(registrations, reg)
@@ -116,7 +116,7 @@ func MarkRegistered(e Execer, filters ...filter) error {
 		args = append(args, filter.Arg()...)
 	}
 
-	query := "update registrations set registered = strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), read_only = 0"
+	query := "update registrations set registered = strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), needs_upgrade = 0"
 	if len(conditions) > 0 {
 		query += " where " + strings.Join(conditions, " and ")
 	}

@@ -1,0 +1,23 @@
+{{ define "banner" }}
+<div class="px-6 py-2">
+  The following services that you administer will have to be upgraded to be compatible with the latest version of Tangled:
+  {{ if .Registrations }}
+    <ul class="list-disc mx-12 my-2">
+      {{range .Registrations}}
+      <li>{{ .Domain }}</li>
+      {{ end }}
+    </ul>
+    Repositories hosted on these knots may not be accessible until upgraded.
+  {{ end }}
+
+  {{ if .Spindles }}
+    <ul class="list-disc mx-12 my-2">
+      {{range .Spindles}}
+      <li>{{ .Instance }}</li>
+      {{ end }}
+    </ul>
+    Pipelines may not be executed on these spindles until upgraded.
+  {{ end }}
+  <a href="https://tangled.sh/@tangled.sh/core/tree/master/docs/migrations/">Click to read the upgrade guide</a>.
+</div>
+{{ end }}

@@ -72,12 +72,6 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		w.Write([]byte("This is a knot server. More info at https://tangled.sh"))
 	})
 
-	owner := func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(h.c.Server.Owner))
-	}
-	// Deprecated: the sh.tangled.knot.owner xrpc call should be used instead
-	r.Get("/owner", owner)
-
 	r.Route("/{did}", func(r chi.Router) {
 		r.Route("/{name}", func(r chi.Router) {
 			// routes for git operations
@@ -90,7 +84,6 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	// xrpc apis
 	r.Route("/xrpc", func(r chi.Router) {
 		r.Get("/_health", h.Version)
-		r.Get("/sh.tangled.knot.owner", owner)
 		r.Mount("/", h.XrpcRouter())
 	})
 

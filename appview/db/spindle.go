@@ -10,11 +10,12 @@ import (
 )
 
 type Spindle struct {
-	Id       int
-	Owner    syntax.DID
-	Instance string
-	Verified *time.Time
-	Created  time.Time
+	Id           int
+	Owner        syntax.DID
+	Instance     string
+	Verified     *time.Time
+	Created      time.Time
+	NeedsUpgrade bool
 }
 
 type SpindleMember struct {
@@ -42,7 +43,7 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 	}
 
 	query := fmt.Sprintf(
-		`select id, owner, instance, verified, created
+		`select id, owner, instance, verified, created, needs_upgrade
 		from spindles
 		%s
 		order by created
@@ -61,6 +62,7 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 		var spindle Spindle
 		var createdAt string
 		var verified sql.NullString
+		var needsUpgrade int
 
 		if err := rows.Scan(
 			&spindle.Id,
@@ -68,6 +70,7 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 			&spindle.Instance,
 			&verified,
 			&createdAt,
+			&needsUpgrade,
 		); err != nil {
 			return nil, err
 		}
@@ -84,6 +87,10 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 				spindle.Verified = &now
 			}
 			spindle.Verified = &t
+		}
+
+		if needsUpgrade != 0 {
+			spindle.NeedsUpgrade = true
 		}
 
 		spindles = append(spindles, spindle)
@@ -115,7 +122,7 @@ func VerifySpindle(e Execer, filters ...filter) (int64, error) {
 		whereClause = " where " + strings.Join(conditions, " and ")
 	}
 
-	query := fmt.Sprintf(`update spindles set verified = strftime('%%Y-%%m-%%dT%%H:%%M:%%SZ', 'now') %s`, whereClause)
+	query := fmt.Sprintf(`update spindles set verified = strftime('%%Y-%%m-%%dT%%H:%%M:%%SZ', 'now'), needs_upgrade = 0 %s`, whereClause)
 
 	res, err := e.Exec(query, args...)
 	if err != nil {

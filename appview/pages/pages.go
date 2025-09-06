@@ -351,12 +351,13 @@ func (p *Pages) UserEmailsSettings(w io.Writer, params UserEmailsSettingsParams)
 	return p.execute("user/settings/emails", w, params)
 }
 
-type KnotBannerParams struct {
+type UpgradeBannerParams struct {
 	Registrations []db.Registration
+	Spindles      []db.Spindle
 }
 
-func (p *Pages) KnotBanner(w io.Writer, params KnotBannerParams) error {
-	return p.executePlain("knots/fragments/bannerRequiresUpgrade", w, params)
+func (p *Pages) UpgradeBanner(w io.Writer, params UpgradeBannerParams) error {
+	return p.executePlain("banner", w, params)
 }
 
 type KnotsParams struct {

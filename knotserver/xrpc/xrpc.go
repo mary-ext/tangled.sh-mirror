@@ -70,6 +70,9 @@ func (x *Xrpc) Router() http.Handler {
 	// knot query endpoints (no auth required)
 	r.Get("/"+tangled.KnotListKeysNSID, x.ListKeys)
 
+	// service query endpoints (no auth required)
+	r.Get("/"+tangled.OwnerNSID, x.Owner)
+
 	return r
 }
 

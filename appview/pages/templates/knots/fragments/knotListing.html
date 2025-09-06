@@ -36,9 +36,9 @@
       </span>
       {{ template "knots/fragments/addMemberModal" . }}
       {{ block "knotDeleteButton" . }} {{ end }}
-    {{ else if .IsReadOnly }}
+    {{ else if .IsNeedsUpgrade }}
       <span class="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 {{$style}}">
-        {{ i "shield-alert" "w-4 h-4" }} read-only
+        {{ i "shield-alert" "w-4 h-4" }} needs upgrade
       </span>
       {{ block "knotRetryButton" . }} {{ end }}
       {{ block "knotDeleteButton" . }} {{ end }}

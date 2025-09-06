@@ -113,6 +113,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 	r.Get("/", s.HomeOrTimeline)
 	r.Get("/timeline", s.Timeline)
+	r.With(middleware.AuthMiddleware(s.oauth)).Get("/upgradeBanner", s.UpgradeBanner)
 
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
