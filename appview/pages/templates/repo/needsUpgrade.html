@@ -1,24 +1,60 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
-
 {{ define "extrameta" }}
     {{ template "repo/fragments/meta" . }}
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
 {{ end }}
-
 {{ define "repoContent" }}
   <main>
-      <div class="w-full h-full flex place-content-center {{ if .LoggedInUser }} bg-yellow-100 dark:bg-yellow-900 {{ end }}">
-          <div class="py-6 w-fit flex flex-col gap-4 text-center">
-              {{ if .LoggedInUser }}
-              <p class=" text-yellow-800 dark:text-yellow-200 text-center">
-                  Your knot needs an upgrade. This repository is currently unavailable to users.
-              </p>
+    <div class="relative w-full h-96 flex items-center justify-center">
+      <div class="w-full h-full grid grid-cols-1 md:grid-cols-2 gap-4 md:divide-x divide-gray-300 dark:divide-gray-600 text-gray-300 dark:text-gray-600">
+        <!-- mimic the repo view here, placeholders are LLM generated -->
+        <div id="file-list" class="flex flex-col gap-2 col-span-1 w-full h-full p-4 items-start justify-start text-left">
+          {{ $files :=
+            (list
+              "src"
+              "docs"
+              "config"
+              "lib"
+              "index.html"
+              "log.html"
+              "needsUpgrade.html"
+              "new.html"
+              "tags.html"
+              "tree.html")
+            }}
+          {{ range $files }}
+            <span>
+              {{ if (contains . ".") }}
+                {{ i "file" "size-4 inline-flex" }}
               {{ else }}
-              <p class="text-gray-400 dark:text-gray-500 py-6 text-center">
-                  The knot hosting this repository needs an upgrade. This repository is currently unavailable.
-              </p>
+                {{ i "folder" "size-4 inline-flex fill-current" }}
               {{ end }}
-          </div>
+
+              {{ . }}
+            </span>
+          {{ end }}
+        </div>
+        <div id="commit-list" class="hidden md:flex md:flex-col gap-4 col-span-1 w-full h-full p-4 items-start justify-start text-left">
+          {{ $commits :=
+            (list
+              "Fix authentication bug in login flow"
+              "Add new dashboard widgets for metrics" 
+              "Implement real-time notifications system")
+            }}
+          {{ range $commits }}
+            <div class="flex flex-col">
+              <span>{{ . }}</span>
+              <span class="text-xs">{{ . }}</span>
+            </div>
+          {{ end }}
+        </div>
       </div>
+      <div class="absolute inset-0 flex items-center justify-center py-12 text-red-500 dark:text-red-400 backdrop-blur">
+        <div class="text-center">
+          {{ i "triangle-alert" "size-5 inline-flex items-center align-middle" }}
+          The knot hosting this repository needs an upgrade. This repository is currently unavailable.
+        </div>
+      </div>
+    </div>
   </main>
 {{ end }}

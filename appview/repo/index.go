@@ -47,19 +47,25 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		Host: host,
 	}
 
-	var needsKnotUpgrade bool
+	user := rp.oauth.GetUser(r)
+	repoInfo := f.RepoInfo(user)
+
 	// Build index response from multiple XRPC calls
 	result, err := rp.buildIndexResponse(r.Context(), xrpcc, f, ref)
-	if err != nil {
-		if errors.Is(err, xrpcclient.ErrXrpcUnsupported) {
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		if errors.Is(xrpcerr, xrpcclient.ErrXrpcUnsupported) {
 			log.Println("failed to call XRPC repo.index", err)
-			needsKnotUpgrade = true
+			rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
+				LoggedInUser:     user,
+				NeedsKnotUpgrade: true,
+				RepoInfo:         repoInfo,
+			})
+			return
+		} else {
+			rp.pages.Error503(w)
+			log.Println("failed to build index response", err)
 			return
 		}
-
-		rp.pages.Error503(w)
-		log.Println("failed to build index response", err)
-		return
 	}
 
 	tagMap := make(map[string][]string)
@@ -119,9 +125,6 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	user := rp.oauth.GetUser(r)
-	repoInfo := f.RepoInfo(user)
-
 	// TODO: a bit dirty
 	languageInfo, err := rp.getLanguageInfo(r.Context(), f, xrpcc, result.Ref, ref == "")
 	if err != nil {
@@ -141,7 +144,6 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:      user,
-		NeedsKnotUpgrade:  needsKnotUpgrade,
 		RepoInfo:          repoInfo,
 		TagMap:            tagMap,
 		RepoIndexResponse: *result,
@@ -243,10 +245,6 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 	// first get branches to determine the ref if not specified
 	branchesBytes, err := tangled.RepoBranches(ctx, xrpcc, "", 0, repo)
 	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.branches", xrpcerr)
-			return nil, xrpcerr
-		}
 		return nil, err
 	}
 
@@ -278,8 +276,7 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 
 	// now run the remaining queries in parallel
 	var wg sync.WaitGroup
-	var mu sync.Mutex
-	var errs []error
+	var errs error
 
 	var (
 		tagsResp       types.RepoTagsResponse
@@ -295,21 +292,12 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 		defer wg.Done()
 		tagsBytes, err := tangled.RepoTags(ctx, xrpcc, "", 0, repo)
 		if err != nil {
-			mu.Lock()
-			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-				log.Println("failed to call XRPC repo.tags", xrpcerr)
-				errs = append(errs, xrpcerr)
-			} else {
-				errs = append(errs, err)
-			}
-			mu.Unlock()
+			errs = errors.Join(errs, err)
 			return
 		}
 
 		if err := json.Unmarshal(tagsBytes, &tagsResp); err != nil {
-			mu.Lock()
-			errs = append(errs, err)
-			mu.Unlock()
+			errs = errors.Join(errs, err)
 		}
 	}()
 
@@ -319,14 +307,7 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 		defer wg.Done()
 		resp, err := tangled.RepoTree(ctx, xrpcc, "", ref, repo)
 		if err != nil {
-			mu.Lock()
-			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-				log.Println("failed to call XRPC repo.tree", xrpcerr)
-				errs = append(errs, xrpcerr)
-			} else {
-				errs = append(errs, err)
-			}
-			mu.Unlock()
+			errs = errors.Join(errs, err)
 			return
 		}
 		treeResp = resp
@@ -338,21 +319,12 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 		defer wg.Done()
 		logBytes, err := tangled.RepoLog(ctx, xrpcc, "", 50, "", ref, repo)
 		if err != nil {
-			mu.Lock()
-			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-				log.Println("failed to call XRPC repo.log", xrpcerr)
-				errs = append(errs, xrpcerr)
-			} else {
-				errs = append(errs, err)
-			}
-			mu.Unlock()
+			errs = errors.Join(errs, err)
 			return
 		}
 
 		if err := json.Unmarshal(logBytes, &logResp); err != nil {
-			mu.Lock()
-			errs = append(errs, err)
-			mu.Unlock()
+			errs = errors.Join(errs, err)
 		}
 	}()
 
@@ -378,8 +350,8 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 
 	wg.Wait()
 
-	if len(errs) > 0 {
-		return nil, errs[0] // return first error
+	if errs != nil {
+		return nil, errs
 	}
 
 	var files []types.NiceTree

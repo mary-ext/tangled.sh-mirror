@@ -29,6 +29,9 @@ func (p *Pages) funcMap() template.FuncMap {
 		"split": func(s string) []string {
 			return strings.Split(s, "\n")
 		},
+		"contains": func(s string, target string) bool {
+			return strings.Contains(s, target)
+		},
 		"resolve": func(s string) string {
 			identity, err := p.resolver.ResolveIdent(context.Background(), s)
 
