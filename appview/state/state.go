@@ -240,18 +240,16 @@ func (s *State) UpgradeBanner(w http.ResponseWriter, r *http.Request) {
 		db.FilterEq("needs_upgrade", 1),
 	)
 	if err != nil {
-		l.Error("non-fatal: failed to get registrations")
-		return
+		l.Error("non-fatal: failed to get registrations", "err", err)
 	}
 
 	spindles, err := db.GetSpindles(
 		s.db,
-		db.FilterEq("did", user.Did),
+		db.FilterEq("owner", user.Did),
 		db.FilterEq("needs_upgrade", 1),
 	)
 	if err != nil {
-		l.Error("non-fatal: failed to get spindles")
-		return
+		l.Error("non-fatal: failed to get spindles", "err", err)
 	}
 
 	if regs == nil && spindles == nil {

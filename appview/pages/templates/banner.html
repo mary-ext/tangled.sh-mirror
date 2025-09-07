@@ -1,23 +1,38 @@
 {{ define "banner" }}
-<div class="px-6 py-2">
-  The following services that you administer will have to be upgraded to be compatible with the latest version of Tangled:
-  {{ if .Registrations }}
-    <ul class="list-disc mx-12 my-2">
-      {{range .Registrations}}
-      <li>{{ .Domain }}</li>
-      {{ end }}
-    </ul>
-    Repositories hosted on these knots may not be accessible until upgraded.
-  {{ end }}
+<div class="flex items-center justify-center mx-auto w-full bg-red-100 dark:bg-red-900 border border-red-200 dark:border-red-800 rounded-b drop-shadow-sm text-red-800 dark:text-red-200">
+  <details class="group p-2">
+    <summary class="list-none cursor-pointer">
+      <div class="flex gap-4 items-center">
+        <span class="group-open:hidden inline">{{ i "triangle-alert" "w-4 h-4" }}</span>
+        <span class="hidden group-open:inline">{{ i "x" "w-4 h-4" }}</span>
 
-  {{ if .Spindles }}
-    <ul class="list-disc mx-12 my-2">
-      {{range .Spindles}}
-      <li>{{ .Instance }}</li>
-      {{ end }}
-    </ul>
-    Pipelines may not be executed on these spindles until upgraded.
-  {{ end }}
-  <a href="https://tangled.sh/@tangled.sh/core/tree/master/docs/migrations/">Click to read the upgrade guide</a>.
+        <span class="group-open:hidden inline">Some services that you administer require an update. Click to show more.</span>
+        <span class="hidden group-open:inline">Some services that you administer will have to be updated to be compatible with Tangled.</span>
+      </div>
+    </summary>
+
+    {{ if .Registrations }}
+      <ul class="list-disc mx-12 my-2">
+        {{range .Registrations}}
+        <li>Knot: {{ .Domain }}</li>
+        {{ end }}
+      </ul>
+    {{ end }}
+
+    {{ if .Spindles }}
+      <ul class="list-disc mx-12 my-2">
+        {{range .Spindles}}
+        <li>Spindle: {{ .Instance }}</li>
+        {{ end }}
+      </ul>
+    {{ end }}
+
+    <div class="mx-6">
+      These services may not be fully accessible until upgraded.
+      <a class="underline text-red-800 dark:text-red-200"
+        href="https://tangled.sh/@tangled.sh/core/tree/master/docs/migrations/">
+        Click to read the upgrade guide</a>.
+    </div>
+  </details>
 </div>
 {{ end }}
