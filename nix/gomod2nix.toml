@@ -425,9 +425,15 @@ schema = 3
   [mod."github.com/whyrusleeping/cbor-gen"]
     version = "v0.3.1"
     hash = "sha256-PAd8M2Z8t6rVRBII+Rg8Bz+QaJIwbW64bfyqsv31kgc="
+  [mod."github.com/wyatt915/goldmark-treeblood"]
+    version = "v0.0.0-20250825231212-5dcbdb2f4b57"
+    hash = "sha256-IZEsUXTBTsNgWoD7vqRUc9aFCCHNjzk1IUmI9O+NCnM="
+  [mod."github.com/wyatt915/treeblood"]
+    version = "v0.1.15"
+    hash = "sha256-hb99exdkoY2Qv8WdDxhwgPXGbEYimUr6wFtPXEvcO9g="
   [mod."github.com/yuin/goldmark"]
-    version = "v1.4.15"
-    hash = "sha256-MvSOT6dwf5hVYkIg4MnqMpsy5ZtWZ7amAE7Zo9HkEa0="
+    version = "v1.7.12"
+    hash = "sha256-thLYBS4woL2X5qRdo7vP+xCvjlGRDU0jXtDCUt6vvWM="
   [mod."github.com/yuin/goldmark-highlighting/v2"]
     version = "v2.0.0-20230729083705-37449abec8cc"
     hash = "sha256-HpiwU7jIeDUAg2zOpTIiviQir8dpRPuXYh2nqFFccpg="
