@@ -6,13 +6,23 @@ are further down the page.
 
 ## Upgrading from v1.8.x
 
-After v1.8.2, the HTTP API for knots has been deprecated and
-replaced with XRPC. Repositories on outdated knots will not
-be viewable from the appview. Upgrading is straightforward:
+After v1.8.2, the HTTP API for knot and spindles have been
+deprecated and replaced with XRPC. Repositories on outdated
+knots will not be viewable from the appview. Upgrading is
+straightforward however.
+
+For knots:
 
 - Upgrade to latest tag (v1.9.0 or above)
 - Head to the [knot dashboard](https://tangled.sh/knots) and
   hit the "retry" button to verify your knot
+
+For spindles:
+
+- Upgrade to latest tag (v1.9.0 or above)
+- Head to the [spindle
+  dashboard](https://tangled.sh/spindles) and hit the
+  "retry" button to verify your spindle
 
 ## Upgrading from v1.7.x
 

@@ -4,12 +4,11 @@
   sqlite-lib,
   src,
 }: let
-  version = "1.8.1-alpha";
+  version = "1.9.0-alpha";
 in
   buildGoApplication {
     pname = "knot";
-    version = "1.8.1";
-    inherit src modules;
+    inherit src version modules;
 
     doCheck = false;
 
