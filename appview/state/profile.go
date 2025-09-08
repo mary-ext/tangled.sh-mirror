@@ -284,15 +284,18 @@ func (s *State) followPage(
 	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
 
 	loggedInUser := s.oauth.GetUser(r)
+	params := FollowsPageParams{
+		Card: profile,
+	}
 
 	follows, err := fetchFollows(s.db, profile.UserDid)
 	if err != nil {
 		l.Error("failed to fetch follows", "err", err)
-		return nil, err
+		return &params, err
 	}
 
 	if len(follows) == 0 {
-		return nil, nil
+		return &params, nil
 	}
 
 	followDids := make([]string, 0, len(follows))
@@ -303,7 +306,7 @@ func (s *State) followPage(
 	profiles, err := db.GetProfiles(s.db, db.FilterIn("did", followDids))
 	if err != nil {
 		l.Error("failed to get profiles", "followDids", followDids, "err", err)
-		return nil, err
+		return &params, err
 	}
 
 	followStatsMap, err := db.GetFollowerFollowingCounts(s.db, followDids)
@@ -316,7 +319,7 @@ func (s *State) followPage(
 		following, err := db.GetFollowing(s.db, loggedInUser.Did)
 		if err != nil {
 			l.Error("failed to get follow list", "err", err, "loggedInUser", loggedInUser.Did)
-			return nil, err
+			return &params, err
 		}
 		loggedInUserFollowing = make(map[string]struct{}, len(following))
 		for _, follow := range following {
@@ -350,10 +353,9 @@ func (s *State) followPage(
 		}
 	}
 
-	return &FollowsPageParams{
-		Follows: followCards,
-		Card:    profile,
-	}, nil
+	params.Follows = followCards
+
+	return &params, nil
 }
 
 func (s *State) followersPage(w http.ResponseWriter, r *http.Request) {
