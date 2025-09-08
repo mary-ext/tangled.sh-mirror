@@ -1,4 +1,20 @@
-# Upgrading from v1.7.0
+# Migrations
+
+This document is laid out in reverse-chronological order.
+Newer migration guides are listed first, and older guides
+are further down the page.
+
+## Upgrading from v1.8.x
+
+After v1.8.2, the HTTP API for knots has been deprecated and
+replaced with XRPC. Repositories on outdated knots will not
+be viewable from the appview. Upgrading is straightforward:
+
+- Upgrade to latest tag (v1.9.0 or above)
+- Head to the [knot dashboard](https://tangled.sh/knots) and
+  hit the "retry" button to verify your knot
+
+## Upgrading from v1.7.x
 
 After v1.7.0, knot secrets have been deprecated. You no
 longer need a secret from the appview to run a knot. All
@@ -19,8 +35,6 @@ Upgrading is quite easy, in essence:
   hit the "retry" button to verify your knot. This simply
   writes a `sh.tangled.knot` record to your PDS.
 
-## Nix
-
 If you use the nix module, simply bump the flake to the
 latest revision, and change your config block like so:
 
@@ -33,3 +47,4 @@ latest revision, and change your config block like so:
    };
  };
 ```
+
