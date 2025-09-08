@@ -3,25 +3,24 @@
   modules,
   sqlite-lib,
   src,
-}:
-let
+}: let
   version = "1.8.1-alpha";
 in
-buildGoApplication {
-  pname = "knot";
-  version = "1.8.1";
-  inherit src modules;
+  buildGoApplication {
+    pname = "knot";
+    version = "1.8.1";
+    inherit src modules;
 
-  doCheck = false;
+    doCheck = false;
 
-  subPackages = ["cmd/knot"];
-  tags = ["libsqlite3"];
+    subPackages = ["cmd/knot"];
+    tags = ["libsqlite3"];
 
-  ldflags = [
-    "-X tangled.sh/tangled.sh/core/knotserver/xrpc.version=${version}"
-  ];
+    ldflags = [
+      "-X tangled.sh/tangled.sh/core/knotserver/xrpc.version=${version}"
+    ];
 
-  env.CGO_CFLAGS = "-I ${sqlite-lib}/include ";
-  env.CGO_LDFLAGS = "-L ${sqlite-lib}/lib";
-  CGO_ENABLED = 1;
-}
+    env.CGO_CFLAGS = "-I ${sqlite-lib}/include ";
+    env.CGO_LDFLAGS = "-L ${sqlite-lib}/lib";
+    CGO_ENABLED = 1;
+  }
