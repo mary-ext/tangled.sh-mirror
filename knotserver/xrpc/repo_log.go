@@ -73,13 +73,23 @@ func (x *Xrpc) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	total, err := gr.TotalCommits()
+	if err != nil {
+		x.Logger.Error("fetching total commits", "error", err.Error())
+		writeError(w, xrpcerr.NewXrpcError(
+			xrpcerr.WithTag("InternalServerError"),
+			xrpcerr.WithMessage("failed to fetch total commits"),
+		), http.StatusNotFound)
+		return
+	}
+
 	// Create response using existing types.RepoLogResponse
 	response := types.RepoLogResponse{
 		Commits: commits,
 		Ref:     ref,
 		Page:    (offset / limit) + 1,
 		PerPage: limit,
-		Total:   len(commits), // This is not accurate for pagination, but matches existing behavior
+		Total:   total,
 	}
 
 	if path != "" {
