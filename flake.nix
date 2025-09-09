@@ -7,6 +7,10 @@
       url = "github:nix-community/gomod2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    flake-compat = {
+      url = "https://git.lix.systems/lix-project/flake-compat/archive/main.tar.gz";
+      flake = false;
+    };
     indigo = {
       url = "github:oppiliappan/indigo";
       flake = false;
@@ -50,6 +54,7 @@
     inter-fonts-src,
     sqlite-lib-src,
     ibm-plex-mono-src,
+    ...
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
