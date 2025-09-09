@@ -359,10 +359,14 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Is
 		repoMap[string(repos[i].RepoAt())] = &repos[i]
 	}
 
-	for issueAt := range issueMap {
-		i := issueMap[issueAt]
-		r := repoMap[string(i.RepoAt)]
-		i.Repo = r
+	for issueAt, i := range issueMap {
+		if r, ok := repoMap[string(i.RepoAt)]; ok {
+			i.Repo = r
+		} else {
+			// do not show up the issue if the repo is deleted
+			// TODO: foreign key where?
+			delete(issueMap, issueAt)
+		}
 	}
 
 	// collect comments
