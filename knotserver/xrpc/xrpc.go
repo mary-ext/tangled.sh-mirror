@@ -117,3 +117,11 @@ func writeError(w http.ResponseWriter, e xrpcerr.XrpcError, status int) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(e)
 }
+
+func writeJson(w http.ResponseWriter, response any) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		writeError(w, xrpcerr.GenericError(err), http.StatusInternalServerError)
+		return
+	}
+}

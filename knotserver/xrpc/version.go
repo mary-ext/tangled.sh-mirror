@@ -1,13 +1,11 @@
 package xrpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime/debug"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
 )
 
 // version is set during build time.
@@ -58,13 +56,5 @@ func (x *Xrpc) Version(w http.ResponseWriter, r *http.Request) {
 		Version: version,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		x.Logger.Error("failed to encode response", "error", err)
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InternalServerError"),
-			xrpcerr.WithMessage("failed to encode response"),
-		), http.StatusInternalServerError)
-		return
-	}
+	writeJson(w, response)
 }
