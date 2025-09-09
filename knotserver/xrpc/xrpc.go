@@ -101,18 +101,12 @@ func (x *Xrpc) parseRepoParam(repo string) (string, error) {
 	// Construct repository path using the same logic as didPath
 	didRepoPath, err := securejoin.SecureJoin(did, repoName)
 	if err != nil {
-		return "", xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RepoNotFound"),
-			xrpcerr.WithMessage("failed to access repository"),
-		)
+		return "", xrpcerr.RepoNotFoundError
 	}
 
 	repoPath, err := securejoin.SecureJoin(x.Config.Repo.ScanPath, didRepoPath)
 	if err != nil {
-		return "", xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RepoNotFound"),
-			xrpcerr.WithMessage("failed to access repository"),
-		)
+		return "", xrpcerr.RepoNotFoundError
 	}
 
 	return repoPath, nil

@@ -32,10 +32,7 @@ func (x *Xrpc) RepoBranch(w http.ResponseWriter, r *http.Request) {
 
 	gr, err := git.PlainOpen(repoPath)
 	if err != nil {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RepoNotFound"),
-			xrpcerr.WithMessage("repository not found"),
-		), http.StatusNotFound)
+		writeError(w, xrpcerr.RepoNotFoundError, http.StatusNoContent)
 		return
 	}
 
