@@ -20,12 +20,14 @@ func (x *Xrpc) RepoBranches(w http.ResponseWriter, r *http.Request) {
 
 	cursor := r.URL.Query().Get("cursor")
 
-	limit := 50 // default
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
-		}
-	}
+	// limit := 50 // default
+	// if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+	// 	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+	// 		limit = l
+	// 	}
+	// }
+
+	limit := 500
 
 	gr, err := git.PlainOpen(repoPath)
 	if err != nil {
