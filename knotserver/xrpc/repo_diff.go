@@ -22,20 +22,14 @@ func (x *Xrpc) RepoDiff(w http.ResponseWriter, r *http.Request) {
 
 	gr, err := git.Open(repoPath, ref)
 	if err != nil {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RefNotFound"),
-			xrpcerr.WithMessage("repository or ref not found"),
-		), http.StatusNotFound)
+		writeError(w, xrpcerr.RefNotFoundError, http.StatusNotFound)
 		return
 	}
 
 	diff, err := gr.Diff()
 	if err != nil {
 		x.Logger.Error("getting diff", "error", err.Error())
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RefNotFound"),
-			xrpcerr.WithMessage("failed to generate diff"),
-		), http.StatusInternalServerError)
+		writeError(w, xrpcerr.RefNotFoundError, http.StatusInternalServerError)
 		return
 	}
 

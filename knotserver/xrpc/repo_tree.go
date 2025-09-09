@@ -30,10 +30,7 @@ func (x *Xrpc) RepoTree(w http.ResponseWriter, r *http.Request) {
 	gr, err := git.Open(repoPath, ref)
 	if err != nil {
 		x.Logger.Error("failed to open git repository", "error", err, "path", repoPath, "ref", ref)
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RefNotFound"),
-			xrpcerr.WithMessage("repository or ref not found"),
-		), http.StatusNotFound)
+		writeError(w, xrpcerr.RefNotFoundError, http.StatusNotFound)
 		return
 	}
 
