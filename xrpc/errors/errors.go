@@ -56,6 +56,11 @@ var OwnerNotFoundError = NewXrpcError(
 	WithMessage("owner not set for this service"),
 )
 
+var RepoNotFoundError = NewXrpcError(
+	WithTag("RepoNotFound"),
+	WithMessage("failed to access repository"),
+)
+
 var AuthError = func(err error) XrpcError {
 	return NewXrpcError(
 		WithTag("Auth"),
