@@ -63,11 +63,11 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 				RepoInfo:         repoInfo,
 			})
 			return
-		} else {
-			rp.pages.Error503(w)
-			log.Println("failed to build index response", err)
-			return
 		}
+
+		rp.pages.Error503(w)
+		log.Println("failed to build index response", err)
+		return
 	}
 
 	tagMap := make(map[string][]string)
@@ -256,20 +256,17 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 	}
 
 	// if no ref specified, use default branch or first available
-	if ref == "" && len(branchesResp.Branches) > 0 {
+	if ref == "" {
 		for _, branch := range branchesResp.Branches {
 			if branch.IsDefault {
 				ref = branch.Name
 				break
 			}
 		}
-		if ref == "" {
-			ref = branchesResp.Branches[0].Name
-		}
 	}
 
-	// check if repo is empty
-	if len(branchesResp.Branches) == 0 {
+	// if ref is still empty, this means the default branch is not set
+	if ref == "" {
 		return &types.RepoIndexResponse{
 			IsEmpty:  true,
 			Branches: branchesResp.Branches,
