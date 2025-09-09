@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -710,7 +709,7 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// fetch the raw binary content using sh.tangled.repo.blob xrpc
-		repoName := path.Join("%s/%s", f.OwnerDid(), f.Name)
+		repoName := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 		blobURL := fmt.Sprintf("%s://%s/xrpc/sh.tangled.repo.blob?repo=%s&ref=%s&path=%s&raw=true",
 			scheme, f.Knot, url.QueryEscape(repoName), url.QueryEscape(ref), url.QueryEscape(filePath))
 

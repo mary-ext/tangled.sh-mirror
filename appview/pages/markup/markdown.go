@@ -235,7 +235,7 @@ func (rctx *RenderContext) imageFromKnotTransformer(dst string) string {
 	repoName := fmt.Sprintf("%s/%s", rctx.RepoInfo.OwnerDid, rctx.RepoInfo.Name)
 
 	query := fmt.Sprintf("repo=%s&ref=%s&path=%s&raw=true",
-		repoName, url.PathEscape(rctx.RepoInfo.Ref), actualPath)
+		url.PathEscape(repoName), url.PathEscape(rctx.RepoInfo.Ref), actualPath)
 
 	parsedURL := &url.URL{
 		Scheme:   scheme,
