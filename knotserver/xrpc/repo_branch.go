@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/knotserver/git"
@@ -70,7 +71,7 @@ func (x *Xrpc) RepoBranch(w http.ResponseWriter, r *http.Request) {
 		Name:      ref.Name().Short(),
 		Hash:      ref.Hash().String(),
 		ShortHash: &[]string{ref.Hash().String()[:7]}[0],
-		When:      commit.Author.When.Format("2006-01-02T15:04:05.000Z"),
+		When:      commit.Author.When.Format(time.RFC3339),
 		IsDefault: &isDefault,
 	}
 
@@ -81,7 +82,7 @@ func (x *Xrpc) RepoBranch(w http.ResponseWriter, r *http.Request) {
 	response.Author = &tangled.RepoBranch_Signature{
 		Name:  commit.Author.Name,
 		Email: commit.Author.Email,
-		When:  commit.Author.When.Format("2006-01-02T15:04:05.000Z"),
+		When:  commit.Author.When.Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

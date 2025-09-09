@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
-	"net/url"
 	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
@@ -14,18 +13,14 @@ import (
 )
 
 func (x *Xrpc) RepoLanguages(w http.ResponseWriter, r *http.Request) {
-	refParam := r.URL.Query().Get("ref")
-	if refParam == "" {
-		refParam = "HEAD" // default
-	}
-	ref, _ := url.PathUnescape(refParam)
-
 	repo := r.URL.Query().Get("repo")
 	repoPath, err := x.parseRepoParam(repo)
 	if err != nil {
 		writeError(w, err.(xrpcerr.XrpcError), http.StatusBadRequest)
 		return
 	}
+
+	ref := r.URL.Query().Get("ref")
 
 	gr, err := git.Open(repoPath, ref)
 	if err != nil {

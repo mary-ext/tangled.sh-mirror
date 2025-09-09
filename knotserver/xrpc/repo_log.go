@@ -3,7 +3,6 @@ package xrpc
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"tangled.sh/tangled.sh/core/knotserver/git"
@@ -19,14 +18,7 @@ func (x *Xrpc) RepoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refParam := r.URL.Query().Get("ref")
-	if refParam == "" {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InvalidRequest"),
-			xrpcerr.WithMessage("missing ref parameter"),
-		), http.StatusBadRequest)
-		return
-	}
+	ref := r.URL.Query().Get("ref")
 
 	path := r.URL.Query().Get("path")
 	cursor := r.URL.Query().Get("cursor")
@@ -36,15 +28,6 @@ func (x *Xrpc) RepoLog(w http.ResponseWriter, r *http.Request) {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
 		}
-	}
-
-	ref, err := url.QueryUnescape(refParam)
-	if err != nil {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InvalidRequest"),
-			xrpcerr.WithMessage("invalid ref parameter"),
-		), http.StatusBadRequest)
-		return
 	}
 
 	gr, err := git.Open(repoPath, ref)

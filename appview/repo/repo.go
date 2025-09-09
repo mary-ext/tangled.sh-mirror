@@ -85,7 +85,9 @@ func New(
 }
 
 func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
-	refParam := chi.URLParam(r, "ref")
+	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
@@ -102,19 +104,16 @@ func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
-	archiveBytes, err := tangled.RepoArchive(r.Context(), xrpcc, "tar.gz", "", refParam, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.archive", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Error404(w)
+	archiveBytes, err := tangled.RepoArchive(r.Context(), xrpcc, "tar.gz", "", ref, repo)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.archive", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
-	// Set headers for file download
-	filename := fmt.Sprintf("%s-%s.tar.gz", f.Name, refParam)
+	// Set headers for file download, just pass along whatever the knot specifies
+	safeRefFilename := strings.ReplaceAll(plumbing.ReferenceName(ref).Short(), "/", "-")
+	filename := fmt.Sprintf("%s-%s.tar.gz", f.Name, safeRefFilename)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.Header().Set("Content-Type", "application/gzip")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(archiveBytes)))
@@ -139,6 +138,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	scheme := "http"
 	if !rp.config.Core.Dev {
@@ -159,13 +159,9 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoLog(r.Context(), xrpcc, cursor, limit, "", ref, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.log", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Error404(w)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.log", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -177,12 +173,10 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.tags", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		rp.pages.Error503(w)
+		return
 	}
 
 	tagMap := make(map[string][]string)
@@ -196,12 +190,10 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.branches", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		rp.pages.Error503(w)
+		return
 	}
 
 	if branchBytes != nil {
@@ -353,6 +345,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	var diffOpts types.DiffOpts
 	if d := r.URL.Query().Get("diff"); d == "split" {
@@ -375,13 +368,9 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoDiff(r.Context(), xrpcc, ref, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.diff", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Error404(w)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.diff", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -433,10 +422,12 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ref := chi.URLParam(r, "ref")
-	treePath := chi.URLParam(r, "*")
+	ref, _ = url.PathUnescape(ref)
 
 	// if the tree path has a trailing slash, let's strip it
 	// so we don't 404
+	treePath := chi.URLParam(r, "*")
+	treePath, _ = url.PathUnescape(treePath)
 	treePath = strings.TrimSuffix(treePath, "/")
 
 	scheme := "http"
@@ -450,13 +441,9 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcResp, err := tangled.RepoTree(r.Context(), xrpcc, treePath, ref, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.tree", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Error404(w)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.tree", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -498,19 +485,19 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 
 	// redirects tree paths trying to access a blob; in this case the result.Files is unpopulated,
 	// so we can safely redirect to the "parent" (which is the same file).
-	unescapedTreePath, _ := url.PathUnescape(treePath)
-	if len(result.Files) == 0 && result.Parent == unescapedTreePath {
-		http.Redirect(w, r, fmt.Sprintf("/%s/blob/%s/%s", f.OwnerSlashRepo(), ref, result.Parent), http.StatusFound)
+	if len(result.Files) == 0 && result.Parent == treePath {
+		redirectTo := fmt.Sprintf("/%s/blob/%s/%s", f.OwnerSlashRepo(), url.PathEscape(ref), result.Parent)
+		http.Redirect(w, r, redirectTo, http.StatusFound)
 		return
 	}
 
 	user := rp.oauth.GetUser(r)
 
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
+	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), url.PathEscape(ref))})
 	if treePath != "" {
 		for idx, elem := range strings.Split(treePath, "/") {
-			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
+			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], url.PathEscape(elem))})
 		}
 	}
 
@@ -543,13 +530,9 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.tags", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Error404(w)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -616,13 +599,9 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.branches", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Error404(w)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -651,7 +630,10 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
+
 	filePath := chi.URLParam(r, "*")
+	filePath, _ = url.PathUnescape(filePath)
 
 	scheme := "http"
 	if !rp.config.Core.Dev {
@@ -664,23 +646,19 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Repo.Name)
 	resp, err := tangled.RepoBlob(r.Context(), xrpcc, filePath, false, ref, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.blob", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Error404(w)
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.blob", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
 	// Use XRPC response directly instead of converting to internal types
 
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), ref)})
+	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), url.PathEscape(ref))})
 	if filePath != "" {
 		for idx, elem := range strings.Split(filePath, "/") {
-			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], elem)})
+			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], url.PathEscape(elem))})
 		}
 	}
 
@@ -710,8 +688,19 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 		// fetch the raw binary content using sh.tangled.repo.blob xrpc
 		repoName := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
-		blobURL := fmt.Sprintf("%s://%s/xrpc/sh.tangled.repo.blob?repo=%s&ref=%s&path=%s&raw=true",
-			scheme, f.Knot, url.QueryEscape(repoName), url.QueryEscape(ref), url.QueryEscape(filePath))
+
+		baseURL := &url.URL{
+			Scheme: scheme,
+			Host:   f.Knot,
+			Path:   "/xrpc/sh.tangled.repo.blob",
+		}
+		query := baseURL.Query()
+		query.Set("repo", repoName)
+		query.Set("ref", ref)
+		query.Set("path", filePath)
+		query.Set("raw", "true")
+		baseURL.RawQuery = query.Encode()
+		blobURL := baseURL.String()
 
 		contentSrc = blobURL
 		if !rp.config.Core.Dev {
@@ -766,7 +755,10 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
+
 	filePath := chi.URLParam(r, "*")
+	filePath, _ = url.PathUnescape(filePath)
 
 	scheme := "http"
 	if !rp.config.Core.Dev {
@@ -774,8 +766,18 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Repo.Name)
-	blobURL := fmt.Sprintf("%s://%s/xrpc/sh.tangled.repo.blob?repo=%s&ref=%s&path=%s&raw=true",
-		scheme, f.Knot, url.QueryEscape(repo), url.QueryEscape(ref), url.QueryEscape(filePath))
+	baseURL := &url.URL{
+		Scheme: scheme,
+		Host:   f.Knot,
+		Path:   "/xrpc/sh.tangled.repo.blob",
+	}
+	query := baseURL.Query()
+	query.Set("repo", repo)
+	query.Set("ref", ref)
+	query.Set("path", filePath)
+	query.Set("raw", "true")
+	baseURL.RawQuery = query.Encode()
+	blobURL := baseURL.String()
 
 	req, err := http.NewRequest("GET", blobURL, nil)
 	if err != nil {
@@ -1364,12 +1366,8 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.branches", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.branches", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
@@ -1471,6 +1469,7 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 
 func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
@@ -1759,13 +1758,9 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.branches", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -1800,13 +1795,9 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.tags", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -1877,13 +1868,9 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.branches", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -1895,13 +1882,9 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.tags", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 
@@ -1913,13 +1896,9 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	compareBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, base, head)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.compare", xrpcerr)
-			rp.pages.Error503(w)
-			return
-		}
-		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		log.Println("failed to call XRPC repo.compare", xrpcerr)
+		rp.pages.Error503(w)
 		return
 	}
 

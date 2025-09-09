@@ -3,8 +3,8 @@ package xrpc
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"path/filepath"
+	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/knotserver/git"
@@ -21,26 +21,11 @@ func (x *Xrpc) RepoTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refParam := r.URL.Query().Get("ref")
-	if refParam == "" {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InvalidRequest"),
-			xrpcerr.WithMessage("missing ref parameter"),
-		), http.StatusBadRequest)
-		return
-	}
+	ref := r.URL.Query().Get("ref")
+	// ref can be empty (git.Open handles this)
 
 	path := r.URL.Query().Get("path")
 	// path can be empty (defaults to root)
-
-	ref, err := url.QueryUnescape(refParam)
-	if err != nil {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InvalidRequest"),
-			xrpcerr.WithMessage("invalid ref parameter"),
-		), http.StatusBadRequest)
-		return
-	}
 
 	gr, err := git.Open(repoPath, ref)
 	if err != nil {
@@ -77,7 +62,7 @@ func (x *Xrpc) RepoTree(w http.ResponseWriter, r *http.Request) {
 			entry.Last_commit = &tangled.RepoTree_LastCommit{
 				Hash:    file.LastCommit.Hash.String(),
 				Message: file.LastCommit.Message,
-				When:    file.LastCommit.When.Format("2006-01-02T15:04:05.000Z"),
+				When:    file.LastCommit.When.Format(time.RFC3339),
 			}
 		}
 

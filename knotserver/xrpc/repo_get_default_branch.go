@@ -3,6 +3,7 @@ package xrpc
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/knotserver/git"
@@ -17,14 +18,7 @@ func (x *Xrpc) RepoGetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gr, err := git.Open(repoPath, "")
-	if err != nil {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RepoNotFound"),
-			xrpcerr.WithMessage("repository not found"),
-		), http.StatusNotFound)
-		return
-	}
+	gr, err := git.PlainOpen(repoPath)
 
 	branch, err := gr.FindMainBranch()
 	if err != nil {
@@ -39,7 +33,7 @@ func (x *Xrpc) RepoGetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 	response := tangled.RepoGetDefaultBranch_Output{
 		Name: branch,
 		Hash: "",
-		When: "1970-01-01T00:00:00.000Z",
+		When: time.UnixMicro(0).Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
