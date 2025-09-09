@@ -25,13 +25,13 @@
       <div class="flex flex-col md:flex-row md:justify-between gap-2">
         <div id="breadcrumbs" class="overflow-x-auto whitespace-nowrap text-gray-400 dark:text-gray-500">
           {{ range .BreadCrumbs }}
-            <a href="{{ index . 1}}" class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}">{{ pathUnescape (index . 0) }}</a> /
+            <a href="{{ index . 1 }}" class="text-bold text-gray-500 dark:text-gray-400 {{ $linkstyle }}">{{ pathUnescape (index . 0) }}</a> /
           {{ end }}
         </div>
         <div id="dir-info" class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
           {{ $stats := .TreeStats }}
 
-          <span>at <a href="/{{ $.RepoInfo.FullName }}/tree/{{ $.Ref }}">{{ $.Ref }}</a></span>
+          <span>at <a href="/{{ $.RepoInfo.FullName }}/tree/{{ pathEscape $.Ref }}">{{ $.Ref }}</a></span>
           {{ if eq $stats.NumFolders 1 }}
             <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
             <span>{{ $stats.NumFolders }} folder</span>
@@ -55,7 +55,7 @@
     {{ range .Files }}
       <div class="grid grid-cols-12 gap-4 items-center py-1">
         <div class="col-span-8 md:col-span-4">
-          {{ $link := printf "/%s/%s/%s/%s/%s" $.RepoInfo.FullName "tree" (urlquery $.Ref) $.TreePath .Name }}
+          {{ $link := printf "/%s/%s/%s/%s/%s" $.RepoInfo.FullName "tree" (pathEscape $.Ref) $.TreePath .Name }}
           {{ $icon := "folder" }}
           {{ $iconStyle := "size-4 fill-current" }}
 

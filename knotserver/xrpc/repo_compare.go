@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/types"
@@ -19,8 +18,8 @@ func (x *Xrpc) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rev1Param := r.URL.Query().Get("rev1")
-	if rev1Param == "" {
+	rev1 := r.URL.Query().Get("rev1")
+	if rev1 == "" {
 		writeError(w, xrpcerr.NewXrpcError(
 			xrpcerr.WithTag("InvalidRequest"),
 			xrpcerr.WithMessage("missing rev1 parameter"),
@@ -28,17 +27,14 @@ func (x *Xrpc) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rev2Param := r.URL.Query().Get("rev2")
-	if rev2Param == "" {
+	rev2 := r.URL.Query().Get("rev2")
+	if rev2 == "" {
 		writeError(w, xrpcerr.NewXrpcError(
 			xrpcerr.WithTag("InvalidRequest"),
 			xrpcerr.WithMessage("missing rev2 parameter"),
 		), http.StatusBadRequest)
 		return
 	}
-
-	rev1, _ := url.PathUnescape(rev1Param)
-	rev2, _ := url.PathUnescape(rev2Param)
 
 	gr, err := git.PlainOpen(repoPath)
 	if err != nil {

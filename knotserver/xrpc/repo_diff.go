@@ -3,7 +3,6 @@ package xrpc
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 
 	"tangled.sh/tangled.sh/core/knotserver/git"
 	"tangled.sh/tangled.sh/core/types"
@@ -18,16 +17,8 @@ func (x *Xrpc) RepoDiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refParam := r.URL.Query().Get("ref")
-	if refParam == "" {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InvalidRequest"),
-			xrpcerr.WithMessage("missing ref parameter"),
-		), http.StatusBadRequest)
-		return
-	}
-
-	ref, _ := url.QueryUnescape(refParam)
+	ref := r.URL.Query().Get("ref")
+	// ref can be empty (git.Open handles this)
 
 	gr, err := git.Open(repoPath, ref)
 	if err != nil {

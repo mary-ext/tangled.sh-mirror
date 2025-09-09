@@ -16,11 +16,15 @@ import (
 )
 
 func (x *Xrpc) RepoBlob(w http.ResponseWriter, r *http.Request) {
-	_, repoPath, ref, err := x.parseStandardParams(r)
+	repo := r.URL.Query().Get("repo")
+	repoPath, err := x.parseRepoParam(repo)
 	if err != nil {
 		writeError(w, err.(xrpcerr.XrpcError), http.StatusBadRequest)
 		return
 	}
+
+	ref := r.URL.Query().Get("ref")
+	// ref can be empty (git.Open handles this)
 
 	treePath := r.URL.Query().Get("path")
 	if treePath == "" {

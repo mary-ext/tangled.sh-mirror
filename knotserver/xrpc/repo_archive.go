@@ -13,11 +13,15 @@ import (
 )
 
 func (x *Xrpc) RepoArchive(w http.ResponseWriter, r *http.Request) {
-	repo, repoPath, unescapedRef, err := x.parseStandardParams(r)
+	repo := r.URL.Query().Get("repo")
+	repoPath, err := x.parseRepoParam(repo)
 	if err != nil {
 		writeError(w, err.(xrpcerr.XrpcError), http.StatusBadRequest)
 		return
 	}
+
+	ref := r.URL.Query().Get("ref")
+	// ref can be empty (git.Open handles this)
 
 	format := r.URL.Query().Get("format")
 	if format == "" {
@@ -34,7 +38,7 @@ func (x *Xrpc) RepoArchive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gr, err := git.Open(repoPath, unescapedRef)
+	gr, err := git.Open(repoPath, ref)
 	if err != nil {
 		writeError(w, xrpcerr.NewXrpcError(
 			xrpcerr.WithTag("RefNotFound"),
@@ -46,7 +50,7 @@ func (x *Xrpc) RepoArchive(w http.ResponseWriter, r *http.Request) {
 	repoParts := strings.Split(repo, "/")
 	repoName := repoParts[len(repoParts)-1]
 
-	safeRefFilename := strings.ReplaceAll(plumbing.ReferenceName(unescapedRef).Short(), "/", "-")
+	safeRefFilename := strings.ReplaceAll(plumbing.ReferenceName(ref).Short(), "/", "-")
 
 	var archivePrefix string
 	if prefix != "" {

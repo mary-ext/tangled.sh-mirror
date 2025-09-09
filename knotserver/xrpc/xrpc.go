@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -88,16 +87,16 @@ func (x *Xrpc) parseRepoParam(repo string) (string, error) {
 	}
 
 	// Parse repo string (did/repoName format)
-	parts := strings.Split(repo, "/")
-	if len(parts) < 2 {
+	parts := strings.SplitN(repo, "/", 2)
+	if len(parts) != 2 {
 		return "", xrpcerr.NewXrpcError(
 			xrpcerr.WithTag("InvalidRequest"),
 			xrpcerr.WithMessage("invalid repo format, expected 'did/repoName'"),
 		)
 	}
 
-	did := strings.Join(parts[:len(parts)-1], "/")
-	repoName := parts[len(parts)-1]
+	did := parts[0]
+	repoName := parts[1]
 
 	// Construct repository path using the same logic as didPath
 	didRepoPath, err := securejoin.SecureJoin(did, repoName)
@@ -117,28 +116,6 @@ func (x *Xrpc) parseRepoParam(repo string) (string, error) {
 	}
 
 	return repoPath, nil
-}
-
-// parseStandardParams parses common query parameters used by most handlers
-func (x *Xrpc) parseStandardParams(r *http.Request) (repo, repoPath, ref string, err error) {
-	// Parse repo parameter
-	repo = r.URL.Query().Get("repo")
-	repoPath, err = x.parseRepoParam(repo)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	// Parse and unescape ref parameter
-	refParam := r.URL.Query().Get("ref")
-	if refParam == "" {
-		return "", "", "", xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InvalidRequest"),
-			xrpcerr.WithMessage("missing ref parameter"),
-		)
-	}
-
-	ref, _ = url.QueryUnescape(refParam)
-	return repo, repoPath, ref, nil
 }
 
 func writeError(w http.ResponseWriter, e xrpcerr.XrpcError, status int) {

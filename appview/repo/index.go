@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"slices"
 	"sort"
 	"strings"
@@ -31,6 +32,7 @@ import (
 
 func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
+	ref, _ = url.PathUnescape(ref)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -245,12 +247,12 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 	// first get branches to determine the ref if not specified
 	branchesBytes, err := tangled.RepoBranches(ctx, xrpcc, "", 0, repo)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to call repoBranches: %w", err)
 	}
 
 	var branchesResp types.RepoBranchesResponse
 	if err := json.Unmarshal(branchesBytes, &branchesResp); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal branches response: %w", err)
 	}
 
 	// if no ref specified, use default branch or first available
@@ -292,12 +294,12 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 		defer wg.Done()
 		tagsBytes, err := tangled.RepoTags(ctx, xrpcc, "", 0, repo)
 		if err != nil {
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, fmt.Errorf("failed to call repoTags: %w", err))
 			return
 		}
 
 		if err := json.Unmarshal(tagsBytes, &tagsResp); err != nil {
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, fmt.Errorf("failed to unmarshal repoTags: %w", err))
 		}
 	}()
 
@@ -307,7 +309,7 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 		defer wg.Done()
 		resp, err := tangled.RepoTree(ctx, xrpcc, "", ref, repo)
 		if err != nil {
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, fmt.Errorf("failed to call repoTree: %w", err))
 			return
 		}
 		treeResp = resp
@@ -319,12 +321,12 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 		defer wg.Done()
 		logBytes, err := tangled.RepoLog(ctx, xrpcc, "", 50, "", ref, repo)
 		if err != nil {
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, fmt.Errorf("failed to call repoLog: %w", err))
 			return
 		}
 
 		if err := json.Unmarshal(logBytes, &logResp); err != nil {
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, fmt.Errorf("failed to unmarshal repoLog: %w", err))
 		}
 	}()
 

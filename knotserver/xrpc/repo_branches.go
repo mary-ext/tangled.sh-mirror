@@ -47,10 +47,7 @@ func (x *Xrpc) RepoBranches(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	end := offset + limit
-	if end > len(branches) {
-		end = len(branches)
-	}
+	end := min(offset+limit, len(branches))
 
 	paginatedBranches := branches[offset:end]
 
