@@ -553,10 +553,10 @@ func GetVanityStat(e Execer, did string, stat VanityStatKind) (uint64, error) {
 		query = `select count(id) from pulls where owner_did = ? and state = ?`
 		args = append(args, did, PullOpen)
 	case VanityStatOpenIssueCount:
-		query = `select count(id) from issues where owner_did = ? and open = 1`
+		query = `select count(id) from issues where did = ? and open = 1`
 		args = append(args, did)
 	case VanityStatClosedIssueCount:
-		query = `select count(id) from issues where owner_did = ? and open = 0`
+		query = `select count(id) from issues where did = ? and open = 0`
 		args = append(args, did)
 	case VanityStatRepositoryCount:
 		query = `select count(id) from repos where did = ?`
