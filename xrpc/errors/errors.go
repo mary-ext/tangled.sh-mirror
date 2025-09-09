@@ -61,6 +61,11 @@ var RepoNotFoundError = NewXrpcError(
 	WithMessage("failed to access repository"),
 )
 
+var RefNotFoundError = NewXrpcError(
+	WithTag("RefNotFound"),
+	WithMessage("failed to access ref"),
+)
+
 var AuthError = func(err error) XrpcError {
 	return NewXrpcError(
 		WithTag("Auth"),

@@ -32,10 +32,7 @@ func (x *Xrpc) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	gr, err := git.Open(repoPath, ref)
 	if err != nil {
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("RefNotFound"),
-			xrpcerr.WithMessage("repository or ref not found"),
-		), http.StatusNotFound)
+		writeError(w, xrpcerr.RefNotFoundError, http.StatusNotFound)
 		return
 	}
 
