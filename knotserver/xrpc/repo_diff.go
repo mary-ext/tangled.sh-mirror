@@ -1,7 +1,6 @@
 package xrpc
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"tangled.sh/tangled.sh/core/knotserver/git"
@@ -33,18 +32,10 @@ func (x *Xrpc) RepoDiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := types.RepoCommitResponse{
+	response := types.RepoCommitResponse{
 		Ref:  ref,
 		Diff: diff,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		x.Logger.Error("failed to encode response", "error", err)
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InternalServerError"),
-			xrpcerr.WithMessage("failed to encode response"),
-		), http.StatusInternalServerError)
-		return
-	}
+	writeJson(w, response)
 }

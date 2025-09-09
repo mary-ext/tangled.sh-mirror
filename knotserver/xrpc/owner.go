@@ -1,7 +1,6 @@
 package xrpc
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
@@ -19,13 +18,5 @@ func (x *Xrpc) Owner(w http.ResponseWriter, r *http.Request) {
 		Owner: owner,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		x.Logger.Error("failed to encode response", "error", err)
-		writeError(w, xrpcerr.NewXrpcError(
-			xrpcerr.WithTag("InternalServerError"),
-			xrpcerr.WithMessage("failed to encode response"),
-		), http.StatusInternalServerError)
-		return
-	}
+	writeJson(w, response)
 }
