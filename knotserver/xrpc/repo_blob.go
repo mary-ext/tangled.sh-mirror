@@ -69,6 +69,7 @@ func (x *Xrpc) RepoBlob(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.Header().Set("ETag", eTag)
+			w.Header().Set("Content-Type", mimeType)
 
 		case strings.HasPrefix(mimeType, "text/"):
 			w.Header().Set("Cache-Control", "public, no-cache")
