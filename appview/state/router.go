@@ -241,7 +241,7 @@ func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {
 
 func (s *State) RepoRouter(mw *middleware.Middleware) http.Handler {
 	logger := log.New("repo")
-	repo := repo.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.notifier, s.enforcer, logger)
+	repo := repo.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.notifier, s.enforcer, logger, s.validator)
 	return repo.Router(mw)
 }
 
