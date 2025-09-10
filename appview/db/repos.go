@@ -22,6 +22,7 @@ type Repo struct {
 	Created     time.Time
 	Description string
 	Spindle     string
+	Labels      []string
 
 	// optionally, populate this when querying for reverse mappings
 	RepoStats *RepoStats
@@ -155,6 +156,29 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 	for _, r := range repoMap {
 		args[i] = r.RepoAt()
 		i++
+	}
+
+	// Get labels for all repos
+	labelsQuery := fmt.Sprintf(
+		`select repo_at, label_at from repo_labels where repo_at in (%s)`,
+		inClause,
+	)
+	rows, err = e.Query(labelsQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute labels query: %w ", err)
+	}
+	for rows.Next() {
+		var repoat, labelat string
+		if err := rows.Scan(&repoat, &labelat); err != nil {
+			log.Println("err", "err", err)
+			continue
+		}
+		if r, ok := repoMap[syntax.ATURI(repoat)]; ok {
+			r.Labels = append(r.Labels, labelat)
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to execute labels query: %w ", err)
 	}
 
 	languageQuery := fmt.Sprintf(

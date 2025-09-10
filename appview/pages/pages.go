@@ -820,6 +820,7 @@ func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 type RepoGeneralSettingsParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
+	Labels       []db.LabelDefinition
 	Active       string
 	Tabs         []map[string]any
 	Tab          string
