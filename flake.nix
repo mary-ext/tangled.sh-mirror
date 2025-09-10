@@ -187,7 +187,7 @@
       tailwind-watcher =
         pkgs.writeShellScriptBin "run"
         ''
-          ${pkgs.tailwindcss}/bin/tailwindcss -w -i input.css -o ./appview/pages/static/tw.css
+          ${pkgs.tailwindcss}/bin/tailwindcss --watch=always -i input.css -o ./appview/pages/static/tw.css
         '';
     in {
       fmt = {
