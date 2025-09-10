@@ -29,6 +29,7 @@ import (
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/appview/reporesolver"
+	"tangled.org/core/appview/validator"
 	xrpcclient "tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/eventconsumer"
 	"tangled.org/core/idresolver"
@@ -57,6 +58,7 @@ type Repo struct {
 	notifier      notify.Notifier
 	logger        *slog.Logger
 	serviceAuth   *serviceauth.ServiceAuth
+	validator     *validator.Validator
 }
 
 func New(
@@ -70,6 +72,7 @@ func New(
 	notifier notify.Notifier,
 	enforcer *rbac.Enforcer,
 	logger *slog.Logger,
+	validator *validator.Validator,
 ) *Repo {
 	return &Repo{oauth: oauth,
 		repoResolver:  repoResolver,
@@ -81,6 +84,7 @@ func New(
 		notifier:      notifier,
 		enforcer:      enforcer,
 		logger:        logger,
+		validator:     validator,
 	}
 }
 
@@ -962,6 +966,261 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 	rp.pages.HxRefresh(w)
 }
 
+func (rp *Repo) AddLabel(w http.ResponseWriter, r *http.Request) {
+	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "AddLabel")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	errorId := "add-label-error"
+	fail := func(msg string, err error) {
+		l.Error(msg, "err", err)
+		rp.pages.Notice(w, errorId, msg)
+	}
+
+	// get form values for label definition
+	name := r.FormValue("name")
+	concreteType := r.FormValue("valueType")
+	enumValues := r.FormValue("enumValues")
+	scope := r.FormValue("scope")
+	color := r.FormValue("color")
+	multiple := r.FormValue("multiple") == "true"
+
+	var variants []string
+	for part := range strings.SplitSeq(enumValues, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			variants = append(variants, part)
+		}
+	}
+
+	valueType := db.ValueType{
+		Type:   db.ConcreteType(concreteType),
+		Format: db.ValueTypeFormatAny,
+		Enum:   variants,
+	}
+
+	label := db.LabelDefinition{
+		Did:       user.Did,
+		Rkey:      tid.TID(),
+		Name:      name,
+		ValueType: valueType,
+		Scope:     syntax.NSID(scope),
+		Color:     &color,
+		Multiple:  multiple,
+		Created:   time.Now(),
+	}
+	if err := rp.validator.ValidateLabelDefinition(&label); err != nil {
+		fail(err.Error(), err)
+		return
+	}
+
+	// announce this relation into the firehose, store into owners' pds
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		fail(err.Error(), err)
+		return
+	}
+
+	// emit a labelRecord
+	labelRecord := label.AsRecord()
+	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.LabelDefinitionNSID,
+		Repo:       label.Did,
+		Rkey:       label.Rkey,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &labelRecord,
+		},
+	})
+	// invalid record
+	if err != nil {
+		fail("Failed to write record to PDS.", err)
+		return
+	}
+
+	aturi := resp.Uri
+	l = l.With("at-uri", aturi)
+	l.Info("wrote label record to PDS")
+
+	// update the repo to subscribe to this label
+	newRepo := f.Repo
+	newRepo.Labels = append(newRepo.Labels, aturi)
+	repoRecord := newRepo.AsRecord()
+
+	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
+	if err != nil {
+		fail("Failed to update labels, no record found on PDS.", err)
+		return
+	}
+	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoNSID,
+		Repo:       newRepo.Did,
+		Rkey:       newRepo.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &repoRecord,
+		},
+	})
+
+	tx, err := rp.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		fail("Failed to add label.", err)
+		return
+	}
+
+	rollback := func() {
+		err1 := tx.Rollback()
+		err2 := rollbackRecord(context.Background(), aturi, client)
+
+		// ignore txn complete errors, this is okay
+		if errors.Is(err1, sql.ErrTxDone) {
+			err1 = nil
+		}
+
+		if errs := errors.Join(err1, err2); errs != nil {
+			l.Error("failed to rollback changes", "errs", errs)
+			return
+		}
+	}
+	defer rollback()
+
+	_, err = db.AddLabelDefinition(tx, &label)
+	if err != nil {
+		fail("Failed to add label.", err)
+		return
+	}
+
+	err = db.SubscribeLabel(tx, &db.RepoLabel{
+		RepoAt:  f.RepoAt(),
+		LabelAt: label.AtUri(),
+	})
+
+	err = tx.Commit()
+	if err != nil {
+		fail("Failed to add label.", err)
+		return
+	}
+
+	// clear aturi when everything is successful
+	aturi = ""
+
+	rp.pages.HxRefresh(w)
+}
+
+func (rp *Repo) DeleteLabel(w http.ResponseWriter, r *http.Request) {
+	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "DeleteLabel")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	errorId := "label-operation"
+	fail := func(msg string, err error) {
+		l.Error(msg, "err", err)
+		rp.pages.Notice(w, errorId, msg)
+	}
+
+	// get form values
+	labelId := r.FormValue("label-id")
+
+	label, err := db.GetLabelDefinition(rp.db, db.FilterEq("id", labelId))
+	if err != nil {
+		fail("Failed to find label definition.", err)
+		return
+	}
+
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		fail(err.Error(), err)
+		return
+	}
+
+	// delete label record from PDS
+	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+		Collection: tangled.LabelDefinitionNSID,
+		Repo:       label.Did,
+		Rkey:       label.Rkey,
+	})
+	if err != nil {
+		fail("Failed to delete label record from PDS.", err)
+		return
+	}
+
+	// update repo record to remove the label reference
+	newRepo := f.Repo
+	var updated []string
+	removedAt := label.AtUri().String()
+	for _, l := range newRepo.Labels {
+		if l != removedAt {
+			updated = append(updated, l)
+		}
+	}
+	newRepo.Labels = updated
+	repoRecord := newRepo.AsRecord()
+
+	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
+	if err != nil {
+		fail("Failed to update labels, no record found on PDS.", err)
+		return
+	}
+	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoNSID,
+		Repo:       newRepo.Did,
+		Rkey:       newRepo.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &repoRecord,
+		},
+	})
+	if err != nil {
+		fail("Failed to update repo record.", err)
+		return
+	}
+
+	// transaction for DB changes
+	tx, err := rp.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		fail("Failed to delete label.", err)
+		return
+	}
+	defer tx.Rollback()
+
+	err = db.UnsubscribeLabel(
+		tx,
+		db.FilterEq("repo_at", f.RepoAt()),
+		db.FilterEq("label_at", removedAt),
+	)
+	if err != nil {
+		fail("Failed to unsubscribe label.", err)
+		return
+	}
+
+	err = db.DeleteLabelDefinition(tx, db.FilterEq("id", label.Id))
+	if err != nil {
+		fail("Failed to delete label definition.", err)
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		fail("Failed to delete label.", err)
+		return
+	}
+
+	// everything succeeded
+	rp.pages.HxRefresh(w)
+}
+
 func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "AddCollaborator")
@@ -1589,7 +1848,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			if errors.Is(err, sql.ErrNoRows) {
 				// no existing repo with this name found, we can use the name as is
 			} else {
-				log.Println("error fetching existing repo from db", err)
+				log.Println("error fetching existing repo from db", "err", err)
 				rp.pages.Notice(w, "repo", "Failed to fork this repository. Try again later.")
 				return
 			}
