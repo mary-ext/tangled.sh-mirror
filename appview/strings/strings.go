@@ -9,16 +9,13 @@ import (
 	"time"
 
 	"tangled.org/core/api/tangled"
-	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/middleware"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/markup"
-	"tangled.org/core/eventconsumer"
 	"tangled.org/core/idresolver"
-	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
 
 	"github.com/bluesky-social/indigo/api/atproto"
@@ -32,11 +29,8 @@ type Strings struct {
 	Db         *db.DB
 	OAuth      *oauth.OAuth
 	Pages      *pages.Pages
-	Config     *config.Config
-	Enforcer   *rbac.Enforcer
 	IdResolver *idresolver.Resolver
 	Logger     *slog.Logger
-	Knotstream *eventconsumer.Consumer
 	Notifier   notify.Notifier
 }
 

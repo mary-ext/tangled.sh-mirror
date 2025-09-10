@@ -162,29 +162,29 @@ func (s *Spindle) ingestRepo(ctx context.Context, e *models.Event) error {
 
 		// no spindle configured for this repo
 		if record.Spindle == nil {
-			l.Info("no spindle configured", "did", record.Owner, "name", record.Name)
+			l.Info("no spindle configured", "name", record.Name)
 			return nil
 		}
 
 		// this repo did not want this spindle
 		if *record.Spindle != domain {
-			l.Info("different spindle configured", "did", record.Owner, "name", record.Name, "spindle", *record.Spindle, "domain", domain)
+			l.Info("different spindle configured", "name", record.Name, "spindle", *record.Spindle, "domain", domain)
 			return nil
 		}
 
 		// add this repo to the watch list
-		if err := s.db.AddRepo(record.Knot, record.Owner, record.Name); err != nil {
+		if err := s.db.AddRepo(record.Knot, did, record.Name); err != nil {
 			l.Error("failed to add repo", "error", err)
 			return fmt.Errorf("failed to add repo: %w", err)
 		}
 
-		didSlashRepo, err := securejoin.SecureJoin(record.Owner, record.Name)
+		didSlashRepo, err := securejoin.SecureJoin(did, record.Name)
 		if err != nil {
 			return err
 		}
 
 		// add repo to rbac
-		if err := s.e.AddRepo(record.Owner, rbac.ThisServer, didSlashRepo); err != nil {
+		if err := s.e.AddRepo(did, rbac.ThisServer, didSlashRepo); err != nil {
 			l.Error("failed to add repo to enforcer", "error", err)
 			return fmt.Errorf("failed to add repo: %w", err)
 		}

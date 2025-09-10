@@ -56,7 +56,7 @@ func (x *Xrpc) RemoveSecret(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := resp.Value.Val.(*tangled.Repo)
-	didPath, err := securejoin.SecureJoin(repo.Owner, repo.Name)
+	didPath, err := securejoin.SecureJoin(ident.DID.String(), repo.Name)
 	if err != nil {
 		fail(xrpcerr.GenericError(err))
 		return

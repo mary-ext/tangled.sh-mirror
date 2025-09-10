@@ -238,10 +238,7 @@ func (s *State) StringsRouter(mw *middleware.Middleware) http.Handler {
 		Db:         s.db,
 		OAuth:      s.oauth,
 		Pages:      s.pages,
-		Config:     s.config,
-		Enforcer:   s.enforcer,
 		IdResolver: s.idResolver,
-		Knotstream: s.knotstream,
 		Notifier:   s.notifier,
 		Logger:     logger,
 	}
