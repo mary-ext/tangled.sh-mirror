@@ -129,3 +129,36 @@ func (n *posthogNotifier) UpdateProfile(ctx context.Context, profile *db.Profile
 		log.Println("failed to enqueue posthog event:", err)
 	}
 }
+
+func (n *posthogNotifier) DeleteString(ctx context.Context, did, rkey string) {
+	err := n.client.Enqueue(posthog.Capture{
+		DistinctId: did,
+		Event:      "delete_string",
+		Properties: posthog.Properties{"rkey": rkey},
+	})
+	if err != nil {
+		log.Println("failed to enqueue posthog event:", err)
+	}
+}
+
+func (n *posthogNotifier) EditString(ctx context.Context, string *db.String) {
+	err := n.client.Enqueue(posthog.Capture{
+		DistinctId: string.Did.String(),
+		Event:      "edit_string",
+		Properties: posthog.Properties{"rkey": string.Rkey},
+	})
+	if err != nil {
+		log.Println("failed to enqueue posthog event:", err)
+	}
+}
+
+func (n *posthogNotifier) CreateString(ctx context.Context, string *db.String) {
+	err := n.client.Enqueue(posthog.Capture{
+		DistinctId: string.Did.String(),
+		Event:      "create_string",
+		Properties: posthog.Properties{"rkey": string.Rkey},
+	})
+	if err != nil {
+		log.Println("failed to enqueue posthog event:", err)
+	}
+}
