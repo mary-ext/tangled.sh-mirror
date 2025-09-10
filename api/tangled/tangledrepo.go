@@ -22,9 +22,10 @@ type Repo struct {
 	Description   *string `json:"description,omitempty" cborgen:"description,omitempty"`
 	// knot: knot where the repo was created
 	Knot string `json:"knot" cborgen:"knot"`
+	// labels: List of labels that this repo subscribes to
+	Labels []string `json:"labels,omitempty" cborgen:"labels,omitempty"`
 	// name: name of the repo
-	Name  string `json:"name" cborgen:"name"`
-	Owner string `json:"owner" cborgen:"owner"`
+	Name string `json:"name" cborgen:"name"`
 	// source: source of the repo
 	Source *string `json:"source,omitempty" cborgen:"source,omitempty"`
 	// spindle: CI runner to send jobs to and receive results from
