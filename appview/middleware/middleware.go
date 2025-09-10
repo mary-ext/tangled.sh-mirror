@@ -213,10 +213,13 @@ func (mw Middleware) ResolveRepo() middlewareFunc {
 				return
 			}
 
-			repo, err := db.GetRepo(mw.db, id.DID.String(), repoName)
+			repo, err := db.GetRepo(
+				mw.db,
+				db.FilterEq("did", id.DID.String()),
+				db.FilterEq("name", repoName),
+			)
 			if err != nil {
-				// invalid did or handle
-				log.Println("failed to resolve repo")
+				log.Println("failed to resolve repo", "err", err)
 				mw.pages.ErrorKnot404(w)
 				return
 			}
@@ -276,43 +279,41 @@ func (mw Middleware) ResolvePull() middlewareFunc {
 }
 
 // middleware that is tacked on top of /{user}/{repo}/issues/{issue}
-func (mw Middleware) ResolveIssue() middlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			f, err := mw.repoResolver.Resolve(r)
-			if err != nil {
-				log.Println("failed to fully resolve repo", err)
-				mw.pages.ErrorKnot404(w)
-				return
-			}
+func (mw Middleware) ResolveIssue(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f, err := mw.repoResolver.Resolve(r)
+		if err != nil {
+			log.Println("failed to fully resolve repo", err)
+			mw.pages.ErrorKnot404(w)
+			return
+		}
 
-			issueIdStr := chi.URLParam(r, "issue")
-			issueId, err := strconv.Atoi(issueIdStr)
-			if err != nil {
-				log.Println("failed to fully resolve issue ID", err)
-				mw.pages.ErrorKnot404(w)
-				return
-			}
+		issueIdStr := chi.URLParam(r, "issue")
+		issueId, err := strconv.Atoi(issueIdStr)
+		if err != nil {
+			log.Println("failed to fully resolve issue ID", err)
+			mw.pages.ErrorKnot404(w)
+			return
+		}
 
-			issues, err := db.GetIssues(
-				mw.db,
-				db.FilterEq("repo_at", f.RepoAt()),
-				db.FilterEq("issue_id", issueId),
-			)
-			if err != nil {
-				log.Println("failed to get issues", "err", err)
-				return
-			}
-			if len(issues) != 1 {
-				log.Println("got incorrect number of issues", "len(issuse)", len(issues))
-				return
-			}
-			issue := issues[0]
+		issues, err := db.GetIssues(
+			mw.db,
+			db.FilterEq("repo_at", f.RepoAt()),
+			db.FilterEq("issue_id", issueId),
+		)
+		if err != nil {
+			log.Println("failed to get issues", "err", err)
+			return
+		}
+		if len(issues) != 1 {
+			log.Println("got incorrect number of issues", "len(issuse)", len(issues))
+			return
+		}
+		issue := issues[0]
 
-			ctx := context.WithValue(r.Context(), "issue", &issue)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
+		ctx := context.WithValue(r.Context(), "issue", &issue)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // this should serve the go-import meta tag even if the path is technically

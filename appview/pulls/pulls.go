@@ -1364,9 +1364,13 @@ func (s *Pulls) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 	forkOwnerDid := repoString[0]
 	forkName := repoString[1]
 	// fork repo
-	repo, err := db.GetRepo(s.db, forkOwnerDid, forkName)
+	repo, err := db.GetRepo(
+		s.db,
+		db.FilterEq("did", forkOwnerDid),
+		db.FilterEq("name", forkName),
+	)
 	if err != nil {
-		log.Println("failed to get repo", user.Did, forkVal)
+		log.Println("failed to get repo", "did", forkOwnerDid, "name", forkName, "err", err)
 		return
 	}
 

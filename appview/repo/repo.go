@@ -1556,7 +1556,11 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		forkName := f.Name
 		// this check is *only* to see if the forked repo name already exists
 		// in the user's account.
-		existingRepo, err := db.GetRepo(rp.db, user.Did, f.Name)
+		existingRepo, err := db.GetRepo(
+			rp.db,
+			db.FilterEq("did", user.Did),
+			db.FilterEq("name", f.Name),
+		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// no existing repo with this name found, we can use the name as is
