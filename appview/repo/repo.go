@@ -313,7 +313,6 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 				Val: &tangled.Repo{
 					Knot:        f.Knot,
 					Name:        f.Name,
-					Owner:       user.Did,
 					CreatedAt:   f.Created.Format(time.RFC3339),
 					Description: &newDescription,
 					Spindle:     &f.Spindle,
@@ -926,7 +925,6 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 			Val: &tangled.Repo{
 				Knot:        f.Knot,
 				Name:        f.Name,
-				Owner:       user.Did,
 				CreatedAt:   f.Created.Format(time.RFC3339),
 				Description: &f.Description,
 				Spindle:     spindlePtr,
@@ -1612,7 +1610,6 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 					Knot:      repo.Knot,
 					Name:      repo.Name,
 					CreatedAt: createdAt,
-					Owner:     user.Did,
 					Source:    &sourceAt,
 				}},
 		})

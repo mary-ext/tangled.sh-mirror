@@ -449,7 +449,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 					Knot:      repo.Knot,
 					Name:      repoName,
 					CreatedAt: createdAt,
-					Owner:     user.Did,
 				}},
 		})
 		if err != nil {

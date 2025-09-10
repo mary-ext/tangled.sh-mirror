@@ -5803,6 +5803,10 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 		fieldCount--
 	}
 
+	if t.Labels == nil {
+		fieldCount--
+	}
+
 	if t.Source == nil {
 		fieldCount--
 	}
@@ -5880,27 +5884,40 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
-	// t.Owner (string) (string)
-	if len("owner") > 1000000 {
-		return xerrors.Errorf("Value in field \"owner\" was too long")
-	}
+	// t.Labels ([]string) (slice)
+	if t.Labels != nil {
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("owner"))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string("owner")); err != nil {
-		return err
-	}
+		if len("labels") > 1000000 {
+			return xerrors.Errorf("Value in field \"labels\" was too long")
+		}
 
-	if len(t.Owner) > 1000000 {
-		return xerrors.Errorf("Value in field t.Owner was too long")
-	}
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("labels"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("labels")); err != nil {
+			return err
+		}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.Owner))); err != nil {
-		return err
-	}
-	if _, err := cw.WriteString(string(t.Owner)); err != nil {
-		return err
+		if len(t.Labels) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Labels was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Labels))); err != nil {
+			return err
+		}
+		for _, v := range t.Labels {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
 	}
 
 	// t.Source (string) (string)
@@ -6098,16 +6115,45 @@ func (t *Repo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.LexiconTypeID = string(sval)
 			}
-			// t.Owner (string) (string)
-		case "owner":
+			// t.Labels ([]string) (slice)
+		case "labels":
 
-			{
-				sval, err := cbg.ReadStringWithMax(cr, 1000000)
-				if err != nil {
-					return err
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Labels: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Labels = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Labels[i] = string(sval)
+					}
+
 				}
-
-				t.Owner = string(sval)
 			}
 			// t.Source (string) (string)
 		case "source":

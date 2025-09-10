@@ -141,7 +141,7 @@ func (h *Knot) processPull(ctx context.Context, event *models.Event) error {
 		return fmt.Errorf("rejected pull record: not this knot, %s != %s", repo.Knot, h.c.Server.Hostname)
 	}
 
-	didSlashRepo, err := securejoin.SecureJoin(repo.Owner, repo.Name)
+	didSlashRepo, err := securejoin.SecureJoin(ident.DID.String(), repo.Name)
 	if err != nil {
 		return fmt.Errorf("failed to construct relative repo path: %w", err)
 	}
@@ -191,7 +191,7 @@ func (h *Knot) processPull(ctx context.Context, event *models.Event) error {
 			Kind:        string(workflow.TriggerKindPullRequest),
 			PullRequest: &trigger,
 			Repo: &tangled.Pipeline_TriggerRepo{
-				Did:  repo.Owner,
+				Did:  ident.DID.String(),
 				Knot: repo.Knot,
 				Repo: repo.Name,
 			},
