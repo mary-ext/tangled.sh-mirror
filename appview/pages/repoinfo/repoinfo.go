@@ -24,8 +24,8 @@ func (r RepoInfo) FullName() string {
 }
 
 func (r RepoInfo) OwnerWithoutAt() string {
-	if strings.HasPrefix(r.OwnerWithAt(), "@") {
-		return strings.TrimPrefix(r.OwnerWithAt(), "@")
+	if after, ok := strings.CutPrefix(r.OwnerWithAt(), "@"); ok {
+		return after
 	} else {
 		return userutil.FlattenDid(r.OwnerDid)
 	}
