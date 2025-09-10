@@ -7,6 +7,7 @@
     </div>
     <div class="col-span-1 md:col-span-3 flex flex-col gap-6 p-2">
       {{ template "branchSettings" . }}
+      {{ template "labelSettings" . }}
       {{ template "deleteRepo" . }}
       <div id="operation-error" class="text-red-500 dark:text-red-400"></div>
     </div>
@@ -42,6 +43,46 @@
   </div>
 {{ end }}
 
+{{ define "labelSettings" }}
+  <div class="flex flex-col gap-2">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <div class="col-span-1 md:col-span-2">
+        <h2 class="text-sm pb-2 uppercase font-bold">Labels</h2>
+        <p class="text-gray-500 dark:text-gray-400">
+        Manage your issues and pulls by creating labels to categorize them.
+        Only repository owners may configure labels.
+        </p>
+      </div>
+      <div class="col-span-1 md:col-span-1 md:justify-self-end">
+        <button
+          class="btn flex items-center gap-2"
+          popovertarget="add-labeldef-modal"
+          {{ if not (or .RepoInfo.Roles.IsOwner .RepoInfo.Roles.IsCollaborator) }}disabled{{ end }}
+          popovertargetaction="toggle">
+          {{ i "plus" "size-4" }}
+          add label
+        </button>
+        <div
+          id="add-labeldef-modal"
+          popover
+          class="bg-white w-full sm:w-96 dark:bg-gray-800 p-6 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
+          {{ template "repo/settings/fragments/addLabelDefModal" . }}
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
+      {{ range .Labels }}
+        {{ template "repo/settings/fragments/labelListing" (list $ .) }}
+      {{ else }}
+      <div class="flex items-center justify-center p-2 text-gray-500">
+        no labels added yet
+      </div>
+      {{ end }}
+    </div>
+    <div id="label-operation" class="error"></div>
+  </div>
+{{ end }}
+
 {{ define "deleteRepo" }}
   {{ if .RepoInfo.Roles.RepoDeleteAllowed }}
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -68,3 +109,4 @@
   </div>
   {{ end }}
 {{ end }}
+

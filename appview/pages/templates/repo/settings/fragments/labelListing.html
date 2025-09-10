@@ -1,0 +1,28 @@
+{{ define "repo/settings/fragments/labelListing" }}
+  {{ $root := index . 0 }}
+  {{ $label := index . 1 }}
+  <div id="label-{{$label.Id}}" class="flex items-center justify-between p-2 pl-4">
+    <div class="flex flex-col gap-1 text-sm min-w-0 max-w-[80%]">
+      {{ template "labels/fragments/labelDef" $label }}
+      <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
+        {{ $label.ValueType.Type }}
+        {{ if $label.ValueType.IsEnumType }}
+          <span class="before:content-['·'] before:select-none"></span>
+          {{ join $label.ValueType.Enum ", " }}
+        {{ end }}
+      </div>
+    </div>
+    <button
+      class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+      title="Delete label"
+      hx-delete="/{{ $root.RepoInfo.FullName }}/settings/label"
+      hx-swap="none"
+      hx-vals='{"label-id": "{{ $label.Id }}"}'
+      hx-confirm="Are you sure you want to delete the label `{{ $label.Name }}`?"
+    >
+      {{ i "trash-2" "w-5 h-5" }}
+      <span class="hidden md:inline">delete</span> 
+      {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </button>
+  </div>
+{{ end }}
