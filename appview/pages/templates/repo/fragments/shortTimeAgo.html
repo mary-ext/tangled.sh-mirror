@@ -1,4 +1,9 @@
 {{ define "repo/fragments/shortTimeAgo" }}
-{{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" (print (. | shortRelTimeFmt) " ago")) }}
+  {{ $formatted := shortRelTimeFmt . }}
+  {{ $content := printf "%s ago" $formatted }}
+  {{ if eq $formatted "now" }}
+    {{ $content = "now" }}
+  {{ end }}
+  {{ template "repo/fragments/timeWrapper" (dict "Time" . "Content" $content) }}
 {{ end }}
 
