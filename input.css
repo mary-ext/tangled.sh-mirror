@@ -228,8 +228,9 @@
 }
 /* LineHighlight */
 .chroma .hl {
-    background-color: #bcc0cc;
+  @apply bg-amber-400/30 dark:bg-amber-500/20;
 }
+
 /* LineNumbersTable */
 .chroma .lnt {
     white-space: pre;
@@ -863,8 +864,4 @@
     .chroma .gl {
         text-decoration: underline;
     }
-}
-
-.chroma .line:has(.ln:target) {
-    @apply bg-amber-400/30 dark:bg-amber-500/20;
 }

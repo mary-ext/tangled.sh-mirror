@@ -1,0 +1,90 @@
+{{ define "fragments/multiline-select" }}
+  <script>
+    function highlight(scroll = false) {
+      document.querySelectorAll(".hl").forEach(el => {
+        el.classList.remove("hl");
+      });
+
+      const hash = window.location.hash;
+      if (!hash || !hash.startsWith("#L")) {
+        return;
+      }
+
+      const rangeStr = hash.substring(2);
+      const parts = rangeStr.split("-");
+      let startLine, endLine;
+
+      if (parts.length === 2) {
+        startLine = parseInt(parts[0], 10);
+        endLine = parseInt(parts[1], 10);
+      } else {
+        startLine = parseInt(parts[0], 10);
+        endLine = startLine;
+      }
+
+      if (isNaN(startLine) || isNaN(endLine)) {
+        console.log("nan");
+        console.log(startLine);
+        console.log(endLine);
+        return;
+      }
+
+      let target = null;
+
+      for (let i = startLine; i<= endLine; i++) {
+        const idEl = document.getElementById(`L${i}`);
+        if (idEl) {
+          const el = idEl.closest(".line");
+          if (el) {
+            el.classList.add("hl");
+            target = el;
+          }
+        }
+      }
+
+      if (scroll && target) {
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("DOMContentLoaded");
+      highlight(true);
+    });
+    window.addEventListener("hashchange", () => {
+      console.log("hashchange");
+      highlight();
+    });
+    window.addEventListener("popstate", () => {
+      console.log("popstate");
+      highlight();
+    });
+
+    const lineNumbers = document.querySelectorAll('a[href^="#L"');
+    let startLine = null;
+
+    lineNumbers.forEach(el => {
+      el.addEventListener("click", (event) => {
+        event.preventDefault();
+        const currentLine = parseInt(el.href.split("#L")[1]);
+
+        if (event.shiftKey && startLine !== null) {
+          const endLine = currentLine;
+          const min = Math.min(startLine, endLine);
+          const max = Math.max(startLine, endLine);
+          const newHash = `#L${min}-${max}`;
+          history.pushState(null, '', newHash);
+        } else {
+          const newHash = `#L${currentLine}`;
+          history.pushState(null, '', newHash);
+          startLine = currentLine;
+        }
+
+        highlight();
+      });
+    });
+  </script>
+{{ end }}
