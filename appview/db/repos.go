@@ -31,7 +31,28 @@ type Repo struct {
 }
 
 func (r *Repo) AsRecord() tangled.Repo {
-	return tangled.Repo{}
+	var source, spindle, description *string
+
+	if r.Source != "" {
+		source = &r.Source
+	}
+
+	if r.Spindle != "" {
+		spindle = &r.Spindle
+	}
+
+	if r.Description != "" {
+		description = &r.Description
+	}
+
+	return tangled.Repo{
+		Knot:        r.Knot,
+		Name:        r.Name,
+		Description: description,
+		CreatedAt:   r.Created.Format(time.RFC3339),
+		Source:      source,
+		Spindle:     spindle,
+	}
 }
 
 func (r Repo) RepoAt() syntax.ATURI {

@@ -434,7 +434,9 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			Knot:        domain,
 			Rkey:        rkey,
 			Description: description,
+			Created:     time.Now(),
 		}
+		record := repo.AsRecord()
 
 		xrpcClient, err := s.oauth.AuthorizedClient(r)
 		if err != nil {
@@ -443,17 +445,13 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		createdAt := time.Now().Format(time.RFC3339)
 		atresp, err := xrpcClient.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.Repo{
-					Knot:      repo.Knot,
-					Name:      repoName,
-					CreatedAt: createdAt,
-				}},
+				Val: &record,
+			},
 		})
 		if err != nil {
 			l.Info("PDS write failed", "err", err)
