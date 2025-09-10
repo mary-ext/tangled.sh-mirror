@@ -66,3 +66,21 @@ func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *db.Profile)
 		notifier.UpdateProfile(ctx, profile)
 	}
 }
+
+func (m *mergedNotifier) NewString(ctx context.Context, string *db.String) {
+	for _, notifier := range m.notifiers {
+		notifier.NewString(ctx, string)
+	}
+}
+
+func (m *mergedNotifier) EditString(ctx context.Context, string *db.String) {
+	for _, notifier := range m.notifiers {
+		notifier.EditString(ctx, string)
+	}
+}
+
+func (m *mergedNotifier) DeleteString(ctx context.Context, did, rkey string) {
+	for _, notifier := range m.notifiers {
+		notifier.DeleteString(ctx, did, rkey)
+	}
+}
