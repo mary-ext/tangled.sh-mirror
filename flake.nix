@@ -151,6 +151,7 @@
         nativeBuildInputs = [
           pkgs.go
           pkgs.air
+          pkgs.tilt
           pkgs.gopls
           pkgs.httpie
           pkgs.litecli

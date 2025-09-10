@@ -1,0 +1,44 @@
+common_env = {
+    "TANGLED_VM_SPINDLE_OWNER": os.getenv("TANGLED_VM_SPINDLE_OWNER", default=""),
+    "TANGLED_VM_KNOT_OWNER": os.getenv("TANGLED_VM_KNOT_OWNER", default=""),
+    "TANGLED_DB_PATH": os.getenv("TANGLED_DB_PATH", default="dev.db"),
+    "TANGLED_DEV": os.getenv("TANGLED_DEV", default="true"),
+}
+
+nix_globs = ["nix/**", "flake.nix", "flake.lock"]
+
+local_resource(
+    name="appview",
+    serve_cmd="nix run .#watch-appview",
+    serve_dir="..",
+    deps=nix_globs,
+    env=common_env,
+    allow_parallel=True,
+)
+
+local_resource(
+    name="tailwind",
+    serve_cmd="nix run .#watch-tailwind",
+    serve_dir="..",
+    deps=nix_globs,
+    env=common_env,
+    allow_parallel=True,
+)
+
+local_resource(
+    name="redis",
+    serve_cmd="redis-server",
+    serve_dir="..",
+    deps=nix_globs,
+    env=common_env,
+    allow_parallel=True,
+)
+
+local_resource(
+    name="vm",
+    serve_cmd="nix run --impure .#vm",
+    serve_dir="..",
+    deps=nix_globs,
+    env=common_env,
+    allow_parallel=True,
+)
