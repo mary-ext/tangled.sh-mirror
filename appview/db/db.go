@@ -466,6 +466,71 @@ func Make(dbPath string) (*DB, error) {
 			primary key (did, rkey)
 		);
 
+		create table if not exists label_definitions (
+			-- identifiers
+			id integer primary key autoincrement,
+			did text not null,
+			rkey text not null,
+			at_uri text generated always as ('at://' || did || '/' || 'sh.tangled.label.definition' || '/' || rkey) stored,
+
+			-- content
+			name text not null,
+			value_type text not null check (value_type in (
+				"null",
+				"boolean",
+				"integer",
+				"string"
+			)),
+			value_format text not null default "any",
+			value_enum text, -- comma separated list
+			scope text not null,
+			color text,
+			multiple integer not null default 0,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
+			unique (did, rkey)
+			unique (at_uri)
+		);
+
+		-- ops are flattened, a record may contain several additions and deletions, but the table will include one row per add/del
+		create table if not exists label_ops (
+			-- identifiers
+			id integer primary key autoincrement,
+			did text not null,
+			rkey text not null,
+			at_uri text generated always as ('at://' || did || '/' || 'sh.tangled.label.op' || '/' || rkey) stored,
+
+			-- content
+			subject text not null,
+			operation text not null check (operation in ("add", "del")),
+			operand_key text not null,
+			operand_value text not null,
+			-- we need two time values: performed is declared by the user, indexed is calculated by the av
+			performed text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			indexed text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
+			-- traditionally (did, rkey) pair should be unique, but not in this case
+			-- operand_key should reference a label definition
+			foreign key (operand_key) references label_definitions (at_uri) on delete cascade,
+			unique (did, rkey, subject, operand_key, operand_value)
+		);
+
+		create table if not exists repo_labels (
+			-- identifiers
+			id integer primary key autoincrement,
+
+			-- repo identifiers
+			repo_at text not null,
+
+			-- label to subscribe to
+			label_at text not null,
+
+			unique (repo_at, label_at),
+			foreign key (label_at) references label_definitions (at_uri)
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
