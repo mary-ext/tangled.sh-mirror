@@ -1,0 +1,104 @@
+{{ define "repo/settings/fragments/addLabelDefModal" }}
+<form
+  hx-put="/{{ $.RepoInfo.FullName }}/settings/label"
+  hx-indicator="#spinner"
+  hx-swap="none"
+  class="flex flex-col gap-4"
+>
+  <p class="text-gray-500 dark:text-gray-400">Labels can have a name and a value. Set the value type to "none" to create a simple label.</p>
+
+  <div class="w-full">
+    <label for="name">Name</label>
+    <input class="w-full" type="text" id="label-name" name="name" required placeholder="improvement"/>
+  </div>
+
+   <!-- Value Type -->
+  <div class="w-full">
+    <label for="valueType">Value Type</label>
+    <select id="value-type" name="valueType" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+      <option value="string" selected>String</option>
+      <option value="integer">Integer</option>
+      <option value="boolean">Boolean</option>
+      <option value="null">None</option>
+    </select>
+    <details id="constrain-values" class="group">
+      <summary class="list-none cursor-pointer flex items-center gap-2 py-2">
+        <span class="group-open:hidden inline text-gray-500 dark:text-gray-400">{{ i "square-plus" "w-4 h-4" }}</span>
+        <span class="hidden group-open:inline text-gray-500 dark:text-gray-400">{{ i "square-minus" "w-4 h-4" }}</span>
+        <span>Constrain values</span>
+      </summary>
+      <input type="text" id="enumValues" name="enumValues" placeholder="value1, value2, value3" class="w-full"/>
+      <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Enter comma-separated list of permitted values.</p>
+    </details>
+  </div>
+
+  <!-- Scope -->
+  <div class="w-full">
+    <label for="scope">Scope</label>
+    <select id="scope" name="scope" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+      <option value="sh.tangled.repo.issue">Issues</option>
+      <option value="sh.tangled.repo.pull">Pull Requests</option>
+    </select>
+  </div>
+
+  <!-- Color -->
+  <div class="w-full">
+    <label for="color">Color</label>
+    <div class="grid grid-cols-4 grid-rows-2 place-items-center">
+      {{ $colors := list "#ef4444" "#3b82f6" "#10b981" "#f59e0b" "#8b5cf6" "#ec4899" "#06b6d4" "#64748b" }}
+      {{ range $i, $color := $colors }}
+      <label class="relative">
+        <input type="radio" name="color" value="{{ $color }}" class="sr-only peer" {{ if eq $i 0 }} checked {{ end }}>
+        {{ template "repo/fragments/colorBall" (dict "color" $color "classes" "size-4 peer-checked:size-8 transition-all") }}
+      </label>
+      {{ end }}
+    </div>
+  </div>
+
+  <!-- Multiple -->
+  <div class="w-full flex flex-wrap gap-2">
+    <input type="checkbox" id="multiple" name="multiple" value="true" />
+    <span>
+      Allow multiple values
+    </span>
+  </div>
+
+  <div class="flex gap-2 pt-2">
+    <button
+      type="button"
+      popovertarget="add-labeldef-modal"
+      popovertargetaction="hide"
+      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+      >
+      {{ i "x" "size-4" }} cancel
+    </button>
+    <button type="submit" class="btn w-1/2 flex items-center">
+      <span class="inline-flex gap-2 items-center">{{ i "plus" "size-4" }} add</span>
+      <span id="spinner" class="group">
+        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </span>
+    </button>
+  </div>
+  <div id="add-label-error" class="text-red-500 dark:text-red-400"></div>
+</form>
+
+<script>
+  document.getElementById('value-type').addEventListener('change', function() {
+    const constrainValues = document.getElementById('constrain-values');
+    const selectedValue = this.value;
+
+    if (selectedValue === 'string' || selectedValue === 'integer') {
+      constrainValues.classList.remove('hidden');
+    } else {
+      constrainValues.classList.add('hidden');
+      constrainValues.removeAttribute('open');
+      document.getElementById('enumValues').value = '';
+    }
+  });
+
+  function toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+  }
+</script>
+{{ end }}
+
