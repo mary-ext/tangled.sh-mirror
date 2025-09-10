@@ -36,7 +36,7 @@
   <div class="text-gray-400 text-sm font-mono inline-flex gap-4 mt-auto">
     {{ with .Language }}
       <div class="flex gap-2 items-center text-sm">
-        {{ template "repo/fragments/languageBall" . }}
+        {{ template "repo/fragments/colorBall" (dict "color" (langColor .)) }}
         <span>{{ . }}</span>
       </div>
     {{ end }}
