@@ -334,6 +334,24 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 	return repos, nil
 }
 
+// helper to get exactly one repo
+func GetRepo(e Execer, filters ...filter) (*Repo, error) {
+	repos, err := GetRepos(e, 0, filters...)
+	if err != nil {
+		return nil, err
+	}
+
+	if repos == nil {
+		return nil, sql.ErrNoRows
+	}
+
+	if len(repos) != 1 {
+		return nil, fmt.Errorf("too many rows returned")
+	}
+
+	return &repos[0], nil
+}
+
 func CountRepos(e Execer, filters ...filter) (int64, error) {
 	var conditions []string
 	var args []any
@@ -356,37 +374,6 @@ func CountRepos(e Execer, filters ...filter) (int64, error) {
 	}
 
 	return count, nil
-}
-
-func GetRepo(e Execer, did, name string) (*Repo, error) {
-	var repo Repo
-	var description, spindle sql.NullString
-
-	row := e.QueryRow(`
-		select did, name, knot, created, description, spindle, rkey
-		from repos
-		where did = ? and name = ?
-		`,
-		did,
-		name,
-	)
-
-	var createdAt string
-	if err := row.Scan(&repo.Did, &repo.Name, &repo.Knot, &createdAt, &description, &spindle, &repo.Rkey); err != nil {
-		return nil, err
-	}
-	createdAtTime, _ := time.Parse(time.RFC3339, createdAt)
-	repo.Created = createdAtTime
-
-	if description.Valid {
-		repo.Description = description.String
-	}
-
-	if spindle.Valid {
-		repo.Spindle = spindle.String
-	}
-
-	return &repo, nil
 }
 
 func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {

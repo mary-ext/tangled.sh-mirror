@@ -14,7 +14,7 @@ func (i *Issues) Router(mw *middleware.Middleware) http.Handler {
 		r.With(middleware.Paginate).Get("/", i.RepoIssues)
 
 		r.Route("/{issue}", func(r chi.Router) {
-			r.Use(mw.ResolveIssue())
+			r.Use(mw.ResolveIssue)
 			r.Get("/", i.RepoSingleIssue)
 
 			// authenticated routes

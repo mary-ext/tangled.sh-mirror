@@ -146,7 +146,7 @@ func (s *Spindle) ingestRepo(ctx context.Context, e *models.Event) error {
 
 	l := s.l.With("component", "ingester", "record", tangled.RepoNSID)
 
-	l.Info("ingesting repo record")
+	l.Info("ingesting repo record", "did", did)
 
 	switch e.Commit.Operation {
 	case models.CommitOperationCreate, models.CommitOperationUpdate:
