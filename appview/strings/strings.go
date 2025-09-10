@@ -12,6 +12,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/middleware"
+	"tangled.sh/tangled.sh/core/appview/notify"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/pages/markup"
@@ -36,6 +37,7 @@ type Strings struct {
 	IdResolver *idresolver.Resolver
 	Logger     *slog.Logger
 	Knotstream *eventconsumer.Consumer
+	Notifier   notify.Notifier
 }
 
 func (s *Strings) Router(mw *middleware.Middleware) http.Handler {
@@ -284,6 +286,8 @@ func (s *Strings) edit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		s.Notifier.EditString(r.Context(), &entry)
+
 		// if that went okay, redir to the string
 		s.Pages.HxRedirect(w, "/strings/"+user.Handle+"/"+entry.Rkey)
 	}
@@ -358,6 +362,8 @@ func (s *Strings) create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		s.Notifier.NewString(r.Context(), &string)
+
 		// successful
 		s.Pages.HxRedirect(w, "/strings/"+user.Handle+"/"+string.Rkey)
 	}
@@ -399,6 +405,8 @@ func (s *Strings) delete(w http.ResponseWriter, r *http.Request) {
 		fail("Failed to delete string.", err)
 		return
 	}
+
+	s.Notifier.DeleteString(r.Context(), user.Did, rkey)
 
 	s.Pages.HxRedirect(w, "/strings/"+user.Handle)
 }

@@ -21,6 +21,10 @@ type Notifier interface {
 	NewPullComment(ctx context.Context, comment *db.PullComment)
 
 	UpdateProfile(ctx context.Context, profile *db.Profile)
+
+	NewString(ctx context.Context, s *db.String)
+	EditString(ctx context.Context, s *db.String)
+	DeleteString(ctx context.Context, did, rkey string)
 }
 
 // BaseNotifier is a listener that does nothing
@@ -42,3 +46,7 @@ func (m *BaseNotifier) NewPull(ctx context.Context, pull *db.Pull)              
 func (m *BaseNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {}
 
 func (m *BaseNotifier) UpdateProfile(ctx context.Context, profile *db.Profile) {}
+
+func (m *BaseNotifier) NewString(ctx context.Context, s *db.String)        {}
+func (m *BaseNotifier) EditString(ctx context.Context, s *db.String)       {}
+func (m *BaseNotifier) DeleteString(ctx context.Context, did, rkey string) {}
