@@ -1391,10 +1391,18 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	labels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", f.Repo.Labels))
+	if err != nil {
+		log.Println("failed to fetch labels", err)
+		rp.pages.Error503(w)
+		return
+	}
+
 	rp.pages.RepoGeneralSettings(w, pages.RepoGeneralSettingsParams{
 		LoggedInUser: user,
 		RepoInfo:     f.RepoInfo(user),
 		Branches:     result.Branches,
+		Labels:       labels,
 		Tabs:         settingsTabs,
 		Tab:          "general",
 	})
