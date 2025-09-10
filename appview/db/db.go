@@ -669,7 +669,6 @@ func Make(dbPath string) (*DB, error) {
 	})
 	conn.ExecContext(ctx, "pragma foreign_keys = on;")
 
-	// run migrations
 	runMigration(conn, "add-spindle-to-repos", func(tx *sql.Tx) error {
 		tx.Exec(`
 			alter table repos add column spindle text;

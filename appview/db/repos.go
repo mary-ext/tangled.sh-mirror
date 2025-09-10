@@ -30,6 +30,10 @@ type Repo struct {
 	Source string
 }
 
+func (r *Repo) AsRecord() tangled.Repo {
+	return tangled.Repo{}
+}
+
 func (r Repo) RepoAt() syntax.ATURI {
 	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", r.Did, tangled.RepoNSID, r.Rkey))
 }
@@ -493,4 +497,75 @@ type RepoStats struct {
 	StarCount  int
 	IssueCount IssueCount
 	PullCount  PullCount
+}
+
+type RepoLabel struct {
+	Id      int64
+	RepoAt  syntax.ATURI
+	LabelAt syntax.ATURI
+}
+
+func SubscribeLabel(e Execer, rl *RepoLabel) error {
+	query := `insert or ignore into repo_labels (repo_at, label_at) values (?, ?)`
+
+	_, err := e.Exec(query, rl.RepoAt.String(), rl.LabelAt.String())
+	return err
+}
+
+func UnsubscribeLabel(e Execer, filters ...filter) error {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`delete from repo_labels %s`, whereClause)
+	_, err := e.Exec(query, args...)
+	return err
+}
+
+func GetRepoLabels(e Execer, filters ...filter) ([]RepoLabel, error) {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`select id, repo_at, label_at from repo_labels %s`, whereClause)
+
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var labels []RepoLabel
+	for rows.Next() {
+		var label RepoLabel
+
+		err := rows.Scan(&label.Id, &label.RepoAt, &label.LabelAt)
+		if err != nil {
+			return nil, err
+		}
+
+		labels = append(labels, label)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return labels, nil
 }
