@@ -28,6 +28,8 @@ func main() {
 		tangled.KnotMember{},
 		tangled.LabelDefinition{},
 		tangled.LabelDefinition_ValueType{},
+		tangled.LabelOp{},
+		tangled.LabelOp_Operand{},
 		tangled.Pipeline{},
 		tangled.Pipeline_CloneOpts{},
 		tangled.Pipeline_ManualTriggerData{},
