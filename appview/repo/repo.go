@@ -295,10 +295,14 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		newRepo := f.Repo
+		newRepo.Description = newDescription
+		record := newRepo.AsRecord()
+
 		// this is a bit of a pain because the golang atproto impl does not allow nil SwapRecord field
 		//
 		// SwapRecord is optional and should happen automagically, but given that it does not, we have to perform two requests
-		ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, user.Did, rkey)
+		ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
 		if err != nil {
 			// failed to get record
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, no record found on PDS.")
@@ -306,17 +310,11 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
-			Repo:       user.Did,
-			Rkey:       rkey,
+			Repo:       newRepo.Did,
+			Rkey:       newRepo.Rkey,
 			SwapRecord: ex.Cid,
 			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.Repo{
-					Knot:        f.Knot,
-					Name:        f.Name,
-					CreatedAt:   f.Created.Format(time.RFC3339),
-					Description: &newDescription,
-					Spindle:     &f.Spindle,
-				},
+				Val: &record,
 			},
 		})
 
@@ -870,13 +868,6 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoAt := f.RepoAt()
-	rkey := repoAt.RecordKey().String()
-	if rkey == "" {
-		fail("Failed to resolve repo. Try again later", err)
-		return
-	}
-
 	newSpindle := r.FormValue("spindle")
 	removingSpindle := newSpindle == "[[none]]" // see pages/templates/repo/settings/pipelines.html for more info on why we use this value
 	client, err := rp.oauth.AuthorizedClient(r)
@@ -899,36 +890,35 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	newRepo := f.Repo
+	newRepo.Spindle = newSpindle
+	record := newRepo.AsRecord()
+
 	spindlePtr := &newSpindle
 	if removingSpindle {
 		spindlePtr = nil
+		newRepo.Spindle = ""
 	}
 
 	// optimistic update
-	err = db.UpdateSpindle(rp.db, string(repoAt), spindlePtr)
+	err = db.UpdateSpindle(rp.db, newRepo.RepoAt().String(), spindlePtr)
 	if err != nil {
 		fail("Failed to update spindle. Try again later.", err)
 		return
 	}
 
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, user.Did, rkey)
+	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
 	if err != nil {
 		fail("Failed to update spindle, no record found on PDS.", err)
 		return
 	}
 	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoNSID,
-		Repo:       user.Did,
-		Rkey:       rkey,
+		Repo:       newRepo.Did,
+		Rkey:       newRepo.Rkey,
 		SwapRecord: ex.Cid,
 		Record: &lexutil.LexiconTypeDecoder{
-			Val: &tangled.Repo{
-				Knot:        f.Knot,
-				Name:        f.Name,
-				CreatedAt:   f.Created.Format(time.RFC3339),
-				Description: &f.Description,
-				Spindle:     spindlePtr,
-			},
+			Val: &record,
 		},
 	})
 
@@ -1049,7 +1039,7 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.AddCollaborator(rp.db, db.Collaborator{
+	err = db.AddCollaborator(tx, db.Collaborator{
 		Did:        syntax.DID(currentUser.Did),
 		Rkey:       rkey,
 		SubjectDid: collaboratorIdent.DID,
@@ -1586,12 +1576,15 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		// create an atproto record for this fork
 		rkey := tid.TID()
 		repo := &db.Repo{
-			Did:    user.Did,
-			Name:   forkName,
-			Knot:   targetKnot,
-			Rkey:   rkey,
-			Source: sourceAt,
+			Did:         user.Did,
+			Name:        forkName,
+			Knot:        targetKnot,
+			Rkey:        rkey,
+			Source:      sourceAt,
+			Description: existingRepo.Description,
+			Created:     time.Now(),
 		}
+		record := repo.AsRecord()
 
 		xrpcClient, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
@@ -1600,18 +1593,13 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		createdAt := time.Now().Format(time.RFC3339)
 		atresp, err := xrpcClient.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
 			Record: &lexutil.LexiconTypeDecoder{
-				Val: &tangled.Repo{
-					Knot:      repo.Knot,
-					Name:      repo.Name,
-					CreatedAt: createdAt,
-					Source:    &sourceAt,
-				}},
+				Val: &record,
+			},
 		})
 		if err != nil {
 			l.Error("failed to write to PDS", "err", err)
