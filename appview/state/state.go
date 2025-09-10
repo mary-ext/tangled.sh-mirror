@@ -419,7 +419,11 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Check for existing repos
-		existingRepo, err := db.GetRepo(s.db, user.Did, repoName)
+		existingRepo, err := db.GetRepo(
+			s.db,
+			db.FilterEq("did", user.Did),
+			db.FilterEq("name", repoName),
+		)
 		if err == nil && existingRepo != nil {
 			l.Info("repo exists")
 			s.pages.Notice(w, "repo", fmt.Sprintf("You already have a repository by this name on %s", existingRepo.Knot))
