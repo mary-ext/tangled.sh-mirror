@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/sessions"
 	"tangled.org/core/appview/issues"
 	"tangled.org/core/appview/knots"
+	"tangled.org/core/appview/labels"
 	"tangled.org/core/appview/middleware"
 	oauthhandler "tangled.org/core/appview/oauth/handler"
 	"tangled.org/core/appview/pipelines"
@@ -90,6 +91,7 @@ func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 			r.Mount("/issues", s.IssuesRouter(mw))
 			r.Mount("/pulls", s.PullsRouter(mw))
 			r.Mount("/pipelines", s.PipelinesRouter(mw))
+			r.Mount("/labels", s.LabelsRouter(mw))
 
 			// These routes get proxied to the knot
 			r.Get("/info/refs", s.InfoRefs)
@@ -265,6 +267,11 @@ func (s *State) RepoRouter(mw *middleware.Middleware) http.Handler {
 func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
 	pipes := pipelines.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.enforcer)
 	return pipes.Router(mw)
+}
+
+func (s *State) LabelsRouter(mw *middleware.Middleware) http.Handler {
+	ls := labels.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.enforcer)
+	return ls.Router(mw)
 }
 
 func (s *State) SignupRouter() http.Handler {
