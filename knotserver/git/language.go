@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"path"
+	"strings"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -20,7 +21,9 @@ func (g *GitRepo) AnalyzeLanguages(ctx context.Context) (LangBreakdown, error) {
 			return nil
 		}
 
-		if enry.IsGenerated(filepath, content) {
+		if enry.IsGenerated(filepath, content) ||
+			enry.IsBinary(content) ||
+			strings.HasSuffix(filepath, "bun.lock") {
 			return nil
 		}
 
