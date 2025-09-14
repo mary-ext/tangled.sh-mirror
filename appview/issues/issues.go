@@ -785,10 +785,23 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	labelDefs, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", f.Repo.Labels))
+	if err != nil {
+		log.Println("failed to fetch labels", err)
+		rp.pages.Error503(w)
+		return
+	}
+
+	defs := make(map[string]*db.LabelDefinition)
+	for _, l := range labelDefs {
+		defs[l.AtUri().String()] = &l
+	}
+
 	rp.pages.RepoIssues(w, pages.RepoIssuesParams{
 		LoggedInUser:    rp.oauth.GetUser(r),
 		RepoInfo:        f.RepoInfo(user),
 		Issues:          issues,
+		LabelDefs:       defs,
 		FilteringByOpen: isOpen,
 		Page:            page,
 	})

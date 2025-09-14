@@ -1,0 +1,6 @@
+{{ define "labels/fragments/labelDef" }}
+  <span class="flex items-center gap-2 font-normal normal-case">
+    {{ template "repo/fragments/colorBall" (dict "color" .GetColor) }}
+    {{ .Name }}
+  </span>
+{{ end }}
