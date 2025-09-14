@@ -92,6 +92,18 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		userReactions = db.GetReactionStatusMap(rp.db, user.Did, issue.AtUri())
 	}
 
+	labelDefs, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", f.Repo.Labels))
+	if err != nil {
+		log.Println("failed to fetch labels", err)
+		rp.pages.Error503(w)
+		return
+	}
+
+	defs := make(map[string]*db.LabelDefinition)
+	for _, l := range labelDefs {
+		defs[l.AtUri().String()] = &l
+	}
+
 	rp.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
 		LoggedInUser:         user,
 		RepoInfo:             f.RepoInfo(user),
@@ -100,6 +112,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		OrderedReactionKinds: db.OrderedReactionKinds,
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
+		LabelDefs:            defs,
 	})
 }
 
