@@ -49,7 +49,7 @@
             <span class="text-gray-500">#{{ .IssueId }}</span>
         </a>
       </div>
-      <p class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
+      <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
         {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
         {{ $icon := "ban" }}
         {{ $state := "closed" }}
@@ -75,11 +75,21 @@
         <span class="before:content-['·']">
           {{ $s := "s" }}
           {{ if eq (len .Comments) 1 }}
-          {{ $s = "" }}
+            {{ $s = "" }}
           {{ end }}
           <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-500 dark:text-gray-400">{{ len .Comments }} comment{{$s}}</a>
         </span>
-      </p>
+
+        {{ if .Labels.Inner }}
+          <span class="before:content-['·']"></span>
+          {{ range $k, $valset := .Labels.Inner }}
+            {{ $d := index $.LabelDefs $k }}
+            {{ range $v, $s := $valset }}
+              {{ template "labels/fragments/label" (dict "def" $d "val" $v) }}
+            {{ end }}
+          {{ end }}
+        {{ end }}
+      </div>
     </div>
     {{ end }}
   </div>
