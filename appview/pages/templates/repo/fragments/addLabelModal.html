@@ -1,0 +1,119 @@
+{{ define "repo/fragments/addLabelModal" }}
+  {{ $root := .root }}
+  {{ $subject := .subject }}
+  {{ $state := .state }}
+  {{ with $root }}
+    <form
+      hx-put="/{{ .RepoInfo.FullName }}/labels/perform"
+      hx-on::after-request="if(event.detail.successful) this.reset()"
+      hx-indicator="#spinner"
+      hx-swap="none"
+      class="flex flex-col gap-4"
+    >
+      <p class="text-gray-500 dark:text-gray-400">Add, remove or update labels.</p>
+
+      <input class="hidden" name="repo" value="{{ .RepoInfo.RepoAt.String }}">
+      <input class="hidden" name="subject" value="{{ $subject }}">
+
+      <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+        {{ $id := 0 }}
+        {{ range $k, $valset := $state.Inner }}
+          {{ $d := index $root.LabelDefs $k }}
+          {{ range $v, $s := $valset }}
+            <div class="grid grid-cols-2 cursor-pointer rounded">
+              <label class="w-full flex items-center gap-2">
+                <input type="checkbox" name="op-{{$id}}" value="add" checked>
+                {{ template "labels/fragments/labelDef" $d }}
+              </label>
+              {{ template "valueTypeInput" (dict "valueType" $d.ValueType "value" $v "key" $k) }}
+              <input type="hidden" name="operand-key" value="{{ $k }}">
+              {{ $id = add $id 1 }}
+            </div>
+          {{ end }}
+        {{ end }}
+
+        {{ range $k, $d := $root.LabelDefs }}
+          {{ if not ($state.ContainsLabel $k) }}
+            <div class="grid grid-cols-2 cursor-pointer rounded">
+              <label class="w-full flex items-center gap-2">
+                <input type="checkbox" name="op-{{$id}}" value="add">
+                {{ template "labels/fragments/labelDef" $d }}
+              </label>
+              {{ template "valueTypeInput" (dict "valueType" $d.ValueType "value" "" "key" $k) }}
+              <input type="hidden" name="operand-key" value="{{ $k }}">
+              {{ $id = add $id 1 }}
+            </div>
+          {{ end }}
+        {{ end }}
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button
+          type="button"
+          popovertarget="add-label-modal"
+          popovertargetaction="hide"
+          class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+          >
+          {{ i "x" "size-4" }} cancel
+        </button>
+        <button type="submit" class="btn w-1/2 flex items-center">
+          <span class="inline-flex gap-2 items-center">{{ i "check" "size-4" }} save</span>
+          <span id="spinner" class="group">
+            {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </span>
+        </button>
+      </div>
+      <div id="add-label-error" class="text-red-500 dark:text-red-400"></div>
+    </form>
+  {{ end }}
+{{ end }}
+
+{{ define "valueTypeInput" }}
+  {{ $valueType := .valueType }}
+  {{ $value := .value }}
+  {{ $key := .key }}
+
+  {{ if $valueType.IsEnumType }}
+    {{ template "enumTypeInput" $ }}
+  {{ else if $valueType.IsBool }}
+    {{ template "boolTypeInput" $ }}
+  {{ else if $valueType.IsInt }}
+    {{ template "intTypeInput" $ }}
+  {{ else if $valueType.IsString }}
+    {{ template "stringTypeInput" $ }}
+  {{ else if $valueType.IsNull }}
+    {{ template "nullTypeInput" $ }}
+  {{ end }}
+{{ end }}
+
+{{ define "enumTypeInput" }}
+  {{ $valueType := .valueType }}
+  {{ $value := .value }}
+  <select name="operand-val" class="w-full p-1 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+    {{ range $valueType.Enum }}
+      <option value="{{.}}" {{ if eq $value . }} selected {{ end }}>{{.}}</option>
+    {{ end }}
+  </select>
+{{ end }}
+
+{{ define "boolTypeInput" }}
+  {{ $value := .value }}
+  <select name="operand-val" class="w-full p-1 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+    <option value="true" {{ if $value }} selected {{ end }}>true</option>
+    <option value="false" {{ if not $value }} selected {{ end }}>false</option>
+  </select>
+{{ end }}
+
+{{ define "intTypeInput" }}
+  {{ $value := .value }}
+  <input class="p-1 w-full" type="number" name="operand-val" value="{{$value}}" max="100">
+{{ end }}
+
+{{ define "stringTypeInput" }}
+  {{ $value := .value }}
+  <input class="p-1 w-full" type="text" name="operand-val" value="{{$value}}">
+{{ end }}
+
+{{ define "nullTypeInput" }}
+  <input class="p-1" type="hidden" name="operand-val" value="null">
+{{ end }}

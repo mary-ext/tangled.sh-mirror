@@ -897,12 +897,12 @@ func (p *Pages) RepoIssues(w io.Writer, params RepoIssuesParams) error {
 }
 
 type RepoSingleIssueParams struct {
-	LoggedInUser     *oauth.User
-	RepoInfo         repoinfo.RepoInfo
-	Active           string
-	Issue            *db.Issue
-	CommentList      []db.CommentListItem
-	IssueOwnerHandle string
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Active       string
+	Issue        *db.Issue
+	CommentList  []db.CommentListItem
+	LabelDefs    map[string]*db.LabelDefinition
 
 	OrderedReactionKinds []db.ReactionKind
 	Reactions            map[db.ReactionKind]int

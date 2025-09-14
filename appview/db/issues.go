@@ -30,6 +30,7 @@ type Issue struct {
 	// optionally, populate this when querying for reverse mappings
 	// like comment counts, parent repo etc.
 	Comments []IssueComment
+	Labels   LabelState
 	Repo     *Repo
 }
 
@@ -371,15 +372,26 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Is
 
 	// collect comments
 	issueAts := slices.Collect(maps.Keys(issueMap))
+
 	comments, err := GetIssueComments(e, FilterIn("issue_at", issueAts))
 	if err != nil {
 		return nil, fmt.Errorf("failed to query comments: %w", err)
 	}
-
 	for i := range comments {
 		issueAt := comments[i].IssueAt
 		if issue, ok := issueMap[issueAt]; ok {
 			issue.Comments = append(issue.Comments, comments[i])
+		}
+	}
+
+	// collect allLabels for each issue
+	allLabels, err := GetLabels(e, FilterIn("subject", issueAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query labels: %w", err)
+	}
+	for issueAt, labels := range allLabels {
+		if issue, ok := issueMap[issueAt.String()]; ok {
+			issue.Labels = labels
 		}
 	}
 
