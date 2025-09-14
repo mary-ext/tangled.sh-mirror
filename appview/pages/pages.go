@@ -887,6 +887,7 @@ type RepoIssuesParams struct {
 	RepoInfo        repoinfo.RepoInfo
 	Active          string
 	Issues          []db.Issue
+	LabelDefs       map[string]*db.LabelDefinition
 	Page            pagination.Page
 	FilteringByOpen bool
 }
