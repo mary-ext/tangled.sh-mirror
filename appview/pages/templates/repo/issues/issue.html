@@ -15,7 +15,10 @@
   {{ if .Issue.Body }}
     <article id="body" class="mt-4 prose dark:prose-invert">{{ .Issue.Body | markdown }}</article>
   {{ end }}
-  {{ template "issueReactions" . }}
+  <div class="flex flex-wrap gap-2 items-stretch">
+    {{ template "issueReactions" . }}
+    {{ template "issueLabels" . }}
+  </div>
 </section>
 {{ end }}
 
@@ -86,7 +89,7 @@
 {{ end }}
 
 {{ define "issueReactions" }}
-  <div class="flex items-center gap-2 mt-2">
+  <div class="flex items-center gap-2">
       {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
       {{ range $kind := .OrderedReactionKinds }}
           {{
@@ -98,6 +101,29 @@
                   "ThreadAt"  $.Issue.AtUri)
           }}
       {{ end }}
+  </div>
+{{ end }}
+
+{{ define "issueLabels" }}
+  {{ range $k, $valset := $.Issue.Labels.Inner }}
+    {{ $d := index $.LabelDefs $k }}
+    {{ range $v, $s := $valset }}
+      {{ template "labels/fragments/label" (dict "def" $d "val" $v) }}
+    {{ end }}
+  {{ end }}
+
+  <button
+    class="btn text-gray-500 dark:text-gray-400"
+    popovertarget="add-label-modal"
+    {{ if not (or .RepoInfo.Roles.IsOwner .RepoInfo.Roles.IsCollaborator) }}disabled{{ end }}
+    popovertargetaction="toggle">
+    {{ i "plus" "size-4" }}
+  </button>
+  <div
+    id="add-label-modal"
+    popover
+    class="bg-white w-full sm:w-96 dark:bg-gray-800 p-6 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
+    {{ template "repo/fragments/addLabelModal" (dict "root" $ "subject" $.Issue.AtUri.String "state" $.Issue.Labels) }}
   </div>
 {{ end }}
 
