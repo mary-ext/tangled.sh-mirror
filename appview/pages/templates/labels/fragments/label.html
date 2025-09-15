@@ -1,8 +1,20 @@
 {{ define "labels/fragments/label" }}
   {{ $d := .def }}
   {{ $v := .val }}
-  <span class="flex items-center gap-2 font-normal normal-case rounded py-1 px-2 border border-gray-200 dark:border-gray-700 text-sm">
+  <span class="flex items-center gap-2 font-normal normal-case rounded py-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm">
     {{ template "repo/fragments/colorBall" (dict "color" $d.GetColor) }}
-    {{ $d.Name }}{{ if not $d.ValueType.IsNull }}/{{ $v }}{{ end }}
+    {{ $d.Name }}{{ if not $d.ValueType.IsNull }}/{{ template "labelVal" (dict "def" $d "val" $v) }}{{ end }}
   </span>
+{{ end }}
+
+
+{{ define "labelVal" }}
+  {{ $d := .def }}
+  {{ $v := .val }}
+
+  {{ if $d.ValueType.IsDidFormat }}
+    {{ resolve $v }}
+  {{ else }}
+    {{ $v }}
+  {{ end }}
 {{ end }}
