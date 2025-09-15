@@ -8,6 +8,21 @@
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
+{{ define "repoContentLayout" }}
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+    <div class="col-span-1 md:col-span-3">
+      <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto dark:text-white">
+        {{ block "repoContent" . }}{{ end }}
+      </section>
+      {{ block "repoAfter" . }}{{ end }}
+    </div>
+    <div class="col-span-1 flex flex-col gap-6">
+      {{ template "issueLabels" . }}
+      {{ template "issueParticipants" . }}
+    </div>
+  </div>
+{{ end }}
+
 {{ define "repoContent" }}
 <section id="issue-{{ .Issue.IssueId }}">
   {{ template "issueHeader" .Issue }}
