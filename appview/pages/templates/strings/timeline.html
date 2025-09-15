@@ -44,7 +44,7 @@
   {{ $stat := .Stats }}
   {{ $resolved := resolve .Did.String }}
   <div class="text-gray-400 pt-4 text-sm font-mono inline-flex items-center gap-2 mt-auto">
-    <a href="/strings/{{ $resolved }}" class="flex items-center">
+    <a href="/strings/{{ $resolved }}" class="flex items-center gap-1">
         {{ template "user/fragments/picHandle" $resolved }}
     </a>
     <span class="select-none [&:before]:content-['·']"></span>

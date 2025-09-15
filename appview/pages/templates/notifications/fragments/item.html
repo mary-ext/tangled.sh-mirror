@@ -1,0 +1,212 @@
+{{define "notifications/fragments/item"}}
+<div class="border border-gray-200 dark:border-gray-700 rounded-sm p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{if not .Read}}bg-blue-50 dark:bg-blue-900/20{{end}}">
+  {{if .Issue}}
+    {{template "issueNotification" .}}
+  {{else if .Pull}}
+    {{template "pullNotification" .}}
+  {{else if .Repo}}
+    {{template "repoNotification" .}}
+  {{else if eq .Type "followed"}}
+    {{template "followNotification" .}}
+  {{else}}
+    {{template "genericNotification" .}}
+  {{end}}
+</div>
+{{end}}
+
+{{define "issueNotification"}}
+{{$url := printf "/%s/%s/issues/%d" (resolve .Repo.Did) .Repo.Name .Issue.IssueId}}
+<a
+  href="{{$url}}"
+  class="block no-underline hover:no-underline text-inherit -m-3 p-3"
+>
+  <div class="flex items-center justify-between">
+    <div class="min-w-0 flex-1">
+      <!-- First line: icon + actor action -->
+      <div class="flex items-center gap-2 text-gray-900 dark:text-white">
+        {{if eq .Type "issue_created"}}
+          <span class="text-green-600 dark:text-green-500">
+            {{ i "circle-dot" "w-4 h-4" }}
+          </span>
+        {{else if eq .Type "issue_commented"}}
+          <span class="text-gray-500 dark:text-gray-400">
+            {{ i "message-circle" "w-4 h-4" }}
+          </span>
+        {{else if eq .Type "issue_closed"}}
+          <span class="text-gray-500 dark:text-gray-400">
+            {{ i "ban" "w-4 h-4" }}
+          </span>
+        {{end}}
+        {{template "user/fragments/picHandle" (resolve .ActorDid)}}
+        {{if eq .Type "issue_created"}}
+          <span class="text-gray-500 dark:text-gray-400">opened issue</span>
+        {{else if eq .Type "issue_commented"}}
+          <span class="text-gray-500 dark:text-gray-400">commented on issue</span>
+        {{else if eq .Type "issue_closed"}}
+          <span class="text-gray-500 dark:text-gray-400">closed issue</span>
+        {{end}}
+        {{if not .Read}}
+          <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-1"></div>
+        {{end}}
+      </div>
+
+      <div class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 ml-6 flex items-center gap-1">
+        <span class="text-gray-500 dark:text-gray-400">#{{.Issue.IssueId}}</span>
+        <span class="text-gray-900 dark:text-white truncate">{{.Issue.Title}}</span>
+        <span>on</span>
+        <span class="font-medium text-gray-900 dark:text-white">{{resolve .Repo.Did}}/{{.Repo.Name}}</span>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
+      {{ template "repo/fragments/time" .Created }}
+    </div>
+  </div>
+</a>
+{{end}}
+
+{{define "pullNotification"}}
+{{$url := printf "/%s/%s/pulls/%d" (resolve .Repo.Did) .Repo.Name .Pull.PullId}}
+<a
+  href="{{$url}}"
+  class="block no-underline hover:no-underline text-inherit -m-3 p-3"
+>
+  <div class="flex items-center justify-between">
+    <div class="min-w-0 flex-1">
+      <div class="flex items-center gap-2 text-gray-900 dark:text-white">
+        {{if eq .Type "pull_created"}}
+          <span class="text-green-600 dark:text-green-500">
+            {{ i "git-pull-request-create" "w-4 h-4" }}
+          </span>
+        {{else if eq .Type "pull_commented"}}
+          <span class="text-gray-500 dark:text-gray-400">
+            {{ i "message-circle" "w-4 h-4" }}
+          </span>
+        {{else if eq .Type "pull_merged"}}
+          <span class="text-purple-600 dark:text-purple-500">
+            {{ i "git-merge" "w-4 h-4" }}
+          </span>
+        {{else if eq .Type "pull_closed"}}
+          <span class="text-red-600 dark:text-red-500">
+            {{ i "git-pull-request-closed" "w-4 h-4" }}
+          </span>
+        {{end}}
+        {{template "user/fragments/picHandle" (resolve .ActorDid)}}
+        {{if eq .Type "pull_created"}}
+          <span class="text-gray-500 dark:text-gray-400">opened pull request</span>
+        {{else if eq .Type "pull_commented"}}
+          <span class="text-gray-500 dark:text-gray-400">commented on pull request</span>
+        {{else if eq .Type "pull_merged"}}
+          <span class="text-gray-500 dark:text-gray-400">merged pull request</span>
+        {{else if eq .Type "pull_closed"}}
+          <span class="text-gray-500 dark:text-gray-400">closed pull request</span>
+        {{end}}
+        {{if not .Read}}
+          <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-1"></div>
+        {{end}}
+      </div>
+
+      <div class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 ml-6 flex items-center gap-1">
+        <span class="text-gray-500 dark:text-gray-400">#{{.Pull.PullId}}</span>
+        <span class="text-gray-900 dark:text-white truncate">{{.Pull.Title}}</span>
+        <span>on</span>
+        <span class="font-medium text-gray-900 dark:text-white">{{resolve .Repo.Did}}/{{.Repo.Name}}</span>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
+      {{ template "repo/fragments/time" .Created }}
+    </div>
+  </div>
+</a>
+{{end}}
+
+{{define "repoNotification"}}
+{{$url := printf "/%s/%s" (resolve .Repo.Did) .Repo.Name}}
+<a
+  href="{{$url}}"
+  class="block no-underline hover:no-underline text-inherit -m-3 p-3"
+>
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2 min-w-0 flex-1">
+      <span class="text-yellow-500 dark:text-yellow-400">
+        {{ i "star" "w-4 h-4" }}
+      </span>
+
+      <div class="min-w-0 flex-1">
+        <!-- Single line for stars: actor action subject -->
+        <div class="flex items-center gap-1 text-gray-900 dark:text-white">
+          {{template "user/fragments/picHandle" (resolve .ActorDid)}}
+          <span class="text-gray-500 dark:text-gray-400">starred</span>
+          <span class="font-medium">{{resolve .Repo.Did}}/{{.Repo.Name}}</span>
+          {{if not .Read}}
+            <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-1"></div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
+      {{ template "repo/fragments/time" .Created }}
+    </div>
+  </div>
+</a>
+{{end}}
+
+{{define "followNotification"}}
+{{$url := printf "/%s" (resolve .ActorDid)}}
+<a
+  href="{{$url}}"
+  class="block no-underline hover:no-underline text-inherit -m-3 p-3"
+>
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2 min-w-0 flex-1">
+      <span class="text-blue-600 dark:text-blue-400">
+        {{ i "user-plus" "w-4 h-4" }}
+      </span>
+
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-1 text-gray-900 dark:text-white">
+          {{template "user/fragments/picHandle" (resolve .ActorDid)}}
+          <span class="text-gray-500 dark:text-gray-400">followed you</span>
+          {{if not .Read}}
+            <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-1"></div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
+      {{ template "repo/fragments/time" .Created }}
+    </div>
+  </div>
+</a>
+{{end}}
+
+{{define "genericNotification"}}
+<a
+  href="#"
+  class="block no-underline hover:no-underline text-inherit -m-3 p-3"
+>
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2 min-w-0 flex-1">
+      <span class="{{if not .Read}}text-blue-600 dark:text-blue-400{{else}}text-gray-500 dark:text-gray-400{{end}}">
+        {{ i "bell" "w-4 h-4" }}
+      </span>
+
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-1 text-gray-900 dark:text-white">
+          <span>New notification</span>
+          {{if not .Read}}
+            <div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-1"></div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
+      {{ template "repo/fragments/time" .Created }}
+    </div>
+  </div>
+</a>
+{{end}}
