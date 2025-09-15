@@ -72,6 +72,18 @@ func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.Pul
 	}
 }
 
+func (m *mergedNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
+	for _, notifier := range m.notifiers {
+		notifier.NewPullMerged(ctx, pull)
+	}
+}
+
+func (m *mergedNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
+	for _, notifier := range m.notifiers {
+		notifier.NewPullClosed(ctx, pull)
+	}
+}
+
 func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {
 	for _, notifier := range m.notifiers {
 		notifier.UpdateProfile(ctx, profile)
