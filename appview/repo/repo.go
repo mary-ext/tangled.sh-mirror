@@ -1227,6 +1227,140 @@ func (rp *Repo) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 	rp.pages.HxRefresh(w)
 }
 
+func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
+	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "DeleteLabel")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	errorId := "label-operation"
+	fail := func(msg string, err error) {
+		l.Error(msg, "err", err)
+		rp.pages.Notice(w, errorId, msg)
+	}
+
+	labelAt := r.FormValue("label")
+	_, err = db.GetLabelDefinition(rp.db, db.FilterEq("at_uri", labelAt))
+	if err != nil {
+		fail("Failed to subscribe to label.", err)
+		return
+	}
+
+	newRepo := f.Repo
+	newRepo.Labels = append(newRepo.Labels, labelAt)
+	repoRecord := newRepo.AsRecord()
+
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		fail(err.Error(), err)
+		return
+	}
+
+	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
+	if err != nil {
+		fail("Failed to update labels, no record found on PDS.", err)
+		return
+	}
+	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoNSID,
+		Repo:       newRepo.Did,
+		Rkey:       newRepo.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &repoRecord,
+		},
+	})
+
+	err = db.SubscribeLabel(rp.db, &db.RepoLabel{
+		RepoAt:  f.RepoAt(),
+		LabelAt: syntax.ATURI(labelAt),
+	})
+	if err != nil {
+		fail("Failed to subscribe to label.", err)
+		return
+	}
+
+	// everything succeeded
+	rp.pages.HxRefresh(w)
+}
+
+func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
+	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "DeleteLabel")
+	l = l.With("did", user.Did)
+	l = l.With("handle", user.Handle)
+
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	errorId := "label-operation"
+	fail := func(msg string, err error) {
+		l.Error(msg, "err", err)
+		rp.pages.Notice(w, errorId, msg)
+	}
+
+	labelAt := r.FormValue("label")
+	_, err = db.GetLabelDefinition(rp.db, db.FilterEq("at_uri", labelAt))
+	if err != nil {
+		fail("Failed to unsubscribe to label.", err)
+		return
+	}
+
+	// update repo record to remove the label reference
+	newRepo := f.Repo
+	var updated []string
+	for _, l := range newRepo.Labels {
+		if l != labelAt {
+			updated = append(updated, l)
+		}
+	}
+	newRepo.Labels = updated
+	repoRecord := newRepo.AsRecord()
+
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		fail(err.Error(), err)
+		return
+	}
+
+	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
+	if err != nil {
+		fail("Failed to update labels, no record found on PDS.", err)
+		return
+	}
+	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoNSID,
+		Repo:       newRepo.Did,
+		Rkey:       newRepo.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &repoRecord,
+		},
+	})
+
+	err = db.UnsubscribeLabel(
+		rp.db,
+		db.FilterEq("repo_at", f.RepoAt()),
+		db.FilterEq("label_at", labelAt),
+	)
+	if err != nil {
+		fail("Failed to unsubscribe label.", err)
+		return
+	}
+
+	// everything succeeded
+	rp.pages.HxRefresh(w)
+}
+
 func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "AddCollaborator")

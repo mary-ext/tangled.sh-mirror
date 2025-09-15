@@ -78,6 +78,8 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Post("/spindle", rp.EditSpindle)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/label", rp.AddLabel)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Delete("/label", rp.DeleteLabel)
+			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/label/subscribe", rp.SubscribeLabel)
+			r.With(mw.RepoPermissionMiddleware("repo:owner")).Delete("/label/subscribe", rp.UnsubscribeLabel)
 			r.With(mw.RepoPermissionMiddleware("repo:invite")).Put("/collaborator", rp.AddCollaborator)
 			r.With(mw.RepoPermissionMiddleware("repo:delete")).Delete("/delete", rp.DeleteRepo)
 			r.Put("/branches/default", rp.SetDefaultBranch)

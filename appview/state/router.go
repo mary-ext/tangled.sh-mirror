@@ -270,7 +270,7 @@ func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
 }
 
 func (s *State) LabelsRouter(mw *middleware.Middleware) http.Handler {
-	ls := labels.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.enforcer)
+	ls := labels.New(s.oauth, s.pages, s.db, s.validator)
 	return ls.Router(mw)
 }
 
