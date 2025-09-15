@@ -21,6 +21,8 @@ type Notifier interface {
 
 	NewPull(ctx context.Context, pull *db.Pull)
 	NewPullComment(ctx context.Context, comment *db.PullComment)
+	NewPullMerged(ctx context.Context, pull *db.Pull)
+	NewPullClosed(ctx context.Context, pull *db.Pull)
 
 	UpdateProfile(ctx context.Context, profile *db.Profile)
 
@@ -48,6 +50,8 @@ func (m *BaseNotifier) DeleteFollow(ctx context.Context, follow *db.Follow) {}
 
 func (m *BaseNotifier) NewPull(ctx context.Context, pull *db.Pull)                  {}
 func (m *BaseNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {}
+func (m *BaseNotifier) NewPullMerged(ctx context.Context, pull *db.Pull)            {}
+func (m *BaseNotifier) NewPullClosed(ctx context.Context, pull *db.Pull)            {}
 
 func (m *BaseNotifier) UpdateProfile(ctx context.Context, profile *db.Profile) {}
 

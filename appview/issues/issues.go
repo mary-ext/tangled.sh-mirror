@@ -283,6 +283,9 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// notify about the issue closure
+		rp.notifier.NewIssueClosed(r.Context(), issue)
+
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	} else {
@@ -416,6 +419,11 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	// reset atUri to make rollback a no-op
 	atUri = ""
+
+	// notify about the new comment
+	comment.Id = commentId
+	rp.notifier.NewIssueComment(r.Context(), &comment)
+
 	rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d#comment-%d", f.OwnerSlashRepo(), issue.IssueId, commentId))
 }
 

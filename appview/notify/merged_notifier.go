@@ -44,6 +44,12 @@ func (m *mergedNotifier) NewIssueComment(ctx context.Context, comment *db.IssueC
 	}
 }
 
+func (m *mergedNotifier) NewIssueClosed(ctx context.Context, issue *db.Issue) {
+	for _, notifier := range m.notifiers {
+		notifier.NewIssueClosed(ctx, issue)
+	}
+}
+
 func (m *mergedNotifier) NewFollow(ctx context.Context, follow *db.Follow) {
 	for _, notifier := range m.notifiers {
 		notifier.NewFollow(ctx, follow)
@@ -63,6 +69,18 @@ func (m *mergedNotifier) NewPull(ctx context.Context, pull *db.Pull) {
 func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {
 	for _, notifier := range m.notifiers {
 		notifier.NewPullComment(ctx, comment)
+	}
+}
+
+func (m *mergedNotifier) NewPullMerged(ctx context.Context, pull *db.Pull) {
+	for _, notifier := range m.notifiers {
+		notifier.NewPullMerged(ctx, pull)
+	}
+}
+
+func (m *mergedNotifier) NewPullClosed(ctx context.Context, pull *db.Pull) {
+	for _, notifier := range m.notifiers {
+		notifier.NewPullClosed(ctx, pull)
 	}
 }
 
