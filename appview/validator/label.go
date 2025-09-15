@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -71,6 +72,107 @@ func (v *Validator) ValidateLabelDefinition(label *db.LabelDefinition) error {
 			color = strings.ToUpper(color)
 			label.Color = &color
 		}
+	}
+
+	return nil
+}
+
+func (v *Validator) ValidateLabelOp(labelDef *db.LabelDefinition, labelOp *db.LabelOp) error {
+	if labelDef == nil {
+		return fmt.Errorf("label definition is required")
+	}
+	if labelOp == nil {
+		return fmt.Errorf("label operation is required")
+	}
+
+	expectedKey := labelDef.AtUri().String()
+	if labelOp.OperandKey != expectedKey {
+		return fmt.Errorf("operand key %q does not match label definition URI %q", labelOp.OperandKey, expectedKey)
+	}
+
+	if labelOp.Operation != db.LabelOperationAdd && labelOp.Operation != db.LabelOperationDel {
+		return fmt.Errorf("invalid operation: %q (must be 'add' or 'del')", labelOp.Operation)
+	}
+
+	if labelOp.Subject == "" {
+		return fmt.Errorf("subject URI is required")
+	}
+	if _, err := syntax.ParseATURI(string(labelOp.Subject)); err != nil {
+		return fmt.Errorf("invalid subject URI: %w", err)
+	}
+
+	if err := v.validateOperandValue(labelDef, labelOp); err != nil {
+		return fmt.Errorf("invalid operand value: %w", err)
+	}
+
+	// Validate performed time is not zero/invalid
+	if labelOp.PerformedAt.IsZero() {
+		return fmt.Errorf("performed_at timestamp is required")
+	}
+
+	return nil
+}
+
+func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *db.LabelOp) error {
+	valueType := labelDef.ValueType
+
+	switch valueType.Type {
+	case db.ConcreteTypeNull:
+		// For null type, value should be empty
+		if labelOp.OperandValue != "null" {
+			return fmt.Errorf("null type requires empty value, got %q", labelOp.OperandValue)
+		}
+
+	case db.ConcreteTypeString:
+		// For string type, validate enum constraints if present
+		if valueType.IsEnumType() {
+			if !slices.Contains(valueType.Enum, labelOp.OperandValue) {
+				return fmt.Errorf("value %q is not in allowed enum values %v", labelOp.OperandValue, valueType.Enum)
+			}
+		}
+
+		switch valueType.Format {
+		case db.ValueTypeFormatDid:
+			id, err := v.resolver.ResolveIdent(context.Background(), labelOp.OperandValue)
+			if err != nil {
+				return fmt.Errorf("failed to resolve did/handle: %w", err)
+			}
+
+			labelOp.OperandValue = id.DID.String()
+
+		case db.ValueTypeFormatAny, "":
+		default:
+			return fmt.Errorf("unsupported format constraint: %q", valueType.Format)
+		}
+
+	case db.ConcreteTypeInt:
+		if labelOp.OperandValue == "" {
+			return fmt.Errorf("integer type requires non-empty value")
+		}
+		if _, err := fmt.Sscanf(labelOp.OperandValue, "%d", new(int)); err != nil {
+			return fmt.Errorf("value %q is not a valid integer", labelOp.OperandValue)
+		}
+
+		if valueType.IsEnumType() {
+			if !slices.Contains(valueType.Enum, labelOp.OperandValue) {
+				return fmt.Errorf("value %q is not in allowed enum values %v", labelOp.OperandValue, valueType.Enum)
+			}
+		}
+
+	case db.ConcreteTypeBool:
+		if labelOp.OperandValue != "true" && labelOp.OperandValue != "false" {
+			return fmt.Errorf("boolean type requires value to be 'true' or 'false', got %q", labelOp.OperandValue)
+		}
+
+		// validate enum constraints if present (though uncommon for booleans)
+		if valueType.IsEnumType() {
+			if !slices.Contains(valueType.Enum, labelOp.OperandValue) {
+				return fmt.Errorf("value %q is not in allowed enum values %v", labelOp.OperandValue, valueType.Enum)
+			}
+		}
+
+	default:
+		return fmt.Errorf("unsupported value type: %q", valueType.Type)
 	}
 
 	return nil

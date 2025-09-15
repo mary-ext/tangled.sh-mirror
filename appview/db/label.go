@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"maps"
 	"slices"
 	"strings"
@@ -80,6 +79,14 @@ func (vt ValueType) IsBool() bool {
 
 func (vt ValueType) IsEnumType() bool {
 	return len(vt.Enum) > 0
+}
+
+func (vt ValueType) IsDidFormat() bool {
+	return vt.Format == ValueTypeFormatDid
+}
+
+func (vt ValueType) IsAnyFormat() bool {
+	return vt.Format == ValueTypeFormatAny
 }
 
 type LabelDefinition struct {
@@ -595,8 +602,6 @@ func GetLabels(e Execer, filters ...filter) (map[syntax.ATURI]LabelState, error)
 		results[subject] = state
 	}
 
-	log.Println("results for get labels", "s", results)
-
 	return results, nil
 }
 
@@ -631,7 +636,7 @@ func (s *LabelState) GetValSet(l string) set {
 }
 
 type LabelApplicationCtx struct {
-	defs map[string]*LabelDefinition // labelAt -> labelDef
+	Defs map[string]*LabelDefinition // labelAt -> labelDef
 }
 
 var (
@@ -653,7 +658,7 @@ func NewLabelApplicationCtx(e Execer, filters ...filter) (*LabelApplicationCtx, 
 }
 
 func (c *LabelApplicationCtx) ApplyLabelOp(state LabelState, op LabelOp) error {
-	def := c.defs[op.OperandKey]
+	def := c.Defs[op.OperandKey]
 
 	switch op.Operation {
 	case LabelOperationAdd:
@@ -713,9 +718,4 @@ func (c *LabelApplicationCtx) ApplyLabelOps(state LabelState, ops []LabelOp) {
 	for _, o := range ops {
 		_ = c.ApplyLabelOp(state, o)
 	}
-}
-
-type Label struct {
-	def *LabelDefinition
-	val set
 }
