@@ -10,6 +10,7 @@ import (
 )
 
 type Repo struct {
+	Id          int64
 	Did         string
 	Name        string
 	Knot        string
