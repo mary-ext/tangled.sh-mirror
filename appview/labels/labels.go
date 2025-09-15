@@ -15,48 +15,38 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/config"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/middleware"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.sh/tangled.sh/core/appview/validator"
 	"tangled.sh/tangled.sh/core/appview/xrpcclient"
-	"tangled.sh/tangled.sh/core/eventconsumer"
-	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
 )
 
 type Labels struct {
-	repoResolver *reporesolver.RepoResolver
-	idResolver   *idresolver.Resolver
-	oauth        *oauth.OAuth
-	pages        *pages.Pages
-	db           *db.DB
-	logger       *slog.Logger
+	oauth     *oauth.OAuth
+	pages     *pages.Pages
+	db        *db.DB
+	logger    *slog.Logger
+	validator *validator.Validator
 }
 
 func New(
 	oauth *oauth.OAuth,
-	repoResolver *reporesolver.RepoResolver,
 	pages *pages.Pages,
-	spindlestream *eventconsumer.Consumer,
-	idResolver *idresolver.Resolver,
 	db *db.DB,
-	config *config.Config,
-	enforcer *rbac.Enforcer,
+	validator *validator.Validator,
 ) *Labels {
 	logger := log.New("labels")
 
 	return &Labels{
-		oauth:        oauth,
-		repoResolver: repoResolver,
-		pages:        pages,
-		idResolver:   idResolver,
-		db:           db,
-		logger:       logger,
+		oauth:     oauth,
+		pages:     pages,
+		db:        db,
+		logger:    logger,
+		validator: validator,
 	}
 }
 
@@ -107,8 +97,6 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// TODO: validate the operations
-
 	// find all the labels that this repo subscribes to
 	repoLabels, err := db.GetRepoLabels(l.db, db.FilterEq("repo_at", repoAt))
 	if err != nil {
@@ -127,6 +115,17 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i := range labelOps {
+		def := actx.Defs[labelOps[i].OperandKey]
+		if err := l.validator.ValidateLabelOp(def, &labelOps[i]); err != nil {
+			l.logger.Error("form failed to validate", "err", err)
+			http.Error(w, "Invalid form data", http.StatusBadRequest)
+			return
+		}
+
+		l.logger.Info("value changed to: ", "v", labelOps[i].OperandValue)
+	}
+
 	// calculate the start state by applying already known labels
 	existingOps, err := db.GetLabelOps(l.db, db.FilterEq("subject", subjectUri))
 	if err != nil {
@@ -136,6 +135,8 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 
 	labelState := db.NewLabelState()
 	actx.ApplyLabelOps(labelState, existingOps)
+
+	l.logger.Info("state", "state", labelState)
 
 	// next, apply all ops introduced in this request and filter out ones that are no-ops
 	validLabelOps := labelOps[:0]
