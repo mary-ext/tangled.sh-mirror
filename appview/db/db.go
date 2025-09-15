@@ -817,13 +817,6 @@ func Make(dbPath string) (*DB, error) {
 		_, err := tx.Exec(`
 			alter table spindles add column needs_upgrade integer not null default 0;
 		`)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.Exec(`
-			update spindles set needs_upgrade = 1;
-		`)
 		return err
 	})
 

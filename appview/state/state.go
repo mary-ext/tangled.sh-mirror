@@ -25,6 +25,7 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
+	dbnotify "tangled.org/core/appview/notify/db"
 	phnotify "tangled.org/core/appview/notify/posthog"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"

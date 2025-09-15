@@ -55,7 +55,7 @@ func NewPull(tx *sql.Tx, pull *models.Pull) error {
 		parentChangeId = &pull.ParentChangeId
 	}
 
-	_, err = tx.Exec(
+	result, err := tx.Exec(
 		`
 		insert into pulls (
 			repo_at, owner_did, pull_id, title, target_branch, body, rkey, state, source_branch, source_repo_at, stack_id, change_id, parent_change_id
@@ -78,6 +78,13 @@ func NewPull(tx *sql.Tx, pull *models.Pull) error {
 	if err != nil {
 		return err
 	}
+
+	// Set the database primary key ID
+	id, err := result.LastInsertId()
+	if err != nil {
+		return err
+	}
+	pull.ID = int(id)
 
 	_, err = tx.Exec(`
 		insert into pull_submissions (pull_id, repo_at, round_number, patch, source_rev)
@@ -121,6 +128,7 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 
 	query := fmt.Sprintf(`
 		select
+			id,
 			owner_did,
 			repo_at,
 			pull_id,
@@ -154,6 +162,7 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 		var createdAt string
 		var sourceBranch, sourceRepoAt, stackId, changeId, parentChangeId sql.NullString
 		err := rows.Scan(
+			&pull.ID,
 			&pull.OwnerDid,
 			&pull.RepoAt,
 			&pull.PullId,
@@ -325,6 +334,7 @@ func GetPulls(e Execer, filters ...filter) ([]*models.Pull, error) {
 func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*models.Pull, error) {
 	query := `
 		select
+			id,
 			owner_did,
 			pull_id,
 			created,
@@ -350,6 +360,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*models.Pull, error) {
 	var createdAt string
 	var sourceBranch, sourceRepoAt, stackId, changeId, parentChangeId sql.NullString
 	err := row.Scan(
+		&pull.ID,
 		&pull.OwnerDid,
 		&pull.PullId,
 		&createdAt,

@@ -4,9 +4,10 @@ import (
 	"context"
 	"log"
 
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/notify"
-	"tangled.sh/tangled.sh/core/idresolver"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
+	"tangled.org/core/appview/notify"
+	"tangled.org/core/idresolver"
 )
 
 type databaseNotifier struct {
@@ -23,11 +24,11 @@ func NewDatabaseNotifier(database *db.DB, resolver *idresolver.Resolver) notify.
 
 var _ notify.Notifier = &databaseNotifier{}
 
-func (n *databaseNotifier) NewRepo(ctx context.Context, repo *db.Repo) {
+func (n *databaseNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 	// no-op for now
 }
 
-func (n *databaseNotifier) NewStar(ctx context.Context, star *db.Star) {
+func (n *databaseNotifier) NewStar(ctx context.Context, star *models.Star) {
 	var err error
 	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(star.RepoAt)))
 	if err != nil {
@@ -61,9 +62,8 @@ func (n *databaseNotifier) NewStar(ctx context.Context, star *db.Star) {
 		Type:         models.NotificationTypeRepoStarred,
 		EntityType:   "repo",
 		EntityId:     string(star.RepoAt),
-		RepoId:       &repo.ID,
+		RepoId:       &repo.Id,
 	}
-
 	err = n.db.CreateNotification(ctx, notification)
 	if err != nil {
 		log.Printf("NewStar: failed to create notification: %v", err)
@@ -71,11 +71,11 @@ func (n *databaseNotifier) NewStar(ctx context.Context, star *db.Star) {
 	}
 }
 
-func (n *databaseNotifier) DeleteStar(ctx context.Context, star *db.Star) {
+func (n *databaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 	// no-op
 }
 
-func (n *databaseNotifier) NewIssue(ctx context.Context, issue *db.Issue) {
+func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(issue.RepoAt)))
 	if err != nil {
 		log.Printf("NewIssue: failed to get repos: %v", err)
@@ -106,7 +106,7 @@ func (n *databaseNotifier) NewIssue(ctx context.Context, issue *db.Issue) {
 		Type:         models.NotificationTypeIssueCreated,
 		EntityType:   "issue",
 		EntityId:     string(issue.AtUri()),
-		RepoId:       &repo.ID,
+		RepoId:       &repo.Id,
 		IssueId:      &issue.Id,
 	}
 
@@ -117,7 +117,7 @@ func (n *databaseNotifier) NewIssue(ctx context.Context, issue *db.Issue) {
 	}
 }
 
-func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *db.IssueComment) {
+func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {
 	issues, err := db.GetIssues(n.db, db.FilterEq("at_uri", comment.IssueAt))
 	if err != nil {
 		log.Printf("NewIssueComment: failed to get issues: %v", err)
@@ -170,7 +170,7 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *db.Issu
 			Type:         models.NotificationTypeIssueCommented,
 			EntityType:   "issue",
 			EntityId:     string(issue.AtUri()),
-			RepoId:       &repo.ID,
+			RepoId:       &repo.Id,
 			IssueId:      &issue.Id,
 		}
 
@@ -181,7 +181,7 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *db.Issu
 	}
 }
 
-func (n *databaseNotifier) NewFollow(ctx context.Context, follow *db.Follow) {
+func (n *databaseNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
 	prefs, err := n.db.GetNotificationPreferences(ctx, follow.SubjectDid)
 	if err != nil {
 		log.Printf("NewFollow: failed to get notification preferences for %s: %v", follow.SubjectDid, err)
@@ -206,11 +206,11 @@ func (n *databaseNotifier) NewFollow(ctx context.Context, follow *db.Follow) {
 	}
 }
 
-func (n *databaseNotifier) DeleteFollow(ctx context.Context, follow *db.Follow) {
+func (n *databaseNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {
 	// no-op
 }
 
-func (n *databaseNotifier) NewPull(ctx context.Context, pull *db.Pull) {
+func (n *databaseNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
 		log.Printf("NewPull: failed to get repos: %v", err)
@@ -241,7 +241,7 @@ func (n *databaseNotifier) NewPull(ctx context.Context, pull *db.Pull) {
 		Type:         models.NotificationTypePullCreated,
 		EntityType:   "pull",
 		EntityId:     string(pull.RepoAt),
-		RepoId:       &repo.ID,
+		RepoId:       &repo.Id,
 		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 	}
 
@@ -252,7 +252,7 @@ func (n *databaseNotifier) NewPull(ctx context.Context, pull *db.Pull) {
 	}
 }
 
-func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {
+func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.PullComment) {
 	pulls, err := db.GetPulls(n.db,
 		db.FilterEq("repo_at", comment.RepoAt),
 		db.FilterEq("pull_id", comment.PullId))
@@ -306,7 +306,7 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *db.PullC
 			Type:         models.NotificationTypePullCommented,
 			EntityType:   "pull",
 			EntityId:     comment.RepoAt,
-			RepoId:       &repo.ID,
+			RepoId:       &repo.Id,
 			PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 		}
 
@@ -317,7 +317,7 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *db.PullC
 	}
 }
 
-func (n *databaseNotifier) UpdateProfile(ctx context.Context, profile *db.Profile) {
+func (n *databaseNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {
 	// no-op
 }
 
@@ -325,15 +325,15 @@ func (n *databaseNotifier) DeleteString(ctx context.Context, did, rkey string) {
 	// no-op
 }
 
-func (n *databaseNotifier) EditString(ctx context.Context, string *db.String) {
+func (n *databaseNotifier) EditString(ctx context.Context, string *models.String) {
 	// no-op
 }
 
-func (n *databaseNotifier) NewString(ctx context.Context, string *db.String) {
+func (n *databaseNotifier) NewString(ctx context.Context, string *models.String) {
 	// no-op
 }
 
-func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *db.Issue) {
+func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
 	// Get repo details
 	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(issue.RepoAt)))
 	if err != nil {
@@ -367,7 +367,7 @@ func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *db.Issue) 
 		Type:         models.NotificationTypeIssueClosed,
 		EntityType:   "issue",
 		EntityId:     string(issue.AtUri()),
-		RepoId:       &repo.ID,
+		RepoId:       &repo.Id,
 		IssueId:      &issue.Id,
 	}
 
@@ -378,7 +378,7 @@ func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *db.Issue) 
 	}
 }
 
-func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *db.Pull) {
+func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
 	// Get repo details
 	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
@@ -412,7 +412,7 @@ func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *db.Pull) {
 		Type:         models.NotificationTypePullMerged,
 		EntityType:   "pull",
 		EntityId:     string(pull.RepoAt),
-		RepoId:       &repo.ID,
+		RepoId:       &repo.Id,
 		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 	}
 
@@ -423,7 +423,7 @@ func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *db.Pull) {
 	}
 }
 
-func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *db.Pull) {
+func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
 	// Get repo details
 	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
@@ -457,7 +457,7 @@ func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *db.Pull) {
 		Type:         models.NotificationTypePullClosed,
 		EntityType:   "pull",
 		EntityId:     string(pull.RepoAt),
-		RepoId:       &repo.ID,
+		RepoId:       &repo.Id,
 		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 	}
 
