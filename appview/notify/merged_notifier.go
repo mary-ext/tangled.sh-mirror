@@ -38,6 +38,17 @@ func (m *mergedNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 		notifier.NewIssue(ctx, issue)
 	}
 }
+func (m *mergedNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {
+	for _, notifier := range m.notifiers {
+		notifier.NewIssueComment(ctx, comment)
+	}
+}
+
+func (m *mergedNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
+	for _, notifier := range m.notifiers {
+		notifier.NewIssueClosed(ctx, issue)
+	}
+}
 
 func (m *mergedNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
 	for _, notifier := range m.notifiers {

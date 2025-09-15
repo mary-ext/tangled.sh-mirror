@@ -25,9 +25,9 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
+	phnotify "tangled.org/core/appview/notify/posthog"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
-	posthogService "tangled.org/core/appview/posthog"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/validator"
 	xrpcclient "tangled.org/core/appview/xrpcclient"
@@ -149,7 +149,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 
 	var notifiers []notify.Notifier
 	if !config.Core.Dev {
-		notifiers = append(notifiers, posthogService.NewPosthogNotifier(posthog))
+		notifiers = append(notifiers, phnotify.NewPosthogNotifier(posthog))
 	}
 	notifier := notify.NewMergedNotifier(notifiers...)
 
