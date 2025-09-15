@@ -5,7 +5,7 @@
   {{ with $root }}
     <form
       hx-put="/{{ .RepoInfo.FullName }}/labels/perform"
-      hx-on::after-request="if(event.detail.successful) this.reset()"
+      hx-on::after-request="this.reset()"
       hx-indicator="#spinner"
       hx-swap="none"
       class="flex flex-col gap-4"
@@ -15,35 +15,25 @@
       <input class="hidden" name="repo" value="{{ .RepoInfo.RepoAt.String }}">
       <input class="hidden" name="subject" value="{{ $subject }}">
 
-      <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+      <div class="flex flex-col gap-2">
         {{ $id := 0 }}
         {{ range $k, $valset := $state.Inner }}
           {{ $d := index $root.LabelDefs $k }}
           {{ range $v, $s := $valset }}
-            <div class="grid grid-cols-2 cursor-pointer rounded">
-              <label class="w-full flex items-center gap-2">
-                <input type="checkbox" name="op-{{$id}}" value="add" checked>
-                {{ template "labels/fragments/labelDef" $d }}
-              </label>
-              {{ template "valueTypeInput" (dict "valueType" $d.ValueType "value" $v "key" $k) }}
-              <input type="hidden" name="operand-key" value="{{ $k }}">
-              {{ $id = add $id 1 }}
-            </div>
+            {{ template "labelCheckbox" (dict "def" $d "key" $k "val" $v "id" $id "isChecked" true) }}
+            {{ $id = add $id 1 }}
           {{ end }}
         {{ end }}
 
         {{ range $k, $d := $root.LabelDefs }}
           {{ if not ($state.ContainsLabel $k) }}
-            <div class="grid grid-cols-2 cursor-pointer rounded">
-              <label class="w-full flex items-center gap-2">
-                <input type="checkbox" name="op-{{$id}}" value="add">
-                {{ template "labels/fragments/labelDef" $d }}
-              </label>
-              {{ template "valueTypeInput" (dict "valueType" $d.ValueType "value" "" "key" $k) }}
-              <input type="hidden" name="operand-key" value="{{ $k }}">
-              {{ $id = add $id 1 }}
-            </div>
+            {{ template "labelCheckbox" (dict "def" $d "key" $k "val" "" "id" $id "isChecked" false) }}
+            {{ $id = add $id 1 }}
           {{ end }}
+        {{ else }}
+          <span>
+            No labels defined yet. You can define custom labels in <a class="underline" href="/{{ .RepoInfo.FullName }}/settings">settings</a>.
+          </span>
         {{ end }}
       </div>
 
@@ -66,6 +56,20 @@
       <div id="add-label-error" class="text-red-500 dark:text-red-400"></div>
     </form>
   {{ end }}
+{{ end }}
+
+{{ define "labelCheckbox" }}
+  {{ $key := .key }}
+  {{ $val := .val }}
+  {{ $def := .def }}
+  {{ $id := .id }}
+  {{ $isChecked := .isChecked }}
+  <div class="grid grid-cols-[auto_1fr_50%] gap-2 items-center cursor-pointer">
+    <input type="checkbox" id="op-{{$id}}" name="op-{{$id}}" value="add" {{if $isChecked}}checked{{end}} class="peer">
+    <label for="op-{{$id}}" class="flex items-center gap-2 text-base">{{ template "labels/fragments/labelDef" $def }}</label>
+    <div class="w-full hidden peer-checked:block">{{ template "valueTypeInput" (dict "valueType" $def.ValueType "value" $val "key" $key) }}</div>
+    <input type="hidden" name="operand-key" value="{{ $key }}">
+  </div>
 {{ end }}
 
 {{ define "valueTypeInput" }}
@@ -110,7 +114,11 @@
 {{ end }}
 
 {{ define "stringTypeInput" }}
+  {{ $valueType := .valueType }}
   {{ $value := .value }}
+  {{ if $valueType.IsDidFormat }}
+    {{ $value = resolve .value }}
+  {{ end }}
   <input class="p-1 w-full" type="text" name="operand-val" value="{{$value}}">
 {{ end }}
 

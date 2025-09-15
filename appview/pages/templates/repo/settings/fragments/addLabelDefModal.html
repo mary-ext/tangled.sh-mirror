@@ -3,6 +3,7 @@
   hx-put="/{{ $.RepoInfo.FullName }}/settings/label"
   hx-indicator="#spinner"
   hx-swap="none"
+  hx-on::after-request="if(event.detail.successful) this.reset()"
   class="flex flex-col gap-4"
 >
   <p class="text-gray-500 dark:text-gray-400">Labels can have a name and a value. Set the value type to "none" to create a simple label.</p>
@@ -16,19 +17,27 @@
   <div class="w-full">
     <label for="valueType">Value Type</label>
     <select id="value-type" name="valueType" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
-      <option value="string" selected>String</option>
+      <option value="null" selected>None</option>
+      <option value="string">String</option>
       <option value="integer">Integer</option>
       <option value="boolean">Boolean</option>
-      <option value="null">None</option>
     </select>
-    <details id="constrain-values" class="group">
+    <details id="constrain-values" class="group hidden">
       <summary class="list-none cursor-pointer flex items-center gap-2 py-2">
         <span class="group-open:hidden inline text-gray-500 dark:text-gray-400">{{ i "square-plus" "w-4 h-4" }}</span>
         <span class="hidden group-open:inline text-gray-500 dark:text-gray-400">{{ i "square-minus" "w-4 h-4" }}</span>
         <span>Constrain values</span>
       </summary>
+      <label for="enumValues">Permitted values</label>
       <input type="text" id="enumValues" name="enumValues" placeholder="value1, value2, value3" class="w-full"/>
       <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Enter comma-separated list of permitted values.</p>
+
+      <label for="valueFormat">String format</label>
+      <select id="valueFormat" name="valueFormat" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+        <option value="any" selected>Any</option>
+        <option value="did">DID</option>
+      </select>
+      <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Choose a string format.</p>
     </details>
   </div>
 
@@ -87,7 +96,7 @@
     const constrainValues = document.getElementById('constrain-values');
     const selectedValue = this.value;
 
-    if (selectedValue === 'string' || selectedValue === 'integer') {
+    if (selectedValue === 'string') {
       constrainValues.classList.remove('hidden');
     } else {
       constrainValues.classList.add('hidden');
