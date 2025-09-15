@@ -530,12 +530,42 @@ func Make(dbPath string) (*DB, error) {
 			unique (repo_at, label_at)
 		);
 
+		create table if not exists notifications (
+			id integer primary key autoincrement,
+			recipient_did text not null,
+			actor_did text not null,
+			type text not null,
+			entity_type text not null,
+			entity_id text not null,
+			read integer not null default 0,
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+			repo_id integer references repos(id),
+			issue_id integer references issues(id),
+			pull_id integer references pulls(id)
+		);
+
+		create table if not exists notification_preferences (
+			id integer primary key autoincrement,
+			user_did text not null unique,
+			repo_starred integer not null default 1,
+			issue_created integer not null default 1,
+			issue_commented integer not null default 1,
+			pull_created integer not null default 1,
+			pull_commented integer not null default 1,
+			followed integer not null default 1,
+			pull_merged integer not null default 1,
+			issue_closed integer not null default 1,
+			email_notifications integer not null default 0
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
 		);
 
-		-- indexes for better star query performance
+		-- indexes for better performance
+		create index if not exists idx_notifications_recipient_created on notifications(recipient_did, created desc);
+		create index if not exists idx_notifications_recipient_read on notifications(recipient_did, read);
 		create index if not exists idx_stars_created on stars(created);
 		create index if not exists idx_stars_repo_at_created on stars(repo_at, created);
 	`)
