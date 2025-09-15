@@ -987,6 +987,7 @@ func (rp *Repo) AddLabel(w http.ResponseWriter, r *http.Request) {
 	// get form values for label definition
 	name := r.FormValue("name")
 	concreteType := r.FormValue("valueType")
+	valueFormat := r.FormValue("valueFormat")
 	enumValues := r.FormValue("enumValues")
 	scope := r.FormValue("scope")
 	color := r.FormValue("color")
@@ -999,9 +1000,14 @@ func (rp *Repo) AddLabel(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	format := db.ValueTypeFormatAny
+	if valueFormat == "did" {
+		format = db.ValueTypeFormatDid
+	}
+
 	valueType := db.ValueType{
 		Type:   db.ConcreteType(concreteType),
-		Format: db.ValueTypeFormatAny,
+		Format: format,
 		Enum:   variants,
 	}
 
