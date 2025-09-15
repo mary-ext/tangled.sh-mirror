@@ -2147,6 +2147,11 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// notify about the pull merge
+	for _, p := range pullsToMerge {
+		s.notifier.NewPullMerged(r.Context(), p)
+	}
+
 	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.Name, pull.PullId))
 }
 
@@ -2212,6 +2217,10 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to commit transaction", err)
 		s.pages.Notice(w, "pull-close", "Failed to close pull.")
 		return
+	}
+
+	for _, p := range pullsToClose {
+		s.notifier.NewPullClosed(r.Context(), p)
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
