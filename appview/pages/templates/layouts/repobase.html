@@ -41,9 +41,7 @@
       {{ template "repo/fragments/repoDescription" . }}
     </section>
 
-    <section
-        class="w-full flex flex-col"
-    >
+    <section class="w-full flex flex-col" >
         <nav class="w-full pl-4 overflow-auto">
             <div class="flex z-60">
                 {{ $activeTabStyles := "-mb-px bg-white dark:bg-gray-800" }}
@@ -80,11 +78,11 @@
                 {{ end }}
             </div>
         </nav>
-        <section
-            class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto dark:text-white"
-        >
+        {{ block "repoContentLayout" . }}
+          <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto dark:text-white">
             {{ block "repoContent" . }}{{ end }}
-        </section>
-        {{ block "repoAfter" . }}{{ end }}
+          </section>
+          {{ block "repoAfter" . }}{{ end }}
+        {{ end }}
     </section>
 {{ end }}
