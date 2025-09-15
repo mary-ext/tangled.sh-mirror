@@ -216,9 +216,9 @@ func createNewIssue(tx *sql.Tx, issue *Issue) error {
 	// get next issue_id
 	var newIssueId int
 	err := tx.QueryRow(`
-		update repo_issue_seqs 
-		set next_issue_id = next_issue_id + 1 
-		where repo_at = ? 
+		update repo_issue_seqs
+		set next_issue_id = next_issue_id + 1
+		where repo_at = ?
 		returning next_issue_id - 1
 	`, issue.RepoAt).Scan(&newIssueId)
 	if err != nil {
