@@ -9,6 +9,8 @@ import (
 	"tangled.sh/tangled.sh/core/appview/issues"
 	"tangled.sh/tangled.sh/core/appview/knots"
 	"tangled.sh/tangled.sh/core/appview/middleware"
+	"tangled.sh/tangled.sh/core/appview/notifications"
+
 	oauthhandler "tangled.sh/tangled.sh/core/appview/oauth/handler"
 	"tangled.sh/tangled.sh/core/appview/pipelines"
 	"tangled.sh/tangled.sh/core/appview/pulls"
@@ -151,6 +153,8 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Mount("/strings", s.StringsRouter(mw))
 	r.Mount("/knots", s.KnotsRouter())
 	r.Mount("/spindles", s.SpindlesRouter())
+	r.Mount("/notifications", s.NotificationsRouter(mw))
+
 	r.Mount("/signup", s.SignupRouter())
 	r.Mount("/", s.OAuthRouter())
 

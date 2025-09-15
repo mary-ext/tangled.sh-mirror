@@ -1,4 +1,4 @@
-package posthog_service
+package posthog
 
 import (
 	"context"
@@ -98,6 +98,20 @@ func (n *posthogNotifier) NewPullComment(ctx context.Context, comment *db.PullCo
 	}
 }
 
+func (n *posthogNotifier) NewPullClosed(ctx context.Context, pull *db.Pull) {
+	err := n.client.Enqueue(posthog.Capture{
+		DistinctId: pull.OwnerDid,
+		Event:      "pull_closed",
+		Properties: posthog.Properties{
+			"repo_at": pull.RepoAt,
+			"pull_id": pull.PullId,
+		},
+	})
+	if err != nil {
+		log.Println("failed to enqueue posthog event:", err)
+	}
+}
+
 func (n *posthogNotifier) NewFollow(ctx context.Context, follow *db.Follow) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: follow.UserDid,
@@ -152,11 +166,52 @@ func (n *posthogNotifier) EditString(ctx context.Context, string *db.String) {
 	}
 }
 
-func (n *posthogNotifier) CreateString(ctx context.Context, string *db.String) {
+func (n *posthogNotifier) NewString(ctx context.Context, string *db.String) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: string.Did.String(),
-		Event:      "create_string",
+		Event:      "new_string",
 		Properties: posthog.Properties{"rkey": string.Rkey},
+	})
+	if err != nil {
+		log.Println("failed to enqueue posthog event:", err)
+	}
+}
+
+func (n *posthogNotifier) NewIssueComment(ctx context.Context, comment *db.IssueComment) {
+	err := n.client.Enqueue(posthog.Capture{
+		DistinctId: comment.Did,
+		Event:      "new_issue_comment",
+		Properties: posthog.Properties{
+			"issue_at": comment.IssueAt,
+		},
+	})
+	if err != nil {
+		log.Println("failed to enqueue posthog event:", err)
+	}
+}
+
+func (n *posthogNotifier) NewIssueClosed(ctx context.Context, issue *db.Issue) {
+	err := n.client.Enqueue(posthog.Capture{
+		DistinctId: issue.Did,
+		Event:      "issue_closed",
+		Properties: posthog.Properties{
+			"repo_at":  issue.RepoAt.String(),
+			"issue_id": issue.IssueId,
+		},
+	})
+	if err != nil {
+		log.Println("failed to enqueue posthog event:", err)
+	}
+}
+
+func (n *posthogNotifier) NewPullMerged(ctx context.Context, pull *db.Pull) {
+	err := n.client.Enqueue(posthog.Capture{
+		DistinctId: pull.OwnerDid,
+		Event:      "pull_merged",
+		Properties: posthog.Properties{
+			"repo_at": pull.RepoAt,
+			"pull_id": pull.PullId,
+		},
 	})
 	if err != nil {
 		log.Println("failed to enqueue posthog event:", err)
