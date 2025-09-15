@@ -3,7 +3,7 @@
     {{ range $item := .CommentList }}
       {{ template "commentListing" (list $ .) }}
     {{ end }}
-  <div>
+  </div>
 {{ end }}
 
 {{ define "commentListing" }}
@@ -16,14 +16,14 @@
           "Issue" $root.Issue
           "Comment" $comment.Self) }}
 
-  <div class="rounded border border-gray-300 dark:border-gray-700 w-full overflow-hidden shadow-sm">
+  <div class="rounded border border-gray-200 dark:border-gray-700 w-full overflow-hidden shadow-sm bg-gray-50 dark:bg-gray-800/50">
     {{ template "topLevelComment" $params }}
 
-    <div class="relative ml-4 border-l border-gray-300 dark:border-gray-700">
+    <div class="relative ml-4 border-l-2 border-gray-200 dark:border-gray-700">
       {{ range $index, $reply := $comment.Replies }}
         <div class="relative ">
           <!-- Horizontal connector -->
-          <div class="absolute left-0 top-6 w-4 h-px bg-gray-300 dark:bg-gray-700"></div>
+          <div class="absolute left-0 top-6 w-4 h-1 bg-gray-200 dark:bg-gray-700"></div>
 
           <div class="pl-2">
             {{
