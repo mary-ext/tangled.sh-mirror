@@ -148,6 +148,11 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	spindlestream.Start(ctx)
 
 	var notifiers []notify.Notifier
+
+	// Always add the database notifier
+	notifiers = append(notifiers, dbnotify.NewDatabaseNotifier(d, res))
+
+	// Add other notifiers in production only
 	if !config.Core.Dev {
 		notifiers = append(notifiers, phnotify.NewPosthogNotifier(posthog))
 	}
