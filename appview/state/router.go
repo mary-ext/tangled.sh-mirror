@@ -156,6 +156,8 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Mount("/strings", s.StringsRouter(mw))
 	r.Mount("/knots", s.KnotsRouter())
 	r.Mount("/spindles", s.SpindlesRouter())
+	r.Mount("/notifications", s.NotificationsRouter(mw))
+
 	r.Mount("/signup", s.SignupRouter())
 	r.Mount("/", s.OAuthRouter())
 

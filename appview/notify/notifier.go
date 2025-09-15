@@ -13,6 +13,8 @@ type Notifier interface {
 	DeleteStar(ctx context.Context, star *models.Star)
 
 	NewIssue(ctx context.Context, issue *models.Issue)
+	NewIssueComment(ctx context.Context, comment *models.IssueComment)
+	NewIssueClosed(ctx context.Context, issue *models.Issue)
 
 	NewFollow(ctx context.Context, follow *models.Follow)
 	DeleteFollow(ctx context.Context, follow *models.Follow)
@@ -37,7 +39,9 @@ func (m *BaseNotifier) NewRepo(ctx context.Context, repo *models.Repo) {}
 func (m *BaseNotifier) NewStar(ctx context.Context, star *models.Star)    {}
 func (m *BaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {}
 
-func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {}
+func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue)                 {}
+func (m *BaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {}
+func (m *BaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue)           {}
 
 func (m *BaseNotifier) NewFollow(ctx context.Context, follow *models.Follow)    {}
 func (m *BaseNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {}
