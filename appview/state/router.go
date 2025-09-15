@@ -256,6 +256,11 @@ func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
 	return pipes.Router(mw)
 }
 
+func (s *State) NotificationsRouter(mw *middleware.Middleware) http.Handler {
+	notifs := notifications.New(s.db, s.oauth, s.pages)
+	return notifs.Router(mw)
+}
+
 func (s *State) SignupRouter() http.Handler {
 	logger := log.New("signup")
 

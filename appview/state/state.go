@@ -37,7 +37,6 @@ import (
 	tlog "tangled.sh/tangled.sh/core/log"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
-	// xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
 )
 
 type State struct {
