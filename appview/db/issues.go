@@ -103,6 +103,26 @@ func (i *Issue) CommentList() []CommentListItem {
 	return listing
 }
 
+func (i *Issue) Participants() []string {
+	participantSet := make(map[string]struct{})
+	participants := []string{}
+
+	addParticipant := func(did string) {
+		if _, exists := participantSet[did]; !exists {
+			participantSet[did] = struct{}{}
+			participants = append(participants, did)
+		}
+	}
+
+	addParticipant(i.Did)
+
+	for _, c := range i.Comments {
+		addParticipant(c.Did)
+	}
+
+	return participants
+}
+
 func IssueFromRecord(did, rkey string, record tangled.RepoIssue) Issue {
 	created, err := time.Parse(time.RFC3339, record.CreatedAt)
 	if err != nil {
