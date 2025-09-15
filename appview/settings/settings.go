@@ -41,6 +41,7 @@ var (
 		{"Name": "profile", "Icon": "user"},
 		{"Name": "keys", "Icon": "key"},
 		{"Name": "emails", "Icon": "mail"},
+		{"Name": "notifications", "Icon": "bell"},
 	}
 )
 
@@ -68,6 +69,11 @@ func (s *Settings) Router() http.Handler {
 		r.Post("/primary", s.emailsPrimary)
 	})
 
+	r.Route("/notifications", func(r chi.Router) {
+		r.Get("/", s.notificationsSettings)
+		r.Put("/", s.updateNotificationPreferences)
+	})
+
 	return r
 }
 
@@ -79,6 +85,51 @@ func (s *Settings) profileSettings(w http.ResponseWriter, r *http.Request) {
 		Tabs:         settingsTabs,
 		Tab:          "profile",
 	})
+}
+
+func (s *Settings) notificationsSettings(w http.ResponseWriter, r *http.Request) {
+	user := s.OAuth.GetUser(r)
+	did := s.OAuth.GetDid(r)
+
+	prefs, err := s.Db.GetNotificationPreferences(r.Context(), did)
+	if err != nil {
+		log.Printf("failed to get notification preferences: %s", err)
+		s.Pages.Notice(w, "settings-notifications-error", "Unable to load notification preferences.")
+		return
+	}
+
+	s.Pages.UserNotificationSettings(w, pages.UserNotificationSettingsParams{
+		LoggedInUser: user,
+		Preferences:  prefs,
+		Tabs:         settingsTabs,
+		Tab:          "notifications",
+	})
+}
+
+func (s *Settings) updateNotificationPreferences(w http.ResponseWriter, r *http.Request) {
+	did := s.OAuth.GetDid(r)
+
+	prefs := &models.NotificationPreferences{
+		UserDid:            did,
+		RepoStarred:        r.FormValue("repo_starred") == "on",
+		IssueCreated:       r.FormValue("issue_created") == "on",
+		IssueCommented:     r.FormValue("issue_commented") == "on",
+		IssueClosed:        r.FormValue("issue_closed") == "on",
+		PullCreated:        r.FormValue("pull_created") == "on",
+		PullCommented:      r.FormValue("pull_commented") == "on",
+		PullMerged:         r.FormValue("pull_merged") == "on",
+		Followed:           r.FormValue("followed") == "on",
+		EmailNotifications: r.FormValue("email_notifications") == "on",
+	}
+
+	err := s.Db.UpdateNotificationPreferences(r.Context(), prefs)
+	if err != nil {
+		log.Printf("failed to update notification preferences: %s", err)
+		s.Pages.Notice(w, "settings-notifications-error", "Unable to save notification preferences.")
+		return
+	}
+
+	s.Pages.Notice(w, "settings-notifications-success", "Notification preferences saved successfully.")
 }
 
 func (s *Settings) keysSettings(w http.ResponseWriter, r *http.Request) {

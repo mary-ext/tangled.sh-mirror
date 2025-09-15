@@ -10,6 +10,7 @@ import (
 	"tangled.org/core/appview/knots"
 	"tangled.org/core/appview/labels"
 	"tangled.org/core/appview/middleware"
+	"tangled.org/core/appview/notifications"
 	oauthhandler "tangled.org/core/appview/oauth/handler"
 	"tangled.org/core/appview/pipelines"
 	"tangled.org/core/appview/pulls"
@@ -274,6 +275,11 @@ func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
 func (s *State) LabelsRouter(mw *middleware.Middleware) http.Handler {
 	ls := labels.New(s.oauth, s.pages, s.db, s.validator)
 	return ls.Router(mw)
+}
+
+func (s *State) NotificationsRouter(mw *middleware.Middleware) http.Handler {
+	notifs := notifications.New(s.db, s.oauth, s.pages)
+	return notifs.Router(mw)
 }
 
 func (s *State) SignupRouter() http.Handler {
