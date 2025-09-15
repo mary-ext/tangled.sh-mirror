@@ -296,6 +296,35 @@ func (p *Pages) UserProfileSettings(w io.Writer, params UserProfileSettingsParam
 	return p.execute("user/settings/profile", w, params)
 }
 
+type NotificationsParams struct {
+	LoggedInUser  *oauth.User
+	Notifications []*models.NotificationWithEntity
+	UnreadCount   int
+	HasMore       bool
+	NextOffset    int
+	Limit         int
+}
+
+func (p *Pages) Notifications(w io.Writer, params NotificationsParams) error {
+	return p.execute("notifications/list", w, params)
+}
+
+type NotificationItemParams struct {
+	Notification *models.Notification
+}
+
+func (p *Pages) NotificationItem(w io.Writer, params NotificationItemParams) error {
+	return p.executePlain("notifications/fragments/item", w, params)
+}
+
+type NotificationCountParams struct {
+	Count int
+}
+
+func (p *Pages) NotificationCount(w io.Writer, params NotificationCountParams) error {
+	return p.executePlain("notifications/fragments/count", w, params)
+}
+
 type UserKeysSettingsParams struct {
 	LoggedInUser *oauth.User
 	PubKeys      []models.PublicKey
@@ -316,6 +345,17 @@ type UserEmailsSettingsParams struct {
 
 func (p *Pages) UserEmailsSettings(w io.Writer, params UserEmailsSettingsParams) error {
 	return p.execute("user/settings/emails", w, params)
+}
+
+type UserNotificationSettingsParams struct {
+	LoggedInUser *oauth.User
+	Preferences  *models.NotificationPreferences
+	Tabs         []map[string]any
+	Tab          string
+}
+
+func (p *Pages) UserNotificationSettings(w io.Writer, params UserNotificationSettingsParams) error {
+	return p.execute("user/settings/notifications", w, params)
 }
 
 type UpgradeBannerParams struct {
