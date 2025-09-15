@@ -1,0 +1,7 @@
+{{define "notifications/fragments/count"}}
+{{if and .Count (gt .Count 0)}}
+<span class="absolute -top-1 -right-0.5 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-xs font-medium rounded-full flex items-center justify-center">
+  {{if gt .Count 99}}99+{{else}}{{.Count}}{{end}}
+</span>
+{{end}}
+{{end}}

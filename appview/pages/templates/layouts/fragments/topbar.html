@@ -10,6 +10,7 @@
             <div id="right-items" class="flex items-center gap-2">
                 {{ with .LoggedInUser }}
                     {{ block "newButton" . }} {{ end }}
+                    {{ template "notifications/fragments/bell" }}
                     {{ block "dropDown" . }} {{ end }}
                 {{ else }}
                     <a href="/login">login</a>
@@ -44,7 +45,7 @@
 {{ define "dropDown" }}
 <details class="relative inline-block text-left nav-dropdown">
     <summary
-        class="cursor-pointer list-none flex items-center"
+        class="cursor-pointer list-none flex items-center gap-1"
     >
         {{ $user := didOrHandle .Did .Handle }}
         {{ template "user/fragments/picHandle" $user }}
