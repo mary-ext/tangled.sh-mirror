@@ -29,11 +29,22 @@ func (p *Pages) funcMap() template.FuncMap {
 		"split": func(s string) []string {
 			return strings.Split(s, "\n")
 		},
+		"trimPrefix": func(s, prefix string) string {
+			return strings.TrimPrefix(s, prefix)
+		},
 		"join": func(elems []string, sep string) string {
 			return strings.Join(elems, sep)
 		},
 		"contains": func(s string, target string) bool {
 			return strings.Contains(s, target)
+		},
+		"mapContains": func(m any, key any) bool {
+			mapValue := reflect.ValueOf(m)
+			if mapValue.Kind() != reflect.Map {
+				return false
+			}
+			keyValue := reflect.ValueOf(key)
+			return mapValue.MapIndex(keyValue).IsValid()
 		},
 		"resolve": func(s string) string {
 			identity, err := p.resolver.ResolveIdent(context.Background(), s)

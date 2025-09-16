@@ -174,7 +174,7 @@ func (i *IssueComment) IsTopLevel() bool {
 	return i.ReplyTo == nil
 }
 
-func IssueCommentFromRecord(e Execer, did, rkey string, record tangled.RepoIssueComment) (*IssueComment, error) {
+func IssueCommentFromRecord(did, rkey string, record tangled.RepoIssueComment) (*IssueComment, error) {
 	created, err := time.Parse(time.RFC3339, record.CreatedAt)
 	if err != nil {
 		created = time.Now()
