@@ -77,6 +77,8 @@ func (i *Ingester) Ingest() processFunc {
 				err = i.ingestIssue(ctx, e)
 			case tangled.RepoIssueCommentNSID:
 				err = i.ingestIssueComment(e)
+			case tangled.LabelDefinitionNSID:
+				err = i.ingestLabelDefinition(e)
 			}
 			l = i.Logger.With("nsid", e.Commit.Collection)
 		}
@@ -866,7 +868,7 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 			return fmt.Errorf("invalid record: %w", err)
 		}
 
-		comment, err := db.IssueCommentFromRecord(ddb, did, rkey, record)
+		comment, err := db.IssueCommentFromRecord(did, rkey, record)
 		if err != nil {
 			return fmt.Errorf("failed to parse comment from record: %w", err)
 		}
@@ -889,6 +891,60 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 			db.FilterEq("rkey", rkey),
 		); err != nil {
 			return fmt.Errorf("failed to delete issue comment record: %w", err)
+		}
+
+		return nil
+	}
+
+	return nil
+}
+
+func (i *Ingester) ingestLabelDefinition(e *models.Event) error {
+	did := e.Did
+	rkey := e.Commit.RKey
+
+	var err error
+
+	l := i.Logger.With("handler", "ingestLabelDefinition", "nsid", e.Commit.Collection, "did", did, "rkey", rkey)
+	l.Info("ingesting record")
+
+	ddb, ok := i.Db.Execer.(*db.DB)
+	if !ok {
+		return fmt.Errorf("failed to index label definition, invalid db cast")
+	}
+
+	switch e.Commit.Operation {
+	case models.CommitOperationCreate, models.CommitOperationUpdate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.LabelDefinition{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			return fmt.Errorf("invalid record: %w", err)
+		}
+
+		def, err := db.LabelDefinitionFromRecord(did, rkey, record)
+		if err != nil {
+			return fmt.Errorf("failed to parse labeldef from record: %w", err)
+		}
+
+		if err := i.Validator.ValidateLabelDefinition(def); err != nil {
+			return fmt.Errorf("failed to validate labeldef: %w", err)
+		}
+
+		_, err = db.AddLabelDefinition(ddb, def)
+		if err != nil {
+			return fmt.Errorf("failed to create labeldef: %w", err)
+		}
+
+		return nil
+
+	case models.CommitOperationDelete:
+		if err := db.DeleteLabelDefinition(
+			ddb,
+			db.FilterEq("did", did),
+			db.FilterEq("rkey", rkey),
+		); err != nil {
+			return fmt.Errorf("failed to delete labeldef record: %w", err)
 		}
 
 		return nil
