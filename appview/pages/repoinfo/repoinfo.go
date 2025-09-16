@@ -52,6 +52,7 @@ func (r RepoInfo) GetTabs() [][]string {
 
 type RepoInfo struct {
 	Name         string
+	Rkey         string
 	OwnerDid     string
 	OwnerHandle  string
 	Description  string

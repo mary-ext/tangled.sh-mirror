@@ -80,13 +80,10 @@
           <a href="/{{ $.RepoInfo.FullName }}/issues/{{ .IssueId }}" class="text-gray-500 dark:text-gray-400">{{ len .Comments }} comment{{$s}}</a>
         </span>
 
-        {{ if .Labels.Inner }}
-          <span class="before:content-['·']"></span>
-          {{ range $k, $valset := .Labels.Inner }}
-            {{ $d := index $.LabelDefs $k }}
-            {{ range $v, $s := $valset }}
-              {{ template "labels/fragments/label" (dict "def" $d "val" $v) }}
-            {{ end }}
+        {{ $state := .Labels }}
+        {{ range $k, $d := $.LabelDefs }}
+          {{ range $v, $s := $state.GetValSet $d.AtUri.String }}
+            {{ template "labels/fragments/label" (dict "def" $d "val" $v "withPrefix" true) }}
           {{ end }}
         {{ end }}
       </div>
