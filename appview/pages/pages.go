@@ -219,7 +219,7 @@ func (p *Pages) executeProfile(name string, w io.Writer, params any) error {
 }
 
 func (p *Pages) Favicon(w io.Writer) error {
-	return p.executePlain("favicon", w, nil)
+	return p.executePlain("fragments/dolly/silhouette", w, nil)
 }
 
 type LoginParams struct {
