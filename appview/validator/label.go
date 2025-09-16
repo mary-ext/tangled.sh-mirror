@@ -18,7 +18,7 @@ var (
 	// Color should be a valid hex color
 	colorRegex = regexp.MustCompile(`^#[a-fA-F0-9]{6}$`)
 	// You can only label issues and pulls presently
-	validScopes = []syntax.NSID{tangled.RepoIssueNSID, tangled.RepoPullNSID}
+	validScopes = []string{tangled.RepoIssueNSID, tangled.RepoPullNSID}
 )
 
 func (v *Validator) ValidateLabelDefinition(label *db.LabelDefinition) error {
@@ -36,22 +36,40 @@ func (v *Validator) ValidateLabelDefinition(label *db.LabelDefinition) error {
 	}
 
 	if !label.ValueType.IsConcreteType() {
-		return fmt.Errorf("invalid value type: %q (must be one of: null, boolean, integer, string)", label.ValueType)
+		return fmt.Errorf("invalid value type: %q (must be one of: null, boolean, integer, string)", label.ValueType.Type)
 	}
 
-	if label.ValueType.IsNull() && label.ValueType.IsEnumType() {
+	// null type checks: cannot be enums, multiple or explicit format
+	if label.ValueType.IsNull() && label.ValueType.IsEnum() {
 		return fmt.Errorf("null type cannot be used in conjunction with enum type")
+	}
+	if label.ValueType.IsNull() && label.Multiple {
+		return fmt.Errorf("null type labels cannot be multiple")
+	}
+	if label.ValueType.IsNull() && !label.ValueType.IsAnyFormat() {
+		return fmt.Errorf("format cannot be used in conjunction with null type")
+	}
+
+	// format checks: cannot be used with enum, or integers
+	if !label.ValueType.IsAnyFormat() && label.ValueType.IsEnum() {
+		return fmt.Errorf("enum types cannot be used in conjunction with format specification")
+	}
+
+	if !label.ValueType.IsAnyFormat() && !label.ValueType.IsString() {
+		return fmt.Errorf("format specifications are only permitted on string types")
 	}
 
 	// validate scope (nsid format)
-	if label.Scope == "" {
+	if label.Scope == nil {
 		return fmt.Errorf("scope is required")
 	}
-	if _, err := syntax.ParseNSID(string(label.Scope)); err != nil {
-		return fmt.Errorf("failed to parse scope: %w", err)
-	}
-	if !slices.Contains(validScopes, label.Scope) {
-		return fmt.Errorf("invalid scope: scope must be one of %q", validScopes)
+	for _, s := range label.Scope {
+		if _, err := syntax.ParseNSID(s); err != nil {
+			return fmt.Errorf("failed to parse scope: %w", err)
+		}
+		if !slices.Contains(validScopes, s) {
+			return fmt.Errorf("invalid scope: scope must be present in %q", validScopes)
+		}
 	}
 
 	// validate color if provided
@@ -116,6 +134,12 @@ func (v *Validator) ValidateLabelOp(labelDef *db.LabelDefinition, labelOp *db.La
 func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *db.LabelOp) error {
 	valueType := labelDef.ValueType
 
+	// this is permitted, it "unsets" a label
+	if labelOp.OperandValue == "" {
+		labelOp.Operation = db.LabelOperationDel
+		return nil
+	}
+
 	switch valueType.Type {
 	case db.ConcreteTypeNull:
 		// For null type, value should be empty
@@ -125,7 +149,7 @@ func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *
 
 	case db.ConcreteTypeString:
 		// For string type, validate enum constraints if present
-		if valueType.IsEnumType() {
+		if valueType.IsEnum() {
 			if !slices.Contains(valueType.Enum, labelOp.OperandValue) {
 				return fmt.Errorf("value %q is not in allowed enum values %v", labelOp.OperandValue, valueType.Enum)
 			}
@@ -153,7 +177,7 @@ func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *
 			return fmt.Errorf("value %q is not a valid integer", labelOp.OperandValue)
 		}
 
-		if valueType.IsEnumType() {
+		if valueType.IsEnum() {
 			if !slices.Contains(valueType.Enum, labelOp.OperandValue) {
 				return fmt.Errorf("value %q is not in allowed enum values %v", labelOp.OperandValue, valueType.Enum)
 			}
@@ -165,7 +189,7 @@ func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *
 		}
 
 		// validate enum constraints if present (though uncommon for booleans)
-		if valueType.IsEnumType() {
+		if valueType.IsEnum() {
 			if !slices.Contains(valueType.Enum, labelOp.OperandValue) {
 				return fmt.Errorf("value %q is not in allowed enum values %v", labelOp.OperandValue, valueType.Enum)
 			}
