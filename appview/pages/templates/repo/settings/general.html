@@ -7,7 +7,8 @@
     </div>
     <div class="col-span-1 md:col-span-3 flex flex-col gap-6 p-2">
       {{ template "branchSettings" . }}
-      {{ template "labelSettings" . }}
+      {{ template "defaultLabelSettings" . }}
+      {{ template "customLabelSettings" . }}
       {{ template "deleteRepo" . }}
       <div id="operation-error" class="text-red-500 dark:text-red-400"></div>
     </div>
@@ -43,18 +44,55 @@
   </div>
 {{ end }}
 
-{{ define "labelSettings" }}
+{{ define "defaultLabelSettings" }}
+  <div class="flex flex-col gap-2">
+    <h2 class="text-sm pb-2 uppercase font-bold">Default Labels</h2>
+    <p class="text-gray-500 dark:text-gray-400">
+      Manage your issues and pulls by creating labels to categorize them. Only
+      repository owners may configure labels. You may choose to subscribe to
+      default labels, or create entirely custom labels.
+    </p>
+    <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
+      {{ range .DefaultLabels }}
+        <div id="label-{{.Id}}" class="flex items-center justify-between p-2 pl-4">
+          {{ template "repo/settings/fragments/labelListing" (list $ .) }}
+          {{ $action := "subscribe" }}
+          {{ $icon := "plus" }}
+          {{ if mapContains $.SubscribedLabels .AtUri.String }}
+            {{ $action = "unsubscribe" }}
+            {{ $icon = "minus" }}
+          {{ end }}
+          <button
+            class="btn gap-2 group"
+            title="{{$action}} from label"
+            {{ if not $.RepoInfo.Roles.IsOwner }}disabled{{ end }}
+            hx-post="/{{ $.RepoInfo.FullName }}/settings/label/{{$action}}"
+            hx-swap="none"
+            hx-vals='{"label": "{{ .AtUri.String }}"}'>
+            {{ i $icon "size-4" }}
+            <span class="hidden md:inline">{{$action}}</span>
+            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </button>
+        </div>
+      {{ else }}
+      <div class="flex items-center justify-center p-2 text-gray-500">
+        no labels added yet
+      </div>
+      {{ end }}
+    </div>
+    <div id="default-label-operation" class="error"></div>
+  </div>
+{{ end }}
+
+{{ define "customLabelSettings" }}
   <div class="flex flex-col gap-2">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
       <div class="col-span-1 md:col-span-2">
-        <h2 class="text-sm pb-2 uppercase font-bold">Labels</h2>
-        <p class="text-gray-500 dark:text-gray-400">
-        Manage your issues and pulls by creating labels to categorize them.
-        Only repository owners may configure labels.
-        </p>
+        <h2 class="text-sm pb-2 uppercase font-bold">Custom Labels</h2>
       </div>
       <div class="col-span-1 md:col-span-1 md:justify-self-end">
         <button
+          title="Add custom label"
           class="btn flex items-center gap-2"
           popovertarget="add-labeldef-modal"
           {{ if not .RepoInfo.Roles.IsOwner }}disabled{{ end }}
@@ -65,14 +103,30 @@
         <div
           id="add-labeldef-modal"
           popover
-          class="bg-white w-full sm:w-[30rem] dark:bg-gray-800 p-6 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
+          class="bg-white w-full sm:w-[30rem] dark:bg-gray-800 p-6 max-h-dvh overflow-y-auto rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
           {{ template "repo/settings/fragments/addLabelDefModal" . }}
         </div>
       </div>
     </div>
     <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
       {{ range .Labels }}
-        {{ template "repo/settings/fragments/labelListing" (list $ .) }}
+        <div id="label-{{.Id}}" class="flex items-center justify-between p-2 pl-4">
+          {{ template "repo/settings/fragments/labelListing" (list $ .) }}
+          {{ if $.RepoInfo.Roles.IsOwner }}
+            <button
+              class="btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 gap-2 group"
+              title="Delete label"
+              hx-delete="/{{ $.RepoInfo.FullName }}/settings/label"
+              hx-swap="none"
+              hx-vals='{"label-id": "{{ .Id }}"}'
+              hx-confirm="Are you sure you want to delete the label `{{ .Name }}`?"
+            >
+              {{ i "trash-2" "w-5 h-5" }}
+              <span class="hidden md:inline">delete</span> 
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+            </button>
+          {{ end }}
+        </div>
       {{ else }}
       <div class="flex items-center justify-center p-2 text-gray-500">
         no labels added yet
