@@ -25,6 +25,7 @@ import (
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/oauth/client"
 	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.sh/tangled.sh/core/consts"
 	"tangled.sh/tangled.sh/core/idresolver"
 	"tangled.sh/tangled.sh/core/rbac"
 	"tangled.sh/tangled.sh/core/tid"
@@ -353,14 +354,6 @@ func pubKeyFromJwk(jwks string) (jwk.Key, error) {
 	return pubKey, nil
 }
 
-var (
-	tangledDid = "did:plc:wshs7t2adsemcrrd4snkeqli"
-	icyDid     = "did:plc:hwevmowznbiukdf6uk5dwrrq"
-
-	defaultSpindle = "spindle.tangled.sh"
-	defaultKnot    = "knot1.tangled.sh"
-)
-
 func (o *OAuthHandler) addToDefaultSpindle(did string) {
 	// use the tangled.sh app password to get an accessJwt
 	// and create an sh.tangled.spindle.member record with that
@@ -380,7 +373,7 @@ func (o *OAuthHandler) addToDefaultSpindle(did string) {
 	}
 
 	log.Printf("adding %s to default spindle", did)
-	session, err := o.createAppPasswordSession(o.config.Core.AppPassword, tangledDid)
+	session, err := o.createAppPasswordSession(o.config.Core.AppPassword, consts.TangledDid)
 	if err != nil {
 		log.Printf("failed to create session: %s", err)
 		return
@@ -389,7 +382,7 @@ func (o *OAuthHandler) addToDefaultSpindle(did string) {
 	record := tangled.SpindleMember{
 		LexiconTypeID: "sh.tangled.spindle.member",
 		Subject:       did,
-		Instance:      defaultSpindle,
+		Instance:      consts.DefaultSpindle,
 		CreatedAt:     time.Now().Format(time.RFC3339),
 	}
 
@@ -411,13 +404,13 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 		return
 	}
 
-	if slices.Contains(allKnots, defaultKnot) {
+	if slices.Contains(allKnots, consts.DefaultKnot) {
 		log.Printf("did %s is already a member of the default knot", did)
 		return
 	}
 
 	log.Printf("adding %s to default knot", did)
-	session, err := o.createAppPasswordSession(o.config.Core.TmpAltAppPassword, icyDid)
+	session, err := o.createAppPasswordSession(o.config.Core.TmpAltAppPassword, consts.IcyDid)
 	if err != nil {
 		log.Printf("failed to create session: %s", err)
 		return
@@ -426,7 +419,7 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 	record := tangled.KnotMember{
 		LexiconTypeID: "sh.tangled.knot.member",
 		Subject:       did,
-		Domain:        defaultKnot,
+		Domain:        consts.DefaultKnot,
 		CreatedAt:     time.Now().Format(time.RFC3339),
 	}
 
@@ -435,7 +428,7 @@ func (o *OAuthHandler) addToDefaultKnot(did string) {
 		return
 	}
 
-	if err := o.enforcer.AddKnotMember(defaultKnot, did); err != nil {
+	if err := o.enforcer.AddKnotMember(consts.DefaultKnot, did); err != nil {
 		log.Printf("failed to set up enforcer rules: %s", err)
 		return
 	}

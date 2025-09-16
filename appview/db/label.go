@@ -13,6 +13,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.sh/tangled.sh/core/consts"
 )
 
 type ConcreteType string
@@ -77,7 +78,7 @@ func (vt ValueType) IsBool() bool {
 	return vt.Type == ConcreteTypeBool
 }
 
-func (vt ValueType) IsEnumType() bool {
+func (vt ValueType) IsEnum() bool {
 	return len(vt.Enum) > 0
 }
 
@@ -96,7 +97,7 @@ type LabelDefinition struct {
 
 	Name      string
 	ValueType ValueType
-	Scope     syntax.NSID
+	Scope     []string
 	Color     *string
 	Multiple  bool
 	Created   time.Time
@@ -113,7 +114,7 @@ func (l *LabelDefinition) AsRecord() tangled.LabelDefinition {
 		Color:     l.Color,
 		CreatedAt: l.Created.Format(time.RFC3339),
 		Multiple:  &l.Multiple,
-		Scope:     l.Scope.String(),
+		Scope:     l.Scope,
 		ValueType: &vt,
 	}
 }
@@ -139,7 +140,7 @@ func (ld LabelDefinition) GetColor() string {
 	return *ld.Color
 }
 
-func LabelDefinitionFromRecord(did, rkey string, record tangled.LabelDefinition) LabelDefinition {
+func LabelDefinitionFromRecord(did, rkey string, record tangled.LabelDefinition) (*LabelDefinition, error) {
 	created, err := time.Parse(time.RFC3339, record.CreatedAt)
 	if err != nil {
 		created = time.Now()
@@ -155,17 +156,17 @@ func LabelDefinitionFromRecord(did, rkey string, record tangled.LabelDefinition)
 		vt = ValueTypeFromRecord(*record.ValueType)
 	}
 
-	return LabelDefinition{
+	return &LabelDefinition{
 		Did:  did,
 		Rkey: rkey,
 
 		Name:      record.Name,
 		ValueType: vt,
-		Scope:     syntax.NSID(record.Scope),
+		Scope:     record.Scope,
 		Color:     record.Color,
 		Multiple:  multiple,
 		Created:   created,
-	}
+	}, nil
 }
 
 func DeleteLabelDefinition(e Execer, filters ...filter) error {
@@ -184,6 +185,7 @@ func DeleteLabelDefinition(e Execer, filters ...filter) error {
 	return err
 }
 
+// no updating type for now
 func AddLabelDefinition(e Execer, l *LabelDefinition) (int64, error) {
 	result, err := e.Exec(
 		`insert into label_definitions (
@@ -210,7 +212,7 @@ func AddLabelDefinition(e Execer, l *LabelDefinition) (int64, error) {
 		l.ValueType.Type,
 		l.ValueType.Format,
 		strings.Join(l.ValueType.Enum, ","),
-		l.Scope.String(),
+		strings.Join(l.Scope, ","),
 		l.Color,
 		l.Multiple,
 		l.Created.Format(time.RFC3339),
@@ -274,7 +276,7 @@ func GetLabelDefinitions(e Execer, filters ...filter) ([]LabelDefinition, error)
 
 	for rows.Next() {
 		var labelDefinition LabelDefinition
-		var createdAt, enumVariants string
+		var createdAt, enumVariants, scopes string
 		var color sql.Null[string]
 		var multiple int
 
@@ -286,7 +288,7 @@ func GetLabelDefinitions(e Execer, filters ...filter) ([]LabelDefinition, error)
 			&labelDefinition.ValueType.Type,
 			&labelDefinition.ValueType.Format,
 			&enumVariants,
-			&labelDefinition.Scope,
+			&scopes,
 			&color,
 			&multiple,
 			&createdAt,
@@ -309,6 +311,10 @@ func GetLabelDefinitions(e Execer, filters ...filter) ([]LabelDefinition, error)
 
 		if enumVariants != "" {
 			labelDefinition.ValueType.Enum = strings.Split(enumVariants, ",")
+		}
+
+		for s := range strings.SplitSeq(scopes, ",") {
+			labelDefinition.Scope = append(labelDefinition.Scope, s)
 		}
 
 		labelDefinitions = append(labelDefinitions, labelDefinition)
@@ -631,8 +637,24 @@ func (s LabelState) ContainsLabel(l string) bool {
 	return false
 }
 
-func (s *LabelState) GetValSet(l string) set {
-	return s.inner[l]
+// go maps behavior in templates make this necessary,
+// indexing a map and getting `set` in return is apparently truthy
+func (s LabelState) ContainsLabelAndVal(l, v string) bool {
+	if valset, exists := s.inner[l]; exists {
+		if _, exists := valset[v]; exists {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s LabelState) GetValSet(l string) set {
+	if valset, exists := s.inner[l]; exists {
+		return valset
+	} else {
+		return make(set)
+	}
 }
 
 type LabelApplicationCtx struct {
@@ -658,7 +680,11 @@ func NewLabelApplicationCtx(e Execer, filters ...filter) (*LabelApplicationCtx, 
 }
 
 func (c *LabelApplicationCtx) ApplyLabelOp(state LabelState, op LabelOp) error {
-	def := c.Defs[op.OperandKey]
+	def, ok := c.Defs[op.OperandKey]
+	if !ok {
+		// this def was deleted, but an op exists, so we just skip over the op
+		return nil
+	}
 
 	switch op.Operation {
 	case LabelOperationAdd:
@@ -718,4 +744,73 @@ func (c *LabelApplicationCtx) ApplyLabelOps(state LabelState, ops []LabelOp) {
 	for _, o := range ops {
 		_ = c.ApplyLabelOp(state, o)
 	}
+}
+
+// IsInverse checks if one label operation is the inverse of another
+// returns true if one is an add and the other is a delete with the same key and value
+func (op1 LabelOp) IsInverse(op2 LabelOp) bool {
+	if op1.OperandKey != op2.OperandKey || op1.OperandValue != op2.OperandValue {
+		return false
+	}
+
+	return (op1.Operation == LabelOperationAdd && op2.Operation == LabelOperationDel) ||
+		(op1.Operation == LabelOperationDel && op2.Operation == LabelOperationAdd)
+}
+
+// removes pairs of label operations that are inverses of each other
+// from the given slice. the function preserves the order of remaining operations.
+func ReduceLabelOps(ops []LabelOp) []LabelOp {
+	if len(ops) <= 1 {
+		return ops
+	}
+
+	keep := make([]bool, len(ops))
+	for i := range keep {
+		keep[i] = true
+	}
+
+	for i := range ops {
+		if !keep[i] {
+			continue
+		}
+
+		for j := i + 1; j < len(ops); j++ {
+			if !keep[j] {
+				continue
+			}
+
+			if ops[i].IsInverse(ops[j]) {
+				keep[i] = false
+				keep[j] = false
+				break // move to next i since this one is now eliminated
+			}
+		}
+	}
+
+	// build result slice with only kept operations
+	var result []LabelOp
+	for i, op := range ops {
+		if keep[i] {
+			result = append(result, op)
+		}
+	}
+
+	return result
+}
+
+func DefaultLabelDefs() []string {
+	rkeys := []string{
+		"wontfix",
+		"duplicate",
+		"assignee",
+		"good-first-issue",
+		"documentation",
+	}
+
+	defs := make([]string, len(rkeys))
+	for i, r := range rkeys {
+		defs[i] = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, r)
+	}
+
+	return defs
 }
