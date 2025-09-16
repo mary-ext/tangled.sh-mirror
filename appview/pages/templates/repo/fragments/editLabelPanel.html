@@ -1,0 +1,208 @@
+{{ define "repo/fragments/editLabelPanel" }}
+  <form
+    id="edit-label-panel"
+    hx-put="/{{ .RepoInfo.FullName }}/labels/perform"
+    hx-indicator="#spinner"
+    hx-disabled-elt="#save-btn,#cancel-btn"
+    hx-swap="none"
+    class="flex flex-col gap-6"
+    >
+    <input type="hidden" name="repo" value="{{ .RepoInfo.RepoAt }}">
+    <input type="hidden" name="subject" value="{{ .Subject }}">
+    {{ template "editBasicLabels" . }}
+    {{ template "editKvLabels" . }}
+    {{ template "editLabelPanelActions" . }}
+    <div id="add-label-error" class="text-red-500 dark:text-red-400"></div>
+  </form>
+{{ end }}
+
+{{ define "editBasicLabels" }}
+  {{ $defs := .Defs }}
+  {{ $subject := .Subject }}
+  {{ $state := .State }}
+  {{ $labelStyle := "flex items-center gap-2 rounded py-1 px-2 border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-black dark:text-white" }}
+  <div>
+    {{ template "repo/fragments/labelSectionHeaderText" "Labels" }}
+
+    <div class="flex gap-1 items-center flex-wrap">
+      {{ range $k, $d := $defs }}
+        {{ $isChecked := $state.ContainsLabel $k }}
+        {{ if $d.ValueType.IsNull }}
+          {{ $fieldName := $d.AtUri }}
+          <label class="{{$labelStyle}}">
+            <input type="checkbox" id="{{ $fieldName }}" name="{{ $fieldName }}" value="null" {{if $isChecked}}checked{{end}}>
+            {{ template "labels/fragments/labelDef" $d }}
+          </label>
+        {{ end }}
+      {{ else }}
+        <p class="text-gray-500 dark:text-gray-400 text-sm py-1">
+          No labels defined yet. You can choose default labels or define custom
+          labels in <a class="underline" href="/{{ $.RepoInfo.FullName }}/settings">settings</a>.
+        </p>
+      {{ end }}
+    </div>
+  </div>
+{{ end }}
+
+{{ define "editKvLabels" }}
+  {{ $defs := .Defs }}
+  {{ $subject := .Subject }}
+  {{ $state := .State }}
+  {{ $labelStyle := "font-normal normal-case flex items-center gap-2 p-0" }}
+
+  {{ range $k, $d := $defs }}
+    {{ if (not $d.ValueType.IsNull) }}
+      {{ $fieldName := $d.AtUri }}
+      {{ $valset := $state.GetValSet $k }}
+      <div id="label-{{$d.Id}}" class="flex flex-col gap-1">
+        {{ template "repo/fragments/labelSectionHeaderText" $d.Name }}
+          {{ if (and $d.Multiple $d.ValueType.IsEnum) }}
+            <!-- checkbox -->
+            {{ range $variant := $d.ValueType.Enum }}
+              <label class="{{$labelStyle}}">
+                <input type="checkbox" name="{{ $fieldName }}" value="{{$variant}}" {{if $state.ContainsLabelAndVal $k $variant}}checked{{end}}>
+                {{ $variant }}
+              </label>
+            {{ end }}
+          {{ else if $d.Multiple }}
+            <!-- dynamically growing input fields -->
+            {{ range $v, $s := $valset }}
+              {{ template "multipleInputField" (dict "def" $d "value" $v "key" $k) }}
+            {{ else }}
+              {{ template "multipleInputField" (dict "def" $d "value" "" "key" $k) }}
+            {{ end }}
+            {{ template "addFieldButton" $d }}
+          {{ else if $d.ValueType.IsEnum }}
+            <!-- radio buttons -->
+            {{ $isUsed := $state.ContainsLabel $k }}
+            {{ range $variant := $d.ValueType.Enum }}
+              <label class="{{$labelStyle}}">
+                <input type="radio" name="{{ $fieldName }}" value="{{$variant}}" {{if $state.ContainsLabelAndVal $k $variant}}checked{{end}}>
+                {{ $variant }}
+              </label>
+            {{ end }}
+            <label class="{{$labelStyle}}">
+              <input type="radio" name="{{ $fieldName }}" value="" {{ if not $isUsed }}checked{{ end }}>
+              None
+            </label>
+          {{ else }}
+            <!-- single input field based on value type -->
+            {{ range $v, $s := $valset }}
+              {{ template "valueTypeInput" (dict "def" $d "value" $v "key" $k) }}
+            {{ else }}
+              {{ template "valueTypeInput" (dict "def" $d "value" "" "key" $k) }}
+            {{ end }}
+          {{ end }}
+      </div>
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "multipleInputField" }}
+  <div class="flex gap-1 items-stretch">
+    {{ template "valueTypeInput" . }}
+    {{ template "removeFieldButton" }}
+  </div>
+{{ end }}
+
+{{ define "addFieldButton" }}
+  <div style="display:none" id="tpl-{{ .Id }}">
+    {{ template "multipleInputField" (dict "def" . "value" "" "key" .AtUri.String) }}
+  </div>
+  <button type="button" onClick="this.insertAdjacentHTML('beforebegin', document.getElementById('tpl-{{ .Id }}').innerHTML)" class="w-full btn flex items-center gap-2">
+    {{ i "plus" "size-4" }} add
+  </button>
+{{ end }}
+
+{{ define "removeFieldButton" }}
+  <button type="button" onClick="this.parentElement.remove()" class="btn flex items-center gap-2 text-red-400 dark:text-red-500">
+    {{ i "trash-2" "size-4" }}
+  </button>
+{{ end }}
+
+{{ define "valueTypeInput" }}
+  {{ $def := .def }}
+  {{ $valueType := $def.ValueType }}
+  {{ $value := .value }}
+  {{ $key := .key }}
+
+  {{ if $valueType.IsBool }}
+    {{ template "boolTypeInput" $ }}
+  {{ else if $valueType.IsInt }}
+    {{ template "intTypeInput" $ }}
+  {{ else if $valueType.IsString }}
+    {{ template "stringTypeInput" $ }}
+  {{ else if $valueType.IsNull }}
+    {{ template "nullTypeInput" $ }}
+  {{ end }}
+{{ end }}
+
+{{ define "boolTypeInput" }}
+  {{ $def := .def }}
+  {{ $fieldName := $def.AtUri }}
+  {{ $value := .value }}
+  {{ $labelStyle = "font-normal normal-case flex items-center gap-2" }}
+  <div class="flex flex-col gap-1">
+    <label class="{{$labelStyle}}">
+      <input type="radio" name="{{ $fieldName }}" value="true" {{ if not $value }}checked{{ end }}>
+      None
+    </label>
+    <label class="{{$labelStyle}}">
+      <input type="radio" name="{{ $fieldName }}" value="true" {{ if not $value }}checked{{ end }}>
+      None
+    </label>
+    <label class="{{$labelStyle}}">
+      <input type="radio" name="{{ $fieldName }}" value="true" {{ if not $value }}checked{{ end }}>
+      None
+    </label>
+  </div>
+{{ end }}
+
+{{ define "intTypeInput" }}
+  {{ $def := .def }}
+  {{ $fieldName := $def.AtUri }}
+  {{ $value := .value }}
+  <input class="p-1 w-full" type="number" name="{{$fieldName}}" value="{{$value}}">
+{{ end }}
+
+{{ define "stringTypeInput" }}
+  {{ $def := .def }}
+  {{ $fieldName := $def.AtUri }}
+  {{ $valueType := $def.ValueType }}
+  {{ $value := .value }}
+  {{ if $valueType.IsDidFormat }}
+    {{ $value = trimPrefix (resolve .value) "@" }}
+  {{ end }}
+  <input class="p-1 w-full" type="text" name="{{$fieldName}}" value="{{$value}}">
+{{ end }}
+
+{{ define "nullTypeInput" }}
+  {{ $def := .def }}
+  {{ $fieldName := $def.AtUri }}
+  <input class="p-1" type="hidden" name="{{$fieldName}}" value="null">
+{{ end }}
+
+{{ define "editLabelPanelActions" }}
+  <div class="flex gap-2 pt-2">
+    <button
+      id="cancel-btn"
+      type="button"
+      hx-get="/{{ .RepoInfo.FullName }}/label"
+      hx-vals='{"subject": "{{.Subject}}"}'
+      hx-swap="outerHTML"
+      hx-target="#edit-label-panel"
+      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 group">
+      {{ i "x" "size-4" }} cancel
+    </button>
+
+    <button
+      id="save-btn"
+      type="submit"
+      class="btn w-1/2 flex items-center">
+      <span class="inline-flex gap-2 items-center">{{ i "check" "size-4" }} save</span>
+      <span id="spinner" class="group">
+        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </span>
+    </button>
+  </div>
+{{ end }}

@@ -1,0 +1,43 @@
+{{ define "repo/fragments/labelPanel" }}
+  <div id="label-panel" class="flex flex-col gap-6">
+    {{ template "basicLabels" . }}
+    {{ template "kvLabels" . }}
+  </div>
+{{ end }}
+
+{{ define "basicLabels" }}
+  <div>
+    {{ template "repo/fragments/labelSectionHeader" (dict "Name" "Labels" "RepoInfo" .RepoInfo "Subject" .Subject) }}
+
+    {{ $hasLabel := false }}
+    <div class="flex gap-1 items-center flex-wrap">
+      {{ range $k, $d := .Defs }}
+        {{ if (and $d.ValueType.IsNull ($.State.ContainsLabel $k)) }}
+          {{ $hasLabel = true }}
+          {{ template "labels/fragments/label" (dict "def" $d "val" "") }}
+        {{ end }}
+      {{ end }}
+
+      {{ if not $hasLabel }}
+        <p class="text-gray-500 dark:text-gray-400 text-sm py-1">None yet.</p>
+      {{ end }}
+    </div>
+  </div>
+{{ end }}
+
+{{ define "kvLabels" }}
+  {{ range $k, $d := .Defs }}
+    {{ if (not $d.ValueType.IsNull) }}
+      <div id="label-{{$d.Id}}">
+        {{ template "repo/fragments/labelSectionHeader" (dict "Name" $d.Name "RepoInfo" $.RepoInfo "Subject" $.Subject) }}
+        <div class="flex gap-1 items-center flex-wrap">
+          {{ range $v, $s := $.State.GetValSet $d.AtUri.String }}
+            {{ template "labels/fragments/label" (dict "def" $d "val" $v "withPrefix" false) }}
+          {{ else }}
+            <p class="text-gray-500 dark:text-gray-400 text-sm py-1">None yet.</p>
+          {{ end }}
+        </div>
+      </div>
+    {{ end }}
+  {{ end }}
+{{ end }}

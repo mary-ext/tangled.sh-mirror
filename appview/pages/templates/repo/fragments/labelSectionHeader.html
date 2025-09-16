@@ -1,0 +1,16 @@
+{{ define "repo/fragments/labelSectionHeader" }}
+
+  <div class="flex justify-between items-center gap-2">
+    {{ template "repo/fragments/labelSectionHeaderText" .Name }}
+    {{ if (or .RepoInfo.Roles.IsOwner .RepoInfo.Roles.IsCollaborator) }}
+      <a
+        class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+        hx-get="/{{ .RepoInfo.FullName }}/label/edit"
+        hx-vals='{"subject": "{{.Subject}}"}'
+        hx-swap="outerHTML"
+        hx-target="#label-panel">
+        {{ i "pencil" "size-3" }}
+      </a>
+    {{ end }}
+  </div>
+{{ end }}
