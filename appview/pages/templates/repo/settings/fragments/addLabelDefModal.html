@@ -1,56 +1,86 @@
 {{ define "repo/settings/fragments/addLabelDefModal" }}
-<form
-  hx-put="/{{ $.RepoInfo.FullName }}/settings/label"
-  hx-indicator="#spinner"
-  hx-swap="none"
-  hx-on::after-request="if(event.detail.successful) this.reset()"
-  class="flex flex-col gap-4"
->
-  <p class="text-gray-500 dark:text-gray-400">Labels can have a name and a value. Set the value type to "none" to create a simple label.</p>
+<div class="grid grid-cols-2">
+  <input type="radio" name="tab" id="basic-tab" value="basic" class="hidden peer/basic" checked>
+  <input type="radio" name="tab" id="kv-tab" value="kv" class="hidden peer/kv">
 
+  <!-- Labels as direct siblings -->
+  {{ $base := "py-2 text-sm font-normal normal-case block hover:no-underline text-center cursor-pointer bg-gray-100 dark:bg-gray-800 shadow-inner border border-gray-200 dark:border-gray-700" }}
+  <label for="basic-tab" class="{{$base}} peer-checked/basic:bg-white peer-checked/basic:dark:bg-gray-700 peer-checked/basic:shadow-sm rounded-l">
+    Basic Labels
+  </label>
+  <label for="kv-tab" class="{{$base}} peer-checked/kv:!bg-white peer-checked/kv:dark:bg-gray-700 peer-checked/kv:shadow-sm rounded-r">
+    Key-value Labels
+  </label>
+
+  <!-- Basic Labels Content - direct sibling -->
+  <div class="mt-4 hidden peer-checked/basic:block col-span-full">
+    {{ template "basicLabelDef" . }}
+  </div>
+
+  <!-- Key-value Labels Content - direct sibling -->
+  <div class="mt-4 hidden peer-checked/kv:block col-span-full">
+    {{ template "kvLabelDef" . }}
+  </div>
+
+  <div id="add-label-error" class="text-red-500 dark:text-red-400 col-span-full"></div>
+</div>
+{{ end }}
+
+{{ define "basicLabelDef" }}
+  <form
+    hx-put="/{{ $.RepoInfo.FullName }}/settings/label"
+    hx-indicator="#spinner"
+    hx-swap="none"
+    hx-on::after-request="if(event.detail.successful) this.reset()"
+    class="flex flex-col space-y-4">
+
+    <p class="text-gray-500 dark:text-gray-400">These labels can have a name and a color.</p>
+
+    {{ template "nameInput" . }}
+    {{ template "scopeInput" . }}
+    {{ template "colorInput" . }}
+
+    <div class="flex gap-2 pt-2">
+      {{ template "cancelButton" . }}
+      {{ template "submitButton" . }}
+    </div>
+  </form>
+{{ end }}
+
+{{ define "kvLabelDef" }}
+  <form
+    hx-put="/{{ $.RepoInfo.FullName }}/settings/label"
+    hx-indicator="#spinner"
+    hx-swap="none"
+    hx-on::after-request="if(event.detail.successful) this.reset()"
+    class="flex flex-col space-y-4">
+
+    <p class="text-gray-500 dark:text-gray-400">
+      These labels are more detailed, they can have a key and an associated
+      value. You may define additional constraints on label values.
+    </p>
+
+    {{ template "nameInput" . }}
+    {{ template "valueInput" . }}
+    {{ template "multipleInput" . }}
+    {{ template "scopeInput" . }}
+    {{ template "colorInput" . }}
+
+    <div class="flex gap-2 pt-2">
+      {{ template "cancelButton" . }}
+      {{ template "submitButton" . }}
+    </div>
+  </form>
+{{ end }}
+
+{{ define "nameInput" }}
   <div class="w-full">
     <label for="name">Name</label>
     <input class="w-full" type="text" id="label-name" name="name" required placeholder="improvement"/>
   </div>
+{{ end }}
 
-   <!-- Value Type -->
-  <div class="w-full">
-    <label for="valueType">Value Type</label>
-    <select id="value-type" name="valueType" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
-      <option value="null" selected>None</option>
-      <option value="string">String</option>
-      <option value="integer">Integer</option>
-      <option value="boolean">Boolean</option>
-    </select>
-    <details id="constrain-values" class="group hidden">
-      <summary class="list-none cursor-pointer flex items-center gap-2 py-2">
-        <span class="group-open:hidden inline text-gray-500 dark:text-gray-400">{{ i "square-plus" "w-4 h-4" }}</span>
-        <span class="hidden group-open:inline text-gray-500 dark:text-gray-400">{{ i "square-minus" "w-4 h-4" }}</span>
-        <span>Constrain values</span>
-      </summary>
-      <label for="enumValues">Permitted values</label>
-      <input type="text" id="enumValues" name="enumValues" placeholder="value1, value2, value3" class="w-full"/>
-      <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Enter comma-separated list of permitted values.</p>
-
-      <label for="valueFormat">String format</label>
-      <select id="valueFormat" name="valueFormat" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
-        <option value="any" selected>Any</option>
-        <option value="did">DID</option>
-      </select>
-      <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Choose a string format.</p>
-    </details>
-  </div>
-
-  <!-- Scope -->
-  <div class="w-full">
-    <label for="scope">Scope</label>
-    <select id="scope" name="scope" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
-      <option value="sh.tangled.repo.issue">Issues</option>
-      <option value="sh.tangled.repo.pull">Pull Requests</option>
-    </select>
-  </div>
-
-  <!-- Color -->
+{{ define "colorInput" }}
   <div class="w-full">
     <label for="color">Color</label>
     <div class="grid grid-cols-4 grid-rows-2 place-items-center">
@@ -63,51 +93,69 @@
       {{ end }}
     </div>
   </div>
-
-  <!-- Multiple -->
-  <div class="w-full flex flex-wrap gap-2">
-    <input type="checkbox" id="multiple" name="multiple" value="true" />
-    <span>
-      Allow multiple values
-    </span>
-  </div>
-
-  <div class="flex gap-2 pt-2">
-    <button
-      type="button"
-      popovertarget="add-labeldef-modal"
-      popovertargetaction="hide"
-      class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-      >
-      {{ i "x" "size-4" }} cancel
-    </button>
-    <button type="submit" class="btn w-1/2 flex items-center">
-      <span class="inline-flex gap-2 items-center">{{ i "plus" "size-4" }} add</span>
-      <span id="spinner" class="group">
-        {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-      </span>
-    </button>
-  </div>
-  <div id="add-label-error" class="text-red-500 dark:text-red-400"></div>
-</form>
-
-<script>
-  document.getElementById('value-type').addEventListener('change', function() {
-    const constrainValues = document.getElementById('constrain-values');
-    const selectedValue = this.value;
-
-    if (selectedValue === 'string') {
-      constrainValues.classList.remove('hidden');
-    } else {
-      constrainValues.classList.add('hidden');
-      constrainValues.removeAttribute('open');
-      document.getElementById('enumValues').value = '';
-    }
-  });
-
-  function toggleDarkMode() {
-    document.documentElement.classList.toggle('dark');
-  }
-</script>
 {{ end }}
+
+{{ define "scopeInput" }}
+  <div class="w-full">
+    <label for="scope">Scope</label>
+    <select id="scope" name="scope" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+      <option value="sh.tangled.repo.issue">Issues</option>
+      <option value="sh.tangled.repo.pull">Pull Requests</option>
+    </select>
+  </div>
+{{ end }}
+
+{{ define "valueInput" }}
+  <div class="w-full">
+    <label for="valueType">Value Type</label>
+    <select id="value-type" name="valueType" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+      <option value="string">String</option>
+      <option value="integer">Integer</option>
+    </select>
+  </div>
+
+  <div class="w-full">
+    <label for="enumValues">Permitted values</label>
+    <input type="text" id="enumValues" name="enumValues" placeholder="value1, value2, value3" class="w-full"/>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">
+    Enter comma-separated list of permitted values, or leave empty to allow any value.
+    </p>
+  </div>
+
+  <div class="w-full">
+    <label for="valueFormat">String format</label>
+    <select id="valueFormat" name="valueFormat" class="w-full p-3 rounded border border-gray-300 bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600">
+      <option value="any" selected>Any</option>
+      <option value="did">DID</option>
+    </select>
+  </div>
+{{ end }}
+
+{{ define "multipleInput" }}
+ <div class="w-full flex flex-wrap gap-2">
+   <input type="checkbox" id="multiple" name="multiple" value="true" />
+   <span>Allow multiple values</span>
+ </div>
+{{ end }}
+
+{{ define "cancelButton" }}
+  <button
+    type="button"
+    popovertarget="add-labeldef-modal"
+    popovertargetaction="hide"
+    class="btn w-1/2 flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+    >
+    {{ i "x" "size-4" }} cancel
+  </button>
+{{ end }}
+
+{{ define "submitButton" }}
+  <button type="submit" class="btn-create w-1/2 flex items-center">
+    <span class="inline-flex gap-2 items-center">{{ i "plus" "size-4" }} add</span>
+    <span id="spinner" class="group">
+      {{ i "loader-circle" "ml-2 w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </span>
+  </button>
+{{ end }}
+
 

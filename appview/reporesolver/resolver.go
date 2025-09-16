@@ -184,6 +184,7 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		OwnerDid:    f.OwnerDid(),
 		OwnerHandle: f.OwnerHandle(),
 		Name:        f.Name,
+		Rkey:        f.Repo.Rkey,
 		RepoAt:      repoAt,
 		Description: f.Description,
 		IsStarred:   isStarred,

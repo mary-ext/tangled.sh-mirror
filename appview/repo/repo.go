@@ -942,7 +942,7 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 	rp.pages.HxRefresh(w)
 }
 
-func (rp *Repo) AddLabel(w http.ResponseWriter, r *http.Request) {
+func (rp *Repo) AddLabelDef(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "AddLabel")
 	l = l.With("did", user.Did)
@@ -974,6 +974,10 @@ func (rp *Repo) AddLabel(w http.ResponseWriter, r *http.Request) {
 		if part = strings.TrimSpace(part); part != "" {
 			variants = append(variants, part)
 		}
+	}
+
+	if concreteType == "" {
+		concreteType = "null"
 	}
 
 	format := db.ValueTypeFormatAny
@@ -1048,6 +1052,10 @@ func (rp *Repo) AddLabel(w http.ResponseWriter, r *http.Request) {
 			Val: &repoRecord,
 		},
 	})
+	if err != nil {
+		fail("Failed to update labels for repo.", err)
+		return
+	}
 
 	tx, err := rp.db.BeginTx(r.Context(), nil)
 	if err != nil {
@@ -1094,7 +1102,7 @@ func (rp *Repo) AddLabel(w http.ResponseWriter, r *http.Request) {
 	rp.pages.HxRefresh(w)
 }
 
-func (rp *Repo) DeleteLabel(w http.ResponseWriter, r *http.Request) {
+func (rp *Repo) DeleteLabelDef(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "DeleteLabel")
 	l = l.With("did", user.Did)
@@ -1335,6 +1343,102 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 
 	// everything succeeded
 	rp.pages.HxRefresh(w)
+}
+
+func (rp *Repo) LabelPanel(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "LabelPanel")
+
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	subjectStr := r.FormValue("subject")
+	subject, err := syntax.ParseATURI(subjectStr)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	labelDefs, err := db.GetLabelDefinitions(
+		rp.db,
+		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterEq("scope", subject.Collection().String()),
+	)
+	if err != nil {
+		log.Println("failed to fetch label defs", err)
+		return
+	}
+
+	defs := make(map[string]*db.LabelDefinition)
+	for _, l := range labelDefs {
+		defs[l.AtUri().String()] = &l
+	}
+
+	states, err := db.GetLabels(rp.db, db.FilterEq("subject", subject))
+	if err != nil {
+		log.Println("failed to build label state", err)
+		return
+	}
+	state := states[subject]
+
+	user := rp.oauth.GetUser(r)
+	rp.pages.LabelPanel(w, pages.LabelPanelParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(user),
+		Defs:         defs,
+		Subject:      subject.String(),
+		State:        state,
+	})
+}
+
+func (rp *Repo) EditLabelPanel(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "EditLabelPanel")
+
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	subjectStr := r.FormValue("subject")
+	subject, err := syntax.ParseATURI(subjectStr)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		return
+	}
+
+	labelDefs, err := db.GetLabelDefinitions(
+		rp.db,
+		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterEq("scope", subject.Collection().String()),
+	)
+	if err != nil {
+		log.Println("failed to fetch labels", err)
+		return
+	}
+
+	defs := make(map[string]*db.LabelDefinition)
+	for _, l := range labelDefs {
+		defs[l.AtUri().String()] = &l
+	}
+
+	states, err := db.GetLabels(rp.db, db.FilterEq("subject", subject))
+	if err != nil {
+		log.Println("failed to build label state", err)
+		return
+	}
+	state := states[subject]
+
+	user := rp.oauth.GetUser(r)
+	fmt.Println(rp.pages.EditLabelPanel(w, pages.EditLabelPanelParams{
+		LoggedInUser: user,
+		RepoInfo:     f.RepoInfo(user),
+		Defs:         defs,
+		Subject:      subject.String(),
+		State:        state,
+	}))
 }
 
 func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {

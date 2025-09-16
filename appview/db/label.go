@@ -77,7 +77,7 @@ func (vt ValueType) IsBool() bool {
 	return vt.Type == ConcreteTypeBool
 }
 
-func (vt ValueType) IsEnumType() bool {
+func (vt ValueType) IsEnum() bool {
 	return len(vt.Enum) > 0
 }
 
@@ -631,8 +631,24 @@ func (s LabelState) ContainsLabel(l string) bool {
 	return false
 }
 
-func (s *LabelState) GetValSet(l string) set {
-	return s.inner[l]
+// go maps behavior in templates make this necessary,
+// indexing a map and getting `set` in return is apparently truthy
+func (s LabelState) ContainsLabelAndVal(l, v string) bool {
+	if valset, exists := s.inner[l]; exists {
+		if _, exists := valset[v]; exists {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s LabelState) GetValSet(l string) set {
+	if valset, exists := s.inner[l]; exists {
+		return valset
+	} else {
+		return make(set)
+	}
 }
 
 type LabelApplicationCtx struct {
@@ -718,4 +734,56 @@ func (c *LabelApplicationCtx) ApplyLabelOps(state LabelState, ops []LabelOp) {
 	for _, o := range ops {
 		_ = c.ApplyLabelOp(state, o)
 	}
+}
+
+// IsInverse checks if one label operation is the inverse of another
+// returns true if one is an add and the other is a delete with the same key and value
+func (op1 LabelOp) IsInverse(op2 LabelOp) bool {
+	if op1.OperandKey != op2.OperandKey || op1.OperandValue != op2.OperandValue {
+		return false
+	}
+
+	return (op1.Operation == LabelOperationAdd && op2.Operation == LabelOperationDel) ||
+		(op1.Operation == LabelOperationDel && op2.Operation == LabelOperationAdd)
+}
+
+// removes pairs of label operations that are inverses of each other
+// from the given slice. the function preserves the order of remaining operations.
+func ReduceLabelOps(ops []LabelOp) []LabelOp {
+	if len(ops) <= 1 {
+		return ops
+	}
+
+	keep := make([]bool, len(ops))
+	for i := range keep {
+		keep[i] = true
+	}
+
+	for i := range ops {
+		if !keep[i] {
+			continue
+		}
+
+		for j := i + 1; j < len(ops); j++ {
+			if !keep[j] {
+				continue
+			}
+
+			if ops[i].IsInverse(ops[j]) {
+				keep[i] = false
+				keep[j] = false
+				break // move to next i since this one is now eliminated
+			}
+		}
+	}
+
+	// build result slice with only kept operations
+	var result []LabelOp
+	for i, op := range ops {
+		if keep[i] {
+			result = append(result, op)
+		}
+	}
+
+	return result
 }

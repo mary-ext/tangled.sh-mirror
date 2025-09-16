@@ -1210,6 +1210,30 @@ func (p *Pages) RepoCompareDiff(w io.Writer, params RepoCompareDiffParams) error
 	return p.executePlain("repo/fragments/diff", w, []any{params.RepoInfo.FullName, &params.Diff})
 }
 
+type LabelPanelParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Defs         map[string]*db.LabelDefinition
+	Subject      string
+	State        db.LabelState
+}
+
+func (p *Pages) LabelPanel(w io.Writer, params LabelPanelParams) error {
+	return p.executePlain("repo/fragments/labelPanel", w, params)
+}
+
+type EditLabelPanelParams struct {
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Defs         map[string]*db.LabelDefinition
+	Subject      string
+	State        db.LabelState
+}
+
+func (p *Pages) EditLabelPanel(w io.Writer, params EditLabelPanelParams) error {
+	return p.executePlain("repo/fragments/editLabelPanel", w, params)
+}
+
 type PipelinesParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo

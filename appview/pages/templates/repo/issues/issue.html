@@ -17,7 +17,11 @@
       {{ block "repoAfter" . }}{{ end }}
     </div>
     <div class="col-span-1 md:col-span-2 flex flex-col gap-6">
-      {{ template "issueLabels" . }}
+      {{ template "repo/fragments/labelPanel"
+        (dict "RepoInfo" $.RepoInfo
+              "Defs" $.LabelDefs
+              "Subject" $.Issue.AtUri
+              "State" $.Issue.Labels) }}
       {{ template "issueParticipants" . }}
     </div>
   </div>
@@ -118,37 +122,6 @@
   </div>
 {{ end }}
 
-{{ define "issueLabels" }}
-  <div>
-    <div class="text-sm py-1 flex items-center gap-2 font-bold text-gray-500 dark:text-gray-400 capitalize">
-      Labels
-      <button
-        class="inline-flex text-gray-500 dark:text-gray-400 {{ if not (or .RepoInfo.Roles.IsOwner .RepoInfo.Roles.IsCollaborator) }}hidden{{ end }}"
-        popovertarget="add-label-modal"
-        popovertargetaction="toggle">
-        {{ i "plus" "size-4" }}
-      </button>
-    </div>
-    <div class="flex gap-1 items-center flex-wrap">
-      {{ range $k, $valset := $.Issue.Labels.Inner }}
-        {{ $d := index $.LabelDefs $k }}
-        {{ range $v, $s := $valset }}
-          {{ template "labels/fragments/label" (dict "def" $d "val" $v) }}
-        {{ end }}
-      {{ else }}
-        <p class="text-gray-500 dark:text-gray-400 ">No labels yet.</p>
-      {{ end }}
-
-      <div
-        id="add-label-modal"
-        popover
-        class="bg-white w-full sm:w-[30rem] dark:bg-gray-800 p-6 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
-        {{ template "repo/fragments/addLabelModal" (dict "root" $ "subject" $.Issue.AtUri.String "state" $.Issue.Labels) }}
-      </div>
-    </div>
-  </div>
-{{ end }}
-
 {{ define "issueParticipants" }}
   {{ $all := .Issue.Participants }}
   {{ $ps := take $all 5 }}
@@ -157,13 +130,13 @@
       <span class="font-bold text-gray-500 dark:text-gray-400 capitalize">Participants</span>
       <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 ml-1">{{ len $all }}</span>
     </div>
-    <div class="flex items-center -space-x-2 mt-2">
+    <div class="flex items-center -space-x-3 mt-2">
       {{ $c := "z-50 z-40 z-30 z-20 z-10" }}
       {{ range $i, $p := $ps }}
         <img
             src="{{ tinyAvatar . }}"
             alt=""
-            class="rounded-full h-8 w-8 mr-1 border-2 border-gray-300 dark:border-gray-700 z-{{sub 5 $i}}0"
+            class="rounded-full h-8 w-8 mr-1 border-2 border-gray-100 dark:border-gray-900 z-{{sub 5 $i}}0"
         />
       {{ end }}
 

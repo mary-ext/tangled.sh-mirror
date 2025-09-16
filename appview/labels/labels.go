@@ -53,17 +53,28 @@ func New(
 func (l *Labels) Router(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 
-	r.With(middleware.AuthMiddleware(l.oauth)).Put("/perform", l.PerformLabelOp)
+	r.Use(middleware.AuthMiddleware(l.oauth))
+	r.Put("/perform", l.PerformLabelOp)
 
 	return r
 }
 
+// this is a tricky handler implementation:
+// - the user selects the new state of all the labels in the label panel and hits save
+// - this handler should calculate the diff in order to create the labelop record
+// - we need the diff in order to maintain a "history" of operations performed by users
 func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 	user := l.oauth.GetUser(r)
 
+	noticeId := "add-label-error"
+
+	fail := func(msg string, err error) {
+		l.logger.Error("failed to add label", "err", err)
+		l.pages.Notice(w, noticeId, msg)
+	}
+
 	if err := r.ParseForm(); err != nil {
-		l.logger.Error("failed to parse form data", "error", err)
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		fail("Invalid form.", err)
 		return
 	}
 
@@ -73,34 +84,11 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 	indexedAt := time.Now()
 	repoAt := r.Form.Get("repo")
 	subjectUri := r.Form.Get("subject")
-	keys := r.Form["operand-key"]
-	vals := r.Form["operand-val"]
-
-	var labelOps []db.LabelOp
-	for i := range len(keys) {
-		op := r.FormValue(fmt.Sprintf("op-%d", i))
-		if op == "" {
-			op = string(db.LabelOperationDel)
-		}
-		key := keys[i]
-		val := vals[i]
-
-		labelOps = append(labelOps, db.LabelOp{
-			Did:          did,
-			Rkey:         rkey,
-			Subject:      syntax.ATURI(subjectUri),
-			Operation:    db.LabelOperation(op),
-			OperandKey:   key,
-			OperandValue: val,
-			PerformedAt:  performedAt,
-			IndexedAt:    indexedAt,
-		})
-	}
 
 	// find all the labels that this repo subscribes to
 	repoLabels, err := db.GetRepoLabels(l.db, db.FilterEq("repo_at", repoAt))
 	if err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		fail("Failed to get labels for this repository.", err)
 		return
 	}
 
@@ -111,32 +99,68 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 
 	actx, err := db.NewLabelApplicationCtx(l.db, db.FilterIn("at_uri", labelAts))
 	if err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		fail("Invalid form data.", err)
 		return
-	}
-
-	for i := range labelOps {
-		def := actx.Defs[labelOps[i].OperandKey]
-		if err := l.validator.ValidateLabelOp(def, &labelOps[i]); err != nil {
-			l.logger.Error("form failed to validate", "err", err)
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
-
-		l.logger.Info("value changed to: ", "v", labelOps[i].OperandValue)
 	}
 
 	// calculate the start state by applying already known labels
 	existingOps, err := db.GetLabelOps(l.db, db.FilterEq("subject", subjectUri))
 	if err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		fail("Invalid form data.", err)
 		return
 	}
 
 	labelState := db.NewLabelState()
 	actx.ApplyLabelOps(labelState, existingOps)
 
-	l.logger.Info("state", "state", labelState)
+	var labelOps []db.LabelOp
+
+	// first delete all existing state
+	for key, vals := range labelState.Inner() {
+		for val := range vals {
+			labelOps = append(labelOps, db.LabelOp{
+				Did:          did,
+				Rkey:         rkey,
+				Subject:      syntax.ATURI(subjectUri),
+				Operation:    db.LabelOperationDel,
+				OperandKey:   key,
+				OperandValue: val,
+				PerformedAt:  performedAt,
+				IndexedAt:    indexedAt,
+			})
+		}
+	}
+
+	// add all the new state the user specified
+	for key, vals := range r.Form {
+		if _, ok := actx.Defs[key]; !ok {
+			continue
+		}
+
+		for _, val := range vals {
+			labelOps = append(labelOps, db.LabelOp{
+				Did:          did,
+				Rkey:         rkey,
+				Subject:      syntax.ATURI(subjectUri),
+				Operation:    db.LabelOperationAdd,
+				OperandKey:   key,
+				OperandValue: val,
+				PerformedAt:  performedAt,
+				IndexedAt:    indexedAt,
+			})
+		}
+	}
+
+	// reduce the opset
+	labelOps = db.ReduceLabelOps(labelOps)
+
+	for i := range labelOps {
+		def := actx.Defs[labelOps[i].OperandKey]
+		if err := l.validator.ValidateLabelOp(def, &labelOps[i]); err != nil {
+			fail(fmt.Sprintf("Invalid form data: %s", err), err)
+			return
+		}
+	}
 
 	// next, apply all ops introduced in this request and filter out ones that are no-ops
 	validLabelOps := labelOps[:0]
@@ -157,8 +181,7 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 
 	client, err := l.oauth.AuthorizedClient(r)
 	if err != nil {
-		l.logger.Error("failed to create client", "error", err)
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		fail("Failed to authorize user.", err)
 		return
 	}
 
@@ -171,15 +194,14 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		l.logger.Error("failed to write to PDS", "error", err)
-		http.Error(w, "failed to write to PDS", http.StatusInternalServerError)
+		fail("Failed to create record on PDS for user.", err)
 		return
 	}
 	atUri := resp.Uri
 
 	tx, err := l.db.BeginTx(r.Context(), nil)
 	if err != nil {
-		l.logger.Error("failed to start tx", "error", err)
+		fail("Failed to update labels. Try again later.", err)
 		return
 	}
 
@@ -200,11 +222,9 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 
 	for _, o := range validLabelOps {
 		if _, err := db.AddLabelOp(l.db, &o); err != nil {
-			l.logger.Error("failed to add op", "err", err)
+			fail("Failed to update labels. Try again later.", err)
 			return
 		}
-
-		l.logger.Info("performed label op", "did", o.Did, "rkey", o.Rkey, "kind", o.Operation, "subjcet", o.Subject, "key", o.OperandKey)
 	}
 
 	err = tx.Commit()

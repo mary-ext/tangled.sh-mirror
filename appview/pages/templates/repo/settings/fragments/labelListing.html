@@ -5,15 +5,29 @@
     <div class="flex flex-col gap-1 text-sm min-w-0 max-w-[80%]">
       {{ template "labels/fragments/labelDef" $label }}
       <div class="flex flex-wrap text items-center gap-1 text-gray-500 dark:text-gray-400">
-        {{ $label.ValueType.Type }} type
-        {{ if $label.ValueType.IsEnumType }}
+        {{ if $label.ValueType.IsNull }} 
+          basic
+        {{ else }}
+          {{ $label.ValueType.Type }} type
+        {{ end }}
+
+        {{ if $label.ValueType.IsEnum }}
           <span class="before:content-['·'] before:select-none"></span>
           {{ join $label.ValueType.Enum ", " }}
         {{ end }}
+
         {{ if $label.ValueType.IsDidFormat }}
           <span class="before:content-['·'] before:select-none"></span>
           DID format
         {{ end }}
+
+        {{ if $label.Multiple }}
+          <span class="before:content-['·'] before:select-none"></span>
+          multiple
+        {{ end }}
+
+        <span class="before:content-['·'] before:select-none"></span>
+        {{ $label.Scope }}
       </div>
     </div>
     {{ if $root.RepoInfo.Roles.IsOwner }}

@@ -64,6 +64,12 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 		r.Get("/*", rp.RepoCompare)
 	})
 
+	// label panel in issues/pulls/discussions/tasks
+	r.Route("/label", func(r chi.Router) {
+		r.Get("/", rp.LabelPanel)
+		r.Get("/edit", rp.EditLabelPanel)
+	})
+
 	// settings routes, needs auth
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(rp.oauth))
@@ -76,8 +82,8 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 		r.With(mw.RepoPermissionMiddleware("repo:settings")).Route("/settings", func(r chi.Router) {
 			r.Get("/", rp.RepoSettings)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Post("/spindle", rp.EditSpindle)
-			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/label", rp.AddLabel)
-			r.With(mw.RepoPermissionMiddleware("repo:owner")).Delete("/label", rp.DeleteLabel)
+			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/label", rp.AddLabelDef)
+			r.With(mw.RepoPermissionMiddleware("repo:owner")).Delete("/label", rp.DeleteLabelDef)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/label/subscribe", rp.SubscribeLabel)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Delete("/label/subscribe", rp.UnsubscribeLabel)
 			r.With(mw.RepoPermissionMiddleware("repo:invite")).Put("/collaborator", rp.AddCollaborator)

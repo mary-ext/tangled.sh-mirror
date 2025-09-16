@@ -29,6 +29,9 @@ func (p *Pages) funcMap() template.FuncMap {
 		"split": func(s string) []string {
 			return strings.Split(s, "\n")
 		},
+		"trimPrefix": func(s, prefix string) string {
+			return strings.TrimPrefix(s, prefix)
+		},
 		"join": func(elems []string, sep string) string {
 			return strings.Join(elems, sep)
 		},

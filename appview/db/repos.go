@@ -53,6 +53,7 @@ func (r *Repo) AsRecord() tangled.Repo {
 		CreatedAt:   r.Created.Format(time.RFC3339),
 		Source:      source,
 		Spindle:     spindle,
+		Labels:      r.Labels,
 	}
 }
 

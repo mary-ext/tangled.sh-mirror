@@ -108,7 +108,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		defs[l.AtUri().String()] = &l
 	}
 
-	rp.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
+	fmt.Println(rp.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
 		LoggedInUser:         user,
 		RepoInfo:             f.RepoInfo(user),
 		Issue:                issue,
@@ -117,7 +117,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
 		LabelDefs:            defs,
-	})
+	}))
 }
 
 func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
