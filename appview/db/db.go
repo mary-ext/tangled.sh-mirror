@@ -483,7 +483,7 @@ func Make(dbPath string) (*DB, error) {
 			)),
 			value_format text not null default "any",
 			value_enum text, -- comma separated list
-			scope text not null,
+			scope text not null, -- comma separated list of nsid
 			color text,
 			multiple integer not null default 0,
 			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
@@ -996,13 +996,18 @@ func newFilter(key, cmp string, arg any) filter {
 	}
 }
 
-func FilterEq(key string, arg any) filter    { return newFilter(key, "=", arg) }
-func FilterNotEq(key string, arg any) filter { return newFilter(key, "<>", arg) }
-func FilterGte(key string, arg any) filter   { return newFilter(key, ">=", arg) }
-func FilterLte(key string, arg any) filter   { return newFilter(key, "<=", arg) }
-func FilterIs(key string, arg any) filter    { return newFilter(key, "is", arg) }
-func FilterIsNot(key string, arg any) filter { return newFilter(key, "is not", arg) }
-func FilterIn(key string, arg any) filter    { return newFilter(key, "in", arg) }
+func FilterEq(key string, arg any) filter      { return newFilter(key, "=", arg) }
+func FilterNotEq(key string, arg any) filter   { return newFilter(key, "<>", arg) }
+func FilterGte(key string, arg any) filter     { return newFilter(key, ">=", arg) }
+func FilterLte(key string, arg any) filter     { return newFilter(key, "<=", arg) }
+func FilterIs(key string, arg any) filter      { return newFilter(key, "is", arg) }
+func FilterIsNot(key string, arg any) filter   { return newFilter(key, "is not", arg) }
+func FilterIn(key string, arg any) filter      { return newFilter(key, "in", arg) }
+func FilterLike(key string, arg any) filter    { return newFilter(key, "like", arg) }
+func FilterNotLike(key string, arg any) filter { return newFilter(key, "not like", arg) }
+func FilterContains(key string, arg any) filter {
+	return newFilter(key, "like", fmt.Sprintf("%%%v%%", arg))
+}
 
 func (f filter) Condition() string {
 	rv := reflect.ValueOf(f.arg)

@@ -95,7 +95,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 	labelDefs, err := db.GetLabelDefinitions(
 		rp.db,
 		db.FilterIn("at_uri", f.Repo.Labels),
-		db.FilterEq("scope", tangled.RepoIssueNSID),
+		db.FilterContains("scope", tangled.RepoIssueNSID),
 	)
 	if err != nil {
 		log.Println("failed to fetch labels", err)
