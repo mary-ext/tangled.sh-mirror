@@ -64,6 +64,12 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 		r.Get("/*", rp.RepoCompare)
 	})
 
+	// label panel in issues/pulls/discussions/tasks
+	r.Route("/label", func(r chi.Router) {
+		r.Get("/", rp.LabelPanel)
+		r.Get("/edit", rp.EditLabelPanel)
+	})
+
 	// settings routes, needs auth
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(rp.oauth))
