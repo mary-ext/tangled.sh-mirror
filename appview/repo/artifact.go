@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -134,26 +135,21 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// TODO: proper statuses here on early exit
 func (rp *Repo) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
-	tagParam := chi.URLParam(r, "tag")
-	filename := chi.URLParam(r, "file")
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)
+		http.Error(w, "failed to resolve repo", http.StatusInternalServerError)
 		return
 	}
+
+	tagParam := chi.URLParam(r, "tag")
+	filename := chi.URLParam(r, "file")
 
 	tag, err := rp.resolveTag(r.Context(), f, tagParam)
 	if err != nil {
 		log.Println("failed to resolve tag", err)
 		rp.pages.Notice(w, "upload", "failed to upload artifact, error in tag resolution")
-		return
-	}
-
-	client, err := rp.oauth.AuthorizedClient(r)
-	if err != nil {
-		log.Println("failed to get authorized client", err)
 		return
 	}
 
@@ -165,23 +161,53 @@ func (rp *Repo) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		log.Println("failed to get artifacts", err)
+		http.Error(w, "failed to get artifact", http.StatusInternalServerError)
 		return
 	}
+
 	if len(artifacts) != 1 {
-		log.Printf("too many or too little artifacts found")
+		log.Printf("too many or too few artifacts found")
+		http.Error(w, "artifact not found", http.StatusNotFound)
 		return
 	}
 
 	artifact := artifacts[0]
 
-	getBlobResp, err := client.SyncGetBlob(r.Context(), artifact.BlobCid.String(), artifact.Did)
+	ownerPds := f.OwnerId.PDSEndpoint()
+	url, _ := url.Parse(fmt.Sprintf("%s/xrpc/com.atproto.sync.getBlob", ownerPds))
+	q := url.Query()
+	q.Set("cid", artifact.BlobCid.String())
+	q.Set("did", artifact.Did)
+	url.RawQuery = q.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, url.String(), nil)
 	if err != nil {
-		log.Println("failed to get blob from pds", err)
+		log.Println("failed to create request", err)
+		http.Error(w, "failed to create request", http.StatusInternalServerError)
 		return
 	}
+	req.Header.Set("Content-Type", "application/json")
 
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
-	w.Write(getBlobResp)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println("failed to make request", err)
+		http.Error(w, "failed to make request to PDS", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// copy status code and relevant headers from upstream response
+	w.WriteHeader(resp.StatusCode)
+	for key, values := range resp.Header {
+		for _, v := range values {
+			w.Header().Add(key, v)
+		}
+	}
+
+	// stream the body directly to the client
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Println("error streaming response to client:", err)
+	}
 }
 
 // TODO: proper statuses here on early exit

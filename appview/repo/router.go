@@ -21,8 +21,6 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	r.Route("/tags", func(r chi.Router) {
 		r.Get("/", rp.RepoTags)
 		r.Route("/{tag}", func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware(rp.oauth))
-			// require auth to download for now
 			r.Get("/download/{file}", rp.DownloadArtifact)
 
 			// require repo:push to upload or delete artifacts
@@ -30,7 +28,8 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 			// additionally: only the uploader can truly delete an artifact
 			// (record+blob will live on their pds)
 			r.Group(func(r chi.Router) {
-				r.With(mw.RepoPermissionMiddleware("repo:push"))
+				r.Use(middleware.AuthMiddleware(rp.oauth))
+				r.Use(mw.RepoPermissionMiddleware("repo:push"))
 				r.Post("/upload", rp.AttachArtifact)
 				r.Delete("/{file}", rp.DeleteArtifact)
 			})
