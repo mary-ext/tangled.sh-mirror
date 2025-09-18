@@ -61,7 +61,7 @@
                   {{ $committerDidOrHandle := index $.EmailToDidOrHandle $commit.Committer.Email }}
                   <a href="/{{ $committerDidOrHandle }}">{{ template "user/fragments/picHandleLink" $committerDidOrHandle }}</a>
               </div>
-              <div class="my-1 pt-2 text-xs border-t">
+              <div class="my-1 pt-2 text-xs border-t border-gray-200 dark:border-gray-700">
                   <div class="text-gray-600 dark:text-gray-300">SSH Key Fingerprint:</div>
                   <div class="break-all">{{ .VerifiedCommit.Fingerprint $commit.This }}</div>
               </div>
