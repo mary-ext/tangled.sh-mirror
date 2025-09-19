@@ -5,8 +5,8 @@
 
 {{ define "extrameta" }}
     {{ $title := printf "interdiff of %d and %d &middot; %s &middot; pull #%d &middot; %s" .Round (sub .Round 1) .Pull.Title .Pull.PullId .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/pulls/%d/round/%d" .RepoInfo.FullName .Pull.PullId .Round }}
-    
+    {{ $url := printf "https://tangled.org/%s/pulls/%d/round/%d" .RepoInfo.FullName .Pull.PullId .Round }}
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" (unescapeHtml $title) "Url" $url) }}
 {{ end }}
 

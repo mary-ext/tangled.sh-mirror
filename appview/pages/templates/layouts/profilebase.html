@@ -3,7 +3,7 @@
 {{ define "extrameta" }}
     <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
     <meta property="og:type" content="profile" />
-    <meta property="og:url" content="https://tangled.sh/{{ or .Card.UserHandle .Card.UserDid }}?tab={{ .Active }}" />
+    <meta property="og:url" content="https://tangled.org/{{ or .Card.UserHandle .Card.UserDid }}?tab={{ .Active }}" />
     <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
 {{ end }}
 
@@ -106,4 +106,3 @@
 {{ define "layouts/profilebase" }}
     {{ template "layouts/base" . }}
 {{ end }}
-

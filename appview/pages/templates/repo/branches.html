@@ -4,8 +4,8 @@
 
 {{ define "extrameta" }}
     {{ $title := printf "branches &middot; %s" .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/branches" .RepoInfo.FullName }}
-    
+    {{ $url := printf "https://tangled.org/%s/branches" .RepoInfo.FullName }}
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 

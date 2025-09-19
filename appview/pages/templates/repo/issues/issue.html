@@ -3,7 +3,7 @@
 
 {{ define "extrameta" }}
     {{ $title := printf "%s &middot; issue #%d &middot; %s" .Issue.Title .Issue.IssueId .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/issues/%d" .RepoInfo.FullName .Issue.IssueId }}
+    {{ $url := printf "https://tangled.org/%s/issues/%d" .RepoInfo.FullName .Issue.IssueId }}
 
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
@@ -115,4 +115,3 @@
   {{ template "repo/issues/fragments/newComment" . }}
   <div>
 {{ end }}
-

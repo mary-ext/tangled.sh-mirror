@@ -2,7 +2,7 @@
 
 {{ define "extrameta" }}
     {{ $title := printf "commit %s &middot; %s" .Diff.Commit.This .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/commit/%s" .RepoInfo.FullName .Diff.Commit.This }}
+    {{ $url := printf "https://tangled.org/%s/commit/%s" .RepoInfo.FullName .Diff.Commit.This }}
 
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}

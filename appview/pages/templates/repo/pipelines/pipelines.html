@@ -2,7 +2,7 @@
 
 {{ define "extrameta" }}
     {{ $title := "pipelines"}}
-    {{ $url := printf "https://tangled.sh/%s/pipelines" .RepoInfo.FullName }}
+    {{ $url := printf "https://tangled.org/%s/pipelines" .RepoInfo.FullName }}
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
@@ -60,7 +60,7 @@
             <span class="inline-flex gap-2 items-center">
               <span class="font-bold">{{ $target }}</span>
               {{ i "arrow-left" "size-4" }}
-              {{ .Trigger.PRSourceBranch }} 
+              {{ .Trigger.PRSourceBranch }}
               <span class="text-sm font-mono">
                 @
                 <a href="/{{ $root.RepoInfo.FullName }}/commit/{{ $sha }}">{{ slice $sha 0 8 }}</a>

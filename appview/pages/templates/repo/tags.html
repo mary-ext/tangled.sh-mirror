@@ -4,8 +4,8 @@
 
 {{ define "extrameta" }}
     {{ $title := printf "tags &middot; %s" .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/tags" .RepoInfo.FullName }}
-    
+    {{ $url := printf "https://tangled.org/%s/tags" .RepoInfo.FullName }}
+
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
@@ -26,7 +26,7 @@
 
           <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400 text-sm">
             {{ if .Tag }}
-            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Tag.Target.String }}" 
+            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Tag.Target.String }}"
               class="no-underline hover:underline text-gray-500 dark:text-gray-400">
               {{  slice .Tag.Target.String 0 8  }}
             </a>
@@ -48,7 +48,7 @@
           </a>
           <div class="flex flex-grow flex-col text-gray-500 dark:text-gray-400 text-sm">
             {{ if .Tag }}
-            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Tag.Target.String }}" 
+            <a href="/{{ $.RepoInfo.FullName }}/commit/{{ .Tag.Target.String }}"
               class="no-underline hover:underline text-gray-500 dark:text-gray-400 flex items-center gap-2">
               {{ i "git-commit-horizontal" "w-4 h-4" }}
               {{  slice .Tag.Target.String 0 8  }}
@@ -132,8 +132,8 @@
     hx-target="this"
     class="flex items-center gap-2 px-2">
     <div class="flex-grow">
-      <input type="file" 
-        name="artifact" 
+      <input type="file"
+        name="artifact"
         required
         class="block py-2 px-0 w-full border-none
         text-black dark:text-white
@@ -148,13 +148,13 @@
       </input>
     </div>
     <div class="flex justify-end">
-      <button 
-        type="submit" 
-        class="btn gap-2" 
+      <button
+        type="submit"
+        class="btn gap-2"
         id="upload-btn-{{$unique}}"
         title="Upload artifact">
         {{ i "upload" "w-4 h-4" }}
-        <span class="hidden md:inline">upload</span> 
+        <span class="hidden md:inline">upload</span>
       </button>
     </div>
   </form>

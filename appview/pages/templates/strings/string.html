@@ -4,7 +4,7 @@
   {{ $ownerId := didOrHandle .Owner.DID.String .Owner.Handle.String }}
   <meta property="og:title" content="{{ .String.Filename }} · by {{ $ownerId }}" />
   <meta property="og:type" content="object" />
-  <meta property="og:url" content="https://tangled.sh/strings/{{ $ownerId }}/{{ .String.Rkey }}" />
+  <meta property="og:url" content="https://tangled.org/strings/{{ $ownerId }}/{{ .String.Rkey }}" />
   <meta property="og:description" content="{{ .String.Description }}" />
 {{ end }}
 

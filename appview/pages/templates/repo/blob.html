@@ -4,7 +4,7 @@
     {{ template "repo/fragments/meta" . }}
 
     {{ $title := printf "%s at %s &middot; %s" .Path .Ref .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.sh/%s/blob/%s/%s" .RepoInfo.FullName .Ref .Path }}
+    {{ $url := printf "https://tangled.org/%s/blob/%s/%s" .RepoInfo.FullName .Ref .Path }}
 
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 
