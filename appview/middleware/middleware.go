@@ -338,8 +338,8 @@ func (mw Middleware) GoImport() middlewareFunc {
 					html := fmt.Sprintf(
 						`<meta name="go-import" content="tangled.sh/%s git https://tangled.sh/%s"/>
 <meta name="go-import" content="tangled.org/%s git https://tangled.org/%s"/>`,
-						fullName,
-						fullName,
+						fullName, fullName,
+						fullName, fullName,
 					)
 					w.Header().Set("Content-Type", "text/html")
 					w.Write([]byte(html))
