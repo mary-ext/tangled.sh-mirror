@@ -317,6 +317,10 @@ func (mw Middleware) ResolveIssue() middlewareFunc {
 
 // this should serve the go-import meta tag even if the path is technically
 // a 404 like tangled.sh/oppi.li/go-git/v5
+//
+// we're keeping the tangled.sh go-import tag too to maintain backward
+// compatiblity for modules that still point there. they will be redirected
+// to fetch source from tangled.org
 func (mw Middleware) GoImport() middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -332,7 +336,8 @@ func (mw Middleware) GoImport() middlewareFunc {
 			if r.Header.Get("User-Agent") == "Go-http-client/1.1" {
 				if r.URL.Query().Get("go-get") == "1" {
 					html := fmt.Sprintf(
-						`<meta name="go-import" content="tangled.sh/%s git https://tangled.sh/%s"/>`,
+						`<meta name="go-import" content="tangled.sh/%s git https://tangled.sh/%s"/>
+<meta name="go-import" content="tangled.org/%s git https://tangled.org/%s"/>`,
 						fullName,
 						fullName,
 					)
