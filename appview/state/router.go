@@ -225,6 +225,7 @@ func (s *State) StringsRouter(mw *middleware.Middleware) http.Handler {
 		Enforcer:   s.enforcer,
 		IdResolver: s.idResolver,
 		Knotstream: s.knotstream,
+		Notifier:   s.notifier,
 		Logger:     logger,
 	}
 
