@@ -447,6 +447,28 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// readme content
+	var (
+		readmeContent  string
+		readmeFileName string
+	)
+
+	for _, filename := range markup.ReadmeFilenames {
+		path := fmt.Sprintf("%s/%s", treePath, filename)
+		blobResp, err := tangled.RepoBlob(r.Context(), xrpcc, path, false, ref, repo)
+		if err != nil {
+			continue
+		}
+
+		if blobResp == nil {
+			continue
+		}
+
+		readmeContent = blobResp.Content
+		readmeFileName = path
+		break
+	}
+
 	// Convert XRPC response to internal types.RepoTreeResponse
 	files := make([]types.NiceTree, len(xrpcResp.Files))
 	for i, xrpcFile := range xrpcResp.Files {
@@ -508,6 +530,8 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 		BreadCrumbs:      breadcrumbs,
 		TreePath:         treePath,
 		RepoInfo:         f.RepoInfo(user),
+		Readme:           readmeContent,
+		ReadmeFileName:   readmeFileName,
 		RepoTreeResponse: result,
 	})
 }
