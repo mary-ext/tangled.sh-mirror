@@ -5,27 +5,22 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	"tangled.org/core/appview/models"
 )
 
-type Follow struct {
-	UserDid    string
-	SubjectDid string
-	FollowedAt time.Time
-	Rkey       string
-}
-
-func AddFollow(e Execer, follow *Follow) error {
+func AddFollow(e Execer, follow *models.Follow) error {
 	query := `insert or ignore into follows (user_did, subject_did, rkey) values (?, ?, ?)`
 	_, err := e.Exec(query, follow.UserDid, follow.SubjectDid, follow.Rkey)
 	return err
 }
 
 // Get a follow record
-func GetFollow(e Execer, userDid, subjectDid string) (*Follow, error) {
+func GetFollow(e Execer, userDid, subjectDid string) (*models.Follow, error) {
 	query := `select user_did, subject_did, followed_at, rkey from follows where user_did = ? and subject_did = ?`
 	row := e.QueryRow(query, userDid, subjectDid)
 
-	var follow Follow
+	var follow models.Follow
 	var followedAt string
 	err := row.Scan(&follow.UserDid, &follow.SubjectDid, &followedAt, &follow.Rkey)
 	if err != nil {
@@ -55,12 +50,7 @@ func DeleteFollowByRkey(e Execer, userDid, rkey string) error {
 	return err
 }
 
-type FollowStats struct {
-	Followers int64
-	Following int64
-}
-
-func GetFollowerFollowingCount(e Execer, did string) (FollowStats, error) {
+func GetFollowerFollowingCount(e Execer, did string) (models.FollowStats, error) {
 	var followers, following int64
 	err := e.QueryRow(
 		`SELECT
@@ -68,15 +58,15 @@ func GetFollowerFollowingCount(e Execer, did string) (FollowStats, error) {
 		COUNT(CASE WHEN user_did = ? THEN 1 END) AS following
 		FROM follows;`, did, did).Scan(&followers, &following)
 	if err != nil {
-		return FollowStats{}, err
+		return models.FollowStats{}, err
 	}
-	return FollowStats{
+	return models.FollowStats{
 		Followers: followers,
 		Following: following,
 	}, nil
 }
 
-func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]FollowStats, error) {
+func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]models.FollowStats, error) {
 	if len(dids) == 0 {
 		return nil, nil
 	}
@@ -112,7 +102,7 @@ func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]FollowStats
 		) g on f.did = g.did`,
 		placeholderStr, placeholderStr)
 
-	result := make(map[string]FollowStats)
+	result := make(map[string]models.FollowStats)
 
 	rows, err := e.Query(query, args...)
 	if err != nil {
@@ -126,7 +116,7 @@ func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]FollowStats
 		if err := rows.Scan(&did, &followers, &following); err != nil {
 			return nil, err
 		}
-		result[did] = FollowStats{
+		result[did] = models.FollowStats{
 			Followers: followers,
 			Following: following,
 		}
@@ -134,7 +124,7 @@ func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]FollowStats
 
 	for _, did := range dids {
 		if _, exists := result[did]; !exists {
-			result[did] = FollowStats{
+			result[did] = models.FollowStats{
 				Followers: 0,
 				Following: 0,
 			}
@@ -144,8 +134,8 @@ func GetFollowerFollowingCounts(e Execer, dids []string) (map[string]FollowStats
 	return result, nil
 }
 
-func GetFollows(e Execer, limit int, filters ...filter) ([]Follow, error) {
-	var follows []Follow
+func GetFollows(e Execer, limit int, filters ...filter) ([]models.Follow, error) {
+	var follows []models.Follow
 
 	var conditions []string
 	var args []any
@@ -177,7 +167,7 @@ func GetFollows(e Execer, limit int, filters ...filter) ([]Follow, error) {
 		return nil, err
 	}
 	for rows.Next() {
-		var follow Follow
+		var follow models.Follow
 		var followedAt string
 		err := rows.Scan(
 			&follow.UserDid,
@@ -200,47 +190,26 @@ func GetFollows(e Execer, limit int, filters ...filter) ([]Follow, error) {
 	return follows, nil
 }
 
-func GetFollowers(e Execer, did string) ([]Follow, error) {
+func GetFollowers(e Execer, did string) ([]models.Follow, error) {
 	return GetFollows(e, 0, FilterEq("subject_did", did))
 }
 
-func GetFollowing(e Execer, did string) ([]Follow, error) {
+func GetFollowing(e Execer, did string) ([]models.Follow, error) {
 	return GetFollows(e, 0, FilterEq("user_did", did))
 }
 
-type FollowStatus int
-
-const (
-	IsNotFollowing FollowStatus = iota
-	IsFollowing
-	IsSelf
-)
-
-func (s FollowStatus) String() string {
-	switch s {
-	case IsNotFollowing:
-		return "IsNotFollowing"
-	case IsFollowing:
-		return "IsFollowing"
-	case IsSelf:
-		return "IsSelf"
-	default:
-		return "IsNotFollowing"
-	}
-}
-
-func getFollowStatuses(e Execer, userDid string, subjectDids []string) (map[string]FollowStatus, error) {
+func getFollowStatuses(e Execer, userDid string, subjectDids []string) (map[string]models.FollowStatus, error) {
 	if len(subjectDids) == 0 || userDid == "" {
-		return make(map[string]FollowStatus), nil
+		return make(map[string]models.FollowStatus), nil
 	}
 
-	result := make(map[string]FollowStatus)
+	result := make(map[string]models.FollowStatus)
 
 	for _, subjectDid := range subjectDids {
 		if userDid == subjectDid {
-			result[subjectDid] = IsSelf
+			result[subjectDid] = models.IsSelf
 		} else {
-			result[subjectDid] = IsNotFollowing
+			result[subjectDid] = models.IsNotFollowing
 		}
 	}
 
@@ -281,20 +250,20 @@ func getFollowStatuses(e Execer, userDid string, subjectDids []string) (map[stri
 		if err := rows.Scan(&subjectDid); err != nil {
 			return nil, err
 		}
-		result[subjectDid] = IsFollowing
+		result[subjectDid] = models.IsFollowing
 	}
 
 	return result, nil
 }
 
-func GetFollowStatus(e Execer, userDid, subjectDid string) FollowStatus {
+func GetFollowStatus(e Execer, userDid, subjectDid string) models.FollowStatus {
 	statuses, err := getFollowStatuses(e, userDid, []string{subjectDid})
 	if err != nil {
-		return IsNotFollowing
+		return models.IsNotFollowing
 	}
 	return statuses[subjectDid]
 }
 
-func GetFollowStatuses(e Execer, userDid string, subjectDids []string) (map[string]FollowStatus, error) {
+func GetFollowStatuses(e Execer, userDid string, subjectDids []string) (map[string]models.FollowStatus, error) {
 	return getFollowStatuses(e, userDid, subjectDids)
 }

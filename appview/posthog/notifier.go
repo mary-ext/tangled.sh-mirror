@@ -6,6 +6,7 @@ import (
 
 	"github.com/posthog/posthog-go"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 )
 
@@ -98,7 +99,7 @@ func (n *posthogNotifier) NewPullComment(ctx context.Context, comment *db.PullCo
 	}
 }
 
-func (n *posthogNotifier) NewFollow(ctx context.Context, follow *db.Follow) {
+func (n *posthogNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: follow.UserDid,
 		Event:      "follow",
@@ -109,7 +110,7 @@ func (n *posthogNotifier) NewFollow(ctx context.Context, follow *db.Follow) {
 	}
 }
 
-func (n *posthogNotifier) DeleteFollow(ctx context.Context, follow *db.Follow) {
+func (n *posthogNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: follow.UserDid,
 		Event:      "unfollow",

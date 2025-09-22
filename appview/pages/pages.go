@@ -411,7 +411,7 @@ func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
 type ProfileCard struct {
 	UserDid      string
 	UserHandle   string
-	FollowStatus db.FollowStatus
+	FollowStatus models.FollowStatus
 	Punchcard    *db.Punchcard
 	Profile      *db.Profile
 	Stats        ProfileStats
@@ -489,7 +489,7 @@ func (p *Pages) ProfileStrings(w io.Writer, params ProfileStringsParams) error {
 
 type FollowCard struct {
 	UserDid        string
-	FollowStatus   db.FollowStatus
+	FollowStatus   models.FollowStatus
 	FollowersCount int64
 	FollowingCount int64
 	Profile        *db.Profile
@@ -521,7 +521,7 @@ func (p *Pages) ProfileFollowing(w io.Writer, params ProfileFollowingParams) err
 
 type FollowFragmentParams struct {
 	UserDid      string
-	FollowStatus db.FollowStatus
+	FollowStatus models.FollowStatus
 }
 
 func (p *Pages) FollowFragment(w io.Writer, params FollowFragmentParams) error {

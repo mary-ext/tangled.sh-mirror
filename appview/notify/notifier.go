@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 )
 
 type Notifier interface {
@@ -14,8 +15,8 @@ type Notifier interface {
 
 	NewIssue(ctx context.Context, issue *db.Issue)
 
-	NewFollow(ctx context.Context, follow *db.Follow)
-	DeleteFollow(ctx context.Context, follow *db.Follow)
+	NewFollow(ctx context.Context, follow *models.Follow)
+	DeleteFollow(ctx context.Context, follow *models.Follow)
 
 	NewPull(ctx context.Context, pull *db.Pull)
 	NewPullComment(ctx context.Context, comment *db.PullComment)
@@ -39,8 +40,8 @@ func (m *BaseNotifier) DeleteStar(ctx context.Context, star *db.Star) {}
 
 func (m *BaseNotifier) NewIssue(ctx context.Context, issue *db.Issue) {}
 
-func (m *BaseNotifier) NewFollow(ctx context.Context, follow *db.Follow)    {}
-func (m *BaseNotifier) DeleteFollow(ctx context.Context, follow *db.Follow) {}
+func (m *BaseNotifier) NewFollow(ctx context.Context, follow *models.Follow)    {}
+func (m *BaseNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {}
 
 func (m *BaseNotifier) NewPull(ctx context.Context, pull *db.Pull)                  {}
 func (m *BaseNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {}

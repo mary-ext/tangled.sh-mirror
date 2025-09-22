@@ -9,6 +9,7 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/tid"
 )
@@ -59,7 +60,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("created atproto record: ", resp.Uri)
 
-		follow := &db.Follow{
+		follow := &models.Follow{
 			UserDid:    currentUser.Did,
 			SubjectDid: subjectIdent.DID.String(),
 			Rkey:       rkey,
@@ -75,7 +76,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 
 		s.pages.FollowFragment(w, pages.FollowFragmentParams{
 			UserDid:      subjectIdent.DID.String(),
-			FollowStatus: db.IsFollowing,
+			FollowStatus: models.IsFollowing,
 		})
 
 		return
@@ -106,7 +107,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 
 		s.pages.FollowFragment(w, pages.FollowFragmentParams{
 			UserDid:      subjectIdent.DID.String(),
-			FollowStatus: db.IsNotFollowing,
+			FollowStatus: models.IsNotFollowing,
 		})
 
 		s.notifier.DeleteFollow(r.Context(), follow)

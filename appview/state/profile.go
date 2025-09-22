@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/feeds"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 )
 
@@ -76,7 +77,7 @@ func (s *State) profile(r *http.Request) (*pages.ProfileCard, error) {
 	}
 
 	loggedInUser := s.oauth.GetUser(r)
-	followStatus := db.IsNotFollowing
+	followStatus := models.IsNotFollowing
 	if loggedInUser != nil {
 		followStatus = db.GetFollowStatus(s.db, loggedInUser.Did, did)
 	}
@@ -271,8 +272,8 @@ type FollowsPageParams struct {
 
 func (s *State) followPage(
 	r *http.Request,
-	fetchFollows func(db.Execer, string) ([]db.Follow, error),
-	extractDid func(db.Follow) string,
+	fetchFollows func(db.Execer, string) ([]models.Follow, error),
+	extractDid func(models.Follow) string,
 ) (*FollowsPageParams, error) {
 	l := s.logger.With("handler", "reposPage")
 
@@ -329,11 +330,11 @@ func (s *State) followPage(
 	followCards := make([]pages.FollowCard, len(follows))
 	for i, did := range followDids {
 		followStats := followStatsMap[did]
-		followStatus := db.IsNotFollowing
+		followStatus := models.IsNotFollowing
 		if _, exists := loggedInUserFollowing[did]; exists {
-			followStatus = db.IsFollowing
+			followStatus = models.IsFollowing
 		} else if loggedInUser != nil && loggedInUser.Did == did {
-			followStatus = db.IsSelf
+			followStatus = models.IsSelf
 		}
 
 		var profile *db.Profile
@@ -358,7 +359,7 @@ func (s *State) followPage(
 }
 
 func (s *State) followersPage(w http.ResponseWriter, r *http.Request) {
-	followPage, err := s.followPage(r, db.GetFollowers, func(f db.Follow) string { return f.UserDid })
+	followPage, err := s.followPage(r, db.GetFollowers, func(f models.Follow) string { return f.UserDid })
 	if err != nil {
 		s.pages.Notice(w, "all-followers", "Failed to load followers")
 		return
@@ -372,7 +373,7 @@ func (s *State) followersPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) followingPage(w http.ResponseWriter, r *http.Request) {
-	followPage, err := s.followPage(r, db.GetFollowing, func(f db.Follow) string { return f.SubjectDid })
+	followPage, err := s.followPage(r, db.GetFollowing, func(f models.Follow) string { return f.SubjectDid })
 	if err != nil {
 		s.pages.Notice(w, "all-following", "Failed to load following")
 		return

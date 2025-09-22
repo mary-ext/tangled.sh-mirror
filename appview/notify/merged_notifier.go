@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 )
 
 type mergedNotifier struct {
@@ -39,12 +40,12 @@ func (m *mergedNotifier) NewIssue(ctx context.Context, issue *db.Issue) {
 	}
 }
 
-func (m *mergedNotifier) NewFollow(ctx context.Context, follow *db.Follow) {
+func (m *mergedNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
 	for _, notifier := range m.notifiers {
 		notifier.NewFollow(ctx, follow)
 	}
 }
-func (m *mergedNotifier) DeleteFollow(ctx context.Context, follow *db.Follow) {
+func (m *mergedNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {
 	for _, notifier := range m.notifiers {
 		notifier.DeleteFollow(ctx, follow)
 	}

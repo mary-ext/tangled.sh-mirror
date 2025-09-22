@@ -149,7 +149,7 @@ func (i *Ingester) ingestFollow(e *jmodels.Event) error {
 			return err
 		}
 
-		err = db.AddFollow(i.Db, &db.Follow{
+		err = db.AddFollow(i.Db, &models.Follow{
 			UserDid:    did,
 			SubjectDid: record.Subject,
 			Rkey:       e.Commit.RKey,

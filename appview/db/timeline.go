@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/appview/models"
 )
 
 type TimelineEvent struct {
 	*Repo
-	*Follow
+	*models.Follow
 	*Star
 
 	EventAt time.Time
@@ -19,8 +20,8 @@ type TimelineEvent struct {
 
 	// optional: populate only if event is Follow
 	*Profile
-	*FollowStats
-	*FollowStatus
+	*models.FollowStats
+	*models.FollowStatus
 
 	// optional: populate only if event is Repo
 	IsStarred bool
@@ -211,7 +212,7 @@ func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]Timeline
 		return nil, err
 	}
 
-	var followStatuses map[string]FollowStatus
+	var followStatuses map[string]models.FollowStatus
 	if loggedInUserDid != "" {
 		followStatuses, err = GetFollowStatuses(e, loggedInUserDid, subjects)
 		if err != nil {
@@ -224,7 +225,7 @@ func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]Timeline
 		profile, _ := profiles[f.SubjectDid]
 		followStatMap, _ := followStatMap[f.SubjectDid]
 
-		followStatus := IsNotFollowing
+		followStatus := models.IsNotFollowing
 		if followStatuses != nil {
 			followStatus = followStatuses[f.SubjectDid]
 		}
