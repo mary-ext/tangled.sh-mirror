@@ -803,7 +803,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *jmodels.Event) error {
 			return err
 		}
 
-		issue := db.IssueFromRecord(did, rkey, record)
+		issue := models.IssueFromRecord(did, rkey, record)
 
 		if err := i.Validator.ValidateIssue(&issue); err != nil {
 			return fmt.Errorf("failed to validate issue: %w", err)
@@ -869,7 +869,7 @@ func (i *Ingester) ingestIssueComment(e *jmodels.Event) error {
 			return fmt.Errorf("invalid record: %w", err)
 		}
 
-		comment, err := db.IssueCommentFromRecord(did, rkey, record)
+		comment, err := models.IssueCommentFromRecord(did, rkey, record)
 		if err != nil {
 			return fmt.Errorf("failed to parse comment from record: %w", err)
 		}

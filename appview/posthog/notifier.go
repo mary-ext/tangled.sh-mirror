@@ -57,7 +57,7 @@ func (n *posthogNotifier) DeleteStar(ctx context.Context, star *db.Star) {
 	}
 }
 
-func (n *posthogNotifier) NewIssue(ctx context.Context, issue *db.Issue) {
+func (n *posthogNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: issue.Did,
 		Event:      "new_issue",

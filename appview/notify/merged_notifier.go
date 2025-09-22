@@ -34,7 +34,7 @@ func (m *mergedNotifier) DeleteStar(ctx context.Context, star *db.Star) {
 	}
 }
 
-func (m *mergedNotifier) NewIssue(ctx context.Context, issue *db.Issue) {
+func (m *mergedNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 	for _, notifier := range m.notifiers {
 		notifier.NewIssue(ctx, issue)
 	}

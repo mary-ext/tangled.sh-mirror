@@ -50,7 +50,7 @@ func (b ByMonth) IsEmpty() bool {
 }
 
 type IssueEvents struct {
-	Items []*Issue
+	Items []*models.Issue
 }
 
 type IssueEventStats struct {

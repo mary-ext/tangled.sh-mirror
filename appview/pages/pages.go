@@ -889,7 +889,7 @@ type RepoIssuesParams struct {
 	LoggedInUser    *oauth.User
 	RepoInfo        repoinfo.RepoInfo
 	Active          string
-	Issues          []db.Issue
+	Issues          []models.Issue
 	LabelDefs       map[string]*models.LabelDefinition
 	Page            pagination.Page
 	FilteringByOpen bool
@@ -904,8 +904,8 @@ type RepoSingleIssueParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
-	Issue        *db.Issue
-	CommentList  []db.CommentListItem
+	Issue        *models.Issue
+	CommentList  []models.CommentListItem
 	LabelDefs    map[string]*models.LabelDefinition
 
 	OrderedReactionKinds []db.ReactionKind
@@ -921,7 +921,7 @@ func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error
 type EditIssueParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Issue        *db.Issue
+	Issue        *models.Issue
 	Action       string
 }
 
@@ -944,7 +944,7 @@ func (p *Pages) ThreadReactionFragment(w io.Writer, params ThreadReactionFragmen
 type RepoNewIssueParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Issue        *db.Issue // existing issue if any -- passed when editing
+	Issue        *models.Issue // existing issue if any -- passed when editing
 	Active       string
 	Action       string
 }
@@ -958,8 +958,8 @@ func (p *Pages) RepoNewIssue(w io.Writer, params RepoNewIssueParams) error {
 type EditIssueCommentParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Issue        *db.Issue
-	Comment      *db.IssueComment
+	Issue        *models.Issue
+	Comment      *models.IssueComment
 }
 
 func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentParams) error {
@@ -969,8 +969,8 @@ func (p *Pages) EditIssueCommentFragment(w io.Writer, params EditIssueCommentPar
 type ReplyIssueCommentPlaceholderParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Issue        *db.Issue
-	Comment      *db.IssueComment
+	Issue        *models.Issue
+	Comment      *models.IssueComment
 }
 
 func (p *Pages) ReplyIssueCommentPlaceholderFragment(w io.Writer, params ReplyIssueCommentPlaceholderParams) error {
@@ -980,8 +980,8 @@ func (p *Pages) ReplyIssueCommentPlaceholderFragment(w io.Writer, params ReplyIs
 type ReplyIssueCommentParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Issue        *db.Issue
-	Comment      *db.IssueComment
+	Issue        *models.Issue
+	Comment      *models.IssueComment
 }
 
 func (p *Pages) ReplyIssueCommentFragment(w io.Writer, params ReplyIssueCommentParams) error {
@@ -991,8 +991,8 @@ func (p *Pages) ReplyIssueCommentFragment(w io.Writer, params ReplyIssueCommentP
 type IssueCommentBodyParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Issue        *db.Issue
-	Comment      *db.IssueComment
+	Issue        *models.Issue
+	Comment      *models.IssueComment
 }
 
 func (p *Pages) IssueCommentBodyFragment(w io.Writer, params IssueCommentBodyParams) error {

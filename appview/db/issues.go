@@ -10,196 +10,11 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pagination"
 )
 
-type Issue struct {
-	Id      int64
-	Did     string
-	Rkey    string
-	RepoAt  syntax.ATURI
-	IssueId int
-	Created time.Time
-	Edited  *time.Time
-	Deleted *time.Time
-	Title   string
-	Body    string
-	Open    bool
-
-	// optionally, populate this when querying for reverse mappings
-	// like comment counts, parent repo etc.
-	Comments []IssueComment
-	Labels   models.LabelState
-	Repo     *models.Repo
-}
-
-func (i *Issue) AtUri() syntax.ATURI {
-	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", i.Did, tangled.RepoIssueNSID, i.Rkey))
-}
-
-func (i *Issue) AsRecord() tangled.RepoIssue {
-	return tangled.RepoIssue{
-		Repo:      i.RepoAt.String(),
-		Title:     i.Title,
-		Body:      &i.Body,
-		CreatedAt: i.Created.Format(time.RFC3339),
-	}
-}
-
-func (i *Issue) State() string {
-	if i.Open {
-		return "open"
-	}
-	return "closed"
-}
-
-type CommentListItem struct {
-	Self    *IssueComment
-	Replies []*IssueComment
-}
-
-func (i *Issue) CommentList() []CommentListItem {
-	// Create a map to quickly find comments by their aturi
-	toplevel := make(map[string]*CommentListItem)
-	var replies []*IssueComment
-
-	// collect top level comments into the map
-	for _, comment := range i.Comments {
-		if comment.IsTopLevel() {
-			toplevel[comment.AtUri().String()] = &CommentListItem{
-				Self: &comment,
-			}
-		} else {
-			replies = append(replies, &comment)
-		}
-	}
-
-	for _, r := range replies {
-		parentAt := *r.ReplyTo
-		if parent, exists := toplevel[parentAt]; exists {
-			parent.Replies = append(parent.Replies, r)
-		}
-	}
-
-	var listing []CommentListItem
-	for _, v := range toplevel {
-		listing = append(listing, *v)
-	}
-
-	// sort everything
-	sortFunc := func(a, b *IssueComment) bool {
-		return a.Created.Before(b.Created)
-	}
-	sort.Slice(listing, func(i, j int) bool {
-		return sortFunc(listing[i].Self, listing[j].Self)
-	})
-	for _, r := range listing {
-		sort.Slice(r.Replies, func(i, j int) bool {
-			return sortFunc(r.Replies[i], r.Replies[j])
-		})
-	}
-
-	return listing
-}
-
-func (i *Issue) Participants() []string {
-	participantSet := make(map[string]struct{})
-	participants := []string{}
-
-	addParticipant := func(did string) {
-		if _, exists := participantSet[did]; !exists {
-			participantSet[did] = struct{}{}
-			participants = append(participants, did)
-		}
-	}
-
-	addParticipant(i.Did)
-
-	for _, c := range i.Comments {
-		addParticipant(c.Did)
-	}
-
-	return participants
-}
-
-func IssueFromRecord(did, rkey string, record tangled.RepoIssue) Issue {
-	created, err := time.Parse(time.RFC3339, record.CreatedAt)
-	if err != nil {
-		created = time.Now()
-	}
-
-	body := ""
-	if record.Body != nil {
-		body = *record.Body
-	}
-
-	return Issue{
-		RepoAt:  syntax.ATURI(record.Repo),
-		Did:     did,
-		Rkey:    rkey,
-		Created: created,
-		Title:   record.Title,
-		Body:    body,
-		Open:    true, // new issues are open by default
-	}
-}
-
-type IssueComment struct {
-	Id      int64
-	Did     string
-	Rkey    string
-	IssueAt string
-	ReplyTo *string
-	Body    string
-	Created time.Time
-	Edited  *time.Time
-	Deleted *time.Time
-}
-
-func (i *IssueComment) AtUri() syntax.ATURI {
-	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", i.Did, tangled.RepoIssueCommentNSID, i.Rkey))
-}
-
-func (i *IssueComment) AsRecord() tangled.RepoIssueComment {
-	return tangled.RepoIssueComment{
-		Body:      i.Body,
-		Issue:     i.IssueAt,
-		CreatedAt: i.Created.Format(time.RFC3339),
-		ReplyTo:   i.ReplyTo,
-	}
-}
-
-func (i *IssueComment) IsTopLevel() bool {
-	return i.ReplyTo == nil
-}
-
-func IssueCommentFromRecord(did, rkey string, record tangled.RepoIssueComment) (*IssueComment, error) {
-	created, err := time.Parse(time.RFC3339, record.CreatedAt)
-	if err != nil {
-		created = time.Now()
-	}
-
-	ownerDid := did
-
-	if _, err = syntax.ParseATURI(record.Issue); err != nil {
-		return nil, err
-	}
-
-	comment := IssueComment{
-		Did:     ownerDid,
-		Rkey:    rkey,
-		Body:    record.Body,
-		IssueAt: record.Issue,
-		ReplyTo: record.ReplyTo,
-		Created: created,
-	}
-
-	return &comment, nil
-}
-
-func PutIssue(tx *sql.Tx, issue *Issue) error {
+func PutIssue(tx *sql.Tx, issue *models.Issue) error {
 	// ensure sequence exists
 	_, err := tx.Exec(`
 		insert or ignore into repo_issue_seqs (repo_at, next_issue_id)
@@ -234,7 +49,7 @@ func PutIssue(tx *sql.Tx, issue *Issue) error {
 	}
 }
 
-func createNewIssue(tx *sql.Tx, issue *Issue) error {
+func createNewIssue(tx *sql.Tx, issue *models.Issue) error {
 	// get next issue_id
 	var newIssueId int
 	err := tx.QueryRow(`
@@ -257,7 +72,7 @@ func createNewIssue(tx *sql.Tx, issue *Issue) error {
 	return row.Scan(&issue.Id, &issue.IssueId)
 }
 
-func updateIssue(tx *sql.Tx, issue *Issue) error {
+func updateIssue(tx *sql.Tx, issue *models.Issue) error {
 	// update existing issue
 	_, err := tx.Exec(`
 		update issues
@@ -267,8 +82,8 @@ func updateIssue(tx *sql.Tx, issue *Issue) error {
 	return err
 }
 
-func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Issue, error) {
-	issueMap := make(map[string]*Issue) // at-uri -> issue
+func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]models.Issue, error) {
+	issueMap := make(map[string]*models.Issue) // at-uri -> issue
 
 	var conditions []string
 	var args []any
@@ -323,7 +138,7 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Is
 	defer rows.Close()
 
 	for rows.Next() {
-		var issue Issue
+		var issue models.Issue
 		var createdAt string
 		var editedAt, deletedAt sql.Null[string]
 		var rowNum int64
@@ -416,7 +231,7 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Is
 		}
 	}
 
-	var issues []Issue
+	var issues []models.Issue
 	for _, i := range issueMap {
 		issues = append(issues, *i)
 	}
@@ -428,15 +243,15 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Is
 	return issues, nil
 }
 
-func GetIssues(e Execer, filters ...filter) ([]Issue, error) {
+func GetIssues(e Execer, filters ...filter) ([]models.Issue, error) {
 	return GetIssuesPaginated(e, pagination.FirstPage(), filters...)
 }
 
-func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
+func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*models.Issue, error) {
 	query := `select id, owner_did, rkey, created, title, body, open from issues where repo_at = ? and issue_id = ?`
 	row := e.QueryRow(query, repoAt, issueId)
 
-	var issue Issue
+	var issue models.Issue
 	var createdAt string
 	err := row.Scan(&issue.Id, &issue.Did, &issue.Rkey, &createdAt, &issue.Title, &issue.Body, &issue.Open)
 	if err != nil {
@@ -452,7 +267,7 @@ func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*Issue, error) {
 	return &issue, nil
 }
 
-func AddIssueComment(e Execer, c IssueComment) (int64, error) {
+func AddIssueComment(e Execer, c models.IssueComment) (int64, error) {
 	result, err := e.Exec(
 		`insert into issue_comments (
 			did,
@@ -514,8 +329,8 @@ func DeleteIssueComments(e Execer, filters ...filter) error {
 	return err
 }
 
-func GetIssueComments(e Execer, filters ...filter) ([]IssueComment, error) {
-	var comments []IssueComment
+func GetIssueComments(e Execer, filters ...filter) ([]models.IssueComment, error) {
+	var comments []models.IssueComment
 
 	var conditions []string
 	var args []any
@@ -551,7 +366,7 @@ func GetIssueComments(e Execer, filters ...filter) ([]IssueComment, error) {
 	}
 
 	for rows.Next() {
-		var comment IssueComment
+		var comment models.IssueComment
 		var created string
 		var rkey, edited, deleted, replyTo sql.Null[string]
 		err := rows.Scan(
@@ -670,7 +485,7 @@ func GetIssueCount(e Execer, repoAt syntax.ATURI) (models.IssueCount, error) {
 
 	var count models.IssueCount
 	if err := row.Scan(&count.Open, &count.Closed); err != nil {
-		return models.IssueCount{0, 0}, err
+		return models.IssueCount{}, err
 	}
 
 	return count, nil

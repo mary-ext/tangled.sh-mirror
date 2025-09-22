@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pagination"
 	"tangled.org/core/appview/reporesolver"
 
@@ -108,7 +109,7 @@ func (rp *Repo) createPullItems(ctx context.Context, pull *db.Pull, f *reporesol
 	return items, nil
 }
 
-func (rp *Repo) createIssueItem(ctx context.Context, issue db.Issue, f *reporesolver.ResolvedRepo) (*feeds.Item, error) {
+func (rp *Repo) createIssueItem(ctx context.Context, issue models.Issue, f *reporesolver.ResolvedRepo) (*feeds.Item, error) {
 	owner, err := rp.idResolver.ResolveIdent(ctx, issue.Did)
 	if err != nil {
 		return nil, err

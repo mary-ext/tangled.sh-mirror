@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 )
 
-func (v *Validator) ValidateIssueComment(comment *db.IssueComment) error {
+func (v *Validator) ValidateIssueComment(comment *models.IssueComment) error {
 	// if comments have parents, only ingest ones that are 1 level deep
 	if comment.ReplyTo != nil {
 		parents, err := db.GetIssueComments(v.db, db.FilterEq("at_uri", *comment.ReplyTo))
@@ -32,7 +33,7 @@ func (v *Validator) ValidateIssueComment(comment *db.IssueComment) error {
 	return nil
 }
 
-func (v *Validator) ValidateIssue(issue *db.Issue) error {
+func (v *Validator) ValidateIssue(issue *models.Issue) error {
 	if issue.Title == "" {
 		return fmt.Errorf("issue title is empty")
 	}

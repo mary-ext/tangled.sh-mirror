@@ -76,7 +76,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -130,7 +130,7 @@ func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -226,7 +226,7 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Notice(w, noticeId, "Failed to delete issue.")
@@ -273,7 +273,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -319,7 +319,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -363,7 +363,7 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -382,7 +382,7 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		replyTo = &replyToUri
 	}
 
-	comment := db.IssueComment{
+	comment := models.IssueComment{
 		Did:     user.Did,
 		Rkey:    tid.TID(),
 		IssueAt: issue.AtUri().String(),
@@ -446,7 +446,7 @@ func (rp *Issues) IssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -487,7 +487,7 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -591,7 +591,7 @@ func (rp *Issues) ReplyIssueCommentPlaceholder(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -632,7 +632,7 @@ func (rp *Issues) ReplyIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -673,7 +673,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, ok := r.Context().Value("issue").(*db.Issue)
+	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
 		l.Error("failed to get issue")
 		rp.pages.Error404(w)
@@ -829,7 +829,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			RepoInfo:     f.RepoInfo(user),
 		})
 	case http.MethodPost:
-		issue := &db.Issue{
+		issue := &models.Issue{
 			RepoAt:  f.RepoAt(),
 			Rkey:    tid.TID(),
 			Title:   r.FormValue("title"),
