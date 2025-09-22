@@ -284,7 +284,7 @@ func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
 type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []db.TimelineEvent
-	Repos        []db.Repo
+	Repos        []models.Repo
 }
 
 func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
@@ -345,7 +345,7 @@ type KnotParams struct {
 	LoggedInUser *oauth.User
 	Registration *db.Registration
 	Members      []string
-	Repos        map[string][]db.Repo
+	Repos        map[string][]models.Repo
 	IsOwner      bool
 }
 
@@ -382,7 +382,7 @@ type SpindleDashboardParams struct {
 	LoggedInUser *oauth.User
 	Spindle      db.Spindle
 	Members      []string
-	Repos        map[string][]db.Repo
+	Repos        map[string][]models.Repo
 }
 
 func (p *Pages) SpindleDashboard(w io.Writer, params SpindleDashboardParams) error {
@@ -439,8 +439,8 @@ func (p *ProfileCard) GetTabs() [][]any {
 
 type ProfileOverviewParams struct {
 	LoggedInUser       *oauth.User
-	Repos              []db.Repo
-	CollaboratingRepos []db.Repo
+	Repos              []models.Repo
+	CollaboratingRepos []models.Repo
 	ProfileTimeline    *db.ProfileTimeline
 	Card               *ProfileCard
 	Active             string
@@ -453,7 +453,7 @@ func (p *Pages) ProfileOverview(w io.Writer, params ProfileOverviewParams) error
 
 type ProfileReposParams struct {
 	LoggedInUser *oauth.User
-	Repos        []db.Repo
+	Repos        []models.Repo
 	Card         *ProfileCard
 	Active       string
 }
@@ -465,7 +465,7 @@ func (p *Pages) ProfileRepos(w io.Writer, params ProfileReposParams) error {
 
 type ProfileStarredParams struct {
 	LoggedInUser *oauth.User
-	Repos        []db.Repo
+	Repos        []models.Repo
 	Card         *ProfileCard
 	Active       string
 }
@@ -545,7 +545,7 @@ type EditPinsParams struct {
 
 type PinnedRepo struct {
 	IsPinned bool
-	db.Repo
+	models.Repo
 }
 
 func (p *Pages) EditPinsFragment(w io.Writer, params EditPinsParams) error {
@@ -555,7 +555,7 @@ func (p *Pages) EditPinsFragment(w io.Writer, params EditPinsParams) error {
 type RepoStarFragmentParams struct {
 	IsStarred bool
 	RepoAt    syntax.ATURI
-	Stats     db.RepoStats
+	Stats     models.RepoStats
 }
 
 func (p *Pages) RepoStarFragment(w io.Writer, params RepoStarFragmentParams) error {
@@ -1122,7 +1122,7 @@ func (p *Pages) PullCompareBranchesFragment(w io.Writer, params PullCompareBranc
 
 type PullCompareForkParams struct {
 	RepoInfo repoinfo.RepoInfo
-	Forks    []db.Repo
+	Forks    []models.Repo
 	Selected string
 }
 
@@ -1179,7 +1179,7 @@ func (p *Pages) PullNewCommentFragment(w io.Writer, params PullNewCommentParams)
 type RepoCompareParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Forks        []db.Repo
+	Forks        []models.Repo
 	Branches     []types.Branch
 	Tags         []*types.TagReference
 	Base         string
@@ -1198,7 +1198,7 @@ func (p *Pages) RepoCompare(w io.Writer, params RepoCompareParams) error {
 type RepoCompareNewParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Forks        []db.Repo
+	Forks        []models.Repo
 	Branches     []types.Branch
 	Tags         []*types.TagReference
 	Base         string

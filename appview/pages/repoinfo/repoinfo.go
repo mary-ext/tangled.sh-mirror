@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/state/userutil"
 )
 
@@ -60,9 +60,9 @@ type RepoInfo struct {
 	Spindle      string
 	RepoAt       syntax.ATURI
 	IsStarred    bool
-	Stats        db.RepoStats
+	Stats        models.RepoStats
 	Roles        RolesInRepo
-	Source       *db.Repo
+	Source       *models.Repo
 	SourceHandle string
 	Ref          string
 	DisableFork  bool

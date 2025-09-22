@@ -11,6 +11,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/patchutil"
 	"tangled.org/core/types"
 )
@@ -79,7 +80,7 @@ type Pull struct {
 	PullSource *PullSource
 
 	// optionally, populate this when querying for reverse mappings
-	Repo *Repo
+	Repo *models.Repo
 }
 
 func (p Pull) AsRecord() tangled.RepoPull {
@@ -109,7 +110,7 @@ type PullSource struct {
 	RepoAt *syntax.ATURI
 
 	// optionally populate this for reverse mappings
-	Repo *Repo
+	Repo *models.Repo
 }
 
 func (p PullSource) AsRecord() tangled.RepoPull_Source {
@@ -723,7 +724,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*Pull, error) {
 		return nil, err
 	}
 
-	var pullSourceRepo *Repo
+	var pullSourceRepo *models.Repo
 	if pull.PullSource != nil {
 		if pull.PullSource.RepoAt != nil {
 			pullSourceRepo, err = GetRepoByAtUri(e, pull.PullSource.RepoAt.String())
@@ -776,7 +777,7 @@ func GetPullsByOwnerDid(e Execer, did, timeframe string) ([]Pull, error) {
 
 	for rows.Next() {
 		var pull Pull
-		var repo Repo
+		var repo models.Repo
 		var pullCreatedAt, repoCreatedAt string
 		err := rows.Scan(
 			&pull.OwnerDid,
@@ -931,14 +932,7 @@ func UpdatePull(e Execer, newPatch, sourceRev string, filters ...filter) error {
 	return err
 }
 
-type PullCount struct {
-	Open    int
-	Merged  int
-	Closed  int
-	Deleted int
-}
-
-func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
+func GetPullCount(e Execer, repoAt syntax.ATURI) (models.PullCount, error) {
 	row := e.QueryRow(`
 		select
 			count(case when state = ? then 1 end) as open_count,
@@ -954,9 +948,9 @@ func GetPullCount(e Execer, repoAt syntax.ATURI) (PullCount, error) {
 		repoAt,
 	)
 
-	var count PullCount
+	var count models.PullCount
 	if err := row.Scan(&count.Open, &count.Merged, &count.Closed, &count.Deleted); err != nil {
-		return PullCount{0, 0, 0, 0}, err
+		return models.PullCount{Open: 0, Merged: 0, Closed: 0, Deleted: 0}, err
 	}
 
 	return count, nil

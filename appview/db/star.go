@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/appview/models"
 )
 
 type Star struct {
@@ -18,7 +19,7 @@ type Star struct {
 	Rkey         string
 
 	// optionally, populate this when querying for reverse mappings
-	Repo *Repo
+	Repo *models.Repo
 }
 
 func (star *Star) ResolveRepo(e Execer) error {
@@ -284,7 +285,7 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 
 	for rows.Next() {
 		var star Star
-		var repo Repo
+		var repo models.Repo
 		var starCreatedAt, repoCreatedAt string
 
 		if err := rows.Scan(
@@ -322,7 +323,7 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 }
 
 // GetTopStarredReposLastWeek returns the top 8 most starred repositories from the last week
-func GetTopStarredReposLastWeek(e Execer) ([]Repo, error) {
+func GetTopStarredReposLastWeek(e Execer) ([]models.Repo, error) {
 	// first, get the top repo URIs by star count from the last week
 	query := `
 		with recent_starred_repos as (
@@ -366,7 +367,7 @@ func GetTopStarredReposLastWeek(e Execer) ([]Repo, error) {
 	}
 
 	if len(repoUris) == 0 {
-		return []Repo{}, nil
+		return []models.Repo{}, nil
 	}
 
 	// get full repo data
@@ -376,12 +377,12 @@ func GetTopStarredReposLastWeek(e Execer) ([]Repo, error) {
 	}
 
 	// sort repos by the original trending order
-	repoMap := make(map[string]Repo)
+	repoMap := make(map[string]models.Repo)
 	for _, repo := range repos {
 		repoMap[repo.RepoAt().String()] = repo
 	}
 
-	orderedRepos := make([]Repo, 0, len(repoUris))
+	orderedRepos := make([]models.Repo, 0, len(repoUris))
 	for _, uri := range repoUris {
 		if repo, exists := repoMap[uri]; exists {
 			orderedRepos = append(orderedRepos, repo)

@@ -131,7 +131,7 @@ func (s *State) profileOverview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// filter out ones that are pinned
-	pinnedRepos := []db.Repo{}
+	pinnedRepos := []models.Repo{}
 	for i, r := range repos {
 		// if this is a pinned repo, add it
 		if slices.Contains(profile.Profile.PinnedRepos[:], r.RepoAt()) {
@@ -149,7 +149,7 @@ func (s *State) profileOverview(w http.ResponseWriter, r *http.Request) {
 		l.Error("failed to fetch collaborating repos", "err", err)
 	}
 
-	pinnedCollaboratingRepos := []db.Repo{}
+	pinnedCollaboratingRepos := []models.Repo{}
 	for _, r := range collaboratingRepos {
 		// if this is a pinned repo, add it
 		if slices.Contains(profile.Profile.PinnedRepos[:], r.RepoAt()) {

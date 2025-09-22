@@ -13,6 +13,7 @@ import (
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/middleware"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/serververify"
@@ -115,7 +116,7 @@ func (s *Spindles) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// organize repos by did
-	repoMap := make(map[string][]db.Repo)
+	repoMap := make(map[string][]models.Repo)
 	for _, r := range repos {
 		repoMap[r.Did] = append(repoMap[r.Did], r)
 	}

@@ -11,11 +11,12 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/models"
 )
 
 type RepoEvent struct {
-	Repo   *Repo
-	Source *Repo
+	Repo   *models.Repo
+	Source *models.Repo
 }
 
 type ProfileTimeline struct {
@@ -162,7 +163,7 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 
 	for _, repo := range repos {
 		// TODO: get this in the original query; requires COALESCE because nullable
-		var sourceRepo *Repo
+		var sourceRepo *models.Repo
 		if repo.Source != "" {
 			sourceRepo, err = GetRepoByAtUri(e, repo.Source)
 			if err != nil {

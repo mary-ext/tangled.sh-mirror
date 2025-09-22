@@ -32,7 +32,7 @@ type Issue struct {
 	// like comment counts, parent repo etc.
 	Comments []IssueComment
 	Labels   models.LabelState
-	Repo     *Repo
+	Repo     *models.Repo
 }
 
 func (i *Issue) AtUri() syntax.ATURI {
@@ -376,7 +376,7 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]Is
 		return nil, fmt.Errorf("failed to build repo mappings: %w", err)
 	}
 
-	repoMap := make(map[string]*Repo)
+	repoMap := make(map[string]*models.Repo)
 	for i := range repos {
 		repoMap[string(repos[i].RepoAt())] = &repos[i]
 	}
@@ -658,12 +658,7 @@ func ReopenIssues(e Execer, filters ...filter) error {
 	return err
 }
 
-type IssueCount struct {
-	Open   int
-	Closed int
-}
-
-func GetIssueCount(e Execer, repoAt syntax.ATURI) (IssueCount, error) {
+func GetIssueCount(e Execer, repoAt syntax.ATURI) (models.IssueCount, error) {
 	row := e.QueryRow(`
 		select
 			count(case when open = 1 then 1 end) as open_count,
@@ -673,9 +668,9 @@ func GetIssueCount(e Execer, repoAt syntax.ATURI) (IssueCount, error) {
 		repoAt,
 	)
 
-	var count IssueCount
+	var count models.IssueCount
 	if err := row.Scan(&count.Open, &count.Closed); err != nil {
-		return IssueCount{0, 0}, err
+		return models.IssueCount{0, 0}, err
 	}
 
 	return count, nil

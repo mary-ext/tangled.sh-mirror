@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/repoinfo"
@@ -24,7 +25,7 @@ import (
 )
 
 type ResolvedRepo struct {
-	db.Repo
+	models.Repo
 	OwnerId    identity.Identity
 	CurrentDir string
 	Ref        string
@@ -44,7 +45,7 @@ func New(config *config.Config, enforcer *rbac.Enforcer, resolver *idresolver.Re
 }
 
 func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
-	repo, ok := r.Context().Value("repo").(*db.Repo)
+	repo, ok := r.Context().Value("repo").(*models.Repo)
 	if !ok {
 		log.Println("malformed middleware: `repo` not exist in context")
 		return nil, fmt.Errorf("malformed middleware")
@@ -162,7 +163,7 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		log.Println("failed to get repo source for ", repoAt, err)
 	}
 
-	var sourceRepo *db.Repo
+	var sourceRepo *models.Repo
 	if source != "" {
 		sourceRepo, err = db.GetRepoByAtUri(f.rr.execer, source)
 		if err != nil {
@@ -191,7 +192,7 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		Knot:        knot,
 		Spindle:     f.Spindle,
 		Roles:       f.RolesInRepo(user),
-		Stats: db.RepoStats{
+		Stats: models.RepoStats{
 			StarCount:  starCount,
 			IssueCount: issueCount,
 			PullCount:  pullCount,

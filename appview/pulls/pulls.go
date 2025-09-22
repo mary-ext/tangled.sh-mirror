@@ -15,6 +15,7 @@ import (
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
@@ -500,7 +501,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range pulls {
-		var pullSourceRepo *db.Repo
+		var pullSourceRepo *models.Repo
 		if p.PullSource != nil {
 			if p.PullSource.RepoAt != nil {
 				pullSourceRepo, err = db.GetRepoByAtUri(s.db, p.PullSource.RepoAt.String())

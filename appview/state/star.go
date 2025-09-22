@@ -10,6 +10,7 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/tid"
 )
@@ -77,7 +78,7 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 		s.pages.RepoStarFragment(w, pages.RepoStarFragmentParams{
 			IsStarred: true,
 			RepoAt:    subjectUri,
-			Stats: db.RepoStats{
+			Stats: models.RepoStats{
 				StarCount: starCount,
 			},
 		})
@@ -119,7 +120,7 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 		s.pages.RepoStarFragment(w, pages.RepoStarFragmentParams{
 			IsStarred: false,
 			RepoAt:    subjectUri,
-			Stats: db.RepoStats{
+			Stats: models.RepoStats{
 				StarCount: starCount,
 			},
 		})

@@ -8,7 +8,7 @@ import (
 )
 
 type Notifier interface {
-	NewRepo(ctx context.Context, repo *db.Repo)
+	NewRepo(ctx context.Context, repo *models.Repo)
 
 	NewStar(ctx context.Context, star *db.Star)
 	DeleteStar(ctx context.Context, star *db.Star)
@@ -33,7 +33,7 @@ type BaseNotifier struct{}
 
 var _ Notifier = &BaseNotifier{}
 
-func (m *BaseNotifier) NewRepo(ctx context.Context, repo *db.Repo) {}
+func (m *BaseNotifier) NewRepo(ctx context.Context, repo *models.Repo) {}
 
 func (m *BaseNotifier) NewStar(ctx context.Context, star *db.Star)    {}
 func (m *BaseNotifier) DeleteStar(ctx context.Context, star *db.Star) {}

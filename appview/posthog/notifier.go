@@ -24,7 +24,7 @@ func NewPosthogNotifier(client posthog.Client) notify.Notifier {
 
 var _ notify.Notifier = &posthogNotifier{}
 
-func (n *posthogNotifier) NewRepo(ctx context.Context, repo *db.Repo) {
+func (n *posthogNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: repo.Did,
 		Event:      "new_repo",

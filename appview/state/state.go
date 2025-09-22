@@ -23,6 +23,7 @@ import (
 	"tangled.org/core/appview/cache/session"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
@@ -36,7 +37,6 @@ import (
 	tlog "tangled.org/core/log"
 	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
-	// xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 type State struct {
@@ -433,7 +433,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		// create atproto record for this repo
 		rkey := tid.TID()
-		repo := &db.Repo{
+		repo := &models.Repo{
 			Did:         user.Did,
 			Name:        repoName,
 			Knot:        domain,

@@ -17,7 +17,7 @@ func NewMergedNotifier(notifiers ...Notifier) Notifier {
 
 var _ Notifier = &mergedNotifier{}
 
-func (m *mergedNotifier) NewRepo(ctx context.Context, repo *db.Repo) {
+func (m *mergedNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 	for _, notifier := range m.notifiers {
 		notifier.NewRepo(ctx, repo)
 	}

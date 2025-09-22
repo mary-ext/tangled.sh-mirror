@@ -9,14 +9,14 @@ import (
 )
 
 type TimelineEvent struct {
-	*Repo
+	*models.Repo
 	*models.Follow
 	*Star
 
 	EventAt time.Time
 
 	// optional: populate only if Repo is a fork
-	Source *Repo
+	Source *models.Repo
 
 	// optional: populate only if event is Follow
 	*Profile
@@ -64,7 +64,7 @@ func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent,
 	return events, nil
 }
 
-func fetchStarStatuses(e Execer, loggedInUserDid string, repos []Repo) (map[string]bool, error) {
+func fetchStarStatuses(e Execer, loggedInUserDid string, repos []models.Repo) (map[string]bool, error) {
 	if loggedInUserDid == "" {
 		return nil, nil
 	}
@@ -77,7 +77,7 @@ func fetchStarStatuses(e Execer, loggedInUserDid string, repos []Repo) (map[stri
 	return GetStarStatuses(e, loggedInUserDid, repoAts)
 }
 
-func getRepoStarInfo(repo *Repo, starStatuses map[string]bool) (bool, int64) {
+func getRepoStarInfo(repo *models.Repo, starStatuses map[string]bool) (bool, int64) {
 	var isStarred bool
 	if starStatuses != nil {
 		isStarred = starStatuses[repo.RepoAt().String()]
@@ -105,7 +105,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 		}
 	}
 
-	var origRepos []Repo
+	var origRepos []models.Repo
 	if args != nil {
 		origRepos, err = GetRepos(e, 0, FilterIn("at_uri", args))
 	}
@@ -113,7 +113,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 		return nil, err
 	}
 
-	uriToRepo := make(map[string]Repo)
+	uriToRepo := make(map[string]models.Repo)
 	for _, r := range origRepos {
 		uriToRepo[r.RepoAt().String()] = r
 	}
@@ -125,7 +125,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 
 	var events []TimelineEvent
 	for _, r := range repos {
-		var source *Repo
+		var source *models.Repo
 		if r.Source != "" {
 			if origRepo, ok := uriToRepo[r.Source]; ok {
 				source = &origRepo
@@ -162,7 +162,7 @@ func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 	}
 	stars = stars[:n]
 
-	var repos []Repo
+	var repos []models.Repo
 	for _, s := range stars {
 		repos = append(repos, *s.Repo)
 	}

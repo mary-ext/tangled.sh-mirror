@@ -8,12 +8,12 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
-	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 )
 
 func (s *State) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("resolvedId").(identity.Identity)
-	repo := r.Context().Value("repo").(*db.Repo)
+	repo := r.Context().Value("repo").(*models.Repo)
 
 	scheme := "https"
 	if s.config.Core.Dev {
@@ -31,7 +31,7 @@ func (s *State) UploadPack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to resolve user", http.StatusInternalServerError)
 		return
 	}
-	repo := r.Context().Value("repo").(*db.Repo)
+	repo := r.Context().Value("repo").(*models.Repo)
 
 	scheme := "https"
 	if s.config.Core.Dev {
@@ -48,7 +48,7 @@ func (s *State) ReceivePack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to resolve user", http.StatusInternalServerError)
 		return
 	}
-	repo := r.Context().Value("repo").(*db.Repo)
+	repo := r.Context().Value("repo").(*models.Repo)
 
 	scheme := "https"
 	if s.config.Core.Dev {

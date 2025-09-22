@@ -10,64 +10,11 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/models"
 )
 
-type Repo struct {
-	Did         string
-	Name        string
-	Knot        string
-	Rkey        string
-	Created     time.Time
-	Description string
-	Spindle     string
-	Labels      []string
-
-	// optionally, populate this when querying for reverse mappings
-	RepoStats *RepoStats
-
-	// optional
-	Source string
-}
-
-func (r *Repo) AsRecord() tangled.Repo {
-	var source, spindle, description *string
-
-	if r.Source != "" {
-		source = &r.Source
-	}
-
-	if r.Spindle != "" {
-		spindle = &r.Spindle
-	}
-
-	if r.Description != "" {
-		description = &r.Description
-	}
-
-	return tangled.Repo{
-		Knot:        r.Knot,
-		Name:        r.Name,
-		Description: description,
-		CreatedAt:   r.Created.Format(time.RFC3339),
-		Source:      source,
-		Spindle:     spindle,
-		Labels:      r.Labels,
-	}
-}
-
-func (r Repo) RepoAt() syntax.ATURI {
-	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", r.Did, tangled.RepoNSID, r.Rkey))
-}
-
-func (r Repo) DidSlashRepo() string {
-	p, _ := securejoin.SecureJoin(r.Did, r.Name)
-	return p
-}
-
-func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
-	repoMap := make(map[syntax.ATURI]*Repo)
+func GetRepos(e Execer, limit int, filters ...filter) ([]models.Repo, error) {
+	repoMap := make(map[syntax.ATURI]*models.Repo)
 
 	var conditions []string
 	var args []any
@@ -111,7 +58,7 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 	}
 
 	for rows.Next() {
-		var repo Repo
+		var repo models.Repo
 		var createdAt string
 		var description, source, spindle sql.NullString
 
@@ -142,7 +89,7 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 			repo.Spindle = spindle.String
 		}
 
-		repo.RepoStats = &RepoStats{}
+		repo.RepoStats = &models.RepoStats{}
 		repoMap[repo.RepoAt()] = &repo
 	}
 
@@ -320,12 +267,12 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 		return nil, fmt.Errorf("failed to execute pulls-count query: %w ", err)
 	}
 
-	var repos []Repo
+	var repos []models.Repo
 	for _, r := range repoMap {
 		repos = append(repos, *r)
 	}
 
-	slices.SortFunc(repos, func(a, b Repo) int {
+	slices.SortFunc(repos, func(a, b models.Repo) int {
 		if a.Created.After(b.Created) {
 			return -1
 		}
@@ -336,7 +283,7 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]Repo, error) {
 }
 
 // helper to get exactly one repo
-func GetRepo(e Execer, filters ...filter) (*Repo, error) {
+func GetRepo(e Execer, filters ...filter) (*models.Repo, error) {
 	repos, err := GetRepos(e, 0, filters...)
 	if err != nil {
 		return nil, err
@@ -377,8 +324,8 @@ func CountRepos(e Execer, filters ...filter) (int64, error) {
 	return count, nil
 }
 
-func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
-	var repo Repo
+func GetRepoByAtUri(e Execer, atUri string) (*models.Repo, error) {
+	var repo models.Repo
 	var nullableDescription sql.NullString
 
 	row := e.QueryRow(`select did, name, knot, created, rkey, description from repos where at_uri = ?`, atUri)
@@ -399,7 +346,7 @@ func GetRepoByAtUri(e Execer, atUri string) (*Repo, error) {
 	return &repo, nil
 }
 
-func AddRepo(e Execer, repo *Repo) error {
+func AddRepo(e Execer, repo *models.Repo) error {
 	_, err := e.Exec(
 		`insert into repos
 		(did, name, knot, rkey, at_uri, description, source)
@@ -423,8 +370,8 @@ func GetRepoSource(e Execer, repoAt syntax.ATURI) (string, error) {
 	return nullableSource.String, nil
 }
 
-func GetForksByDid(e Execer, did string) ([]Repo, error) {
-	var repos []Repo
+func GetForksByDid(e Execer, did string) ([]models.Repo, error) {
+	var repos []models.Repo
 
 	rows, err := e.Query(
 		`select distinct r.did, r.name, r.knot, r.rkey, r.description, r.created, r.source
@@ -442,7 +389,7 @@ func GetForksByDid(e Execer, did string) ([]Repo, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var repo Repo
+		var repo models.Repo
 		var createdAt string
 		var nullableDescription sql.NullString
 		var nullableSource sql.NullString
@@ -477,8 +424,8 @@ func GetForksByDid(e Execer, did string) ([]Repo, error) {
 	return repos, nil
 }
 
-func GetForkByDid(e Execer, did string, name string) (*Repo, error) {
-	var repo Repo
+func GetForkByDid(e Execer, did string, name string) (*models.Repo, error) {
+	var repo models.Repo
 	var createdAt string
 	var nullableDescription sql.NullString
 	var nullableSource sql.NullString
@@ -525,20 +472,7 @@ func UpdateSpindle(e Execer, repoAt string, spindle *string) error {
 	return err
 }
 
-type RepoStats struct {
-	Language   string
-	StarCount  int
-	IssueCount IssueCount
-	PullCount  PullCount
-}
-
-type RepoLabel struct {
-	Id      int64
-	RepoAt  syntax.ATURI
-	LabelAt syntax.ATURI
-}
-
-func SubscribeLabel(e Execer, rl *RepoLabel) error {
+func SubscribeLabel(e Execer, rl *models.RepoLabel) error {
 	query := `insert or ignore into repo_labels (repo_at, label_at) values (?, ?)`
 
 	_, err := e.Exec(query, rl.RepoAt.String(), rl.LabelAt.String())
@@ -563,7 +497,7 @@ func UnsubscribeLabel(e Execer, filters ...filter) error {
 	return err
 }
 
-func GetRepoLabels(e Execer, filters ...filter) ([]RepoLabel, error) {
+func GetRepoLabels(e Execer, filters ...filter) ([]models.RepoLabel, error) {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {
@@ -584,9 +518,9 @@ func GetRepoLabels(e Execer, filters ...filter) ([]RepoLabel, error) {
 	}
 	defer rows.Close()
 
-	var labels []RepoLabel
+	var labels []models.RepoLabel
 	for rows.Next() {
-		var label RepoLabel
+		var label models.RepoLabel
 
 		err := rows.Scan(&label.Id, &label.RepoAt, &label.LabelAt)
 		if err != nil {

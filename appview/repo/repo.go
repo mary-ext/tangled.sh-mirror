@@ -1110,7 +1110,7 @@ func (rp *Repo) AddLabelDef(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.SubscribeLabel(tx, &db.RepoLabel{
+	err = db.SubscribeLabel(tx, &models.RepoLabel{
 		RepoAt:  f.RepoAt(),
 		LabelAt: label.AtUri(),
 	})
@@ -1286,7 +1286,7 @@ func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	err = db.SubscribeLabel(rp.db, &db.RepoLabel{
+	err = db.SubscribeLabel(rp.db, &models.RepoLabel{
 		RepoAt:  f.RepoAt(),
 		LabelAt: syntax.ATURI(labelAt),
 	})
@@ -2142,7 +2142,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 		// create an atproto record for this fork
 		rkey := tid.TID()
-		repo := &db.Repo{
+		repo := &models.Repo{
 			Did:         user.Did,
 			Name:        forkName,
 			Knot:        targetKnot,
