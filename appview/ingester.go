@@ -9,12 +9,13 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/bluesky-social/jetstream/pkg/models"
+	jmodels "github.com/bluesky-social/jetstream/pkg/models"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/ipfs/go-cid"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/serververify"
 	"tangled.org/core/appview/validator"
 	"tangled.org/core/idresolver"
@@ -30,10 +31,10 @@ type Ingester struct {
 	Validator  *validator.Validator
 }
 
-type processFunc func(ctx context.Context, e *models.Event) error
+type processFunc func(ctx context.Context, e *jmodels.Event) error
 
 func (i *Ingester) Ingest() processFunc {
-	return func(ctx context.Context, e *models.Event) error {
+	return func(ctx context.Context, e *jmodels.Event) error {
 		var err error
 		defer func() {
 			eventTime := e.TimeUS
@@ -45,13 +46,13 @@ func (i *Ingester) Ingest() processFunc {
 
 		l := i.Logger.With("kind", e.Kind)
 		switch e.Kind {
-		case models.EventKindAccount:
+		case jmodels.EventKindAccount:
 			if !e.Account.Active && *e.Account.Status == "deactivated" {
 				err = i.IdResolver.InvalidateIdent(ctx, e.Account.Did)
 			}
-		case models.EventKindIdentity:
+		case jmodels.EventKindIdentity:
 			err = i.IdResolver.InvalidateIdent(ctx, e.Identity.Did)
-		case models.EventKindCommit:
+		case jmodels.EventKindCommit:
 			switch e.Commit.Collection {
 			case tangled.GraphFollowNSID:
 				err = i.ingestFollow(e)
@@ -91,7 +92,7 @@ func (i *Ingester) Ingest() processFunc {
 	}
 }
 
-func (i *Ingester) ingestStar(e *models.Event) error {
+func (i *Ingester) ingestStar(e *jmodels.Event) error {
 	var err error
 	did := e.Did
 
@@ -99,7 +100,7 @@ func (i *Ingester) ingestStar(e *models.Event) error {
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		var subjectUri syntax.ATURI
 
 		raw := json.RawMessage(e.Commit.Record)
@@ -120,7 +121,7 @@ func (i *Ingester) ingestStar(e *models.Event) error {
 			RepoAt:       subjectUri,
 			Rkey:         e.Commit.RKey,
 		})
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		err = db.DeleteStarByRkey(i.Db, did, e.Commit.RKey)
 	}
 
@@ -131,7 +132,7 @@ func (i *Ingester) ingestStar(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestFollow(e *models.Event) error {
+func (i *Ingester) ingestFollow(e *jmodels.Event) error {
 	var err error
 	did := e.Did
 
@@ -139,7 +140,7 @@ func (i *Ingester) ingestFollow(e *models.Event) error {
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.GraphFollow{}
 		err = json.Unmarshal(raw, &record)
@@ -153,7 +154,7 @@ func (i *Ingester) ingestFollow(e *models.Event) error {
 			SubjectDid: record.Subject,
 			Rkey:       e.Commit.RKey,
 		})
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		err = db.DeleteFollowByRkey(i.Db, did, e.Commit.RKey)
 	}
 
@@ -164,7 +165,7 @@ func (i *Ingester) ingestFollow(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestPublicKey(e *models.Event) error {
+func (i *Ingester) ingestPublicKey(e *jmodels.Event) error {
 	did := e.Did
 	var err error
 
@@ -172,7 +173,7 @@ func (i *Ingester) ingestPublicKey(e *models.Event) error {
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		l.Debug("processing add of pubkey")
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.PublicKey{}
@@ -185,7 +186,7 @@ func (i *Ingester) ingestPublicKey(e *models.Event) error {
 		name := record.Name
 		key := record.Key
 		err = db.AddPublicKey(i.Db, did, name, key, e.Commit.RKey)
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		l.Debug("processing delete of pubkey")
 		err = db.DeletePublicKeyByRkey(i.Db, did, e.Commit.RKey)
 	}
@@ -197,7 +198,7 @@ func (i *Ingester) ingestPublicKey(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestArtifact(e *models.Event) error {
+func (i *Ingester) ingestArtifact(e *jmodels.Event) error {
 	did := e.Did
 	var err error
 
@@ -205,7 +206,7 @@ func (i *Ingester) ingestArtifact(e *models.Event) error {
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.RepoArtifact{}
 		err = json.Unmarshal(raw, &record)
@@ -234,7 +235,7 @@ func (i *Ingester) ingestArtifact(e *models.Event) error {
 			createdAt = time.Now()
 		}
 
-		artifact := db.Artifact{
+		artifact := models.Artifact{
 			Did:       did,
 			Rkey:      e.Commit.RKey,
 			RepoAt:    repoAt,
@@ -247,7 +248,7 @@ func (i *Ingester) ingestArtifact(e *models.Event) error {
 		}
 
 		err = db.AddArtifact(i.Db, artifact)
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		err = db.DeleteArtifact(i.Db, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
 	}
 
@@ -258,7 +259,7 @@ func (i *Ingester) ingestArtifact(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestProfile(e *models.Event) error {
+func (i *Ingester) ingestProfile(e *jmodels.Event) error {
 	did := e.Did
 	var err error
 
@@ -270,7 +271,7 @@ func (i *Ingester) ingestProfile(e *models.Event) error {
 	}
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.ActorProfile{}
 		err = json.Unmarshal(raw, &record)
@@ -338,7 +339,7 @@ func (i *Ingester) ingestProfile(e *models.Event) error {
 		}
 
 		err = db.UpsertProfile(tx, &profile)
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		err = db.DeleteArtifact(i.Db, db.FilterEq("did", did), db.FilterEq("rkey", e.Commit.RKey))
 	}
 
@@ -349,7 +350,7 @@ func (i *Ingester) ingestProfile(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestSpindleMember(ctx context.Context, e *models.Event) error {
+func (i *Ingester) ingestSpindleMember(ctx context.Context, e *jmodels.Event) error {
 	did := e.Did
 	var err error
 
@@ -357,7 +358,7 @@ func (i *Ingester) ingestSpindleMember(ctx context.Context, e *models.Event) err
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate:
+	case jmodels.CommitOperationCreate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.SpindleMember{}
 		err = json.Unmarshal(raw, &record)
@@ -402,7 +403,7 @@ func (i *Ingester) ingestSpindleMember(ctx context.Context, e *models.Event) err
 		}
 
 		l.Info("added spindle member")
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		rkey := e.Commit.RKey
 
 		ddb, ok := i.Db.Execer.(*db.DB)
@@ -455,7 +456,7 @@ func (i *Ingester) ingestSpindleMember(ctx context.Context, e *models.Event) err
 	return nil
 }
 
-func (i *Ingester) ingestSpindle(ctx context.Context, e *models.Event) error {
+func (i *Ingester) ingestSpindle(ctx context.Context, e *jmodels.Event) error {
 	did := e.Did
 	var err error
 
@@ -463,7 +464,7 @@ func (i *Ingester) ingestSpindle(ctx context.Context, e *models.Event) error {
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate:
+	case jmodels.CommitOperationCreate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.Spindle{}
 		err = json.Unmarshal(raw, &record)
@@ -501,7 +502,7 @@ func (i *Ingester) ingestSpindle(ctx context.Context, e *models.Event) error {
 
 		return nil
 
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		instance := e.Commit.RKey
 
 		ddb, ok := i.Db.Execer.(*db.DB)
@@ -569,7 +570,7 @@ func (i *Ingester) ingestSpindle(ctx context.Context, e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestString(e *models.Event) error {
+func (i *Ingester) ingestString(e *jmodels.Event) error {
 	did := e.Did
 	rkey := e.Commit.RKey
 
@@ -584,7 +585,7 @@ func (i *Ingester) ingestString(e *models.Event) error {
 	}
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.String{}
 		err = json.Unmarshal(raw, &record)
@@ -607,7 +608,7 @@ func (i *Ingester) ingestString(e *models.Event) error {
 
 		return nil
 
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		if err := db.DeleteString(
 			ddb,
 			db.FilterEq("did", did),
@@ -623,7 +624,7 @@ func (i *Ingester) ingestString(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestKnotMember(e *models.Event) error {
+func (i *Ingester) ingestKnotMember(e *jmodels.Event) error {
 	did := e.Did
 	var err error
 
@@ -631,7 +632,7 @@ func (i *Ingester) ingestKnotMember(e *models.Event) error {
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate:
+	case jmodels.CommitOperationCreate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.KnotMember{}
 		err = json.Unmarshal(raw, &record)
@@ -661,7 +662,7 @@ func (i *Ingester) ingestKnotMember(e *models.Event) error {
 		}
 
 		l.Info("added knot member")
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		// we don't store knot members in a table (like we do for spindle)
 		// and we can't remove this just yet. possibly fixed if we switch
 		// to either:
@@ -675,7 +676,7 @@ func (i *Ingester) ingestKnotMember(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestKnot(e *models.Event) error {
+func (i *Ingester) ingestKnot(e *jmodels.Event) error {
 	did := e.Did
 	var err error
 
@@ -683,7 +684,7 @@ func (i *Ingester) ingestKnot(e *models.Event) error {
 	l = l.With("nsid", e.Commit.Collection)
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate:
+	case jmodels.CommitOperationCreate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.Knot{}
 		err = json.Unmarshal(raw, &record)
@@ -718,7 +719,7 @@ func (i *Ingester) ingestKnot(e *models.Event) error {
 
 		return nil
 
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		domain := e.Commit.RKey
 
 		ddb, ok := i.Db.Execer.(*db.DB)
@@ -778,7 +779,7 @@ func (i *Ingester) ingestKnot(e *models.Event) error {
 
 	return nil
 }
-func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
+func (i *Ingester) ingestIssue(ctx context.Context, e *jmodels.Event) error {
 	did := e.Did
 	rkey := e.Commit.RKey
 
@@ -793,7 +794,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 	}
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.RepoIssue{}
 		err = json.Unmarshal(raw, &record)
@@ -829,7 +830,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 
 		return nil
 
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		if err := db.DeleteIssues(
 			ddb,
 			db.FilterEq("did", did),
@@ -845,7 +846,7 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestIssueComment(e *models.Event) error {
+func (i *Ingester) ingestIssueComment(e *jmodels.Event) error {
 	did := e.Did
 	rkey := e.Commit.RKey
 
@@ -860,7 +861,7 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 	}
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.RepoIssueComment{}
 		err = json.Unmarshal(raw, &record)
@@ -884,7 +885,7 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 
 		return nil
 
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		if err := db.DeleteIssueComments(
 			ddb,
 			db.FilterEq("did", did),
@@ -899,7 +900,7 @@ func (i *Ingester) ingestIssueComment(e *models.Event) error {
 	return nil
 }
 
-func (i *Ingester) ingestLabelDefinition(e *models.Event) error {
+func (i *Ingester) ingestLabelDefinition(e *jmodels.Event) error {
 	did := e.Did
 	rkey := e.Commit.RKey
 
@@ -914,7 +915,7 @@ func (i *Ingester) ingestLabelDefinition(e *models.Event) error {
 	}
 
 	switch e.Commit.Operation {
-	case models.CommitOperationCreate, models.CommitOperationUpdate:
+	case jmodels.CommitOperationCreate, jmodels.CommitOperationUpdate:
 		raw := json.RawMessage(e.Commit.Record)
 		record := tangled.LabelDefinition{}
 		err = json.Unmarshal(raw, &record)
@@ -938,7 +939,7 @@ func (i *Ingester) ingestLabelDefinition(e *models.Event) error {
 
 		return nil
 
-	case models.CommitOperationDelete:
+	case jmodels.CommitOperationDelete:
 		if err := db.DeleteLabelDefinition(
 			ddb,
 			db.FilterEq("did", did),

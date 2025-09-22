@@ -20,6 +20,7 @@ import (
 	"tangled.org/core/appview/commitverify"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/appview/pages/repoinfo"
@@ -729,8 +730,8 @@ type RepoTagsParams struct {
 	RepoInfo     repoinfo.RepoInfo
 	Active       string
 	types.RepoTagsResponse
-	ArtifactMap       map[plumbing.Hash][]db.Artifact
-	DanglingArtifacts []db.Artifact
+	ArtifactMap       map[plumbing.Hash][]models.Artifact
+	DanglingArtifacts []models.Artifact
 }
 
 func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
@@ -741,7 +742,7 @@ func (p *Pages) RepoTags(w io.Writer, params RepoTagsParams) error {
 type RepoArtifactParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Artifact     db.Artifact
+	Artifact     models.Artifact
 }
 
 func (p *Pages) RepoArtifactFragment(w io.Writer, params RepoArtifactParams) error {

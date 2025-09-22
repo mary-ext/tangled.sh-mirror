@@ -24,6 +24,7 @@ import (
 	"tangled.org/core/appview/commitverify"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
@@ -575,12 +576,12 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// convert artifacts to map for easy UI building
-	artifactMap := make(map[plumbing.Hash][]db.Artifact)
+	artifactMap := make(map[plumbing.Hash][]models.Artifact)
 	for _, a := range artifacts {
 		artifactMap[a.Tag] = append(artifactMap[a.Tag], a)
 	}
 
-	var danglingArtifacts []db.Artifact
+	var danglingArtifacts []models.Artifact
 	for _, a := range artifacts {
 		found := false
 		for _, t := range result.Tags {

@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/xrpcclient"
@@ -100,7 +101,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	artifact := db.Artifact{
+	artifact := models.Artifact{
 		Did:       user.Did,
 		Rkey:      rkey,
 		RepoAt:    f.RepoAt(),

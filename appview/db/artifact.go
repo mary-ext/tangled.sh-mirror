@@ -5,32 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/ipfs/go-cid"
-	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/models"
 )
 
-type Artifact struct {
-	Id   uint64
-	Did  string
-	Rkey string
-
-	RepoAt    syntax.ATURI
-	Tag       plumbing.Hash
-	CreatedAt time.Time
-
-	BlobCid  cid.Cid
-	Name     string
-	Size     uint64
-	MimeType string
-}
-
-func (a *Artifact) ArtifactAt() syntax.ATURI {
-	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", a.Did, tangled.RepoArtifactNSID, a.Rkey))
-}
-
-func AddArtifact(e Execer, artifact Artifact) error {
+func AddArtifact(e Execer, artifact models.Artifact) error {
 	_, err := e.Exec(
 		`insert or ignore into artifacts (
 			did,
@@ -57,8 +37,8 @@ func AddArtifact(e Execer, artifact Artifact) error {
 	return err
 }
 
-func GetArtifact(e Execer, filters ...filter) ([]Artifact, error) {
-	var artifacts []Artifact
+func GetArtifact(e Execer, filters ...filter) ([]models.Artifact, error) {
+	var artifacts []models.Artifact
 
 	var conditions []string
 	var args []any
@@ -94,7 +74,7 @@ func GetArtifact(e Execer, filters ...filter) ([]Artifact, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var artifact Artifact
+		var artifact models.Artifact
 		var createdAt string
 		var tag []byte
 		var blobCid string
