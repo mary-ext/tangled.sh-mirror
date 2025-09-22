@@ -1005,18 +1005,18 @@ func (rp *Repo) AddLabelDef(w http.ResponseWriter, r *http.Request) {
 		concreteType = "null"
 	}
 
-	format := db.ValueTypeFormatAny
+	format := models.ValueTypeFormatAny
 	if valueFormat == "did" {
-		format = db.ValueTypeFormatDid
+		format = models.ValueTypeFormatDid
 	}
 
-	valueType := db.ValueType{
-		Type:   db.ConcreteType(concreteType),
+	valueType := models.ValueType{
+		Type:   models.ConcreteType(concreteType),
 		Format: format,
 		Enum:   variants,
 	}
 
-	label := db.LabelDefinition{
+	label := models.LabelDefinition{
 		Did:       user.Did,
 		Rkey:      tid.TID(),
 		Name:      name,
@@ -1396,7 +1396,7 @@ func (rp *Repo) LabelPanel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defs := make(map[string]*db.LabelDefinition)
+	defs := make(map[string]*models.LabelDefinition)
 	for _, l := range labelDefs {
 		defs[l.AtUri().String()] = &l
 	}
@@ -1444,7 +1444,7 @@ func (rp *Repo) EditLabelPanel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defs := make(map[string]*db.LabelDefinition)
+	defs := make(map[string]*models.LabelDefinition)
 	for _, l := range labelDefs {
 		defs[l.AtUri().String()] = &l
 	}
@@ -1895,7 +1895,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defaultLabels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", db.DefaultLabelDefs()))
+	defaultLabels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", models.DefaultLabelDefs()))
 	if err != nil {
 		log.Println("failed to fetch labels", err)
 		rp.pages.Error503(w)

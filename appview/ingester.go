@@ -923,7 +923,7 @@ func (i *Ingester) ingestLabelDefinition(e *jmodels.Event) error {
 			return fmt.Errorf("invalid record: %w", err)
 		}
 
-		def, err := db.LabelDefinitionFromRecord(did, rkey, record)
+		def, err := models.LabelDefinitionFromRecord(did, rkey, record)
 		if err != nil {
 			return fmt.Errorf("failed to parse labeldef from record: %w", err)
 		}

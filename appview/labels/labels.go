@@ -17,6 +17,7 @@ import (
 	"tangled.sh/tangled.sh/core/api/tangled"
 	"tangled.sh/tangled.sh/core/appview/db"
 	"tangled.sh/tangled.sh/core/appview/middleware"
+	"tangled.sh/tangled.sh/core/appview/models"
 	"tangled.sh/tangled.sh/core/appview/oauth"
 	"tangled.sh/tangled.sh/core/appview/pages"
 	"tangled.sh/tangled.sh/core/appview/validator"
@@ -113,19 +114,19 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	labelState := db.NewLabelState()
+	labelState := models.NewLabelState()
 	actx.ApplyLabelOps(labelState, existingOps)
 
-	var labelOps []db.LabelOp
+	var labelOps []models.LabelOp
 
 	// first delete all existing state
 	for key, vals := range labelState.Inner() {
 		for val := range vals {
-			labelOps = append(labelOps, db.LabelOp{
+			labelOps = append(labelOps, models.LabelOp{
 				Did:          did,
 				Rkey:         rkey,
 				Subject:      syntax.ATURI(subjectUri),
-				Operation:    db.LabelOperationDel,
+				Operation:    models.LabelOperationDel,
 				OperandKey:   key,
 				OperandValue: val,
 				PerformedAt:  performedAt,
@@ -141,11 +142,11 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, val := range vals {
-			labelOps = append(labelOps, db.LabelOp{
+			labelOps = append(labelOps, models.LabelOp{
 				Did:          did,
 				Rkey:         rkey,
 				Subject:      syntax.ATURI(subjectUri),
-				Operation:    db.LabelOperationAdd,
+				Operation:    models.LabelOperationAdd,
 				OperandKey:   key,
 				OperandValue: val,
 				PerformedAt:  performedAt,
@@ -155,7 +156,7 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// reduce the opset
-	labelOps = db.ReduceLabelOps(labelOps)
+	labelOps = models.ReduceLabelOps(labelOps)
 
 	for i := range labelOps {
 		def := actx.Defs[labelOps[i].OperandKey]
@@ -168,7 +169,7 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 	// next, apply all ops introduced in this request and filter out ones that are no-ops
 	validLabelOps := labelOps[:0]
 	for _, op := range labelOps {
-		if err = actx.ApplyLabelOp(labelState, op); err != db.LabelNoOpError {
+		if err = actx.ApplyLabelOp(labelState, op); err != models.LabelNoOpError {
 			validLabelOps = append(validLabelOps, op)
 		}
 	}
@@ -180,7 +181,7 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create an atproto record of valid ops
-	record := db.LabelOpsAsRecord(validLabelOps)
+	record := models.LabelOpsAsRecord(validLabelOps)
 
 	client, err := l.oauth.AuthorizedClient(r)
 	if err != nil {

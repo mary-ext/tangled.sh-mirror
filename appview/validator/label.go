@@ -9,7 +9,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"golang.org/x/exp/slices"
 	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.sh/tangled.sh/core/appview/models"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 	validScopes = []string{tangled.RepoIssueNSID, tangled.RepoPullNSID}
 )
 
-func (v *Validator) ValidateLabelDefinition(label *db.LabelDefinition) error {
+func (v *Validator) ValidateLabelDefinition(label *models.LabelDefinition) error {
 	if label.Name == "" {
 		return fmt.Errorf("label name is empty")
 	}
@@ -95,7 +95,7 @@ func (v *Validator) ValidateLabelDefinition(label *db.LabelDefinition) error {
 	return nil
 }
 
-func (v *Validator) ValidateLabelOp(labelDef *db.LabelDefinition, labelOp *db.LabelOp) error {
+func (v *Validator) ValidateLabelOp(labelDef *models.LabelDefinition, labelOp *models.LabelOp) error {
 	if labelDef == nil {
 		return fmt.Errorf("label definition is required")
 	}
@@ -108,7 +108,7 @@ func (v *Validator) ValidateLabelOp(labelDef *db.LabelDefinition, labelOp *db.La
 		return fmt.Errorf("operand key %q does not match label definition URI %q", labelOp.OperandKey, expectedKey)
 	}
 
-	if labelOp.Operation != db.LabelOperationAdd && labelOp.Operation != db.LabelOperationDel {
+	if labelOp.Operation != models.LabelOperationAdd && labelOp.Operation != models.LabelOperationDel {
 		return fmt.Errorf("invalid operation: %q (must be 'add' or 'del')", labelOp.Operation)
 	}
 
@@ -131,23 +131,23 @@ func (v *Validator) ValidateLabelOp(labelDef *db.LabelDefinition, labelOp *db.La
 	return nil
 }
 
-func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *db.LabelOp) error {
+func (v *Validator) validateOperandValue(labelDef *models.LabelDefinition, labelOp *models.LabelOp) error {
 	valueType := labelDef.ValueType
 
 	// this is permitted, it "unsets" a label
 	if labelOp.OperandValue == "" {
-		labelOp.Operation = db.LabelOperationDel
+		labelOp.Operation = models.LabelOperationDel
 		return nil
 	}
 
 	switch valueType.Type {
-	case db.ConcreteTypeNull:
+	case models.ConcreteTypeNull:
 		// For null type, value should be empty
 		if labelOp.OperandValue != "null" {
 			return fmt.Errorf("null type requires empty value, got %q", labelOp.OperandValue)
 		}
 
-	case db.ConcreteTypeString:
+	case models.ConcreteTypeString:
 		// For string type, validate enum constraints if present
 		if valueType.IsEnum() {
 			if !slices.Contains(valueType.Enum, labelOp.OperandValue) {
@@ -156,7 +156,7 @@ func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *
 		}
 
 		switch valueType.Format {
-		case db.ValueTypeFormatDid:
+		case models.ValueTypeFormatDid:
 			id, err := v.resolver.ResolveIdent(context.Background(), labelOp.OperandValue)
 			if err != nil {
 				return fmt.Errorf("failed to resolve did/handle: %w", err)
@@ -164,12 +164,12 @@ func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *
 
 			labelOp.OperandValue = id.DID.String()
 
-		case db.ValueTypeFormatAny, "":
+		case models.ValueTypeFormatAny, "":
 		default:
 			return fmt.Errorf("unsupported format constraint: %q", valueType.Format)
 		}
 
-	case db.ConcreteTypeInt:
+	case models.ConcreteTypeInt:
 		if labelOp.OperandValue == "" {
 			return fmt.Errorf("integer type requires non-empty value")
 		}
@@ -183,7 +183,7 @@ func (v *Validator) validateOperandValue(labelDef *db.LabelDefinition, labelOp *
 			}
 		}
 
-	case db.ConcreteTypeBool:
+	case models.ConcreteTypeBool:
 		if labelOp.OperandValue != "true" && labelOp.OperandValue != "false" {
 			return fmt.Errorf("boolean type requires value to be 'true' or 'false', got %q", labelOp.OperandValue)
 		}

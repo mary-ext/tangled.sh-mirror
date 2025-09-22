@@ -11,6 +11,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pagination"
 )
 
@@ -30,7 +31,7 @@ type Issue struct {
 	// optionally, populate this when querying for reverse mappings
 	// like comment counts, parent repo etc.
 	Comments []IssueComment
-	Labels   LabelState
+	Labels   models.LabelState
 	Repo     *Repo
 }
 

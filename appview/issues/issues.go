@@ -19,6 +19,7 @@ import (
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
@@ -103,7 +104,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defs := make(map[string]*db.LabelDefinition)
+	defs := make(map[string]*models.LabelDefinition)
 	for _, l := range labelDefs {
 		defs[l.AtUri().String()] = &l
 	}
@@ -796,7 +797,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defs := make(map[string]*db.LabelDefinition)
+	defs := make(map[string]*models.LabelDefinition)
 	for _, l := range labelDefs {
 		defs[l.AtUri().String()] = &l
 	}

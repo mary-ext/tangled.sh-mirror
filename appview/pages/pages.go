@@ -841,8 +841,8 @@ func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 type RepoGeneralSettingsParams struct {
 	LoggedInUser     *oauth.User
 	RepoInfo         repoinfo.RepoInfo
-	Labels           []db.LabelDefinition
-	DefaultLabels    []db.LabelDefinition
+	Labels           []models.LabelDefinition
+	DefaultLabels    []models.LabelDefinition
 	SubscribedLabels map[string]struct{}
 	Active           string
 	Tabs             []map[string]any
@@ -890,7 +890,7 @@ type RepoIssuesParams struct {
 	RepoInfo        repoinfo.RepoInfo
 	Active          string
 	Issues          []db.Issue
-	LabelDefs       map[string]*db.LabelDefinition
+	LabelDefs       map[string]*models.LabelDefinition
 	Page            pagination.Page
 	FilteringByOpen bool
 }
@@ -906,7 +906,7 @@ type RepoSingleIssueParams struct {
 	Active       string
 	Issue        *db.Issue
 	CommentList  []db.CommentListItem
-	LabelDefs    map[string]*db.LabelDefinition
+	LabelDefs    map[string]*models.LabelDefinition
 
 	OrderedReactionKinds []db.ReactionKind
 	Reactions            map[db.ReactionKind]int
@@ -1236,9 +1236,9 @@ func (p *Pages) RepoCompareDiff(w io.Writer, params RepoCompareDiffParams) error
 type LabelPanelParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Defs         map[string]*db.LabelDefinition
+	Defs         map[string]*models.LabelDefinition
 	Subject      string
-	State        db.LabelState
+	State        models.LabelState
 }
 
 func (p *Pages) LabelPanel(w io.Writer, params LabelPanelParams) error {
@@ -1248,9 +1248,9 @@ func (p *Pages) LabelPanel(w io.Writer, params LabelPanelParams) error {
 type EditLabelPanelParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Defs         map[string]*db.LabelDefinition
+	Defs         map[string]*models.LabelDefinition
 	Subject      string
-	State        db.LabelState
+	State        models.LabelState
 }
 
 func (p *Pages) EditLabelPanel(w io.Writer, params EditLabelPanelParams) error {
