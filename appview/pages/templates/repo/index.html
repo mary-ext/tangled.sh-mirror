@@ -340,27 +340,6 @@
 
 {{ define "repoAfter" }}
     {{- if or .HTMLReadme .Readme -}}
-        <div class="mt-4 rounded bg-white dark:bg-gray-800 drop-shadow-sm w-full mx-auto overflow-hidden">
-            {{- if .ReadmeFileName -}}
-            <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 flex items-center gap-2">
-                {{ i "file-text" "w-4 h-4" "text-gray-600 dark:text-gray-400" }}
-                <span class="font-mono text-sm text-gray-800 dark:text-gray-200">{{ .ReadmeFileName }}</span>
-            </div>
-            {{- end -}}
-            <section
-                class="p-6 overflow-auto {{ if not .Raw }}
-                    prose dark:prose-invert dark:[&_pre]:bg-gray-900
-                    dark:[&_code]:text-gray-300 dark:[&_pre_code]:bg-gray-900
-                    dark:[&_pre]:border dark:[&_pre]:border-gray-700
-                {{ end }}"
-            >
-                <article class="{{ if .Raw }}whitespace-pre{{ end }}">{{- if .Raw -}}<pre class="dark:bg-gray-800 dark:text-white overflow-x-auto">
-                            {{- .Readme -}}
-                        </pre>
-                    {{- else -}}
-                        {{ .HTMLReadme }}
-                    {{- end -}}</article>
-            </section>
-        </div>
+       {{ template "repo/fragments/readme" . }}
     {{- end -}}
 {{ end }}

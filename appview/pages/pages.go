@@ -695,6 +695,8 @@ func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
 	params.Active = "overview"
 
 	if params.ReadmeFileName != "" {
+		params.ReadmeFileName = filepath.Base(params.ReadmeFileName)
+
 		ext := filepath.Ext(params.ReadmeFileName)
 		switch ext {
 		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
