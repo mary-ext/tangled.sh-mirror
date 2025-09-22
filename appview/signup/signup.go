@@ -14,6 +14,7 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/dns"
 	"tangled.org/core/appview/email"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/state/userutil"
 	"tangled.org/core/appview/xrpcclient"
@@ -229,7 +230,7 @@ func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.AddEmail(s.db, db.Email{
+		err = db.AddEmail(s.db, models.Email{
 			Did:      did,
 			Address:  email,
 			Verified: true,

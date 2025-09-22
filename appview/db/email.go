@@ -3,64 +3,55 @@ package db
 import (
 	"strings"
 	"time"
+
+	"tangled.org/core/appview/models"
 )
 
-type Email struct {
-	ID               int64
-	Did              string
-	Address          string
-	Verified         bool
-	Primary          bool
-	VerificationCode string
-	LastSent         *time.Time
-	CreatedAt        time.Time
-}
-
-func GetPrimaryEmail(e Execer, did string) (Email, error) {
+func GetPrimaryEmail(e Execer, did string) (models.Email, error) {
 	query := `
 		select id, did, email, verified, is_primary, verification_code, last_sent, created
 		from emails
 		where did = ? and is_primary = true
 	`
-	var email Email
+	var email models.Email
 	var createdStr string
 	var lastSent string
 	err := e.QueryRow(query, did).Scan(&email.ID, &email.Did, &email.Address, &email.Verified, &email.Primary, &email.VerificationCode, &lastSent, &createdStr)
 	if err != nil {
-		return Email{}, err
+		return models.Email{}, err
 	}
 	email.CreatedAt, err = time.Parse(time.RFC3339, createdStr)
 	if err != nil {
-		return Email{}, err
+		return models.Email{}, err
 	}
 	parsedTime, err := time.Parse(time.RFC3339, lastSent)
 	if err != nil {
-		return Email{}, err
+		return models.Email{}, err
 	}
 	email.LastSent = &parsedTime
 	return email, nil
 }
 
-func GetEmail(e Execer, did string, em string) (Email, error) {
+func GetEmail(e Execer, did string, em string) (models.Email, error) {
 	query := `
 		select id, did, email, verified, is_primary, verification_code, last_sent, created
 		from emails
 		where did = ? and email = ?
 	`
-	var email Email
+	var email models.Email
 	var createdStr string
 	var lastSent string
 	err := e.QueryRow(query, did, em).Scan(&email.ID, &email.Did, &email.Address, &email.Verified, &email.Primary, &email.VerificationCode, &lastSent, &createdStr)
 	if err != nil {
-		return Email{}, err
+		return models.Email{}, err
 	}
 	email.CreatedAt, err = time.Parse(time.RFC3339, createdStr)
 	if err != nil {
-		return Email{}, err
+		return models.Email{}, err
 	}
 	parsedTime, err := time.Parse(time.RFC3339, lastSent)
 	if err != nil {
-		return Email{}, err
+		return models.Email{}, err
 	}
 	email.LastSent = &parsedTime
 	return email, nil
@@ -187,7 +178,7 @@ func CheckValidVerificationCode(e Execer, did string, email string, code string)
 	return count > 0, nil
 }
 
-func AddEmail(e Execer, email Email) error {
+func AddEmail(e Execer, email models.Email) error {
 	// Check if this is the first email for this DID
 	countQuery := `
 		select count(*)
@@ -254,7 +245,7 @@ func MakeEmailPrimary(e Execer, did string, email string) error {
 	return err
 }
 
-func GetAllEmails(e Execer, did string) ([]Email, error) {
+func GetAllEmails(e Execer, did string) ([]models.Email, error) {
 	query := `
 		select did, email, verified, is_primary, verification_code, last_sent, created
 		from emails
@@ -266,9 +257,9 @@ func GetAllEmails(e Execer, did string) ([]Email, error) {
 	}
 	defer rows.Close()
 
-	var emails []Email
+	var emails []models.Email
 	for rows.Next() {
-		var email Email
+		var email models.Email
 		var createdStr string
 		var lastSent string
 		err := rows.Scan(&email.Did, &email.Address, &email.Verified, &email.Primary, &email.VerificationCode, &lastSent, &createdStr)

@@ -314,7 +314,7 @@ func (p *Pages) UserKeysSettings(w io.Writer, params UserKeysSettingsParams) err
 
 type UserEmailsSettingsParams struct {
 	LoggedInUser *oauth.User
-	Emails       []db.Email
+	Emails       []models.Email
 	Tabs         []map[string]any
 	Tab          string
 }

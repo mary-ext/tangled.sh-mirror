@@ -16,6 +16,7 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/email"
 	"tangled.org/core/appview/middleware"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/tid"
@@ -185,7 +186,7 @@ func (s *Settings) emails(w http.ResponseWriter, r *http.Request) {
 		}
 		defer tx.Rollback()
 
-		if err := db.AddEmail(tx, db.Email{
+		if err := db.AddEmail(tx, models.Email{
 			Did:              did,
 			Address:          emAddr,
 			Verified:         false,
