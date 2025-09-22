@@ -3,26 +3,11 @@ package db
 import (
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/appview/models"
 )
 
-type Collaborator struct {
-	// identifiers for the record
-	Id   int64
-	Did  syntax.DID
-	Rkey string
-
-	// content
-	SubjectDid syntax.DID
-	RepoAt     syntax.ATURI
-
-	// meta
-	Created time.Time
-}
-
-func AddCollaborator(e Execer, c Collaborator) error {
+func AddCollaborator(e Execer, c models.Collaborator) error {
 	_, err := e.Exec(
 		`insert into collaborators (did, rkey, subject_did, repo_at) values (?, ?, ?, ?);`,
 		c.Did, c.Rkey, c.SubjectDid, c.RepoAt,

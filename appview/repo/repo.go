@@ -1567,7 +1567,7 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.AddCollaborator(tx, db.Collaborator{
+	err = db.AddCollaborator(tx, models.Collaborator{
 		Did:        syntax.DID(currentUser.Did),
 		Rkey:       rkey,
 		SubjectDid: collaboratorIdent.DID,
