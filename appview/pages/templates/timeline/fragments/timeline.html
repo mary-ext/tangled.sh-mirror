@@ -15,7 +15,7 @@
                   {{ if .Repo }}
                     {{ template "timeline/fragments/repoEvent" (list $ .) }}
                   {{ else if .Star }}
-                    {{ template "timeline/fragments/starEvent" (list $ .Star) }}
+                    {{ template "timeline/fragments/starEvent" (list $ .) }}
                   {{ else if .Follow }}
                     {{ template "timeline/fragments/followEvent" (list $ .) }}
                   {{ end }}
@@ -58,7 +58,8 @@
 
 {{ define "timeline/fragments/starEvent" }}
   {{ $root := index . 0 }}
-  {{ $star := index . 1 }}
+  {{ $event := index . 1 }}
+  {{ $star := $event.Star }}
   {{ with $star }}
     {{ $starrerHandle :=  resolve .StarredByDid }}
     {{ $repoOwnerHandle :=  resolve .Repo.Did }}
@@ -71,7 +72,7 @@
         <span class="text-gray-700 dark:text-gray-400 text-xs">{{ template "repo/fragments/time" .Created }}</span>
     </div>
     {{ with .Repo }}
-      {{ template "user/fragments/repoCard" (list $root . true) }}
+      {{ template "user/fragments/repoCard" (list $root . true true (dict "IsStarred" $event.IsStarred "RepoAt" .RepoAt "Stats" (dict "StarCount" $event.StarCount))) }}
     {{ end }}
   {{ end }}
 {{ end }}

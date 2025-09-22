@@ -37,7 +37,7 @@ func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent,
 		return nil, err
 	}
 
-	stars, err := getTimelineStars(e, limit)
+	stars, err := getTimelineStars(e, limit, loggedInUserDid)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +61,33 @@ func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent,
 	}
 
 	return events, nil
+}
+
+func fetchStarStatuses(e Execer, loggedInUserDid string, repos []Repo) (map[string]bool, error) {
+	if loggedInUserDid == "" {
+		return nil, nil
+	}
+
+	var repoAts []syntax.ATURI
+	for _, r := range repos {
+		repoAts = append(repoAts, r.RepoAt())
+	}
+
+	return GetStarStatuses(e, loggedInUserDid, repoAts)
+}
+
+func getRepoStarInfo(repo *Repo, starStatuses map[string]bool) (bool, int64) {
+	var isStarred bool
+	if starStatuses != nil {
+		isStarred = starStatuses[repo.RepoAt().String()]
+	}
+
+	var starCount int64
+	if repo.RepoStats != nil {
+		starCount = int64(repo.RepoStats.StarCount)
+	}
+
+	return isStarred, starCount
 }
 
 func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
@@ -90,17 +117,9 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 		uriToRepo[r.RepoAt().String()] = r
 	}
 
-	var starStatuses map[string]bool
-	if loggedInUserDid != "" {
-		var repoAts []syntax.ATURI
-		for _, r := range repos {
-			repoAts = append(repoAts, r.RepoAt())
-		}
-		var err error
-		starStatuses, err = GetStarStatuses(e, loggedInUserDid, repoAts)
-		if err != nil {
-			return nil, err
-		}
+	starStatuses, err := fetchStarStatuses(e, loggedInUserDid, repos)
+	if err != nil {
+		return nil, err
 	}
 
 	var events []TimelineEvent
@@ -112,15 +131,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 			}
 		}
 
-		var isStarred bool
-		if starStatuses != nil {
-			isStarred = starStatuses[r.RepoAt().String()]
-		}
-
-		var starCount int64
-		if r.RepoStats != nil {
-			starCount = int64(r.RepoStats.StarCount)
-		}
+		isStarred, starCount := getRepoStarInfo(&r, starStatuses)
 
 		events = append(events, TimelineEvent{
 			Repo:      &r,
@@ -134,7 +145,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 	return events, nil
 }
 
-func getTimelineStars(e Execer, limit int) ([]TimelineEvent, error) {
+func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
 	stars, err := GetStars(e, limit)
 	if err != nil {
 		return nil, err
@@ -150,11 +161,25 @@ func getTimelineStars(e Execer, limit int) ([]TimelineEvent, error) {
 	}
 	stars = stars[:n]
 
+	var repos []Repo
+	for _, s := range stars {
+		repos = append(repos, *s.Repo)
+	}
+
+	starStatuses, err := fetchStarStatuses(e, loggedInUserDid, repos)
+	if err != nil {
+		return nil, err
+	}
+
 	var events []TimelineEvent
 	for _, s := range stars {
+		isStarred, starCount := getRepoStarInfo(s.Repo, starStatuses)
+
 		events = append(events, TimelineEvent{
-			Star:    &s,
-			EventAt: s.Created,
+			Star:      &s,
+			EventAt:   s.Created,
+			IsStarred: isStarred,
+			StarCount: starCount,
 		})
 	}
 
