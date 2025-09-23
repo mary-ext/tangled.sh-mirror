@@ -71,7 +71,7 @@ func (rp *Repo) getRepoFeed(ctx context.Context, f *reporesolver.ResolvedRepo) (
 	return feed, nil
 }
 
-func (rp *Repo) createPullItems(ctx context.Context, pull *db.Pull, f *reporesolver.ResolvedRepo) ([]*feeds.Item, error) {
+func (rp *Repo) createPullItems(ctx context.Context, pull *models.Pull, f *reporesolver.ResolvedRepo) ([]*feeds.Item, error) {
 	owner, err := rp.idResolver.ResolveIdent(ctx, pull.OwnerDid)
 	if err != nil {
 		return nil, err
@@ -129,17 +129,17 @@ func (rp *Repo) createIssueItem(ctx context.Context, issue models.Issue, f *repo
 	}, nil
 }
 
-func (rp *Repo) getPullState(pull *db.Pull) string {
-	if pull.State == db.PullOpen {
+func (rp *Repo) getPullState(pull *models.Pull) string {
+	if pull.State == models.PullOpen {
 		return "opened"
 	}
 	return pull.State.String()
 }
 
-func (rp *Repo) buildPullDescription(handle syntax.Handle, state string, pull *db.Pull, repoName string) string {
+func (rp *Repo) buildPullDescription(handle syntax.Handle, state string, pull *models.Pull, repoName string) string {
 	base := fmt.Sprintf("@%s %s pull request #%d", handle, state, pull.PullId)
 
-	if pull.State == db.PullMerged {
+	if pull.State == models.PullMerged {
 		return fmt.Sprintf("%s (on round #%d) in %s", base, pull.LastRoundNumber(), repoName)
 	}
 

@@ -75,18 +75,18 @@ func (i IssueEvents) Stats() IssueEventStats {
 }
 
 type PullEvents struct {
-	Items []*Pull
+	Items []*models.Pull
 }
 
 func (p PullEvents) Stats() PullEventStats {
 	var open, merged, closed int
 	for _, pull := range p.Items {
 		switch pull.State {
-		case PullOpen:
+		case models.PullOpen:
 			open += 1
-		case PullMerged:
+		case models.PullMerged:
 			merged += 1
-		case PullClosed:
+		case models.PullClosed:
 			closed += 1
 		}
 	}
@@ -546,13 +546,13 @@ func GetVanityStat(e Execer, did string, stat VanityStatKind) (uint64, error) {
 	switch stat {
 	case VanityStatMergedPRCount:
 		query = `select count(id) from pulls where owner_did = ? and state = ?`
-		args = append(args, did, PullMerged)
+		args = append(args, did, models.PullMerged)
 	case VanityStatClosedPRCount:
 		query = `select count(id) from pulls where owner_did = ? and state = ?`
-		args = append(args, did, PullClosed)
+		args = append(args, did, models.PullClosed)
 	case VanityStatOpenPRCount:
 		query = `select count(id) from pulls where owner_did = ? and state = ?`
-		args = append(args, did, PullOpen)
+		args = append(args, did, models.PullOpen)
 	case VanityStatOpenIssueCount:
 		query = `select count(id) from issues where did = ? and open = 1`
 		args = append(args, did)

@@ -18,8 +18,8 @@ type Notifier interface {
 	NewFollow(ctx context.Context, follow *models.Follow)
 	DeleteFollow(ctx context.Context, follow *models.Follow)
 
-	NewPull(ctx context.Context, pull *db.Pull)
-	NewPullComment(ctx context.Context, comment *db.PullComment)
+	NewPull(ctx context.Context, pull *models.Pull)
+	NewPullComment(ctx context.Context, comment *models.PullComment)
 
 	UpdateProfile(ctx context.Context, profile *db.Profile)
 
@@ -43,8 +43,8 @@ func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {}
 func (m *BaseNotifier) NewFollow(ctx context.Context, follow *models.Follow)    {}
 func (m *BaseNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {}
 
-func (m *BaseNotifier) NewPull(ctx context.Context, pull *db.Pull)                  {}
-func (m *BaseNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {}
+func (m *BaseNotifier) NewPull(ctx context.Context, pull *models.Pull)                 {}
+func (m *BaseNotifier) NewPullComment(ctx context.Context, models *models.PullComment) {}
 
 func (m *BaseNotifier) UpdateProfile(ctx context.Context, profile *db.Profile) {}
 

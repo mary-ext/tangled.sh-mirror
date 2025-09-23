@@ -237,10 +237,10 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]models.Repo, error) {
 		inClause,
 	)
 	args = append([]any{
-		PullOpen,
-		PullMerged,
-		PullClosed,
-		PullDeleted,
+		models.PullOpen,
+		models.PullMerged,
+		models.PullClosed,
+		models.PullDeleted,
 	}, args...)
 	rows, err = e.Query(
 		pullCountQuery,

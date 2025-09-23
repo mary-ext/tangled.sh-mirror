@@ -71,7 +71,7 @@ func (n *posthogNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 	}
 }
 
-func (n *posthogNotifier) NewPull(ctx context.Context, pull *db.Pull) {
+func (n *posthogNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: pull.OwnerDid,
 		Event:      "new_pull",
@@ -85,7 +85,7 @@ func (n *posthogNotifier) NewPull(ctx context.Context, pull *db.Pull) {
 	}
 }
 
-func (n *posthogNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {
+func (n *posthogNotifier) NewPullComment(ctx context.Context, comment *models.PullComment) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: comment.OwnerDid,
 		Event:      "new_pull_comment",

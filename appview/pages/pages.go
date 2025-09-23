@@ -1019,10 +1019,10 @@ func (p *Pages) RepoNewPull(w io.Writer, params RepoNewPullParams) error {
 type RepoPullsParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Pulls        []*db.Pull
+	Pulls        []*models.Pull
 	Active       string
-	FilteringBy  db.PullState
-	Stacks       map[string]db.Stack
+	FilteringBy  models.PullState
+	Stacks       map[string]models.Stack
 	Pipelines    map[string]db.Pipeline
 }
 
@@ -1053,9 +1053,9 @@ type RepoSinglePullParams struct {
 	LoggedInUser   *oauth.User
 	RepoInfo       repoinfo.RepoInfo
 	Active         string
-	Pull           *db.Pull
-	Stack          db.Stack
-	AbandonedPulls []*db.Pull
+	Pull           *models.Pull
+	Stack          models.Stack
+	AbandonedPulls []*models.Pull
 	MergeCheck     types.MergeCheckResponse
 	ResubmitCheck  ResubmitResult
 	Pipelines      map[string]db.Pipeline
@@ -1073,11 +1073,11 @@ func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
 type RepoPullPatchParams struct {
 	LoggedInUser         *oauth.User
 	RepoInfo             repoinfo.RepoInfo
-	Pull                 *db.Pull
-	Stack                db.Stack
+	Pull                 *models.Pull
+	Stack                models.Stack
 	Diff                 *types.NiceDiff
 	Round                int
-	Submission           *db.PullSubmission
+	Submission           *models.PullSubmission
 	OrderedReactionKinds []db.ReactionKind
 	DiffOpts             types.DiffOpts
 }
@@ -1090,7 +1090,7 @@ func (p *Pages) RepoPullPatchPage(w io.Writer, params RepoPullPatchParams) error
 type RepoPullInterdiffParams struct {
 	LoggedInUser         *oauth.User
 	RepoInfo             repoinfo.RepoInfo
-	Pull                 *db.Pull
+	Pull                 *models.Pull
 	Round                int
 	Interdiff            *patchutil.InterdiffResult
 	OrderedReactionKinds []db.ReactionKind
@@ -1143,7 +1143,7 @@ func (p *Pages) PullCompareForkBranchesFragment(w io.Writer, params PullCompareF
 type PullResubmitParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Pull         *db.Pull
+	Pull         *models.Pull
 	SubmissionId int
 }
 
@@ -1154,11 +1154,11 @@ func (p *Pages) PullResubmitFragment(w io.Writer, params PullResubmitParams) err
 type PullActionsParams struct {
 	LoggedInUser  *oauth.User
 	RepoInfo      repoinfo.RepoInfo
-	Pull          *db.Pull
+	Pull          *models.Pull
 	RoundNumber   int
 	MergeCheck    types.MergeCheckResponse
 	ResubmitCheck ResubmitResult
-	Stack         db.Stack
+	Stack         models.Stack
 }
 
 func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error {
@@ -1168,7 +1168,7 @@ func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error
 type PullNewCommentParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Pull         *db.Pull
+	Pull         *models.Pull
 	RoundNumber  int
 }
 

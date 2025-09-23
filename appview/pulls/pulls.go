@@ -76,7 +76,7 @@ func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		pull, ok := r.Context().Value("pull").(*db.Pull)
+		pull, ok := r.Context().Value("pull").(*models.Pull)
 		if !ok {
 			log.Println("failed to get pull")
 			s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -84,7 +84,7 @@ func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// can be nil  if this pull is not stacked
-		stack, _ := r.Context().Value("stack").(db.Stack)
+		stack, _ := r.Context().Value("stack").(models.Stack)
 
 		roundNumberStr := chi.URLParam(r, "round")
 		roundNumber, err := strconv.Atoi(roundNumberStr)
@@ -124,7 +124,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -132,8 +132,8 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// can be nil  if this pull is not stacked
-	stack, _ := r.Context().Value("stack").(db.Stack)
-	abandonedPulls, _ := r.Context().Value("abandonedPulls").([]*db.Pull)
+	stack, _ := r.Context().Value("stack").(models.Stack)
+	abandonedPulls, _ := r.Context().Value("abandonedPulls").([]*models.Pull)
 
 	totalIdents := 1
 	for _, submission := range pull.Submissions {
@@ -216,8 +216,8 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) types.MergeCheckResponse {
-	if pull.State == db.PullMerged {
+func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *models.Pull, stack models.Stack) types.MergeCheckResponse {
+	if pull.State == models.PullMerged {
 		return types.MergeCheckResponse{}
 	}
 
@@ -283,8 +283,8 @@ func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *
 	return result
 }
 
-func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *db.Pull, stack db.Stack) pages.ResubmitResult {
-	if pull.State == db.PullMerged || pull.State == db.PullDeleted || pull.PullSource == nil {
+func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *models.Pull, stack models.Stack) pages.ResubmitResult {
+	if pull.State == models.PullMerged || pull.State == models.PullDeleted || pull.PullSource == nil {
 		return pages.Unknown
 	}
 
@@ -357,14 +357,14 @@ func (s *Pulls) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		diffOpts.Split = true
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
 		return
 	}
 
-	stack, _ := r.Context().Value("stack").(db.Stack)
+	stack, _ := r.Context().Value("stack").(models.Stack)
 
 	roundId := chi.URLParam(r, "round")
 	roundIdInt, err := strconv.Atoi(roundId)
@@ -404,7 +404,7 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		diffOpts.Split = true
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to get pull.")
@@ -452,7 +452,7 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Pulls) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -475,12 +475,12 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	params := r.URL.Query()
 
-	state := db.PullOpen
+	state := models.PullOpen
 	switch params.Get("state") {
 	case "closed":
-		state = db.PullClosed
+		state = models.PullClosed
 	case "merged":
-		state = db.PullMerged
+		state = models.PullMerged
 	}
 
 	f, err := s.repoResolver.Resolve(r)
@@ -516,7 +516,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// we want to group all stacked PRs into just one list
-	stacks := make(map[string]db.Stack)
+	stacks := make(map[string]models.Stack)
 	var shas []string
 	n := 0
 	for _, p := range pulls {
@@ -575,7 +575,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -648,7 +648,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		comment := &db.PullComment{
+		comment := &models.PullComment{
 			OwnerDid:     user.Did,
 			RepoAt:       f.RepoAt().String(),
 			PullId:       pull.PullId,
@@ -891,7 +891,7 @@ func (s *Pulls) handleBranchBasedPull(
 		return
 	}
 
-	pullSource := &db.PullSource{
+	pullSource := &models.PullSource{
 		Branch: sourceBranch,
 	}
 	recordPullSource := &tangled.RepoPull_Source{
@@ -1001,7 +1001,7 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 	forkAtUri := fork.RepoAt()
 	forkAtUriStr := forkAtUri.String()
 
-	pullSource := &db.PullSource{
+	pullSource := &models.PullSource{
 		Branch: sourceBranch,
 		RepoAt: &forkAtUri,
 	}
@@ -1022,7 +1022,7 @@ func (s *Pulls) createPullRequest(
 	title, body, targetBranch string,
 	patch string,
 	sourceRev string,
-	pullSource *db.PullSource,
+	pullSource *models.PullSource,
 	recordPullSource *tangled.RepoPull_Source,
 	isStacked bool,
 ) {
@@ -1074,18 +1074,18 @@ func (s *Pulls) createPullRequest(
 	}
 
 	rkey := tid.TID()
-	initialSubmission := db.PullSubmission{
+	initialSubmission := models.PullSubmission{
 		Patch:     patch,
 		SourceRev: sourceRev,
 	}
-	pull := &db.Pull{
+	pull := &models.Pull{
 		Title:        title,
 		Body:         body,
 		TargetBranch: targetBranch,
 		OwnerDid:     user.Did,
 		RepoAt:       f.RepoAt(),
 		Rkey:         rkey,
-		Submissions: []*db.PullSubmission{
+		Submissions: []*models.PullSubmission{
 			&initialSubmission,
 		},
 		PullSource: pullSource,
@@ -1144,7 +1144,7 @@ func (s *Pulls) createStackedPullRequest(
 	targetBranch string,
 	patch string,
 	sourceRev string,
-	pullSource *db.PullSource,
+	pullSource *models.PullSource,
 ) {
 	// run some necessary checks for stacked-prs first
 
@@ -1452,7 +1452,7 @@ func (s *Pulls) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -1483,7 +1483,7 @@ func (s *Pulls) ResubmitPull(w http.ResponseWriter, r *http.Request) {
 func (s *Pulls) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -1510,7 +1510,7 @@ func (s *Pulls) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "resubmit-error", "Failed to edit patch. Try again later.")
@@ -1573,7 +1573,7 @@ func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "resubmit-error", "Failed to edit patch. Try again later.")
@@ -1666,7 +1666,7 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 }
 
 // validate a resubmission against a pull request
-func validateResubmittedPatch(pull *db.Pull, patch string) error {
+func validateResubmittedPatch(pull *models.Pull, patch string) error {
 	if patch == "" {
 		return fmt.Errorf("Patch is empty.")
 	}
@@ -1687,7 +1687,7 @@ func (s *Pulls) resubmitPullHelper(
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
 	user *oauth.User,
-	pull *db.Pull,
+	pull *models.Pull,
 	patch string,
 	sourceRev string,
 ) {
@@ -1791,13 +1791,13 @@ func (s *Pulls) resubmitStackedPullHelper(
 	r *http.Request,
 	f *reporesolver.ResolvedRepo,
 	user *oauth.User,
-	pull *db.Pull,
+	pull *models.Pull,
 	patch string,
 	stackId string,
 ) {
 	targetBranch := pull.TargetBranch
 
-	origStack, _ := r.Context().Value("stack").(db.Stack)
+	origStack, _ := r.Context().Value("stack").(models.Stack)
 	newStack, err := newStack(f, user, targetBranch, patch, pull.PullSource, stackId)
 	if err != nil {
 		log.Println("failed to create resubmitted stack", err)
@@ -1806,8 +1806,8 @@ func (s *Pulls) resubmitStackedPullHelper(
 	}
 
 	// find the diff between the stacks, first, map them by changeId
-	origById := make(map[string]*db.Pull)
-	newById := make(map[string]*db.Pull)
+	origById := make(map[string]*models.Pull)
+	newById := make(map[string]*models.Pull)
 	for _, p := range origStack {
 		origById[p.ChangeId] = p
 	}
@@ -1820,8 +1820,8 @@ func (s *Pulls) resubmitStackedPullHelper(
 	// commits that got updated: corresponding pull is resubmitted & new round begins
 	//
 	// for commits that were unchanged: no changes, parent-change-id is updated as necessary
-	additions := make(map[string]*db.Pull)
-	deletions := make(map[string]*db.Pull)
+	additions := make(map[string]*models.Pull)
+	deletions := make(map[string]*models.Pull)
 	unchanged := make(map[string]struct{})
 	updated := make(map[string]struct{})
 
@@ -1881,7 +1881,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 	// deleted pulls are marked as deleted in the DB
 	for _, p := range deletions {
 		// do not do delete already merged PRs
-		if p.State == db.PullMerged {
+		if p.State == models.PullMerged {
 			continue
 		}
 
@@ -1926,7 +1926,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 		np, _ := newById[id]
 
 		// do not update already merged PRs
-		if op.State == db.PullMerged {
+		if op.State == models.PullMerged {
 			continue
 		}
 
@@ -2047,17 +2047,17 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge patch. Try again later.")
 		return
 	}
 
-	var pullsToMerge db.Stack
+	var pullsToMerge models.Stack
 	pullsToMerge = append(pullsToMerge, pull)
 	if pull.IsStacked() {
-		stack, ok := r.Context().Value("stack").(db.Stack)
+		stack, ok := r.Context().Value("stack").(models.Stack)
 		if !ok {
 			log.Println("failed to get stack")
 			s.pages.Notice(w, "pull-merge-error", "Failed to merge patch. Try again later.")
@@ -2159,7 +2159,7 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -2187,12 +2187,12 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	var pullsToClose []*db.Pull
+	var pullsToClose []*models.Pull
 	pullsToClose = append(pullsToClose, pull)
 
 	// if this PR is stacked, then we want to close all PRs below this one on the stack
 	if pull.IsStacked() {
-		stack := r.Context().Value("stack").(db.Stack)
+		stack := r.Context().Value("stack").(models.Stack)
 		subStack := stack.StrictlyBelow(pull)
 		pullsToClose = append(pullsToClose, subStack...)
 	}
@@ -2227,7 +2227,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pull, ok := r.Context().Value("pull").(*db.Pull)
+	pull, ok := r.Context().Value("pull").(*models.Pull)
 	if !ok {
 		log.Println("failed to get pull")
 		s.pages.Notice(w, "pull-error", "Failed to edit patch. Try again later.")
@@ -2255,12 +2255,12 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	var pullsToReopen []*db.Pull
+	var pullsToReopen []*models.Pull
 	pullsToReopen = append(pullsToReopen, pull)
 
 	// if this PR is stacked, then we want to reopen all PRs above this one on the stack
 	if pull.IsStacked() {
-		stack := r.Context().Value("stack").(db.Stack)
+		stack := r.Context().Value("stack").(models.Stack)
 		subStack := stack.StrictlyAbove(pull)
 		pullsToReopen = append(pullsToReopen, subStack...)
 	}
@@ -2285,7 +2285,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
 }
 
-func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patch string, pullSource *db.PullSource, stackId string) (db.Stack, error) {
+func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patch string, pullSource *models.PullSource, stackId string) (models.Stack, error) {
 	formatPatches, err := patchutil.ExtractPatches(patch)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to extract patches: %v", err)
@@ -2297,7 +2297,7 @@ func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patc
 	}
 
 	// the stack is identified by a UUID
-	var stack db.Stack
+	var stack models.Stack
 	parentChangeId := ""
 	for _, fp := range formatPatches {
 		//  all patches must have a jj change-id
@@ -2310,18 +2310,18 @@ func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patc
 		body := fp.Body
 		rkey := tid.TID()
 
-		initialSubmission := db.PullSubmission{
+		initialSubmission := models.PullSubmission{
 			Patch:     fp.Raw,
 			SourceRev: fp.SHA,
 		}
-		pull := db.Pull{
+		pull := models.Pull{
 			Title:        title,
 			Body:         body,
 			TargetBranch: targetBranch,
 			OwnerDid:     user.Did,
 			RepoAt:       f.RepoAt(),
 			Rkey:         rkey,
-			Submissions: []*db.PullSubmission{
+			Submissions: []*models.PullSubmission{
 				&initialSubmission,
 			},
 			PullSource: pullSource,

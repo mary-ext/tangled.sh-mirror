@@ -51,12 +51,12 @@ func (m *mergedNotifier) DeleteFollow(ctx context.Context, follow *models.Follow
 	}
 }
 
-func (m *mergedNotifier) NewPull(ctx context.Context, pull *db.Pull) {
+func (m *mergedNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 	for _, notifier := range m.notifiers {
 		notifier.NewPull(ctx, pull)
 	}
 }
-func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *db.PullComment) {
+func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.PullComment) {
 	for _, notifier := range m.notifiers {
 		notifier.NewPullComment(ctx, comment)
 	}

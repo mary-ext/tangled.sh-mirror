@@ -454,7 +454,7 @@ func (s *State) getProfileFeed(ctx context.Context, id *identity.Identity) (*fee
 	return &feed, nil
 }
 
-func (s *State) addPullRequestItems(ctx context.Context, feed *feeds.Feed, pulls []*db.Pull, author *feeds.Author) error {
+func (s *State) addPullRequestItems(ctx context.Context, feed *feeds.Feed, pulls []*models.Pull, author *feeds.Author) error {
 	for _, pull := range pulls {
 		owner, err := s.idResolver.ResolveIdent(ctx, pull.Repo.Did)
 		if err != nil {
@@ -490,7 +490,7 @@ func (s *State) addRepoItems(ctx context.Context, feed *feeds.Feed, repos []db.R
 	return nil
 }
 
-func (s *State) createPullRequestItem(pull *db.Pull, owner *identity.Identity, author *feeds.Author) *feeds.Item {
+func (s *State) createPullRequestItem(pull *models.Pull, owner *identity.Identity, author *feeds.Author) *feeds.Item {
 	return &feeds.Item{
 		Title:   fmt.Sprintf("%s created pull request '%s' in @%s/%s", author.Name, pull.Title, owner.Handle, pull.Repo.Name),
 		Link:    &feeds.Link{Href: fmt.Sprintf("%s/@%s/%s/pulls/%d", s.config.Core.AppviewHost, owner.Handle, pull.Repo.Name, pull.PullId), Type: "text/html", Rel: "alternate"},
