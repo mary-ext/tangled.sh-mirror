@@ -14,16 +14,16 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/middleware"
-	"tangled.sh/tangled.sh/core/appview/models"
-	"tangled.sh/tangled.sh/core/appview/oauth"
-	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/validator"
-	"tangled.sh/tangled.sh/core/appview/xrpcclient"
-	"tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/tid"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/middleware"
+	"tangled.org/core/appview/models"
+	"tangled.org/core/appview/oauth"
+	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/validator"
+	"tangled.org/core/appview/xrpcclient"
+	"tangled.org/core/log"
+	"tangled.org/core/tid"
 )
 
 type Labels struct {

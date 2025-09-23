@@ -8,8 +8,8 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"golang.org/x/exp/slices"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/models"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/models"
 )
 
 var (
