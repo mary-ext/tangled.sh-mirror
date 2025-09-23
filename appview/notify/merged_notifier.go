@@ -3,7 +3,6 @@ package notify
 import (
 	"context"
 
-	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 )
 
@@ -68,13 +67,13 @@ func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *models.Prof
 	}
 }
 
-func (m *mergedNotifier) NewString(ctx context.Context, string *db.String) {
+func (m *mergedNotifier) NewString(ctx context.Context, string *models.String) {
 	for _, notifier := range m.notifiers {
 		notifier.NewString(ctx, string)
 	}
 }
 
-func (m *mergedNotifier) EditString(ctx context.Context, string *db.String) {
+func (m *mergedNotifier) EditString(ctx context.Context, string *models.String) {
 	for _, notifier := range m.notifiers {
 		notifier.EditString(ctx, string)
 	}

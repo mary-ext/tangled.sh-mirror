@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/posthog/posthog-go"
-	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 )
@@ -142,7 +141,7 @@ func (n *posthogNotifier) DeleteString(ctx context.Context, did, rkey string) {
 	}
 }
 
-func (n *posthogNotifier) EditString(ctx context.Context, string *db.String) {
+func (n *posthogNotifier) EditString(ctx context.Context, string *models.String) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: string.Did.String(),
 		Event:      "edit_string",
@@ -153,7 +152,7 @@ func (n *posthogNotifier) EditString(ctx context.Context, string *db.String) {
 	}
 }
 
-func (n *posthogNotifier) CreateString(ctx context.Context, string *db.String) {
+func (n *posthogNotifier) CreateString(ctx context.Context, string models.String) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: string.Did.String(),
 		Event:      "create_string",

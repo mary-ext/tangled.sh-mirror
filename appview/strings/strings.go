@@ -11,6 +11,7 @@ import (
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/middleware"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
@@ -235,7 +236,7 @@ func (s *Strings) edit(w http.ResponseWriter, r *http.Request) {
 		description := r.FormValue("description")
 
 		// construct new string from form values
-		entry := db.String{
+		entry := models.String{
 			Did:         first.Did,
 			Rkey:        first.Rkey,
 			Filename:    filename,
@@ -318,7 +319,7 @@ func (s *Strings) create(w http.ResponseWriter, r *http.Request) {
 
 		description := r.FormValue("description")
 
-		string := db.String{
+		string := models.String{
 			Did:         syntax.DID(user.Did),
 			Rkey:        tid.TID(),
 			Filename:    filename,

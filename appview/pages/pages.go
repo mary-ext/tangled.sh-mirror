@@ -477,7 +477,7 @@ func (p *Pages) ProfileStarred(w io.Writer, params ProfileStarredParams) error {
 
 type ProfileStringsParams struct {
 	LoggedInUser *oauth.User
-	Strings      []db.String
+	Strings      []models.String
 	Card         *ProfileCard
 	Active       string
 }
@@ -1308,7 +1308,7 @@ type PutStringParams struct {
 	Action       string
 
 	// this is supplied in the case of editing an existing string
-	String db.String
+	String models.String
 }
 
 func (p *Pages) PutString(w io.Writer, params PutStringParams) error {
@@ -1318,7 +1318,7 @@ func (p *Pages) PutString(w io.Writer, params PutStringParams) error {
 type StringsDashboardParams struct {
 	LoggedInUser *oauth.User
 	Card         ProfileCard
-	Strings      []db.String
+	Strings      []models.String
 }
 
 func (p *Pages) StringsDashboard(w io.Writer, params StringsDashboardParams) error {
@@ -1327,7 +1327,7 @@ func (p *Pages) StringsDashboard(w io.Writer, params StringsDashboardParams) err
 
 type StringTimelineParams struct {
 	LoggedInUser *oauth.User
-	Strings      []db.String
+	Strings      []models.String
 }
 
 func (p *Pages) StringsTimeline(w io.Writer, params StringTimelineParams) error {
@@ -1339,8 +1339,8 @@ type SingleStringParams struct {
 	ShowRendered     bool
 	RenderToggle     bool
 	RenderedContents template.HTML
-	String           db.String
-	Stats            db.StringStats
+	String           models.String
+	Stats            models.StringStats
 	Owner            identity.Identity
 }
 

@@ -594,9 +594,9 @@ func (i *Ingester) ingestString(e *jmodels.Event) error {
 			return err
 		}
 
-		string := db.StringFromRecord(did, rkey, record)
+		string := models.StringFromRecord(did, rkey, record)
 
-		if err = string.Validate(); err != nil {
+		if err = i.Validator.ValidateString(&string); err != nil {
 			l.Error("invalid record", "err", err)
 			return err
 		}

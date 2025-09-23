@@ -3,7 +3,6 @@ package notify
 import (
 	"context"
 
-	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 )
 
@@ -23,8 +22,8 @@ type Notifier interface {
 
 	UpdateProfile(ctx context.Context, profile *models.Profile)
 
-	NewString(ctx context.Context, s *db.String)
-	EditString(ctx context.Context, s *db.String)
+	NewString(ctx context.Context, s *models.String)
+	EditString(ctx context.Context, s *models.String)
 	DeleteString(ctx context.Context, did, rkey string)
 }
 
@@ -48,6 +47,6 @@ func (m *BaseNotifier) NewPullComment(ctx context.Context, models *models.PullCo
 
 func (m *BaseNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {}
 
-func (m *BaseNotifier) NewString(ctx context.Context, s *db.String)        {}
-func (m *BaseNotifier) EditString(ctx context.Context, s *db.String)       {}
+func (m *BaseNotifier) NewString(ctx context.Context, s *models.String)    {}
+func (m *BaseNotifier) EditString(ctx context.Context, s *models.String)   {}
 func (m *BaseNotifier) DeleteString(ctx context.Context, did, rkey string) {}
