@@ -412,7 +412,7 @@ type ProfileCard struct {
 	UserDid      string
 	UserHandle   string
 	FollowStatus models.FollowStatus
-	Punchcard    *db.Punchcard
+	Punchcard    *models.Punchcard
 	Profile      *models.Profile
 	Stats        ProfileStats
 	Active       string

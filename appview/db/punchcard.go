@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"tangled.org/core/appview/models"
 )
 
-type Punch struct {
-	Did   string
-	Date  time.Time
-	Count int
-}
-
 // this adds to the existing count
-func AddPunch(e Execer, punch Punch) error {
+func AddPunch(e Execer, punch models.Punch) error {
 	_, err := e.Exec(`
 		insert into punchcard (did, date, count)
 		values (?, ?, ?)
@@ -24,18 +20,13 @@ func AddPunch(e Execer, punch Punch) error {
 	return err
 }
 
-type Punchcard struct {
-	Total   int
-	Punches []Punch
-}
-
-func MakePunchcard(e Execer, filters ...filter) (*Punchcard, error) {
-	punchcard := &Punchcard{}
+func MakePunchcard(e Execer, filters ...filter) (*models.Punchcard, error) {
+	punchcard := &models.Punchcard{}
 	now := time.Now()
 	startOfYear := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
 	endOfYear := time.Date(now.Year(), 12, 31, 0, 0, 0, 0, time.UTC)
 	for d := startOfYear; d.Before(endOfYear) || d.Equal(endOfYear); d = d.AddDate(0, 0, 1) {
-		punchcard.Punches = append(punchcard.Punches, Punch{
+		punchcard.Punches = append(punchcard.Punches, models.Punch{
 			Date:  d,
 			Count: 0,
 		})
@@ -68,7 +59,7 @@ func MakePunchcard(e Execer, filters ...filter) (*Punchcard, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var punch Punch
+		var punch models.Punch
 		var date string
 		var count sql.NullInt64
 		if err := rows.Scan(&date, &count); err != nil {

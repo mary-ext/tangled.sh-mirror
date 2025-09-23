@@ -125,7 +125,7 @@ func populatePunchcard(d *db.DB, record tangled.GitRefUpdate) error {
 		}
 	}
 
-	punch := db.Punch{
+	punch := models.Punch{
 		Did:   record.CommitterDid,
 		Date:  time.Now(),
 		Count: count,
