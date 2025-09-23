@@ -217,20 +217,11 @@ func (s *State) starredPage(w http.ResponseWriter, r *http.Request) {
 		s.pages.Error500(w)
 		return
 	}
-	var repoAts []string
+	var repos []models.Repo
 	for _, s := range stars {
-		repoAts = append(repoAts, string(s.RepoAt))
-	}
-
-	repos, err := db.GetRepos(
-		s.db,
-		0,
-		db.FilterIn("at_uri", repoAts),
-	)
-	if err != nil {
-		l.Error("failed to get repos", "err", err)
-		s.pages.Error500(w)
-		return
+		if s.Repo != nil {
+			repos = append(repos, *s.Repo)
+		}
 	}
 
 	err = s.pages.ProfileStarred(w, pages.ProfileStarredParams{
