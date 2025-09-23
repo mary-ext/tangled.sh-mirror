@@ -4,19 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/appview/models"
 )
 
-type RepoLanguage struct {
-	Id           int64
-	RepoAt       syntax.ATURI
-	Ref          string
-	IsDefaultRef bool
-	Language     string
-	Bytes        int64
-}
-
-func GetRepoLanguages(e Execer, filters ...filter) ([]RepoLanguage, error) {
+func GetRepoLanguages(e Execer, filters ...filter) ([]models.RepoLanguage, error) {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {
@@ -39,9 +30,9 @@ func GetRepoLanguages(e Execer, filters ...filter) ([]RepoLanguage, error) {
 		return nil, fmt.Errorf("failed to execute query: %w ", err)
 	}
 
-	var langs []RepoLanguage
+	var langs []models.RepoLanguage
 	for rows.Next() {
-		var rl RepoLanguage
+		var rl models.RepoLanguage
 		var isDefaultRef int
 
 		err := rows.Scan(
@@ -69,7 +60,7 @@ func GetRepoLanguages(e Execer, filters ...filter) ([]RepoLanguage, error) {
 	return langs, nil
 }
 
-func InsertRepoLanguages(e Execer, langs []RepoLanguage) error {
+func InsertRepoLanguages(e Execer, langs []models.RepoLanguage) error {
 	stmt, err := e.Prepare(
 		"insert or replace into repo_languages (repo_at, ref, is_default_ref, language, bytes) values (?, ?, ?, ?, ?)",
 	)

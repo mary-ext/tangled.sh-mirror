@@ -20,6 +20,7 @@ import (
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/commitverify"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/appview/reporesolver"
@@ -191,7 +192,7 @@ func (rp *Repo) getLanguageInfo(
 		}
 
 		for _, lang := range ls.Languages {
-			langs = append(langs, db.RepoLanguage{
+			langs = append(langs, models.RepoLanguage{
 				RepoAt:       f.RepoAt(),
 				Ref:          currentRef,
 				IsDefaultRef: isDefaultRef,

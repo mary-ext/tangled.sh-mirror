@@ -12,6 +12,7 @@ import (
 	"tangled.org/core/appview/cache"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	ec "tangled.org/core/eventconsumer"
 	"tangled.org/core/eventconsumer/cursor"
 	"tangled.org/core/log"
@@ -156,13 +157,13 @@ func updateRepoLanguages(d *db.DB, record tangled.GitRefUpdate) error {
 		return fmt.Errorf("%s is not a valid reference name", ref)
 	}
 
-	var langs []db.RepoLanguage
+	var langs []models.RepoLanguage
 	for _, l := range record.Meta.LangBreakdown.Inputs {
 		if l == nil {
 			continue
 		}
 
-		langs = append(langs, db.RepoLanguage{
+		langs = append(langs, models.RepoLanguage{
 			RepoAt:       repo.RepoAt(),
 			Ref:          ref.Short(),
 			IsDefaultRef: record.Meta.IsDefaultRef,
