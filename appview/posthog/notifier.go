@@ -35,7 +35,7 @@ func (n *posthogNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 	}
 }
 
-func (n *posthogNotifier) NewStar(ctx context.Context, star *db.Star) {
+func (n *posthogNotifier) NewStar(ctx context.Context, star *models.Star) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: star.StarredByDid,
 		Event:      "star",
@@ -46,7 +46,7 @@ func (n *posthogNotifier) NewStar(ctx context.Context, star *db.Star) {
 	}
 }
 
-func (n *posthogNotifier) DeleteStar(ctx context.Context, star *db.Star) {
+func (n *posthogNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: star.StarredByDid,
 		Event:      "unstar",

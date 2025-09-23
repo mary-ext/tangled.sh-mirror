@@ -23,12 +23,12 @@ func (m *mergedNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 	}
 }
 
-func (m *mergedNotifier) NewStar(ctx context.Context, star *db.Star) {
+func (m *mergedNotifier) NewStar(ctx context.Context, star *models.Star) {
 	for _, notifier := range m.notifiers {
 		notifier.NewStar(ctx, star)
 	}
 }
-func (m *mergedNotifier) DeleteStar(ctx context.Context, star *db.Star) {
+func (m *mergedNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 	for _, notifier := range m.notifiers {
 		notifier.DeleteStar(ctx, star)
 	}

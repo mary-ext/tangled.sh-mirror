@@ -116,7 +116,7 @@ func (i *Ingester) ingestStar(e *jmodels.Event) error {
 			l.Error("invalid record", "err", err)
 			return err
 		}
-		err = db.AddStar(i.Db, &db.Star{
+		err = db.AddStar(i.Db, &models.Star{
 			StarredByDid: did,
 			RepoAt:       subjectUri,
 			Rkey:         e.Commit.RKey,

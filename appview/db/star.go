@@ -12,31 +12,7 @@ import (
 	"tangled.org/core/appview/models"
 )
 
-type Star struct {
-	StarredByDid string
-	RepoAt       syntax.ATURI
-	Created      time.Time
-	Rkey         string
-
-	// optionally, populate this when querying for reverse mappings
-	Repo *models.Repo
-}
-
-func (star *Star) ResolveRepo(e Execer) error {
-	if star.Repo != nil {
-		return nil
-	}
-
-	repo, err := GetRepoByAtUri(e, star.RepoAt.String())
-	if err != nil {
-		return err
-	}
-
-	star.Repo = repo
-	return nil
-}
-
-func AddStar(e Execer, star *Star) error {
+func AddStar(e Execer, star *models.Star) error {
 	query := `insert or ignore into stars (starred_by_did, repo_at, rkey) values (?, ?, ?)`
 	_, err := e.Exec(
 		query,
@@ -48,14 +24,14 @@ func AddStar(e Execer, star *Star) error {
 }
 
 // Get a star record
-func GetStar(e Execer, starredByDid string, repoAt syntax.ATURI) (*Star, error) {
+func GetStar(e Execer, starredByDid string, repoAt syntax.ATURI) (*models.Star, error) {
 	query := `
 	select starred_by_did, repo_at, created, rkey
 	from stars
 	where starred_by_did = ? and repo_at = ?`
 	row := e.QueryRow(query, starredByDid, repoAt)
 
-	var star Star
+	var star models.Star
 	var created string
 	err := row.Scan(&star.StarredByDid, &star.RepoAt, &created, &star.Rkey)
 	if err != nil {
@@ -153,7 +129,7 @@ func GetStarStatus(e Execer, userDid string, repoAt syntax.ATURI) bool {
 func GetStarStatuses(e Execer, userDid string, repoAts []syntax.ATURI) (map[string]bool, error) {
 	return getStarStatuses(e, userDid, repoAts)
 }
-func GetStars(e Execer, limit int, filters ...filter) ([]Star, error) {
+func GetStars(e Execer, limit int, filters ...filter) ([]models.Star, error) {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {
@@ -185,9 +161,9 @@ func GetStars(e Execer, limit int, filters ...filter) ([]Star, error) {
 		return nil, err
 	}
 
-	starMap := make(map[string][]Star)
+	starMap := make(map[string][]models.Star)
 	for rows.Next() {
-		var star Star
+		var star models.Star
 		var created string
 		err := rows.Scan(&star.StarredByDid, &star.RepoAt, &created, &star.Rkey)
 		if err != nil {
@@ -228,7 +204,7 @@ func GetStars(e Execer, limit int, filters ...filter) ([]Star, error) {
 		}
 	}
 
-	var stars []Star
+	var stars []models.Star
 	for _, s := range starMap {
 		stars = append(stars, s...)
 	}
@@ -260,8 +236,8 @@ func CountStars(e Execer, filters ...filter) (int64, error) {
 	return count, nil
 }
 
-func GetAllStars(e Execer, limit int) ([]Star, error) {
-	var stars []Star
+func GetAllStars(e Execer, limit int) ([]models.Star, error) {
+	var stars []models.Star
 
 	rows, err := e.Query(`
 		select
@@ -284,7 +260,7 @@ func GetAllStars(e Execer, limit int) ([]Star, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var star Star
+		var star models.Star
 		var repo models.Repo
 		var starCreatedAt, repoCreatedAt string
 

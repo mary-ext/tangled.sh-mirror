@@ -11,7 +11,7 @@ import (
 type TimelineEvent struct {
 	*models.Repo
 	*models.Follow
-	*Star
+	*models.Star
 
 	EventAt time.Time
 
