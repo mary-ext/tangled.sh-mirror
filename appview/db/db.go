@@ -932,6 +932,15 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	// knots may report the combined patch for a comparison, we can store that on the appview side
+	// (but not on the pds record), because calculating the combined patch requires a git index
+	runMigration(conn, "add-combined-column-submissions", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table pull_submissions add column combined text;
+		`)
+		return err
+	})
+
 	return &DB{db}, nil
 }
 

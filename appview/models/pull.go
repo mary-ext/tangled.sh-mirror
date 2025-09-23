@@ -134,6 +134,7 @@ type PullSubmission struct {
 	// content
 	RoundNumber int
 	Patch       string
+	Combined    string
 	Comments    []PullComment
 	SourceRev   string // include the rev that was used to create this submission: only for branch/fork PRs
 
@@ -219,6 +220,14 @@ func (s PullSubmission) AsFormatPatch() []types.FormatPatch {
 	}
 
 	return patches
+}
+
+func (s PullSubmission) CombinedPatch() string {
+	if s.Combined == "" {
+		return s.Patch
+	}
+
+	return s.Combined
 }
 
 type Stack []*Pull
