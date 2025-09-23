@@ -19,7 +19,6 @@ import (
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/commitverify"
 	"tangled.org/core/appview/config"
-	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages/markup"
@@ -283,7 +282,7 @@ func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
 
 type TimelineParams struct {
 	LoggedInUser *oauth.User
-	Timeline     []db.TimelineEvent
+	Timeline     []models.TimelineEvent
 	Repos        []models.Repo
 }
 

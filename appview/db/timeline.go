@@ -2,36 +2,15 @@ package db
 
 import (
 	"sort"
-	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 )
 
-type TimelineEvent struct {
-	*models.Repo
-	*models.Follow
-	*models.Star
-
-	EventAt time.Time
-
-	// optional: populate only if Repo is a fork
-	Source *models.Repo
-
-	// optional: populate only if event is Follow
-	*models.Profile
-	*models.FollowStats
-	*models.FollowStatus
-
-	// optional: populate only if event is Repo
-	IsStarred bool
-	StarCount int64
-}
-
 // TODO: this gathers heterogenous events from different sources and aggregates
 // them in code; if we did this entirely in sql, we could order and limit and paginate easily
-func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
-	var events []TimelineEvent
+func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
+	var events []models.TimelineEvent
 
 	repos, err := getTimelineRepos(e, limit, loggedInUserDid)
 	if err != nil {
@@ -91,7 +70,7 @@ func getRepoStarInfo(repo *models.Repo, starStatuses map[string]bool) (bool, int
 	return isStarred, starCount
 }
 
-func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
+func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
 	repos, err := GetRepos(e, limit)
 	if err != nil {
 		return nil, err
@@ -123,7 +102,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 		return nil, err
 	}
 
-	var events []TimelineEvent
+	var events []models.TimelineEvent
 	for _, r := range repos {
 		var source *models.Repo
 		if r.Source != "" {
@@ -134,7 +113,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 
 		isStarred, starCount := getRepoStarInfo(&r, starStatuses)
 
-		events = append(events, TimelineEvent{
+		events = append(events, models.TimelineEvent{
 			Repo:      &r,
 			EventAt:   r.Created,
 			Source:    source,
@@ -146,7 +125,7 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 	return events, nil
 }
 
-func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
+func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
 	stars, err := GetStars(e, limit)
 	if err != nil {
 		return nil, err
@@ -172,11 +151,11 @@ func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 		return nil, err
 	}
 
-	var events []TimelineEvent
+	var events []models.TimelineEvent
 	for _, s := range stars {
 		isStarred, starCount := getRepoStarInfo(s.Repo, starStatuses)
 
-		events = append(events, TimelineEvent{
+		events = append(events, models.TimelineEvent{
 			Star:      &s,
 			EventAt:   s.Created,
 			IsStarred: isStarred,
@@ -187,7 +166,7 @@ func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]TimelineEv
 	return events, nil
 }
 
-func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]TimelineEvent, error) {
+func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
 	follows, err := GetFollows(e, limit)
 	if err != nil {
 		return nil, err
@@ -220,7 +199,7 @@ func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]Timeline
 		}
 	}
 
-	var events []TimelineEvent
+	var events []models.TimelineEvent
 	for _, f := range follows {
 		profile, _ := profiles[f.SubjectDid]
 		followStatMap, _ := followStatMap[f.SubjectDid]
@@ -230,7 +209,7 @@ func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]Timeline
 			followStatus = followStatuses[f.SubjectDid]
 		}
 
-		events = append(events, TimelineEvent{
+		events = append(events, models.TimelineEvent{
 			Follow:       &f,
 			Profile:      profile,
 			FollowStats:  &followStatMap,
