@@ -387,7 +387,7 @@ func (i *Ingester) ingestSpindleMember(ctx context.Context, e *jmodels.Event) er
 			return fmt.Errorf("failed to index profile record, invalid db cast")
 		}
 
-		err = db.AddSpindleMember(ddb, db.SpindleMember{
+		err = db.AddSpindleMember(ddb, models.SpindleMember{
 			Did:      syntax.DID(did),
 			Rkey:     e.Commit.RKey,
 			Instance: record.Instance,
@@ -480,7 +480,7 @@ func (i *Ingester) ingestSpindle(ctx context.Context, e *jmodels.Event) error {
 			return fmt.Errorf("failed to index profile record, invalid db cast")
 		}
 
-		err := db.AddSpindle(ddb, db.Spindle{
+		err := db.AddSpindle(ddb, models.Spindle{
 			Owner:    syntax.DID(did),
 			Instance: instance,
 		})

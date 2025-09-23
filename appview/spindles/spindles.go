@@ -164,7 +164,7 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 		s.Enforcer.E.LoadPolicy()
 	}()
 
-	err = db.AddSpindle(tx, db.Spindle{
+	err = db.AddSpindle(tx, models.Spindle{
 		Owner:    syntax.DID(user.Did),
 		Instance: instance,
 	})
@@ -525,7 +525,7 @@ func (s *Spindles) addMember(w http.ResponseWriter, r *http.Request) {
 	rkey := tid.TID()
 
 	// add member to db
-	if err = db.AddSpindleMember(tx, db.SpindleMember{
+	if err = db.AddSpindleMember(tx, models.SpindleMember{
 		Did:      syntax.DID(user.Did),
 		Rkey:     rkey,
 		Instance: instance,

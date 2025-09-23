@@ -325,7 +325,7 @@ func (p *Pages) UserEmailsSettings(w io.Writer, params UserEmailsSettingsParams)
 
 type UpgradeBannerParams struct {
 	Registrations []models.Registration
-	Spindles      []db.Spindle
+	Spindles      []models.Spindle
 }
 
 func (p *Pages) UpgradeBanner(w io.Writer, params UpgradeBannerParams) error {
@@ -363,7 +363,7 @@ func (p *Pages) KnotListing(w io.Writer, params KnotListingParams) error {
 
 type SpindlesParams struct {
 	LoggedInUser *oauth.User
-	Spindles     []db.Spindle
+	Spindles     []models.Spindle
 }
 
 func (p *Pages) Spindles(w io.Writer, params SpindlesParams) error {
@@ -371,7 +371,7 @@ func (p *Pages) Spindles(w io.Writer, params SpindlesParams) error {
 }
 
 type SpindleListingParams struct {
-	db.Spindle
+	models.Spindle
 }
 
 func (p *Pages) SpindleListing(w io.Writer, params SpindleListingParams) error {
@@ -380,7 +380,7 @@ func (p *Pages) SpindleListing(w io.Writer, params SpindleListingParams) error {
 
 type SpindleDashboardParams struct {
 	LoggedInUser *oauth.User
-	Spindle      db.Spindle
+	Spindle      models.Spindle
 	Members      []string
 	Repos        map[string][]models.Repo
 }

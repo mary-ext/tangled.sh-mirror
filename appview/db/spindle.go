@@ -6,29 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/appview/models"
 )
 
-type Spindle struct {
-	Id           int
-	Owner        syntax.DID
-	Instance     string
-	Verified     *time.Time
-	Created      time.Time
-	NeedsUpgrade bool
-}
-
-type SpindleMember struct {
-	Id       int
-	Did      syntax.DID // owner of the record
-	Rkey     string     // rkey of the record
-	Instance string
-	Subject  syntax.DID // the member being added
-	Created  time.Time
-}
-
-func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
-	var spindles []Spindle
+func GetSpindles(e Execer, filters ...filter) ([]models.Spindle, error) {
+	var spindles []models.Spindle
 
 	var conditions []string
 	var args []any
@@ -59,7 +41,7 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var spindle Spindle
+		var spindle models.Spindle
 		var createdAt string
 		var verified sql.NullString
 		var needsUpgrade int
@@ -100,7 +82,7 @@ func GetSpindles(e Execer, filters ...filter) ([]Spindle, error) {
 }
 
 // if there is an existing spindle with the same instance, this returns an error
-func AddSpindle(e Execer, spindle Spindle) error {
+func AddSpindle(e Execer, spindle models.Spindle) error {
 	_, err := e.Exec(
 		`insert into spindles (owner, instance) values (?, ?)`,
 		spindle.Owner,
@@ -151,7 +133,7 @@ func DeleteSpindle(e Execer, filters ...filter) error {
 	return err
 }
 
-func AddSpindleMember(e Execer, member SpindleMember) error {
+func AddSpindleMember(e Execer, member models.SpindleMember) error {
 	_, err := e.Exec(
 		`insert or ignore into spindle_members (did, rkey, instance, subject) values (?, ?, ?, ?)`,
 		member.Did,
@@ -181,8 +163,8 @@ func RemoveSpindleMember(e Execer, filters ...filter) error {
 	return err
 }
 
-func GetSpindleMembers(e Execer, filters ...filter) ([]SpindleMember, error) {
-	var members []SpindleMember
+func GetSpindleMembers(e Execer, filters ...filter) ([]models.SpindleMember, error) {
+	var members []models.SpindleMember
 
 	var conditions []string
 	var args []any
@@ -213,7 +195,7 @@ func GetSpindleMembers(e Execer, filters ...filter) ([]SpindleMember, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var member SpindleMember
+		var member models.SpindleMember
 		var createdAt string
 
 		if err := rows.Scan(
