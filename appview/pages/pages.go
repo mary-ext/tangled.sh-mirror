@@ -83,10 +83,6 @@ func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
 	return p
 }
 
-func (p *Pages) pathToName(s string) string {
-	return strings.TrimSuffix(strings.TrimPrefix(s, "templates/"), ".html")
-}
-
 // reverse of pathToName
 func (p *Pages) nameToPath(s string) string {
 	return "templates/" + s + ".html"

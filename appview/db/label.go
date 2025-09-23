@@ -349,5 +349,5 @@ func NewLabelApplicationCtx(e Execer, filters ...filter) (*models.LabelApplicati
 		defs[l.AtUri().String()] = &l
 	}
 
-	return &models.LabelApplicationCtx{defs}, nil
+	return &models.LabelApplicationCtx{Defs: defs}, nil
 }
