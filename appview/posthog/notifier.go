@@ -121,7 +121,7 @@ func (n *posthogNotifier) DeleteFollow(ctx context.Context, follow *models.Follo
 	}
 }
 
-func (n *posthogNotifier) UpdateProfile(ctx context.Context, profile *db.Profile) {
+func (n *posthogNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: profile.Did,
 		Event:      "edit_profile",

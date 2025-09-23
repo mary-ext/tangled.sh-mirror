@@ -413,7 +413,7 @@ type ProfileCard struct {
 	UserHandle   string
 	FollowStatus models.FollowStatus
 	Punchcard    *db.Punchcard
-	Profile      *db.Profile
+	Profile      *models.Profile
 	Stats        ProfileStats
 	Active       string
 }
@@ -441,7 +441,7 @@ type ProfileOverviewParams struct {
 	LoggedInUser       *oauth.User
 	Repos              []models.Repo
 	CollaboratingRepos []models.Repo
-	ProfileTimeline    *db.ProfileTimeline
+	ProfileTimeline    *models.ProfileTimeline
 	Card               *ProfileCard
 	Active             string
 }
@@ -492,7 +492,7 @@ type FollowCard struct {
 	FollowStatus   models.FollowStatus
 	FollowersCount int64
 	FollowingCount int64
-	Profile        *db.Profile
+	Profile        *models.Profile
 }
 
 type ProfileFollowersParams struct {
@@ -530,7 +530,7 @@ func (p *Pages) FollowFragment(w io.Writer, params FollowFragmentParams) error {
 
 type EditBioParams struct {
 	LoggedInUser *oauth.User
-	Profile      *db.Profile
+	Profile      *models.Profile
 }
 
 func (p *Pages) EditBioFragment(w io.Writer, params EditBioParams) error {
@@ -539,7 +539,7 @@ func (p *Pages) EditBioFragment(w io.Writer, params EditBioParams) error {
 
 type EditPinsParams struct {
 	LoggedInUser *oauth.User
-	Profile      *db.Profile
+	Profile      *models.Profile
 	AllRepos     []PinnedRepo
 }
 

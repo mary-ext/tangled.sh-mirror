@@ -19,7 +19,7 @@ type TimelineEvent struct {
 	Source *models.Repo
 
 	// optional: populate only if event is Follow
-	*Profile
+	*models.Profile
 	*models.FollowStats
 	*models.FollowStatus
 

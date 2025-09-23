@@ -299,10 +299,10 @@ func (i *Ingester) ingestProfile(e *jmodels.Event) error {
 			}
 		}
 
-		var stats [2]db.VanityStat
+		var stats [2]models.VanityStat
 		for i, s := range record.Stats {
 			if i < 2 {
-				stats[i].Kind = db.VanityStatKind(s)
+				stats[i].Kind = models.VanityStatKind(s)
 			}
 		}
 
@@ -313,7 +313,7 @@ func (i *Ingester) ingestProfile(e *jmodels.Event) error {
 			}
 		}
 
-		profile := db.Profile{
+		profile := models.Profile{
 			Did:            did,
 			Description:    description,
 			IncludeBluesky: includeBluesky,

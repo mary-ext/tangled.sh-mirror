@@ -10,105 +10,14 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/models"
 )
 
-type RepoEvent struct {
-	Repo   *models.Repo
-	Source *models.Repo
-}
-
-type ProfileTimeline struct {
-	ByMonth []ByMonth
-}
-
-func (p *ProfileTimeline) IsEmpty() bool {
-	if p == nil {
-		return true
-	}
-
-	for _, m := range p.ByMonth {
-		if !m.IsEmpty() {
-			return false
-		}
-	}
-
-	return true
-}
-
-type ByMonth struct {
-	RepoEvents  []RepoEvent
-	IssueEvents IssueEvents
-	PullEvents  PullEvents
-}
-
-func (b ByMonth) IsEmpty() bool {
-	return len(b.RepoEvents) == 0 &&
-		len(b.IssueEvents.Items) == 0 &&
-		len(b.PullEvents.Items) == 0
-}
-
-type IssueEvents struct {
-	Items []*models.Issue
-}
-
-type IssueEventStats struct {
-	Open   int
-	Closed int
-}
-
-func (i IssueEvents) Stats() IssueEventStats {
-	var open, closed int
-	for _, issue := range i.Items {
-		if issue.Open {
-			open += 1
-		} else {
-			closed += 1
-		}
-	}
-
-	return IssueEventStats{
-		Open:   open,
-		Closed: closed,
-	}
-}
-
-type PullEvents struct {
-	Items []*models.Pull
-}
-
-func (p PullEvents) Stats() PullEventStats {
-	var open, merged, closed int
-	for _, pull := range p.Items {
-		switch pull.State {
-		case models.PullOpen:
-			open += 1
-		case models.PullMerged:
-			merged += 1
-		case models.PullClosed:
-			closed += 1
-		}
-	}
-
-	return PullEventStats{
-		Open:   open,
-		Merged: merged,
-		Closed: closed,
-	}
-}
-
-type PullEventStats struct {
-	Closed int
-	Open   int
-	Merged int
-}
-
 const TimeframeMonths = 7
 
-func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
-	timeline := ProfileTimeline{
-		ByMonth: make([]ByMonth, TimeframeMonths),
+func MakeProfileTimeline(e Execer, forDid string) (*models.ProfileTimeline, error) {
+	timeline := models.ProfileTimeline{
+		ByMonth: make([]models.ByMonth, TimeframeMonths),
 	}
 	currentMonth := time.Now().Month()
 	timeframe := fmt.Sprintf("-%d months", TimeframeMonths)
@@ -181,7 +90,7 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 		idx := currentMonth - repoMonth
 
 		items := &timeline.ByMonth[idx].RepoEvents
-		*items = append(*items, RepoEvent{
+		*items = append(*items, models.RepoEvent{
 			Repo:   &repo,
 			Source: sourceRepo,
 		})
@@ -190,86 +99,7 @@ func MakeProfileTimeline(e Execer, forDid string) (*ProfileTimeline, error) {
 	return &timeline, nil
 }
 
-type Profile struct {
-	// ids
-	ID  int
-	Did string
-
-	// data
-	Description    string
-	IncludeBluesky bool
-	Location       string
-	Links          [5]string
-	Stats          [2]VanityStat
-	PinnedRepos    [6]syntax.ATURI
-}
-
-func (p Profile) IsLinksEmpty() bool {
-	for _, l := range p.Links {
-		if l != "" {
-			return false
-		}
-	}
-	return true
-}
-
-func (p Profile) IsStatsEmpty() bool {
-	for _, s := range p.Stats {
-		if s.Kind != "" {
-			return false
-		}
-	}
-	return true
-}
-
-func (p Profile) IsPinnedReposEmpty() bool {
-	for _, r := range p.PinnedRepos {
-		if r != "" {
-			return false
-		}
-	}
-	return true
-}
-
-type VanityStatKind string
-
-const (
-	VanityStatMergedPRCount    VanityStatKind = "merged-pull-request-count"
-	VanityStatClosedPRCount    VanityStatKind = "closed-pull-request-count"
-	VanityStatOpenPRCount      VanityStatKind = "open-pull-request-count"
-	VanityStatOpenIssueCount   VanityStatKind = "open-issue-count"
-	VanityStatClosedIssueCount VanityStatKind = "closed-issue-count"
-	VanityStatRepositoryCount  VanityStatKind = "repository-count"
-)
-
-func (v VanityStatKind) String() string {
-	switch v {
-	case VanityStatMergedPRCount:
-		return "Merged PRs"
-	case VanityStatClosedPRCount:
-		return "Closed PRs"
-	case VanityStatOpenPRCount:
-		return "Open PRs"
-	case VanityStatOpenIssueCount:
-		return "Open Issues"
-	case VanityStatClosedIssueCount:
-		return "Closed Issues"
-	case VanityStatRepositoryCount:
-		return "Repositories"
-	}
-	return ""
-}
-
-type VanityStat struct {
-	Kind  VanityStatKind
-	Value uint64
-}
-
-func (p *Profile) ProfileAt() syntax.ATURI {
-	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", p.Did, tangled.ActorProfileNSID, "self"))
-}
-
-func UpsertProfile(tx *sql.Tx, profile *Profile) error {
+func UpsertProfile(tx *sql.Tx, profile *models.Profile) error {
 	defer tx.Rollback()
 
 	// update links
@@ -367,7 +197,7 @@ func UpsertProfile(tx *sql.Tx, profile *Profile) error {
 	return tx.Commit()
 }
 
-func GetProfiles(e Execer, filters ...filter) (map[string]*Profile, error) {
+func GetProfiles(e Execer, filters ...filter) (map[string]*models.Profile, error) {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {
@@ -397,9 +227,9 @@ func GetProfiles(e Execer, filters ...filter) (map[string]*Profile, error) {
 		return nil, err
 	}
 
-	profileMap := make(map[string]*Profile)
+	profileMap := make(map[string]*models.Profile)
 	for rows.Next() {
-		var profile Profile
+		var profile models.Profile
 		var includeBluesky int
 
 		err = rows.Scan(&profile.ID, &profile.Did, &profile.Description, &includeBluesky, &profile.Location)
@@ -470,8 +300,8 @@ func GetProfiles(e Execer, filters ...filter) (map[string]*Profile, error) {
 	return profileMap, nil
 }
 
-func GetProfile(e Execer, did string) (*Profile, error) {
-	var profile Profile
+func GetProfile(e Execer, did string) (*models.Profile, error) {
+	var profile models.Profile
 	profile.Did = did
 
 	includeBluesky := 0
@@ -480,7 +310,7 @@ func GetProfile(e Execer, did string) (*Profile, error) {
 		did,
 	).Scan(&profile.Description, &includeBluesky, &profile.Location)
 	if err == sql.ErrNoRows {
-		profile := Profile{}
+		profile := models.Profile{}
 		profile.Did = did
 		return &profile, nil
 	}
@@ -540,26 +370,26 @@ func GetProfile(e Execer, did string) (*Profile, error) {
 	return &profile, nil
 }
 
-func GetVanityStat(e Execer, did string, stat VanityStatKind) (uint64, error) {
+func GetVanityStat(e Execer, did string, stat models.VanityStatKind) (uint64, error) {
 	query := ""
 	var args []any
 	switch stat {
-	case VanityStatMergedPRCount:
+	case models.VanityStatMergedPRCount:
 		query = `select count(id) from pulls where owner_did = ? and state = ?`
 		args = append(args, did, models.PullMerged)
-	case VanityStatClosedPRCount:
+	case models.VanityStatClosedPRCount:
 		query = `select count(id) from pulls where owner_did = ? and state = ?`
 		args = append(args, did, models.PullClosed)
-	case VanityStatOpenPRCount:
+	case models.VanityStatOpenPRCount:
 		query = `select count(id) from pulls where owner_did = ? and state = ?`
 		args = append(args, did, models.PullOpen)
-	case VanityStatOpenIssueCount:
+	case models.VanityStatOpenIssueCount:
 		query = `select count(id) from issues where did = ? and open = 1`
 		args = append(args, did)
-	case VanityStatClosedIssueCount:
+	case models.VanityStatClosedIssueCount:
 		query = `select count(id) from issues where did = ? and open = 0`
 		args = append(args, did)
-	case VanityStatRepositoryCount:
+	case models.VanityStatRepositoryCount:
 		query = `select count(id) from repos where did = ?`
 		args = append(args, did)
 	}
@@ -573,7 +403,7 @@ func GetVanityStat(e Execer, did string, stat VanityStatKind) (uint64, error) {
 	return result, nil
 }
 
-func ValidateProfile(e Execer, profile *Profile) error {
+func ValidateProfile(e Execer, profile *models.Profile) error {
 	// ensure description is not too long
 	if len(profile.Description) > 256 {
 		return fmt.Errorf("Entered bio is too long.")
@@ -621,7 +451,7 @@ func ValidateProfile(e Execer, profile *Profile) error {
 	return nil
 }
 
-func validateLinks(profile *Profile) error {
+func validateLinks(profile *models.Profile) error {
 	for i, link := range profile.Links {
 		if link == "" {
 			continue

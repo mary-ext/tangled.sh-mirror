@@ -337,11 +337,11 @@ func (s *State) followPage(
 			followStatus = models.IsSelf
 		}
 
-		var profile *db.Profile
+		var profile *models.Profile
 		if p, exists := profiles[did]; exists {
 			profile = p
 		} else {
-			profile = &db.Profile{}
+			profile = &models.Profile{}
 			profile.Did = did
 		}
 		followCards[i] = pages.FollowCard{
@@ -479,7 +479,7 @@ func (s *State) addIssueItems(ctx context.Context, feed *feeds.Feed, issues []*m
 	return nil
 }
 
-func (s *State) addRepoItems(ctx context.Context, feed *feeds.Feed, repos []db.RepoEvent, author *feeds.Author) error {
+func (s *State) addRepoItems(ctx context.Context, feed *feeds.Feed, repos []models.RepoEvent, author *feeds.Author) error {
 	for _, repo := range repos {
 		item, err := s.createRepoItem(ctx, repo, author)
 		if err != nil {
@@ -508,7 +508,7 @@ func (s *State) createIssueItem(issue *models.Issue, owner *identity.Identity, a
 	}
 }
 
-func (s *State) createRepoItem(ctx context.Context, repo db.RepoEvent, author *feeds.Author) (*feeds.Item, error) {
+func (s *State) createRepoItem(ctx context.Context, repo models.RepoEvent, author *feeds.Author) (*feeds.Item, error) {
 	var title string
 	if repo.Source != nil {
 		sourceOwner, err := s.idResolver.ResolveIdent(ctx, repo.Source.Did)
@@ -559,11 +559,11 @@ func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {
 	stat1 := r.FormValue("stat1")
 
 	if stat0 != "" {
-		profile.Stats[0].Kind = db.VanityStatKind(stat0)
+		profile.Stats[0].Kind = models.VanityStatKind(stat0)
 	}
 
 	if stat1 != "" {
-		profile.Stats[1].Kind = db.VanityStatKind(stat1)
+		profile.Stats[1].Kind = models.VanityStatKind(stat1)
 	}
 
 	if err := db.ValidateProfile(s.db, profile); err != nil {
@@ -614,7 +614,7 @@ func (s *State) UpdateProfilePins(w http.ResponseWriter, r *http.Request) {
 	s.updateProfile(profile, w, r)
 }
 
-func (s *State) updateProfile(profile *db.Profile, w http.ResponseWriter, r *http.Request) {
+func (s *State) updateProfile(profile *models.Profile, w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {

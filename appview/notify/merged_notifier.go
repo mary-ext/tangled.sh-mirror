@@ -62,7 +62,7 @@ func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.Pul
 	}
 }
 
-func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *db.Profile) {
+func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {
 	for _, notifier := range m.notifiers {
 		notifier.UpdateProfile(ctx, profile)
 	}
