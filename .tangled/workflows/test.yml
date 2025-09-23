@@ -14,6 +14,12 @@ steps:
     command: |
       mkdir -p appview/pages/static; touch appview/pages/static/x
 
+  - name: run linter
+    environment:
+      CGO_ENABLED: 1
+    command: |
+      go vet -v ./...
+
   - name: run all tests
     environment:
       CGO_ENABLED: 1
