@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"time"
 
@@ -208,6 +209,16 @@ func GetStars(e Execer, limit int, filters ...filter) ([]models.Star, error) {
 	for _, s := range starMap {
 		stars = append(stars, s...)
 	}
+
+	slices.SortFunc(stars, func(a, b models.Star) int {
+		if a.Created.After(b.Created) {
+			return -1
+		}
+		if b.Created.After(a.Created) {
+			return 1
+		}
+		return 0
+	})
 
 	return stars, nil
 }
