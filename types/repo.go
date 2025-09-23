@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -33,11 +34,12 @@ type RepoCommitResponse struct {
 }
 
 type RepoFormatPatchResponse struct {
-	Rev1        string        `json:"rev1,omitempty"`
-	Rev2        string        `json:"rev2,omitempty"`
-	FormatPatch []FormatPatch `json:"format_patch,omitempty"`
-	MergeBase   string        `json:"merge_base,omitempty"` // deprecated
-	Patch       string        `json:"patch,omitempty"`
+	Rev1             string          `json:"rev1,omitempty"`
+	Rev2             string          `json:"rev2,omitempty"`
+	FormatPatch      []FormatPatch   `json:"format_patch,omitempty"`
+	FormatPatchRaw   string          `json:"patch,omitempty"`
+	CombinedPatch    []*gitdiff.File `json:"combined_patch,omitempty"`
+	CombinedPatchRaw string          `json:"combined_patch_raw,omitempty"`
 }
 
 type RepoTreeResponse struct {

@@ -145,23 +145,6 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	stack, _ := r.Context().Value("stack").(models.Stack)
 	abandonedPulls, _ := r.Context().Value("abandonedPulls").([]*models.Pull)
 
-	totalIdents := 1
-	for _, submission := range pull.Submissions {
-		totalIdents += len(submission.Comments)
-	}
-
-	identsToResolve := make([]string, totalIdents)
-
-	// populate idents
-	identsToResolve[0] = pull.OwnerDid
-	idx := 1
-	for _, submission := range pull.Submissions {
-		for _, comment := range submission.Comments {
-			identsToResolve[idx] = comment.OwnerDid
-			idx += 1
-		}
-	}
-
 	mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
 	branchDeleteStatus := s.branchDeleteStatus(r, f, pull)
 	resubmitResult := pages.Unknown
@@ -459,7 +442,7 @@ func (s *Pulls) RepoPullPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	patch := pull.Submissions[roundIdInt].Patch
+	patch := pull.Submissions[roundIdInt].CombinedPatch()
 	diff := patchutil.AsNiceDiff(patch, pull.TargetBranch)
 
 	s.pages.RepoPullPatchPage(w, pages.RepoPullPatchParams{
@@ -510,14 +493,14 @@ func (s *Pulls) RepoPullInterdiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentPatch, err := patchutil.AsDiff(pull.Submissions[roundIdInt].Patch)
+	currentPatch, err := patchutil.AsDiff(pull.Submissions[roundIdInt].CombinedPatch())
 	if err != nil {
 		log.Println("failed to interdiff; current patch malformed")
 		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; current patch is invalid.")
 		return
 	}
 
-	previousPatch, err := patchutil.AsDiff(pull.Submissions[roundIdInt-1].Patch)
+	previousPatch, err := patchutil.AsDiff(pull.Submissions[roundIdInt-1].CombinedPatch())
 	if err != nil {
 		log.Println("failed to interdiff; previous patch malformed")
 		s.pages.Notice(w, fmt.Sprintf("interdiff-error-%d", roundIdInt), "Failed to calculate interdiff; previous patch is invalid.")
@@ -719,13 +702,6 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 
 		createdAt := time.Now().Format(time.RFC3339)
 
-		pullAt, err := db.GetPullAt(s.db, f.RepoAt(), pull.PullId)
-		if err != nil {
-			log.Println("failed to get pull at", err)
-			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
-			return
-		}
-
 		client, err := s.oauth.AuthorizedClient(r)
 		if err != nil {
 			log.Println("failed to get authorized client", err)
@@ -738,7 +714,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			Rkey:       tid.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoPullComment{
-					Pull:      string(pullAt),
+					Pull:      pull.PullAt().String(),
 					Body:      body,
 					CreatedAt: createdAt,
 				},
@@ -986,7 +962,8 @@ func (s *Pulls) handleBranchBasedPull(
 	}
 
 	sourceRev := comparison.Rev2
-	patch := comparison.Patch
+	patch := comparison.FormatPatchRaw
+	combined := comparison.CombinedPatchRaw
 
 	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
@@ -1001,7 +978,7 @@ func (s *Pulls) handleBranchBasedPull(
 		Sha:    comparison.Rev2,
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, pullSource, recordPullSource, isStacked)
+	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, combined, sourceRev, pullSource, recordPullSource, isStacked)
 }
 
 func (s *Pulls) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, title, body, targetBranch, patch string, isStacked bool) {
@@ -1010,7 +987,7 @@ func (s *Pulls) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *
 		return
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, "", nil, nil, isStacked)
+	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, "", "", nil, nil, isStacked)
 }
 
 func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string, isStacked bool) {
@@ -1093,7 +1070,8 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 	}
 
 	sourceRev := comparison.Rev2
-	patch := comparison.Patch
+	patch := comparison.FormatPatchRaw
+	combined := comparison.CombinedPatchRaw
 
 	if !patchutil.IsPatchValid(patch) {
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
@@ -1113,7 +1091,7 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 		Sha:    sourceRev,
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, sourceRev, pullSource, recordPullSource, isStacked)
+	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, combined, sourceRev, pullSource, recordPullSource, isStacked)
 }
 
 func (s *Pulls) createPullRequest(
@@ -1123,6 +1101,7 @@ func (s *Pulls) createPullRequest(
 	user *oauth.User,
 	title, body, targetBranch string,
 	patch string,
+	combined string,
 	sourceRev string,
 	pullSource *models.PullSource,
 	recordPullSource *tangled.RepoPull_Source,
@@ -1182,6 +1161,7 @@ func (s *Pulls) createPullRequest(
 	rkey := tid.TID()
 	initialSubmission := models.PullSubmission{
 		Patch:     patch,
+		Combined:  combined,
 		SourceRev: sourceRev,
 	}
 	pull := &models.Pull{
@@ -1611,7 +1591,7 @@ func (s *Pulls) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 
 	patch := r.FormValue("patch")
 
-	s.resubmitPullHelper(w, r, f, user, pull, patch, "")
+	s.resubmitPullHelper(w, r, f, user, pull, patch, "", "")
 }
 
 func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
@@ -1672,9 +1652,10 @@ func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sourceRev := comparison.Rev2
-	patch := comparison.Patch
+	patch := comparison.FormatPatchRaw
+	combined := comparison.CombinedPatchRaw
 
-	s.resubmitPullHelper(w, r, f, user, pull, patch, sourceRev)
+	s.resubmitPullHelper(w, r, f, user, pull, patch, combined, sourceRev)
 }
 
 func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
@@ -1767,9 +1748,10 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	comparison := forkComparison
 
 	sourceRev := comparison.Rev2
-	patch := comparison.Patch
+	patch := comparison.FormatPatchRaw
+	combined := comparison.CombinedPatchRaw
 
-	s.resubmitPullHelper(w, r, f, user, pull, patch, sourceRev)
+	s.resubmitPullHelper(w, r, f, user, pull, patch, combined, sourceRev)
 }
 
 // validate a resubmission against a pull request
@@ -1796,6 +1778,7 @@ func (s *Pulls) resubmitPullHelper(
 	user *oauth.User,
 	pull *models.Pull,
 	patch string,
+	combined string,
 	sourceRev string,
 ) {
 	if pull.IsStacked() {
@@ -1829,7 +1812,8 @@ func (s *Pulls) resubmitPullHelper(
 	newRoundNumber := len(pull.Submissions)
 	newPatch := patch
 	newSourceRev := sourceRev
-	err = db.ResubmitPull(tx, pullAt, newRoundNumber, newPatch, newSourceRev)
+	combinedPatch := combined
+	err = db.ResubmitPull(tx, pullAt, newRoundNumber, newPatch, combinedPatch, newSourceRev)
 	if err != nil {
 		log.Println("failed to create pull request", err)
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
@@ -2024,9 +2008,9 @@ func (s *Pulls) resubmitStackedPullHelper(
 		pullAt := op.PullAt()
 		newRoundNumber := len(op.Submissions)
 		newPatch := np.LatestPatch()
+		combinedPatch := np.LatestSubmission().Combined
 		newSourceRev := np.LatestSha()
-		err := db.ResubmitPull(tx, pullAt, newRoundNumber, newPatch, newSourceRev)
-
+		err := db.ResubmitPull(tx, pullAt, newRoundNumber, newPatch, combinedPatch, newSourceRev)
 		if err != nil {
 			log.Println("failed to update pull", err, op.PullId)
 			s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
@@ -2374,6 +2358,7 @@ func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patc
 		initialSubmission := models.PullSubmission{
 			Patch:     fp.Raw,
 			SourceRev: fp.SHA,
+			Combined:  fp.Raw,
 		}
 		pull := models.Pull{
 			Title:        title,

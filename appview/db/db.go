@@ -1097,6 +1097,15 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 	})
 	conn.ExecContext(ctx, "pragma foreign_keys = on;")
 
+	// knots may report the combined patch for a comparison, we can store that on the appview side
+	// (but not on the pds record), because calculating the combined patch requires a git index
+	runMigration(conn, logger, "add-combined-column-submissions", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table pull_submissions add column combined text;
+		`)
+		return err
+	})
+
 	return &DB{
 		db,
 		logger,

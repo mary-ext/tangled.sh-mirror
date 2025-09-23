@@ -125,6 +125,7 @@ type PullSubmission struct {
 	// content
 	RoundNumber int
 	Patch       string
+	Combined    string
 	Comments    []PullComment
 	SourceRev   string // include the rev that was used to create this submission: only for branch/fork PRs
 
@@ -150,22 +151,24 @@ type PullComment struct {
 	Created time.Time
 }
 
+func (p *Pull) LastRoundNumber() int {
+	return len(p.Submissions) - 1
+}
+
+func (p *Pull) LatestSubmission() *PullSubmission {
+	return p.Submissions[p.LastRoundNumber()]
+}
+
 func (p *Pull) LatestPatch() string {
-	latestSubmission := p.Submissions[p.LastRoundNumber()]
-	return latestSubmission.Patch
+	return p.LatestSubmission().Patch
 }
 
 func (p *Pull) LatestSha() string {
-	latestSubmission := p.Submissions[p.LastRoundNumber()]
-	return latestSubmission.SourceRev
+	return p.LatestSubmission().SourceRev
 }
 
 func (p *Pull) PullAt() syntax.ATURI {
 	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", p.OwnerDid, tangled.RepoPullNSID, p.Rkey))
-}
-
-func (p *Pull) LastRoundNumber() int {
-	return len(p.Submissions) - 1
 }
 
 func (p *Pull) IsPatchBased() bool {
@@ -252,6 +255,14 @@ func (s *PullSubmission) Participants() []string {
 	}
 
 	return participants
+}
+
+func (s PullSubmission) CombinedPatch() string {
+	if s.Combined == "" {
+		return s.Patch
+	}
+
+	return s.Combined
 }
 
 type Stack []*Pull

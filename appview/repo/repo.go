@@ -2565,7 +2565,12 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	diff := patchutil.AsNiceDiff(formatPatch.Patch, base)
+	var diff types.NiceDiff
+	if formatPatch.CombinedPatchRaw != "" {
+		diff = patchutil.AsNiceDiff(formatPatch.CombinedPatchRaw, base)
+	} else {
+		diff = patchutil.AsNiceDiff(formatPatch.FormatPatchRaw, base)
+	}
 
 	repoinfo := f.RepoInfo(user)
 

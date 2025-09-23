@@ -90,9 +90,9 @@ func NewPull(tx *sql.Tx, pull *models.Pull) error {
 	pull.ID = int(id)
 
 	_, err = tx.Exec(`
-		insert into pull_submissions (pull_at, round_number, patch, source_rev)
-		values (?, ?, ?, ?)
-	`, pull.PullAt(), 0, pull.Submissions[0].Patch, pull.Submissions[0].SourceRev)
+		insert into pull_submissions (pull_at, round_number, patch, combined, source_rev)
+		values (?, ?, ?, ?, ?)
+	`, pull.PullAt(), 0, pull.Submissions[0].Patch, pull.Submissions[0].Combined, pull.Submissions[0].SourceRev)
 	return err
 }
 
@@ -313,6 +313,7 @@ func GetPullSubmissions(e Execer, filters ...filter) (map[syntax.ATURI][]*models
 			pull_at,
 			round_number,
 			patch,
+			combined,
 			created,
 			source_rev
 		from
@@ -332,28 +333,31 @@ func GetPullSubmissions(e Execer, filters ...filter) (map[syntax.ATURI][]*models
 
 	for rows.Next() {
 		var submission models.PullSubmission
-		var createdAt string
-		var sourceRev sql.NullString
+		var submissionCreatedStr string
+		var submissionSourceRev, submissionCombined sql.NullString
 		err := rows.Scan(
 			&submission.ID,
 			&submission.PullAt,
 			&submission.RoundNumber,
 			&submission.Patch,
-			&createdAt,
-			&sourceRev,
+			&submissionCombined,
+			&submissionCreatedStr,
+			&submissionSourceRev,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		createdTime, err := time.Parse(time.RFC3339, createdAt)
-		if err != nil {
-			return nil, err
+		if t, err := time.Parse(time.RFC3339, submissionCreatedStr); err == nil {
+			submission.Created = t
 		}
-		submission.Created = createdTime
 
-		if sourceRev.Valid {
-			submission.SourceRev = sourceRev.String
+		if submissionSourceRev.Valid {
+			submission.SourceRev = submissionSourceRev.String
+		}
+
+		if submissionCombined.Valid {
+			submission.Combined = submissionCombined.String
 		}
 
 		submissionMap[submission.ID] = &submission
@@ -590,11 +594,11 @@ func DeletePull(e Execer, repoAt syntax.ATURI, pullId int) error {
 	return err
 }
 
-func ResubmitPull(e Execer, pullAt syntax.ATURI, newRoundNumber int, newPatch string, newSourceRev string) error {
+func ResubmitPull(e Execer, pullAt syntax.ATURI, newRoundNumber int, newPatch string, combinedPatch string, newSourceRev string) error {
 	_, err := e.Exec(`
-		insert into pull_submissions (pull_at, round_number, patch, source_rev)
-		values (?, ?, ?, ?)
-	`, pullAt, newRoundNumber, newPatch, newSourceRev)
+		insert into pull_submissions (pull_at, round_number, patch, combined, source_rev)
+		values (?, ?, ?, ?, ?)
+	`, pullAt, newRoundNumber, newPatch, combinedPatch, newSourceRev)
 
 	return err
 }
