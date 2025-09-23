@@ -88,7 +88,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		l.Error("failed to get issue reactions", "err", err)
 	}
 
-	userReactions := map[db.ReactionKind]bool{}
+	userReactions := map[models.ReactionKind]bool{}
 	if user != nil {
 		userReactions = db.GetReactionStatusMap(rp.db, user.Did, issue.AtUri())
 	}
@@ -114,7 +114,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:             f.RepoInfo(user),
 		Issue:                issue,
 		CommentList:          issue.CommentList(),
-		OrderedReactionKinds: db.OrderedReactionKinds,
+		OrderedReactionKinds: models.OrderedReactionKinds,
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
 		LabelDefs:            defs,

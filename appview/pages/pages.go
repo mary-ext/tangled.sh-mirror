@@ -908,9 +908,9 @@ type RepoSingleIssueParams struct {
 	CommentList  []models.CommentListItem
 	LabelDefs    map[string]*models.LabelDefinition
 
-	OrderedReactionKinds []db.ReactionKind
-	Reactions            map[db.ReactionKind]int
-	UserReacted          map[db.ReactionKind]bool
+	OrderedReactionKinds []models.ReactionKind
+	Reactions            map[models.ReactionKind]int
+	UserReacted          map[models.ReactionKind]bool
 }
 
 func (p *Pages) RepoSingleIssue(w io.Writer, params RepoSingleIssueParams) error {
@@ -932,7 +932,7 @@ func (p *Pages) EditIssueFragment(w io.Writer, params EditIssueParams) error {
 
 type ThreadReactionFragmentParams struct {
 	ThreadAt  syntax.ATURI
-	Kind      db.ReactionKind
+	Kind      models.ReactionKind
 	Count     int
 	IsReacted bool
 }
@@ -1060,9 +1060,9 @@ type RepoSinglePullParams struct {
 	ResubmitCheck  ResubmitResult
 	Pipelines      map[string]models.Pipeline
 
-	OrderedReactionKinds []db.ReactionKind
-	Reactions            map[db.ReactionKind]int
-	UserReacted          map[db.ReactionKind]bool
+	OrderedReactionKinds []models.ReactionKind
+	Reactions            map[models.ReactionKind]int
+	UserReacted          map[models.ReactionKind]bool
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
@@ -1078,7 +1078,7 @@ type RepoPullPatchParams struct {
 	Diff                 *types.NiceDiff
 	Round                int
 	Submission           *models.PullSubmission
-	OrderedReactionKinds []db.ReactionKind
+	OrderedReactionKinds []models.ReactionKind
 	DiffOpts             types.DiffOpts
 }
 
@@ -1093,7 +1093,7 @@ type RepoPullInterdiffParams struct {
 	Pull                 *models.Pull
 	Round                int
 	Interdiff            *patchutil.InterdiffResult
-	OrderedReactionKinds []db.ReactionKind
+	OrderedReactionKinds []models.ReactionKind
 	DiffOpts             types.DiffOpts
 }
 

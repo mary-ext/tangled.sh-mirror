@@ -195,7 +195,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		s.pages.Notice(w, "pulls", "Failed to load pull. Try again later.")
 	}
 
-	userReactions := map[db.ReactionKind]bool{}
+	userReactions := map[models.ReactionKind]bool{}
 	if user != nil {
 		userReactions = db.GetReactionStatusMap(s.db, user.Did, pull.PullAt())
 	}
@@ -210,7 +210,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		ResubmitCheck:  resubmitResult,
 		Pipelines:      m,
 
-		OrderedReactionKinds: db.OrderedReactionKinds,
+		OrderedReactionKinds: models.OrderedReactionKinds,
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
 	})

@@ -11,6 +11,7 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/tid"
 )
@@ -30,7 +31,7 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reactionKind, ok := db.ParseReactionKind(r.URL.Query().Get("kind"))
+	reactionKind, ok := models.ParseReactionKind(r.URL.Query().Get("kind"))
 	if !ok {
 		log.Println("invalid reaction kind")
 		return
