@@ -303,7 +303,7 @@ func (p *Pages) UserProfileSettings(w io.Writer, params UserProfileSettingsParam
 
 type UserKeysSettingsParams struct {
 	LoggedInUser *oauth.User
-	PubKeys      []db.PublicKey
+	PubKeys      []models.PublicKey
 	Tabs         []map[string]any
 	Tab          string
 }

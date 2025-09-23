@@ -1,7 +1,7 @@
 package db
 
 import (
-	"encoding/json"
+	"tangled.org/core/appview/models"
 	"time"
 )
 
@@ -29,27 +29,8 @@ func DeletePublicKeyByRkey(e Execer, did, rkey string) error {
 	return err
 }
 
-type PublicKey struct {
-	Did     string `json:"did"`
-	Key     string `json:"key"`
-	Name    string `json:"name"`
-	Rkey    string `json:"rkey"`
-	Created *time.Time
-}
-
-func (p PublicKey) MarshalJSON() ([]byte, error) {
-	type Alias PublicKey
-	return json.Marshal(&struct {
-		Created string `json:"created"`
-		*Alias
-	}{
-		Created: p.Created.Format(time.RFC3339),
-		Alias:   (*Alias)(&p),
-	})
-}
-
-func GetAllPublicKeys(e Execer) ([]PublicKey, error) {
-	var keys []PublicKey
+func GetAllPublicKeys(e Execer) ([]models.PublicKey, error) {
+	var keys []models.PublicKey
 
 	rows, err := e.Query(`select key, name, did, rkey, created from public_keys`)
 	if err != nil {
@@ -58,7 +39,7 @@ func GetAllPublicKeys(e Execer) ([]PublicKey, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var publicKey PublicKey
+		var publicKey models.PublicKey
 		var createdAt string
 		if err := rows.Scan(&publicKey.Key, &publicKey.Name, &publicKey.Did, &publicKey.Rkey, &createdAt); err != nil {
 			return nil, err
@@ -75,8 +56,8 @@ func GetAllPublicKeys(e Execer) ([]PublicKey, error) {
 	return keys, nil
 }
 
-func GetPublicKeysForDid(e Execer, did string) ([]PublicKey, error) {
-	var keys []PublicKey
+func GetPublicKeysForDid(e Execer, did string) ([]models.PublicKey, error) {
+	var keys []models.PublicKey
 
 	rows, err := e.Query(`select did, key, name, rkey, created from public_keys where did = ?`, did)
 	if err != nil {
@@ -85,7 +66,7 @@ func GetPublicKeysForDid(e Execer, did string) ([]PublicKey, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var publicKey PublicKey
+		var publicKey models.PublicKey
 		var createdAt string
 		if err := rows.Scan(&publicKey.Did, &publicKey.Key, &publicKey.Name, &publicKey.Rkey, &createdAt); err != nil {
 			return nil, err

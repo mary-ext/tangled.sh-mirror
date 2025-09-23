@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/crypto"
 	"tangled.org/core/types"
 )
@@ -45,7 +46,7 @@ func GetVerifiedObjectCommits(e db.Execer, emailToDid map[string]string, commits
 func GetVerifiedCommits(e db.Execer, emailToDid map[string]string, ndCommits []types.NiceDiff) (VerifiedCommits, error) {
 	vcs := VerifiedCommits{}
 
-	didPubkeyCache := make(map[string][]db.PublicKey)
+	didPubkeyCache := make(map[string][]models.PublicKey)
 
 	for _, commit := range ndCommits {
 		c := commit.Commit
