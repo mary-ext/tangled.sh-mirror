@@ -164,7 +164,7 @@ func (s *Signup) signup(w http.ResponseWriter, r *http.Request) {
 			s.pages.Notice(w, noticeId, "Failed to send email.")
 			return
 		}
-		err = db.AddInflightSignup(s.db, db.InflightSignup{
+		err = db.AddInflightSignup(s.db, models.InflightSignup{
 			Email:      emailId,
 			InviteCode: code,
 		})

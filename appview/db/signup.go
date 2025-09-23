@@ -1,15 +1,10 @@
 package db
 
-import "time"
+import (
+	"tangled.org/core/appview/models"
+)
 
-type InflightSignup struct {
-	Id         int64
-	Email      string
-	InviteCode string
-	Created    time.Time
-}
-
-func AddInflightSignup(e Execer, signup InflightSignup) error {
+func AddInflightSignup(e Execer, signup models.InflightSignup) error {
 	query := `insert into signups_inflight (email, invite_code) values (?, ?)`
 	_, err := e.Exec(query, signup.Email, signup.InviteCode)
 	return err
