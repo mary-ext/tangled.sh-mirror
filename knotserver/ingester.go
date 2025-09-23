@@ -151,7 +151,7 @@ func (h *Knot) processPull(ctx context.Context, event *models.Event) error {
 		return fmt.Errorf("failed to construct absolute repo path: %w", err)
 	}
 
-	gr, err := git.Open(repoPath, record.Source.Branch)
+	gr, err := git.Open(repoPath, record.Source.Sha)
 	if err != nil {
 		return fmt.Errorf("failed to open git repository: %w", err)
 	}
