@@ -131,21 +131,20 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]models.Repo, error) {
 
 	languageQuery := fmt.Sprintf(
 		`
-		select
-			repo_at, language
-		from
-			repo_languages r1
-		where
-			repo_at IN (%s)
+		select repo_at, language
+		from (
+			select
+			repo_at,
+			language,
+			row_number() over (
+				partition by repo_at
+				order by bytes desc
+			) as rn
+			from repo_languages
+			where repo_at in (%s)
 			and is_default_ref = 1
-			and id = (
-				select id
-					from repo_languages r2
-					where r2.repo_at = r1.repo_at
-					and r2.is_default_ref = 1
-					order by bytes desc
-					limit 1
-			);
+		)
+		where rn = 1
 		`,
 		inClause,
 	)
