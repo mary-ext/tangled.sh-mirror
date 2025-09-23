@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 type PublicKey struct {

@@ -15,9 +15,9 @@ import (
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/feeds"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/pages"
 )
 
 func (s *State) Profile(w http.ResponseWriter, r *http.Request) {

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 var trigger = tangled.Pipeline_TriggerMetadata{

@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/crypto"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/crypto"
+	"tangled.org/core/types"
 )
 
 type verifiedCommit struct {

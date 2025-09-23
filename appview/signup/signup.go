@@ -10,14 +10,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/posthog/posthog-go"
-	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/dns"
-	"tangled.sh/tangled.sh/core/appview/email"
-	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/state/userutil"
-	"tangled.sh/tangled.sh/core/appview/xrpcclient"
-	"tangled.sh/tangled.sh/core/idresolver"
+	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/dns"
+	"tangled.org/core/appview/email"
+	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/state/userutil"
+	"tangled.org/core/appview/xrpcclient"
+	"tangled.org/core/idresolver"
 )
 
 type Signup struct {

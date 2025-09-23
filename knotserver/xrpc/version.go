@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 // version is set during build time.
@@ -24,7 +24,7 @@ func (x *Xrpc) Version(w http.ResponseWriter, r *http.Request) {
 		var modified bool
 
 		for _, mod := range info.Deps {
-			if mod.Path == "tangled.sh/tangled.sh/knotserver/xrpc" {
+			if mod.Path == "tangled.org/tangled.org/knotserver/xrpc" {
 				modVer = mod.Version
 				break
 			}

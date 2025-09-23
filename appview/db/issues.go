@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/pagination"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/pagination"
 )
 
 type Issue struct {
@@ -216,9 +216,9 @@ func createNewIssue(tx *sql.Tx, issue *Issue) error {
 	// get next issue_id
 	var newIssueId int
 	err := tx.QueryRow(`
-		update repo_issue_seqs 
-		set next_issue_id = next_issue_id + 1 
-		where repo_at = ? 
+		update repo_issue_seqs
+		set next_issue_id = next_issue_id + 1
+		where repo_at = ?
 		returning next_issue_id - 1
 	`, issue.RepoAt).Scan(&newIssueId)
 	if err != nil {

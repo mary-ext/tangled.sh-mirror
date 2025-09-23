@@ -16,7 +16,7 @@ in
     tags = ["libsqlite3"];
 
     ldflags = [
-      "-X tangled.sh/tangled.sh/core/knotserver/xrpc.version=${version}"
+      "-X tangled.org/core/knotserver/xrpc.version=${version}"
     ];
 
     env.CGO_CFLAGS = "-I ${sqlite-lib}/include ";

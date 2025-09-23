@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/types"
 )
 
 func ExtractPatches(formatPatch string) ([]types.FormatPatch, error) {

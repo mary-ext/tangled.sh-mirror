@@ -19,7 +19,7 @@ There's a couple of ways to get started:
 First, clone this repository:
 
 ```
-git clone https://tangled.sh/@tangled.sh/core
+git clone https://tangled.org/@tangled.org/core
 ```
 
 Then, build the `knot` CLI. This is the knot administration and operation tool.
@@ -130,7 +130,7 @@ knot domain.
 
 You should now have a running knot server! You can finalize
 your registration by hitting the `verify` button on the
-[/knots](https://tangled.sh/knots) page. This simply creates
+[/knots](https://tangled.org/knots) page. This simply creates
 a record on your PDS to announce the existence of the knot.
 
 ### custom paths

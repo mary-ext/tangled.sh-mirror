@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.org/core/appview/db"
 )
 
 func (v *Validator) ValidateIssueComment(comment *db.IssueComment) error {

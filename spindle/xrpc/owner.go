@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/api/tangled"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (x *Xrpc) Owner(w http.ResponseWriter, r *http.Request) {

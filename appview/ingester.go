@@ -12,13 +12,13 @@ import (
 	"github.com/bluesky-social/jetstream/pkg/models"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/ipfs/go-cid"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/serververify"
-	"tangled.sh/tangled.sh/core/appview/validator"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/serververify"
+	"tangled.org/core/appview/validator"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/rbac"
 )
 
 type Ingester struct {

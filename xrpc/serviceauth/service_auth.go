@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/auth"
-	"tangled.sh/tangled.sh/core/idresolver"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/idresolver"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 const ActorDid string = "ActorDid"

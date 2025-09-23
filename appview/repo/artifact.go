@@ -16,13 +16,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/ipfs/go-cid"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/reporesolver"
-	"tangled.sh/tangled.sh/core/appview/xrpcclient"
-	"tangled.sh/tangled.sh/core/tid"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/reporesolver"
+	"tangled.org/core/appview/xrpcclient"
+	"tangled.org/core/tid"
+	"tangled.org/core/types"
 )
 
 // TODO: proper statuses here on early exit

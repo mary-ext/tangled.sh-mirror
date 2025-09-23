@@ -3,7 +3,7 @@ package notify
 import (
 	"context"
 
-	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.org/core/appview/db"
 )
 
 type mergedNotifier struct {

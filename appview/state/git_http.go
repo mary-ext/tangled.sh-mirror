@@ -8,7 +8,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview/db"
+	"tangled.org/core/appview/db"
 )
 
 func (s *State) InfoRefs(w http.ResponseWriter, r *http.Request) {

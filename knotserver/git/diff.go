@@ -12,8 +12,8 @@ import (
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"tangled.sh/tangled.sh/core/patchutil"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/patchutil"
+	"tangled.org/core/types"
 )
 
 func (g *GitRepo) Diff() (*types.NiceDiff, error) {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"tangled.sh/tangled.sh/core/crypto"
+	"tangled.org/core/crypto"
 )
 
 func parseCommitObject(commitData string) (string, string, error) {

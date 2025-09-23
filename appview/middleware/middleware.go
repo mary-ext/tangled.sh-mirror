@@ -12,13 +12,13 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/oauth"
-	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/pagination"
-	"tangled.sh/tangled.sh/core/appview/reporesolver"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/oauth"
+	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/pagination"
+	"tangled.org/core/appview/reporesolver"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/rbac"
 )
 
 type Middleware struct {

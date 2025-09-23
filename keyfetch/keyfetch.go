@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v3"
-	"tangled.sh/tangled.sh/core/log"
+	"tangled.org/core/log"
 )
 
 func Command() *cli.Command {

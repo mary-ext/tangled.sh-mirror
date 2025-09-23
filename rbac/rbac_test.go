@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.org/core/rbac"
 
 	adapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"

@@ -22,8 +22,8 @@ import (
 	"github.com/yuin/goldmark/util"
 	htmlparse "golang.org/x/net/html"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/pages/repoinfo"
 )
 
 // RendererType defines the type of renderer to use based on context

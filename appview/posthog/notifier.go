@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/posthog/posthog-go"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/notify"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/notify"
 )
 
 type posthogNotifier struct {

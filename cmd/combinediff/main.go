@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
-	"tangled.sh/tangled.sh/core/patchutil"
+	"tangled.org/core/patchutil"
 )
 
 func main() {

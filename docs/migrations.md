@@ -14,14 +14,14 @@ straightforward however.
 For knots:
 
 - Upgrade to latest tag (v1.9.0 or above)
-- Head to the [knot dashboard](https://tangled.sh/knots) and
+- Head to the [knot dashboard](https://tangled.org/knots) and
   hit the "retry" button to verify your knot
 
 For spindles:
 
 - Upgrade to latest tag (v1.9.0 or above)
 - Head to the [spindle
-  dashboard](https://tangled.sh/spindles) and hit the
+  dashboard](https://tangled.org/spindles) and hit the
   "retry" button to verify your spindle
 
 ## Upgrading from v1.7.x
@@ -38,10 +38,10 @@ Upgrading is quite easy, in essence:
   environment variable entirely
 - `KNOT_SERVER_OWNER` is now required on boot, set this to
   your DID. You can find your DID in the
-  [settings](https://tangled.sh/settings) page.
+  [settings](https://tangled.org/settings) page.
 - Restart your knot once you have replaced the environment
   variable
-- Head to the [knot dashboard](https://tangled.sh/knots) and
+- Head to the [knot dashboard](https://tangled.org/knots) and
   hit the "retry" button to verify your knot. This simply
   writes a `sh.tangled.knot` record to your PDS.
 
@@ -57,4 +57,3 @@ latest revision, and change your config block like so:
    };
  };
 ```
-

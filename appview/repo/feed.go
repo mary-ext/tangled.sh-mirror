@@ -8,9 +8,9 @@ import (
 	"slices"
 	"time"
 
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pagination"
-	"tangled.sh/tangled.sh/core/appview/reporesolver"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/pagination"
+	"tangled.org/core/appview/reporesolver"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/gorilla/feeds"

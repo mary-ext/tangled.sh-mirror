@@ -8,15 +8,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/rbac"
-	"tangled.sh/tangled.sh/core/spindle/config"
-	"tangled.sh/tangled.sh/core/spindle/db"
-	"tangled.sh/tangled.sh/core/spindle/models"
-	"tangled.sh/tangled.sh/core/spindle/secrets"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
-	"tangled.sh/tangled.sh/core/xrpc/serviceauth"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/rbac"
+	"tangled.org/core/spindle/config"
+	"tangled.org/core/spindle/db"
+	"tangled.org/core/spindle/models"
+	"tangled.org/core/spindle/secrets"
+	xrpcerr "tangled.org/core/xrpc/errors"
+	"tangled.org/core/xrpc/serviceauth"
 )
 
 const ActorDid string = "ActorDid"

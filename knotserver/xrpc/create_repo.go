@@ -13,11 +13,11 @@ import (
 	"github.com/bluesky-social/indigo/xrpc"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	gogit "github.com/go-git/go-git/v5"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/hook"
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	"tangled.sh/tangled.sh/core/rbac"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/hook"
+	"tangled.org/core/knotserver/git"
+	"tangled.org/core/rbac"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (h *Xrpc) CreateRepo(w http.ResponseWriter, r *http.Request) {

@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"slices"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )

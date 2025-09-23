@@ -1,5 +1,5 @@
 [build]
-cmd = 'go build -ldflags "-X tangled.sh/tangled.sh/core/knotserver.version=$(git describe --tags --long)" -o .bin/knot ./cmd/knot/'
+cmd = 'go build -ldflags "-X tangled.org/core/knotserver.version=$(git describe --tags --long)" -o .bin/knot ./cmd/knot/'
 bin = ".bin/knot server"
 root = "."
 

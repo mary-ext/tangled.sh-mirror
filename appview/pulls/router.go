@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview/middleware"
+	"tangled.org/core/appview/middleware"
 )
 
 func (s *Pulls) Router(mw *middleware.Middleware) http.Handler {

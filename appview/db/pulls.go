@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/patchutil"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/patchutil"
+	"tangled.org/core/types"
 )
 
 type PullState int

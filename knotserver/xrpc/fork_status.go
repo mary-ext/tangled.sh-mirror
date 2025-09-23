@@ -8,11 +8,11 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	"tangled.sh/tangled.sh/core/rbac"
-	"tangled.sh/tangled.sh/core/types"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/knotserver/git"
+	"tangled.org/core/rbac"
+	"tangled.org/core/types"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (x *Xrpc) ForkStatus(w http.ResponseWriter, r *http.Request) {

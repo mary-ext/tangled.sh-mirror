@@ -5,11 +5,11 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v3"
-	"tangled.sh/tangled.sh/core/guard"
-	"tangled.sh/tangled.sh/core/hook"
-	"tangled.sh/tangled.sh/core/keyfetch"
-	"tangled.sh/tangled.sh/core/knotserver"
-	"tangled.sh/tangled.sh/core/log"
+	"tangled.org/core/guard"
+	"tangled.org/core/hook"
+	"tangled.org/core/keyfetch"
+	"tangled.org/core/knotserver"
+	"tangled.org/core/log"
 )
 
 func main() {

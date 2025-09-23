@@ -19,12 +19,12 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"gopkg.in/yaml.v3"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/spindle/config"
-	"tangled.sh/tangled.sh/core/spindle/engine"
-	"tangled.sh/tangled.sh/core/spindle/models"
-	"tangled.sh/tangled.sh/core/spindle/secrets"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/log"
+	"tangled.org/core/spindle/config"
+	"tangled.org/core/spindle/engine"
+	"tangled.org/core/spindle/models"
+	"tangled.org/core/spindle/secrets"
 )
 
 const (

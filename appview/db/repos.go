@@ -11,7 +11,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 type Repo struct {

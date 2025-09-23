@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/spindle/secrets"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/spindle/secrets"
 )
 
 type Engine interface {

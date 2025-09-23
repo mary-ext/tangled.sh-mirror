@@ -1,8 +1,8 @@
 package validator
 
 import (
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages/markup"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/pages/markup"
 )
 
 type Validator struct {

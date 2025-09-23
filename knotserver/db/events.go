@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"tangled.sh/tangled.sh/core/notifier"
+	"tangled.org/core/notifier"
 )
 
 type Event struct {

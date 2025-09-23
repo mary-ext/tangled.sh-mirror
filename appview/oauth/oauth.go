@@ -9,12 +9,12 @@ import (
 
 	indigo_xrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
+	sessioncache "tangled.org/core/appview/cache/session"
+	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/oauth/client"
+	xrpc "tangled.org/core/appview/xrpcclient"
 	oauth "tangled.sh/icyphox.sh/atproto-oauth"
 	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
-	sessioncache "tangled.sh/tangled.sh/core/appview/cache/session"
-	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/oauth/client"
-	xrpc "tangled.sh/tangled.sh/core/appview/xrpcclient"
 )
 
 type OAuth struct {

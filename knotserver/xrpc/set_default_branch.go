@@ -9,11 +9,11 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/xrpc"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/knotserver/git"
+	"tangled.org/core/rbac"
 
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 const ActorDid string = "ActorDid"

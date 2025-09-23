@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 type RepoEvent struct {

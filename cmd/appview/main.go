@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/state"
+	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/state"
 )
 
 func main() {

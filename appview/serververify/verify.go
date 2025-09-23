@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/xrpcclient"
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/xrpcclient"
+	"tangled.org/core/rbac"
 )
 
 var (

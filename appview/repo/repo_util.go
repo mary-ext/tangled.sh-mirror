@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/pages/repoinfo"
+	"tangled.org/core/types"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 )

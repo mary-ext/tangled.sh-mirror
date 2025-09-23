@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/types"
 )
 
 func (g *GitRepo) FileTree(ctx context.Context, path string) ([]types.NiceTree, error) {

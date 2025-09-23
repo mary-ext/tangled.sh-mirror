@@ -8,7 +8,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/ipfs/go-cid"
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 type Artifact struct {

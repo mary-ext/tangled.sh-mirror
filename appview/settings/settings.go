@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/email"
-	"tangled.sh/tangled.sh/core/appview/middleware"
-	"tangled.sh/tangled.sh/core/appview/oauth"
-	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/tid"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/email"
+	"tangled.org/core/appview/middleware"
+	"tangled.org/core/appview/oauth"
+	"tangled.org/core/appview/pages"
+	"tangled.org/core/tid"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
@@ -246,7 +246,7 @@ func (s *Settings) verifyUrl(did string, email string, code string) string {
 	if s.Config.Core.Dev {
 		appUrl = "http://" + s.Config.Core.ListenAddr
 	} else {
-		appUrl = "https://tangled.sh"
+		appUrl = s.Config.Core.AppviewHost
 	}
 
 	return fmt.Sprintf("%s/settings/emails/verify?did=%s&email=%s&code=%s", appUrl, url.QueryEscape(did), url.QueryEscape(email), url.QueryEscape(code))

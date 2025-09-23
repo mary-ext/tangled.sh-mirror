@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 type String struct {

@@ -15,13 +15,13 @@ import (
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/bluesky-social/jetstream/pkg/models"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/knotserver/db"
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	"tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/rbac"
-	"tangled.sh/tangled.sh/core/workflow"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/knotserver/db"
+	"tangled.org/core/knotserver/git"
+	"tangled.org/core/log"
+	"tangled.org/core/rbac"
+	"tangled.org/core/workflow"
 )
 
 func (h *Knot) processPublicKey(ctx context.Context, event *models.Event) error {

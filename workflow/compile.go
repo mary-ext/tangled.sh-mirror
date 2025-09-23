@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 type RawWorkflow struct {

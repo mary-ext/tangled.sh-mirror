@@ -8,8 +8,8 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-git/go-git/v5/plumbing"
-	spindle "tangled.sh/tangled.sh/core/spindle/models"
-	"tangled.sh/tangled.sh/core/workflow"
+	spindle "tangled.org/core/spindle/models"
+	"tangled.org/core/workflow"
 )
 
 type Pipeline struct {

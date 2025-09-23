@@ -9,7 +9,7 @@ import (
 
 	"github.com/hiddeco/sshsig"
 	"golang.org/x/crypto/ssh"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/types"
 )
 
 func VerifySignature(pubKey, signature, payload []byte) (error, bool) {

@@ -6,19 +6,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
-	"tangled.sh/tangled.sh/core/appview/issues"
-	"tangled.sh/tangled.sh/core/appview/knots"
-	"tangled.sh/tangled.sh/core/appview/middleware"
-	oauthhandler "tangled.sh/tangled.sh/core/appview/oauth/handler"
-	"tangled.sh/tangled.sh/core/appview/pipelines"
-	"tangled.sh/tangled.sh/core/appview/pulls"
-	"tangled.sh/tangled.sh/core/appview/repo"
-	"tangled.sh/tangled.sh/core/appview/settings"
-	"tangled.sh/tangled.sh/core/appview/signup"
-	"tangled.sh/tangled.sh/core/appview/spindles"
-	"tangled.sh/tangled.sh/core/appview/state/userutil"
-	avstrings "tangled.sh/tangled.sh/core/appview/strings"
-	"tangled.sh/tangled.sh/core/log"
+	"tangled.org/core/appview/issues"
+	"tangled.org/core/appview/knots"
+	"tangled.org/core/appview/middleware"
+	oauthhandler "tangled.org/core/appview/oauth/handler"
+	"tangled.org/core/appview/pipelines"
+	"tangled.org/core/appview/pulls"
+	"tangled.org/core/appview/repo"
+	"tangled.org/core/appview/settings"
+	"tangled.org/core/appview/signup"
+	"tangled.org/core/appview/spindles"
+	"tangled.org/core/appview/state/userutil"
+	avstrings "tangled.org/core/appview/strings"
+	"tangled.org/core/log"
 )
 
 func (s *State) Router() http.Handler {
@@ -115,6 +115,9 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Get("/timeline", s.Timeline)
 	r.With(middleware.AuthMiddleware(s.oauth)).Get("/upgradeBanner", s.UpgradeBanner)
 
+	// special-case handler for serving tangled.org/core
+	r.Get("/core", s.Core())
+
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(s.oauth))
@@ -162,6 +165,20 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 		s.pages.Error404(w)
 	})
 	return r
+}
+
+// Core serves tangled.org/core go-import meta tags, and redirects
+// to the core repository if accessed normally.
+func (s *State) Core() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("go-get") == "1" {
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<meta name="go-import" content="tangled.org/core git https://tangled.org/tangled.org/core">`))
+			return
+		}
+
+		http.Redirect(w, r, "/@tangled.org/core", http.StatusFound)
+	}
 }
 
 func (s *State) OAuthRouter() http.Handler {

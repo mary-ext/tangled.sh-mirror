@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 
 	"github.com/go-git/go-git/v5/plumbing"
 )

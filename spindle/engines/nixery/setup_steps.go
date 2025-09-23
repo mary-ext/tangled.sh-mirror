@@ -5,8 +5,8 @@ import (
 	"path"
 	"strings"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/workflow"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/workflow"
 )
 
 func nixConfStep() Step {

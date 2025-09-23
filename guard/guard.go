@@ -15,8 +15,8 @@ import (
 	"github.com/bluesky-social/indigo/atproto/identity"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/urfave/cli/v3"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/log"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/log"
 )
 
 func Command() *cli.Command {

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/types"
 )
 
 type InterdiffResult struct {

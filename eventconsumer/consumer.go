@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"tangled.sh/tangled.sh/core/eventconsumer/cursor"
-	"tangled.sh/tangled.sh/core/log"
+	"tangled.org/core/eventconsumer/cursor"
+	"tangled.org/core/log"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/gorilla/websocket"

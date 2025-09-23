@@ -6,14 +6,14 @@ import (
 	"net/http"
 
 	"github.com/urfave/cli/v3"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/hook"
-	"tangled.sh/tangled.sh/core/jetstream"
-	"tangled.sh/tangled.sh/core/knotserver/config"
-	"tangled.sh/tangled.sh/core/knotserver/db"
-	"tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/notifier"
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/hook"
+	"tangled.org/core/jetstream"
+	"tangled.org/core/knotserver/config"
+	"tangled.org/core/knotserver/db"
+	"tangled.org/core/log"
+	"tangled.org/core/notifier"
+	"tangled.org/core/rbac"
 )
 
 func Command() *cli.Command {

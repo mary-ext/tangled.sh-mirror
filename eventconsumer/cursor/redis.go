@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"tangled.sh/tangled.sh/core/appview/cache"
+	"tangled.org/core/appview/cache"
 )
 
 const (

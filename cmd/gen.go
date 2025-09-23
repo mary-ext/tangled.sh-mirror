@@ -2,7 +2,7 @@ package main
 
 import (
 	cbg "github.com/whyrusleeping/cbor-gen"
-	"tangled.sh/tangled.sh/core/api/tangled"
+	"tangled.org/core/api/tangled"
 )
 
 func main() {

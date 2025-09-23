@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"tangled.sh/tangled.sh/core/appview/cache"
+	"tangled.org/core/appview/cache"
 )
 
 type OAuthSession struct {

@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/knotserver/git"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (x *Xrpc) RepoTree(w http.ResponseWriter, r *http.Request) {

@@ -10,7 +10,7 @@ import (
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/knotserver/git/service"
+	"tangled.org/core/knotserver/git/service"
 )
 
 func (d *Knot) InfoRefs(w http.ResponseWriter, r *http.Request) {

@@ -14,13 +14,13 @@ import (
 	"github.com/bluesky-social/indigo/atproto/identity"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/oauth"
-	"tangled.sh/tangled.sh/core/appview/pages"
-	"tangled.sh/tangled.sh/core/appview/pages/repoinfo"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/rbac"
+	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/oauth"
+	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/pages/repoinfo"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/rbac"
 )
 
 type ResolvedRepo struct {

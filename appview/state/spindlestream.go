@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/appview/cache"
-	"tangled.sh/tangled.sh/core/appview/config"
-	"tangled.sh/tangled.sh/core/appview/db"
-	ec "tangled.sh/tangled.sh/core/eventconsumer"
-	"tangled.sh/tangled.sh/core/eventconsumer/cursor"
-	"tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/rbac"
-	spindle "tangled.sh/tangled.sh/core/spindle/models"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/cache"
+	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/db"
+	ec "tangled.org/core/eventconsumer"
+	"tangled.org/core/eventconsumer/cursor"
+	"tangled.org/core/log"
+	"tangled.org/core/rbac"
+	spindle "tangled.org/core/spindle/models"
 )
 
 func Spindlestream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.Enforcer) (*ec.Consumer, error) {

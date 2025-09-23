@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"tangled.sh/tangled.sh/core/types"
+	"tangled.org/core/types"
 )
 
 func (g *GitRepo) Branches() ([]types.Branch, error) {

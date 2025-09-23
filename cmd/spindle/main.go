@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	"tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/spindle"
-	_ "tangled.sh/tangled.sh/core/tid"
+	"tangled.org/core/log"
+	"tangled.org/core/spindle"
+	_ "tangled.org/core/tid"
 )
 
 func main() {

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/notifier"
-	"tangled.sh/tangled.sh/core/spindle/models"
-	"tangled.sh/tangled.sh/core/tid"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/notifier"
+	"tangled.org/core/spindle/models"
+	"tangled.org/core/tid"
 )
 
 type Event struct {

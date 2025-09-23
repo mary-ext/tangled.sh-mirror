@@ -7,15 +7,15 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/jetstream"
-	"tangled.sh/tangled.sh/core/knotserver/config"
-	"tangled.sh/tangled.sh/core/knotserver/db"
-	"tangled.sh/tangled.sh/core/knotserver/xrpc"
-	tlog "tangled.sh/tangled.sh/core/log"
-	"tangled.sh/tangled.sh/core/notifier"
-	"tangled.sh/tangled.sh/core/rbac"
-	"tangled.sh/tangled.sh/core/xrpc/serviceauth"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/jetstream"
+	"tangled.org/core/knotserver/config"
+	"tangled.org/core/knotserver/db"
+	"tangled.org/core/knotserver/xrpc"
+	tlog "tangled.org/core/log"
+	"tangled.org/core/notifier"
+	"tangled.org/core/rbac"
+	"tangled.org/core/xrpc/serviceauth"
 )
 
 type Knot struct {

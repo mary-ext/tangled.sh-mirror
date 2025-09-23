@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/eventconsumer"
-	"tangled.sh/tangled.sh/core/idresolver"
-	"tangled.sh/tangled.sh/core/rbac"
-	"tangled.sh/tangled.sh/core/spindle/db"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/eventconsumer"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/rbac"
+	"tangled.org/core/spindle/db"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"

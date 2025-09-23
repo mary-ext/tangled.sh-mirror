@@ -1,4 +1,4 @@
-module tangled.sh/tangled.sh/core
+module tangled.org/core
 
 go 1.24.4
 

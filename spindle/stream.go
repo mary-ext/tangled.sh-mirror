@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"tangled.sh/tangled.sh/core/spindle/models"
+	"tangled.org/core/spindle/models"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"

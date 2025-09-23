@@ -11,9 +11,9 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/xrpc"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/rbac"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/rbac"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (x *Xrpc) DeleteRepo(w http.ResponseWriter, r *http.Request) {

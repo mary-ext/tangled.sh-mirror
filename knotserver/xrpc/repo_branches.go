@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	"tangled.sh/tangled.sh/core/types"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/knotserver/git"
+	"tangled.org/core/types"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (x *Xrpc) RepoBranches(w http.ResponseWriter, r *http.Request) {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-git/go-git/v5/plumbing"
 
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/knotserver/git"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (x *Xrpc) RepoArchive(w http.ResponseWriter, r *http.Request) {

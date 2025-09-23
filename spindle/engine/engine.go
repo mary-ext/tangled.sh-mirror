@@ -8,11 +8,11 @@ import (
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"golang.org/x/sync/errgroup"
-	"tangled.sh/tangled.sh/core/notifier"
-	"tangled.sh/tangled.sh/core/spindle/config"
-	"tangled.sh/tangled.sh/core/spindle/db"
-	"tangled.sh/tangled.sh/core/spindle/models"
-	"tangled.sh/tangled.sh/core/spindle/secrets"
+	"tangled.org/core/notifier"
+	"tangled.org/core/spindle/config"
+	"tangled.org/core/spindle/db"
+	"tangled.org/core/spindle/models"
+	"tangled.org/core/spindle/secrets"
 )
 
 var (

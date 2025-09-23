@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cloudflare-go"
-	"tangled.sh/tangled.sh/core/appview/config"
+	"tangled.org/core/appview/config"
 )
 
 type Record struct {

@@ -73,7 +73,7 @@ dependencies:
     - nodejs
     - go
   # custom registry
-  git+https://tangled.sh/@example.com/my_pkg:
+  git+https://tangled.org/@example.com/my_pkg:
     - my_pkg
 ```
 
@@ -141,7 +141,7 @@ dependencies:
     - nodejs
     - go
   # custom registry
-  git+https://tangled.sh/@example.com/my_pkg:
+  git+https://tangled.org/@example.com/my_pkg:
     - my_pkg
 
 environment:

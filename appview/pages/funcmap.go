@@ -19,9 +19,9 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/go-enry/go-enry/v2"
-	"tangled.sh/tangled.sh/core/appview/filetree"
-	"tangled.sh/tangled.sh/core/appview/pages/markup"
-	"tangled.sh/tangled.sh/core/crypto"
+	"tangled.org/core/appview/filetree"
+	"tangled.org/core/appview/pages/markup"
+	"tangled.org/core/crypto"
 )
 
 func (p *Pages) funcMap() template.FuncMap {

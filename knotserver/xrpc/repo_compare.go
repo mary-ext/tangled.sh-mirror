@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	"tangled.sh/tangled.sh/core/types"
-	xrpcerr "tangled.sh/tangled.sh/core/xrpc/errors"
+	"tangled.org/core/knotserver/git"
+	"tangled.org/core/types"
+	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
 func (x *Xrpc) RepoCompare(w http.ResponseWriter, r *http.Request) {

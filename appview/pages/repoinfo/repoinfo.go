@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.sh/tangled.sh/core/appview/db"
-	"tangled.sh/tangled.sh/core/appview/state/userutil"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/state/userutil"
 )
 
 func (r RepoInfo) OwnerWithAt() string {

@@ -44,7 +44,7 @@ export BAO_TOKEN=root
 ### production
 
 You would typically use a systemd service with a configuration file. Refer to
-[@tangled.sh/infra](https://tangled.sh/@tangled.sh/infra) for how this can be
+[@tangled.org/infra](https://tangled.org/@tangled.org/infra) for how this can be
 achieved using Nix.
 
 Then, initialize the bao server:

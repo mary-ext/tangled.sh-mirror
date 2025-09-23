@@ -13,14 +13,14 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"tangled.sh/tangled.sh/core/api/tangled"
-	"tangled.sh/tangled.sh/core/hook"
-	"tangled.sh/tangled.sh/core/knotserver/config"
-	"tangled.sh/tangled.sh/core/knotserver/db"
-	"tangled.sh/tangled.sh/core/knotserver/git"
-	"tangled.sh/tangled.sh/core/notifier"
-	"tangled.sh/tangled.sh/core/rbac"
-	"tangled.sh/tangled.sh/core/workflow"
+	"tangled.org/core/api/tangled"
+	"tangled.org/core/hook"
+	"tangled.org/core/knotserver/config"
+	"tangled.org/core/knotserver/db"
+	"tangled.org/core/knotserver/git"
+	"tangled.org/core/notifier"
+	"tangled.org/core/rbac"
+	"tangled.org/core/workflow"
 )
 
 type InternalHandle struct {
