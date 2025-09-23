@@ -324,7 +324,7 @@ func (p *Pages) UserEmailsSettings(w io.Writer, params UserEmailsSettingsParams)
 }
 
 type UpgradeBannerParams struct {
-	Registrations []db.Registration
+	Registrations []models.Registration
 	Spindles      []db.Spindle
 }
 
@@ -334,7 +334,7 @@ func (p *Pages) UpgradeBanner(w io.Writer, params UpgradeBannerParams) error {
 
 type KnotsParams struct {
 	LoggedInUser  *oauth.User
-	Registrations []db.Registration
+	Registrations []models.Registration
 }
 
 func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
@@ -343,7 +343,7 @@ func (p *Pages) Knots(w io.Writer, params KnotsParams) error {
 
 type KnotParams struct {
 	LoggedInUser *oauth.User
-	Registration *db.Registration
+	Registration *models.Registration
 	Members      []string
 	Repos        map[string][]models.Repo
 	IsOwner      bool
@@ -354,7 +354,7 @@ func (p *Pages) Knot(w io.Writer, params KnotParams) error {
 }
 
 type KnotListingParams struct {
-	*db.Registration
+	*models.Registration
 }
 
 func (p *Pages) KnotListing(w io.Writer, params KnotListingParams) error {

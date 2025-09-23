@@ -5,51 +5,12 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"tangled.org/core/appview/models"
 )
 
-// Registration represents a knot registration. Knot would've been a better
-// name but we're stuck with this for historical reasons.
-type Registration struct {
-	Id           int64
-	Domain       string
-	ByDid        string
-	Created      *time.Time
-	Registered   *time.Time
-	NeedsUpgrade bool
-}
-
-func (r *Registration) Status() Status {
-	if r.NeedsUpgrade {
-		return NeedsUpgrade
-	} else if r.Registered != nil {
-		return Registered
-	} else {
-		return Pending
-	}
-}
-
-func (r *Registration) IsRegistered() bool {
-	return r.Status() == Registered
-}
-
-func (r *Registration) IsNeedsUpgrade() bool {
-	return r.Status() == NeedsUpgrade
-}
-
-func (r *Registration) IsPending() bool {
-	return r.Status() == Pending
-}
-
-type Status uint32
-
-const (
-	Registered Status = iota
-	Pending
-	NeedsUpgrade
-)
-
-func GetRegistrations(e Execer, filters ...filter) ([]Registration, error) {
-	var registrations []Registration
+func GetRegistrations(e Execer, filters ...filter) ([]models.Registration, error) {
+	var registrations []models.Registration
 
 	var conditions []string
 	var args []any
@@ -81,7 +42,7 @@ func GetRegistrations(e Execer, filters ...filter) ([]Registration, error) {
 		var createdAt string
 		var registeredAt sql.Null[string]
 		var needsUpgrade int
-		var reg Registration
+		var reg models.Registration
 
 		err = rows.Scan(&reg.Id, &reg.Domain, &reg.ByDid, &createdAt, &registeredAt, &needsUpgrade)
 		if err != nil {
