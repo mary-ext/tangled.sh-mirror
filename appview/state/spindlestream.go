@@ -13,6 +13,7 @@ import (
 	"tangled.org/core/appview/cache"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	ec "tangled.org/core/eventconsumer"
 	"tangled.org/core/eventconsumer/cursor"
 	"tangled.org/core/log"
@@ -89,7 +90,7 @@ func ingestPipelineStatus(ctx context.Context, logger *slog.Logger, d *db.DB, so
 		created = t
 	}
 
-	status := db.PipelineStatus{
+	status := models.PipelineStatus{
 		Spindle:      source.Key(),
 		Rkey:         msg.Rkey,
 		PipelineKnot: strings.TrimPrefix(pipelineUri.Authority().String(), "did:web:"),

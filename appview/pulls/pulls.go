@@ -160,7 +160,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 
 	repoInfo := f.RepoInfo(user)
 
-	m := make(map[string]db.Pipeline)
+	m := make(map[string]models.Pipeline)
 
 	var shas []string
 	for _, s := range pull.Submissions {
@@ -552,7 +552,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		log.Printf("failed to fetch pipeline statuses: %s", err)
 		// non-fatal
 	}
-	m := make(map[string]db.Pipeline)
+	m := make(map[string]models.Pipeline)
 	for _, p := range ps {
 		m[p.Sha] = p
 	}

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages/repoinfo"
 	"tangled.org/core/types"
 
@@ -143,8 +144,8 @@ func getPipelineStatuses(
 	d *db.DB,
 	repoInfo repoinfo.RepoInfo,
 	shas []string,
-) (map[string]db.Pipeline, error) {
-	m := make(map[string]db.Pipeline)
+) (map[string]models.Pipeline, error) {
+	m := make(map[string]models.Pipeline)
 
 	if len(shas) == 0 {
 		return m, nil

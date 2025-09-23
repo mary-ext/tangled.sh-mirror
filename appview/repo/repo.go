@@ -400,7 +400,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		// non-fatal
 	}
-	var pipeline *db.Pipeline
+	var pipeline *models.Pipeline
 	if p, ok := pipelines[result.Diff.Commit.This]; ok {
 		pipeline = &p
 	}

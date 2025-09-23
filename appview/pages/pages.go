@@ -588,7 +588,7 @@ type RepoIndexParams struct {
 	EmailToDidOrHandle map[string]string
 	VerifiedCommits    commitverify.VerifiedCommits
 	Languages          []types.RepoLanguageDetails
-	Pipelines          map[string]db.Pipeline
+	Pipelines          map[string]models.Pipeline
 	NeedsKnotUpgrade   bool
 	types.RepoIndexResponse
 }
@@ -631,7 +631,7 @@ type RepoLogParams struct {
 	Active             string
 	EmailToDidOrHandle map[string]string
 	VerifiedCommits    commitverify.VerifiedCommits
-	Pipelines          map[string]db.Pipeline
+	Pipelines          map[string]models.Pipeline
 }
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
@@ -644,7 +644,7 @@ type RepoCommitParams struct {
 	RepoInfo           repoinfo.RepoInfo
 	Active             string
 	EmailToDidOrHandle map[string]string
-	Pipeline           *db.Pipeline
+	Pipeline           *models.Pipeline
 	DiffOpts           types.DiffOpts
 
 	// singular because it's always going to be just one
@@ -1023,7 +1023,7 @@ type RepoPullsParams struct {
 	Active       string
 	FilteringBy  models.PullState
 	Stacks       map[string]models.Stack
-	Pipelines    map[string]db.Pipeline
+	Pipelines    map[string]models.Pipeline
 }
 
 func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
@@ -1058,7 +1058,7 @@ type RepoSinglePullParams struct {
 	AbandonedPulls []*models.Pull
 	MergeCheck     types.MergeCheckResponse
 	ResubmitCheck  ResubmitResult
-	Pipelines      map[string]db.Pipeline
+	Pipelines      map[string]models.Pipeline
 
 	OrderedReactionKinds []db.ReactionKind
 	Reactions            map[db.ReactionKind]int
@@ -1260,7 +1260,7 @@ func (p *Pages) EditLabelPanel(w io.Writer, params EditLabelPanelParams) error {
 type PipelinesParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Pipelines    []db.Pipeline
+	Pipelines    []models.Pipeline
 	Active       string
 }
 
@@ -1292,7 +1292,7 @@ func (p *Pages) LogLine(w io.Writer, params LogLineParams) error {
 type WorkflowParams struct {
 	LoggedInUser *oauth.User
 	RepoInfo     repoinfo.RepoInfo
-	Pipeline     db.Pipeline
+	Pipeline     models.Pipeline
 	Workflow     string
 	LogUrl       string
 	Active       string

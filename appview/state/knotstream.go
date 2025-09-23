@@ -208,7 +208,7 @@ func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
 	}
 
 	// trigger info
-	var trigger db.Trigger
+	var trigger models.Trigger
 	var sha string
 	trigger.Kind = workflow.TriggerKind(record.TriggerMetadata.Kind)
 	switch trigger.Kind {
@@ -235,7 +235,7 @@ func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
 		return fmt.Errorf("failed to add trigger entry: %w", err)
 	}
 
-	pipeline := db.Pipeline{
+	pipeline := models.Pipeline{
 		Rkey:      msg.Rkey,
 		Knot:      source.Key(),
 		RepoOwner: syntax.DID(record.TriggerMetadata.Repo.Did),

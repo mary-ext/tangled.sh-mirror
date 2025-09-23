@@ -6,133 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/go-git/go-git/v5/plumbing"
-	spindle "tangled.org/core/spindle/models"
-	"tangled.org/core/workflow"
+	"tangled.org/core/appview/models"
 )
 
-type Pipeline struct {
-	Id        int
-	Rkey      string
-	Knot      string
-	RepoOwner syntax.DID
-	RepoName  string
-	TriggerId int
-	Sha       string
-	Created   time.Time
-
-	// populate when querying for reverse mappings
-	Trigger  *Trigger
-	Statuses map[string]WorkflowStatus
-}
-
-type WorkflowStatus struct {
-	Data []PipelineStatus
-}
-
-func (w WorkflowStatus) Latest() PipelineStatus {
-	return w.Data[len(w.Data)-1]
-}
-
-// time taken by this workflow to reach an "end state"
-func (w WorkflowStatus) TimeTaken() time.Duration {
-	var start, end *time.Time
-	for _, s := range w.Data {
-		if s.Status.IsStart() {
-			start = &s.Created
-		}
-		if s.Status.IsFinish() {
-			end = &s.Created
-		}
-	}
-
-	if start != nil && end != nil && end.After(*start) {
-		return end.Sub(*start)
-	}
-
-	return 0
-}
-
-func (p Pipeline) Counts() map[string]int {
-	m := make(map[string]int)
-	for _, w := range p.Statuses {
-		m[w.Latest().Status.String()] += 1
-	}
-	return m
-}
-
-func (p Pipeline) TimeTaken() time.Duration {
-	var s time.Duration
-	for _, w := range p.Statuses {
-		s += w.TimeTaken()
-	}
-	return s
-}
-
-func (p Pipeline) Workflows() []string {
-	var ws []string
-	for v := range p.Statuses {
-		ws = append(ws, v)
-	}
-	slices.Sort(ws)
-	return ws
-}
-
-// if we know that a spindle has picked up this pipeline, then it is Responding
-func (p Pipeline) IsResponding() bool {
-	return len(p.Statuses) != 0
-}
-
-type Trigger struct {
-	Id   int
-	Kind workflow.TriggerKind
-
-	// push trigger fields
-	PushRef    *string
-	PushNewSha *string
-	PushOldSha *string
-
-	// pull request trigger fields
-	PRSourceBranch *string
-	PRTargetBranch *string
-	PRSourceSha    *string
-	PRAction       *string
-}
-
-func (t *Trigger) IsPush() bool {
-	return t != nil && t.Kind == workflow.TriggerKindPush
-}
-
-func (t *Trigger) IsPullRequest() bool {
-	return t != nil && t.Kind == workflow.TriggerKindPullRequest
-}
-
-func (t *Trigger) TargetRef() string {
-	if t.IsPush() {
-		return plumbing.ReferenceName(*t.PushRef).Short()
-	} else if t.IsPullRequest() {
-		return *t.PRTargetBranch
-	}
-
-	return ""
-}
-
-type PipelineStatus struct {
-	ID           int
-	Spindle      string
-	Rkey         string
-	PipelineKnot string
-	PipelineRkey string
-	Created      time.Time
-	Workflow     string
-	Status       spindle.StatusKind
-	Error        *string
-	ExitCode     int
-}
-
-func GetPipelines(e Execer, filters ...filter) ([]Pipeline, error) {
-	var pipelines []Pipeline
+func GetPipelines(e Execer, filters ...filter) ([]models.Pipeline, error) {
+	var pipelines []models.Pipeline
 
 	var conditions []string
 	var args []any
@@ -156,7 +34,7 @@ func GetPipelines(e Execer, filters ...filter) ([]Pipeline, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var pipeline Pipeline
+		var pipeline models.Pipeline
 		var createdAt string
 		err = rows.Scan(
 			&pipeline.Id,
@@ -185,7 +63,7 @@ func GetPipelines(e Execer, filters ...filter) ([]Pipeline, error) {
 	return pipelines, nil
 }
 
-func AddPipeline(e Execer, pipeline Pipeline) error {
+func AddPipeline(e Execer, pipeline models.Pipeline) error {
 	args := []any{
 		pipeline.Rkey,
 		pipeline.Knot,
@@ -216,7 +94,7 @@ func AddPipeline(e Execer, pipeline Pipeline) error {
 	return err
 }
 
-func AddTrigger(e Execer, trigger Trigger) (int64, error) {
+func AddTrigger(e Execer, trigger models.Trigger) (int64, error) {
 	args := []any{
 		trigger.Kind,
 		trigger.PushRef,
@@ -252,7 +130,7 @@ func AddTrigger(e Execer, trigger Trigger) (int64, error) {
 	return res.LastInsertId()
 }
 
-func AddPipelineStatus(e Execer, status PipelineStatus) error {
+func AddPipelineStatus(e Execer, status models.PipelineStatus) error {
 	args := []any{
 		status.Spindle,
 		status.Rkey,
@@ -290,7 +168,7 @@ func AddPipelineStatus(e Execer, status PipelineStatus) error {
 
 // this is a mega query, but the most useful one:
 // get N pipelines, for each one get the latest status of its N workflows
-func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
+func GetPipelineStatuses(e Execer, filters ...filter) ([]models.Pipeline, error) {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {
@@ -335,10 +213,10 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 	}
 	defer rows.Close()
 
-	pipelines := make(map[string]Pipeline)
+	pipelines := make(map[string]models.Pipeline)
 	for rows.Next() {
-		var p Pipeline
-		var t Trigger
+		var p models.Pipeline
+		var t models.Trigger
 		var created string
 
 		err := rows.Scan(
@@ -370,7 +248,7 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 
 		t.Id = p.TriggerId
 		p.Trigger = &t
-		p.Statuses = make(map[string]WorkflowStatus)
+		p.Statuses = make(map[string]models.WorkflowStatus)
 
 		k := fmt.Sprintf("%s/%s", p.Knot, p.Rkey)
 		pipelines[k] = p
@@ -409,7 +287,7 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var ps PipelineStatus
+		var ps models.PipelineStatus
 		var created string
 
 		err := rows.Scan(
@@ -442,7 +320,7 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 		}
 		statuses, _ := pipeline.Statuses[ps.Workflow]
 		if !ok {
-			pipeline.Statuses[ps.Workflow] = WorkflowStatus{}
+			pipeline.Statuses[ps.Workflow] = models.WorkflowStatus{}
 		}
 
 		// append
@@ -453,10 +331,10 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 		pipelines[key] = pipeline
 	}
 
-	var all []Pipeline
+	var all []models.Pipeline
 	for _, p := range pipelines {
 		for _, s := range p.Statuses {
-			slices.SortFunc(s.Data, func(a, b PipelineStatus) int {
+			slices.SortFunc(s.Data, func(a, b models.PipelineStatus) int {
 				if a.Created.After(b.Created) {
 					return 1
 				}
@@ -476,7 +354,7 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]Pipeline, error) {
 	}
 
 	// sort pipelines by date
-	slices.SortFunc(all, func(a, b Pipeline) int {
+	slices.SortFunc(all, func(a, b models.Pipeline) int {
 		if a.Created.After(b.Created) {
 			return -1
 		}
