@@ -212,7 +212,7 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 func (f *ResolvedRepo) RolesInRepo(u *oauth.User) repoinfo.RolesInRepo {
 	if u != nil {
 		r := f.rr.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.DidSlashRepo())
-		return repoinfo.RolesInRepo{r}
+		return repoinfo.RolesInRepo{Roles: r}
 	} else {
 		return repoinfo.RolesInRepo{}
 	}
