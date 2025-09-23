@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"tangled.org/core/knotserver/git"
 	"tangled.org/core/types"
 	xrpcerr "tangled.org/core/xrpc/errors"
@@ -71,11 +72,26 @@ func (x *Xrpc) RepoCompare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var combinedPatch []*gitdiff.File
+	var combinedPatchRaw string
+	// we need the combined patch
+	if len(formatPatch) >= 2 {
+		diffTree, err := gr.DiffTree(commit1, commit2)
+		if err != nil {
+			x.Logger.Error("error comparing revisions", "msg", err.Error())
+		} else {
+			combinedPatch = diffTree.Diff
+			combinedPatchRaw = diffTree.Patch
+		}
+	}
+
 	response := types.RepoFormatPatchResponse{
-		Rev1:        commit1.Hash.String(),
-		Rev2:        commit2.Hash.String(),
-		FormatPatch: formatPatch,
-		Patch:       rawPatch,
+		Rev1:             commit1.Hash.String(),
+		Rev2:             commit2.Hash.String(),
+		FormatPatch:      formatPatch,
+		FormatPatchRaw:   rawPatch,
+		CombinedPatch:    combinedPatch,
+		CombinedPatchRaw: combinedPatchRaw,
 	}
 
 	writeJson(w, response)

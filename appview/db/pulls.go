@@ -87,9 +87,9 @@ func NewPull(tx *sql.Tx, pull *models.Pull) error {
 	pull.ID = int(id)
 
 	_, err = tx.Exec(`
-		insert into pull_submissions (pull_id, repo_at, round_number, patch, source_rev)
+		insert into pull_submissions (pull_id, repo_at, round_number, patch, combined, source_rev)
 		values (?, ?, ?, ?, ?)
-	`, pull.PullId, pull.RepoAt, 0, pull.Submissions[0].Patch, pull.Submissions[0].SourceRev)
+	`, pull.PullId, pull.RepoAt, 0, pull.Submissions[0].Patch, pull.Submissions[0].Combined, pull.Submissions[0].SourceRev)
 	return err
 }
 
@@ -218,7 +218,7 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 	inClause := strings.TrimSuffix(strings.Repeat("?, ", len(pulls)), ", ")
 	submissionsQuery := fmt.Sprintf(`
 		select
-			id, pull_id, round_number, patch, created, source_rev
+			id, pull_id, round_number, patch, combined, created, source_rev
 		from
 			pull_submissions
 		where
@@ -243,13 +243,14 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 
 	for submissionsRows.Next() {
 		var s models.PullSubmission
-		var sourceRev sql.NullString
+		var sourceRev, combined sql.NullString
 		var createdAt string
 		err := submissionsRows.Scan(
 			&s.ID,
 			&s.PullId,
 			&s.RoundNumber,
 			&s.Patch,
+			&combined,
 			&createdAt,
 			&sourceRev,
 		)
@@ -265,6 +266,10 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 
 		if sourceRev.Valid {
 			s.SourceRev = sourceRev.String
+		}
+
+		if combined.Valid {
+			s.Combined = combined.String
 		}
 
 		if p, ok := pulls[s.PullId]; ok {
@@ -412,7 +417,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*models.Pull, error) {
 
 	submissionsQuery := `
 		select
-			id, pull_id, repo_at, round_number, patch, created, source_rev
+			id, pull_id, repo_at, round_number, patch, combined, created, source_rev
 		from
 			pull_submissions
 		where
@@ -429,13 +434,14 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*models.Pull, error) {
 	for submissionsRows.Next() {
 		var submission models.PullSubmission
 		var submissionCreatedStr string
-		var submissionSourceRev sql.NullString
+		var submissionSourceRev, submissionCombined sql.NullString
 		err := submissionsRows.Scan(
 			&submission.ID,
 			&submission.PullId,
 			&submission.RepoAt,
 			&submission.RoundNumber,
 			&submission.Patch,
+			&submissionCombined,
 			&submissionCreatedStr,
 			&submissionSourceRev,
 		)
@@ -451,6 +457,10 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*models.Pull, error) {
 
 		if submissionSourceRev.Valid {
 			submission.SourceRev = submissionSourceRev.String
+		}
+
+		if submissionCombined.Valid {
+			submission.Combined = submissionCombined.String
 		}
 
 		submissionsMap[submission.ID] = &submission
@@ -674,10 +684,10 @@ func DeletePull(e Execer, repoAt syntax.ATURI, pullId int) error {
 	return err
 }
 
-func ResubmitPull(e Execer, pull *models.Pull, newPatch, sourceRev string) error {
+func ResubmitPull(e Execer, pull *models.Pull, newPatch, combined, sourceRev string) error {
 	newRoundNumber := len(pull.Submissions)
 	_, err := e.Exec(`
-		insert into pull_submissions (pull_id, repo_at, round_number, patch, source_rev)
+		insert into pull_submissions (pull_id, repo_at, round_number, patch, combined, source_rev)
 		values (?, ?, ?, ?, ?)
 	`, pull.PullId, pull.RepoAt, newRoundNumber, newPatch, sourceRev)
 
