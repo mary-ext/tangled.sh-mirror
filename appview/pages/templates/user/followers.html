@@ -10,7 +10,14 @@
   <p class="text-sm font-bold p-2 dark:text-white">ALL FOLLOWERS</p>
   <div id="followers" class="grid grid-cols-1 gap-4 mb-6">
     {{ range .Followers }}
-       {{ template "user/fragments/followCard" . }}
+       {{ template "user/fragments/followCard"
+          (dict
+              "LoggedInUser" $.LoggedInUser
+              "UserDid" .UserDid
+              "Profile" .Profile
+              "FollowStatus" .FollowStatus
+              "FollowersCount" .FollowersCount
+              "FollowingCount" .FollowingCount) }}
     {{ else }}
         <p class="px-6 dark:text-white">This user does not have any followers yet.</p>
     {{ end }}
