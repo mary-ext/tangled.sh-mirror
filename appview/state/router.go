@@ -175,7 +175,7 @@ func (s *State) Core() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("go-get") == "1" {
 			w.Header().Set("Content-Type", "text/html")
-			w.Write([]byte(`<meta name="go-import" content="tangled.org/core git https://tangled.org/tangled.org/core">`))
+			w.Write([]byte(`<meta name="go-import" content="tangled.org/core git https://tangled.org/@tangled.org/core">`))
 			return
 		}
 
