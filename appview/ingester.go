@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 
 	"time"
 
@@ -80,6 +82,8 @@ func (i *Ingester) Ingest() processFunc {
 				err = i.ingestIssueComment(e)
 			case tangled.LabelDefinitionNSID:
 				err = i.ingestLabelDefinition(e)
+			case tangled.LabelOpNSID:
+				err = i.ingestLabelOp(e)
 			}
 			l = i.Logger.With("nsid", e.Commit.Collection)
 		}
@@ -949,6 +953,82 @@ func (i *Ingester) ingestLabelDefinition(e *jmodels.Event) error {
 		}
 
 		return nil
+	}
+
+	return nil
+}
+
+func (i *Ingester) ingestLabelOp(e *jmodels.Event) error {
+	did := e.Did
+	rkey := e.Commit.RKey
+
+	var err error
+
+	l := i.Logger.With("handler", "ingestLabelOp", "nsid", e.Commit.Collection, "did", did, "rkey", rkey)
+	l.Info("ingesting record")
+
+	ddb, ok := i.Db.Execer.(*db.DB)
+	if !ok {
+		return fmt.Errorf("failed to index label op, invalid db cast")
+	}
+
+	switch e.Commit.Operation {
+	case jmodels.CommitOperationCreate:
+		raw := json.RawMessage(e.Commit.Record)
+		record := tangled.LabelOp{}
+		err = json.Unmarshal(raw, &record)
+		if err != nil {
+			return fmt.Errorf("invalid record: %w", err)
+		}
+
+		subject := syntax.ATURI(record.Subject)
+		collection := subject.Collection()
+
+		var repo *models.Repo
+		switch collection {
+		case tangled.RepoIssueNSID:
+			i, err := db.GetIssues(ddb, db.FilterEq("at_uri", subject))
+			if err != nil || len(i) != 1 {
+				return fmt.Errorf("failed to find subject: %w || subject count %d", err, len(i))
+			}
+			repo = i[0].Repo
+		default:
+			return fmt.Errorf("unsupport label subject: %s", collection)
+		}
+
+		actx, err := db.NewLabelApplicationCtx(ddb, db.FilterIn("at_uri", repo.Labels))
+		if err != nil {
+			return fmt.Errorf("failed to build label application ctx: %w", err)
+		}
+
+		ops := models.LabelOpsFromRecord(did, rkey, record)
+
+		for _, o := range ops {
+			def, ok := actx.Defs[o.OperandKey]
+			if !ok {
+				return fmt.Errorf("failed to find label def for key: %s, expected: %q", o.OperandKey, slices.Collect(maps.Keys(actx.Defs)))
+			}
+			if err := i.Validator.ValidateLabelOp(def, &o); err != nil {
+				return fmt.Errorf("failed to validate labelop: %w", err)
+			}
+		}
+
+		tx, err := ddb.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
+		for _, o := range ops {
+			_, err = db.AddLabelOp(tx, &o)
+			if err != nil {
+				return fmt.Errorf("failed to add labelop: %w", err)
+			}
+		}
+
+		if err = tx.Commit(); err != nil {
+			return err
+		}
 	}
 
 	return nil

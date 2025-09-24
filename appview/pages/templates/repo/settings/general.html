@@ -46,12 +46,42 @@
 
 {{ define "defaultLabelSettings" }}
   <div class="flex flex-col gap-2">
-    <h2 class="text-sm pb-2 uppercase font-bold">Default Labels</h2>
-    <p class="text-gray-500 dark:text-gray-400">
-      Manage your issues and pulls by creating labels to categorize them. Only
-      repository owners may configure labels. You may choose to subscribe to
-      default labels, or create entirely custom labels.
-    </p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <div class="col-span-1 md:col-span-2">
+        <h2 class="text-sm pb-2 uppercase font-bold">Default Labels</h2>
+        <p class="text-gray-500 dark:text-gray-400">
+          Manage your issues and pulls by creating labels to categorize them. Only
+          repository owners may configure labels. You may choose to subscribe to
+          default labels, or create entirely custom labels.
+        <p>
+      </div>
+      <form class="col-span-1 md:col-span-1 md:justify-self-end">
+        {{ $title := "Unubscribe from all labels" }}
+        {{ $icon := "x" }}
+        {{ $text := "unsubscribe all" }}
+        {{ $action := "unsubscribe" }}
+        {{ if $.ShouldSubscribeAll }}
+          {{ $title = "Subscribe to all labels" }}
+          {{ $icon = "check-check" }}
+          {{ $text = "subscribe all" }}
+          {{ $action = "subscribe" }}
+        {{ end }}
+        {{ range .DefaultLabels }}
+          <input type="hidden" name="label" value="{{ .AtUri.String }}">
+        {{ end }}
+        <button
+          type="submit"
+          title="{{$title}}" 
+          class="btn flex items-center gap-2 group"
+          hx-swap="none"
+          hx-post="/{{ $.RepoInfo.FullName }}/settings/label/{{$action}}"
+          {{ if not .RepoInfo.Roles.IsOwner }}disabled{{ end }}>
+          {{ i $icon "size-4" }}
+          {{ $text }}
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </button>
+      </form>
+    </div>
     <div class="flex flex-col rounded border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 w-full">
       {{ range .DefaultLabels }}
         <div id="label-{{.Id}}" class="flex items-center justify-between p-2 pl-4">

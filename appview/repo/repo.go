@@ -1248,21 +1248,31 @@ func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := r.ParseForm(); err != nil {
+		l.Error("invalid form", "err", err)
+		return
+	}
+
 	errorId := "default-label-operation"
 	fail := func(msg string, err error) {
 		l.Error(msg, "err", err)
 		rp.pages.Notice(w, errorId, msg)
 	}
 
-	labelAt := r.FormValue("label")
-	_, err = db.GetLabelDefinition(rp.db, db.FilterEq("at_uri", labelAt))
+	labelAts := r.Form["label"]
+	_, err = db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", labelAts))
 	if err != nil {
 		fail("Failed to subscribe to label.", err)
 		return
 	}
 
 	newRepo := f.Repo
-	newRepo.Labels = append(newRepo.Labels, labelAt)
+	newRepo.Labels = append(newRepo.Labels, labelAts...)
+
+	// dedup
+	slices.Sort(newRepo.Labels)
+	newRepo.Labels = slices.Compact(newRepo.Labels)
+
 	repoRecord := newRepo.AsRecord()
 
 	client, err := rp.oauth.AuthorizedClient(r)
@@ -1286,11 +1296,25 @@ func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	err = db.SubscribeLabel(rp.db, &models.RepoLabel{
-		RepoAt:  f.RepoAt(),
-		LabelAt: syntax.ATURI(labelAt),
-	})
+	tx, err := rp.db.Begin()
 	if err != nil {
+		fail("Failed to subscribe to label.", err)
+		return
+	}
+	defer tx.Rollback()
+
+	for _, l := range labelAts {
+		err = db.SubscribeLabel(tx, &models.RepoLabel{
+			RepoAt:  f.RepoAt(),
+			LabelAt: syntax.ATURI(l),
+		})
+		if err != nil {
+			fail("Failed to subscribe to label.", err)
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		fail("Failed to subscribe to label.", err)
 		return
 	}
@@ -1311,14 +1335,19 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := r.ParseForm(); err != nil {
+		l.Error("invalid form", "err", err)
+		return
+	}
+
 	errorId := "default-label-operation"
 	fail := func(msg string, err error) {
 		l.Error(msg, "err", err)
 		rp.pages.Notice(w, errorId, msg)
 	}
 
-	labelAt := r.FormValue("label")
-	_, err = db.GetLabelDefinition(rp.db, db.FilterEq("at_uri", labelAt))
+	labelAts := r.Form["label"]
+	_, err = db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", labelAts))
 	if err != nil {
 		fail("Failed to unsubscribe to label.", err)
 		return
@@ -1328,7 +1357,7 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 	newRepo := f.Repo
 	var updated []string
 	for _, l := range newRepo.Labels {
-		if l != labelAt {
+		if !slices.Contains(labelAts, l) {
 			updated = append(updated, l)
 		}
 	}
@@ -1359,7 +1388,7 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 	err = db.UnsubscribeLabel(
 		rp.db,
 		db.FilterEq("repo_at", f.RepoAt()),
-		db.FilterEq("label_at", labelAt),
+		db.FilterIn("label_at", labelAts),
 	)
 	if err != nil {
 		fail("Failed to unsubscribe label.", err)
@@ -1927,15 +1956,27 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 		subscribedLabels[l] = struct{}{}
 	}
 
+	// if there is atleast 1 unsubbed default label, show the "subscribe all" button,
+	// if all default labels are subbed, show the "unsubscribe all" button
+	shouldSubscribeAll := false
+	for _, dl := range defaultLabels {
+		if _, ok := subscribedLabels[dl.AtUri().String()]; !ok {
+			// one of the default labels is not subscribed to
+			shouldSubscribeAll = true
+			break
+		}
+	}
+
 	rp.pages.RepoGeneralSettings(w, pages.RepoGeneralSettingsParams{
-		LoggedInUser:     user,
-		RepoInfo:         f.RepoInfo(user),
-		Branches:         result.Branches,
-		Labels:           labels,
-		DefaultLabels:    defaultLabels,
-		SubscribedLabels: subscribedLabels,
-		Tabs:             settingsTabs,
-		Tab:              "general",
+		LoggedInUser:       user,
+		RepoInfo:           f.RepoInfo(user),
+		Branches:           result.Branches,
+		Labels:             labels,
+		DefaultLabels:      defaultLabels,
+		SubscribedLabels:   subscribedLabels,
+		ShouldSubscribeAll: shouldSubscribeAll,
+		Tabs:               settingsTabs,
+		Tab:                "general",
 	})
 }
 
@@ -2150,6 +2191,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			Source:      sourceAt,
 			Description: existingRepo.Description,
 			Created:     time.Now(),
+			Labels:      models.DefaultLabelDefs(),
 		}
 		record := repo.AsRecord()
 

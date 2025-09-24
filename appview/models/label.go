@@ -1,16 +1,21 @@
 package models
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"time"
 
+	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/bluesky-social/indigo/xrpc"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/consts"
+	"tangled.org/core/idresolver"
 )
 
 type ConcreteType string
@@ -470,4 +475,66 @@ func DefaultLabelDefs() []string {
 	}
 
 	return defs
+}
+
+func FetchDefaultDefs(r *idresolver.Resolver) ([]LabelDefinition, error) {
+	resolved, err := r.ResolveIdent(context.Background(), consts.TangledDid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve tangled.sh DID %s: %v", consts.TangledDid, err)
+	}
+	pdsEndpoint := resolved.PDSEndpoint()
+	if pdsEndpoint == "" {
+		return nil, fmt.Errorf("no PDS endpoint found for tangled.sh DID %s", consts.TangledDid)
+	}
+	client := &xrpc.Client{
+		Host: pdsEndpoint,
+	}
+
+	var labelDefs []LabelDefinition
+
+	for _, dl := range DefaultLabelDefs() {
+		atUri := syntax.ATURI(dl)
+		parsedUri, err := syntax.ParseATURI(string(atUri))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse AT-URI %s: %v", atUri, err)
+		}
+		record, err := atproto.RepoGetRecord(
+			context.Background(),
+			client,
+			"",
+			parsedUri.Collection().String(),
+			parsedUri.Authority().String(),
+			parsedUri.RecordKey().String(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get record for %s: %v", atUri, err)
+		}
+
+		if record != nil {
+			bytes, err := record.Value.MarshalJSON()
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal record value for %s: %v", atUri, err)
+			}
+
+			raw := json.RawMessage(bytes)
+			labelRecord := tangled.LabelDefinition{}
+			err = json.Unmarshal(raw, &labelRecord)
+			if err != nil {
+				return nil, fmt.Errorf("invalid record for %s: %w", atUri, err)
+			}
+
+			labelDef, err := LabelDefinitionFromRecord(
+				parsedUri.Authority().String(),
+				parsedUri.RecordKey().String(),
+				labelRecord,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create label definition from record %s: %v", atUri, err)
+			}
+
+			labelDefs = append(labelDefs, *labelDef)
+		}
+	}
+
+	return labelDefs, nil
 }

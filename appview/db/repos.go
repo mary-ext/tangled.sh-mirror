@@ -345,14 +345,27 @@ func GetRepoByAtUri(e Execer, atUri string) (*models.Repo, error) {
 	return &repo, nil
 }
 
-func AddRepo(e Execer, repo *models.Repo) error {
-	_, err := e.Exec(
+func AddRepo(tx *sql.Tx, repo *models.Repo) error {
+	_, err := tx.Exec(
 		`insert into repos
 		(did, name, knot, rkey, at_uri, description, source)
 		values (?, ?, ?, ?, ?, ?, ?)`,
 		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.RepoAt().String(), repo.Description, repo.Source,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to insert repo: %w", err)
+	}
+
+	for _, dl := range repo.Labels {
+		if err := SubscribeLabel(tx, &models.RepoLabel{
+			RepoAt:  repo.RepoAt(),
+			LabelAt: syntax.ATURI(dl),
+		}); err != nil {
+			return fmt.Errorf("failed to subscribe to label: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func RemoveRepo(e Execer, did, name string) error {

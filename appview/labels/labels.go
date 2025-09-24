@@ -104,9 +104,6 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	l.logger.Info("actx", "labels", labelAts)
-	l.logger.Info("actx", "defs", actx.Defs)
-
 	// calculate the start state by applying already known labels
 	existingOps, err := db.GetLabelOps(l.db, db.FilterEq("subject", subjectUri))
 	if err != nil {

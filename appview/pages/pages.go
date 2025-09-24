@@ -834,15 +834,16 @@ func (p *Pages) RepoSettings(w io.Writer, params RepoSettingsParams) error {
 }
 
 type RepoGeneralSettingsParams struct {
-	LoggedInUser     *oauth.User
-	RepoInfo         repoinfo.RepoInfo
-	Labels           []models.LabelDefinition
-	DefaultLabels    []models.LabelDefinition
-	SubscribedLabels map[string]struct{}
-	Active           string
-	Tabs             []map[string]any
-	Tab              string
-	Branches         []types.Branch
+	LoggedInUser       *oauth.User
+	RepoInfo           repoinfo.RepoInfo
+	Labels             []models.LabelDefinition
+	DefaultLabels      []models.LabelDefinition
+	SubscribedLabels   map[string]struct{}
+	ShouldSubscribeAll bool
+	Active             string
+	Tabs               []map[string]any
+	Tab                string
+	Branches           []types.Branch
 }
 
 func (p *Pages) RepoGeneralSettings(w io.Writer, params RepoGeneralSettingsParams) error {
