@@ -527,8 +527,7 @@ func Make(dbPath string) (*DB, error) {
 			-- label to subscribe to
 			label_at text not null,
 
-			unique (repo_at, label_at),
-			foreign key (label_at) references label_definitions (at_uri)
+			unique (repo_at, label_at)
 		);
 
 		create table if not exists migrations (

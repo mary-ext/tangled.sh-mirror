@@ -103,6 +103,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 			tangled.RepoIssueNSID,
 			tangled.RepoIssueCommentNSID,
 			tangled.LabelDefinitionNSID,
+			tangled.LabelOpNSID,
 		},
 		nil,
 		slog.Default(),
@@ -115,6 +116,10 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
+	}
+
+	if err := db.BackfillDefaultDefs(d, res); err != nil {
+		return nil, fmt.Errorf("failed to backfill default label defs: %w", err)
 	}
 
 	ingester := appview.Ingester{
@@ -440,6 +445,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			Rkey:        rkey,
 			Description: description,
 			Created:     time.Now(),
+			Labels:      models.DefaultLabelDefs(),
 		}
 		record := repo.AsRecord()
 
@@ -579,4 +585,31 @@ func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client)
 		Rkey:       rkey,
 	})
 	return err
+}
+
+func BackfillDefaultDefs(e db.Execer, r *idresolver.Resolver) error {
+	defaults := models.DefaultLabelDefs()
+	defaultLabels, err := db.GetLabelDefinitions(e, db.FilterIn("at_uri", defaults))
+	if err != nil {
+		return err
+	}
+	// already present
+	if len(defaultLabels) == len(defaults) {
+		return nil
+	}
+
+	labelDefs, err := models.FetchDefaultDefs(r)
+	if err != nil {
+		return err
+	}
+
+	// Insert each label definition to the database
+	for _, labelDef := range labelDefs {
+		_, err = db.AddLabelDefinition(e, &labelDef)
+		if err != nil {
+			return fmt.Errorf("failed to add label definition %s: %v", labelDef.Name, err)
+		}
+	}
+
+	return nil
 }
