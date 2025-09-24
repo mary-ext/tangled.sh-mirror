@@ -118,7 +118,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
 
-	if err := db.BackfillDefaultDefs(d, res); err != nil {
+	if err := BackfillDefaultDefs(d, res); err != nil {
 		return nil, fmt.Errorf("failed to backfill default label defs: %w", err)
 	}
 
