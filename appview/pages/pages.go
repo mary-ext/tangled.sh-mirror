@@ -484,6 +484,7 @@ func (p *Pages) ProfileStrings(w io.Writer, params ProfileStringsParams) error {
 
 type FollowCard struct {
 	UserDid        string
+	LoggedInUser   *oauth.User
 	FollowStatus   models.FollowStatus
 	FollowersCount int64
 	FollowingCount int64

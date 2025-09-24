@@ -336,6 +336,7 @@ func (s *State) followPage(
 			profile.Did = did
 		}
 		followCards[i] = pages.FollowCard{
+			LoggedInUser:   loggedInUser,
 			UserDid:        did,
 			FollowStatus:   followStatus,
 			FollowersCount: followStats.Followers,

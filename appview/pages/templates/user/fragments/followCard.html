@@ -6,24 +6,27 @@
       <img class="object-cover rounded-full p-2" src="{{ fullAvatar $userIdent }}" />
     </div>
 
-    <div class="flex-1 min-h-0 justify-around flex flex-col">
-      <a href="/{{ $userIdent }}">
-        <span class="font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">{{ $userIdent | truncateAt30 }}</span>
-      </a>
-      <p class="text-sm pb-2 md:pb-2">{{.Profile.Description}}</p>
-      <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-        <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
-        <span id="followers"><a href="/{{ $userIdent }}?tab=followers">{{ .FollowersCount }} followers</a></span>
-        <span class="select-none after:content-['·']"></span>
-        <span id="following"><a href="/{{ $userIdent }}?tab=following">{{ .FollowingCount }} following</a></span>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 w-full">
+      <div class="flex-1 min-h-0 justify-around flex flex-col">
+        <a href="/{{ $userIdent }}">
+          <span class="font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-full">{{ $userIdent | truncateAt30 }}</span>
+        </a>
+        {{ with .Profile }}
+        <p class="text-sm pb-2 md:pb-2">{{.Description}}</p>
+        {{ end }}
+        <div class="text-sm flex items-center gap-2 my-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+          <span class="flex-shrink-0">{{ i "users" "size-4" }}</span>
+          <span id="followers"><a href="/{{ $userIdent }}?tab=followers">{{ .FollowersCount }} followers</a></span>
+          <span class="select-none after:content-['·']"></span>
+          <span id="following"><a href="/{{ $userIdent }}?tab=following">{{ .FollowingCount }} following</a></span>
+        </div>
       </div>
-    </div>
-    
-    {{ if ne .FollowStatus.String "IsSelf" }}
-      <div class="max-w-24">
+      {{ if and .LoggedInUser (ne .FollowStatus.String "IsSelf") }}
+      <div class="w-full md:w-auto md:max-w-24 order-last md:order-none">
         {{ template "user/fragments/follow" . }}
       </div>
-    {{ end }}
+      {{ end }}
+    </div>
   </div>
 </div>
 {{ end }}
