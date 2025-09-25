@@ -26,9 +26,12 @@
 {{ end }}
 
 {{ define "stringCard" }}
+  {{ $resolved := resolve .Did.String }}
   <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
-      <div class="font-medium dark:text-white flex gap-2 items-center">
-        <a href="/strings/{{ resolve .Did.String }}/{{ .Rkey }}">{{ .Filename }}</a>
+      <div class="font-medium dark:text-white flex flex-wrap gap-1 items-center">
+        <a href="/strings/{{ $resolved }}" class="flex gap-1 items-center">{{ template "user/fragments/picHandle" $resolved }}</a>
+        <span class="select-none">/</span>
+        <a href="/strings/{{ $resolved }}/{{ .Rkey }}">{{ .Filename }}</a>
       </div>
       {{ with .Description }}
         <div class="text-gray-600 dark:text-gray-300 text-sm">
@@ -42,12 +45,7 @@
 
 {{ define "stringCardInfo" }}
   {{ $stat := .Stats }}
-  {{ $resolved := resolve .Did.String }}
   <div class="text-gray-400 pt-4 text-sm font-mono inline-flex items-center gap-2 mt-auto">
-    <a href="/strings/{{ $resolved }}" class="flex items-center gap-1">
-        {{ template "user/fragments/picHandle" $resolved }}
-    </a>
-    <span class="select-none [&:before]:content-['·']"></span>
     <span>{{ $stat.LineCount }} line{{if ne $stat.LineCount 1}}s{{end}}</span>
     <span class="select-none [&:before]:content-['·']"></span>
     {{ with .Edited }}
