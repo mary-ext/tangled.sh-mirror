@@ -27,11 +27,6 @@ type GitRepo struct {
 	h    plumbing.Hash
 }
 
-type TagList struct {
-	refs []*TagReference
-	r    *git.Repository
-}
-
 // TagReference is used to list both tag and non-annotated tags.
 // Non-annotated tags should only contains a reference.
 // Annotated tags should contain its reference and its tag information.
@@ -48,44 +43,6 @@ type infoWrapper struct {
 	mode    fs.FileMode
 	modTime time.Time
 	isDir   bool
-}
-
-func (self *TagList) Len() int {
-	return len(self.refs)
-}
-
-func (self *TagList) Swap(i, j int) {
-	self.refs[i], self.refs[j] = self.refs[j], self.refs[i]
-}
-
-// sorting tags in reverse chronological order
-func (self *TagList) Less(i, j int) bool {
-	var dateI time.Time
-	var dateJ time.Time
-
-	if self.refs[i].tag != nil {
-		dateI = self.refs[i].tag.Tagger.When
-	} else {
-		c, err := self.r.CommitObject(self.refs[i].ref.Hash())
-		if err != nil {
-			dateI = time.Now()
-		} else {
-			dateI = c.Committer.When
-		}
-	}
-
-	if self.refs[j].tag != nil {
-		dateJ = self.refs[j].tag.Tagger.When
-	} else {
-		c, err := self.r.CommitObject(self.refs[j].ref.Hash())
-		if err != nil {
-			dateJ = time.Now()
-		} else {
-			dateJ = c.Committer.When
-		}
-	}
-
-	return dateI.After(dateJ)
 }
 
 func Open(path string, ref string) (*GitRepo, error) {
