@@ -2,8 +2,12 @@
     <nav class="space-x-4 px-6 py-2 rounded-b bg-white dark:bg-gray-800 dark:text-white drop-shadow-sm">
         <div class="flex justify-between p-0 items-center">
             <div id="left-items">
-              <a href="/" hx-boost="true" class="text-2xl no-underline hover:no-underline">
-                {{ template "fragments/logotypeSmall" }}
+              <a href="/" hx-boost="true" class="text-2xl no-underline hover:no-underline flex items-center gap-2">
+                {{ template "fragments/dolly/logo" "size-8 text-black dark:text-white" }}
+                <span class="font-bold text-xl not-italic hidden md:inline">tangled</span>
+                <span class="font-normal not-italic text-xs rounded bg-gray-100 dark:bg-gray-700 px-1 hidden md:inline">
+                  alpha
+                </span>
               </a>
             </div>
 
@@ -27,7 +31,7 @@
 {{ define "newButton" }}
 <details class="relative inline-block text-left nav-dropdown">
     <summary class="btn-create py-0 cursor-pointer list-none flex items-center gap-2">
-      {{ i "plus" "w-4 h-4" }} new
+      {{ i "plus" "w-4 h-4" }} <span class="hidden md:inline">new</span>
     </summary>
     <div class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
         <a href="/repo/new" class="flex items-center gap-2">
@@ -48,7 +52,12 @@
         class="cursor-pointer list-none flex items-center gap-1"
     >
         {{ $user := didOrHandle .Did .Handle }}
-        {{ template "user/fragments/picHandle" $user }}
+        <img
+            src="{{ tinyAvatar $user }}"
+            alt=""
+            class="rounded-full h-6 w-6 border border-gray-300 dark:border-gray-700"
+        />
+        <span class="hidden md:inline">{{ $user | resolve | truncateAt30 }}</span>
     </summary>
     <div
         class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700"
