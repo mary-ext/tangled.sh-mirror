@@ -43,6 +43,19 @@ func New(oauth *oauth.OAuth, db *db.DB, enforcer *rbac.Enforcer, repoResolver *r
 
 type middlewareFunc func(http.Handler) http.Handler
 
+func (mw *Middleware) TryRefreshSession() middlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, auth, err := mw.oauth.GetSession(r)
+			if err != nil {
+				log.Println("could not refresh session", "err", err, "auth", auth)
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func AuthMiddleware(a *oauth.OAuth) middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
