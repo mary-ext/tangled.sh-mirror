@@ -1008,7 +1008,7 @@ func (i *Ingester) ingestLabelOp(e *jmodels.Event) error {
 			if !ok {
 				return fmt.Errorf("failed to find label def for key: %s, expected: %q", o.OperandKey, slices.Collect(maps.Keys(actx.Defs)))
 			}
-			if err := i.Validator.ValidateLabelOp(def, &o); err != nil {
+			if err := i.Validator.ValidateLabelOp(def, repo, &o); err != nil {
 				return fmt.Errorf("failed to validate labelop: %w", err)
 			}
 		}
