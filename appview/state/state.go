@@ -79,7 +79,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	cache := cache.New(config.Redis.Addr)
 	sess := session.New(cache)
 	oauth := oauth.NewOAuth(config, sess)
-	validator := validator.New(d, res)
+	validator := validator.New(d, res, enforcer)
 
 	posthog, err := posthog.NewWithConfig(config.Posthog.ApiKey, posthog.Config{Endpoint: config.Posthog.Endpoint})
 	if err != nil {

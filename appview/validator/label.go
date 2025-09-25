@@ -95,12 +95,26 @@ func (v *Validator) ValidateLabelDefinition(label *models.LabelDefinition) error
 	return nil
 }
 
-func (v *Validator) ValidateLabelOp(labelDef *models.LabelDefinition, labelOp *models.LabelOp) error {
+func (v *Validator) ValidateLabelOp(labelDef *models.LabelDefinition, repo *models.Repo, labelOp *models.LabelOp) error {
 	if labelDef == nil {
 		return fmt.Errorf("label definition is required")
 	}
+	if repo == nil {
+		return fmt.Errorf("repo is required")
+	}
 	if labelOp == nil {
 		return fmt.Errorf("label operation is required")
+	}
+
+	// validate permissions: only collaborators can apply labels currently
+	//
+	// TODO: introduce a repo:triage permission
+	ok, err := v.enforcer.IsPushAllowed(labelOp.Did, repo.Knot, repo.DidSlashRepo())
+	if err != nil {
+		return fmt.Errorf("failed to enforce permissions: %w", err)
+	}
+	if !ok {
+		return fmt.Errorf("unauhtorized label operation")
 	}
 
 	expectedKey := labelDef.AtUri().String()

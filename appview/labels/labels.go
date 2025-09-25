@@ -23,6 +23,7 @@ import (
 	"tangled.org/core/appview/validator"
 	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/log"
+	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
 )
 
@@ -32,6 +33,7 @@ type Labels struct {
 	db        *db.DB
 	logger    *slog.Logger
 	validator *validator.Validator
+	enforcer  *rbac.Enforcer
 }
 
 func New(
@@ -39,6 +41,7 @@ func New(
 	pages *pages.Pages,
 	db *db.DB,
 	validator *validator.Validator,
+	enforcer *rbac.Enforcer,
 ) *Labels {
 	logger := log.New("labels")
 
@@ -48,6 +51,7 @@ func New(
 		db:        db,
 		logger:    logger,
 		validator: validator,
+		enforcer:  enforcer,
 	}
 }
 
@@ -85,6 +89,12 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 	indexedAt := time.Now()
 	repoAt := r.Form.Get("repo")
 	subjectUri := r.Form.Get("subject")
+
+	repo, err := db.GetRepo(l.db, db.FilterEq("at_uri", repoAt))
+	if err != nil {
+		fail("Failed to get repository.", err)
+		return
+	}
 
 	// find all the labels that this repo subscribes to
 	repoLabels, err := db.GetRepoLabels(l.db, db.FilterEq("repo_at", repoAt))
@@ -157,7 +167,7 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 
 	for i := range labelOps {
 		def := actx.Defs[labelOps[i].OperandKey]
-		if err := l.validator.ValidateLabelOp(def, &labelOps[i]); err != nil {
+		if err := l.validator.ValidateLabelOp(def, repo, &labelOps[i]); err != nil {
 			fail(fmt.Sprintf("Invalid form data: %s", err), err)
 			return
 		}
