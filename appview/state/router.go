@@ -116,7 +116,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 
 	r.Get("/", s.HomeOrTimeline)
 	r.Get("/timeline", s.Timeline)
-	r.With(middleware.AuthMiddleware(s.oauth)).Get("/upgradeBanner", s.UpgradeBanner)
+	r.Get("/upgradeBanner", s.UpgradeBanner)
 
 	// special-case handler for serving tangled.org/core
 	r.Get("/core", s.Core())
