@@ -27,14 +27,6 @@ type GitRepo struct {
 	h    plumbing.Hash
 }
 
-// TagReference is used to list both tag and non-annotated tags.
-// Non-annotated tags should only contains a reference.
-// Annotated tags should contain its reference and its tag information.
-type TagReference struct {
-	ref *plumbing.Reference
-	tag *object.Tag
-}
-
 // infoWrapper wraps the property of a TreeEntry so it can export fs.FileInfo
 // to tar WriteHeader
 type infoWrapper struct {
@@ -366,23 +358,4 @@ func (i *infoWrapper) IsDir() bool {
 
 func (i *infoWrapper) Sys() any {
 	return nil
-}
-
-func (t *TagReference) Name() string {
-	return t.ref.Name().Short()
-}
-
-func (t *TagReference) Message() string {
-	if t.tag != nil {
-		return t.tag.Message
-	}
-	return ""
-}
-
-func (t *TagReference) TagObject() *object.Tag {
-	return t.tag
-}
-
-func (t *TagReference) Hash() plumbing.Hash {
-	return t.ref.Hash()
 }
