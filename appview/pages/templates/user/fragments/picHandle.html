@@ -4,5 +4,5 @@
     alt=""
     class="rounded-full h-6 w-6 border border-gray-300 dark:border-gray-700"
 />
-{{ . | truncateAt30 }}
+{{ . | resolve | truncateAt30 }}
 {{ end }}
