@@ -7,7 +7,7 @@
               </a>
             </div>
 
-            <div id="right-items" class="flex items-center gap-2">
+            <div id="right-items" class="flex items-center gap-4">
                 {{ with .LoggedInUser }}
                     {{ block "newButton" . }} {{ end }}
                     {{ template "notifications/fragments/bell" }}

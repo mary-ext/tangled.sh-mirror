@@ -2189,7 +2189,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			Knot:        targetKnot,
 			Rkey:        rkey,
 			Source:      sourceAt,
-			Description: existingRepo.Description,
+			Description: f.Repo.Description,
 			Created:     time.Now(),
 			Labels:      models.DefaultLabelDefs(),
 		}
