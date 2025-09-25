@@ -249,6 +249,10 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 
 func (s *State) UpgradeBanner(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
+	if user == nil {
+		return
+	}
+
 	l := s.logger.With("handler", "UpgradeBanner")
 	l = l.With("did", user.Did)
 	l = l.With("handle", user.Handle)
