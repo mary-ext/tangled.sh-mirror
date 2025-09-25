@@ -34,6 +34,7 @@ func (s *State) Router() http.Handler {
 		s.pages,
 	)
 
+	router.Use(middleware.TryRefreshSession())
 	router.Get("/favicon.svg", s.Favicon)
 	router.Get("/favicon.ico", s.Favicon)
 
