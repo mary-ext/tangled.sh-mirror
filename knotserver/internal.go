@@ -13,8 +13,10 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-git/go-git/v5/plumbing"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/hook"
+	"tangled.org/core/idresolver"
 	"tangled.org/core/knotserver/config"
 	"tangled.org/core/knotserver/db"
 	"tangled.org/core/knotserver/git"
@@ -118,6 +120,18 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 			// non-fatal
 		}
 
+		if (line.NewSha.String() != line.OldSha.String()) && line.OldSha.IsZero() {
+			msg, err := h.replyCompare(line, gitUserDid, gitRelativeDir, repoName, r.Context())
+			if err != nil {
+				l.Error("failed to reply with compare link", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
+				// non-fatal
+			} else {
+				for msgLine := range msg {
+					resp.Messages = append(resp.Messages, msg[msgLine])
+				}
+			}
+		}
+
 		err = h.triggerPipeline(&resp.Messages, line, gitUserDid, repoDid, repoName, pushOptions)
 		if err != nil {
 			l.Error("failed to trigger pipeline", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
@@ -126,6 +140,38 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeJSON(w, resp)
+}
+
+func (h *InternalHandle) replyCompare(line git.PostReceiveLine, gitUserDid string, gitRelativeDir string, repoName string, ctx context.Context) ([]string, error) {
+	l := h.l.With("handler", "replyCompare")
+	userIdent, err := idresolver.DefaultResolver().ResolveIdent(ctx, gitUserDid)
+	user := gitUserDid
+	if err != nil {
+		l.Error("Failed to fetch user identity", "err", err)
+		// non-fatal
+	} else {
+		user = userIdent.Handle.String()
+	}
+	gr, err := git.PlainOpen(gitRelativeDir)
+	if err != nil {
+		l.Error("Failed to open git repository", "err", err)
+		return []string{}, err
+	}
+	defaultBranch, err := gr.FindMainBranch()
+	if err != nil {
+		l.Error("Failed to fetch default branch", "err", err)
+		return []string{}, err
+	}
+	if line.Ref == plumbing.NewBranchReferenceName(defaultBranch).String() {
+		return []string{}, nil
+	}
+	ZWS := "\u200B"
+	var msg []string
+	msg = append(msg, ZWS)
+	msg = append(msg, fmt.Sprintf("Create a PR pointing to %s", defaultBranch))
+	msg = append(msg, fmt.Sprintf("\t%s/%s/%s/compare/%s...%s", h.c.AppViewEndpoint, user, repoName, defaultBranch, strings.TrimPrefix(line.Ref, "refs/heads/")))
+	msg = append(msg, ZWS)
+	return msg, nil
 }
 
 func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
