@@ -232,17 +232,18 @@ func LabelOpsFromRecord(did, rkey string, record tangled.LabelOp) []LabelOp {
 	}
 
 	var ops []LabelOp
-	for _, o := range record.Add {
-		if o != nil {
-			op := mkOp(o)
-			op.Operation = LabelOperationAdd
-			ops = append(ops, op)
-		}
-	}
+	// deletes first, then additions
 	for _, o := range record.Delete {
 		if o != nil {
 			op := mkOp(o)
 			op.Operation = LabelOperationDel
+			ops = append(ops, op)
+		}
+	}
+	for _, o := range record.Add {
+		if o != nil {
+			op := mkOp(o)
+			op.Operation = LabelOperationAdd
 			ops = append(ops, op)
 		}
 	}
