@@ -162,9 +162,6 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// reduce the opset
-	labelOps = models.ReduceLabelOps(labelOps)
-
 	for i := range labelOps {
 		def := actx.Defs[labelOps[i].OperandKey]
 		if err := l.validator.ValidateLabelOp(def, repo, &labelOps[i]); err != nil {
@@ -172,6 +169,9 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	// reduce the opset
+	labelOps = models.ReduceLabelOps(labelOps)
 
 	// next, apply all ops introduced in this request and filter out ones that are no-ops
 	validLabelOps := labelOps[:0]
