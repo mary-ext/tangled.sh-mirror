@@ -120,14 +120,6 @@ func (g *GitRepo) Commit(h plumbing.Hash) (*object.Commit, error) {
 	return g.r.CommitObject(h)
 }
 
-func (g *GitRepo) LastCommit() (*object.Commit, error) {
-	c, err := g.r.CommitObject(g.h)
-	if err != nil {
-		return nil, fmt.Errorf("last commit: %w", err)
-	}
-	return c, nil
-}
-
 func (g *GitRepo) FileContentN(path string, cap int64) ([]byte, error) {
 	c, err := g.r.CommitObject(g.h)
 	if err != nil {
@@ -160,31 +152,6 @@ func (g *GitRepo) FileContentN(path string, cap int64) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-func (g *GitRepo) FileContent(path string) (string, error) {
-	c, err := g.r.CommitObject(g.h)
-	if err != nil {
-		return "", fmt.Errorf("commit object: %w", err)
-	}
-
-	tree, err := c.Tree()
-	if err != nil {
-		return "", fmt.Errorf("file tree: %w", err)
-	}
-
-	file, err := tree.File(path)
-	if err != nil {
-		return "", err
-	}
-
-	isbin, _ := file.IsBinary()
-
-	if !isbin {
-		return file.Contents()
-	} else {
-		return "", ErrBinaryFile
-	}
 }
 
 func (g *GitRepo) RawContent(path string) ([]byte, error) {
