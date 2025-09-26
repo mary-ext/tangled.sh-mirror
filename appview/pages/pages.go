@@ -38,7 +38,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-//go:embed templates/* static
+//go:embed templates/* static legal
 var Files embed.FS
 
 type Pages struct {
@@ -242,7 +242,14 @@ type TermsOfServiceParams struct {
 func (p *Pages) TermsOfService(w io.Writer, params TermsOfServiceParams) error {
 	filename := "terms.md"
 	filePath := filepath.Join("legal", filename)
-	markdownBytes, err := os.ReadFile(filePath)
+
+	file, err := p.embedFS.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	markdownBytes, err := io.ReadAll(file)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %w", filename, err)
 	}
@@ -263,7 +270,14 @@ type PrivacyPolicyParams struct {
 func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
 	filename := "privacy.md"
 	filePath := filepath.Join("legal", filename)
-	markdownBytes, err := os.ReadFile(filePath)
+
+	file, err := p.embedFS.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	markdownBytes, err := io.ReadAll(file)
 	if err != nil {
 		return fmt.Errorf("failed to read %s: %w", filename, err)
 	}

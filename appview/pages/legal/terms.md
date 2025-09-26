@@ -1,6 +1,6 @@
 # Terms of Service
 
-**Last updated:** January 15, 2025
+**Last updated:** September 26, 2025
 
 Welcome to Tangled. These Terms of Service ("Terms") govern your access
 to and use of the Tangled platform and services (the "Service")
