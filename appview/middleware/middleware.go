@@ -46,11 +46,7 @@ type middlewareFunc func(http.Handler) http.Handler
 func (mw *Middleware) TryRefreshSession() middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, auth, err := mw.oauth.GetSession(r)
-			if err != nil {
-				log.Println("could not refresh session", "err", err, "auth", auth)
-			}
-
+			_, _, _ = mw.oauth.GetSession(r)
 			next.ServeHTTP(w, r)
 		})
 	}
