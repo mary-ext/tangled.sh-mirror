@@ -2,7 +2,6 @@ package git
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +34,7 @@ func (g *GitRepo) Tags() ([]object.Tag, error) {
 	outFormat.WriteString("")
 	outFormat.WriteString(recordSeparator)
 
-	output, err := g.forEachRef(outFormat.String(), "refs/tags")
+	output, err := g.forEachRef(outFormat.String(), "--sort=-creatordate", "refs/tags")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tags: %w", err)
 	}
@@ -94,6 +93,5 @@ func (g *GitRepo) Tags() ([]object.Tag, error) {
 		tags = append(tags, tag)
 	}
 
-	slices.Reverse(tags)
 	return tags, nil
 }
