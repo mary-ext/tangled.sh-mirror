@@ -125,11 +125,10 @@ func (p PullSource) AsRecord() tangled.RepoPull_Source {
 
 type PullSubmission struct {
 	// ids
-	ID     int
-	PullId int
+	ID int
 
 	// at ids
-	RepoAt syntax.ATURI
+	PullAt syntax.ATURI
 
 	// content
 	RoundNumber int
