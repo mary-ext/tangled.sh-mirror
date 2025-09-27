@@ -954,6 +954,146 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
+	// add generated at_uri column to pulls table
+	//
+	// this requires a full table recreation because stored columns
+	// cannot be added via alter
+	//
+	// disable foreign-keys for the next migration
+	conn.ExecContext(ctx, "pragma foreign_keys = off;")
+	runMigration(conn, "add-at-uri-to-pulls", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+		create table if not exists pulls_new (
+			-- identifiers
+			id integer primary key autoincrement,
+			pull_id integer not null,
+			at_uri text generated always as ('at://' || owner_did || '/' || 'sh.tangled.repo.pull' || '/' || rkey) stored,
+
+			-- at identifiers
+			repo_at text not null,
+			owner_did text not null,
+			rkey text not null,
+
+			-- content
+			title text not null,
+			body text not null,
+			target_branch text not null,
+			state integer not null default 0 check (state in (0, 1, 2, 3)), -- closed, open, merged, deleted
+
+			-- source info
+			source_branch text,
+			source_repo_at text,
+
+			-- stacking
+			stack_id text,
+			change_id text,
+			parent_change_id text,
+
+			-- meta
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
+			unique(repo_at, pull_id),
+			unique(at_uri),
+			foreign key (repo_at) references repos(at_uri) on delete cascade
+		);
+		`)
+		if err != nil {
+			return err
+		}
+
+		// transfer data
+		_, err = tx.Exec(`
+		insert into pulls_new (
+			id, pull_id, repo_at, owner_did, rkey,
+			title, body, target_branch, state,
+			source_branch, source_repo_at,
+			stack_id, change_id, parent_change_id,
+			created
+		)
+		select
+			id, pull_id, repo_at, owner_did, rkey,
+			title, body, target_branch, state,
+			source_branch, source_repo_at,
+			stack_id, change_id, parent_change_id,
+			created
+			from pulls;
+		`)
+		if err != nil {
+			return err
+		}
+
+		// drop old table
+		_, err = tx.Exec(`drop table pulls`)
+		if err != nil {
+			return err
+		}
+
+		// rename new table
+		_, err = tx.Exec(`alter table pulls_new rename to pulls`)
+		return err
+	})
+	conn.ExecContext(ctx, "pragma foreign_keys = on;")
+
+	// remove repo_at and pull_id from pull_submissions and replace with pull_at
+	//
+	// this requires a full table recreation because stored columns
+	// cannot be added via alter
+	//
+	// disable foreign-keys for the next migration
+	conn.ExecContext(ctx, "pragma foreign_keys = off;")
+	runMigration(conn, "remove-repo-at-pull-id-from-pull-submissions", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+		create table if not exists pull_submissions_new (
+			-- identifiers
+			id integer primary key autoincrement,
+			pull_at text not null,
+
+			-- content, these are immutable, and require a resubmission to update
+			round_number integer not null default 0,
+			patch text,
+			source_rev text,
+
+			-- meta
+			created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+
+			-- constraints
+			unique(pull_at, round_number),
+			foreign key (pull_at) references pulls(at_uri) on delete cascade
+		);
+		`)
+		if err != nil {
+			return err
+		}
+
+		// transfer data, constructing pull_at from pulls table
+		_, err = tx.Exec(`
+		insert into pull_submissions_new (id, pull_at, round_number, patch, created)
+		select 
+			ps.id,
+			'at://' || p.owner_did || '/sh.tangled.repo.pull/' || p.rkey,
+			ps.round_number,
+			ps.patch,
+			ps.created
+		from pull_submissions ps
+		join pulls p on ps.repo_at = p.repo_at and ps.pull_id = p.pull_id;
+		`)
+		if err != nil {
+			return err
+		}
+
+		// drop old table
+		_, err = tx.Exec(`drop table pull_submissions`)
+		if err != nil {
+			return err
+		}
+
+		// rename new table
+		_, err = tx.Exec(`alter table pull_submissions_new rename to pull_submissions`)
+		return err
+	})
+	conn.ExecContext(ctx, "pragma foreign_keys = on;")
+
 	return &DB{db}, nil
 }
 
