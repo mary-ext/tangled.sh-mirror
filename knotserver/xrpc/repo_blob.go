@@ -44,7 +44,7 @@ func (x *Xrpc) RepoBlob(w http.ResponseWriter, r *http.Request) {
 
 	contents, err := gr.RawContent(treePath)
 	if err != nil {
-		x.Logger.Error("file content", "error", err.Error())
+		x.Logger.Error("file content", "error", err.Error(), "treePath", treePath)
 		writeError(w, xrpcerr.NewXrpcError(
 			xrpcerr.WithTag("FileNotFound"),
 			xrpcerr.WithMessage("file not found at the specified path"),
