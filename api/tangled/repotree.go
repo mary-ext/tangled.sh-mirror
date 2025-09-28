@@ -31,8 +31,18 @@ type RepoTree_Output struct {
 	Files  []*RepoTree_TreeEntry `json:"files" cborgen:"files"`
 	// parent: The parent path in the tree
 	Parent *string `json:"parent,omitempty" cborgen:"parent,omitempty"`
+	// readme: Readme for this file tree
+	Readme *RepoTree_Readme `json:"readme,omitempty" cborgen:"readme,omitempty"`
 	// ref: The git reference used
 	Ref string `json:"ref" cborgen:"ref"`
+}
+
+// RepoTree_Readme is a "readme" in the sh.tangled.repo.tree schema.
+type RepoTree_Readme struct {
+	// contents: Contents of the readme file
+	Contents string `json:"contents" cborgen:"contents"`
+	// filename: Name of the readme file
+	Filename string `json:"filename" cborgen:"filename"`
 }
 
 // RepoTree_TreeEntry is a "treeEntry" in the sh.tangled.repo.tree schema.

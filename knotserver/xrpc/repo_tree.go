@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"path/filepath"
 	"time"
+	"unicode/utf8"
 
 	"tangled.org/core/api/tangled"
+	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/knotserver/git"
 	xrpcerr "tangled.org/core/xrpc/errors"
 )
@@ -41,6 +43,24 @@ func (x *Xrpc) RepoTree(w http.ResponseWriter, r *http.Request) {
 			xrpcerr.WithMessage("failed to read repository tree"),
 		), http.StatusNotFound)
 		return
+	}
+
+	// if any of these files are a readme candidate, pass along its blob contents too
+	var readmeFileName string
+	var readmeContents string
+	for _, file := range files {
+		if markup.IsReadmeFile(file.Name) {
+			contents, err := gr.RawContent(filepath.Join(path, file.Name))
+			if err != nil {
+				x.Logger.Error("failed to read contents of file", "path", path, "file", file.Name)
+			}
+
+			if utf8.Valid(contents) {
+				readmeFileName = file.Name
+				readmeContents = string(contents)
+				break
+			}
+		}
 	}
 
 	// convert NiceTree -> tangled.RepoTree_TreeEntry
@@ -83,6 +103,10 @@ func (x *Xrpc) RepoTree(w http.ResponseWriter, r *http.Request) {
 		Parent: parentPtr,
 		Dotdot: dotdotPtr,
 		Files:  treeEntries,
+		Readme: &tangled.RepoTree_Readme{
+			Filename: readmeFileName,
+			Contents: readmeContents,
+		},
 	}
 
 	writeJson(w, response)

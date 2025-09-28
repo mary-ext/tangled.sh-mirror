@@ -22,7 +22,6 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
-	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/types"
@@ -328,26 +327,6 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 		}
 	}()
 
-	// readme content
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for _, filename := range markup.ReadmeFilenames {
-			blobResp, err := tangled.RepoBlob(ctx, xrpcc, filename, false, ref, repo)
-			if err != nil {
-				continue
-			}
-
-			if blobResp == nil {
-				continue
-			}
-
-			readmeContent = blobResp.Content
-			readmeFileName = filename
-			break
-		}
-	}()
-
 	wg.Wait()
 
 	if errs != nil {
@@ -374,6 +353,11 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 			}
 			files = append(files, niceFile)
 		}
+	}
+
+	if treeResp != nil && treeResp.Readme != nil {
+		readmeFileName = treeResp.Readme.Filename
+		readmeContent = treeResp.Readme.Contents
 	}
 
 	result := &types.RepoIndexResponse{

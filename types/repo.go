@@ -41,11 +41,13 @@ type RepoFormatPatchResponse struct {
 }
 
 type RepoTreeResponse struct {
-	Ref         string     `json:"ref,omitempty"`
-	Parent      string     `json:"parent,omitempty"`
-	Description string     `json:"description,omitempty"`
-	DotDot      string     `json:"dotdot,omitempty"`
-	Files       []NiceTree `json:"files,omitempty"`
+	Ref            string     `json:"ref,omitempty"`
+	Parent         string     `json:"parent,omitempty"`
+	Description    string     `json:"description,omitempty"`
+	DotDot         string     `json:"dotdot,omitempty"`
+	Files          []NiceTree `json:"files,omitempty"`
+	ReadmeFileName string     `json:"readme_filename,omitempty"`
+	Readme         string     `json:"readme_contents,omitempty"`
 }
 
 type TagReference struct {

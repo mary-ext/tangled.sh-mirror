@@ -714,6 +714,8 @@ type RepoTreeParams struct {
 	Active       string
 	BreadCrumbs  [][]string
 	TreePath     string
+	Raw          bool
+	HTMLReadme   template.HTML
 	types.RepoTreeResponse
 }
 
@@ -740,6 +742,24 @@ func (r RepoTreeParams) TreeStats() RepoTreeStats {
 
 func (p *Pages) RepoTree(w io.Writer, params RepoTreeParams) error {
 	params.Active = "overview"
+
+	p.rctx.RepoInfo = params.RepoInfo
+	p.rctx.RepoInfo.Ref = params.Ref
+	p.rctx.RendererType = markup.RendererTypeRepoMarkdown
+
+	if params.ReadmeFileName != "" {
+		ext := filepath.Ext(params.ReadmeFileName)
+		switch ext {
+		case ".md", ".markdown", ".mdown", ".mkdn", ".mkd":
+			params.Raw = false
+			htmlString := p.rctx.RenderMarkdown(params.Readme)
+			sanitized := p.rctx.SanitizeDefault(htmlString)
+			params.HTMLReadme = template.HTML(sanitized)
+		default:
+			params.Raw = true
+		}
+	}
+
 	return p.executeRepo("repo/tree", w, params)
 }
 

@@ -1,6 +1,8 @@
 package markup
 
-import "strings"
+import (
+	"regexp"
+)
 
 type Format string
 
@@ -10,27 +12,23 @@ const (
 )
 
 var FileTypes map[Format][]string = map[Format][]string{
-	FormatMarkdown: []string{".md", ".markdown", ".mdown", ".mkdn", ".mkd"},
+	FormatMarkdown: {".md", ".markdown", ".mdown", ".mkdn", ".mkd"},
 }
 
-// ReadmeFilenames contains the list of common README filenames to search for,
-// in order of preference. Only includes well-supported formats.
-var ReadmeFilenames = []string{
-	"README.md", "readme.md",
-	"README",
-	"readme",
-	"README.markdown",
-	"readme.markdown",
-	"README.txt",
-	"readme.txt",
+var FileTypePatterns = map[Format]*regexp.Regexp{
+	FormatMarkdown: regexp.MustCompile(`(?i)\.(md|markdown|mdown|mkdn|mkd)$`),
+}
+
+var ReadmePattern = regexp.MustCompile(`(?i)^readme(\.(md|markdown|txt))?$`)
+
+func IsReadmeFile(filename string) bool {
+	return ReadmePattern.MatchString(filename)
 }
 
 func GetFormat(filename string) Format {
-	for format, extensions := range FileTypes {
-		for _, extension := range extensions {
-			if strings.HasSuffix(filename, extension) {
-				return format
-			}
+	for format, pattern := range FileTypePatterns {
+		if pattern.MatchString(filename) {
+			return format
 		}
 	}
 	// default format

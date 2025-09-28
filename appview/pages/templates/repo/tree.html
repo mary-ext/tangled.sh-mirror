@@ -88,3 +88,9 @@
   </div>
 </main>
 {{end}}
+
+{{ define "repoAfter" }}
+    {{- if or .HTMLReadme .Readme -}}
+       {{ template "repo/fragments/readme" . }}
+    {{- end -}}
+{{ end }}
