@@ -290,6 +290,14 @@ func (p *Pages) PrivacyPolicy(w io.Writer, params PrivacyPolicyParams) error {
 	return p.execute("legal/privacy", w, params)
 }
 
+type BrandParams struct {
+	LoggedInUser *oauth.User
+}
+
+func (p *Pages) Brand(w io.Writer, params BrandParams) error {
+	return p.execute("brand/brand", w, params)
+}
+
 type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []models.TimelineEvent

@@ -1,5 +1,3 @@
-# Privacy Policy
-
 **Last updated:** September 26, 2025
 
 This Privacy Policy describes how Tangled ("we," "us," or "our")

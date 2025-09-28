@@ -166,6 +166,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Get("/keys/{user}", s.Keys)
 	r.Get("/terms", s.TermsOfService)
 	r.Get("/privacy", s.PrivacyPolicy)
+	r.Get("/brand", s.Brand)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		s.pages.Error404(w)

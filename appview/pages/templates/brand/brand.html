@@ -1,0 +1,224 @@
+{{ define "title" }}brand{{ end }}
+
+{{ define "content" }}
+<div class="grid grid-cols-10">
+  <header class="col-span-full md:col-span-10 px-6 py-2 mb-4">
+    <h1 class="text-2xl font-bold dark:text-white mb-1">Brand</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-1">
+    Assets and guidelines for using Tangled's logo and brand elements.
+    </p>
+  </header>
+
+  <main class="col-span-full md:col-span-10 bg-white dark:bg-gray-800 drop-shadow-sm rounded p-6 md:px-10">
+    <div class="space-y-16">
+
+      <!-- Introduction Section -->
+      <section>
+        <p class="text-gray-600 dark:text-gray-400 mb-2">
+        Tangled's logo and mascot is <strong>Dolly</strong>, the first ever <em>cloned</em> mammal. Please
+        follow the below guidelines when using Dolly and the logotype.
+        </p>
+        <p class="text-gray-600 dark:text-gray-400 mb-2">
+        All assets are served as SVGs, and can be downloaded by right-clicking and clicking "Save image as".
+        </p>
+      </section>
+
+      <!-- Black Logotype Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="border border-gray-200 dark:border-gray-700 p-8 sm:p-16 bg-gray-50 dark:bg-gray-100 rounded">
+            <img src="https://assets.tangled.network/tangled_logotype_black_on_trans.svg"
+                 alt="Tangled logo - black version"
+                 class="w-full max-w-sm mx-auto" />
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <h2 class="text-xl font-semibold dark:text-white mb-3">Black logotype</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">For use on light-colored backgrounds.</p>
+          <p class="text-gray-700 dark:text-gray-300">
+          This is the preferred version of the logotype, featuring dark text and elements, ideal for light
+          backgrounds and designs.
+          </p>
+        </div>
+      </section>
+
+      <!-- White Logotype Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="bg-black p-8 sm:p-16 rounded">
+            <img src="https://assets.tangled.network/tangled_logotype_white_on_trans.svg"
+                 alt="Tangled logo - white version"
+                 class="w-full max-w-sm mx-auto" />
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <h2 class="text-xl font-semibold dark:text-white mb-3">White logotype</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">For use on dark-colored backgrounds.</p>
+          <p class="text-gray-700 dark:text-gray-300">
+            This version features white text and elements, ideal for dark backgrounds
+            and inverted designs.
+          </p>
+        </div>
+      </section>
+
+      <!-- Mark Only Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="grid grid-cols-2 gap-2">
+            <!-- Black mark on light background -->
+            <div class="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-100 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_black_on_trans.svg"
+                   alt="Dolly face - black version"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+            <!-- White mark on dark background -->
+            <div class="bg-black p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_white_on_trans.svg"
+                   alt="Dolly face - white version"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <h2 class="text-xl font-semibold dark:text-white mb-3">Mark only</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">
+            When a smaller 1:1 logo or icon is needed, Dolly's face may be used on its own.
+          </p>
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
+            <strong class="font-semibold">Note</strong>: for situations where the background
+            is unknown, use the black version for ideal contrast in most environments.
+          </p>
+        </div>
+      </section>
+
+      <!-- Colored Backgrounds Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="grid grid-cols-2 gap-2">
+            <!-- Pastel Green background -->
+            <div class="bg-green-500 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_white_on_trans.svg"
+                   alt="Tangled logo on pastel green background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+            <!-- Pastel Blue background -->
+            <div class="bg-blue-500 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_white_on_trans.svg"
+                   alt="Tangled logo on pastel blue background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+            <!-- Pastel Yellow background -->
+            <div class="bg-yellow-500 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_white_on_trans.svg"
+                   alt="Tangled logo on pastel yellow background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+            <!-- Pastel Red background -->
+            <div class="bg-red-500 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_white_on_trans.svg"
+                   alt="Tangled logo on pastel red background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <h2 class="text-xl font-semibold dark:text-white mb-3">Colored backgrounds</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">
+            White logo mark on colored backgrounds.
+          </p>
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
+            The white logo mark provides contrast on colored backgrounds.
+            Perfect for more fun design contexts.
+          </p>
+        </div>
+      </section>
+
+      <!-- Black Logo on Pastel Backgrounds Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="grid grid-cols-2 gap-2">
+            <!-- Pastel Green background -->
+            <div class="bg-green-200 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_black_on_trans.svg"
+                   alt="Tangled logo on pastel green background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+            <!-- Pastel Blue background -->
+            <div class="bg-blue-200 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_black_on_trans.svg"
+                   alt="Tangled logo on pastel blue background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+            <!-- Pastel Yellow background -->
+            <div class="bg-yellow-200 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_black_on_trans.svg"
+                   alt="Tangled logo on pastel yellow background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+            <!-- Pastel Pink background -->
+            <div class="bg-pink-200 p-8 sm:p-12 rounded">
+              <img src="https://assets.tangled.network/tangled_dolly_face_only_black_on_trans.svg"
+                   alt="Tangled logo on pastel pink background"
+                   class="w-full max-w-16 mx-auto" />
+            </div>
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <h2 class="text-xl font-semibold dark:text-white mb-3">Lighter backgrounds</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">
+            Dark logo mark on lighter, pastel backgrounds.
+          </p>
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
+            The dark logo mark works beautifully on pastel backgrounds,
+            providing crisp contrast.
+          </p>
+        </div>
+      </section>
+
+      <!-- Recoloring Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="bg-yellow-100 border border-yellow-200 p-8 sm:p-16 rounded">
+            <img src="https://assets.tangled.network/tangled_logotype_black_on_trans.svg"
+                 alt="Recolored Tangled logotype in gray/sand color"
+                 class="w-full max-w-sm mx-auto opacity-60 sepia contrast-75 saturate-50" />
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <h2 class="text-xl font-semibold dark:text-white mb-3">Recoloring</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">
+            Custom coloring of the logotype is permitted.
+          </p>
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
+            Recoloring the logotype is allowed as long as readability is maintained.
+          </p>
+          <p class="text-gray-700 dark:text-gray-300 text-sm">
+            <strong>Example:</strong> Gray/sand colored logotype on a light yellow/tan background.
+          </p>
+        </div>
+      </section>
+
+      <!-- Silhouette Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div class="order-2 lg:order-1">
+          <div class="border border-gray-200 dark:border-gray-700 p-8 sm:p-16 bg-gray-50 dark:bg-gray-100 rounded">
+            <img src="https://assets.tangled.network/tangled_dolly_silhouette.svg"
+                 alt="Dolly silhouette"
+                 class="w-full max-w-32 mx-auto" />
+          </div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <h2 class="text-xl font-semibold dark:text-white mb-3">Dolly silhouette</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-4">A minimalist version of Dolly.</p>
+          <p class="text-gray-700 dark:text-gray-300">
+            The silhouette can be used where a subtle brand presence is needed,
+            or as a background element. Works on any background color with proper contrast.
+            For example, we use this as the site's favicon.
+          </p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+{{ end }}

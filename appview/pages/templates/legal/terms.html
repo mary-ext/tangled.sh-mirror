@@ -1,11 +1,18 @@
 {{ define "title" }}terms of service{{ end }}
 
 {{ define "content" }}
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-        <div class="prose prose-gray dark:prose-invert max-w-none">
-            {{ .Content }}
-        </div>
+<div class="grid grid-cols-10">
+  <header class="col-span-full md:col-span-10 px-6 py-2 mb-4">
+    <h1 class="text-2xl font-bold dark:text-white mb-1">Terms of Service</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-1">
+    A few things you should know.
+    </p>
+  </header>
+
+  <main class="col-span-full md:col-span-10 bg-white dark:bg-gray-800 drop-shadow-sm rounded p-6 md:px-10">
+    <div class="prose prose-gray dark:prose-invert max-w-none">
+      {{ .Content }}
     </div>
+  </main>
 </div>
 {{ end }}

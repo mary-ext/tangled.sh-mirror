@@ -212,6 +212,13 @@ func (s *State) PrivacyPolicy(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *State) Brand(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
+	s.pages.Brand(w, pages.BrandParams{
+		LoggedInUser: user,
+	})
+}
+
 func (s *State) HomeOrTimeline(w http.ResponseWriter, r *http.Request) {
 	if s.oauth.GetUser(r) != nil {
 		s.Timeline(w, r)

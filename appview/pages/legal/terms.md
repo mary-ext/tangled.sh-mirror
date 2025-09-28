@@ -1,5 +1,3 @@
-# Terms of Service
-
 **Last updated:** September 26, 2025
 
 Welcome to Tangled. These Terms of Service ("Terms") govern your access
@@ -22,14 +20,14 @@ information to keep it accurate, current, and complete.
 ## 3. Account Termination
 
 > **Important Notice**
-> 
+>
 > **We reserve the right to terminate, suspend, or restrict access to
 > your account at any time, for any reason, or for no reason at all, at
 > our sole discretion.** This includes, but is not limited to,
 > termination for violation of these Terms, inappropriate conduct, spam,
 > abuse, or any other behavior we deem harmful to the Service or other
 > users.
-> 
+>
 > Account termination may result in the loss of access to your
 > repositories, data, and other content associated with your account. We
 > are not obligated to provide advance notice of termination, though we
