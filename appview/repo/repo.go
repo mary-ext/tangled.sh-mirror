@@ -2129,25 +2129,29 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// choose a name for a fork
-		forkName := f.Name
+		forkName := r.FormValue("repo_name")
+		if forkName == "" {
+			rp.pages.Notice(w, "repo", "Repository name cannot be empty.")
+			return
+		}
+
 		// this check is *only* to see if the forked repo name already exists
 		// in the user's account.
 		existingRepo, err := db.GetRepo(
 			rp.db,
 			db.FilterEq("did", user.Did),
-			db.FilterEq("name", f.Name),
+			db.FilterEq("name", forkName),
 		)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				// no existing repo with this name found, we can use the name as is
-			} else {
+			if !errors.Is(err, sql.ErrNoRows) {
 				log.Println("error fetching existing repo from db", "err", err)
 				rp.pages.Notice(w, "repo", "Failed to fork this repository. Try again later.")
 				return
 			}
 		} else if existingRepo != nil {
-			// repo with this name already exists, append random string
-			forkName = fmt.Sprintf("%s-%s", forkName, randomString(3))
+			// repo with this name already exists
+			rp.pages.Notice(w, "repo", "A repository with this name already exists.")
+			return
 		}
 		l = l.With("forkName", forkName)
 
