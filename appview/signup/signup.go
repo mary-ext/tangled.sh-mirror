@@ -2,9 +2,12 @@ package signup
 
 import (
 	"bufio"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -116,14 +119,25 @@ func (s *Signup) Router() http.Handler {
 func (s *Signup) signup(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.pages.Signup(w)
+		s.pages.Signup(w, pages.SignupParams{
+			CloudflareSiteKey: s.config.Cloudflare.TurnstileSiteKey,
+		})
 	case http.MethodPost:
 		if s.cf == nil {
 			http.Error(w, "signup is disabled", http.StatusFailedDependency)
+			return
 		}
 		emailId := r.FormValue("email")
+		cfToken := r.FormValue("cf-turnstile-response")
 
 		noticeId := "signup-msg"
+
+		if err := s.validateCaptcha(cfToken, r); err != nil {
+			s.l.Warn("turnstile validation failed", "error", err)
+			s.pages.Notice(w, noticeId, "Captcha validation failed.")
+			return
+		}
+
 		if !email.IsValidEmail(emailId) {
 			s.pages.Notice(w, noticeId, "Invalid email address.")
 			return
@@ -254,4 +268,54 @@ func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 		}()
 		return
 	}
+}
+
+type turnstileResponse struct {
+	Success     bool     `json:"success"`
+	ErrorCodes  []string `json:"error-codes,omitempty"`
+	ChallengeTs string   `json:"challenge_ts,omitempty"`
+	Hostname    string   `json:"hostname,omitempty"`
+}
+
+func (s *Signup) validateCaptcha(cfToken string, r *http.Request) error {
+	if cfToken == "" {
+		return errors.New("captcha token is empty")
+	}
+
+	if s.config.Cloudflare.TurnstileSecretKey == "" {
+		return errors.New("turnstile secret key not configured")
+	}
+
+	data := url.Values{}
+	data.Set("secret", s.config.Cloudflare.TurnstileSecretKey)
+	data.Set("response", cfToken)
+
+	// include the client IP if we have it
+	if remoteIP := r.Header.Get("CF-Connecting-IP"); remoteIP != "" {
+		data.Set("remoteip", remoteIP)
+	} else if remoteIP := r.Header.Get("X-Forwarded-For"); remoteIP != "" {
+		if ips := strings.Split(remoteIP, ","); len(ips) > 0 {
+			data.Set("remoteip", strings.TrimSpace(ips[0]))
+		}
+	} else {
+		data.Set("remoteip", r.RemoteAddr)
+	}
+
+	resp, err := http.PostForm("https://challenges.cloudflare.com/turnstile/v0/siteverify", data)
+	if err != nil {
+		return fmt.Errorf("failed to verify turnstile token: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var turnstileResp turnstileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&turnstileResp); err != nil {
+		return fmt.Errorf("failed to decode turnstile response: %w", err)
+	}
+
+	if !turnstileResp.Success {
+		s.l.Warn("turnstile validation failed", "error_codes", turnstileResp.ErrorCodes)
+		return errors.New("turnstile validation failed")
+	}
+
+	return nil
 }

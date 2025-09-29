@@ -226,8 +226,12 @@ func (p *Pages) Login(w io.Writer, params LoginParams) error {
 	return p.executePlain("user/login", w, params)
 }
 
-func (p *Pages) Signup(w io.Writer) error {
-	return p.executePlain("user/signup", w, nil)
+type SignupParams struct {
+	CloudflareSiteKey string
+}
+
+func (p *Pages) Signup(w io.Writer, params SignupParams) error {
+	return p.executePlain("user/signup", w, params)
 }
 
 func (p *Pages) CompleteSignup(w io.Writer) error {

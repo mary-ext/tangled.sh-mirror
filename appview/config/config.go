@@ -72,8 +72,10 @@ type PdsConfig struct {
 }
 
 type Cloudflare struct {
-	ApiToken string `env:"API_TOKEN"`
-	ZoneId   string `env:"ZONE_ID"`
+	ApiToken           string `env:"API_TOKEN"`
+	ZoneId             string `env:"ZONE_ID"`
+	TurnstileSiteKey   string `env:"TURNSTILE_SITE_KEY"`
+	TurnstileSecretKey string `env:"TURNSTILE_SECRET_KEY"`
 }
 
 func (cfg RedisConfig) ToURL() string {
