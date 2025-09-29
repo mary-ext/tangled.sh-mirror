@@ -248,18 +248,6 @@ func GetNotifications(e Execer, filters ...filter) ([]*models.Notification, erro
 	return GetNotificationsPaginated(e, pagination.FirstPage(), filters...)
 }
 
-// GetNotifications retrieves notifications for a user with pagination (legacy method for backward compatibility)
-func (d *DB) GetNotifications(ctx context.Context, userDID string, limit, offset int) ([]*models.Notification, error) {
-	page := pagination.Page{Limit: limit, Offset: offset}
-	return GetNotificationsPaginated(d.DB, page, FilterEq("recipient_did", userDID))
-}
-
-// GetNotificationsWithEntities retrieves notifications with entities for a user with pagination
-func (d *DB) GetNotificationsWithEntities(ctx context.Context, userDID string, limit, offset int) ([]*models.NotificationWithEntity, error) {
-	page := pagination.Page{Limit: limit, Offset: offset}
-	return GetNotificationsWithEntities(d.DB, page, FilterEq("recipient_did", userDID))
-}
-
 func (d *DB) GetUnreadNotificationCount(ctx context.Context, userDID string) (int, error) {
 	recipientFilter := FilterEq("recipient_did", userDID)
 	readFilter := FilterEq("read", 0)
