@@ -10,6 +10,8 @@
             <script src="/static/htmx.min.js"></script>
             <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
             <title>sign up &middot; tangled</title>
+
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
         </head>
         <body class="flex items-center justify-center min-h-screen">
             <main class="max-w-md px-6 -mt-4">
@@ -39,12 +41,15 @@
                     invite code, desired username, and password in the next
                     page to complete your registration.
                     </span>
+                    <div class="w-full mt-4">
+                    <div class="cf-turnstile" data-sitekey="{{ .CloudflareSiteKey }}"></div>
+                    </div>
                     <button class="btn text-base w-full my-2 mt-6" type="submit" id="signup-button" tabindex="7" >
                       <span>join now</span>
                     </button>
                 </form>
                 <p class="text-sm text-gray-500">
-                  Already have an ATProto account? <a href="/login" class="underline">Login to Tangled</a>.
+                  Already have an AT Protocol account? <a href="/login" class="underline">Login to Tangled</a>.
                 </p>
 
                 <p id="signup-msg" class="error w-full"></p>
