@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type NotificationType string
 
@@ -30,6 +32,32 @@ type Notification struct {
 	RepoId  *int64
 	IssueId *int64
 	PullId  *int64
+}
+
+// lucide icon that represents this notification
+func (n *Notification) Icon() string {
+	switch n.Type {
+	case NotificationTypeRepoStarred:
+		return "star"
+	case NotificationTypeIssueCreated:
+		return "circle-dot"
+	case NotificationTypeIssueCommented:
+		return "message-square"
+	case NotificationTypeIssueClosed:
+		return "ban"
+	case NotificationTypePullCreated:
+		return "git-pull-request-create"
+	case NotificationTypePullCommented:
+		return "message-square"
+	case NotificationTypePullMerged:
+		return "git-merge"
+	case NotificationTypePullClosed:
+		return "git-pull-request-closed"
+	case NotificationTypeFollowed:
+		return "user-plus"
+	default:
+		return ""
+	}
 }
 
 type NotificationWithEntity struct {
