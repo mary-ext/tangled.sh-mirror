@@ -30,16 +30,11 @@ func (n *databaseNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 
 func (n *databaseNotifier) NewStar(ctx context.Context, star *models.Star) {
 	var err error
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(star.RepoAt)))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(star.RepoAt)))
 	if err != nil {
 		log.Printf("NewStar: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewStar: no repo found for %s", star.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	// don't notify yourself
 	if repo.Did == star.StarredByDid {
@@ -76,16 +71,11 @@ func (n *databaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 }
 
 func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(issue.RepoAt)))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(issue.RepoAt)))
 	if err != nil {
 		log.Printf("NewIssue: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewIssue: no repo found for %s", issue.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	if repo.Did == issue.Did {
 		return
@@ -129,16 +119,11 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 	}
 	issue := issues[0]
 
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(issue.RepoAt)))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(issue.RepoAt)))
 	if err != nil {
 		log.Printf("NewIssueComment: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewIssueComment: no repo found for %s", issue.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	recipients := make(map[string]bool)
 
@@ -211,16 +196,11 @@ func (n *databaseNotifier) DeleteFollow(ctx context.Context, follow *models.Foll
 }
 
 func (n *databaseNotifier) NewPull(ctx context.Context, pull *models.Pull) {
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(pull.RepoAt)))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
 		log.Printf("NewPull: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewPull: no repo found for %s", pull.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	if repo.Did == pull.OwnerDid {
 		return
@@ -266,16 +246,11 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.P
 	}
 	pull := pulls[0]
 
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", comment.RepoAt))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", comment.RepoAt))
 	if err != nil {
 		log.Printf("NewPullComment: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewPullComment: no repo found for %s", comment.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	recipients := make(map[string]bool)
 
@@ -335,16 +310,11 @@ func (n *databaseNotifier) NewString(ctx context.Context, string *models.String)
 
 func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
 	// Get repo details
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(issue.RepoAt)))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(issue.RepoAt)))
 	if err != nil {
 		log.Printf("NewIssueClosed: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewIssueClosed: no repo found for %s", issue.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	// Don't notify yourself
 	if repo.Did == issue.Did {
@@ -380,16 +350,11 @@ func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Iss
 
 func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
 	// Get repo details
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(pull.RepoAt)))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
 		log.Printf("NewPullMerged: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewPullMerged: no repo found for %s", pull.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	// Don't notify yourself
 	if repo.Did == pull.OwnerDid {
@@ -425,16 +390,11 @@ func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull)
 
 func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
 	// Get repo details
-	repos, err := db.GetRepos(n.db, 1, db.FilterEq("at_uri", string(pull.RepoAt)))
+	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
 		log.Printf("NewPullClosed: failed to get repos: %v", err)
 		return
 	}
-	if len(repos) == 0 {
-		log.Printf("NewPullClosed: no repo found for %s", pull.RepoAt)
-		return
-	}
-	repo := repos[0]
 
 	// Don't notify yourself
 	if repo.Did == pull.OwnerDid {

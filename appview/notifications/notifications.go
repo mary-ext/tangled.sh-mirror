@@ -10,6 +10,7 @@ import (
 	"tangled.org/core/appview/middleware"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/pagination"
 )
 
 type Notifications struct {
@@ -61,7 +62,8 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	notifications, err := n.db.GetNotificationsWithEntities(r.Context(), userDid, limit+1, offset)
+	page := pagination.Page{Limit: limit + 1, Offset: offset}
+	notifications, err := db.GetNotificationsWithEntities(n.db, page, db.FilterEq("recipient_did", userDid))
 	if err != nil {
 		log.Println("failed to get notifications:", err)
 		n.pages.Error500(w)
