@@ -108,6 +108,13 @@
                       <span class="before:content-['·']"></span>
                       {{ template "repo/pipelines/fragments/pipelineSymbol" $pipeline }}
                     {{ end }}
+
+                    {{ $state := .Labels }}
+                    {{ range $k, $d := $.LabelDefs }}
+                      {{ range $v, $s := $state.GetValSet $d.AtUri.String }}
+                        {{ template "labels/fragments/label" (dict "def" $d "val" $v "withPrefix" true) }}
+                      {{ end }}
+                    {{ end }}
                 </div>
               </div>
               {{ if .StackId }}

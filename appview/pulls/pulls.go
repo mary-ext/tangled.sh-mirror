@@ -200,6 +200,22 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		userReactions = db.GetReactionStatusMap(s.db, user.Did, pull.PullAt())
 	}
 
+	labelDefs, err := db.GetLabelDefinitions(
+		s.db,
+		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterContains("scope", tangled.RepoPullNSID),
+	)
+	if err != nil {
+		log.Println("failed to fetch labels", err)
+		s.pages.Error503(w)
+		return
+	}
+
+	defs := make(map[string]*models.LabelDefinition)
+	for _, l := range labelDefs {
+		defs[l.AtUri().String()] = &l
+	}
+
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
 		LoggedInUser:   user,
 		RepoInfo:       repoInfo,
@@ -213,6 +229,8 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		OrderedReactionKinds: models.OrderedReactionKinds,
 		Reactions:            reactionCountMap,
 		UserReacted:          userReactions,
+
+		LabelDefs: defs,
 	})
 }
 
@@ -557,10 +575,27 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		m[p.Sha] = p
 	}
 
+	labelDefs, err := db.GetLabelDefinitions(
+		s.db,
+		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterContains("scope", tangled.RepoPullNSID),
+	)
+	if err != nil {
+		log.Println("failed to fetch labels", err)
+		s.pages.Error503(w)
+		return
+	}
+
+	defs := make(map[string]*models.LabelDefinition)
+	for _, l := range labelDefs {
+		defs[l.AtUri().String()] = &l
+	}
+
 	s.pages.RepoPulls(w, pages.RepoPullsParams{
 		LoggedInUser: s.oauth.GetUser(r),
 		RepoInfo:     f.RepoInfo(user),
 		Pulls:        pulls,
+		LabelDefs:    defs,
 		FilteringBy:  state,
 		Stacks:       stacks,
 		Pipelines:    m,

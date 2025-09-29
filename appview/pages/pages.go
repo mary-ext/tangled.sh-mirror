@@ -1087,6 +1087,7 @@ type RepoPullsParams struct {
 	FilteringBy  models.PullState
 	Stacks       map[string]models.Stack
 	Pipelines    map[string]models.Pipeline
+	LabelDefs    map[string]*models.LabelDefinition
 }
 
 func (p *Pages) RepoPulls(w io.Writer, params RepoPullsParams) error {
@@ -1126,6 +1127,8 @@ type RepoSinglePullParams struct {
 	OrderedReactionKinds []models.ReactionKind
 	Reactions            map[models.ReactionKind]int
 	UserReacted          map[models.ReactionKind]bool
+
+	LabelDefs map[string]*models.LabelDefinition
 }
 
 func (p *Pages) RepoSinglePull(w io.Writer, params RepoSinglePullParams) error {
