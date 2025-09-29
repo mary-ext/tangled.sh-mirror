@@ -77,7 +77,8 @@ type Pull struct {
 	PullSource *PullSource
 
 	// optionally, populate this when querying for reverse mappings
-	Repo *Repo
+	Labels LabelState
+	Repo   *Repo
 }
 
 func (p Pull) AsRecord() tangled.RepoPull {
@@ -206,6 +207,28 @@ func (p *Pull) IsStacked() bool {
 	return p.StackId != ""
 }
 
+func (p *Pull) Participants() []string {
+	participantSet := make(map[string]struct{})
+	participants := []string{}
+
+	addParticipant := func(did string) {
+		if _, exists := participantSet[did]; !exists {
+			participantSet[did] = struct{}{}
+			participants = append(participants, did)
+		}
+	}
+
+	addParticipant(p.OwnerDid)
+
+	for _, s := range p.Submissions {
+		for _, sp := range s.Participants() {
+			addParticipant(sp)
+		}
+	}
+
+	return participants
+}
+
 func (s PullSubmission) IsFormatPatch() bool {
 	return patchutil.IsFormatPatch(s.Patch)
 }
@@ -218,6 +241,26 @@ func (s PullSubmission) AsFormatPatch() []types.FormatPatch {
 	}
 
 	return patches
+}
+
+func (s *PullSubmission) Participants() []string {
+	participantSet := make(map[string]struct{})
+	participants := []string{}
+
+	addParticipant := func(did string) {
+		if _, exists := participantSet[did]; !exists {
+			participantSet[did] = struct{}{}
+			participants = append(participants, did)
+		}
+	}
+
+	addParticipant(s.PullAt.Authority().String())
+
+	for _, c := range s.Comments {
+		addParticipant(c.OwnerDid)
+	}
+
+	return participants
 }
 
 type Stack []*Pull

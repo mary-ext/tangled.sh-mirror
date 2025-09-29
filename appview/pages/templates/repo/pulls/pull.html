@@ -9,6 +9,24 @@
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
 {{ end }}
 
+{{ define "repoContentLayout" }}
+  <div class="grid grid-cols-1 md:grid-cols-10 gap-4 w-full">
+    <div class="col-span-1 md:col-span-8">
+      <section class="bg-white dark:bg-gray-800 p-6 rounded relative w-full mx-auto dark:text-white">
+        {{ block "repoContent" . }}{{ end }}
+      </section>
+      {{ block "repoAfter" . }}{{ end }}
+    </div>
+    <div class="col-span-1 md:col-span-2 flex flex-col gap-6">
+      {{ template "repo/fragments/labelPanel"
+        (dict "RepoInfo" $.RepoInfo
+              "Defs" $.LabelDefs
+              "Subject" $.Pull.PullAt
+              "State" $.Pull.Labels) }}
+      {{ template "repo/fragments/participants" $.Pull.Participants }}
+    </div>
+  </div>
+{{ end }}
 
 {{ define "repoContent" }}
   {{ template "repo/pulls/fragments/pullHeader" . }}
@@ -39,13 +57,13 @@
     {{ with $item }}
     <details {{ if eq $idx $lastIdx }}open{{ end }}>
         <summary id="round-#{{ .RoundNumber }}" class="list-none cursor-pointer">
-          <div class="flex flex-wrap gap-2 items-center">
+          <div class="flex flex-wrap gap-2 items-stretch">
             <!-- round number -->
             <div class="rounded bg-white dark:bg-gray-800 drop-shadow-sm px-3 py-2 dark:text-white">
               <span class="flex items-center">{{ i "hash" "w-4 h-4" }}{{ .RoundNumber }}</span>
             </div>
             <!-- round summary -->
-            <div class="rounded drop-shadow-sm bg-white dark:bg-gray-800 p-2 text-gray-500 dark:text-gray-400">
+            <div class="flex-1 rounded drop-shadow-sm bg-white dark:bg-gray-800 p-2 text-gray-500 dark:text-gray-400">
               <span class="gap-1 flex items-center">
                 {{ $owner := resolve $.Pull.OwnerDid }}
                 {{ $re := "re" }}
@@ -72,16 +90,16 @@
               <span class="hidden md:inline">diff</span>
               {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </a>
-            {{ if not (eq .RoundNumber 0) }}
-            <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
-               hx-boost="true"
-               href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}/interdiff">
-              {{ i "chevrons-left-right-ellipsis" "w-4 h-4 rotate-90" }}
-              <span class="hidden md:inline">interdiff</span>
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-            </a>
-            <span id="interdiff-error-{{.RoundNumber}}"></span>
+            {{ if ne $idx 0 }}
+              <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
+                 hx-boost="true"
+                 href="/{{ $.RepoInfo.FullName }}/pulls/{{ $.Pull.PullId }}/round/{{.RoundNumber}}/interdiff">
+                {{ i "chevrons-left-right-ellipsis" "w-4 h-4 rotate-90" }}
+                <span class="hidden md:inline">interdiff</span>
+                {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+              </a>
             {{ end }}
+            <span id="interdiff-error-{{.RoundNumber}}"></span>
           </div>
         </summary>
 
@@ -146,7 +164,7 @@
 
         <div class="md:pl-[3.5rem] flex flex-col gap-2 mt-2 relative">
           {{ range $cidx, $c := .Comments }}
-            <div id="comment-{{$c.ID}}" class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full md:max-w-3/5 md:w-fit">
+            <div id="comment-{{$c.ID}}" class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-2 px-4 relative w-full">
               {{ if gt $cidx 0 }}
               <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
               {{ end }}

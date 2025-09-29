@@ -1,6 +1,7 @@
 package db
 
 import (
+	"cmp"
 	"database/sql"
 	"fmt"
 	"maps"
@@ -229,6 +230,16 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 			p.Submissions = submissions
 		}
 	}
+	// collect allLabels for each issue
+	allLabels, err := GetLabels(e, FilterIn("subject", pullAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query labels: %w", err)
+	}
+	for pullAt, labels := range allLabels {
+		if p, ok := pulls[pullAt]; ok {
+			p.Labels = labels
+		}
+	}
 
 	orderedByPullId := []*models.Pull{}
 	for _, p := range pulls {
@@ -339,10 +350,17 @@ func GetPullSubmissions(e Execer, filters ...filter) (map[syntax.ATURI][]*models
 		}
 	}
 
-	// order the submissions by pull_at
+	// group the submissions by pull_at
 	m := make(map[syntax.ATURI][]*models.PullSubmission)
 	for _, s := range submissionMap {
 		m[s.PullAt] = append(m[s.PullAt], s)
+	}
+
+	// sort each one by round number
+	for _, s := range m {
+		slices.SortFunc(s, func(a, b *models.PullSubmission) int {
+			return cmp.Compare(a.RoundNumber, b.RoundNumber)
+		})
 	}
 
 	return m, nil

@@ -798,7 +798,11 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	labelDefs, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", f.Repo.Labels))
+	labelDefs, err := db.GetLabelDefinitions(
+		rp.db,
+		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterContains("scope", tangled.RepoIssueNSID),
+	)
 	if err != nil {
 		log.Println("failed to fetch labels", err)
 		rp.pages.Error503(w)
