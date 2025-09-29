@@ -1,18 +1,68 @@
 {{define "notifications/fragments/item"}}
-<div class="border border-gray-200 dark:border-gray-700 rounded-sm p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {{if not .Read}}bg-blue-50 dark:bg-blue-900/20{{end}}">
-  {{if .Issue}}
-    {{template "issueNotification" .}}
-  {{else if .Pull}}
-    {{template "pullNotification" .}}
-  {{else if .Repo}}
-    {{template "repoNotification" .}}
-  {{else if eq .Type "followed"}}
-    {{template "followNotification" .}}
-  {{else}}
-    {{template "genericNotification" .}}
-  {{end}}
-</div>
+  <div 
+    class="
+      w-full mx-auto rounded drop-shadow-sm dark:text-white bg-white dark:bg-gray-800 px-2 md:px-6 py-4 transition-colors 
+      {{if not .Read}}bg-blue-50 dark:bg-blue-900/20 border border-blue-500 dark:border-sky-800{{end}}
+      flex gap-2 items-center
+      "
+    >
+
+    {{ template "notificationIcon" . }}
+    <div class="flex-1 w-full flex flex-col gap-1">
+      <span>{{ template "notificationHeader" . }}</span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">{{ template "notificationSummary" . }}</span>
+    </div>
+
+  </div>
 {{end}}
+
+{{ define "notificationIcon" }}
+  <div class="flex-shrink-0 max-h-full w-16 h-16 relative">
+    <img class="object-cover rounded-full p-2" src="{{ fullAvatar .ActorDid }}" />
+    <div class="absolute border-2 border-white dark:border-gray-800 bg-gray-200 dark:bg-gray-700 bottom-1 right-1 rounded-full p-2 flex items-center justify-center z-10">
+      {{ i .Icon "size-3 text-black dark:text-white" }}
+    </div>
+  </div>
+{{ end }}
+
+{{ define "notificationHeader" }}
+  {{ $actor := resolve .ActorDid }}
+
+  <span class="text-black dark:text-white w-fit">{{ $actor }}</span>
+  {{ if eq .Type "repo_starred" }}
+    starred <span class="text-black dark:text-white">{{ resolve .Repo.Did }}/{{ .Repo.Name }}</span>
+  {{ else if eq .Type "issue_created" }}
+    opened an issue
+  {{ else if eq .Type "issue_commented" }}
+    commented on an issue
+  {{ else if eq .Type "issue_closed" }}
+    closed an issue
+  {{ else if eq .Type "pull_created" }}
+    created a pull request
+  {{ else if eq .Type "pull_commented" }}
+    commented on a pull request
+  {{ else if eq .Type "pull_merged" }}
+    merged a pull request
+  {{ else if eq .Type "pull_closed" }}
+    closed a pull request
+  {{ else if eq .Type "followed" }}
+    followed you
+  {{ else }}
+  {{ end }}
+{{ end }}
+
+{{ define "notificationSummary" }}
+  {{ if eq .Type "repo_starred" }}
+    <!-- no summary -->
+  {{ else if .Issue }}
+    #{{.Issue.IssueId}} {{.Issue.Title}} on {{resolve .Repo.Did}}/{{.Repo.Name}}
+  {{ else if .Pull }}
+    #{{.Pull.PullId}} {{.Pull.Title}} on {{resolve .Repo.Did}}/{{.Repo.Name}}
+  {{ else if eq .Type "followed" }}
+    <!-- no summary -->
+  {{ else }}
+  {{ end }}
+{{ end }}
 
 {{define "issueNotification"}}
 {{$url := printf "/%s/%s/issues/%d" (resolve .Repo.Did) .Repo.Name .Issue.IssueId}}
@@ -37,7 +87,7 @@
             {{ i "ban" "w-4 h-4" }}
           </span>
         {{end}}
-        {{template "user/fragments/picHandle" (resolve .ActorDid)}}
+        {{template "user/fragments/picHandle" .ActorDid}}
         {{if eq .Type "issue_created"}}
           <span class="text-gray-500 dark:text-gray-400">opened issue</span>
         {{else if eq .Type "issue_commented"}}
