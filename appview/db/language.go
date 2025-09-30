@@ -1,9 +1,11 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 )
 
@@ -81,4 +83,36 @@ func InsertRepoLanguages(e Execer, langs []models.RepoLanguage) error {
 	}
 
 	return nil
+}
+
+func DeleteRepoLanguages(e Execer, filters ...filter) error {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`delete from repo_languages %s`, whereClause)
+
+	_, err := e.Exec(query, args...)
+	return err
+}
+
+func UpdateRepoLanguages(tx *sql.Tx, repoAt syntax.ATURI, ref string, langs []models.RepoLanguage) error {
+	err := DeleteRepoLanguages(
+		tx,
+		FilterEq("repo_at", repoAt),
+		FilterEq("ref", ref),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete existing languages: %w", err)
+	}
+
+	return InsertRepoLanguages(tx, langs)
 }

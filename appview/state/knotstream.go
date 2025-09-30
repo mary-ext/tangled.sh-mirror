@@ -172,7 +172,20 @@ func updateRepoLanguages(d *db.DB, record tangled.GitRefUpdate) error {
 		})
 	}
 
-	return db.InsertRepoLanguages(d, langs)
+	tx, err := d.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// update appview's cache
+	err = db.UpdateRepoLanguages(tx, repo.RepoAt(), ref.Short(), langs)
+	if err != nil {
+		fmt.Printf("failed; %s\n", err)
+		// non-fatal
+	}
+
+	return tx.Commit()
 }
 
 func ingestPipeline(d *db.DB, source ec.Source, msg ec.Message) error {
