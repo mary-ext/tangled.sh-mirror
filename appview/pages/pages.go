@@ -326,9 +326,8 @@ type NotificationsParams struct {
 	LoggedInUser  *oauth.User
 	Notifications []*models.NotificationWithEntity
 	UnreadCount   int
-	HasMore       bool
-	NextOffset    int
-	Limit         int
+	Page          pagination.Page
+	Total         int64
 }
 
 func (p *Pages) Notifications(w io.Writer, params NotificationsParams) error {
@@ -344,7 +343,7 @@ func (p *Pages) NotificationItem(w io.Writer, params NotificationItemParams) err
 }
 
 type NotificationCountParams struct {
-	Count int
+	Count int64
 }
 
 func (p *Pages) NotificationCount(w io.Writer, params NotificationCountParams) error {

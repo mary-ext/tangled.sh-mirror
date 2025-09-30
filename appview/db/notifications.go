@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"tangled.org/core/appview/models"
@@ -248,22 +250,25 @@ func GetNotifications(e Execer, filters ...filter) ([]*models.Notification, erro
 	return GetNotificationsPaginated(e, pagination.FirstPage(), filters...)
 }
 
-func (d *DB) GetUnreadNotificationCount(ctx context.Context, userDID string) (int, error) {
-	recipientFilter := FilterEq("recipient_did", userDID)
-	readFilter := FilterEq("read", 0)
+func CountNotifications(e Execer, filters ...filter) (int64, error) {
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
 
-	query := fmt.Sprintf(`
-		SELECT COUNT(*)
-		FROM notifications
-		WHERE %s AND %s
-	`, recipientFilter.Condition(), readFilter.Condition())
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
 
-	args := append(recipientFilter.Arg(), readFilter.Arg()...)
+	query := fmt.Sprintf(`select count(1) from notifications %s`, whereClause)
+	var count int64
+	err := e.QueryRow(query, args...).Scan(&count)
 
-	var count int
-	err := d.DB.QueryRowContext(ctx, query, args...).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get unread count: %w", err)
+	if !errors.Is(err, sql.ErrNoRows) && err != nil {
+		return 0, err
 	}
 
 	return count, nil

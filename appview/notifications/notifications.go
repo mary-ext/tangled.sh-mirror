@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -32,7 +33,7 @@ func (n *Notifications) Router(mw *middleware.Middleware) http.Handler {
 
 	r.Use(middleware.AuthMiddleware(n.oauth))
 
-	r.Get("/", n.notificationsPage)
+	r.With(middleware.Paginate).Get("/", n.notificationsPage)
 
 	r.Get("/count", n.getUnreadCount)
 	r.Post("/{id}/read", n.markRead)
@@ -45,34 +46,31 @@ func (n *Notifications) Router(mw *middleware.Middleware) http.Handler {
 func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request) {
 	userDid := n.oauth.GetDid(r)
 
-	limitStr := r.URL.Query().Get("limit")
-	offsetStr := r.URL.Query().Get("offset")
-
-	limit := 20 // default
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
-		}
+	page, ok := r.Context().Value("page").(pagination.Page)
+	if !ok {
+		log.Println("failed to get page")
+		page = pagination.FirstPage()
 	}
 
-	offset := 0 // default
-	if offsetStr != "" {
-		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
-			offset = o
-		}
-	}
-
-	page := pagination.Page{Limit: limit + 1, Offset: offset}
-	notifications, err := db.GetNotificationsWithEntities(n.db, page, db.FilterEq("recipient_did", userDid))
+	total, err := db.CountNotifications(
+		n.db,
+		db.FilterEq("recipient_did", userDid),
+	)
 	if err != nil {
-		log.Println("failed to get notifications:", err)
+		log.Println("failed to get total notifications:", err)
 		n.pages.Error500(w)
 		return
 	}
 
-	hasMore := len(notifications) > limit
-	if hasMore {
-		notifications = notifications[:limit]
+	notifications, err := db.GetNotificationsWithEntities(
+		n.db,
+		page,
+		db.FilterEq("recipient_did", userDid),
+	)
+	if err != nil {
+		log.Println("failed to get notifications:", err)
+		n.pages.Error500(w)
+		return
 	}
 
 	err = n.db.MarkAllNotificationsRead(r.Context(), userDid)
@@ -88,27 +86,22 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	params := pages.NotificationsParams{
+	fmt.Println(n.pages.Notifications(w, pages.NotificationsParams{
 		LoggedInUser:  user,
 		Notifications: notifications,
 		UnreadCount:   unreadCount,
-		HasMore:       hasMore,
-		NextOffset:    offset + limit,
-		Limit:         limit,
-	}
-
-	err = n.pages.Notifications(w, params)
-	if err != nil {
-		log.Println("failed to load notifs:", err)
-		n.pages.Error500(w)
-		return
-	}
+		Page:          page,
+		Total:         total,
+	}))
 }
 
 func (n *Notifications) getUnreadCount(w http.ResponseWriter, r *http.Request) {
-	userDid := n.oauth.GetDid(r)
-
-	count, err := n.db.GetUnreadNotificationCount(r.Context(), userDid)
+	user := n.oauth.GetUser(r)
+	count, err := db.CountNotifications(
+		n.db,
+		db.FilterEq("recipient_did", user.Did),
+		db.FilterEq("read", 0),
+	)
 	if err != nil {
 		http.Error(w, "Failed to get unread count", http.StatusInternalServerError)
 		return
