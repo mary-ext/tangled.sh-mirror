@@ -3,6 +3,7 @@ package db
 import (
 	"cmp"
 	"database/sql"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -230,6 +231,7 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 			p.Submissions = submissions
 		}
 	}
+
 	// collect allLabels for each issue
 	allLabels, err := GetLabels(e, FilterIn("subject", pullAts))
 	if err != nil {
@@ -238,6 +240,29 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 	for pullAt, labels := range allLabels {
 		if p, ok := pulls[pullAt]; ok {
 			p.Labels = labels
+		}
+	}
+
+	// collect pull source for all pulls that need it
+	var sourceAts []syntax.ATURI
+	for _, p := range pulls {
+		if p.PullSource.RepoAt != nil {
+			sourceAts = append(sourceAts, *p.PullSource.RepoAt)
+		}
+	}
+	sourceRepos, err := GetRepos(e, 0, FilterIn("at_uri", sourceAts))
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("failed to get source repos: %w", err)
+	}
+	sourceRepoMap := make(map[syntax.ATURI]*models.Repo)
+	for _, r := range sourceRepos {
+		sourceRepoMap[r.RepoAt()] = &r
+	}
+	for _, p := range pulls {
+		if p.PullSource.RepoAt != nil {
+			if sourceRepo, ok := sourceRepoMap[*p.PullSource.RepoAt]; ok {
+				p.PullSource.Repo = sourceRepo
+			}
 		}
 	}
 
