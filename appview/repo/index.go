@@ -200,11 +200,22 @@ func (rp *Repo) getLanguageInfo(
 			})
 		}
 
+		tx, err := rp.db.Begin()
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+
 		// update appview's cache
-		err = db.InsertRepoLanguages(rp.db, langs)
+		err = db.UpdateRepoLanguages(tx, f.RepoAt(), currentRef, langs)
 		if err != nil {
 			// non-fatal
 			log.Println("failed to cache lang results", err)
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return nil, err
 		}
 	}
 
