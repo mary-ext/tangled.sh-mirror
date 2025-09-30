@@ -71,8 +71,8 @@ func GetDidForEmail(e Execer, em string) (string, error) {
 	return did, nil
 }
 
-func GetEmailToDid(e Execer, ems []string, isVerifiedFilter bool) (map[string]string, error) {
-	if len(ems) == 0 {
+func GetEmailToDid(e Execer, emails []string, isVerifiedFilter bool) (map[string]string, error) {
+	if len(emails) == 0 {
 		return make(map[string]string), nil
 	}
 
@@ -81,14 +81,20 @@ func GetEmailToDid(e Execer, ems []string, isVerifiedFilter bool) (map[string]st
 		verifiedFilter = 1
 	}
 
+	assoc := make(map[string]string)
+
 	// Create placeholders for the IN clause
-	placeholders := make([]string, len(ems))
-	args := make([]any, len(ems)+1)
+	placeholders := make([]string, 0, len(emails))
+	args := make([]any, 1, len(emails)+1)
 
 	args[0] = verifiedFilter
-	for i, em := range ems {
-		placeholders[i] = "?"
-		args[i+1] = em
+	for _, email := range emails {
+		if strings.HasPrefix(email, "did:") {
+			assoc[email] = email
+			continue
+		}
+		placeholders = append(placeholders, "?")
+		args = append(args, email)
 	}
 
 	query := `
@@ -104,8 +110,6 @@ func GetEmailToDid(e Execer, ems []string, isVerifiedFilter bool) (map[string]st
 		return nil, err
 	}
 	defer rows.Close()
-
-	assoc := make(map[string]string)
 
 	for rows.Next() {
 		var email, did string
