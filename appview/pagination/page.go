@@ -8,7 +8,7 @@ type Page struct {
 func FirstPage() Page {
 	return Page{
 		Offset: 0,
-		Limit:  10,
+		Limit:  30,
 	}
 }
 
