@@ -1093,7 +1093,7 @@ func (s *Pulls) createPullRequest(
 
 	// We've already checked earlier if it's diff-based and title is empty,
 	// so if it's still empty now, it's intentionally skipped owing to format-patch.
-	if title == "" {
+	if title == "" || body == "" {
 		formatPatches, err := patchutil.ExtractPatches(patch)
 		if err != nil {
 			s.pages.Notice(w, "pull", fmt.Sprintf("Failed to extract patches: %v", err))
@@ -1104,8 +1104,12 @@ func (s *Pulls) createPullRequest(
 			return
 		}
 
-		title = formatPatches[0].Title
-		body = formatPatches[0].Body
+		if title == "" {
+			title = formatPatches[0].Title
+		}
+		if body == "" {
+			body = formatPatches[0].Body
+		}
 	}
 
 	rkey := tid.TID()
