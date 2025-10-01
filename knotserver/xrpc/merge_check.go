@@ -51,7 +51,7 @@ func (x *Xrpc) MergeCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = gr.MergeCheck([]byte(data.Patch), data.Branch)
+	err = gr.MergeCheck(data.Patch, data.Branch)
 
 	response := tangled.RepoMergeCheck_Output{
 		Is_conflicted: false,
