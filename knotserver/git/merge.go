@@ -32,7 +32,7 @@ func init() {
 	mergeCheckCache = MergeCheckCache{cache}
 }
 
-func (m *MergeCheckCache) cacheKey(g *GitRepo, patch []byte, targetBranch string) string {
+func (m *MergeCheckCache) cacheKey(g *GitRepo, patch string, targetBranch string) string {
 	sep := byte(':')
 	hash := sha256.Sum256(fmt.Append([]byte{}, g.path, sep, g.h.String(), sep, patch, sep, targetBranch))
 	return fmt.Sprintf("%x", hash)
@@ -49,13 +49,13 @@ func (m *MergeCheckCache) cacheVal(check error) any {
 	}
 }
 
-func (m *MergeCheckCache) Set(g *GitRepo, patch []byte, targetBranch string, mergeCheck error) {
+func (m *MergeCheckCache) Set(g *GitRepo, patch string, targetBranch string, mergeCheck error) {
 	key := m.cacheKey(g, patch, targetBranch)
 	val := m.cacheVal(mergeCheck)
 	m.cache.Set(key, val, 0)
 }
 
-func (m *MergeCheckCache) Get(g *GitRepo, patch []byte, targetBranch string) (error, bool) {
+func (m *MergeCheckCache) Get(g *GitRepo, patch string, targetBranch string) (error, bool) {
 	key := m.cacheKey(g, patch, targetBranch)
 	if val, ok := m.cache.Get(key); ok {
 		if val == struct{}{} {
@@ -104,13 +104,13 @@ func (e ErrMerge) Error() string {
 	return fmt.Sprintf("merge failed: %s", e.Message)
 }
 
-func (g *GitRepo) createTempFileWithPatch(patchData []byte) (string, error) {
+func (g *GitRepo) createTempFileWithPatch(patchData string) (string, error) {
 	tmpFile, err := os.CreateTemp("", "git-patch-*.patch")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temporary patch file: %w", err)
 	}
 
-	if _, err := tmpFile.Write(patchData); err != nil {
+	if _, err := tmpFile.Write([]byte(patchData)); err != nil {
 		tmpFile.Close()
 		os.Remove(tmpFile.Name())
 		return "", fmt.Errorf("failed to write patch data to temporary file: %w", err)
@@ -244,7 +244,7 @@ func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
 	return result
 }
 
-func (g *GitRepo) MergeWithOptions(patchData []byte, targetBranch string, opts MergeOptions) error {
+func (g *GitRepo) MergeWithOptions(patchData string, targetBranch string, opts MergeOptions) error {
 	patchFile, err := g.createTempFileWithPatch(patchData)
 	if err != nil {
 		return &ErrMerge{
