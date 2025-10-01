@@ -21,7 +21,7 @@ The first thing to add to a workflow is the trigger, which defines when a workfl
   - `manual`: The workflow can be triggered manually.
 - `branch`: This is a **required** field that defines which branches the workflow should run for. If used with the `push` event, commits to the branch(es) listed here will trigger the workflow. If used with the `pull_request` event, updates to pull requests targeting the branch(es) listed here will trigger the workflow. This field has no effect with the `manual` event.
 
-For example, if you'd like define a workflow that runs when commits are pushed to the `main` and `develop` branches, or when pull requests that target the `main` branch are updated, or manually, you can do so with:
+For example, if you'd like to define a workflow that runs when commits are pushed to the `main` and `develop` branches, or when pull requests that target the `main` branch are updated, or manually, you can do so with:
 
 ```yaml
 when:
