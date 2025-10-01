@@ -246,7 +246,7 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 	// collect pull source for all pulls that need it
 	var sourceAts []syntax.ATURI
 	for _, p := range pulls {
-		if p.PullSource.RepoAt != nil {
+		if p.PullSource != nil && p.PullSource.RepoAt != nil {
 			sourceAts = append(sourceAts, *p.PullSource.RepoAt)
 		}
 	}
@@ -259,7 +259,7 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 		sourceRepoMap[r.RepoAt()] = &r
 	}
 	for _, p := range pulls {
-		if p.PullSource.RepoAt != nil {
+		if p.PullSource != nil && p.PullSource.RepoAt != nil {
 			if sourceRepo, ok := sourceRepoMap[*p.PullSource.RepoAt]; ok {
 				p.PullSource.Repo = sourceRepo
 			}

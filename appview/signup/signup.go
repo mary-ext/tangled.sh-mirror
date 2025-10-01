@@ -133,7 +133,7 @@ func (s *Signup) signup(w http.ResponseWriter, r *http.Request) {
 		noticeId := "signup-msg"
 
 		if err := s.validateCaptcha(cfToken, r); err != nil {
-			s.l.Warn("turnstile validation failed", "error", err)
+			s.l.Warn("turnstile validation failed", "error", err, "email", emailId)
 			s.pages.Notice(w, noticeId, "Captcha validation failed.")
 			return
 		}
