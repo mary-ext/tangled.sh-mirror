@@ -85,7 +85,7 @@ func (x *Xrpc) Merge(w http.ResponseWriter, r *http.Request) {
 	mo.CommitterEmail = x.Config.Git.UserEmail
 	mo.FormatPatch = patchutil.IsFormatPatch(data.Patch)
 
-	err = gr.MergeWithOptions([]byte(data.Patch), data.Branch, mo)
+	err = gr.MergeWithOptions(data.Patch, data.Branch, mo)
 	if err != nil {
 		var mergeErr *git.ErrMerge
 		if errors.As(err, &mergeErr) {

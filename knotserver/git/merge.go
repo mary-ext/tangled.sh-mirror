@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -12,6 +13,8 @@ import (
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"tangled.org/core/patchutil"
+	"tangled.org/core/types"
 )
 
 type MergeCheckCache struct {
@@ -162,50 +165,50 @@ func (g *GitRepo) checkPatch(tmpDir, patchFile string) error {
 	return nil
 }
 
-func (g *GitRepo) applyPatch(tmpDir, patchFile string, opts MergeOptions) error {
+func (g *GitRepo) applyPatch(patchData, patchFile string, opts MergeOptions) error {
 	var stderr bytes.Buffer
 	var cmd *exec.Cmd
 
 	// configure default git user before merge
-	exec.Command("git", "-C", tmpDir, "config", "user.name", opts.CommitterName).Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.email", opts.CommitterEmail).Run()
-	exec.Command("git", "-C", tmpDir, "config", "advice.mergeConflict", "false").Run()
+	exec.Command("git", "-C", g.path, "config", "user.name", opts.CommitterName).Run()
+	exec.Command("git", "-C", g.path, "config", "user.email", opts.CommitterEmail).Run()
+	exec.Command("git", "-C", g.path, "config", "advice.mergeConflict", "false").Run()
 
 	// if patch is a format-patch, apply using 'git am'
 	if opts.FormatPatch {
-		cmd = exec.Command("git", "-C", tmpDir, "am", patchFile)
-	} else {
-		// else, apply using 'git apply' and commit it manually
-		applyCmd := exec.Command("git", "-C", tmpDir, "apply", patchFile)
-		applyCmd.Stderr = &stderr
-		if err := applyCmd.Run(); err != nil {
-			return fmt.Errorf("patch application failed: %s", stderr.String())
-		}
-
-		stageCmd := exec.Command("git", "-C", tmpDir, "add", ".")
-		if err := stageCmd.Run(); err != nil {
-			return fmt.Errorf("failed to stage changes: %w", err)
-		}
-
-		commitArgs := []string{"-C", tmpDir, "commit"}
-
-		// Set author if provided
-		authorName := opts.AuthorName
-		authorEmail := opts.AuthorEmail
-
-		if authorName != "" && authorEmail != "" {
-			commitArgs = append(commitArgs, "--author", fmt.Sprintf("%s <%s>", authorName, authorEmail))
-		}
-		// else, will default to knot's global user.name & user.email configured via `KNOT_GIT_USER_*` env variables
-
-		commitArgs = append(commitArgs, "-m", opts.CommitMessage)
-
-		if opts.CommitBody != "" {
-			commitArgs = append(commitArgs, "-m", opts.CommitBody)
-		}
-
-		cmd = exec.Command("git", commitArgs...)
+		return g.applyMailbox(patchData)
 	}
+
+	// else, apply using 'git apply' and commit it manually
+	applyCmd := exec.Command("git", "-C", g.path, "apply", patchFile)
+	applyCmd.Stderr = &stderr
+	if err := applyCmd.Run(); err != nil {
+		return fmt.Errorf("patch application failed: %s", stderr.String())
+	}
+
+	stageCmd := exec.Command("git", "-C", g.path, "add", ".")
+	if err := stageCmd.Run(); err != nil {
+		return fmt.Errorf("failed to stage changes: %w", err)
+	}
+
+	commitArgs := []string{"-C", g.path, "commit"}
+
+	// Set author if provided
+	authorName := opts.AuthorName
+	authorEmail := opts.AuthorEmail
+
+	if authorName != "" && authorEmail != "" {
+		commitArgs = append(commitArgs, "--author", fmt.Sprintf("%s <%s>", authorName, authorEmail))
+	}
+	// else, will default to knot's global user.name & user.email configured via `KNOT_GIT_USER_*` env variables
+
+	commitArgs = append(commitArgs, "-m", opts.CommitMessage)
+
+	if opts.CommitBody != "" {
+		commitArgs = append(commitArgs, "-m", opts.CommitBody)
+	}
+
+	cmd = exec.Command("git", commitArgs...)
 
 	cmd.Stderr = &stderr
 
@@ -216,7 +219,112 @@ func (g *GitRepo) applyPatch(tmpDir, patchFile string, opts MergeOptions) error 
 	return nil
 }
 
-func (g *GitRepo) MergeCheck(patchData []byte, targetBranch string) error {
+func (g *GitRepo) applyMailbox(patchData string) error {
+	fps, err := patchutil.ExtractPatches(patchData)
+	if err != nil {
+		return fmt.Errorf("failed to extract patches: %w", err)
+	}
+
+	// apply each patch one by one
+	// update the newly created commit object to add the change-id header
+	total := len(fps)
+	for i, p := range fps {
+		newCommit, err := g.applySingleMailbox(p)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("applying mailbox patch %d/%d: committed %s\n", i+1, total, newCommit.String())
+	}
+
+	return nil
+}
+
+func (g *GitRepo) applySingleMailbox(singlePatch types.FormatPatch) (plumbing.Hash, error) {
+	tmpPatch, err := g.createTempFileWithPatch(singlePatch.Raw)
+	if err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("failed to create temporary patch file for singluar mailbox patch: %w", err)
+	}
+
+	var stderr bytes.Buffer
+	cmd := exec.Command("git", "-C", g.path, "am", tmpPatch)
+	cmd.Stderr = &stderr
+
+	head, err := g.r.Head()
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	log.Println("head before apply", head.Hash().String())
+
+	if err := cmd.Run(); err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("patch application failed: %s", stderr.String())
+	}
+
+	if err := g.Refresh(); err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("failed to refresh repository state: %w", err)
+	}
+
+	head, err = g.r.Head()
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	log.Println("head after apply", head.Hash().String())
+
+	newHash := head.Hash()
+	if changeId, err := singlePatch.ChangeId(); err != nil {
+		// no change ID
+	} else if updatedHash, err := g.setChangeId(head.Hash(), changeId); err != nil {
+		return plumbing.ZeroHash, err
+	} else {
+		newHash = updatedHash
+	}
+
+	return newHash, nil
+}
+
+func (g *GitRepo) setChangeId(hash plumbing.Hash, changeId string) (plumbing.Hash, error) {
+	log.Printf("updating change ID of %s to %s\n", hash.String(), changeId)
+	obj, err := g.r.CommitObject(hash)
+	if err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("failed to get commit object for hash %s: %w", hash.String(), err)
+	}
+
+	// write the change-id header
+	obj.ExtraHeaders["change-id"] = []byte(changeId)
+
+	// create a new object
+	dest := g.r.Storer.NewEncodedObject()
+	if err := obj.Encode(dest); err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("failed to create new object: %w", err)
+	}
+
+	// store the new object
+	newHash, err := g.r.Storer.SetEncodedObject(dest)
+	if err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("failed to store new object: %w", err)
+	}
+
+	log.Printf("hash changed from %s to %s\n", obj.Hash.String(), newHash.String())
+
+	// find the branch that HEAD is pointing to
+	ref, err := g.r.Head()
+	if err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("failed to fetch HEAD: %w", err)
+	}
+
+	// and update that branch to point to new commit
+	if ref.Name().IsBranch() {
+		err = g.r.Storer.SetReference(plumbing.NewHashReference(ref.Name(), newHash))
+		if err != nil {
+			return plumbing.ZeroHash, fmt.Errorf("failed to update HEAD: %w", err)
+		}
+	}
+
+	// new hash of commit
+	return newHash, nil
+}
+
+func (g *GitRepo) MergeCheck(patchData string, targetBranch string) error {
 	if val, ok := mergeCheckCache.Get(g, patchData, targetBranch); ok {
 		return val
 	}
@@ -263,7 +371,12 @@ func (g *GitRepo) MergeWithOptions(patchData string, targetBranch string, opts M
 	}
 	defer os.RemoveAll(tmpDir)
 
-	if err := g.applyPatch(tmpDir, patchFile, opts); err != nil {
+	tmpRepo, err := PlainOpen(tmpDir)
+	if err != nil {
+		return err
+	}
+
+	if err := tmpRepo.applyPatch(patchData, patchFile, opts); err != nil {
 		return err
 	}
 
