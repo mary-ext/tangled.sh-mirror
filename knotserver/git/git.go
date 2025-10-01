@@ -71,6 +71,17 @@ func PlainOpen(path string) (*GitRepo, error) {
 	return &g, nil
 }
 
+// re-open a repository and update references
+func (g *GitRepo) Refresh() error {
+	refreshed, err := PlainOpen(g.path)
+	if err != nil {
+		return err
+	}
+
+	*g = *refreshed
+	return nil
+}
+
 func (g *GitRepo) Commits(offset, limit int) ([]*object.Commit, error) {
 	commits := []*object.Commit{}
 
