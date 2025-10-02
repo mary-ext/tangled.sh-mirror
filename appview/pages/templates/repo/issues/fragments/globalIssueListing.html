@@ -1,0 +1,63 @@
+{{ define "repo/issues/fragments/globalIssueListing" }}
+  <div class="flex flex-col gap-2">
+    {{ range .Issues }}
+    <div class="rounded drop-shadow-sm bg-white px-6 py-4 dark:bg-gray-800 dark:border-gray-700">
+      <div class="pb-2 mb-3">
+        <div class="flex items-center gap-3 mb-2">
+          <a
+              href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}"
+              class="text-blue-600 dark:text-blue-400 font-medium hover:underline text-sm"
+          >
+              {{ resolve .Repo.Did }}/{{ .Repo.Name }}
+          </a>
+        </div>
+        <a
+            href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}/issues/{{ .IssueId }}"
+            class="no-underline hover:underline"
+            >
+            {{ .Title | description }}
+            <span class="text-gray-500">#{{ .IssueId }}</span>
+        </a>
+      </div>
+      <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-1">
+        {{ $bgColor := "bg-gray-800 dark:bg-gray-700" }}
+        {{ $icon := "ban" }}
+        {{ $state := "closed" }}
+        {{ if .Open }}
+            {{ $bgColor = "bg-green-600 dark:bg-green-700" }}
+            {{ $icon = "circle-dot" }}
+            {{ $state = "open" }}
+        {{ end }}
+
+        <span class="inline-flex items-center rounded px-2 py-[5px] {{ $bgColor }} text-sm">
+            {{ i $icon "w-3 h-3 mr-1.5 text-white dark:text-white" }}
+            <span class="text-white dark:text-white">{{ $state }}</span>
+        </span>
+
+        <span class="ml-1">
+            {{ template "user/fragments/picHandleLink" .Did }}
+        </span>
+
+        <span class="before:content-['·']">
+          {{ template "repo/fragments/time" .Created }}
+        </span>
+
+        <span class="before:content-['·']">
+          {{ $s := "s" }}
+          {{ if eq (len .Comments) 1 }}
+            {{ $s = "" }}
+          {{ end }}
+          <a href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}/issues/{{ .IssueId }}" class="text-gray-500 dark:text-gray-400">{{ len .Comments }} comment{{$s}}</a>
+        </span>
+
+        {{ $state := .Labels }}
+        {{ range $k, $d := $.LabelDefs }}
+          {{ range $v, $s := $state.GetValSet $d.AtUri.String }}
+            {{ template "labels/fragments/label" (dict "def" $d "val" $v "withPrefix" true) }}
+          {{ end }}
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
+  </div>
+{{ end }}
