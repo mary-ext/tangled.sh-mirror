@@ -86,3 +86,8 @@ type RepoLabel struct {
 	RepoAt  syntax.ATURI
 	LabelAt syntax.ATURI
 }
+
+type RepoGroup struct {
+	Repo   *Repo
+	Issues []Issue
+}

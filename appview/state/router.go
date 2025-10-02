@@ -132,6 +132,8 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 		// r.Post("/import", s.ImportRepo)
 	})
 
+	r.Get("/goodfirstissues", s.GoodFirstIssues)
+
 	r.With(middleware.AuthMiddleware(s.oauth)).Route("/follow", func(r chi.Router) {
 		r.Post("/", s.Follow)
 		r.Delete("/", s.Follow)

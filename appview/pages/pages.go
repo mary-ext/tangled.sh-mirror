@@ -312,6 +312,18 @@ func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
 	return p.execute("timeline/timeline", w, params)
 }
 
+type GoodFirstIssuesParams struct {
+	LoggedInUser *oauth.User
+	Issues       []models.Issue
+	RepoGroups   []*models.RepoGroup
+	LabelDefs    map[string]*models.LabelDefinition
+	Page         pagination.Page
+}
+
+func (p *Pages) GoodFirstIssues(w io.Writer, params GoodFirstIssuesParams) error {
+	return p.execute("goodfirstissues/index", w, params)
+}
+
 type UserProfileSettingsParams struct {
 	LoggedInUser *oauth.User
 	Tabs         []map[string]any
