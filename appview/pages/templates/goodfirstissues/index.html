@@ -37,7 +37,7 @@
     {{ else }}
       {{ range .RepoGroups }}
         <div class="mb-4 gap-1 flex flex-col drop-shadow-sm rounded bg-white dark:bg-gray-800">
-          <div class="flex px-6 pt-4 flex-row gap-1 items-center justify-between">
+          <div class="flex px-6 pt-4 flex-row gap-1 items-center justify-between flex-wrap">
             <div class="font-medium dark:text-white flex items-center justify-between">
               <div class="flex items-center min-w-0 flex-1 mr-2">
                 {{ if .Repo.Source }}
@@ -103,14 +103,13 @@
                         <div class="flex-shrink-0 flex items-center gap-2 text-gray-500 dark:text-gray-400">
                           <span>
                             <div class="inline-flex items-center gap-1">
-                              {{ i "message-square" "w-3 h-3 md:hidden" }}
+                              {{ i "message-square" "w-3 h-3" }}
                               {{ len .Comments }}
-                              <span class="hidden md:inline">comment{{ if ne (len .Comments) 1 }}s{{ end }}</span>
                             </div>
                           </span>
                           <span class="before:content-['·'] before:select-none"></span>
                           <span class="text-sm">
-                            {{ template "repo/fragments/time" .Created }}
+                            {{ template "repo/fragments/shortTimeAgo" .Created }}
                           </span>
                           <div class="hidden md:inline-flex md:gap-1">
                           {{ $labelState := .Labels }}

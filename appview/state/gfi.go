@@ -47,8 +47,11 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 		repoUris = append(repoUris, rl.RepoAt.String())
 	}
 
-	allIssues, err := db.GetIssues(
+	allIssues, err := db.GetIssuesPaginated(
 		s.db,
+		pagination.Page{
+			Limit: 500,
+		},
 		db.FilterIn("repo_at", repoUris),
 		db.FilterEq("open", 1),
 	)
@@ -83,6 +86,15 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Slice(sortedGroups, func(i, j int) bool {
+		iIsTangled := sortedGroups[i].Repo.Did == consts.TangledDid
+		jIsTangled := sortedGroups[j].Repo.Did == consts.TangledDid
+
+		// If one is tangled and the other isn't, non-tangled comes first
+		if iIsTangled != jIsTangled {
+			return jIsTangled // true if j is tangled (i should come first)
+		}
+
+		// Both tangled or both not tangled: sort by name
 		return sortedGroups[i].Repo.Name < sortedGroups[j].Repo.Name
 	})
 
