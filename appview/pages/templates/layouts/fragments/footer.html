@@ -1,47 +1,100 @@
 {{ define "layouts/fragments/footer" }}
 <div class="w-full p-8">
-  <div class="max-w-screen-lg mx-auto px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-start text-gray-600 dark:text-gray-400 text-sm gap-8">
-      <div class="mb-4 md:mb-0">
-        <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic no-underline hover:no-underline">
-          {{ template "fragments/logotypeSmall" }}
-        </a>
+  <div class="mx-auto px-4">
+    <div class="flex flex-col text-gray-600 dark:text-gray-400 gap-8">
+      <!-- Desktop layout: grid with 3 columns -->
+      <div class="hidden lg:grid lg:grid-cols-[1fr_minmax(0,1024px)_1fr] lg:gap-8 lg:items-start">
+        <!-- Left section -->
+        <div>
+          <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic no-underline hover:no-underline">
+            {{ template "fragments/logotypeSmall" }}
+          </a>
+        </div>
+
+        {{ $headerStyle := "text-gray-900 dark:text-gray-200 font-bold text-sm uppercase tracking-wide mb-1" }}
+        {{ $linkStyle := "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" }}
+        {{ $iconStyle := "w-4 h-4 flex-shrink-0" }}
+
+        <!-- Center section with max-width -->
+        <div class="grid grid-cols-4 gap-2">
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">legal</div>
+            <a href="/terms" class="{{ $linkStyle }}">{{ i "file-text" $iconStyle }} terms of service</a>
+            <a href="/privacy" class="{{ $linkStyle }}">{{ i "shield" $iconStyle }} privacy policy</a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">resources</div>
+            <a href="https://blog.tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "book-open" $iconStyle }} blog</a>
+            <a href="https://tangled.org/@tangled.org/core/tree/master/docs" class="{{ $linkStyle }}">{{ i "book" $iconStyle }} docs</a>
+            <a href="https://tangled.org/@tangled.org/core" class="{{ $linkStyle }}">{{ i "code" $iconStyle }} source</a>
+            <a href="https://tangled.org/brand" class="{{ $linkStyle }}">{{ i "paintbrush" $iconStyle }} brand</a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">social</div>
+            <a href="https://chat.tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "message-circle" $iconStyle }} discord</a>
+            <a href="https://web.libera.chat/#tangled" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "hash" $iconStyle }} irc</a>
+            <a href="https://bsky.app/profile/tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ template "user/fragments/bluesky" $iconStyle }} bluesky</a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">contact</div>
+            <a href="mailto:team@tangled.org" class="{{ $linkStyle }}">{{ i "mail" "w-4 h-4 flex-shrink-0" }} team@tangled.org</a>
+            <a href="mailto:security@tangled.org" class="{{ $linkStyle }}">{{ i "shield-check" "w-4 h-4 flex-shrink-0" }} security@tangled.org</a>
+          </div>
+        </div>
+
+        <!-- Right section -->
+        <div class="text-right">
+          <div class="text-xs">&copy; 2025 Tangled Labs Oy. All rights reserved.</div>
+        </div>
       </div>
 
-      {{ $headerStyle := "text-gray-900 dark:text-gray-200 font-bold text-xs uppercase tracking-wide mb-1" }}
-      {{ $linkStyle := "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" }}
-      {{ $iconStyle := "w-4 h-4 flex-shrink-0" }}
-      <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 sm:gap-6 md:gap-2 gap-6 flex-1">
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">legal</div>
-          <a href="/terms" class="{{ $linkStyle }}">{{ i "file-text" $iconStyle }} terms of service</a>
-          <a href="/privacy" class="{{ $linkStyle }}">{{ i "shield" $iconStyle }} privacy policy</a>
+      <!-- Mobile layout: stacked -->
+      <div class="lg:hidden flex flex-col gap-8">
+        {{ $headerStyle := "text-gray-900 dark:text-gray-200 font-bold text-xs uppercase tracking-wide mb-1" }}
+        {{ $linkStyle := "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline inline-flex gap-1 items-center" }}
+        {{ $iconStyle := "w-4 h-4 flex-shrink-0" }}
+
+        <div class="mb-4 md:mb-0">
+          <a href="/" hx-boost="true" class="flex gap-2 font-semibold italic no-underline hover:no-underline">
+            {{ template "fragments/logotypeSmall" }}
+          </a>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">resources</div>
-          <a href="https://blog.tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "book-open" $iconStyle }} blog</a>
-          <a href="https://tangled.org/@tangled.org/core/tree/master/docs" class="{{ $linkStyle }}">{{ i "book" $iconStyle }} docs</a>
-          <a href="https://tangled.org/@tangled.org/core" class="{{ $linkStyle }}">{{ i "code" $iconStyle }} source</a>
-          <a href="https://tangled.org/brand" class="{{ $linkStyle }}">{{ i "paintbrush" $iconStyle }} brand</a>
+        <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 sm:gap-6 md:gap-2 gap-6">
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">legal</div>
+            <a href="/terms" class="{{ $linkStyle }}">{{ i "file-text" $iconStyle }} terms of service</a>
+            <a href="/privacy" class="{{ $linkStyle }}">{{ i "shield" $iconStyle }} privacy policy</a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">resources</div>
+            <a href="https://blog.tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "book-open" $iconStyle }} blog</a>
+            <a href="https://tangled.org/@tangled.org/core/tree/master/docs" class="{{ $linkStyle }}">{{ i "book" $iconStyle }} docs</a>
+            <a href="https://tangled.org/@tangled.org/core" class="{{ $linkStyle }}">{{ i "code" $iconStyle }} source</a>
+            <a href="https://tangled.org/brand" class="{{ $linkStyle }}">{{ i "paintbrush" $iconStyle }} brand</a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">social</div>
+            <a href="https://chat.tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "message-circle" $iconStyle }} discord</a>
+            <a href="https://web.libera.chat/#tangled" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "hash" $iconStyle }} irc</a>
+            <a href="https://bsky.app/profile/tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ template "user/fragments/bluesky" $iconStyle }} bluesky</a>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="{{ $headerStyle }}">contact</div>
+            <a href="mailto:team@tangled.org" class="{{ $linkStyle }}">{{ i "mail" "w-4 h-4 flex-shrink-0" }} team@tangled.org</a>
+            <a href="mailto:security@tangled.org" class="{{ $linkStyle }}">{{ i "shield-check" "w-4 h-4 flex-shrink-0" }} security@tangled.org</a>
+          </div>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">social</div>
-          <a href="https://chat.tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "message-circle" $iconStyle }} discord</a>
-          <a href="https://web.libera.chat/#tangled" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ i "hash" $iconStyle }} irc</a>
-          <a href="https://bsky.app/profile/tangled.org" class="{{ $linkStyle }}" target="_blank" rel="noopener noreferrer">{{ template "user/fragments/bluesky" $iconStyle }} bluesky</a>
+        <div class="text-center">
+          <div class="text-xs">&copy; 2025 Tangled Labs Oy. All rights reserved.</div>
         </div>
-
-        <div class="flex flex-col gap-1">
-          <div class="{{ $headerStyle }}">contact</div>
-          <a href="mailto:team@tangled.org" class="{{ $linkStyle }}">{{ i "mail" "w-4 h-4 flex-shrink-0" }} team@tangled.org</a>
-          <a href="mailto:security@tangled.org" class="{{ $linkStyle }}">{{ i "shield-check" "w-4 h-4 flex-shrink-0" }} security@tangled.org</a>
-        </div>
-      </div>
-
-      <div class="text-center lg:text-right flex-shrink-0">
-        <div class="text-xs">&copy; 2025 Tangled Labs Oy. All rights reserved.</div>
       </div>
     </div>
   </div>

@@ -41,13 +41,13 @@
 
           {{ block "mainLayout" . }}
             <div class="flex-grow">
-              <div class="max-w-screen-lg px-4 mx-auto my-6 flex flex-col gap-4">
+              <div class="max-w-screen-lg mx-auto flex flex-col gap-4">
                 {{ block "contentLayout" . }}
                 <main>
                   {{ block "content" . }}{{ end }}
                 </main>
                 {{ end }}
-                
+
                 {{ block "contentAfterLayout" . }}
                 <main>
                   {{ block "contentAfter" . }}{{ end }}
