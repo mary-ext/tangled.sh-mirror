@@ -270,11 +270,17 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.pages.Timeline(w, pages.TimelineParams{
+	gfiLabel, err := db.GetLabelDefinition(s.db, db.FilterEq("at_uri", models.LabelGoodFirstIssue))
+	if err != nil {
+		// non-fatal
+	}
+
+	fmt.Println(s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
 		Timeline:     timeline,
 		Repos:        repos,
-	})
+		GfiLabel:     gfiLabel,
+	}))
 }
 
 func (s *State) UpgradeBanner(w http.ResponseWriter, r *http.Request) {

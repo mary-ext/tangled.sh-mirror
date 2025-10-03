@@ -2,7 +2,7 @@
   {{ $d := .def }}
   {{ $v := .val }}
   {{ $withPrefix := .withPrefix }}
-  <span class="flex items-center gap-2 font-normal normal-case rounded py-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm">
+  <span class="w-fit flex items-center gap-2 font-normal normal-case rounded py-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm">
     {{ template "repo/fragments/colorBall" (dict "color" $d.GetColor) }}
 
     {{ $lhs := printf "%s" $d.Name }}

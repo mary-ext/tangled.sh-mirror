@@ -461,21 +461,22 @@ func ReduceLabelOps(ops []LabelOp) []LabelOp {
 	return result
 }
 
+var (
+	LabelWontfix        = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "wontfix")
+	LabelDuplicate      = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "duplicate")
+	LabelAssignee       = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "assignee")
+	LabelGoodFirstIssue = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "good-first-issue")
+	LabelDocumentation  = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "documentation")
+)
+
 func DefaultLabelDefs() []string {
-	rkeys := []string{
-		"wontfix",
-		"duplicate",
-		"assignee",
-		"good-first-issue",
-		"documentation",
+	return []string{
+		LabelWontfix,
+		LabelDuplicate,
+		LabelAssignee,
+		LabelGoodFirstIssue,
+		LabelDocumentation,
 	}
-
-	defs := make([]string, len(rkeys))
-	for i, r := range rkeys {
-		defs[i] = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, r)
-	}
-
-	return defs
 }
 
 func FetchDefaultDefs(r *idresolver.Resolver) ([]LabelDefinition, error) {
