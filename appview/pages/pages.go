@@ -306,6 +306,7 @@ type TimelineParams struct {
 	LoggedInUser *oauth.User
 	Timeline     []models.TimelineEvent
 	Repos        []models.Repo
+	GfiLabel     *models.LabelDefinition
 }
 
 func (p *Pages) Timeline(w io.Writer, params TimelineParams) error {
@@ -317,6 +318,7 @@ type GoodFirstIssuesParams struct {
 	Issues       []models.Issue
 	RepoGroups   []*models.RepoGroup
 	LabelDefs    map[string]*models.LabelDefinition
+	GfiLabel     *models.LabelDefinition
 	Page         pagination.Page
 }
 

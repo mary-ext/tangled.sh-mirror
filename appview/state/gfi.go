@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
@@ -64,13 +65,12 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	repoGroups := make(map[string]*models.RepoGroup)
+	repoGroups := make(map[syntax.ATURI]*models.RepoGroup)
 	for _, issue := range goodFirstIssues {
-		repoKey := fmt.Sprintf("%s/%s", issue.Repo.Did, issue.Repo.Name)
-		if group, exists := repoGroups[repoKey]; exists {
+		if group, exists := repoGroups[issue.Repo.RepoAt()]; exists {
 			group.Issues = append(group.Issues, issue)
 		} else {
-			repoGroups[repoKey] = &models.RepoGroup{
+			repoGroups[issue.Repo.RepoAt()] = &models.RepoGroup{
 				Repo:   issue.Repo,
 				Issues: []models.Issue{issue},
 			}
@@ -134,5 +134,6 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 		RepoGroups:   paginatedGroups,
 		LabelDefs:    labelDefsMap,
 		Page:         page,
+		GfiLabel:     labelDefsMap[goodFirstIssueLabel],
 	})
 }

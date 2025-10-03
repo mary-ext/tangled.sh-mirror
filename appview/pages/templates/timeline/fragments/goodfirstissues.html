@@ -1,31 +1,33 @@
 {{ define "timeline/fragments/goodfirstissues" }}
-  <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm mb-4">
-      <div class="px-6 py-4">
-          <div class="flex flex-col md:flex-row items-center gap-4">
-              <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-2">
-                      <span class="text-sm text-gray-500 dark:text-gray-400">Oct&ndash;Nov 2025</span>
-                  </div>
-                  <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-2">
-                      Get your first PR merged and earn Dolly stickers! 🎉
-                  </h4>
-                  <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                      Merge a PR for "good first issue" (make this a label) a and get Tangled stickers shipped free.
-                  </p>
-                  <a href="/goodfirstissues"
-                     class="btn my-2 gap-2">
-                     browse issues
-                      {{ i "arrow-right" "size-4" }}
-                  </a>
-              </div>
-              <div class="flex-shrink-0">
-                  <div class="flex items-center gap-1 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded border border-purple-200 dark:border-purple-700">
-                      {{ template "fragments/dolly/logo" "w-6 h-6" }}
-                      {{ template "fragments/dolly/silhouette" }}
-                      <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">Free stickers!</span>
-                  </div>
-              </div>
+  {{ if .GfiLabel }}
+    <a href="/goodfirstissues" class="no-underline hover:no-underline">
+      <div class="flex items-center justify-between gap-2 bg-purple-200 dark:bg-purple-900 border border-purple-400 dark:border-purple-500 rounded mb-4 py-4 px-6 ">
+        <div class="flex-1 flex flex-col gap-2">
+          <div class="text-purple-500 dark:text-purple-400">Oct 2025</div>
+          <p>
+            Make your first contribution to an open-source project this October.
+          </p>
+          <p>
+            <em>good-first-issue</em> is a collection of issues on open-source projects
+            that are easy ways for new contributors to give back to the projects
+            they love.
+          </p>
+          <span class="flex items-center gap-2 text-purple-500 dark:text-purple-400">
+            Browse issues {{ i "arrow-right" "size-4" }}
+          </span>
+        </div>
+        <div class="hidden md:block relative px-16 scale-150">
+          <div class="relative opacity-60">
+            {{ template "labels/fragments/label" (dict "def" .GfiLabel "val" "" "withPrefix" true) }}
           </div>
+          <div class="relative -mt-4 ml-2 opacity-80">
+            {{ template "labels/fragments/label" (dict "def" .GfiLabel "val" "" "withPrefix" true) }}
+          </div>
+          <div class="relative -mt-4 ml-4">
+            {{ template "labels/fragments/label" (dict "def" .GfiLabel "val" "" "withPrefix" true) }}
+          </div>
+        </div>
       </div>
-  </div>
+    </a>
+  {{ end }}
 {{ end }}

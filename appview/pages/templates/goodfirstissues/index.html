@@ -9,8 +9,10 @@
 
 {{ define "content" }}
 <div class="grid grid-cols-10">
-  <header class="col-span-full md:col-span-10 px-6 py-2 mb-4">
-    <h1 class="text-2xl font-bold dark:text-white mb-1">Good First Issues</h1>
+  <header class="col-span-full md:col-span-10 px-6 py-2 text-center flex flex-col items-center justify-center py-8">
+    <h1 class="scale-150 dark:text-white mb-4">
+      {{ template "labels/fragments/label" (dict "def" .GfiLabel "val" "" "withPrefix" true) }}
+    </h1>
     <p class="text-gray-600 dark:text-gray-400 mb-2">
       Find beginner-friendly issues across all repositories to get started with open source contributions.
     </p>
@@ -35,22 +37,22 @@
     {{ else }}
       {{ range .RepoGroups }}
         <div class="mb-4 gap-1 flex flex-col drop-shadow-sm rounded bg-white dark:bg-gray-800">
-          <div class="flex px-6 pt-4 pb-2 flex-row gap-1">
-          <div class="font-medium dark:text-white flex items-center justify-between">
-            <div class="flex items-center min-w-0 flex-1 mr-2">
-              {{ if .Repo.Source }}
-                {{ i "git-fork" "w-4 h-4 mr-1.5 shrink-0" }}
-              {{ else }}
-                {{ i "book-marked" "w-4 h-4 mr-1.5 shrink-0" }}
-              {{ end }}
-              {{ $repoOwner := resolve .Repo.Did }}
-              <a href="/{{ $repoOwner }}/{{ .Repo.Name }}" class="truncate min-w-0">{{ $repoOwner }}/{{ .Repo.Name }}</a>
+          <div class="flex px-6 pt-4 flex-row gap-1 items-center justify-between">
+            <div class="font-medium dark:text-white flex items-center justify-between">
+              <div class="flex items-center min-w-0 flex-1 mr-2">
+                {{ if .Repo.Source }}
+                  {{ i "git-fork" "w-4 h-4 mr-1.5 shrink-0" }}
+                {{ else }}
+                  {{ i "book-marked" "w-4 h-4 mr-1.5 shrink-0" }}
+                {{ end }}
+                {{ $repoOwner := resolve .Repo.Did }}
+                <a href="/{{ $repoOwner }}/{{ .Repo.Name }}" class="truncate min-w-0">{{ $repoOwner }}/{{ .Repo.Name }}</a>
+              </div>
             </div>
-          </div>
 
 
           {{ if .Repo.RepoStats }}
-            <div class="text-gray-400 text-sm font-mono inline-flex gap-4 mt-auto">
+            <div class="text-gray-400 text-sm font-mono inline-flex gap-4">
               {{ with .Repo.RepoStats.Language }}
                 <div class="flex gap-2 items-center text-sm">
                   {{ template "repo/fragments/colorBall" (dict "color" (langColor .)) }}
@@ -86,59 +88,45 @@
           {{ end }}
 
           {{ if gt (len .Issues) 0 }}
-            <details class="bg-white dark:bg-gray-800 group" open>
-              <summary class="py-4 px-6 text-xs list-none cursor-pointer hover:text-gray-500 hover:dark:text-gray-400">
-                {{ $s := "s" }}
-                {{ if eq (len .Issues) 1 }}
-                  {{ $s = "" }}
-                {{ end }}
-                <div class="group-open:hidden flex items-center gap-2">
-                  {{ i "chevrons-up-down" "w-4 h-4" }} expand {{ len .Issues }} issue{{$s}} in this repo
-                </div>
-                <div class="hidden group-open:flex items-center gap-2">
-                  {{ i "chevrons-down-up" "w-4 h-4" }} hide {{ len .Issues }} issue{{$s}} in this repo
-                </div>
-              </summary>
-              <div class="grid grid-cols-1 rounded-b border-b border-t border-gray-200 dark:border-gray-900 divide-y divide-gray-200 dark:divide-gray-900">
-                {{ range .Issues }}
-                  <a href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}/issues/{{ .IssueId }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
-                    <div class="py-2 px-6">
-                      <div class="flex-grow min-w-0 w-full">
-                        <div class="flex text-sm items-center justify-between w-full">
-                          <div class="flex items-center gap-2 min-w-0 flex-1 pr-2">
-                            <span class="truncate text-sm text-gray-800 dark:text-gray-200">
-                              <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
-                              {{ .Title | description }}
-                            </span>
-                          </div>
-                          <div class="flex-shrink-0 flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                            <span>
-                              <div class="inline-flex items-center gap-1">
-                                {{ i "message-square" "w-3 h-3 md:hidden" }}
-                                {{ len .Comments }}
-                                <span class="hidden md:inline">comment{{ if ne (len .Comments) 1 }}s{{ end }}</span>
-                              </div>
-                            </span>
-                            <span class="before:content-['·'] before:select-none"></span>
-                            <span class="text-xs">
-                              {{ template "repo/fragments/time" .Created }}
-                            </span>
-                            <div class="hidden md:inline-flex md:gap-1">
-                            {{ $labelState := .Labels }}
-                            {{ range $k, $d := $.LabelDefs }}
-                              {{ range $v, $s := $labelState.GetValSet $d.AtUri.String }}
-                                {{ template "labels/fragments/label" (dict "def" $d "val" $v "withPrefix" true) }}
-                              {{ end }}
-                            {{ end }}
+            <div class="grid grid-cols-1 rounded-b border-b border-t border-gray-200 dark:border-gray-900 divide-y divide-gray-200 dark:divide-gray-900">
+              {{ range .Issues }}
+                <a href="/{{ resolve .Repo.Did }}/{{ .Repo.Name }}/issues/{{ .IssueId }}" class="no-underline hover:no-underline hover:bg-gray-100/25 hover:dark:bg-gray-700/25">
+                  <div class="py-2 px-6">
+                    <div class="flex-grow min-w-0 w-full">
+                      <div class="flex text-sm items-center justify-between w-full">
+                        <div class="flex items-center gap-2 min-w-0 flex-1 pr-2">
+                          <span class="truncate text-sm text-gray-800 dark:text-gray-200">
+                            <span class="text-gray-500 dark:text-gray-400">#{{ .IssueId }}</span>
+                            {{ .Title | description }}
+                          </span>
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                          <span>
+                            <div class="inline-flex items-center gap-1">
+                              {{ i "message-square" "w-3 h-3 md:hidden" }}
+                              {{ len .Comments }}
+                              <span class="hidden md:inline">comment{{ if ne (len .Comments) 1 }}s{{ end }}</span>
                             </div>
+                          </span>
+                          <span class="before:content-['·'] before:select-none"></span>
+                          <span class="text-sm">
+                            {{ template "repo/fragments/time" .Created }}
+                          </span>
+                          <div class="hidden md:inline-flex md:gap-1">
+                          {{ $labelState := .Labels }}
+                          {{ range $k, $d := $.LabelDefs }}
+                            {{ range $v, $s := $labelState.GetValSet $d.AtUri.String }}
+                              {{ template "labels/fragments/label" (dict "def" $d "val" $v "withPrefix" true) }}
+                            {{ end }}
+                          {{ end }}
                           </div>
                         </div>
                       </div>
                     </div>
-                  </a>
-                {{ end }}
-              </div>
-            </details>
+                  </div>
+                </a>
+              {{ end }}
+            </div>
           {{ end }}
         </div>
       {{ end }}
