@@ -61,6 +61,7 @@ func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
 		CamoUrl:    config.Camo.Host,
 		CamoSecret: config.Camo.SharedSecret,
 		Sanitizer:  markup.NewSanitizer(),
+		Files:      Files,
 	}
 
 	p := &Pages{
@@ -1475,7 +1476,7 @@ func (p *Pages) Static() http.Handler {
 		return http.StripPrefix("/static/", http.FileServer(http.Dir("appview/pages/static")))
 	}
 
-	sub, err := fs.Sub(Files, "static")
+	sub, err := fs.Sub(p.embedFS, "static")
 	if err != nil {
 		p.logger.Error("no static dir found? that's crazy", "err", err)
 		panic(err)
@@ -1498,8 +1499,8 @@ func Cache(h http.Handler) http.Handler {
 	})
 }
 
-func CssContentHash() string {
-	cssFile, err := Files.Open("static/tw.css")
+func (p *Pages) CssContentHash() string {
+	cssFile, err := p.embedFS.Open("static/tw.css")
 	if err != nil {
 		slog.Debug("Error opening CSS file", "err", err)
 		return ""

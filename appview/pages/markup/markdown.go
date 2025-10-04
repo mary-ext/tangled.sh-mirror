@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/url"
 	"path"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
+	callout "gitlab.com/staticnoise/goldmark-callout"
 	htmlparse "golang.org/x/net/html"
 
 	"tangled.org/core/api/tangled"
@@ -45,6 +47,7 @@ type RenderContext struct {
 	IsDev        bool
 	RendererType RendererType
 	Sanitizer    Sanitizer
+	Files        fs.FS
 }
 
 func (rctx *RenderContext) RenderMarkdown(source string) string {
@@ -62,6 +65,7 @@ func (rctx *RenderContext) RenderMarkdown(source string) string {
 				extension.WithFootnoteIDPrefix([]byte("footnote")),
 			),
 			treeblood.MathML(),
+			callout.CalloutExtention,
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
@@ -140,7 +144,8 @@ func postProcess(ctx *RenderContext, input io.Reader, output io.Writer) error {
 func visitNode(ctx *RenderContext, node *htmlparse.Node) {
 	switch node.Type {
 	case htmlparse.ElementNode:
-		if node.Data == "img" || node.Data == "source" {
+		switch node.Data {
+		case "img", "source":
 			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue

@@ -265,14 +265,14 @@ func (p *Pages) funcMap() template.FuncMap {
 			return nil
 		},
 		"i": func(name string, classes ...string) template.HTML {
-			data, err := icon(name, classes)
+			data, err := p.icon(name, classes)
 			if err != nil {
 				log.Printf("icon %s does not exist", name)
-				data, _ = icon("airplay", classes)
+				data, _ = p.icon("airplay", classes)
 			}
 			return template.HTML(data)
 		},
-		"cssContentHash": CssContentHash,
+		"cssContentHash": p.CssContentHash,
 		"fileTree":       filetree.FileTree,
 		"pathEscape": func(s string) string {
 			return url.PathEscape(s)
@@ -325,7 +325,7 @@ func (p *Pages) avatarUri(handle, size string) string {
 	return fmt.Sprintf("%s/%s/%s?%s", p.avatar.Host, signature, handle, sizeArg)
 }
 
-func icon(name string, classes []string) (template.HTML, error) {
+func (p *Pages) icon(name string, classes []string) (template.HTML, error) {
 	iconPath := filepath.Join("static", "icons", name)
 
 	if filepath.Ext(name) == "" {

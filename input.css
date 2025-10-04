@@ -134,39 +134,40 @@
         }
 
         .prose hr {
-          @apply my-2;
+            @apply my-2;
         }
 
         .prose li:has(input) {
-          @apply list-none;
+            @apply list-none;
         }
 
         .prose ul:has(input) {
-          @apply pl-2;
+            @apply pl-2;
         }
 
         .prose .heading .anchor {
-          @apply no-underline mx-2 opacity-0;
+            @apply no-underline mx-2 opacity-0;
         }
 
         .prose .heading:hover .anchor {
-          @apply opacity-70;
+            @apply opacity-70;
         }
 
         .prose .heading .anchor:hover {
-          @apply opacity-70;
+            @apply opacity-70;
         }
 
         .prose a.footnote-backref {
-          @apply no-underline;
+            @apply no-underline;
         }
 
         .prose li {
-          @apply my-0 py-0;
+            @apply my-0 py-0;
         }
 
-        .prose ul, .prose ol {
-          @apply my-1 py-0;
+        .prose ul,
+        .prose ol {
+            @apply my-1 py-0;
         }
 
         .prose img {
@@ -176,11 +177,69 @@
         }
 
         .prose input {
-          @apply inline-block my-0 mb-1 mx-1;
+            @apply inline-block my-0 mb-1 mx-1;
         }
 
         .prose input[type="checkbox"] {
             @apply disabled:accent-blue-500 checked:accent-blue-500 disabled:checked:accent-blue-500;
+        }
+
+        /* Base callout */
+        details[data-callout] {
+            @apply border-l-4 pl-3 py-2 text-gray-800 dark:text-gray-200 my-4;
+        }
+
+        details[data-callout] > summary {
+            @apply font-bold cursor-pointer mb-1;
+        }
+
+        details[data-callout] > .callout-content {
+            @apply text-sm leading-snug;
+        }
+
+        /* Note (blue) */
+        details[data-callout="note" i] {
+            @apply border-blue-400 dark:border-blue-500;
+        }
+        details[data-callout="note" i] > summary {
+            @apply text-blue-700 dark:text-blue-400;
+        }
+
+        /* Important (purple) */
+        details[data-callout="important" i] {
+            @apply border-purple-400 dark:border-purple-500;
+        }
+        details[data-callout="important" i] > summary {
+            @apply text-purple-700 dark:text-purple-400;
+        }
+
+        /* Warning (yellow) */
+        details[data-callout="warning" i] {
+            @apply border-yellow-400 dark:border-yellow-500;
+        }
+        details[data-callout="warning" i] > summary {
+            @apply text-yellow-700 dark:text-yellow-400;
+        }
+
+        /* Caution (red) */
+        details[data-callout="caution" i] {
+            @apply border-red-400 dark:border-red-500;
+        }
+        details[data-callout="caution" i] > summary {
+            @apply text-red-700 dark:text-red-400;
+        }
+
+        /* Tip (green) */
+        details[data-callout="tip" i] {
+            @apply border-green-400 dark:border-green-500;
+        }
+        details[data-callout="tip" i] > summary {
+            @apply text-green-700 dark:text-green-400;
+        }
+
+        /* Optional: hide the disclosure arrow like GitHub */
+        details[data-callout] > summary::-webkit-details-marker {
+            display: none;
         }
     }
     @layer utilities {
@@ -228,7 +287,7 @@
 }
 /* LineHighlight */
 .chroma .hl {
-  @apply bg-amber-400/30 dark:bg-amber-500/20;
+    @apply bg-amber-400/30 dark:bg-amber-500/20;
 }
 
 /* LineNumbersTable */
