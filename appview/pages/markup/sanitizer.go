@@ -114,6 +114,9 @@ func defaultPolicy() *bluemonday.Policy {
 	policy.AllowNoAttrs().OnElements(mathElements...)
 	policy.AllowAttrs(mathAttrs...).OnElements(mathElements...)
 
+	// goldmark-callout
+	policy.AllowAttrs("data-callout").OnElements("details")
+
 	return policy
 }
 
