@@ -1,4 +1,4 @@
-// adapted from https://tangled.sh/icyphox.sh/atproto-oauth
+// adapted from https://tangled.org/anirudh.fi/atproto-oauth
 
 package main
 

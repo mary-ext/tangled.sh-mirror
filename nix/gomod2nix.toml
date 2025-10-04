@@ -527,6 +527,6 @@ schema = 3
   [mod."lukechampine.com/blake3"]
     version = "v1.4.1"
     hash = "sha256-HaZGo9L44ptPsgxIhvKy3+0KZZm1+xt+cZC1rDQA9Yc="
-  [mod."tangled.sh/icyphox.sh/atproto-oauth"]
+  [mod."tangled.org/anirudh.fi/atproto-oauth"]
     version = "v0.0.0-20250724194903-28e660378cb1"
     hash = "sha256-z7huwCTTHqLb1hxQW62lz9GQ3Orqt4URfeOVhQVd1f8="

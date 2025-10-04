@@ -10,7 +10,7 @@ import (
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
 	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
-	oauth "tangled.sh/icyphox.sh/atproto-oauth"
+	oauth "tangled.org/anirudh.fi/atproto-oauth"
 )
 
 var (

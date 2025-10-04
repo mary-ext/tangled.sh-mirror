@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
+	"tangled.org/anirudh.fi/atproto-oauth/helpers"
 	tangled "tangled.org/core/api/tangled"
 	sessioncache "tangled.org/core/appview/cache/session"
 	"tangled.org/core/appview/config"
@@ -28,7 +29,6 @@ import (
 	"tangled.org/core/idresolver"
 	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
-	"tangled.sh/icyphox.sh/atproto-oauth/helpers"
 )
 
 const (

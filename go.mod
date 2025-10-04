@@ -40,7 +40,7 @@ require (
 	github.com/urfave/cli/v3 v3.3.3
 	github.com/whyrusleeping/cbor-gen v0.3.1
 	github.com/wyatt915/goldmark-treeblood v0.0.0-20250825231212-5dcbdb2f4b57
-	github.com/yuin/goldmark v1.7.12
+	github.com/yuin/goldmark v1.7.13
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	golang.org/x/crypto v0.40.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
@@ -48,7 +48,7 @@ require (
 	golang.org/x/sync v0.16.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	gopkg.in/yaml.v3 v3.0.1
-	tangled.sh/icyphox.sh/atproto-oauth v0.0.0-20250724194903-28e660378cb1
+	tangled.org/anirudh.fi/atproto-oauth v0.0.0-20251004062652-69f4561572b5
 )
 
 require (
