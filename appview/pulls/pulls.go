@@ -1153,8 +1153,9 @@ func (s *Pulls) createPullRequest(
 					Repo:   string(f.RepoAt()),
 					Branch: targetBranch,
 				},
-				Patch:  patch,
-				Source: recordPullSource,
+				Patch:     patch,
+				Source:    recordPullSource,
+				CreatedAt: time.Now().Format(time.RFC3339),
 			},
 		},
 	})
@@ -1805,8 +1806,9 @@ func (s *Pulls) resubmitPullHelper(
 					Repo:   string(f.RepoAt()),
 					Branch: pull.TargetBranch,
 				},
-				Patch:  patch, // new patch
-				Source: recordPullSource,
+				Patch:     patch, // new patch
+				Source:    recordPullSource,
+				CreatedAt: time.Now().Format(time.RFC3339),
 			},
 		},
 	})
