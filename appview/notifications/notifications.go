@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,20 +30,21 @@ func New(database *db.DB, oauthHandler *oauth.OAuth, pagesHandler *pages.Pages) 
 func (n *Notifications) Router(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.AuthMiddleware(n.oauth))
-
-	r.With(middleware.Paginate).Get("/", n.notificationsPage)
-
 	r.Get("/count", n.getUnreadCount)
-	r.Post("/{id}/read", n.markRead)
-	r.Post("/read-all", n.markAllRead)
-	r.Delete("/{id}", n.deleteNotification)
+
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware(n.oauth))
+		r.With(middleware.Paginate).Get("/", n.notificationsPage)
+		r.Post("/{id}/read", n.markRead)
+		r.Post("/read-all", n.markAllRead)
+		r.Delete("/{id}", n.deleteNotification)
+	})
 
 	return r
 }
 
 func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request) {
-	userDid := n.oauth.GetDid(r)
+	user := n.oauth.GetUser(r)
 
 	page, ok := r.Context().Value("page").(pagination.Page)
 	if !ok {
@@ -54,7 +54,7 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 
 	total, err := db.CountNotifications(
 		n.db,
-		db.FilterEq("recipient_did", userDid),
+		db.FilterEq("recipient_did", user.Did),
 	)
 	if err != nil {
 		log.Println("failed to get total notifications:", err)
@@ -65,7 +65,7 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 	notifications, err := db.GetNotificationsWithEntities(
 		n.db,
 		page,
-		db.FilterEq("recipient_did", userDid),
+		db.FilterEq("recipient_did", user.Did),
 	)
 	if err != nil {
 		log.Println("failed to get notifications:", err)
@@ -73,30 +73,28 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = n.db.MarkAllNotificationsRead(r.Context(), userDid)
+	err = n.db.MarkAllNotificationsRead(r.Context(), user.Did)
 	if err != nil {
 		log.Println("failed to mark notifications as read:", err)
 	}
 
 	unreadCount := 0
 
-	user := n.oauth.GetUser(r)
-	if user == nil {
-		http.Error(w, "Failed to get user", http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Println(n.pages.Notifications(w, pages.NotificationsParams{
+	n.pages.Notifications(w, pages.NotificationsParams{
 		LoggedInUser:  user,
 		Notifications: notifications,
 		UnreadCount:   unreadCount,
 		Page:          page,
 		Total:         total,
-	}))
+	})
 }
 
 func (n *Notifications) getUnreadCount(w http.ResponseWriter, r *http.Request) {
 	user := n.oauth.GetUser(r)
+	if user == nil {
+		return
+	}
+
 	count, err := db.CountNotifications(
 		n.db,
 		db.FilterEq("recipient_did", user.Did),

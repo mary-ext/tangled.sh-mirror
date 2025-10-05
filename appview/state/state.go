@@ -11,12 +11,6 @@ import (
 	"strings"
 	"time"
 
-	comatproto "github.com/bluesky-social/indigo/api/atproto"
-	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
-	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/go-chi/chi/v5"
-	"github.com/posthog/posthog-go"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview"
 	"tangled.org/core/appview/cache"
@@ -38,6 +32,14 @@ import (
 	tlog "tangled.org/core/log"
 	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
+
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	atpclient "github.com/bluesky-social/indigo/atproto/client"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/go-chi/chi/v5"
+	"github.com/posthog/posthog-go"
 )
 
 type State struct {
@@ -75,10 +77,13 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		res = idresolver.DefaultResolver()
 	}
 
-	pgs := pages.NewPages(config, res)
+	pages := pages.NewPages(config, res)
 	cache := cache.New(config.Redis.Addr)
 	sess := session.New(cache)
-	oauth := oauth.NewOAuth(config, sess)
+	oauth2, err := oauth.New(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start oauth handler: %w", err)
+	}
 	validator := validator.New(d, res, enforcer)
 
 	posthog, err := posthog.NewWithConfig(config.Posthog.ApiKey, posthog.Config{Endpoint: config.Posthog.Endpoint})
@@ -162,9 +167,9 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	state := &State{
 		d,
 		notifier,
-		oauth,
+		oauth2,
 		enforcer,
-		pgs,
+		pages,
 		sess,
 		res,
 		posthog,
@@ -275,12 +280,12 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 		// non-fatal
 	}
 
-	fmt.Println(s.pages.Timeline(w, pages.TimelineParams{
+	s.pages.Timeline(w, pages.TimelineParams{
 		LoggedInUser: user,
 		Timeline:     timeline,
 		Repos:        repos,
 		GfiLabel:     gfiLabel,
-	}))
+	})
 }
 
 func (s *State) UpgradeBanner(w http.ResponseWriter, r *http.Request) {
@@ -291,7 +296,6 @@ func (s *State) UpgradeBanner(w http.ResponseWriter, r *http.Request) {
 
 	l := s.logger.With("handler", "UpgradeBanner")
 	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
 
 	regs, err := db.GetRegistrations(
 		s.db,
@@ -431,7 +435,6 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 
 		user := s.oauth.GetUser(r)
 		l = l.With("did", user.Did)
-		l = l.With("handle", user.Handle)
 
 		// form validation
 		domain := r.FormValue("domain")
@@ -495,14 +498,14 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		record := repo.AsRecord()
 
-		xrpcClient, err := s.oauth.AuthorizedClient(r)
+		atpClient, err := s.oauth.AuthorizedClient(r)
 		if err != nil {
 			l.Info("PDS write failed", "err", err)
 			s.pages.Notice(w, "repo", "Failed to write record to PDS.")
 			return
 		}
 
-		atresp, err := xrpcClient.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		atresp, err := comatproto.RepoPutRecord(r.Context(), atpClient, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
@@ -534,7 +537,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		rollback := func() {
 			err1 := tx.Rollback()
 			err2 := s.enforcer.E.LoadPolicy()
-			err3 := rollbackRecord(context.Background(), aturi, xrpcClient)
+			err3 := rollbackRecord(context.Background(), aturi, atpClient)
 
 			// ignore txn complete errors, this is okay
 			if errors.Is(err1, sql.ErrTxDone) {
@@ -607,14 +610,14 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		aturi = ""
 
 		s.notifier.NewRepo(r.Context(), repo)
-		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Handle, repoName))
+		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Did, repoName))
 	}
 }
 
 // this is used to rollback changes made to the PDS
 //
 // it is a no-op if the provided ATURI is empty
-func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client) error {
+func rollbackRecord(ctx context.Context, aturi string, client *atpclient.APIClient) error {
 	if aturi == "" {
 		return nil
 	}
@@ -625,7 +628,7 @@ func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client)
 	repo := parsed.Authority().String()
 	rkey := parsed.RecordKey().String()
 
-	_, err := xrpcc.RepoDeleteRecord(ctx, &comatproto.RepoDeleteRecord_Input{
+	_, err := comatproto.RepoDeleteRecord(ctx, client, &comatproto.RepoDeleteRecord_Input{
 		Collection: collection,
 		Repo:       repo,
 		Rkey:       rkey,

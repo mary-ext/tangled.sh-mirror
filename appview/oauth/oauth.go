@@ -1,214 +1,173 @@
 package oauth
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
-	"net/url"
 	"time"
 
-	indigo_xrpc "github.com/bluesky-social/indigo/xrpc"
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/auth/oauth"
+	atpclient "github.com/bluesky-social/indigo/atproto/client"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	xrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
-	oauth "tangled.org/anirudh.fi/atproto-oauth"
-	"tangled.org/anirudh.fi/atproto-oauth/helpers"
-	sessioncache "tangled.org/core/appview/cache/session"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 	"tangled.org/core/appview/config"
-	"tangled.org/core/appview/oauth/client"
-	xrpc "tangled.org/core/appview/xrpcclient"
 )
 
-type OAuth struct {
-	store  *sessions.CookieStore
-	config *config.Config
-	sess   *sessioncache.SessionStore
-}
+func New(config *config.Config) (*OAuth, error) {
 
-func NewOAuth(config *config.Config, sess *sessioncache.SessionStore) *OAuth {
-	return &OAuth{
-		store:  sessions.NewCookieStore([]byte(config.Core.CookieSecret)),
-		config: config,
-		sess:   sess,
+	var oauthConfig oauth.ClientConfig
+	var clientUri string
+
+	if config.Core.Dev {
+		clientUri = "http://127.0.0.1:3000"
+		callbackUri := clientUri + "/oauth/callback"
+		oauthConfig = oauth.NewLocalhostConfig(callbackUri, []string{"atproto", "transition:generic"})
+	} else {
+		clientUri = config.Core.AppviewHost
+		clientId := fmt.Sprintf("%s/oauth/client-metadata.json", clientUri)
+		callbackUri := clientUri + "/oauth/callback"
+		oauthConfig = oauth.NewPublicConfig(clientId, callbackUri, []string{"atproto", "transition:generic"})
 	}
+
+	jwksUri := clientUri + "/oauth/jwks.json"
+
+	authStore, err := NewRedisStore(config.Redis.ToURL())
+	if err != nil {
+		return nil, err
+	}
+
+	sessStore := sessions.NewCookieStore([]byte(config.Core.CookieSecret))
+
+	return &OAuth{
+		ClientApp: oauth.NewClientApp(&oauthConfig, authStore),
+		Config:    config,
+		SessStore: sessStore,
+		JwksUri:   jwksUri,
+	}, nil
 }
 
-func (o *OAuth) Stores() *sessions.CookieStore {
-	return o.store
+type OAuth struct {
+	ClientApp *oauth.ClientApp
+	SessStore *sessions.CookieStore
+	Config    *config.Config
+	JwksUri   string
 }
 
-func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, oreq sessioncache.OAuthRequest, oresp *oauth.TokenResponse) error {
+func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, sessData *oauth.ClientSessionData) error {
 	// first we save the did in the user session
-	userSession, err := o.store.Get(r, SessionName)
+	userSession, err := o.SessStore.Get(r, SessionName)
 	if err != nil {
 		return err
 	}
 
-	userSession.Values[SessionDid] = oreq.Did
-	userSession.Values[SessionHandle] = oreq.Handle
-	userSession.Values[SessionPds] = oreq.PdsUrl
+	userSession.Values[SessionDid] = sessData.AccountDID.String()
+	userSession.Values[SessionPds] = sessData.HostURL
+	userSession.Values[SessionId] = sessData.SessionID
 	userSession.Values[SessionAuthenticated] = true
-	err = userSession.Save(r, w)
-	if err != nil {
-		return fmt.Errorf("error saving user session: %w", err)
-	}
-
-	// then save the whole thing in the db
-	session := sessioncache.OAuthSession{
-		Did:                 oreq.Did,
-		Handle:              oreq.Handle,
-		PdsUrl:              oreq.PdsUrl,
-		DpopAuthserverNonce: oreq.DpopAuthserverNonce,
-		AuthServerIss:       oreq.AuthserverIss,
-		DpopPrivateJwk:      oreq.DpopPrivateJwk,
-		AccessJwt:           oresp.AccessToken,
-		RefreshJwt:          oresp.RefreshToken,
-		Expiry:              time.Now().Add(time.Duration(oresp.ExpiresIn) * time.Second).Format(time.RFC3339),
-	}
-
-	return o.sess.SaveSession(r.Context(), session)
-}
-
-func (o *OAuth) ClearSession(r *http.Request, w http.ResponseWriter) error {
-	userSession, err := o.store.Get(r, SessionName)
-	if err != nil || userSession.IsNew {
-		return fmt.Errorf("error getting user session (or new session?): %w", err)
-	}
-
-	did := userSession.Values[SessionDid].(string)
-
-	err = o.sess.DeleteSession(r.Context(), did)
-	if err != nil {
-		return fmt.Errorf("error deleting oauth session: %w", err)
-	}
-
-	userSession.Options.MaxAge = -1
-
 	return userSession.Save(r, w)
 }
 
-func (o *OAuth) GetSession(r *http.Request) (*sessioncache.OAuthSession, bool, error) {
-	userSession, err := o.store.Get(r, SessionName)
-	if err != nil || userSession.IsNew {
-		return nil, false, fmt.Errorf("error getting user session (or new session?): %w", err)
-	}
-
-	did := userSession.Values[SessionDid].(string)
-	auth := userSession.Values[SessionAuthenticated].(bool)
-
-	session, err := o.sess.GetSession(r.Context(), did)
+func (o *OAuth) ResumeSession(r *http.Request) (*oauth.ClientSession, error) {
+	userSession, err := o.SessStore.Get(r, SessionName)
 	if err != nil {
-		return nil, false, fmt.Errorf("error getting oauth session: %w", err)
+		return nil, fmt.Errorf("error getting user session: %w", err)
+	}
+	if userSession.IsNew {
+		return nil, fmt.Errorf("no session available for user")
 	}
 
-	expiry, err := time.Parse(time.RFC3339, session.Expiry)
+	d := userSession.Values[SessionDid].(string)
+	sessDid, err := syntax.ParseDID(d)
 	if err != nil {
-		return nil, false, fmt.Errorf("error parsing expiry time: %w", err)
-	}
-	if time.Until(expiry) <= 5*time.Minute {
-		privateJwk, err := helpers.ParseJWKFromBytes([]byte(session.DpopPrivateJwk))
-		if err != nil {
-			return nil, false, err
-		}
-
-		self := o.ClientMetadata()
-
-		oauthClient, err := client.NewClient(
-			self.ClientID,
-			o.config.OAuth.Jwks,
-			self.RedirectURIs[0],
-		)
-
-		if err != nil {
-			return nil, false, err
-		}
-
-		resp, err := oauthClient.RefreshTokenRequest(r.Context(), session.RefreshJwt, session.AuthServerIss, session.DpopAuthserverNonce, privateJwk)
-		if err != nil {
-			return nil, false, err
-		}
-
-		newExpiry := time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second).Format(time.RFC3339)
-		err = o.sess.RefreshSession(r.Context(), did, resp.AccessToken, resp.RefreshToken, newExpiry)
-		if err != nil {
-			return nil, false, fmt.Errorf("error refreshing oauth session: %w", err)
-		}
-
-		// update the current session
-		session.AccessJwt = resp.AccessToken
-		session.RefreshJwt = resp.RefreshToken
-		session.DpopAuthserverNonce = resp.DpopAuthserverNonce
-		session.Expiry = newExpiry
+		return nil, fmt.Errorf("malformed DID in session cookie '%s': %w", d, err)
 	}
 
-	return session, auth, nil
+	sessId := userSession.Values[SessionId].(string)
+
+	clientSess, err := o.ClientApp.ResumeSession(r.Context(), sessDid, sessId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resume session: %w", err)
+	}
+
+	return clientSess, nil
+}
+
+func (o *OAuth) DeleteSession(w http.ResponseWriter, r *http.Request) error {
+	userSession, err := o.SessStore.Get(r, SessionName)
+	if err != nil {
+		return fmt.Errorf("error getting user session: %w", err)
+	}
+	if userSession.IsNew {
+		return fmt.Errorf("no session available for user")
+	}
+
+	d := userSession.Values[SessionDid].(string)
+	sessDid, err := syntax.ParseDID(d)
+	if err != nil {
+		return fmt.Errorf("malformed DID in session cookie '%s': %w", d, err)
+	}
+
+	sessId := userSession.Values[SessionId].(string)
+
+	// delete the session
+	err1 := o.ClientApp.Logout(r.Context(), sessDid, sessId)
+
+	// remove the cookie
+	userSession.Options.MaxAge = -1
+	err2 := o.SessStore.Save(r, w, userSession)
+
+	return errors.Join(err1, err2)
+}
+
+func pubKeyFromJwk(jwks string) (jwk.Key, error) {
+	k, err := jwk.ParseKey([]byte(jwks))
+	if err != nil {
+		return nil, err
+	}
+	pubKey, err := k.PublicKey()
+	if err != nil {
+		return nil, err
+	}
+	return pubKey, nil
 }
 
 type User struct {
-	Handle string
-	Did    string
-	Pds    string
+	Did string
+	Pds string
 }
 
-func (a *OAuth) GetUser(r *http.Request) *User {
-	clientSession, err := a.store.Get(r, SessionName)
+func (o *OAuth) GetUser(r *http.Request) *User {
+	sess, err := o.SessStore.Get(r, SessionName)
 
-	if err != nil || clientSession.IsNew {
+	if err != nil || sess.IsNew {
 		return nil
 	}
 
 	return &User{
-		Handle: clientSession.Values[SessionHandle].(string),
-		Did:    clientSession.Values[SessionDid].(string),
-		Pds:    clientSession.Values[SessionPds].(string),
+		Did: sess.Values[SessionDid].(string),
+		Pds: sess.Values[SessionPds].(string),
 	}
 }
 
-func (a *OAuth) GetDid(r *http.Request) string {
-	clientSession, err := a.store.Get(r, SessionName)
-
-	if err != nil || clientSession.IsNew {
-		return ""
+func (o *OAuth) GetDid(r *http.Request) string {
+	if u := o.GetUser(r); u != nil {
+		return u.Did
 	}
 
-	return clientSession.Values[SessionDid].(string)
+	return ""
 }
 
-func (o *OAuth) AuthorizedClient(r *http.Request) (*xrpc.Client, error) {
-	session, auth, err := o.GetSession(r)
+func (o *OAuth) AuthorizedClient(r *http.Request) (*atpclient.APIClient, error) {
+	session, err := o.ResumeSession(r)
 	if err != nil {
 		return nil, fmt.Errorf("error getting session: %w", err)
 	}
-	if !auth {
-		return nil, fmt.Errorf("not authorized")
-	}
-
-	client := &oauth.XrpcClient{
-		OnDpopPdsNonceChanged: func(did, newNonce string) {
-			err := o.sess.UpdateNonce(r.Context(), did, newNonce)
-			if err != nil {
-				log.Printf("error updating dpop pds nonce: %v", err)
-			}
-		},
-	}
-
-	privateJwk, err := helpers.ParseJWKFromBytes([]byte(session.DpopPrivateJwk))
-	if err != nil {
-		return nil, fmt.Errorf("error parsing private jwk: %w", err)
-	}
-
-	xrpcClient := xrpc.NewClient(client, &oauth.XrpcAuthedRequestArgs{
-		Did:            session.Did,
-		PdsUrl:         session.PdsUrl,
-		DpopPdsNonce:   session.PdsUrl,
-		AccessToken:    session.AccessJwt,
-		Issuer:         session.AuthServerIss,
-		DpopPrivateJwk: privateJwk,
-	})
-
-	return xrpcClient, nil
+	return session.APIClient(), nil
 }
 
-// use this to create a client to communicate with knots or spindles
-//
 // this is a higher level abstraction on ServerGetServiceAuth
 type ServiceClientOpts struct {
 	service string
@@ -259,13 +218,13 @@ func (s *ServiceClientOpts) Host() string {
 	return scheme + s.service
 }
 
-func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*indigo_xrpc.Client, error) {
+func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*xrpc.Client, error) {
 	opts := ServiceClientOpts{}
 	for _, o := range os {
 		o(&opts)
 	}
 
-	authorizedClient, err := o.AuthorizedClient(r)
+	client, err := o.AuthorizedClient(r)
 	if err != nil {
 		return nil, err
 	}
@@ -276,13 +235,13 @@ func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*indigo_
 		opts.exp = sixty
 	}
 
-	resp, err := authorizedClient.ServerGetServiceAuth(r.Context(), opts.Audience(), opts.exp, opts.lxm)
+	resp, err := comatproto.ServerGetServiceAuth(r.Context(), client, opts.Audience(), opts.exp, opts.lxm)
 	if err != nil {
 		return nil, err
 	}
 
-	return &indigo_xrpc.Client{
-		Auth: &indigo_xrpc.AuthInfo{
+	return &xrpc.Client{
+		Auth: &xrpc.AuthInfo{
 			AccessJwt: resp.Token,
 		},
 		Host: opts.Host(),
@@ -290,58 +249,4 @@ func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*indigo_
 			Timeout: time.Second * 5,
 		},
 	}, nil
-}
-
-type ClientMetadata struct {
-	ClientID                    string   `json:"client_id"`
-	ClientName                  string   `json:"client_name"`
-	SubjectType                 string   `json:"subject_type"`
-	ClientURI                   string   `json:"client_uri"`
-	RedirectURIs                []string `json:"redirect_uris"`
-	GrantTypes                  []string `json:"grant_types"`
-	ResponseTypes               []string `json:"response_types"`
-	ApplicationType             string   `json:"application_type"`
-	DpopBoundAccessTokens       bool     `json:"dpop_bound_access_tokens"`
-	JwksURI                     string   `json:"jwks_uri"`
-	Scope                       string   `json:"scope"`
-	TokenEndpointAuthMethod     string   `json:"token_endpoint_auth_method"`
-	TokenEndpointAuthSigningAlg string   `json:"token_endpoint_auth_signing_alg"`
-}
-
-func (o *OAuth) ClientMetadata() ClientMetadata {
-	makeRedirectURIs := func(c string) []string {
-		return []string{fmt.Sprintf("%s/oauth/callback", c)}
-	}
-
-	clientURI := o.config.Core.AppviewHost
-	clientID := fmt.Sprintf("%s/oauth/client-metadata.json", clientURI)
-	redirectURIs := makeRedirectURIs(clientURI)
-
-	if o.config.Core.Dev {
-		clientURI = "http://127.0.0.1:3000"
-		redirectURIs = makeRedirectURIs(clientURI)
-
-		query := url.Values{}
-		query.Add("redirect_uri", redirectURIs[0])
-		query.Add("scope", "atproto transition:generic")
-		clientID = fmt.Sprintf("http://localhost?%s", query.Encode())
-	}
-
-	jwksURI := fmt.Sprintf("%s/oauth/jwks.json", clientURI)
-
-	return ClientMetadata{
-		ClientID:                    clientID,
-		ClientName:                  "Tangled",
-		SubjectType:                 "public",
-		ClientURI:                   clientURI,
-		RedirectURIs:                redirectURIs,
-		GrantTypes:                  []string{"authorization_code", "refresh_token"},
-		ResponseTypes:               []string{"code"},
-		ApplicationType:             "web",
-		DpopBoundAccessTokens:       true,
-		JwksURI:                     jwksURI,
-		Scope:                       "atproto transition:generic",
-		TokenEndpointAuthMethod:     "private_key_jwt",
-		TokenEndpointAuthSigningAlg: "ES256",
-	}
 }

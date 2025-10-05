@@ -185,14 +185,14 @@ func (k *Knots) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, _ := client.RepoGetRecord(r.Context(), "", tangled.KnotNSID, user.Did, domain)
+	ex, _ := comatproto.RepoGetRecord(r.Context(), client, "", tangled.KnotNSID, user.Did, domain)
 	var exCid *string
 	if ex != nil {
 		exCid = ex.Cid
 	}
 
 	// re-announce by registering under same rkey
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.KnotNSID,
 		Repo:       user.Did,
 		Rkey:       domain,
@@ -323,7 +323,7 @@ func (k *Knots) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+	_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.KnotNSID,
 		Repo:       user.Did,
 		Rkey:       domain,
@@ -431,14 +431,14 @@ func (k *Knots) retry(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ex, _ := client.RepoGetRecord(r.Context(), "", tangled.KnotNSID, user.Did, domain)
+		ex, _ := comatproto.RepoGetRecord(r.Context(), client, "", tangled.KnotNSID, user.Did, domain)
 		var exCid *string
 		if ex != nil {
 			exCid = ex.Cid
 		}
 
 		// ignore the error here
-		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.KnotNSID,
 			Repo:       user.Did,
 			Rkey:       domain,
@@ -555,7 +555,7 @@ func (k *Knots) addMember(w http.ResponseWriter, r *http.Request) {
 
 	rkey := tid.TID()
 
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.KnotMemberNSID,
 		Repo:       user.Did,
 		Rkey:       rkey,

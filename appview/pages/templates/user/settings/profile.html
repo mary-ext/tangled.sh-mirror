@@ -33,11 +33,9 @@
         <div class="flex flex-wrap text-sm items-center gap-1 text-gray-500 dark:text-gray-400">
           <span>Handle</span>
         </div>
-        {{ if .LoggedInUser.Handle }}
         <span class="font-bold">
-          @{{ .LoggedInUser.Handle }}
+          {{ resolve .LoggedInUser.Did }}
         </span>
-        {{ end }}
       </div>
     </div>
     <div class="flex items-center justify-between p-4">

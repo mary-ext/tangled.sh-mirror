@@ -7,8 +7,8 @@ import (
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-
 	lexutil "github.com/bluesky-social/indigo/lex/util"
+
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
@@ -47,7 +47,7 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		createdAt := time.Now().Format(time.RFC3339)
 		rkey := tid.TID()
-		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.FeedReactionNSID,
 			Repo:       currentUser.Did,
 			Rkey:       rkey,
@@ -92,7 +92,7 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+		_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 			Collection: tangled.FeedReactionNSID,
 			Repo:       currentUser.Did,
 			Rkey:       reaction.Rkey,

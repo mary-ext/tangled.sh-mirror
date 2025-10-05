@@ -470,7 +470,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// store in pds too
-		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.PublicKeyNSID,
 			Repo:       did,
 			Rkey:       rkey,
@@ -527,7 +527,7 @@ func (s *Settings) keys(w http.ResponseWriter, r *http.Request) {
 
 		if rkey != "" {
 			// remove from pds too
-			_, err := client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+			_, err := comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 				Collection: tangled.PublicKeyNSID,
 				Repo:       did,
 				Rkey:       rkey,

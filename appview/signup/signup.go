@@ -20,7 +20,6 @@ import (
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/state/userutil"
-	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/idresolver"
 )
 
@@ -29,7 +28,6 @@ type Signup struct {
 	db                  *db.DB
 	cf                  *dns.Cloudflare
 	posthog             posthog.Client
-	xrpc                *xrpcclient.Client
 	idResolver          *idresolver.Resolver
 	pages               *pages.Pages
 	l                   *slog.Logger

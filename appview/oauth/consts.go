@@ -1,9 +1,10 @@
 package oauth
 
 const (
-	SessionName          = "appview-session"
+	SessionName          = "appview-session-v2"
 	SessionHandle        = "handle"
 	SessionDid           = "did"
+	SessionId            = "id"
 	SessionPds           = "pds"
 	SessionAccessJwt     = "accessJwt"
 	SessionRefreshJwt    = "refreshJwt"

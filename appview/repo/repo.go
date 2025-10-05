@@ -17,9 +17,6 @@ import (
 	"strings"
 	"time"
 
-	comatproto "github.com/bluesky-social/indigo/api/atproto"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
-	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/commitverify"
 	"tangled.org/core/appview/config"
@@ -40,11 +37,14 @@ import (
 	"tangled.org/core/types"
 	"tangled.org/core/xrpc/serviceauth"
 
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	atpclient "github.com/bluesky-social/indigo/atproto/client"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
+	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-
-	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
 type Repo struct {
@@ -307,13 +307,13 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		// this is a bit of a pain because the golang atproto impl does not allow nil SwapRecord field
 		//
 		// SwapRecord is optional and should happen automagically, but given that it does not, we have to perform two requests
-		ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
+		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
 		if err != nil {
 			// failed to get record
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, no record found on PDS.")
 			return
 		}
-		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       newRepo.Did,
 			Rkey:       newRepo.Rkey,
@@ -863,7 +863,6 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "EditSpindle")
 	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
 
 	errorId := "operation-error"
 	fail := func(msg string, err error) {
@@ -916,12 +915,12 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
 	if err != nil {
 		fail("Failed to update spindle, no record found on PDS.", err)
 		return
 	}
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       newRepo.Did,
 		Rkey:       newRepo.Rkey,
@@ -951,7 +950,6 @@ func (rp *Repo) AddLabelDef(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "AddLabel")
 	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -1020,7 +1018,7 @@ func (rp *Repo) AddLabelDef(w http.ResponseWriter, r *http.Request) {
 
 	// emit a labelRecord
 	labelRecord := label.AsRecord()
-	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.LabelDefinitionNSID,
 		Repo:       label.Did,
 		Rkey:       label.Rkey,
@@ -1043,12 +1041,12 @@ func (rp *Repo) AddLabelDef(w http.ResponseWriter, r *http.Request) {
 	newRepo.Labels = append(newRepo.Labels, aturi)
 	repoRecord := newRepo.AsRecord()
 
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
 	if err != nil {
 		fail("Failed to update labels, no record found on PDS.", err)
 		return
 	}
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       newRepo.Did,
 		Rkey:       newRepo.Rkey,
@@ -1111,7 +1109,6 @@ func (rp *Repo) DeleteLabelDef(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "DeleteLabel")
 	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -1141,7 +1138,7 @@ func (rp *Repo) DeleteLabelDef(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// delete label record from PDS
-	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+	_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.LabelDefinitionNSID,
 		Repo:       label.Did,
 		Rkey:       label.Rkey,
@@ -1163,12 +1160,12 @@ func (rp *Repo) DeleteLabelDef(w http.ResponseWriter, r *http.Request) {
 	newRepo.Labels = updated
 	repoRecord := newRepo.AsRecord()
 
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
 	if err != nil {
 		fail("Failed to update labels, no record found on PDS.", err)
 		return
 	}
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       newRepo.Did,
 		Rkey:       newRepo.Rkey,
@@ -1220,7 +1217,6 @@ func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "SubscribeLabel")
 	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -1261,12 +1257,12 @@ func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
 	if err != nil {
 		fail("Failed to update labels, no record found on PDS.", err)
 		return
 	}
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       newRepo.Did,
 		Rkey:       newRepo.Rkey,
@@ -1307,7 +1303,6 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "UnsubscribeLabel")
 	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -1350,12 +1345,12 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
 	if err != nil {
 		fail("Failed to update labels, no record found on PDS.", err)
 		return
 	}
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       newRepo.Did,
 		Rkey:       newRepo.Rkey,
@@ -1479,7 +1474,6 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "AddCollaborator")
 	l = l.With("did", user.Did)
-	l = l.With("handle", user.Handle)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
@@ -1526,7 +1520,7 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	currentUser := rp.oauth.GetUser(r)
 	rkey := tid.TID()
 	createdAt := time.Now()
-	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoCollaboratorNSID,
 		Repo:       currentUser.Did,
 		Rkey:       rkey,
@@ -1617,12 +1611,12 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// remove record from pds
-	xrpcClient, err := rp.oauth.AuthorizedClient(r)
+	atpClient, err := rp.oauth.AuthorizedClient(r)
 	if err != nil {
 		log.Println("failed to get authorized client", err)
 		return
 	}
-	_, err = xrpcClient.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+	_, err = comatproto.RepoDeleteRecord(r.Context(), atpClient, &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.RepoNSID,
 		Repo:       user.Did,
 		Rkey:       f.Rkey,
@@ -1764,7 +1758,6 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	l := rp.logger.With("handler", "Secrets")
-	l = l.With("handle", user.Handle)
 	l = l.With("did", user.Did)
 
 	f, err := rp.repoResolver.Resolve(r)
@@ -2179,14 +2172,14 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		record := repo.AsRecord()
 
-		xrpcClient, err := rp.oauth.AuthorizedClient(r)
+		atpClient, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
 			l.Error("failed to create xrpcclient", "err", err)
 			rp.pages.Notice(w, "repo", "Failed to fork repository.")
 			return
 		}
 
-		atresp, err := xrpcClient.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		atresp, err := comatproto.RepoPutRecord(r.Context(), atpClient, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoNSID,
 			Repo:       user.Did,
 			Rkey:       rkey,
@@ -2218,7 +2211,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		rollback := func() {
 			err1 := tx.Rollback()
 			err2 := rp.enforcer.E.LoadPolicy()
-			err3 := rollbackRecord(context.Background(), aturi, xrpcClient)
+			err3 := rollbackRecord(context.Background(), aturi, atpClient)
 
 			// ignore txn complete errors, this is okay
 			if errors.Is(err1, sql.ErrTxDone) {
@@ -2291,14 +2284,14 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		aturi = ""
 
 		rp.notifier.NewRepo(r.Context(), repo)
-		rp.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Handle, forkName))
+		rp.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Did, forkName))
 	}
 }
 
 // this is used to rollback changes made to the PDS
 //
 // it is a no-op if the provided ATURI is empty
-func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client) error {
+func rollbackRecord(ctx context.Context, aturi string, client *atpclient.APIClient) error {
 	if aturi == "" {
 		return nil
 	}
@@ -2309,7 +2302,7 @@ func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client)
 	repo := parsed.Authority().String()
 	rkey := parsed.RecordKey().String()
 
-	_, err := xrpcc.RepoDeleteRecord(ctx, &comatproto.RepoDeleteRecord_Input{
+	_, err := comatproto.RepoDeleteRecord(ctx, client, &comatproto.RepoDeleteRecord_Input{
 		Collection: collection,
 		Repo:       repo,
 		Rkey:       rkey,

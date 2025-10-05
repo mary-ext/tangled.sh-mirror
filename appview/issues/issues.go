@@ -12,6 +12,7 @@ import (
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	atpclient "github.com/bluesky-social/indigo/atproto/client"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
@@ -26,7 +27,6 @@ import (
 	"tangled.org/core/appview/pagination"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/validator"
-	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/idresolver"
 	tlog "tangled.org/core/log"
 	"tangled.org/core/tid"
@@ -166,14 +166,14 @@ func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoIssueNSID, user.Did, newIssue.Rkey)
+		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoIssueNSID, user.Did, newIssue.Rkey)
 		if err != nil {
 			l.Error("failed to get record", "err", err)
 			rp.pages.Notice(w, noticeId, "Failed to edit issue, no record found on PDS.")
 			return
 		}
 
-		_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,
 			Rkey:       newIssue.Rkey,
@@ -241,7 +241,7 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 		rp.pages.Notice(w, "issue-comment", "Failed to delete comment.")
 		return
 	}
-	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+	_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.RepoIssueNSID,
 		Repo:       issue.Did,
 		Rkey:       issue.Rkey,
@@ -408,7 +408,7 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create a record first
-	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoIssueCommentNSID,
 		Repo:       comment.Did,
 		Rkey:       comment.Rkey,
@@ -559,14 +559,14 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		// rkey is optional, it was introduced later
 		if newComment.Rkey != "" {
 			// update the record on pds
-			ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoIssueCommentNSID, user.Did, comment.Rkey)
+			ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoIssueCommentNSID, user.Did, comment.Rkey)
 			if err != nil {
 				log.Println("failed to get record", "err", err, "did", newComment.Did, "rkey", newComment.Rkey)
 				rp.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "Failed to update description, no record found on PDS.")
 				return
 			}
 
-			_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+			_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 				Collection: tangled.RepoIssueCommentNSID,
 				Repo:       user.Did,
 				Rkey:       newComment.Rkey,
@@ -733,7 +733,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 			rp.pages.Notice(w, "issue-comment", "Failed to delete comment.")
 			return
 		}
-		_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+		_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 			Collection: tangled.RepoIssueCommentNSID,
 			Repo:       user.Did,
 			Rkey:       comment.Rkey,
@@ -865,7 +865,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}
-		resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoIssueNSID,
 			Repo:       user.Did,
 			Rkey:       issue.Rkey,
@@ -923,7 +923,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 // this is used to rollback changes made to the PDS
 //
 // it is a no-op if the provided ATURI is empty
-func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client) error {
+func rollbackRecord(ctx context.Context, aturi string, client *atpclient.APIClient) error {
 	if aturi == "" {
 		return nil
 	}
@@ -934,7 +934,7 @@ func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client)
 	repo := parsed.Authority().String()
 	rkey := parsed.RecordKey().String()
 
-	_, err := xrpcc.RepoDeleteRecord(ctx, &comatproto.RepoDeleteRecord_Input{
+	_, err := comatproto.RepoDeleteRecord(ctx, client, &comatproto.RepoDeleteRecord_Input{
 		Collection: collection,
 		Repo:       repo,
 		Rkey:       rkey,

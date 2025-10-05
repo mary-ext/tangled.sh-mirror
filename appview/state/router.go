@@ -5,13 +5,11 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/gorilla/sessions"
 	"tangled.org/core/appview/issues"
 	"tangled.org/core/appview/knots"
 	"tangled.org/core/appview/labels"
 	"tangled.org/core/appview/middleware"
 	"tangled.org/core/appview/notifications"
-	oauthhandler "tangled.org/core/appview/oauth/handler"
 	"tangled.org/core/appview/pipelines"
 	"tangled.org/core/appview/pulls"
 	"tangled.org/core/appview/repo"
@@ -34,7 +32,6 @@ func (s *State) Router() http.Handler {
 		s.pages,
 	)
 
-	router.Use(middleware.TryRefreshSession())
 	router.Get("/favicon.svg", s.Favicon)
 	router.Get("/favicon.ico", s.Favicon)
 	router.Get("/pwa-manifest.json", s.PWAManifest)
@@ -123,6 +120,10 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	// special-case handler for serving tangled.org/core
 	r.Get("/core", s.Core())
 
+	r.Get("/login", s.Login)
+	r.Post("/login", s.Login)
+	r.Post("/logout", s.Logout)
+
 	r.Route("/repo", func(r chi.Router) {
 		r.Route("/new", func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(s.oauth))
@@ -164,7 +165,7 @@ func (s *State) StandardRouter(mw *middleware.Middleware) http.Handler {
 	r.Mount("/notifications", s.NotificationsRouter(mw))
 
 	r.Mount("/signup", s.SignupRouter())
-	r.Mount("/", s.OAuthRouter())
+	r.Mount("/", s.oauth.Router())
 
 	r.Get("/keys/{user}", s.Keys)
 	r.Get("/terms", s.TermsOfService)
@@ -189,12 +190,6 @@ func (s *State) Core() http.HandlerFunc {
 
 		http.Redirect(w, r, "/@tangled.org/core", http.StatusFound)
 	}
-}
-
-func (s *State) OAuthRouter() http.Handler {
-	store := sessions.NewCookieStore([]byte(s.config.Core.CookieSecret))
-	oauth := oauthhandler.New(s.config, s.pages, s.idResolver, s.db, s.sess, store, s.oauth, s.enforcer, s.posthog)
-	return oauth.Router()
 }
 
 func (s *State) SettingsRouter() http.Handler {

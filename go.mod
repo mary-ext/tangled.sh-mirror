@@ -8,7 +8,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.15.0
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bluekeyes/go-gitdiff v0.8.1
-	github.com/bluesky-social/indigo v0.0.0-20250724221105-5827c8fb61bb
+	github.com/bluesky-social/indigo v0.0.0-20251003000214-3259b215110e
 	github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/casbin/casbin/v2 v2.103.0

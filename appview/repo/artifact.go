@@ -10,13 +10,6 @@ import (
 	"net/url"
 	"time"
 
-	comatproto "github.com/bluesky-social/indigo/api/atproto"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
-	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
-	"github.com/dustin/go-humanize"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/ipfs/go-cid"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
@@ -25,6 +18,14 @@ import (
 	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/tid"
 	"tangled.org/core/types"
+
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
+	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
+	"github.com/dustin/go-humanize"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/ipfs/go-cid"
 )
 
 // TODO: proper statuses here on early exit
@@ -60,7 +61,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uploadBlobResp, err := client.RepoUploadBlob(r.Context(), file)
+	uploadBlobResp, err := comatproto.RepoUploadBlob(r.Context(), client, file)
 	if err != nil {
 		log.Println("failed to upload blob", err)
 		rp.pages.Notice(w, "upload", "Failed to upload blob to your PDS. Try again later.")
@@ -72,7 +73,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 	rkey := tid.TID()
 	createdAt := time.Now()
 
-	putRecordResp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	putRecordResp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoArtifactNSID,
 		Repo:       user.Did,
 		Rkey:       rkey,
@@ -249,7 +250,7 @@ func (rp *Repo) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+	_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.RepoArtifactNSID,
 		Repo:       user.Did,
 		Rkey:       artifact.Rkey,

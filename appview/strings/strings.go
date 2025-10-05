@@ -22,8 +22,10 @@ import (
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/go-chi/chi/v5"
+
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
 )
 
 type Strings struct {
@@ -254,12 +256,12 @@ func (s *Strings) edit(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// first replace the existing record in the PDS
-		ex, err := client.RepoGetRecord(r.Context(), "", tangled.StringNSID, entry.Did.String(), entry.Rkey)
+		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.StringNSID, entry.Did.String(), entry.Rkey)
 		if err != nil {
 			fail("Failed to updated existing record.", err)
 			return
 		}
-		resp, err := client.RepoPutRecord(r.Context(), &atproto.RepoPutRecord_Input{
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &atproto.RepoPutRecord_Input{
 			Collection: tangled.StringNSID,
 			Repo:       entry.Did.String(),
 			Rkey:       entry.Rkey,
@@ -284,7 +286,7 @@ func (s *Strings) edit(w http.ResponseWriter, r *http.Request) {
 		s.Notifier.EditString(r.Context(), &entry)
 
 		// if that went okay, redir to the string
-		s.Pages.HxRedirect(w, "/strings/"+user.Handle+"/"+entry.Rkey)
+		s.Pages.HxRedirect(w, "/strings/"+user.Did+"/"+entry.Rkey)
 	}
 
 }
@@ -336,7 +338,7 @@ func (s *Strings) create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp, err := client.RepoPutRecord(r.Context(), &atproto.RepoPutRecord_Input{
+		resp, err := comatproto.RepoPutRecord(r.Context(), client, &atproto.RepoPutRecord_Input{
 			Collection: tangled.StringNSID,
 			Repo:       user.Did,
 			Rkey:       string.Rkey,
@@ -360,7 +362,7 @@ func (s *Strings) create(w http.ResponseWriter, r *http.Request) {
 		s.Notifier.NewString(r.Context(), &string)
 
 		// successful
-		s.Pages.HxRedirect(w, "/strings/"+user.Handle+"/"+string.Rkey)
+		s.Pages.HxRedirect(w, "/strings/"+user.Did+"/"+string.Rkey)
 	}
 }
 
@@ -403,7 +405,7 @@ func (s *Strings) delete(w http.ResponseWriter, r *http.Request) {
 
 	s.Notifier.DeleteString(r.Context(), user.Did, rkey)
 
-	s.Pages.HxRedirect(w, "/strings/"+user.Handle)
+	s.Pages.HxRedirect(w, "/strings/"+user.Did)
 }
 
 func (s *Strings) comment(w http.ResponseWriter, r *http.Request) {

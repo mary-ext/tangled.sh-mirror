@@ -9,11 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	comatproto "github.com/bluesky-social/indigo/api/atproto"
-	"github.com/bluesky-social/indigo/atproto/syntax"
-	lexutil "github.com/bluesky-social/indigo/lex/util"
-	"github.com/go-chi/chi/v5"
-
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/middleware"
@@ -21,10 +16,15 @@ import (
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/validator"
-	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/log"
 	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
+
+	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	atpclient "github.com/bluesky-social/indigo/atproto/client"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	lexutil "github.com/bluesky-social/indigo/lex/util"
+	"github.com/go-chi/chi/v5"
 )
 
 type Labels struct {
@@ -196,7 +196,7 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	resp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.LabelOpNSID,
 		Repo:       did,
 		Rkey:       rkey,
@@ -252,7 +252,7 @@ func (l *Labels) PerformLabelOp(w http.ResponseWriter, r *http.Request) {
 // this is used to rollback changes made to the PDS
 //
 // it is a no-op if the provided ATURI is empty
-func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client) error {
+func rollbackRecord(ctx context.Context, aturi string, client *atpclient.APIClient) error {
 	if aturi == "" {
 		return nil
 	}
@@ -263,7 +263,7 @@ func rollbackRecord(ctx context.Context, aturi string, xrpcc *xrpcclient.Client)
 	repo := parsed.Authority().String()
 	rkey := parsed.RecordKey().String()
 
-	_, err := xrpcc.RepoDeleteRecord(ctx, &comatproto.RepoDeleteRecord_Input{
+	_, err := comatproto.RepoDeleteRecord(ctx, client, &comatproto.RepoDeleteRecord_Input{
 		Collection: collection,
 		Repo:       repo,
 		Rkey:       rkey,

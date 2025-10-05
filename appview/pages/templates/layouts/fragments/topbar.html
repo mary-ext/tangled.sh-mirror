@@ -51,7 +51,7 @@
     <summary
         class="cursor-pointer list-none flex items-center gap-1"
     >
-        {{ $user := didOrHandle .Did .Handle }}
+        {{ $user := .Did }}
         <img
             src="{{ tinyAvatar $user }}"
             alt=""

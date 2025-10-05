@@ -43,16 +43,7 @@ func New(oauth *oauth.OAuth, db *db.DB, enforcer *rbac.Enforcer, repoResolver *r
 
 type middlewareFunc func(http.Handler) http.Handler
 
-func (mw *Middleware) TryRefreshSession() middlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, _, _ = mw.oauth.GetSession(r)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func AuthMiddleware(a *oauth.OAuth) middlewareFunc {
+func AuthMiddleware(o *oauth.OAuth) middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			returnURL := "/"
@@ -72,15 +63,15 @@ func AuthMiddleware(a *oauth.OAuth) middlewareFunc {
 				}
 			}
 
-			_, auth, err := a.GetSession(r)
+			sess, err := o.ResumeSession(r)
 			if err != nil {
-				log.Println("not logged in, redirecting", "err", err)
+				log.Println("failed to resume session, redirecting...", "err", err, "url", r.URL.String())
 				redirectFunc(w, r)
 				return
 			}
 
-			if !auth {
-				log.Printf("not logged in, redirecting")
+			if sess == nil {
+				log.Printf("session is nil, redirecting...")
 				redirectFunc(w, r)
 				return
 			}

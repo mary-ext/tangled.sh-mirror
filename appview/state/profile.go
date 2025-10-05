@@ -634,13 +634,13 @@ func (s *State) updateProfile(profile *models.Profile, w http.ResponseWriter, r 
 		vanityStats = append(vanityStats, string(v.Kind))
 	}
 
-	ex, _ := client.RepoGetRecord(r.Context(), "", tangled.ActorProfileNSID, user.Did, "self")
+	ex, _ := comatproto.RepoGetRecord(r.Context(), client, "", tangled.ActorProfileNSID, user.Did, "self")
 	var cid *string
 	if ex != nil {
 		cid = ex.Cid
 	}
 
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.ActorProfileNSID,
 		Repo:       user.Did,
 		Rkey:       "self",

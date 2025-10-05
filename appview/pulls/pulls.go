@@ -665,7 +665,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			s.pages.Notice(w, "pull-comment", "Failed to create comment.")
 			return
 		}
-		atResp, err := client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+		atResp, err := comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 			Collection: tangled.RepoPullCommentNSID,
 			Repo:       user.Did,
 			Rkey:       tid.TID(),
@@ -1142,7 +1142,7 @@ func (s *Pulls) createPullRequest(
 		return
 	}
 
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoPullNSID,
 		Repo:       user.Did,
 		Rkey:       rkey,
@@ -1239,7 +1239,7 @@ func (s *Pulls) createStackedPullRequest(
 		}
 		writes = append(writes, &write)
 	}
-	_, err = client.RepoApplyWrites(r.Context(), &comatproto.RepoApplyWrites_Input{
+	_, err = comatproto.RepoApplyWrites(r.Context(), client, &comatproto.RepoApplyWrites_Input{
 		Repo:   user.Did,
 		Writes: writes,
 	})
@@ -1770,7 +1770,7 @@ func (s *Pulls) resubmitPullHelper(
 		return
 	}
 
-	ex, err := client.RepoGetRecord(r.Context(), "", tangled.RepoPullNSID, user.Did, pull.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoPullNSID, user.Did, pull.Rkey)
 	if err != nil {
 		// failed to get record
 		s.pages.Notice(w, "resubmit-error", "Failed to update pull, no record found on PDS.")
@@ -1793,7 +1793,7 @@ func (s *Pulls) resubmitPullHelper(
 		}
 	}
 
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.RepoPullNSID,
 		Repo:       user.Did,
 		Rkey:       pull.Rkey,
@@ -2065,7 +2065,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 		return
 	}
 
-	_, err = client.RepoApplyWrites(r.Context(), &comatproto.RepoApplyWrites_Input{
+	_, err = comatproto.RepoApplyWrites(r.Context(), client, &comatproto.RepoApplyWrites_Input{
 		Repo:   user.Did,
 		Writes: writes,
 	})

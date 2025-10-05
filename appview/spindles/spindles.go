@@ -189,14 +189,14 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, _ := client.RepoGetRecord(r.Context(), "", tangled.SpindleNSID, user.Did, instance)
+	ex, _ := comatproto.RepoGetRecord(r.Context(), client, "", tangled.SpindleNSID, user.Did, instance)
 	var exCid *string
 	if ex != nil {
 		exCid = ex.Cid
 	}
 
 	// re-announce by registering under same rkey
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.SpindleNSID,
 		Repo:       user.Did,
 		Rkey:       instance,
@@ -332,7 +332,7 @@ func (s *Spindles) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+	_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.SpindleNSID,
 		Repo:       user.Did,
 		Rkey:       instance,
@@ -542,7 +542,7 @@ func (s *Spindles) addMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = client.RepoPutRecord(r.Context(), &comatproto.RepoPutRecord_Input{
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
 		Collection: tangled.SpindleMemberNSID,
 		Repo:       user.Did,
 		Rkey:       rkey,
@@ -683,7 +683,7 @@ func (s *Spindles) removeMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// remove from pds
-	_, err = client.RepoDeleteRecord(r.Context(), &comatproto.RepoDeleteRecord_Input{
+	_, err = comatproto.RepoDeleteRecord(r.Context(), client, &comatproto.RepoDeleteRecord_Input{
 		Collection: tangled.SpindleMemberNSID,
 		Repo:       user.Did,
 		Rkey:       members[0].Rkey,

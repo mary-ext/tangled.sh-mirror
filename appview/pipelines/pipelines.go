@@ -48,7 +48,8 @@ func New(
 ) *Pipelines {
 	logger := log.New("pipelines")
 
-	return &Pipelines{oauth: oauth,
+	return &Pipelines{
+		oauth:         oauth,
 		repoResolver:  repoResolver,
 		pages:         pages,
 		idResolver:    idResolver,
