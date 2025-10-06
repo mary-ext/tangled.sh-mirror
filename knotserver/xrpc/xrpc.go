@@ -38,6 +38,7 @@ func (x *Xrpc) Router() http.Handler {
 		r.Use(x.ServiceAuth.VerifyServiceAuth)
 
 		r.Post("/"+tangled.RepoSetDefaultBranchNSID, x.SetDefaultBranch)
+		r.Post("/"+tangled.RepoDeleteBranchNSID, x.DeleteBranch)
 		r.Post("/"+tangled.RepoCreateNSID, x.CreateRepo)
 		r.Post("/"+tangled.RepoDeleteNSID, x.DeleteRepo)
 		r.Post("/"+tangled.RepoForkStatusNSID, x.ForkStatus)

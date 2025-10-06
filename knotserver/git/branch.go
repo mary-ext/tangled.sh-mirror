@@ -110,3 +110,8 @@ func (g *GitRepo) Branches() ([]types.Branch, error) {
 	slices.Reverse(branches)
 	return branches, nil
 }
+
+func (g *GitRepo) DeleteBranch(branch string) error {
+	ref := plumbing.NewBranchReferenceName(branch)
+	return g.r.Storer.RemoveReference(ref)
+}
