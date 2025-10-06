@@ -138,8 +138,13 @@
     </div>
   </form>
   {{ else }}
-    <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm py-4 px-4 relative w-fit">
-      <a href="/login" class="underline">login</a> to join the discussion
+    <div class="bg-amber-50 dark:bg-amber-900 border border-amber-500 rounded drop-shadow-sm p-6 relative flex gap-2 items-center">
+      <a href="/signup" class="btn-create py-0 hover:no-underline hover:text-white flex items-center gap-2">
+        sign up
+      </a>
+      <span class="text-gray-500 dark:text-gray-400">or</span>
+      <a href="/login" class="underline">login</a>
+      to add to the discussion
     </div>
   {{ end }}
 {{ end }}

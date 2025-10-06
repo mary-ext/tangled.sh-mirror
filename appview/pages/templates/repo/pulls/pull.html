@@ -189,9 +189,13 @@
           {{ if $.LoggedInUser }}
             {{ template "repo/pulls/fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck "Stack" $.Stack) }}
           {{ else }}
-            <div class="bg-white dark:bg-gray-800 rounded drop-shadow-sm px-6 py-4 w-fit dark:text-white">
-              <div class="absolute left-8 -top-2 w-px h-2 bg-gray-300 dark:bg-gray-600"></div>
-              <a href="/login" class="underline">login</a> to join the discussion
+            <div class="bg-amber-50 dark:bg-amber-900 border border-amber-500 rounded drop-shadow-sm p-2 relative flex gap-2 items-center w-fit">
+              <a href="/signup" class="btn-create py-0 hover:no-underline hover:text-white flex items-center gap-2">
+                sign up
+              </a>
+              <span class="text-gray-500 dark:text-gray-400">or</span>
+              <a href="/login" class="underline">login</a>
+              to add to the discussion
             </div>
           {{ end }}
         </div>
