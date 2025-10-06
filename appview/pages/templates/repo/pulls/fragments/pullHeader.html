@@ -66,13 +66,15 @@
     <div class="flex items-center gap-2 mt-2">
         {{ template "repo/fragments/reactionsPopUp" . }}
         {{ range $kind := . }}
+            {{ $reactionData := index $.Reactions $kind }}
             {{
                 template "repo/fragments/reaction"
                 (dict
                     "Kind"      $kind
-                    "Count"     (index $.Reactions $kind)
+                    "Count"     $reactionData.Count
                     "IsReacted" (index $.UserReacted $kind)
-                    "ThreadAt"  $.Pull.PullAt)
+                    "ThreadAt"  $.Pull.PullAt
+                    "Users"     $reactionData.Users)
             }}
         {{ end }}
     </div>

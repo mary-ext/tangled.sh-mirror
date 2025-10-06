@@ -83,7 +83,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reactionCountMap, err := db.GetReactionCountMap(rp.db, issue.AtUri())
+	reactionMap, err := db.GetReactionMap(rp.db, 20, issue.AtUri())
 	if err != nil {
 		l.Error("failed to get issue reactions", "err", err)
 	}
@@ -115,7 +115,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		Issue:                issue,
 		CommentList:          issue.CommentList(),
 		OrderedReactionKinds: models.OrderedReactionKinds,
-		Reactions:            reactionCountMap,
+		Reactions:            reactionMap,
 		UserReacted:          userReactions,
 		LabelDefs:            defs,
 	})

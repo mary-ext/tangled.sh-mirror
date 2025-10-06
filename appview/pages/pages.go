@@ -985,7 +985,7 @@ type RepoSingleIssueParams struct {
 	LabelDefs    map[string]*models.LabelDefinition
 
 	OrderedReactionKinds []models.ReactionKind
-	Reactions            map[models.ReactionKind]int
+	Reactions            map[models.ReactionKind]models.ReactionDisplayData
 	UserReacted          map[models.ReactionKind]bool
 }
 
@@ -1010,6 +1010,7 @@ type ThreadReactionFragmentParams struct {
 	ThreadAt  syntax.ATURI
 	Kind      models.ReactionKind
 	Count     int
+	Users     []string
 	IsReacted bool
 }
 
@@ -1138,7 +1139,7 @@ type RepoSinglePullParams struct {
 	Pipelines      map[string]models.Pipeline
 
 	OrderedReactionKinds []models.ReactionKind
-	Reactions            map[models.ReactionKind]int
+	Reactions            map[models.ReactionKind]models.ReactionDisplayData
 	UserReacted          map[models.ReactionKind]bool
 
 	LabelDefs map[string]*models.LabelDefinition

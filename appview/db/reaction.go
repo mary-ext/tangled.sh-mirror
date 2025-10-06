@@ -62,16 +62,43 @@ func GetReactionCount(e Execer, threadAt syntax.ATURI, kind models.ReactionKind)
 	return count, nil
 }
 
-func GetReactionCountMap(e Execer, threadAt syntax.ATURI) (map[models.ReactionKind]int, error) {
-	countMap := map[models.ReactionKind]int{}
-	for _, kind := range models.OrderedReactionKinds {
-		count, err := GetReactionCount(e, threadAt, kind)
-		if err != nil {
-			return map[models.ReactionKind]int{}, nil
-		}
-		countMap[kind] = count
+func GetReactionMap(e Execer, userLimit int, threadAt syntax.ATURI) (map[models.ReactionKind]models.ReactionDisplayData, error) {
+	query := `
+	select kind, reacted_by_did,
+	       row_number() over (partition by kind order by created asc) as rn,
+	       count(*) over (partition by kind) as total
+	from reactions
+	where thread_at = ?
+	order by kind, created asc`
+
+	rows, err := e.Query(query, threadAt)
+	if err != nil {
+		return nil, err
 	}
-	return countMap, nil
+	defer rows.Close()
+
+	reactionMap := map[models.ReactionKind]models.ReactionDisplayData{}
+	for _, kind := range models.OrderedReactionKinds {
+		reactionMap[kind] = models.ReactionDisplayData{Count: 0, Users: []string{}}
+	}
+
+	for rows.Next() {
+		var kind models.ReactionKind
+		var did string
+		var rn, total int
+		if err := rows.Scan(&kind, &did, &rn, &total); err != nil {
+			return nil, err
+		}
+
+		data := reactionMap[kind]
+		data.Count = total
+		if userLimit > 0 && rn <= userLimit {
+			data.Users = append(data.Users, did)
+		}
+		reactionMap[kind] = data
+	}
+
+	return reactionMap, rows.Err()
 }
 
 func GetReactionStatus(e Execer, userDid string, threadAt syntax.ATURI, kind models.ReactionKind) bool {

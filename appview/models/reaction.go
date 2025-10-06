@@ -55,3 +55,8 @@ type Reaction struct {
 	Rkey         string
 	Kind         ReactionKind
 }
+
+type ReactionDisplayData struct {
+	Count int
+	Users []string
+}

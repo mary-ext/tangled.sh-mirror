@@ -70,9 +70,9 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		count, err := db.GetReactionCount(s.db, subjectUri, reactionKind)
+		reactionMap, err := db.GetReactionMap(s.db, 20, subjectUri)
 		if err != nil {
-			log.Println("failed to get reaction count for ", subjectUri)
+			log.Println("failed to get reactions for ", subjectUri)
 		}
 
 		log.Println("created atproto record: ", resp.Uri)
@@ -80,7 +80,8 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 		s.pages.ThreadReactionFragment(w, pages.ThreadReactionFragmentParams{
 			ThreadAt:  subjectUri,
 			Kind:      reactionKind,
-			Count:     count,
+			Count:     reactionMap[reactionKind].Count,
+			Users:     reactionMap[reactionKind].Users,
 			IsReacted: true,
 		})
 
@@ -109,16 +110,17 @@ func (s *State) React(w http.ResponseWriter, r *http.Request) {
 			// this is not an issue, the firehose event might have already done this
 		}
 
-		count, err := db.GetReactionCount(s.db, subjectUri, reactionKind)
+		reactionMap, err := db.GetReactionMap(s.db, 20, subjectUri)
 		if err != nil {
-			log.Println("failed to get reaction count for ", subjectUri)
+			log.Println("failed to get reactions for ", subjectUri)
 			return
 		}
 
 		s.pages.ThreadReactionFragment(w, pages.ThreadReactionFragmentParams{
 			ThreadAt:  subjectUri,
 			Kind:      reactionKind,
-			Count:     count,
+			Count:     reactionMap[reactionKind].Count,
+			Users:     reactionMap[reactionKind].Users,
 			IsReacted: false,
 		})
 

@@ -2,7 +2,7 @@
     <button
         id="reactIndi-{{ .Kind }}"
         class="flex justify-center items-center min-w-8 min-h-8 rounded border
-            leading-4 px-3 gap-1
+            leading-4 px-3 gap-1 relative group
             {{ if eq .Count 0 }}
                 hidden
             {{ end }}
@@ -20,6 +20,11 @@
                 dark:hover:border-gray-600
             {{ end }}
             "
+        {{ if gt (length .Users) 0 }}
+          title="{{ range $i, $did := .Users }}{{ if ne $i 0 }}, {{ end }}{{ resolve $did }}{{ end }}{{ if gt .Count (length .Users) }}, and {{ sub .Count (length .Users) }} more{{ end }}"
+        {{ else }}
+          title="{{ .Kind }}"
+        {{ end }}
         {{ if .IsReacted }}
             hx-delete="/react?subject={{ .ThreadAt }}&kind={{ .Kind }}"
         {{ else }}

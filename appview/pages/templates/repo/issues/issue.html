@@ -110,13 +110,15 @@
   <div class="flex items-center gap-2">
       {{ template "repo/fragments/reactionsPopUp" .OrderedReactionKinds }}
       {{ range $kind := .OrderedReactionKinds }}
+          {{ $reactionData := index $.Reactions $kind }}
           {{
               template "repo/fragments/reaction"
               (dict
                   "Kind"      $kind
-                  "Count"     (index $.Reactions $kind)
+                  "Count"     $reactionData.Count
                   "IsReacted" (index $.UserReacted $kind)
-                  "ThreadAt"  $.Issue.AtUri)
+                  "ThreadAt"  $.Issue.AtUri
+                  "Users"     $reactionData.Users)
           }}
       {{ end }}
   </div>

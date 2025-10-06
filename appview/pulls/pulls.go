@@ -189,7 +189,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		m[p.Sha] = p
 	}
 
-	reactionCountMap, err := db.GetReactionCountMap(s.db, pull.PullAt())
+	reactionMap, err := db.GetReactionMap(s.db, 20, pull.PullAt())
 	if err != nil {
 		log.Println("failed to get pull reactions")
 		s.pages.Notice(w, "pulls", "Failed to load pull. Try again later.")
@@ -227,7 +227,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		Pipelines:      m,
 
 		OrderedReactionKinds: models.OrderedReactionKinds,
-		Reactions:            reactionCountMap,
+		Reactions:            reactionMap,
 		UserReacted:          userReactions,
 
 		LabelDefs: defs,
