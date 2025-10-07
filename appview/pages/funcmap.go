@@ -283,10 +283,10 @@ func (p *Pages) funcMap() template.FuncMap {
 		},
 
 		"tinyAvatar": func(handle string) string {
-			return p.avatarUri(handle, "tiny")
+			return p.AvatarUrl(handle, "tiny")
 		},
 		"fullAvatar": func(handle string) string {
-			return p.avatarUri(handle, "")
+			return p.AvatarUrl(handle, "")
 		},
 		"langColor": enry.GetColor,
 		"layoutSide": func() string {
@@ -310,7 +310,7 @@ func (p *Pages) funcMap() template.FuncMap {
 	}
 }
 
-func (p *Pages) avatarUri(handle, size string) string {
+func (p *Pages) AvatarUrl(handle, size string) string {
 	handle = strings.TrimPrefix(handle, "@")
 
 	secret := p.avatar.SharedSecret
