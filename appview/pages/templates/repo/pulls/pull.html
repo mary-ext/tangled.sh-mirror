@@ -187,7 +187,16 @@
           {{ end }}
 
           {{ if $.LoggedInUser }}
-            {{ template "repo/pulls/fragments/pullActions" (dict "LoggedInUser" $.LoggedInUser "Pull" $.Pull "RepoInfo" $.RepoInfo "RoundNumber" .RoundNumber "MergeCheck" $.MergeCheck "ResubmitCheck" $.ResubmitCheck "Stack" $.Stack) }}
+            {{ template "repo/pulls/fragments/pullActions" 
+              (dict 
+                "LoggedInUser" $.LoggedInUser
+                "Pull" $.Pull
+                "RepoInfo" $.RepoInfo
+                "RoundNumber" .RoundNumber
+                "MergeCheck" $.MergeCheck
+                "ResubmitCheck" $.ResubmitCheck
+                "BranchDeleteStatus" $.BranchDeleteStatus
+                "Stack" $.Stack) }}
           {{ else }}
             <div class="bg-amber-50 dark:bg-amber-900 border border-amber-500 rounded drop-shadow-sm p-2 relative flex gap-2 items-center w-fit">
               <a href="/signup" class="btn-create py-0 hover:no-underline hover:text-white flex items-center gap-2">

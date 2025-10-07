@@ -1128,15 +1128,16 @@ func (r ResubmitResult) Unknown() bool {
 }
 
 type RepoSinglePullParams struct {
-	LoggedInUser   *oauth.User
-	RepoInfo       repoinfo.RepoInfo
-	Active         string
-	Pull           *models.Pull
-	Stack          models.Stack
-	AbandonedPulls []*models.Pull
-	MergeCheck     types.MergeCheckResponse
-	ResubmitCheck  ResubmitResult
-	Pipelines      map[string]models.Pipeline
+	LoggedInUser       *oauth.User
+	RepoInfo           repoinfo.RepoInfo
+	Active             string
+	Pull               *models.Pull
+	Stack              models.Stack
+	AbandonedPulls     []*models.Pull
+	BranchDeleteStatus *models.BranchDeleteStatus
+	MergeCheck         types.MergeCheckResponse
+	ResubmitCheck      ResubmitResult
+	Pipelines          map[string]models.Pipeline
 
 	OrderedReactionKinds []models.ReactionKind
 	Reactions            map[models.ReactionKind]models.ReactionDisplayData
@@ -1232,13 +1233,14 @@ func (p *Pages) PullResubmitFragment(w io.Writer, params PullResubmitParams) err
 }
 
 type PullActionsParams struct {
-	LoggedInUser  *oauth.User
-	RepoInfo      repoinfo.RepoInfo
-	Pull          *models.Pull
-	RoundNumber   int
-	MergeCheck    types.MergeCheckResponse
-	ResubmitCheck ResubmitResult
-	Stack         models.Stack
+	LoggedInUser       *oauth.User
+	RepoInfo           repoinfo.RepoInfo
+	Pull               *models.Pull
+	RoundNumber        int
+	MergeCheck         types.MergeCheckResponse
+	ResubmitCheck      ResubmitResult
+	BranchDeleteStatus *models.BranchDeleteStatus
+	Stack              models.Stack
 }
 
 func (p *Pages) PullActionsFragment(w io.Writer, params PullActionsParams) error {

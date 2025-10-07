@@ -33,6 +33,17 @@
             <span>comment</span>
             {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
         </button>
+        {{ if .BranchDeleteStatus }}
+          <button 
+            hx-delete="/{{ .BranchDeleteStatus.Repo.Did }}/{{ .BranchDeleteStatus.Repo.Name }}/branches"
+            hx-vals='{"branch": "{{ .BranchDeleteStatus.Branch }}" }'
+            hx-swap="none"
+            class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+              {{ i "git-branch" "w-4 h-4" }}
+              <span>delete branch</span>
+              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+          </button>
+        {{ end }}
         {{ if and $isPushAllowed $isOpen $isLastRound }}
           {{ $disabled := "" }}
           {{ if $isConflicted }}
