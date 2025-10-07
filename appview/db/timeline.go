@@ -9,20 +9,33 @@ import (
 
 // TODO: this gathers heterogenous events from different sources and aggregates
 // them in code; if we did this entirely in sql, we could order and limit and paginate easily
-func MakeTimeline(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
+func MakeTimeline(e Execer, limit int, loggedInUserDid string, limitToUsersIsFollowing bool) ([]models.TimelineEvent, error) {
 	var events []models.TimelineEvent
 
-	repos, err := getTimelineRepos(e, limit, loggedInUserDid)
+	var userIsFollowing []string
+	if limitToUsersIsFollowing {
+		following, err := GetFollowing(e, loggedInUserDid)
+		if err != nil {
+			return nil, err
+		}
+
+		userIsFollowing = make([]string, 0, len(following))
+		for _, follow := range following {
+			userIsFollowing = append(userIsFollowing, follow.SubjectDid)
+		}
+	}
+
+	repos, err := getTimelineRepos(e, limit, loggedInUserDid, userIsFollowing)
 	if err != nil {
 		return nil, err
 	}
 
-	stars, err := getTimelineStars(e, limit, loggedInUserDid)
+	stars, err := getTimelineStars(e, limit, loggedInUserDid, userIsFollowing)
 	if err != nil {
 		return nil, err
 	}
 
-	follows, err := getTimelineFollows(e, limit, loggedInUserDid)
+	follows, err := getTimelineFollows(e, limit, loggedInUserDid, userIsFollowing)
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +83,13 @@ func getRepoStarInfo(repo *models.Repo, starStatuses map[string]bool) (bool, int
 	return isStarred, starCount
 }
 
-func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
-	repos, err := GetRepos(e, limit)
+func getTimelineRepos(e Execer, limit int, loggedInUserDid string, userIsFollowing []string) ([]models.TimelineEvent, error) {
+	filters := make([]filter, 0)
+	if userIsFollowing != nil {
+		filters = append(filters, FilterIn("did", userIsFollowing))
+	}
+
+	repos, err := GetRepos(e, limit, filters...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +143,13 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string) ([]models.Tim
 	return events, nil
 }
 
-func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
-	stars, err := GetStars(e, limit)
+func getTimelineStars(e Execer, limit int, loggedInUserDid string, userIsFollowing []string) ([]models.TimelineEvent, error) {
+	filters := make([]filter, 0)
+	if userIsFollowing != nil {
+		filters = append(filters, FilterIn("starred_by_did", userIsFollowing))
+	}
+
+	stars, err := GetStars(e, limit, filters...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,8 +189,13 @@ func getTimelineStars(e Execer, limit int, loggedInUserDid string) ([]models.Tim
 	return events, nil
 }
 
-func getTimelineFollows(e Execer, limit int, loggedInUserDid string) ([]models.TimelineEvent, error) {
-	follows, err := GetFollows(e, limit)
+func getTimelineFollows(e Execer, limit int, loggedInUserDid string, userIsFollowing []string) ([]models.TimelineEvent, error) {
+	filters := make([]filter, 0)
+	if userIsFollowing != nil {
+		filters = append(filters, FilterIn("user_did", userIsFollowing))
+	}
+
+	follows, err := GetFollows(e, limit, filters...)
 	if err != nil {
 		return nil, err
 	}

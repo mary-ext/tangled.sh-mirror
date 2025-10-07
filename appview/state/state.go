@@ -258,11 +258,14 @@ func (s *State) HomeOrTimeline(w http.ResponseWriter, r *http.Request) {
 func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
+	// TODO: set this flag based on the UI
+	filtered := false
+
 	var userDid string
 	if user != nil {
 		userDid = user.Did
 	}
-	timeline, err := db.MakeTimeline(s.db, 50, userDid)
+	timeline, err := db.MakeTimeline(s.db, 50, userDid, filtered)
 	if err != nil {
 		log.Println(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
@@ -326,7 +329,10 @@ func (s *State) UpgradeBanner(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Home(w http.ResponseWriter, r *http.Request) {
-	timeline, err := db.MakeTimeline(s.db, 5, "")
+	// TODO: set this flag based on the UI
+	filtered := false
+
+	timeline, err := db.MakeTimeline(s.db, 5, "", filtered)
 	if err != nil {
 		log.Println(err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
