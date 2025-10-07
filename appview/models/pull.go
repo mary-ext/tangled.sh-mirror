@@ -350,3 +350,8 @@ func (stack Stack) Mergeable() Stack {
 
 	return mergeable
 }
+
+type BranchDeleteStatus struct {
+	Repo   *Repo
+	Branch string
+}

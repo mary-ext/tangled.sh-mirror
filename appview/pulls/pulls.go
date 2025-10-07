@@ -98,19 +98,21 @@ func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
+		branchDeleteStatus := s.branchDeleteStatus(r, f, pull)
 		resubmitResult := pages.Unknown
 		if user.Did == pull.OwnerDid {
 			resubmitResult = s.resubmitCheck(r, f, pull, stack)
 		}
 
 		s.pages.PullActionsFragment(w, pages.PullActionsParams{
-			LoggedInUser:  user,
-			RepoInfo:      f.RepoInfo(user),
-			Pull:          pull,
-			RoundNumber:   roundNumber,
-			MergeCheck:    mergeCheckResponse,
-			ResubmitCheck: resubmitResult,
-			Stack:         stack,
+			LoggedInUser:       user,
+			RepoInfo:           f.RepoInfo(user),
+			Pull:               pull,
+			RoundNumber:        roundNumber,
+			MergeCheck:         mergeCheckResponse,
+			ResubmitCheck:      resubmitResult,
+			BranchDeleteStatus: branchDeleteStatus,
+			Stack:              stack,
 		})
 		return
 	}
@@ -153,6 +155,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
+	branchDeleteStatus := s.branchDeleteStatus(r, f, pull)
 	resubmitResult := pages.Unknown
 	if user != nil && user.Did == pull.OwnerDid {
 		resubmitResult = s.resubmitCheck(r, f, pull, stack)
@@ -217,14 +220,15 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.pages.RepoSinglePull(w, pages.RepoSinglePullParams{
-		LoggedInUser:   user,
-		RepoInfo:       repoInfo,
-		Pull:           pull,
-		Stack:          stack,
-		AbandonedPulls: abandonedPulls,
-		MergeCheck:     mergeCheckResponse,
-		ResubmitCheck:  resubmitResult,
-		Pipelines:      m,
+		LoggedInUser:       user,
+		RepoInfo:           repoInfo,
+		Pull:               pull,
+		Stack:              stack,
+		AbandonedPulls:     abandonedPulls,
+		BranchDeleteStatus: branchDeleteStatus,
+		MergeCheck:         mergeCheckResponse,
+		ResubmitCheck:      resubmitResult,
+		Pipelines:          m,
 
 		OrderedReactionKinds: models.OrderedReactionKinds,
 		Reactions:            reactionMap,
@@ -299,6 +303,50 @@ func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *
 	}
 
 	return result
+}
+
+func (s *Pulls) branchDeleteStatus(r *http.Request, f *reporesolver.ResolvedRepo, pull *models.Pull) *models.BranchDeleteStatus {
+	if pull.State != models.PullMerged {
+		return nil
+	}
+
+	user := s.oauth.GetUser(r)
+	if user == nil {
+		return nil
+	}
+
+	var branch string
+	var repo *models.Repo
+	// check if the branch exists
+	// NOTE: appview could cache branches/tags etc. for every repo by listening for gitRefUpdates
+	if pull.IsBranchBased() {
+		branch = pull.PullSource.Branch
+		repo = &f.Repo
+	} else if pull.IsForkBased() {
+		branch = pull.PullSource.Branch
+		repo = pull.PullSource.Repo
+	} else {
+		return nil
+	}
+
+	scheme := "http"
+	if !s.config.Core.Dev {
+		scheme = "https"
+	}
+	host := fmt.Sprintf("%s://%s", scheme, repo.Knot)
+	xrpcc := &indigoxrpc.Client{
+		Host: host,
+	}
+
+	resp, err := tangled.RepoBranch(r.Context(), xrpcc, branch, fmt.Sprintf("%s/%s", repo.Did, repo.Name))
+	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+		return nil
+	}
+
+	return &models.BranchDeleteStatus{
+		Repo:   repo,
+		Branch: resp.Name,
+	}
 }
 
 func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *models.Pull, stack models.Stack) pages.ResubmitResult {
