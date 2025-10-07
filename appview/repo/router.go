@@ -18,6 +18,7 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	})
 	r.Get("/commit/{ref}", rp.RepoCommit)
 	r.Get("/branches", rp.RepoBranches)
+	r.Delete("/branches", rp.DeleteBranch)
 	r.Route("/tags", func(r chi.Router) {
 		r.Get("/", rp.RepoTags)
 		r.Route("/{tag}", func(r chi.Router) {
