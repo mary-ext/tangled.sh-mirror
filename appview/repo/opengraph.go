@@ -82,8 +82,8 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 	// Draw description (DrawText handles multi-line wrapping automatically)
 	descriptionCard.SetMargin(10)
 	description := repo.Description
-	if len(description) > 80 {
-		description = description[:100] + "…"
+	if len(description) > 70 {
+		description = description[:70] + "…"
 	}
 
 	_, err = descriptionCard.DrawText(description, color.RGBA{88, 96, 105, 255}, 36, ogcard.Top, ogcard.Left)
