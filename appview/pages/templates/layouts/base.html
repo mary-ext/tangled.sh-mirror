@@ -26,7 +26,7 @@
         </head>
         <body class="min-h-screen flex flex-col gap-4 bg-slate-100 dark:bg-gray-900 dark:text-white transition-colors duration-200">
           {{ block "topbarLayout" . }}
-            <header class="w-full bg-white dark:bg-gray-800 col-span-full md:col-span-1 md:col-start-2" style="z-index: 20;">
+            <header class="w-full col-span-full md:col-span-1 md:col-start-2" style="z-index: 20;">
 
                {{ if .LoggedInUser }}
                 <div id="upgrade-banner"
@@ -58,7 +58,7 @@
           {{ end }}
 
           {{ block "footerLayout" . }}
-            <footer class="bg-white dark:bg-gray-800 mt-12">
+            <footer class="mt-12">
               {{ template "layouts/fragments/footer" . }}
             </footer>
           {{ end }}
