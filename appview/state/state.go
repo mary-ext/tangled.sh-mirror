@@ -203,6 +203,16 @@ func (s *State) Favicon(w http.ResponseWriter, r *http.Request) {
 	s.pages.Favicon(w)
 }
 
+func (s *State) RobotsTxt(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Cache-Control", "public, max-age=86400") // one day
+
+	robotsTxt := `User-agent: *
+Allow: /
+`
+	w.Write([]byte(robotsTxt))
+}
+
 // https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest
 const manifestJson = `{
   "name": "tangled",
