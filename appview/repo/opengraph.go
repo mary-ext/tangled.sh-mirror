@@ -30,7 +30,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 	contentCard, bottomArea := mainCard.Split(false, 75)
 
 	// Add padding to content
-	contentCard.SetMargin(30)
+	contentCard.SetMargin(50)
 
 	// Split content horizontally: main content (80%) and avatar area (20%)
 	mainContent, avatarArea := contentCard.Split(true, 80)
