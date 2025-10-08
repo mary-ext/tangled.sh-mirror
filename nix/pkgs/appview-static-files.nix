@@ -22,6 +22,7 @@ runCommandLocal "appview-static-files" {
   cp -rf ${lucide-src}/*.svg icons/
   cp -f ${inter-fonts-src}/web/InterVariable*.woff2 fonts/
   cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 fonts/
+  cp -f ${inter-fonts-src}/InterVariable*.ttf fonts/
   cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono*.woff2 fonts/
   # tailwindcss -c $src/tailwind.config.js -i $src/input.css -o tw.css won't work
   # for whatever reason (produces broken css), so we are doing this instead
