@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"tangled.org/core/log"
 )
 
 var upgrader = websocket.Upgrader{
@@ -16,7 +17,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (h *Knot) Events(w http.ResponseWriter, r *http.Request) {
-	l := h.l.With("handler", "OpLog")
+	l := log.SubLogger(h.l, "eventstream")
 	l.Debug("received new connection")
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -75,7 +76,6 @@ func (h *Knot) Events(w http.ResponseWriter, r *http.Request) {
 			}
 		case <-time.After(30 * time.Second):
 			// send a keep-alive
-			l.Debug("sent keepalive")
 			if err = conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
 				l.Error("failed to write control", "err", err)
 			}
@@ -89,7 +89,6 @@ func (h *Knot) streamOps(conn *websocket.Conn, cursor *int64) error {
 		h.l.Error("failed to fetch events from db", "err", err, "cursor", cursor)
 		return err
 	}
-	h.l.Debug("ops", "ops", events)
 
 	for _, event := range events {
 		// first extract the inner json into a map

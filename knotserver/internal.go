@@ -20,6 +20,7 @@ import (
 	"tangled.org/core/knotserver/config"
 	"tangled.org/core/knotserver/db"
 	"tangled.org/core/knotserver/git"
+	"tangled.org/core/log"
 	"tangled.org/core/notifier"
 	"tangled.org/core/rbac"
 	"tangled.org/core/workflow"
@@ -314,8 +315,10 @@ func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostRece
 	return h.db.InsertEvent(event, h.n)
 }
 
-func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, l *slog.Logger, n *notifier.Notifier) http.Handler {
+func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, n *notifier.Notifier) http.Handler {
 	r := chi.NewRouter()
+	l := log.FromContext(ctx)
+	l = log.SubLogger(l, "internal")
 
 	h := InternalHandle{
 		db,

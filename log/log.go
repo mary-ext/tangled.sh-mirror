@@ -4,19 +4,16 @@ import (
 	"context"
 	"log/slog"
 	"os"
+
+	"github.com/charmbracelet/log"
 )
 
-// NewHandler sets up a new slog.Handler with the service name
-// as an attribute
 func NewHandler(name string) slog.Handler {
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+	return log.NewWithOptions(os.Stderr, log.Options{
+		ReportTimestamp: true,
+		Prefix:          name,
+		Level:           log.DebugLevel,
 	})
-
-	var attrs []slog.Attr
-	attrs = append(attrs, slog.Attr{Key: "service", Value: slog.StringValue(name)})
-	handler.WithAttrs(attrs)
-	return handler
 }
 
 func New(name string) *slog.Logger {
@@ -48,4 +45,21 @@ func FromContext(ctx context.Context) *slog.Logger {
 	}
 
 	return slog.Default()
+}
+
+// sublogger derives a new logger from an existing one by appending a suffix to its prefix.
+func SubLogger(base *slog.Logger, suffix string) *slog.Logger {
+	// try to get the underlying charmbracelet logger
+	if cl, ok := base.Handler().(*log.Logger); ok {
+		prefix := cl.GetPrefix()
+		if prefix != "" {
+			prefix = prefix + "/" + suffix
+		} else {
+			prefix = suffix
+		}
+		return slog.New(NewHandler(prefix))
+	}
+
+	// Fallback: no known handler type
+	return slog.New(NewHandler(suffix))
 }

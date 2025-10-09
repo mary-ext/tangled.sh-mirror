@@ -13,20 +13,20 @@ import (
 	"tangled.org/core/knotserver/git/service"
 )
 
-func (d *Knot) InfoRefs(w http.ResponseWriter, r *http.Request) {
+func (h *Knot) InfoRefs(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
 	repoName, err := securejoin.SecureJoin(did, name)
 	if err != nil {
 		gitError(w, "repository not found", http.StatusNotFound)
-		d.l.Error("git: failed to secure join repo path", "handler", "InfoRefs", "error", err)
+		h.l.Error("git: failed to secure join repo path", "handler", "InfoRefs", "error", err)
 		return
 	}
 
-	repoPath, err := securejoin.SecureJoin(d.c.Repo.ScanPath, repoName)
+	repoPath, err := securejoin.SecureJoin(h.c.Repo.ScanPath, repoName)
 	if err != nil {
 		gitError(w, "repository not found", http.StatusNotFound)
-		d.l.Error("git: failed to secure join repo path", "handler", "InfoRefs", "error", err)
+		h.l.Error("git: failed to secure join repo path", "handler", "InfoRefs", "error", err)
 		return
 	}
 
@@ -46,23 +46,23 @@ func (d *Knot) InfoRefs(w http.ResponseWriter, r *http.Request) {
 
 		if err := cmd.InfoRefs(); err != nil {
 			gitError(w, err.Error(), http.StatusInternalServerError)
-			d.l.Error("git: process failed", "handler", "InfoRefs", "service", serviceName, "error", err)
+			h.l.Error("git: process failed", "handler", "InfoRefs", "service", serviceName, "error", err)
 			return
 		}
 	case "git-receive-pack":
-		d.RejectPush(w, r, name)
+		h.RejectPush(w, r, name)
 	default:
 		gitError(w, fmt.Sprintf("service unsupported: '%s'", serviceName), http.StatusForbidden)
 	}
 }
 
-func (d *Knot) UploadPack(w http.ResponseWriter, r *http.Request) {
+func (h *Knot) UploadPack(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
-	repo, err := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
+	repo, err := securejoin.SecureJoin(h.c.Repo.ScanPath, filepath.Join(did, name))
 	if err != nil {
 		gitError(w, err.Error(), http.StatusInternalServerError)
-		d.l.Error("git: failed to secure join repo path", "handler", "UploadPack", "error", err)
+		h.l.Error("git: failed to secure join repo path", "handler", "UploadPack", "error", err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (d *Knot) UploadPack(w http.ResponseWriter, r *http.Request) {
 		gzipReader, err := gzip.NewReader(r.Body)
 		if err != nil {
 			gitError(w, err.Error(), http.StatusInternalServerError)
-			d.l.Error("git: failed to create gzip reader", "handler", "UploadPack", "error", err)
+			h.l.Error("git: failed to create gzip reader", "handler", "UploadPack", "error", err)
 			return
 		}
 		defer gzipReader.Close()
@@ -88,7 +88,7 @@ func (d *Knot) UploadPack(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "Keep-Alive")
 	w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 
-	d.l.Info("git: executing git-upload-pack", "handler", "UploadPack", "repo", repo)
+	h.l.Info("git: executing git-upload-pack", "handler", "UploadPack", "repo", repo)
 
 	cmd := service.ServiceCommand{
 		GitProtocol: r.Header.Get("Git-Protocol"),
@@ -100,25 +100,25 @@ func (d *Knot) UploadPack(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if err := cmd.UploadPack(); err != nil {
-		d.l.Error("git: failed to execute git-upload-pack", "handler", "UploadPack", "error", err)
+		h.l.Error("git: failed to execute git-upload-pack", "handler", "UploadPack", "error", err)
 		return
 	}
 }
 
-func (d *Knot) ReceivePack(w http.ResponseWriter, r *http.Request) {
+func (h *Knot) ReceivePack(w http.ResponseWriter, r *http.Request) {
 	did := chi.URLParam(r, "did")
 	name := chi.URLParam(r, "name")
-	_, err := securejoin.SecureJoin(d.c.Repo.ScanPath, filepath.Join(did, name))
+	_, err := securejoin.SecureJoin(h.c.Repo.ScanPath, filepath.Join(did, name))
 	if err != nil {
 		gitError(w, err.Error(), http.StatusForbidden)
-		d.l.Error("git: failed to secure join repo path", "handler", "ReceivePack", "error", err)
+		h.l.Error("git: failed to secure join repo path", "handler", "ReceivePack", "error", err)
 		return
 	}
 
-	d.RejectPush(w, r, name)
+	h.RejectPush(w, r, name)
 }
 
-func (d *Knot) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedRepoName string) {
+func (h *Knot) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedRepoName string) {
 	// A text/plain response will cause git to print each line of the body
 	// prefixed with "remote: ".
 	w.Header().Set("content-type", "text/plain; charset=UTF-8")
@@ -131,7 +131,7 @@ func (d *Knot) RejectPush(w http.ResponseWriter, r *http.Request, unqualifiedRep
 	ownerHandle := r.Header.Get("x-tangled-repo-owner-handle")
 	ownerHandle = strings.TrimPrefix(ownerHandle, "@")
 	if ownerHandle != "" && !strings.ContainsAny(ownerHandle, ":") {
-		hostname := d.c.Server.Hostname
+		hostname := h.c.Server.Hostname
 		if strings.Contains(hostname, ":") {
 			hostname = strings.Split(hostname, ":")[0]
 		}

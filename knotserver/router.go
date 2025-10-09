@@ -12,7 +12,7 @@ import (
 	"tangled.org/core/knotserver/config"
 	"tangled.org/core/knotserver/db"
 	"tangled.org/core/knotserver/xrpc"
-	tlog "tangled.org/core/log"
+	"tangled.org/core/log"
 	"tangled.org/core/notifier"
 	"tangled.org/core/rbac"
 	"tangled.org/core/xrpc/serviceauth"
@@ -28,14 +28,12 @@ type Knot struct {
 	resolver *idresolver.Resolver
 }
 
-func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, l *slog.Logger, n *notifier.Notifier) (http.Handler, error) {
-	r := chi.NewRouter()
-
+func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, jc *jetstream.JetstreamClient, n *notifier.Notifier) (http.Handler, error) {
 	h := Knot{
 		c:        c,
 		db:       db,
 		e:        e,
-		l:        l,
+		l:        log.FromContext(ctx),
 		jc:       jc,
 		n:        n,
 		resolver: idresolver.DefaultResolver(),
@@ -67,6 +65,14 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		return nil, fmt.Errorf("failed to start jetstream: %w", err)
 	}
 
+	return h.Router(), nil
+}
+
+func (h *Knot) Router() http.Handler {
+	r := chi.NewRouter()
+
+	r.Use(h.RequestLogger)
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("This is a knot server. More info at https://tangled.sh"))
 	})
@@ -86,24 +92,25 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 	// Socket that streams git oplogs
 	r.Get("/events", h.Events)
 
-	return r, nil
+	return r
 }
 
 func (h *Knot) XrpcRouter() http.Handler {
-	logger := tlog.New("knots")
-
 	serviceAuth := serviceauth.NewServiceAuth(h.l, h.resolver, h.c.Server.Did().String())
+
+	l := log.SubLogger(h.l, "xrpc")
 
 	xrpc := &xrpc.Xrpc{
 		Config:      h.c,
 		Db:          h.db,
 		Ingester:    h.jc,
 		Enforcer:    h.e,
-		Logger:      logger,
+		Logger:      l,
 		Notifier:    h.n,
 		Resolver:    h.resolver,
 		ServiceAuth: serviceAuth,
 	}
+
 	return xrpc.Router()
 }
 

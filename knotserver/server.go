@@ -43,7 +43,8 @@ func Command() *cli.Command {
 
 func Run(ctx context.Context, cmd *cli.Command) error {
 	logger := log.FromContext(ctx)
-	iLogger := log.New("knotserver/internal")
+	logger = log.SubLogger(logger, cmd.Name)
+	ctx = log.IntoContext(ctx, logger)
 
 	c, err := config.Load(ctx)
 	if err != nil {
@@ -80,19 +81,19 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 		tangled.KnotMemberNSID,
 		tangled.RepoPullNSID,
 		tangled.RepoCollaboratorNSID,
-	}, nil, logger, db, true, c.Server.LogDids)
+	}, nil, log.SubLogger(logger, "jetstream"), db, true, c.Server.LogDids)
 	if err != nil {
 		logger.Error("failed to setup jetstream", "error", err)
 	}
 
 	notifier := notifier.New()
 
-	mux, err := Setup(ctx, c, db, e, jc, logger, &notifier)
+	mux, err := Setup(ctx, c, db, e, jc, &notifier)
 	if err != nil {
 		return fmt.Errorf("failed to setup server: %w", err)
 	}
 
-	imux := Internal(ctx, c, db, e, iLogger, &notifier)
+	imux := Internal(ctx, c, db, e, &notifier)
 
 	logger.Info("starting internal server", "address", c.Server.InternalListenAddr)
 	go http.ListenAndServe(c.Server.InternalListenAddr, imux)

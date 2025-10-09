@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	"github.com/urfave/cli/v3"
@@ -9,7 +10,7 @@ import (
 	"tangled.org/core/hook"
 	"tangled.org/core/keyfetch"
 	"tangled.org/core/knotserver"
-	"tangled.org/core/log"
+	tlog "tangled.org/core/log"
 )
 
 func main() {
@@ -24,9 +25,11 @@ func main() {
 		},
 	}
 
+	logger := tlog.New("knot")
+	slog.SetDefault(logger)
+
 	ctx := context.Background()
-	logger := log.New("knot")
-	ctx = log.IntoContext(ctx, logger.With("command", cmd.Name))
+	ctx = tlog.IntoContext(ctx, logger)
 
 	if err := cmd.Run(ctx, os.Args); err != nil {
 		logger.Error(err.Error())
