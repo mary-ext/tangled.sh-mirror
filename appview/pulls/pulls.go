@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,6 +25,7 @@ import (
 	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/idresolver"
 	"tangled.org/core/patchutil"
+	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
 	"tangled.org/core/types"
 
@@ -43,6 +45,7 @@ type Pulls struct {
 	db           *db.DB
 	config       *config.Config
 	notifier     notify.Notifier
+	enforcer     *rbac.Enforcer
 }
 
 func New(
@@ -53,6 +56,7 @@ func New(
 	db *db.DB,
 	config *config.Config,
 	notifier notify.Notifier,
+	enforcer *rbac.Enforcer,
 ) *Pulls {
 	return &Pulls{
 		oauth:        oauth,
@@ -62,6 +66,7 @@ func New(
 		db:           db,
 		config:       config,
 		notifier:     notifier,
+		enforcer:     enforcer,
 	}
 }
 
@@ -326,6 +331,12 @@ func (s *Pulls) branchDeleteStatus(r *http.Request, f *reporesolver.ResolvedRepo
 		branch = pull.PullSource.Branch
 		repo = pull.PullSource.Repo
 	} else {
+		return nil
+	}
+
+	// user can only delete branch if they are a collaborator in the repo that the branch belongs to
+	perms := s.enforcer.GetPermissionsInRepo(user.Did, repo.Knot, repo.DidSlashRepo())
+	if !slices.Contains(perms, "repo:push") {
 		return nil
 	}
 
