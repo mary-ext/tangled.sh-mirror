@@ -4,15 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"reflect"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
+	"tangled.org/core/log"
 )
 
 type DB struct {
 	*sql.DB
+	logger *slog.Logger
 }
 
 type Execer interface {
@@ -26,7 +28,7 @@ type Execer interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
-func Make(dbPath string) (*DB, error) {
+func Make(ctx context.Context, dbPath string) (*DB, error) {
 	// https://github.com/mattn/go-sqlite3#connection-string
 	opts := []string{
 		"_foreign_keys=1",
@@ -35,12 +37,13 @@ func Make(dbPath string) (*DB, error) {
 		"_auto_vacuum=incremental",
 	}
 
+	logger := log.FromContext(ctx)
+	logger = log.SubLogger(logger, "db")
+
 	db, err := sql.Open("sqlite3", dbPath+"?"+strings.Join(opts, "&"))
 	if err != nil {
 		return nil, err
 	}
-
-	ctx := context.Background()
 
 	conn, err := db.Conn(ctx)
 	if err != nil {
@@ -574,14 +577,14 @@ func Make(dbPath string) (*DB, error) {
 	}
 
 	// run migrations
-	runMigration(conn, "add-description-to-repos", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-description-to-repos", func(tx *sql.Tx) error {
 		tx.Exec(`
 			alter table repos add column description text check (length(description) <= 200);
 		`)
 		return nil
 	})
 
-	runMigration(conn, "add-rkey-to-pubkeys", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-rkey-to-pubkeys", func(tx *sql.Tx) error {
 		// add unconstrained column
 		_, err := tx.Exec(`
 			alter table public_keys
@@ -604,7 +607,7 @@ func Make(dbPath string) (*DB, error) {
 		return nil
 	})
 
-	runMigration(conn, "add-rkey-to-comments", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-rkey-to-comments", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table comments drop column comment_at;
 			alter table comments add column rkey text;
@@ -612,7 +615,7 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
-	runMigration(conn, "add-deleted-and-edited-to-issue-comments", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-deleted-and-edited-to-issue-comments", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table comments add column deleted text; -- timestamp
 			alter table comments add column edited text; -- timestamp
@@ -620,7 +623,7 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
-	runMigration(conn, "add-source-info-to-pulls-and-submissions", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-source-info-to-pulls-and-submissions", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table pulls add column source_branch text;
 			alter table pulls add column source_repo_at text;
@@ -629,7 +632,7 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
-	runMigration(conn, "add-source-to-repos", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-source-to-repos", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table repos add column source text;
 		`)
@@ -641,7 +644,7 @@ func Make(dbPath string) (*DB, error) {
 	//
 	// [0]: https://sqlite.org/pragma.html#pragma_foreign_keys
 	conn.ExecContext(ctx, "pragma foreign_keys = off;")
-	runMigration(conn, "recreate-pulls-column-for-stacking-support", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "recreate-pulls-column-for-stacking-support", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			create table pulls_new (
 				-- identifiers
@@ -698,7 +701,7 @@ func Make(dbPath string) (*DB, error) {
 	})
 	conn.ExecContext(ctx, "pragma foreign_keys = on;")
 
-	runMigration(conn, "add-spindle-to-repos", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-spindle-to-repos", func(tx *sql.Tx) error {
 		tx.Exec(`
 			alter table repos add column spindle text;
 		`)
@@ -708,7 +711,7 @@ func Make(dbPath string) (*DB, error) {
 	// drop all knot secrets, add unique constraint to knots
 	//
 	// knots will henceforth use service auth for signed requests
-	runMigration(conn, "no-more-secrets", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "no-more-secrets", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			create table registrations_new (
 				id integer primary key autoincrement,
@@ -731,7 +734,7 @@ func Make(dbPath string) (*DB, error) {
 	})
 
 	// recreate and add rkey + created columns with default constraint
-	runMigration(conn, "rework-collaborators-table", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "rework-collaborators-table", func(tx *sql.Tx) error {
 		// create new table
 		// - repo_at instead of repo integer
 		// - rkey field
@@ -785,7 +788,7 @@ func Make(dbPath string) (*DB, error) {
 		return err
 	})
 
-	runMigration(conn, "add-rkey-to-issues", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-rkey-to-issues", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table issues add column rkey text not null default '';
 
@@ -797,7 +800,7 @@ func Make(dbPath string) (*DB, error) {
 	})
 
 	// repurpose the read-only column to "needs-upgrade"
-	runMigration(conn, "rename-registrations-read-only-to-needs-upgrade", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "rename-registrations-read-only-to-needs-upgrade", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table registrations rename column read_only to needs_upgrade;
 		`)
@@ -805,7 +808,7 @@ func Make(dbPath string) (*DB, error) {
 	})
 
 	// require all knots to upgrade after the release of total xrpc
-	runMigration(conn, "migrate-knots-to-total-xrpc", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "migrate-knots-to-total-xrpc", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			update registrations set needs_upgrade = 1;
 		`)
@@ -813,7 +816,7 @@ func Make(dbPath string) (*DB, error) {
 	})
 
 	// require all knots to upgrade after the release of total xrpc
-	runMigration(conn, "migrate-spindles-to-xrpc-owner", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "migrate-spindles-to-xrpc-owner", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table spindles add column needs_upgrade integer not null default 0;
 		`)
@@ -831,7 +834,7 @@ func Make(dbPath string) (*DB, error) {
 	//
 	// disable foreign-keys for the next migration
 	conn.ExecContext(ctx, "pragma foreign_keys = off;")
-	runMigration(conn, "remove-issue-at-from-issues", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "remove-issue-at-from-issues", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			create table if not exists issues_new (
 				-- identifiers
@@ -901,7 +904,7 @@ func Make(dbPath string) (*DB, error) {
 	// - new columns
 	//   * column "reply_to" which can be any other comment
 	//   * column "at-uri" which is a generated column
-	runMigration(conn, "rework-issue-comments", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "rework-issue-comments", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			create table if not exists issue_comments (
 				-- identifiers
@@ -961,7 +964,7 @@ func Make(dbPath string) (*DB, error) {
 	//
 	// disable foreign-keys for the next migration
 	conn.ExecContext(ctx, "pragma foreign_keys = off;")
-	runMigration(conn, "add-at-uri-to-pulls", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "add-at-uri-to-pulls", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 		create table if not exists pulls_new (
 			-- identifiers
@@ -1042,7 +1045,7 @@ func Make(dbPath string) (*DB, error) {
 	//
 	// disable foreign-keys for the next migration
 	conn.ExecContext(ctx, "pragma foreign_keys = off;")
-	runMigration(conn, "remove-repo-at-pull-id-from-pull-submissions", func(tx *sql.Tx) error {
+	runMigration(conn, logger, "remove-repo-at-pull-id-from-pull-submissions", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 		create table if not exists pull_submissions_new (
 			-- identifiers
@@ -1094,12 +1097,17 @@ func Make(dbPath string) (*DB, error) {
 	})
 	conn.ExecContext(ctx, "pragma foreign_keys = on;")
 
-	return &DB{db}, nil
+	return &DB{
+		db,
+		logger,
+	}, nil
 }
 
 type migrationFn = func(*sql.Tx) error
 
-func runMigration(c *sql.Conn, name string, migrationFn migrationFn) error {
+func runMigration(c *sql.Conn, logger *slog.Logger, name string, migrationFn migrationFn) error {
+	logger = logger.With("migration", name)
+
 	tx, err := c.BeginTx(context.Background(), nil)
 	if err != nil {
 		return err
@@ -1116,14 +1124,14 @@ func runMigration(c *sql.Conn, name string, migrationFn migrationFn) error {
 		// run migration
 		err = migrationFn(tx)
 		if err != nil {
-			log.Printf("Failed to run migration %s: %v", name, err)
+			logger.Error("failed to run migration", "err", err)
 			return err
 		}
 
 		// mark migration as complete
 		_, err = tx.Exec("insert into migrations (name) values (?)", name)
 		if err != nil {
-			log.Printf("Failed to mark migration %s as complete: %v", name, err)
+			logger.Error("failed to mark migration as complete", "err", err)
 			return err
 		}
 
@@ -1132,9 +1140,9 @@ func runMigration(c *sql.Conn, name string, migrationFn migrationFn) error {
 			return err
 		}
 
-		log.Printf("migration %s applied successfully", name)
+		logger.Info("migration applied successfully")
 	} else {
-		log.Printf("skipped migration %s, already applied", name)
+		logger.Warn("skipped migration, already applied")
 	}
 
 	return nil

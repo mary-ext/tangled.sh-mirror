@@ -2,18 +2,24 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
-	"tangled.org/core/log"
+	tlog "tangled.org/core/log"
 	"tangled.org/core/spindle"
 	_ "tangled.org/core/tid"
 )
 
 func main() {
-	ctx := log.NewContext(context.Background(), "spindle")
+	logger := tlog.New("spindl3")
+	slog.SetDefault(logger)
+
+	ctx := context.Background()
+	ctx = tlog.IntoContext(ctx, logger)
+
 	err := spindle.Run(ctx)
 	if err != nil {
-		log.FromContext(ctx).Error("error running spindle", "error", err)
+		logger.Error("error running spindle", "error", err)
 		os.Exit(-1)
 	}
 }

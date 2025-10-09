@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -28,7 +27,6 @@ import (
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/validator"
 	"tangled.org/core/idresolver"
-	tlog "tangled.org/core/log"
 	"tangled.org/core/tid"
 )
 
@@ -53,6 +51,7 @@ func New(
 	config *config.Config,
 	notifier notify.Notifier,
 	validator *validator.Validator,
+	logger *slog.Logger,
 ) *Issues {
 	return &Issues{
 		oauth:        oauth,
@@ -62,7 +61,7 @@ func New(
 		db:           db,
 		config:       config,
 		notifier:     notifier,
-		logger:       tlog.New("issues"),
+		logger:       logger,
 		validator:    validator,
 	}
 }
@@ -72,7 +71,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -99,7 +98,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		db.FilterContains("scope", tangled.RepoIssueNSID),
 	)
 	if err != nil {
-		log.Println("failed to fetch labels", err)
+		l.Error("failed to fetch labels", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
@@ -126,7 +125,7 @@ func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -199,7 +198,7 @@ func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
 
 		err = db.PutIssue(tx, newIssue)
 		if err != nil {
-			log.Println("failed to edit issue", err)
+			l.Error("failed to edit issue", "err", err)
 			rp.pages.Notice(w, "issues", "Failed to edit issue.")
 			return
 		}
@@ -237,7 +236,7 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 	// delete from PDS
 	client, err := rp.oauth.AuthorizedClient(r)
 	if err != nil {
-		log.Println("failed to get authorized client", err)
+		l.Error("failed to get authorized client", "err", err)
 		rp.pages.Notice(w, "issue-comment", "Failed to delete comment.")
 		return
 	}
@@ -282,7 +281,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 
 	collaborators, err := f.Collaborators(r.Context())
 	if err != nil {
-		log.Println("failed to fetch repo collaborators: %w", err)
+		l.Error("failed to fetch repo collaborators", "err", err)
 	}
 	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
 		return user.Did == collab.Did
@@ -296,7 +295,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			db.FilterEq("id", issue.Id),
 		)
 		if err != nil {
-			log.Println("failed to close issue", err)
+			l.Error("failed to close issue", "err", err)
 			rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
 			return
 		}
@@ -307,7 +306,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	} else {
-		log.Println("user is not permitted to close issue")
+		l.Error("user is not permitted to close issue")
 		http.Error(w, "for biden", http.StatusUnauthorized)
 		return
 	}
@@ -318,7 +317,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -331,7 +330,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 
 	collaborators, err := f.Collaborators(r.Context())
 	if err != nil {
-		log.Println("failed to fetch repo collaborators: %w", err)
+		l.Error("failed to fetch repo collaborators", "err", err)
 	}
 	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
 		return user.Did == collab.Did
@@ -344,14 +343,14 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 			db.FilterEq("id", issue.Id),
 		)
 		if err != nil {
-			log.Println("failed to reopen issue", err)
+			l.Error("failed to reopen issue", "err", err)
 			rp.pages.Notice(w, "issue-action", "Failed to reopen issue. Try again later.")
 			return
 		}
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	} else {
-		log.Println("user is not the owner of the repo")
+		l.Error("user is not the owner of the repo")
 		http.Error(w, "forbidden", http.StatusUnauthorized)
 		return
 	}
@@ -538,7 +537,7 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		newBody := r.FormValue("body")
 		client, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
-			log.Println("failed to get authorized client", err)
+			l.Error("failed to get authorized client", "err", err)
 			rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
 			return
 		}
@@ -551,7 +550,7 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 
 		_, err = db.AddIssueComment(rp.db, newComment)
 		if err != nil {
-			log.Println("failed to perferom update-description query", err)
+			l.Error("failed to perferom update-description query", "err", err)
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
 			return
 		}
@@ -561,7 +560,7 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 			// update the record on pds
 			ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoIssueCommentNSID, user.Did, comment.Rkey)
 			if err != nil {
-				log.Println("failed to get record", "err", err, "did", newComment.Did, "rkey", newComment.Rkey)
+				l.Error("failed to get record", "err", err, "did", newComment.Did, "rkey", newComment.Rkey)
 				rp.pages.Notice(w, fmt.Sprintf("comment-%s-status", commentId), "Failed to update description, no record found on PDS.")
 				return
 			}
@@ -729,7 +728,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	if comment.Rkey != "" {
 		client, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
-			log.Println("failed to get authorized client", err)
+			l.Error("failed to get authorized client", "err", err)
 			rp.pages.Notice(w, "issue-comment", "Failed to delete comment.")
 			return
 		}
@@ -739,7 +738,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 			Rkey:       comment.Rkey,
 		})
 		if err != nil {
-			log.Println(err)
+			l.Error("failed to delete from PDS", "err", err)
 		}
 	}
 
@@ -757,6 +756,8 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoIssues")
+
 	params := r.URL.Query()
 	state := params.Get("state")
 	isOpen := true
@@ -771,14 +772,14 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 
 	page, ok := r.Context().Value("page").(pagination.Page)
 	if !ok {
-		log.Println("failed to get page")
+		l.Error("failed to get page")
 		page = pagination.FirstPage()
 	}
 
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -793,7 +794,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		db.FilterEq("open", openVal),
 	)
 	if err != nil {
-		log.Println("failed to get issues", err)
+		l.Error("failed to get issues", "err", err)
 		rp.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
 		return
 	}
@@ -804,7 +805,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		db.FilterContains("scope", tangled.RepoIssueNSID),
 	)
 	if err != nil {
-		log.Println("failed to fetch labels", err)
+		l.Error("failed to fetch labels", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
@@ -901,13 +902,13 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 
 		err = db.PutIssue(tx, issue)
 		if err != nil {
-			log.Println("failed to create issue", err)
+			l.Error("failed to create issue", "err", err)
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}
 
 		if err = tx.Commit(); err != nil {
-			log.Println("failed to create issue", err)
+			l.Error("failed to create issue", "err", err)
 			rp.pages.Notice(w, "issues", "Failed to create issue.")
 			return
 		}

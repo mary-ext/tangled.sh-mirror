@@ -2,35 +2,40 @@ package main
 
 import (
 	"context"
-	"log"
-	"log/slog"
 	"net/http"
 	"os"
 
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/state"
+	tlog "tangled.org/core/log"
 )
 
 func main() {
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
-
 	ctx := context.Background()
+	logger := tlog.New("appview")
+	ctx = tlog.IntoContext(ctx, logger)
 
 	c, err := config.LoadConfig(ctx)
 	if err != nil {
-		log.Println("failed to load config", "error", err)
+		logger.Error("failed to load config", "error", err)
 		return
 	}
 
 	state, err := state.Make(ctx, c)
 	defer func() {
-		log.Println(state.Close())
+		if err := state.Close(); err != nil {
+			logger.Error("failed to close state", "err", err)
+		}
 	}()
 
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to start appview", "err", err)
+		os.Exit(-1)
 	}
 
-	log.Println("starting server on", c.Core.ListenAddr)
-	log.Println(http.ListenAndServe(c.Core.ListenAddr, state.Router()))
+	logger.Info("starting server", "address", c.Core.ListenAddr)
+
+	if err := http.ListenAndServe(c.Core.ListenAddr, state.Router()); err != nil {
+		logger.Error("failed to start appview", "err", err)
+	}
 }

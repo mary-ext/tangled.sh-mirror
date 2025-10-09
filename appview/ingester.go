@@ -89,7 +89,7 @@ func (i *Ingester) Ingest() processFunc {
 		}
 
 		if err != nil {
-			l.Debug("error ingesting record", "err", err)
+			l.Warn("refused to ingest record", "err", err)
 		}
 
 		return nil

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -90,12 +89,14 @@ func New(
 }
 
 func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "DownloadArchive")
+
 	ref := chi.URLParam(r, "ref")
 	ref, _ = url.PathUnescape(ref)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -111,7 +112,7 @@ func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	archiveBytes, err := tangled.RepoArchive(r.Context(), xrpcc, "tar.gz", "", ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.archive", xrpcerr)
+		l.Error("failed to call XRPC repo.archive", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
@@ -128,9 +129,11 @@ func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoLog")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to fully resolve repo", err)
+		l.Error("failed to fully resolve repo", "err", err)
 		return
 	}
 
@@ -165,21 +168,21 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoLog(r.Context(), xrpcc, cursor, limit, "", ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.log", xrpcerr)
+		l.Error("failed to call XRPC repo.log", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var xrpcResp types.RepoLogResponse
 	if err := json.Unmarshal(xrpcBytes, &xrpcResp); err != nil {
-		log.Println("failed to decode XRPC response", err)
+		l.Error("failed to decode XRPC response", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
 
 	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		l.Error("failed to call XRPC repo.tags", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
@@ -196,7 +199,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		l.Error("failed to call XRPC repo.branches", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
@@ -214,12 +217,12 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 
 	emailToDidMap, err := db.GetEmailToDid(rp.db, uniqueEmails(xrpcResp.Commits), true)
 	if err != nil {
-		log.Println("failed to fetch email to did mapping", err)
+		l.Error("failed to fetch email to did mapping", "err", err)
 	}
 
 	vc, err := commitverify.GetVerifiedObjectCommits(rp.db, emailToDidMap, xrpcResp.Commits)
 	if err != nil {
-		log.Println(err)
+		l.Error("failed to GetVerifiedObjectCommits", "err", err)
 	}
 
 	repoInfo := f.RepoInfo(user)
@@ -230,7 +233,7 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	}
 	pipelines, err := getPipelineStatuses(rp.db, repoInfo, shas)
 	if err != nil {
-		log.Println(err)
+		l.Error("failed to getPipelineStatuses", "err", err)
 		// non-fatal
 	}
 
@@ -246,9 +249,11 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoDescriptionEdit")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -260,9 +265,11 @@ func (rp *Repo) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoDescription")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -270,7 +277,7 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 	repoAt := f.RepoAt()
 	rkey := repoAt.RecordKey().String()
 	if rkey == "" {
-		log.Println("invalid aturi for repo", err)
+		l.Error("invalid aturi for repo", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -287,7 +294,7 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		newDescription := r.FormValue("description")
 		client, err := rp.oauth.AuthorizedClient(r)
 		if err != nil {
-			log.Println("failed to get client")
+			l.Error("failed to get client")
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
 			return
 		}
@@ -295,7 +302,7 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		// optimistic update
 		err = db.UpdateDescription(rp.db, string(repoAt), newDescription)
 		if err != nil {
-			log.Println("failed to perferom update-description query", err)
+			l.Error("failed to perform update-description query", "err", err)
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
 			return
 		}
@@ -324,7 +331,7 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			log.Println("failed to perferom update-description query", err)
+			l.Error("failed to perferom update-description query", "err", err)
 			// failed to get record
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, unable to save to PDS.")
 			return
@@ -341,9 +348,11 @@ func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoCommit")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to fully resolve repo", err)
+		l.Error("failed to fully resolve repo", "err", err)
 		return
 	}
 	ref := chi.URLParam(r, "ref")
@@ -371,33 +380,33 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoDiff(r.Context(), xrpcc, ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.diff", xrpcerr)
+		l.Error("failed to call XRPC repo.diff", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var result types.RepoCommitResponse
 	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
-		log.Println("failed to decode XRPC response", err)
+		l.Error("failed to decode XRPC response", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
 
 	emailToDidMap, err := db.GetEmailToDid(rp.db, []string{result.Diff.Commit.Committer.Email, result.Diff.Commit.Author.Email}, true)
 	if err != nil {
-		log.Println("failed to get email to did mapping:", err)
+		l.Error("failed to get email to did mapping", "err", err)
 	}
 
 	vc, err := commitverify.GetVerifiedCommits(rp.db, emailToDidMap, []types.NiceDiff{*result.Diff})
 	if err != nil {
-		log.Println(err)
+		l.Error("failed to GetVerifiedCommits", "err", err)
 	}
 
 	user := rp.oauth.GetUser(r)
 	repoInfo := f.RepoInfo(user)
 	pipelines, err := getPipelineStatuses(rp.db, repoInfo, []string{result.Diff.Commit.This})
 	if err != nil {
-		log.Println(err)
+		l.Error("failed to getPipelineStatuses", "err", err)
 		// non-fatal
 	}
 	var pipeline *models.Pipeline
@@ -417,9 +426,11 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoTree")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to fully resolve repo", err)
+		l.Error("failed to fully resolve repo", "err", err)
 		return
 	}
 
@@ -444,7 +455,7 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcResp, err := tangled.RepoTree(r.Context(), xrpcc, treePath, ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.tree", xrpcerr)
+		l.Error("failed to call XRPC repo.tree", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
@@ -519,9 +530,11 @@ func (rp *Repo) RepoTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoTags")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -537,21 +550,21 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		l.Error("failed to call XRPC repo.tags", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var result types.RepoTagsResponse
 	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
-		log.Println("failed to decode XRPC response", err)
+		l.Error("failed to decode XRPC response", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
 
 	artifacts, err := db.GetArtifact(rp.db, db.FilterEq("repo_at", f.RepoAt()))
 	if err != nil {
-		log.Println("failed grab artifacts", err)
+		l.Error("failed grab artifacts", "err", err)
 		return
 	}
 
@@ -588,9 +601,11 @@ func (rp *Repo) RepoTags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoBranches")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -606,14 +621,14 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		l.Error("failed to call XRPC repo.branches", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var result types.RepoBranchesResponse
 	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
-		log.Println("failed to decode XRPC response", err)
+		l.Error("failed to decode XRPC response", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
@@ -629,15 +644,17 @@ func (rp *Repo) RepoBranches(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) DeleteBranch(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "DeleteBranch")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
 	noticeId := "delete-branch-error"
 	fail := func(msg string, err error) {
-		log.Println(msg, "err", err)
+		l.Error(msg, "err", err)
 		rp.pages.Notice(w, noticeId, msg)
 	}
 
@@ -670,15 +687,17 @@ func (rp *Repo) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 		fail(fmt.Sprintf("Failed to delete branch: %s", err), err)
 		return
 	}
-	log.Println("deleted branch from knot", "branch", branch, "repo", f.RepoAt())
+	l.Error("deleted branch from knot", "branch", branch, "repo", f.RepoAt())
 
 	rp.pages.HxRefresh(w)
 }
 
 func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoBlob")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -700,7 +719,7 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Repo.Name)
 	resp, err := tangled.RepoBlob(r.Context(), xrpcc, filePath, false, ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.blob", xrpcerr)
+		l.Error("failed to call XRPC repo.blob", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
@@ -800,9 +819,11 @@ func (rp *Repo) RepoBlob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoBlobRaw")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -834,7 +855,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 
 	req, err := http.NewRequest("GET", blobURL, nil)
 	if err != nil {
-		log.Println("failed to create request", err)
+		l.Error("failed to create request", "err", err)
 		return
 	}
 
@@ -846,7 +867,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("failed to reach knotserver", err)
+		l.Error("failed to reach knotserver", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
@@ -859,7 +880,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("knotserver returned non-OK status for raw blob %s: %d", blobURL, resp.StatusCode)
+		l.Error("knotserver returned non-OK status for raw blob", "url", blobURL, "statuscode", resp.StatusCode)
 		w.WriteHeader(resp.StatusCode)
 		_, _ = io.Copy(w, resp.Body)
 		return
@@ -868,7 +889,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	contentType := resp.Header.Get("Content-Type")
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("error reading response body from knotserver: %v", err)
+		l.Error("error reading response body from knotserver", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -1443,7 +1464,7 @@ func (rp *Repo) LabelPanel(w http.ResponseWriter, r *http.Request) {
 		db.FilterContains("scope", subject.Collection().String()),
 	)
 	if err != nil {
-		log.Println("failed to fetch label defs", err)
+		l.Error("failed to fetch label defs", "err", err)
 		return
 	}
 
@@ -1454,7 +1475,7 @@ func (rp *Repo) LabelPanel(w http.ResponseWriter, r *http.Request) {
 
 	states, err := db.GetLabels(rp.db, db.FilterEq("subject", subject))
 	if err != nil {
-		log.Println("failed to build label state", err)
+		l.Error("failed to build label state", "err", err)
 		return
 	}
 	state := states[subject]
@@ -1491,7 +1512,7 @@ func (rp *Repo) EditLabelPanel(w http.ResponseWriter, r *http.Request) {
 		db.FilterContains("scope", subject.Collection().String()),
 	)
 	if err != nil {
-		log.Println("failed to fetch labels", err)
+		l.Error("failed to fetch labels", "err", err)
 		return
 	}
 
@@ -1502,7 +1523,7 @@ func (rp *Repo) EditLabelPanel(w http.ResponseWriter, r *http.Request) {
 
 	states, err := db.GetLabels(rp.db, db.FilterEq("subject", subject))
 	if err != nil {
-		log.Println("failed to build label state", err)
+		l.Error("failed to build label state", "err", err)
 		return
 	}
 	state := states[subject]
@@ -1649,18 +1670,19 @@ func (rp *Repo) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 
 func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
+	l := rp.logger.With("handler", "DeleteRepo")
 
 	noticeId := "operation-error"
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
 	// remove record from pds
 	atpClient, err := rp.oauth.AuthorizedClient(r)
 	if err != nil {
-		log.Println("failed to get authorized client", err)
+		l.Error("failed to get authorized client", "err", err)
 		return
 	}
 	_, err = comatproto.RepoDeleteRecord(r.Context(), atpClient, &comatproto.RepoDeleteRecord_Input{
@@ -1669,11 +1691,11 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		Rkey:       f.Rkey,
 	})
 	if err != nil {
-		log.Printf("failed to delete record: %s", err)
+		l.Error("failed to delete record", "err", err)
 		rp.pages.Notice(w, noticeId, "Failed to delete repository from PDS.")
 		return
 	}
-	log.Println("removed repo record ", f.RepoAt().String())
+	l.Info("removed repo record", "aturi", f.RepoAt().String())
 
 	client, err := rp.oauth.ServiceClient(
 		r,
@@ -1682,7 +1704,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		oauth.WithDev(rp.config.Core.Dev),
 	)
 	if err != nil {
-		log.Println("failed to connect to knot server:", err)
+		l.Error("failed to connect to knot server", "err", err)
 		return
 	}
 
@@ -1699,11 +1721,11 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		rp.pages.Notice(w, noticeId, err.Error())
 		return
 	}
-	log.Println("deleted repo from knot")
+	l.Info("deleted repo from knot")
 
 	tx, err := rp.db.BeginTx(r.Context(), nil)
 	if err != nil {
-		log.Println("failed to start tx")
+		l.Error("failed to start tx")
 		w.Write(fmt.Append(nil, "failed to add collaborator: ", err))
 		return
 	}
@@ -1711,7 +1733,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		tx.Rollback()
 		err = rp.enforcer.E.LoadPolicy()
 		if err != nil {
-			log.Println("failed to rollback policies")
+			l.Error("failed to rollback policies")
 		}
 	}()
 
@@ -1725,7 +1747,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		did := c[0]
 		rp.enforcer.RemoveCollaborator(did, f.Knot, f.DidSlashRepo())
 	}
-	log.Println("removed collaborators")
+	l.Info("removed collaborators")
 
 	// remove repo RBAC
 	err = rp.enforcer.RemoveRepo(f.OwnerDid(), f.Knot, f.DidSlashRepo())
@@ -1740,18 +1762,18 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		rp.pages.Notice(w, noticeId, "Failed to update appview")
 		return
 	}
-	log.Println("removed repo from db")
+	l.Info("removed repo from db")
 
 	err = tx.Commit()
 	if err != nil {
-		log.Println("failed to commit changes", err)
+		l.Error("failed to commit changes", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = rp.enforcer.E.SavePolicy()
 	if err != nil {
-		log.Println("failed to update ACLs", err)
+		l.Error("failed to update ACLs", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -1760,9 +1782,11 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "SetDefaultBranch")
+
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -1780,7 +1804,7 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		oauth.WithDev(rp.config.Core.Dev),
 	)
 	if err != nil {
-		log.Println("failed to connect to knot server:", err)
+		l.Error("failed to connect to knot server", "err", err)
 		rp.pages.Notice(w, noticeId, "Failed to connect to knot server.")
 		return
 	}
@@ -1794,7 +1818,7 @@ func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 	if err := xrpcclient.HandleXrpcErr(xe); err != nil {
-		log.Println("xrpc failed", "err", xe)
+		l.Error("xrpc failed", "err", xe)
 		rp.pages.Notice(w, noticeId, err.Error())
 		return
 	}
@@ -1809,12 +1833,12 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
 	if f.Spindle == "" {
-		log.Println("empty spindle cannot add/rm secret", err)
+		l.Error("empty spindle cannot add/rm secret", "err", err)
 		return
 	}
 
@@ -1831,7 +1855,7 @@ func (rp *Repo) Secrets(w http.ResponseWriter, r *http.Request) {
 		oauth.WithDev(rp.config.Core.Dev),
 	)
 	if err != nil {
-		log.Println("failed to create spindle client", err)
+		l.Error("failed to create spindle client", "err", err)
 		return
 	}
 
@@ -1917,6 +1941,8 @@ func (rp *Repo) RepoSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "generalSettings")
+
 	f, err := rp.repoResolver.Resolve(r)
 	user := rp.oauth.GetUser(r)
 
@@ -1932,28 +1958,28 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		l.Error("failed to call XRPC repo.branches", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var result types.RepoBranchesResponse
 	if err := json.Unmarshal(xrpcBytes, &result); err != nil {
-		log.Println("failed to decode XRPC response", err)
+		l.Error("failed to decode XRPC response", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
 
 	defaultLabels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", models.DefaultLabelDefs()))
 	if err != nil {
-		log.Println("failed to fetch labels", err)
+		l.Error("failed to fetch labels", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
 
 	labels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", f.Repo.Labels))
 	if err != nil {
-		log.Println("failed to fetch labels", err)
+		l.Error("failed to fetch labels", "err", err)
 		rp.pages.Error503(w)
 		return
 	}
@@ -2001,12 +2027,14 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) accessSettings(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "accessSettings")
+
 	f, err := rp.repoResolver.Resolve(r)
 	user := rp.oauth.GetUser(r)
 
 	repoCollaborators, err := f.Collaborators(r.Context())
 	if err != nil {
-		log.Println("failed to get collaborators", err)
+		l.Error("failed to get collaborators", "err", err)
 	}
 
 	rp.pages.RepoAccessSettings(w, pages.RepoAccessSettingsParams{
@@ -2019,13 +2047,15 @@ func (rp *Repo) accessSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "pipelineSettings")
+
 	f, err := rp.repoResolver.Resolve(r)
 	user := rp.oauth.GetUser(r)
 
 	// all spindles that the repo owner is a member of
 	spindles, err := rp.enforcer.GetSpindlesForUser(f.OwnerDid())
 	if err != nil {
-		log.Println("failed to fetch spindles", err)
+		l.Error("failed to fetch spindles", "err", err)
 		return
 	}
 
@@ -2038,9 +2068,9 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 			oauth.WithExp(60),
 			oauth.WithDev(rp.config.Core.Dev),
 		); err != nil {
-			log.Println("failed to create spindle client", err)
+			l.Error("failed to create spindle client", "err", err)
 		} else if resp, err := tangled.RepoListSecrets(r.Context(), spindleClient, f.RepoAt().String()); err != nil {
-			log.Println("failed to fetch secrets", err)
+			l.Error("failed to fetch secrets", "err", err)
 		} else {
 			secrets = resp.Secrets
 		}
@@ -2080,13 +2110,15 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "SyncRepoFork")
+
 	ref := chi.URLParam(r, "ref")
 	ref, _ = url.PathUnescape(ref)
 
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Printf("failed to resolve source repo: %v", err)
+		l.Error("failed to resolve source repo", "err", err)
 		return
 	}
 
@@ -2130,10 +2162,12 @@ func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "ForkRepo")
+
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Printf("failed to resolve source repo: %v", err)
+		l.Error("failed to resolve source repo", "err", err)
 		return
 	}
 
@@ -2184,7 +2218,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
-				log.Println("error fetching existing repo from db", "err", err)
+				l.Error("error fetching existing repo from db", "err", err)
 				rp.pages.Notice(w, "repo", "Failed to fork this repository. Try again later.")
 				return
 			}
@@ -2299,7 +2333,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 		err = db.AddRepo(tx, repo)
 		if err != nil {
-			log.Println(err)
+			l.Error("failed to AddRepo", "err", err)
 			rp.pages.Notice(w, "repo", "Failed to save repository information.")
 			return
 		}
@@ -2308,21 +2342,21 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		p, _ := securejoin.SecureJoin(user.Did, forkName)
 		err = rp.enforcer.AddRepo(user.Did, targetKnot, p)
 		if err != nil {
-			log.Println(err)
+			l.Error("failed to add ACLs", "err", err)
 			rp.pages.Notice(w, "repo", "Failed to set up repository permissions.")
 			return
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			log.Println("failed to commit changes", err)
+			l.Error("failed to commit changes", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		err = rp.enforcer.E.SavePolicy()
 		if err != nil {
-			log.Println("failed to update ACLs", err)
+			l.Error("failed to update ACLs", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -2358,10 +2392,12 @@ func rollbackRecord(ctx context.Context, aturi string, client *atpclient.APIClie
 }
 
 func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoCompareNew")
+
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -2377,14 +2413,14 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		l.Error("failed to call XRPC repo.branches", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var branchResult types.RepoBranchesResponse
 	if err := json.Unmarshal(branchBytes, &branchResult); err != nil {
-		log.Println("failed to decode XRPC branches response", err)
+		l.Error("failed to decode XRPC branches response", "err", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}
@@ -2414,14 +2450,14 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 
 	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		l.Error("failed to call XRPC repo.tags", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var tags types.RepoTagsResponse
 	if err := json.Unmarshal(tagBytes, &tags); err != nil {
-		log.Println("failed to decode XRPC tags response", err)
+		l.Error("failed to decode XRPC tags response", "err", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}
@@ -2439,10 +2475,12 @@ func (rp *Repo) RepoCompareNew(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoCompare")
+
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		return
 	}
 
@@ -2469,7 +2507,7 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 	head, _ = url.PathUnescape(head)
 
 	if base == "" || head == "" {
-		log.Printf("invalid comparison")
+		l.Error("invalid comparison")
 		rp.pages.Error404(w)
 		return
 	}
@@ -2487,42 +2525,42 @@ func (rp *Repo) RepoCompare(w http.ResponseWriter, r *http.Request) {
 
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.branches", xrpcerr)
+		l.Error("failed to call XRPC repo.branches", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var branches types.RepoBranchesResponse
 	if err := json.Unmarshal(branchBytes, &branches); err != nil {
-		log.Println("failed to decode XRPC branches response", err)
+		l.Error("failed to decode XRPC branches response", "err", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}
 
 	tagBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.tags", xrpcerr)
+		l.Error("failed to call XRPC repo.tags", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var tags types.RepoTagsResponse
 	if err := json.Unmarshal(tagBytes, &tags); err != nil {
-		log.Println("failed to decode XRPC tags response", err)
+		l.Error("failed to decode XRPC tags response", "err", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}
 
 	compareBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, base, head)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-		log.Println("failed to call XRPC repo.compare", xrpcerr)
+		l.Error("failed to call XRPC repo.compare", "err", xrpcerr)
 		rp.pages.Error503(w)
 		return
 	}
 
 	var formatPatch types.RepoFormatPatchResponse
 	if err := json.Unmarshal(compareBytes, &formatPatch); err != nil {
-		log.Println("failed to decode XRPC compare response", err)
+		l.Error("failed to decode XRPC compare response", "err", err)
 		rp.pages.Notice(w, "compare-error", "Failed to produce comparison. Try again later.")
 		return
 	}

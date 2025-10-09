@@ -3,7 +3,7 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
@@ -31,12 +31,14 @@ import (
 )
 
 func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "RepoIndex")
+
 	ref := chi.URLParam(r, "ref")
 	ref, _ = url.PathUnescape(ref)
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		log.Println("failed to fully resolve repo", err)
+		l.Error("failed to fully resolve repo", "err", err)
 		return
 	}
 
@@ -56,7 +58,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	result, err := rp.buildIndexResponse(r.Context(), xrpcc, f, ref)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		if errors.Is(xrpcerr, xrpcclient.ErrXrpcUnsupported) {
-			log.Println("failed to call XRPC repo.index", err)
+			l.Error("failed to call XRPC repo.index", "err", err)
 			rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 				LoggedInUser:     user,
 				NeedsKnotUpgrade: true,
@@ -66,7 +68,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rp.pages.Error503(w)
-		log.Println("failed to build index response", err)
+		l.Error("failed to build index response", "err", err)
 		return
 	}
 
@@ -119,18 +121,18 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	emails := uniqueEmails(commitsTrunc)
 	emailToDidMap, err := db.GetEmailToDid(rp.db, emails, true)
 	if err != nil {
-		log.Println("failed to get email to did map", err)
+		l.Error("failed to get email to did map", "err", err)
 	}
 
 	vc, err := commitverify.GetVerifiedObjectCommits(rp.db, emailToDidMap, commitsTrunc)
 	if err != nil {
-		log.Println(err)
+		l.Error("failed to GetVerifiedObjectCommits", "err", err)
 	}
 
 	// TODO: a bit dirty
-	languageInfo, err := rp.getLanguageInfo(r.Context(), f, xrpcc, result.Ref, ref == "")
+	languageInfo, err := rp.getLanguageInfo(r.Context(), l, f, xrpcc, result.Ref, ref == "")
 	if err != nil {
-		log.Printf("failed to compute language percentages: %s", err)
+		l.Warn("failed to compute language percentages", "err", err)
 		// non-fatal
 	}
 
@@ -140,7 +142,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	pipelines, err := getPipelineStatuses(rp.db, repoInfo, shas)
 	if err != nil {
-		log.Printf("failed to fetch pipeline statuses: %s", err)
+		l.Error("failed to fetch pipeline statuses", "err", err)
 		// non-fatal
 	}
 
@@ -162,6 +164,7 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 
 func (rp *Repo) getLanguageInfo(
 	ctx context.Context,
+	l *slog.Logger,
 	f *reporesolver.ResolvedRepo,
 	xrpcc *indigoxrpc.Client,
 	currentRef string,
@@ -180,7 +183,7 @@ func (rp *Repo) getLanguageInfo(
 		ls, err := tangled.RepoLanguages(ctx, xrpcc, currentRef, repo)
 		if err != nil {
 			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-				log.Println("failed to call XRPC repo.languages", xrpcerr)
+				l.Error("failed to call XRPC repo.languages", "err", xrpcerr)
 				return nil, xrpcerr
 			}
 			return nil, err
@@ -210,7 +213,7 @@ func (rp *Repo) getLanguageInfo(
 		err = db.UpdateRepoLanguages(tx, f.RepoAt(), currentRef, langs)
 		if err != nil {
 			// non-fatal
-			log.Println("failed to cache lang results", err)
+			l.Error("failed to cache lang results", "err", err)
 		}
 
 		err = tx.Commit()

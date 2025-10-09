@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"slices"
 	"sort"
@@ -46,6 +47,7 @@ type Pulls struct {
 	config       *config.Config
 	notifier     notify.Notifier
 	enforcer     *rbac.Enforcer
+	logger       *slog.Logger
 }
 
 func New(
@@ -57,6 +59,7 @@ func New(
 	config *config.Config,
 	notifier notify.Notifier,
 	enforcer *rbac.Enforcer,
+	logger *slog.Logger,
 ) *Pulls {
 	return &Pulls{
 		oauth:        oauth,
@@ -67,6 +70,7 @@ func New(
 		config:       config,
 		notifier:     notifier,
 		enforcer:     enforcer,
+		logger:       logger,
 	}
 }
 

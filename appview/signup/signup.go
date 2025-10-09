@@ -62,7 +62,7 @@ func loadDisallowedNicknames(filepath string, logger *slog.Logger) map[string]bo
 	disallowed := make(map[string]bool)
 
 	if filepath == "" {
-		logger.Debug("no disallowed nicknames file configured")
+		logger.Warn("no disallowed nicknames file configured")
 		return disallowed
 	}
 

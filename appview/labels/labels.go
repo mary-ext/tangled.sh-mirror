@@ -16,7 +16,6 @@ import (
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/validator"
-	"tangled.org/core/log"
 	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
 
@@ -42,9 +41,8 @@ func New(
 	db *db.DB,
 	validator *validator.Validator,
 	enforcer *rbac.Enforcer,
+	logger *slog.Logger,
 ) *Labels {
-	logger := log.New("labels")
-
 	return &Labels{
 		oauth:     oauth,
 		pages:     pages,

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,8 +12,6 @@ import (
 
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview"
-	"tangled.org/core/appview/cache"
-	"tangled.org/core/appview/cache/session"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
@@ -29,6 +26,7 @@ import (
 	"tangled.org/core/eventconsumer"
 	"tangled.org/core/idresolver"
 	"tangled.org/core/jetstream"
+	"tangled.org/core/log"
 	tlog "tangled.org/core/log"
 	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
@@ -48,7 +46,6 @@ type State struct {
 	oauth         *oauth.OAuth
 	enforcer      *rbac.Enforcer
 	pages         *pages.Pages
-	sess          *session.SessionStore
 	idResolver    *idresolver.Resolver
 	posthog       posthog.Client
 	jc            *jetstream.JetstreamClient
@@ -61,7 +58,9 @@ type State struct {
 }
 
 func Make(ctx context.Context, config *config.Config) (*State, error) {
-	d, err := db.Make(config.Core.DbPath)
+	logger := tlog.FromContext(ctx)
+
+	d, err := db.Make(ctx, config.Core.DbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create db: %w", err)
 	}
@@ -73,7 +72,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 
 	res, err := idresolver.RedisResolver(config.Redis.ToURL())
 	if err != nil {
-		log.Printf("failed to create redis resolver: %v", err)
+		logger.Error("failed to create redis resolver", "err", err)
 		res = idresolver.DefaultResolver()
 	}
 
@@ -82,10 +81,8 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to create posthog client: %w", err)
 	}
 
-	pages := pages.NewPages(config, res)
-	cache := cache.New(config.Redis.Addr)
-	sess := session.New(cache)
-	oauth2, err := oauth.New(config, posthog, d, enforcer, res)
+	pages := pages.NewPages(config, res, log.SubLogger(logger, "pages"))
+	oauth, err := oauth.New(config, posthog, d, enforcer, res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start oauth handler: %w", err)
 	}
@@ -112,7 +109,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 			tangled.LabelOpNSID,
 		},
 		nil,
-		slog.Default(),
+		tlog.SubLogger(logger, "jetstream"),
 		wrapper,
 		false,
 
@@ -133,7 +130,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		Enforcer:   enforcer,
 		IdResolver: res,
 		Config:     config,
-		Logger:     tlog.New("ingester"),
+		Logger:     log.SubLogger(logger, "ingester"),
 		Validator:  validator,
 	}
 	err = jc.StartJetstream(ctx, ingester.Ingest())
@@ -167,10 +164,9 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	state := &State{
 		d,
 		notifier,
-		oauth2,
+		oauth,
 		enforcer,
 		pages,
-		sess,
 		res,
 		posthog,
 		jc,
@@ -178,7 +174,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		repoResolver,
 		knotstream,
 		spindlestream,
-		slog.Default(),
+		logger,
 		validator,
 	}
 
@@ -277,13 +273,13 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 	}
 	timeline, err := db.MakeTimeline(s.db, 50, userDid, filtered)
 	if err != nil {
-		log.Println(err)
+		s.logger.Error("failed to make timeline", "err", err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
 	}
 
 	repos, err := db.GetTopStarredReposLastWeek(s.db)
 	if err != nil {
-		log.Println(err)
+		s.logger.Error("failed to get top starred repos", "err", err)
 		s.pages.Notice(w, "topstarredrepos", "Unable to load.")
 		return
 	}
@@ -344,14 +340,14 @@ func (s *State) Home(w http.ResponseWriter, r *http.Request) {
 
 	timeline, err := db.MakeTimeline(s.db, 5, "", filtered)
 	if err != nil {
-		log.Println(err)
+		s.logger.Error("failed to make timeline", "err", err)
 		s.pages.Notice(w, "timeline", "Uh oh! Failed to load timeline.")
 		return
 	}
 
 	repos, err := db.GetTopStarredReposLastWeek(s.db)
 	if err != nil {
-		log.Println(err)
+		s.logger.Error("failed to get top starred repos", "err", err)
 		s.pages.Notice(w, "topstarredrepos", "Unable to load.")
 		return
 	}

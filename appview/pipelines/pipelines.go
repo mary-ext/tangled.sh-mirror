@@ -16,7 +16,6 @@ import (
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/eventconsumer"
 	"tangled.org/core/idresolver"
-	"tangled.org/core/log"
 	"tangled.org/core/rbac"
 	spindlemodel "tangled.org/core/spindle/models"
 
@@ -45,9 +44,8 @@ func New(
 	db *db.DB,
 	config *config.Config,
 	enforcer *rbac.Enforcer,
+	logger *slog.Logger,
 ) *Pipelines {
-	logger := log.New("pipelines")
-
 	return &Pipelines{
 		oauth:         oauth,
 		repoResolver:  repoResolver,

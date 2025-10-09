@@ -54,7 +54,7 @@ type Pages struct {
 	logger      *slog.Logger
 }
 
-func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
+func NewPages(config *config.Config, res *idresolver.Resolver, logger *slog.Logger) *Pages {
 	// initialized with safe defaults, can be overriden per use
 	rctx := &markup.RenderContext{
 		IsDev:      config.Core.Dev,
@@ -72,7 +72,7 @@ func NewPages(config *config.Config, res *idresolver.Resolver) *Pages {
 		rctx:        rctx,
 		resolver:    res,
 		templateDir: "appview/pages",
-		logger:      slog.Default().With("component", "pages"),
+		logger:      logger,
 	}
 
 	if p.dev {

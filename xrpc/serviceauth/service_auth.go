@@ -9,6 +9,7 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/auth"
 	"tangled.org/core/idresolver"
+	"tangled.org/core/log"
 	xrpcerr "tangled.org/core/xrpc/errors"
 )
 
@@ -22,7 +23,7 @@ type ServiceAuth struct {
 
 func NewServiceAuth(logger *slog.Logger, resolver *idresolver.Resolver, audienceDid string) *ServiceAuth {
 	return &ServiceAuth{
-		logger:      logger,
+		logger:      log.SubLogger(logger, "serviceauth"),
 		resolver:    resolver,
 		audienceDid: audienceDid,
 	}
@@ -30,8 +31,6 @@ func NewServiceAuth(logger *slog.Logger, resolver *idresolver.Resolver, audience
 
 func (sa *ServiceAuth) VerifyServiceAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		l := sa.logger.With("url", r.URL)
-
 		token := r.Header.Get("Authorization")
 		token = strings.TrimPrefix(token, "Bearer ")
 
@@ -42,10 +41,12 @@ func (sa *ServiceAuth) VerifyServiceAuth(next http.Handler) http.Handler {
 
 		did, err := s.Validate(r.Context(), token, nil)
 		if err != nil {
-			l.Error("signature verification failed", "err", err)
+			sa.logger.Error("signature verification failed", "err", err)
 			writeError(w, xrpcerr.AuthError(err), http.StatusForbidden)
 			return
 		}
+
+		sa.logger.Debug("valid signature", ActorDid, did)
 
 		r = r.WithContext(
 			context.WithValue(r.Context(), ActorDid, did),

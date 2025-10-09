@@ -114,7 +114,7 @@ func (j *JetstreamClient) StartJetstream(ctx context.Context, processFunc func(c
 
 	sched := sequential.NewScheduler(j.ident, logger, j.withDidFilter(processFunc))
 
-	client, err := client.NewClient(j.cfg, log.New("jetstream"), sched)
+	client, err := client.NewClient(j.cfg, logger, sched)
 	if err != nil {
 		return fmt.Errorf("failed to create jetstream client: %w", err)
 	}

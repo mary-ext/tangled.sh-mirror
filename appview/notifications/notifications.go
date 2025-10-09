@@ -1,7 +1,7 @@
 package notifications
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -14,16 +14,18 @@ import (
 )
 
 type Notifications struct {
-	db    *db.DB
-	oauth *oauth.OAuth
-	pages *pages.Pages
+	db     *db.DB
+	oauth  *oauth.OAuth
+	pages  *pages.Pages
+	logger *slog.Logger
 }
 
-func New(database *db.DB, oauthHandler *oauth.OAuth, pagesHandler *pages.Pages) *Notifications {
+func New(database *db.DB, oauthHandler *oauth.OAuth, pagesHandler *pages.Pages, logger *slog.Logger) *Notifications {
 	return &Notifications{
-		db:    database,
-		oauth: oauthHandler,
-		pages: pagesHandler,
+		db:     database,
+		oauth:  oauthHandler,
+		pages:  pagesHandler,
+		logger: logger,
 	}
 }
 
@@ -44,11 +46,12 @@ func (n *Notifications) Router(mw *middleware.Middleware) http.Handler {
 }
 
 func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request) {
+	l := n.logger.With("handler", "notificationsPage")
 	user := n.oauth.GetUser(r)
 
 	page, ok := r.Context().Value("page").(pagination.Page)
 	if !ok {
-		log.Println("failed to get page")
+		l.Error("failed to get page")
 		page = pagination.FirstPage()
 	}
 
@@ -57,7 +60,7 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 		db.FilterEq("recipient_did", user.Did),
 	)
 	if err != nil {
-		log.Println("failed to get total notifications:", err)
+		l.Error("failed to get total notifications", "err", err)
 		n.pages.Error500(w)
 		return
 	}
@@ -68,14 +71,14 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 		db.FilterEq("recipient_did", user.Did),
 	)
 	if err != nil {
-		log.Println("failed to get notifications:", err)
+		l.Error("failed to get notifications", "err", err)
 		n.pages.Error500(w)
 		return
 	}
 
 	err = n.db.MarkAllNotificationsRead(r.Context(), user.Did)
 	if err != nil {
-		log.Println("failed to mark notifications as read:", err)
+		l.Error("failed to mark notifications as read", "err", err)
 	}
 
 	unreadCount := 0

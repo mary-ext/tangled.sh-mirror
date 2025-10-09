@@ -205,7 +205,7 @@ func (s *State) SettingsRouter() http.Handler {
 }
 
 func (s *State) SpindlesRouter() http.Handler {
-	logger := log.New("spindles")
+	logger := log.SubLogger(s.logger, "spindles")
 
 	spindles := &spindles.Spindles{
 		Db:         s.db,
@@ -221,7 +221,7 @@ func (s *State) SpindlesRouter() http.Handler {
 }
 
 func (s *State) KnotsRouter() http.Handler {
-	logger := log.New("knots")
+	logger := log.SubLogger(s.logger, "knots")
 
 	knots := &knots.Knots{
 		Db:         s.db,
@@ -238,7 +238,7 @@ func (s *State) KnotsRouter() http.Handler {
 }
 
 func (s *State) StringsRouter(mw *middleware.Middleware) http.Handler {
-	logger := log.New("strings")
+	logger := log.SubLogger(s.logger, "strings")
 
 	strs := &avstrings.Strings{
 		Db:         s.db,
@@ -253,39 +253,85 @@ func (s *State) StringsRouter(mw *middleware.Middleware) http.Handler {
 }
 
 func (s *State) IssuesRouter(mw *middleware.Middleware) http.Handler {
-	issues := issues.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.notifier, s.validator)
+	issues := issues.New(
+		s.oauth,
+		s.repoResolver,
+		s.pages,
+		s.idResolver,
+		s.db,
+		s.config,
+		s.notifier,
+		s.validator,
+		log.SubLogger(s.logger, "issues"),
+	)
 	return issues.Router(mw)
 }
 
 func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {
-	pulls := pulls.New(s.oauth, s.repoResolver, s.pages, s.idResolver, s.db, s.config, s.notifier, s.enforcer)
+	pulls := pulls.New(
+		s.oauth,
+		s.repoResolver,
+		s.pages,
+		s.idResolver,
+		s.db,
+		s.config,
+		s.notifier,
+		s.enforcer,
+		log.SubLogger(s.logger, "pulls"),
+	)
 	return pulls.Router(mw)
 }
 
 func (s *State) RepoRouter(mw *middleware.Middleware) http.Handler {
-	logger := log.New("repo")
-	repo := repo.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.notifier, s.enforcer, logger, s.validator)
+	repo := repo.New(
+		s.oauth,
+		s.repoResolver,
+		s.pages,
+		s.spindlestream,
+		s.idResolver,
+		s.db,
+		s.config,
+		s.notifier,
+		s.enforcer,
+		log.SubLogger(s.logger, "repo"),
+		s.validator,
+	)
 	return repo.Router(mw)
 }
 
 func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
-	pipes := pipelines.New(s.oauth, s.repoResolver, s.pages, s.spindlestream, s.idResolver, s.db, s.config, s.enforcer)
+	pipes := pipelines.New(
+		s.oauth,
+		s.repoResolver,
+		s.pages,
+		s.spindlestream,
+		s.idResolver,
+		s.db,
+		s.config,
+		s.enforcer,
+		log.SubLogger(s.logger, "pipelines"),
+	)
 	return pipes.Router(mw)
 }
 
 func (s *State) LabelsRouter(mw *middleware.Middleware) http.Handler {
-	ls := labels.New(s.oauth, s.pages, s.db, s.validator, s.enforcer)
+	ls := labels.New(
+		s.oauth,
+		s.pages,
+		s.db,
+		s.validator,
+		s.enforcer,
+		log.SubLogger(s.logger, "labels"),
+	)
 	return ls.Router(mw)
 }
 
 func (s *State) NotificationsRouter(mw *middleware.Middleware) http.Handler {
-	notifs := notifications.New(s.db, s.oauth, s.pages)
+	notifs := notifications.New(s.db, s.oauth, s.pages, log.SubLogger(s.logger, "notifications"))
 	return notifs.Router(mw)
 }
 
 func (s *State) SignupRouter() http.Handler {
-	logger := log.New("signup")
-
-	sig := signup.New(s.config, s.db, s.posthog, s.idResolver, s.pages, logger)
+	sig := signup.New(s.config, s.db, s.posthog, s.idResolver, s.pages, log.SubLogger(s.logger, "signup"))
 	return sig.Router()
 }

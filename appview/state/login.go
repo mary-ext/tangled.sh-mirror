@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -10,6 +9,8 @@ import (
 )
 
 func (s *State) Login(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With("handler", "Login")
+
 	switch r.Method {
 	case http.MethodGet:
 		returnURL := r.URL.Query().Get("return_url")
@@ -32,7 +33,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 		// basic handle validation
 		if !strings.Contains(handle, ".") {
-			log.Println("invalid handle format", "raw", handle)
+			l.Error("invalid handle format", "raw", handle)
 			s.pages.Notice(
 				w,
 				"login-msg",
@@ -52,11 +53,13 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *State) Logout(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With("handler", "Logout")
+
 	err := s.oauth.DeleteSession(w, r)
 	if err != nil {
-		log.Println("failed to logout", "err", err)
+		l.Error("failed to logout", "err", err)
 	} else {
-		log.Println("logged out successfully")
+		l.Info("logged out successfully")
 	}
 
 	s.pages.HxRedirect(w, "/login")

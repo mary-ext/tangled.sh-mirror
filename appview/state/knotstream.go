@@ -25,6 +25,9 @@ import (
 )
 
 func Knotstream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.Enforcer, posthog posthog.Client) (*ec.Consumer, error) {
+	logger := log.FromContext(ctx)
+	logger = log.SubLogger(logger, "knotstream")
+
 	knots, err := db.GetRegistrations(
 		d,
 		db.FilterIsNot("registered", "null"),
@@ -39,7 +42,6 @@ func Knotstream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.
 		srcs[s] = struct{}{}
 	}
 
-	logger := log.New("knotstream")
 	cache := cache.New(c.Redis.Addr)
 	cursorStore := cursor.NewRedisCursorStore(cache)
 

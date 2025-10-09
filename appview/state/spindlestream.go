@@ -22,6 +22,9 @@ import (
 )
 
 func Spindlestream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rbac.Enforcer) (*ec.Consumer, error) {
+	logger := log.FromContext(ctx)
+	logger = log.SubLogger(logger, "spindlestream")
+
 	spindles, err := db.GetSpindles(
 		d,
 		db.FilterIsNot("verified", "null"),
@@ -36,7 +39,6 @@ func Spindlestream(ctx context.Context, c *config.Config, d *db.DB, enforcer *rb
 		srcs[src] = struct{}{}
 	}
 
-	logger := log.New("spindlestream")
 	cache := cache.New(c.Redis.Addr)
 	cursorStore := cursor.NewRedisCursorStore(cache)
 
