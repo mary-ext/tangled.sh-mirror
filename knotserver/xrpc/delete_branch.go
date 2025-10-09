@@ -57,14 +57,14 @@ func (x *Xrpc) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo := resp.Value.Val.(*tangled.Repo)
-	didPath, err := securejoin.SecureJoin(actorDid.String(), repo.Name)
+	didPath, err := securejoin.SecureJoin(ident.DID.String(), repo.Name)
 	if err != nil {
 		fail(xrpcerr.GenericError(err))
 		return
 	}
 
 	if ok, err := x.Enforcer.IsPushAllowed(actorDid.String(), rbac.ThisServer, didPath); !ok || err != nil {
-		l.Error("insufficent permissions", "did", actorDid.String())
+		l.Error("insufficent permissions", "did", actorDid.String(), "repo", didPath)
 		writeError(w, xrpcerr.AccessControlError(actorDid.String()), http.StatusUnauthorized)
 		return
 	}
