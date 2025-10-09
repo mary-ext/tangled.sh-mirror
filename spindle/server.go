@@ -108,7 +108,7 @@ func Run(ctx context.Context) error {
 		tangled.RepoNSID,
 		tangled.RepoCollaboratorNSID,
 	}
-	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, logger, d, true, true)
+	jc, err := jetstream.NewJetstreamClient(cfg.Server.JetstreamEndpoint, "spindle", collections, nil, log.SubLogger(logger, "jetstream"), d, true, true)
 	if err != nil {
 		return fmt.Errorf("failed to setup jetstream client: %w", err)
 	}
@@ -171,7 +171,7 @@ func Run(ctx context.Context) error {
 	// spindle.processPipeline, which in turn enqueues the pipeline
 	// job in the above registered queue.
 	ccfg := eventconsumer.NewConsumerConfig()
-	ccfg.Logger = logger
+	ccfg.Logger = log.SubLogger(logger, "eventconsumer")
 	ccfg.Dev = cfg.Server.Dev
 	ccfg.ProcessFunc = spindle.processPipeline
 	ccfg.CursorStore = cursorStore
@@ -210,12 +210,12 @@ func (s *Spindle) Router() http.Handler {
 }
 
 func (s *Spindle) XrpcRouter() http.Handler {
-	logger := s.l.With("route", "xrpc")
-
 	serviceAuth := serviceauth.NewServiceAuth(s.l, s.res, s.cfg.Server.Did().String())
 
+	l := log.SubLogger(s.l, "xrpc")
+
 	x := xrpc.Xrpc{
-		Logger:      logger,
+		Logger:      l,
 		Db:          s.db,
 		Enforcer:    s.e,
 		Engines:     s.engs,
@@ -305,7 +305,7 @@ func (s *Spindle) processPipeline(ctx context.Context, src eventconsumer.Source,
 
 		ok := s.jq.Enqueue(queue.Job{
 			Run: func() error {
-				engine.StartWorkflows(s.l, s.vault, s.cfg, s.db, s.n, ctx, &models.Pipeline{
+				engine.StartWorkflows(log.SubLogger(s.l, "engine"), s.vault, s.cfg, s.db, s.n, ctx, &models.Pipeline{
 					RepoOwner: tpl.TriggerMetadata.Repo.Did,
 					RepoName:  tpl.TriggerMetadata.Repo.Repo,
 					Workflows: workflows,

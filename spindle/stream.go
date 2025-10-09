@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"tangled.org/core/log"
 	"tangled.org/core/spindle/models"
 
 	"github.com/go-chi/chi/v5"
@@ -23,7 +24,8 @@ var upgrader = websocket.Upgrader{
 }
 
 func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
-	l := s.l.With("handler", "Events")
+	l := log.SubLogger(s.l, "eventstream")
+
 	l.Debug("received new connection")
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -82,7 +84,6 @@ func (s *Spindle) Events(w http.ResponseWriter, r *http.Request) {
 			}
 		case <-time.After(30 * time.Second):
 			// send a keep-alive
-			l.Debug("sent keepalive")
 			if err = conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
 				l.Error("failed to write control", "err", err)
 			}
@@ -222,7 +223,6 @@ func (s *Spindle) streamPipelines(conn *websocket.Conn, cursor *int64) error {
 		s.l.Debug("err", "err", err)
 		return err
 	}
-	s.l.Debug("ops", "ops", events)
 
 	for _, event := range events {
 		// first extract the inner json into a map

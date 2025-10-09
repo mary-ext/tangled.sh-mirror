@@ -7,11 +7,10 @@ import (
 
 	tlog "tangled.org/core/log"
 	"tangled.org/core/spindle"
-	_ "tangled.org/core/tid"
 )
 
 func main() {
-	logger := tlog.New("spindl3")
+	logger := tlog.New("spindle")
 	slog.SetDefault(logger)
 
 	ctx := context.Background()
