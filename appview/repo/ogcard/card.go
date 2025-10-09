@@ -46,7 +46,7 @@ var fontCache = sync.OnceValues(func() (*truetype.Font, error) {
 
 // DefaultSize returns the default size for a card
 func DefaultSize() (int, int) {
-	return 1200, 600
+	return 1200, 630
 }
 
 // NewCard creates a new card with the given dimensions in pixels
