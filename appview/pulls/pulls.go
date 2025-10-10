@@ -334,6 +334,11 @@ func (s *Pulls) branchDeleteStatus(r *http.Request, f *reporesolver.ResolvedRepo
 		return nil
 	}
 
+	// deleted fork
+	if repo == nil {
+		return nil
+	}
+
 	// user can only delete branch if they are a collaborator in the repo that the branch belongs to
 	perms := s.enforcer.GetPermissionsInRepo(user.Did, repo.Knot, repo.DidSlashRepo())
 	if !slices.Contains(perms, "repo:push") {
