@@ -35,14 +35,9 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 	// Split content horizontally: main content (80%) and avatar area (20%)
 	mainContent, avatarArea := contentCard.Split(true, 80)
 
-	// Split main content: 50% for name/description, 50% for spacing
-	topSection, _ := mainContent.Split(false, 50)
+	// Use main content area for both repo name and description to allow dynamic wrapping.
+	mainContent.SetMargin(10)
 
-	// Split top section: 40% for repo name, 60% for description
-	repoNameCard, descriptionCard := topSection.Split(false, 50)
-
-	// Draw repo name with owner in regular and repo name in bold
-	repoNameCard.SetMargin(10)
 	var ownerHandle string
 	owner, err := rp.idResolver.ResolveIdent(context.Background(), repo.Did)
 	if err != nil {
@@ -51,45 +46,76 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 		ownerHandle = "@" + owner.Handle.String()
 	}
 
-	// Draw repo name with wrapping support
-	repoNameCard.SetMargin(10)
-	bounds := repoNameCard.Img.Bounds()
-	startX := bounds.Min.X + repoNameCard.Margin
-	startY := bounds.Min.Y + repoNameCard.Margin
+	bounds := mainContent.Img.Bounds()
+	startX := bounds.Min.X + mainContent.Margin
+	startY := bounds.Min.Y + mainContent.Margin
 	currentX := startX
+	currentY := startY
+	lineHeight := 64 // Font size 54 + padding
 	textColor := color.RGBA{88, 96, 105, 255}
 
-	// Draw owner handle in gray
-	ownerWidth, err := repoNameCard.DrawTextAtWithWidth(ownerHandle, currentX, startY, textColor, 54, ogcard.Top, ogcard.Left)
+	// Draw owner handle
+	ownerWidth, err := mainContent.DrawTextAtWithWidth(ownerHandle, currentX, currentY, textColor, 54, ogcard.Top, ogcard.Left)
 	if err != nil {
 		return nil, err
 	}
 	currentX += ownerWidth
 
 	// Draw separator
-	sepWidth, err := repoNameCard.DrawTextAtWithWidth(" / ", currentX, startY, textColor, 54, ogcard.Top, ogcard.Left)
+	sepWidth, err := mainContent.DrawTextAtWithWidth(" / ", currentX, currentY, textColor, 54, ogcard.Top, ogcard.Left)
 	if err != nil {
 		return nil, err
 	}
 	currentX += sepWidth
 
-	// Draw repo name in bold
-	_, err = repoNameCard.DrawBoldText(repo.Name, currentX, startY, color.Black, 54, ogcard.Top, ogcard.Left)
-	if err != nil {
-		return nil, err
+	words := strings.Fields(repo.Name)
+	spaceWidth, _ := mainContent.DrawTextAtWithWidth(" ", -1000, -1000, color.Black, 54, ogcard.Top, ogcard.Left)
+	if spaceWidth == 0 {
+		spaceWidth = 15
 	}
 
-	// Draw description (DrawText handles multi-line wrapping automatically)
-	descriptionCard.SetMargin(10)
-	description := repo.Description
-	if len(description) > 70 {
-		description = description[:70] + "…"
+	for _, word := range words {
+		// estimate bold width by measuring regular width and adding a multiplier
+		regularWidth, _ := mainContent.DrawTextAtWithWidth(word, -1000, -1000, color.Black, 54, ogcard.Top, ogcard.Left)
+		estimatedBoldWidth := int(float64(regularWidth) * 1.15) // Heuristic for bold text
+
+		if currentX+estimatedBoldWidth > (bounds.Max.X - mainContent.Margin) {
+			currentX = startX
+			currentY += lineHeight
+		}
+
+		_, err := mainContent.DrawBoldText(word, currentX, currentY, color.Black, 54, ogcard.Top, ogcard.Left)
+		if err != nil {
+			return nil, err
+		}
+		currentX += estimatedBoldWidth + spaceWidth
 	}
 
-	_, err = descriptionCard.DrawText(description, color.RGBA{88, 96, 105, 255}, 36, ogcard.Top, ogcard.Left)
-	if err != nil {
-		log.Printf("failed to draw description: %v", err)
-		return nil, err
+	// update Y position for the description
+	currentY += lineHeight
+
+	// draw description
+	if currentY < bounds.Max.Y-mainContent.Margin {
+		totalHeight := float64(bounds.Dy())
+		repoNameHeight := float64(currentY - bounds.Min.Y)
+
+		if totalHeight > 0 && repoNameHeight < totalHeight {
+			repoNamePercent := (repoNameHeight / totalHeight) * 100
+			if repoNamePercent < 95 { // Ensure there's space left for description
+				_, descriptionCard := mainContent.Split(false, int(repoNamePercent))
+				descriptionCard.SetMargin(8)
+
+				description := repo.Description
+				if len(description) > 70 {
+					description = description[:70] + "…"
+				}
+
+				_, err = descriptionCard.DrawText(description, color.RGBA{88, 96, 105, 255}, 36, ogcard.Top, ogcard.Left)
+				if err != nil {
+					log.Printf("failed to draw description: %v", err)
+				}
+			}
+		}
 	}
 
 	// Draw avatar circle on the right side
