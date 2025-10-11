@@ -77,19 +77,19 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		res = idresolver.DefaultResolver()
 	}
 
-	pages := pages.NewPages(config, res)
-	cache := cache.New(config.Redis.Addr)
-	sess := session.New(cache)
-	oauth2, err := oauth.New(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to start oauth handler: %w", err)
-	}
-	validator := validator.New(d, res, enforcer)
-
 	posthog, err := posthog.NewWithConfig(config.Posthog.ApiKey, posthog.Config{Endpoint: config.Posthog.Endpoint})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create posthog client: %w", err)
 	}
+
+	pages := pages.NewPages(config, res)
+	cache := cache.New(config.Redis.Addr)
+	sess := session.New(cache)
+	oauth2, err := oauth.New(config, posthog)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start oauth handler: %w", err)
+	}
+	validator := validator.New(d, res, enforcer)
 
 	repoResolver := reporesolver.New(config, enforcer, res, d)
 

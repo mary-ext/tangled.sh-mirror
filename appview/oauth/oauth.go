@@ -13,10 +13,11 @@ import (
 	xrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
 	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/posthog/posthog-go"
 	"tangled.org/core/appview/config"
 )
 
-func New(config *config.Config) (*OAuth, error) {
+func New(config *config.Config, ph posthog.Client) (*OAuth, error) {
 
 	var oauthConfig oauth.ClientConfig
 	var clientUri string
@@ -46,6 +47,7 @@ func New(config *config.Config) (*OAuth, error) {
 		Config:    config,
 		SessStore: sessStore,
 		JwksUri:   jwksUri,
+		Posthog:   ph,
 	}, nil
 }
 
@@ -54,6 +56,7 @@ type OAuth struct {
 	SessStore *sessions.CookieStore
 	Config    *config.Config
 	JwksUri   string
+	Posthog   posthog.Client
 }
 
 func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, sessData *oauth.ClientSessionData) error {

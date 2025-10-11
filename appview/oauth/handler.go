@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/posthog/posthog-go"
 )
 
 func (o *OAuth) Router() http.Handler {
@@ -59,6 +60,16 @@ func (o *OAuth) callback(w http.ResponseWriter, r *http.Request) {
 	if err := o.SaveSession(w, r, sessData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if !o.Config.Core.Dev {
+		err = o.Posthog.Enqueue(posthog.Capture{
+			DistinctId: sessData.AccountDID.String(),
+			Event:      "signin",
+		})
+		if err != nil {
+			log.Println("failed to enqueue posthog event:", err)
+		}
 	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
