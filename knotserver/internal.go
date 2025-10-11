@@ -121,7 +121,7 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 		}
 
 		if (line.NewSha.String() != line.OldSha.String()) && line.OldSha.IsZero() {
-			msg, err := h.replyCompare(line, gitUserDid, gitRelativeDir, repoName, r.Context())
+			msg, err := h.replyCompare(line, repoDid, gitRelativeDir, repoName, r.Context())
 			if err != nil {
 				l.Error("failed to reply with compare link", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
 				// non-fatal
@@ -142,10 +142,10 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, resp)
 }
 
-func (h *InternalHandle) replyCompare(line git.PostReceiveLine, gitUserDid string, gitRelativeDir string, repoName string, ctx context.Context) ([]string, error) {
+func (h *InternalHandle) replyCompare(line git.PostReceiveLine, repoOwner string, gitRelativeDir string, repoName string, ctx context.Context) ([]string, error) {
 	l := h.l.With("handler", "replyCompare")
-	userIdent, err := idresolver.DefaultResolver().ResolveIdent(ctx, gitUserDid)
-	user := gitUserDid
+	userIdent, err := idresolver.DefaultResolver().ResolveIdent(ctx, repoOwner)
+	user := repoOwner
 	if err != nil {
 		l.Error("Failed to fetch user identity", "err", err)
 		// non-fatal
