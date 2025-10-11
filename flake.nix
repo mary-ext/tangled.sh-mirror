@@ -262,7 +262,7 @@
               lexgen --build-file lexicon-build-config.json lexicons
               sed -i.bak 's/\tutil/\/\/\tutil/' api/tangled/*
               ${pkgs.gotools}/bin/goimports -w api/tangled/*
-              go run cmd/gen.go
+              go run ./cmd/cborgen/
               lexgen --build-file lexicon-build-config.json lexicons
               rm api/tangled/*.bak
             '';
