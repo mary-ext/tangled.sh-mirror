@@ -15,9 +15,12 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
 	"tangled.org/core/appview/config"
+	"tangled.org/core/appview/db"
+	"tangled.org/core/idresolver"
+	"tangled.org/core/rbac"
 )
 
-func New(config *config.Config, ph posthog.Client) (*OAuth, error) {
+func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enforcer, res *idresolver.Resolver) (*OAuth, error) {
 
 	var oauthConfig oauth.ClientConfig
 	var clientUri string
@@ -43,20 +46,26 @@ func New(config *config.Config, ph posthog.Client) (*OAuth, error) {
 	sessStore := sessions.NewCookieStore([]byte(config.Core.CookieSecret))
 
 	return &OAuth{
-		ClientApp: oauth.NewClientApp(&oauthConfig, authStore),
-		Config:    config,
-		SessStore: sessStore,
-		JwksUri:   jwksUri,
-		Posthog:   ph,
+		ClientApp:  oauth.NewClientApp(&oauthConfig, authStore),
+		Config:     config,
+		SessStore:  sessStore,
+		JwksUri:    jwksUri,
+		Posthog:    ph,
+		Db:         db,
+		Enforcer:   enforcer,
+		IdResolver: res,
 	}, nil
 }
 
 type OAuth struct {
-	ClientApp *oauth.ClientApp
-	SessStore *sessions.CookieStore
-	Config    *config.Config
-	JwksUri   string
-	Posthog   posthog.Client
+	ClientApp  *oauth.ClientApp
+	SessStore  *sessions.CookieStore
+	Config     *config.Config
+	JwksUri    string
+	Posthog    posthog.Client
+	Db         *db.DB
+	Enforcer   *rbac.Enforcer
+	IdResolver *idresolver.Resolver
 }
 
 func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, sessData *oauth.ClientSessionData) error {

@@ -85,7 +85,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	pages := pages.NewPages(config, res)
 	cache := cache.New(config.Redis.Addr)
 	sess := session.New(cache)
-	oauth2, err := oauth.New(config, posthog)
+	oauth2, err := oauth.New(config, posthog, d, enforcer, res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start oauth handler: %w", err)
 	}
