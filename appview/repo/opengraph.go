@@ -15,7 +15,7 @@ import (
 	"github.com/go-enry/go-enry/v2"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
-	"tangled.org/core/appview/repo/ogcard"
+	"tangled.org/core/appview/ogcard"
 	"tangled.org/core/types"
 )
 
@@ -158,7 +158,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 	// Draw star icon, count, and label
 	// Align icon baseline with text baseline
 	iconBaselineOffset := int(textSize) / 2
-	err = statsArea.DrawSVGIcon("static/icons/star.svg", currentX, statsY+iconBaselineOffset-iconSize/2, iconSize, iconColor)
+	err = statsArea.DrawSVGIcon("static/icons/star.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw star icon: %v", err)
 	}
@@ -185,7 +185,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 
 	// Draw issues icon, count, and label
 	issueStartX := currentX
-	err = statsArea.DrawSVGIcon("static/icons/circle-dot.svg", currentX, statsY+iconBaselineOffset-iconSize/2, iconSize, iconColor)
+	err = statsArea.DrawSVGIcon("static/icons/circle-dot.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw circle-dot icon: %v", err)
 	}
@@ -210,7 +210,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 
 	// Draw pull request icon, count, and label
 	prStartX := currentX
-	err = statsArea.DrawSVGIcon("static/icons/git-pull-request.svg", currentX, statsY+iconBaselineOffset-iconSize/2, iconSize, iconColor)
+	err = statsArea.DrawSVGIcon("static/icons/git-pull-request.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw git-pull-request icon: %v", err)
 	}

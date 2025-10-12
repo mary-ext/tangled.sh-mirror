@@ -394,16 +394,22 @@ func (c *Card) fetchExternalImage(url string) (image.Image, bool) {
 	}
 
 	contentType := resp.Header.Get("Content-Type")
-	// Support content types are in-sync with the allowed custom avatar file types
-	if contentType != "image/png" && contentType != "image/jpeg" && contentType != "image/gif" && contentType != "image/webp" {
-		log.Printf("fetching external image returned unsupported Content-Type which was ignored: %s", contentType)
-		return nil, false
-	}
 
 	body := resp.Body
 	bodyBytes, err := io.ReadAll(body)
 	if err != nil {
 		log.Printf("error when fetching external image from %s: %v", url, err)
+		return nil, false
+	}
+
+	// Handle SVG separately
+	if contentType == "image/svg+xml" || strings.HasSuffix(url, ".svg") {
+		return c.convertSVGToPNG(bodyBytes)
+	}
+
+	// Support content types are in-sync with the allowed custom avatar file types
+	if contentType != "image/png" && contentType != "image/jpeg" && contentType != "image/gif" && contentType != "image/webp" {
+		log.Printf("fetching external image returned unsupported Content-Type which was ignored: %s", contentType)
 		return nil, false
 	}
 
@@ -435,6 +441,35 @@ func (c *Card) fetchExternalImage(url string) (image.Image, bool) {
 	}
 
 	return img, true
+}
+
+// convertSVGToPNG converts SVG data to a PNG image
+func (c *Card) convertSVGToPNG(svgData []byte) (image.Image, bool) {
+	// Parse the SVG
+	icon, err := oksvg.ReadIconStream(bytes.NewReader(svgData))
+	if err != nil {
+		log.Printf("error parsing SVG: %v", err)
+		return nil, false
+	}
+
+	// Set a reasonable size for the rasterized image
+	width := 256
+	height := 256
+	icon.SetTarget(0, 0, float64(width), float64(height))
+
+	// Create an image to draw on
+	rgba := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Fill with white background
+	draw.Draw(rgba, rgba.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
+
+	// Create a scanner and rasterize the SVG
+	scanner := rasterx.NewScannerGV(width, height, rgba, rgba.Bounds())
+	raster := rasterx.NewDasher(width, height, scanner)
+
+	icon.Draw(raster, 1.0)
+
+	return rgba, true
 }
 
 func (c *Card) DrawExternalImage(url string) {
