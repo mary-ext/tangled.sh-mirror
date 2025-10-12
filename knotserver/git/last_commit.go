@@ -30,7 +30,21 @@ func init() {
 	commitCache = cache
 }
 
-func (g *GitRepo) streamingGitLog(ctx context.Context, extraArgs ...string) (io.Reader, error) {
+// processReader wraps a reader and ensures the associated process is cleaned up
+type processReader struct {
+	io.Reader
+	cmd    *exec.Cmd
+	stdout io.ReadCloser
+}
+
+func (pr *processReader) Close() error {
+	if err := pr.stdout.Close(); err != nil {
+		return err
+	}
+	return pr.cmd.Wait()
+}
+
+func (g *GitRepo) streamingGitLog(ctx context.Context, extraArgs ...string) (io.ReadCloser, error) {
 	args := []string{}
 	args = append(args, "log")
 	args = append(args, g.h.String())
@@ -48,7 +62,11 @@ func (g *GitRepo) streamingGitLog(ctx context.Context, extraArgs ...string) (io.
 		return nil, err
 	}
 
-	return stdout, nil
+	return &processReader{
+		Reader: stdout,
+		cmd:    cmd,
+		stdout: stdout,
+	}, nil
 }
 
 type commit struct {
@@ -104,6 +122,7 @@ func (g *GitRepo) calculateCommitTime(ctx context.Context, subtree *object.Tree,
 	if err != nil {
 		return nil, err
 	}
+	defer output.Close() // Ensure the git process is properly cleaned up
 
 	reader := bufio.NewReader(output)
 	var current commit
