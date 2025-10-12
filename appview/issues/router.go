@@ -16,6 +16,7 @@ func (i *Issues) Router(mw *middleware.Middleware) http.Handler {
 		r.Route("/{issue}", func(r chi.Router) {
 			r.Use(mw.ResolveIssue)
 			r.Get("/", i.RepoSingleIssue)
+			r.Get("/opengraph", i.IssueOpenGraphSummary)
 
 			// authenticated routes
 			r.Group(func(r chi.Router) {
