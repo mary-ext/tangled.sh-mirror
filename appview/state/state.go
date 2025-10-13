@@ -82,7 +82,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	}
 
 	pages := pages.NewPages(config, res, log.SubLogger(logger, "pages"))
-	oauth, err := oauth.New(config, posthog, d, enforcer, res)
+	oauth, err := oauth.New(config, posthog, d, enforcer, res, log.SubLogger(logger, "oauth"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start oauth handler: %w", err)
 	}

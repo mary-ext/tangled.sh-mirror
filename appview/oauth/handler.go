@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"slices"
 	"time"
@@ -43,7 +42,7 @@ func (o *OAuth) jwks(w http.ResponseWriter, r *http.Request) {
 	jwks := o.Config.OAuth.Jwks
 	pubKey, err := pubKeyFromJwk(jwks)
 	if err != nil {
-		log.Printf("error parsing public key: %v", err)
+		o.Logger.Error("error parsing public key", "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -71,7 +70,7 @@ func (o *OAuth) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("session saved successfully")
+	o.Logger.Debug("session saved successfully")
 	go o.addToDefaultKnot(sessData.AccountDID.String())
 	go o.addToDefaultSpindle(sessData.AccountDID.String())
 
@@ -81,7 +80,7 @@ func (o *OAuth) callback(w http.ResponseWriter, r *http.Request) {
 			Event:      "signin",
 		})
 		if err != nil {
-			log.Println("failed to enqueue posthog event:", err)
+			o.Logger.Error("failed to enqueue posthog event", "err", err)
 		}
 	}
 
@@ -89,6 +88,8 @@ func (o *OAuth) callback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OAuth) addToDefaultSpindle(did string) {
+	l := o.Logger.With("subject", did)
+
 	// use the tangled.sh app password to get an accessJwt
 	// and create an sh.tangled.spindle.member record with that
 	spindleMembers, err := db.GetSpindleMembers(
@@ -97,19 +98,19 @@ func (o *OAuth) addToDefaultSpindle(did string) {
 		db.FilterEq("subject", did),
 	)
 	if err != nil {
-		log.Printf("failed to get spindle members for did %s: %v", did, err)
+		l.Error("failed to get spindle members", "err", err)
 		return
 	}
 
 	if len(spindleMembers) != 0 {
-		log.Printf("did %s is already a member of the default spindle", did)
+		l.Warn("already a member of the default spindle")
 		return
 	}
 
-	log.Printf("adding %s to default spindle", did)
+	l.Debug("adding to default spindle")
 	session, err := o.createAppPasswordSession(o.Config.Core.AppPassword, consts.TangledDid)
 	if err != nil {
-		log.Printf("failed to create session: %s", err)
+		l.Error("failed to create session", "err", err)
 		return
 	}
 
@@ -121,32 +122,34 @@ func (o *OAuth) addToDefaultSpindle(did string) {
 	}
 
 	if err := session.putRecord(record, tangled.SpindleMemberNSID); err != nil {
-		log.Printf("failed to add member to default spindle: %s", err)
+		l.Error("failed to add to default spindle", "err", err)
 		return
 	}
 
-	log.Printf("successfully added %s to default spindle", did)
+	l.Debug("successfully added to default spindle", "did", did)
 }
 
 func (o *OAuth) addToDefaultKnot(did string) {
+	l := o.Logger.With("subject", did)
+
 	// use the tangled.sh app password to get an accessJwt
 	// and create an sh.tangled.spindle.member record with that
 
 	allKnots, err := o.Enforcer.GetKnotsForUser(did)
 	if err != nil {
-		log.Printf("failed to get knot members for did %s: %v", did, err)
+		l.Error("failed to get knot members for did", "err", err)
 		return
 	}
 
 	if slices.Contains(allKnots, consts.DefaultKnot) {
-		log.Printf("did %s is already a member of the default knot", did)
+		l.Warn("already a member of the default knot")
 		return
 	}
 
-	log.Printf("adding %s to default knot", did)
+	l.Debug("addings to default knot")
 	session, err := o.createAppPasswordSession(o.Config.Core.TmpAltAppPassword, consts.IcyDid)
 	if err != nil {
-		log.Printf("failed to create session: %s", err)
+		l.Error("failed to create session", "err", err)
 		return
 	}
 
@@ -158,16 +161,16 @@ func (o *OAuth) addToDefaultKnot(did string) {
 	}
 
 	if err := session.putRecord(record, tangled.KnotMemberNSID); err != nil {
-		log.Printf("failed to add member to default knot: %s", err)
+		l.Error("failed to add to default knot", "err", err)
 		return
 	}
 
 	if err := o.Enforcer.AddKnotMember(consts.DefaultKnot, did); err != nil {
-		log.Printf("failed to set up enforcer rules: %s", err)
+		l.Error("failed to set up enforcer rules", "err", err)
 		return
 	}
 
-	log.Printf("successfully added %s to default Knot", did)
+	l.Debug("successfully addeds to default Knot")
 }
 
 // create a session using apppasswords

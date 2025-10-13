@@ -3,6 +3,7 @@ package oauth
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -20,7 +21,19 @@ import (
 	"tangled.org/core/rbac"
 )
 
-func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enforcer, res *idresolver.Resolver) (*OAuth, error) {
+type OAuth struct {
+	ClientApp  *oauth.ClientApp
+	SessStore  *sessions.CookieStore
+	Config     *config.Config
+	JwksUri    string
+	Posthog    posthog.Client
+	Db         *db.DB
+	Enforcer   *rbac.Enforcer
+	IdResolver *idresolver.Resolver
+	Logger     *slog.Logger
+}
+
+func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enforcer, res *idresolver.Resolver, logger *slog.Logger) (*OAuth, error) {
 
 	var oauthConfig oauth.ClientConfig
 	var clientUri string
@@ -54,18 +67,8 @@ func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enf
 		Db:         db,
 		Enforcer:   enforcer,
 		IdResolver: res,
+		Logger:     logger,
 	}, nil
-}
-
-type OAuth struct {
-	ClientApp  *oauth.ClientApp
-	SessStore  *sessions.CookieStore
-	Config     *config.Config
-	JwksUri    string
-	Posthog    posthog.Client
-	Db         *db.DB
-	Enforcer   *rbac.Enforcer
-	IdResolver *idresolver.Resolver
 }
 
 func (o *OAuth) SaveSession(w http.ResponseWriter, r *http.Request, sessData *oauth.ClientSessionData) error {
