@@ -30,7 +30,6 @@ import (
 	"tangled.org/core/tid"
 	"tangled.org/core/types"
 
-	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
@@ -1927,11 +1926,8 @@ func (s *Pulls) resubmitStackedPullHelper(
 	// commits that got deleted: corresponding pull is closed
 	// commits that got added: new pull is created
 	// commits that got updated: corresponding pull is resubmitted & new round begins
-	//
-	// for commits that were unchanged: no changes, parent-change-id is updated as necessary
 	additions := make(map[string]*models.Pull)
 	deletions := make(map[string]*models.Pull)
-	unchanged := make(map[string]struct{})
 	updated := make(map[string]struct{})
 
 	// pulls in orignal stack but not in new one
@@ -1953,26 +1949,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 	for _, np := range newStack {
 		if op, ok := origById[np.ChangeId]; ok {
 			// pull exists in both stacks
-			// TODO: can we avoid reparse?
-			origFiles, origHeaderStr, _ := gitdiff.Parse(strings.NewReader(op.LatestPatch()))
-			newFiles, newHeaderStr, _ := gitdiff.Parse(strings.NewReader(np.LatestPatch()))
-
-			origHeader, _ := gitdiff.ParsePatchHeader(origHeaderStr)
-			newHeader, _ := gitdiff.ParsePatchHeader(newHeaderStr)
-
-			patchutil.SortPatch(newFiles)
-			patchutil.SortPatch(origFiles)
-
-			// text content of patch may be identical, but a jj rebase might have forwarded it
-			//
-			// we still need to update the hash in submission.Patch and submission.SourceRev
-			if patchutil.Equal(newFiles, origFiles) &&
-				origHeader.Title == newHeader.Title &&
-				origHeader.Body == newHeader.Body {
-				unchanged[op.ChangeId] = struct{}{}
-			} else {
-				updated[op.ChangeId] = struct{}{}
-			}
+			updated[op.ChangeId] = struct{}{}
 		}
 	}
 
@@ -2052,45 +2029,6 @@ func (s *Pulls) resubmitStackedPullHelper(
 
 		record := op.AsRecord()
 		record.Patch = submission.Patch
-
-		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
-			RepoApplyWrites_Update: &comatproto.RepoApplyWrites_Update{
-				Collection: tangled.RepoPullNSID,
-				Rkey:       op.Rkey,
-				Value: &lexutil.LexiconTypeDecoder{
-					Val: &record,
-				},
-			},
-		})
-	}
-
-	// unchanged pulls are edited without starting a new round
-	//
-	// update source-revs & patches without advancing rounds
-	for changeId := range unchanged {
-		op, _ := origById[changeId]
-		np, _ := newById[changeId]
-
-		origSubmission := op.Submissions[op.LastRoundNumber()]
-		newSubmission := np.Submissions[np.LastRoundNumber()]
-
-		log.Println("moving unchanged change id : ", changeId)
-
-		err := db.UpdatePull(
-			tx,
-			newSubmission.Patch,
-			newSubmission.SourceRev,
-			db.FilterEq("id", origSubmission.ID),
-		)
-
-		if err != nil {
-			log.Println("failed to update pull", err, op.PullId)
-			s.pages.Notice(w, "pull-resubmit-error", "Failed to resubmit pull request. Try again later.")
-			return
-		}
-
-		record := op.AsRecord()
-		record.Patch = newSubmission.Patch
 
 		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
 			RepoApplyWrites_Update: &comatproto.RepoApplyWrites_Update{
