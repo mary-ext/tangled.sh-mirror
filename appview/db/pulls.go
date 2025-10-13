@@ -590,12 +590,14 @@ func DeletePull(e Execer, repoAt syntax.ATURI, pullId int) error {
 	return err
 }
 
-func ResubmitPull(e Execer, pull *models.Pull, newPatch, sourceRev string) error {
+func ResubmitPull(e Execer, pull *models.Pull) error {
+	newPatch := pull.LatestPatch()
+	newSourceRev := pull.LatestSha()
 	newRoundNumber := len(pull.Submissions)
 	_, err := e.Exec(`
 		insert into pull_submissions (pull_at, round_number, patch, source_rev)
 		values (?, ?, ?, ?)
-	`, pull.PullAt(), newRoundNumber, newPatch, sourceRev)
+	`, pull.PullAt(), newRoundNumber, newPatch, newSourceRev)
 
 	return err
 }

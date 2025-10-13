@@ -415,11 +415,11 @@ func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pul
 
 	targetBranch := branchResp
 
-	latestSourceRev := pull.Submissions[pull.LastRoundNumber()].SourceRev
+	latestSourceRev := pull.LatestSha()
 
 	if pull.IsStacked() && stack != nil {
 		top := stack[0]
-		latestSourceRev = top.Submissions[top.LastRoundNumber()].SourceRev
+		latestSourceRev = top.LatestSha()
 	}
 
 	if latestSourceRev != targetBranch.Hash {
@@ -1811,7 +1811,7 @@ func (s *Pulls) resubmitPullHelper(
 
 	// validate sourceRev if branch/fork based
 	if pull.IsBranchBased() || pull.IsForkBased() {
-		if sourceRev == pull.Submissions[pull.LastRoundNumber()].SourceRev {
+		if sourceRev == pull.LatestSha() {
 			s.pages.Notice(w, "resubmit-error", "This branch has not changed since the last submission.")
 			return
 		}
@@ -1825,7 +1825,11 @@ func (s *Pulls) resubmitPullHelper(
 	}
 	defer tx.Rollback()
 
-	err = db.ResubmitPull(tx, pull, patch, sourceRev)
+	pull.Submissions = append(pull.Submissions, &models.PullSubmission{
+		Patch:     patch,
+		SourceRev: sourceRev,
+	})
+	err = db.ResubmitPull(tx, pull)
 	if err != nil {
 		log.Println("failed to create pull request", err)
 		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
@@ -2016,10 +2020,8 @@ func (s *Pulls) resubmitStackedPullHelper(
 			continue
 		}
 
-		submission := np.Submissions[np.LastRoundNumber()]
-
 		// resubmit the old pull
-		err := db.ResubmitPull(tx, op, submission.Patch, submission.SourceRev)
+		err := db.ResubmitPull(tx, np)
 
 		if err != nil {
 			log.Println("failed to update pull", err, op.PullId)
@@ -2027,8 +2029,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 			return
 		}
 
-		record := op.AsRecord()
-		record.Patch = submission.Patch
+		record := np.AsRecord()
 
 		writes = append(writes, &comatproto.RepoApplyWrites_Input_Writes_Elem{
 			RepoApplyWrites_Update: &comatproto.RepoApplyWrites_Update{

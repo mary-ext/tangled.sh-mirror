@@ -84,9 +84,13 @@ type Pull struct {
 func (p Pull) AsRecord() tangled.RepoPull {
 	var source *tangled.RepoPull_Source
 	if p.PullSource != nil {
-		s := p.PullSource.AsRecord()
-		source = &s
+		source = &tangled.RepoPull_Source{}
+		source.Branch = p.PullSource.Branch
 		source.Sha = p.LatestSha()
+		if p.PullSource.RepoAt != nil {
+			s := p.PullSource.Repo.RepoAt().String()
+			source.Repo = &s
+		}
 	}
 
 	record := tangled.RepoPull{
@@ -109,19 +113,6 @@ type PullSource struct {
 
 	// optionally populate this for reverse mappings
 	Repo *Repo
-}
-
-func (p PullSource) AsRecord() tangled.RepoPull_Source {
-	var repoAt *string
-	if p.RepoAt != nil {
-		s := p.RepoAt.String()
-		repoAt = &s
-	}
-	record := tangled.RepoPull_Source{
-		Branch: p.Branch,
-		Repo:   repoAt,
-	}
-	return record
 }
 
 type PullSubmission struct {
