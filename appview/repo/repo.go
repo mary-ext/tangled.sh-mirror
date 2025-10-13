@@ -823,7 +823,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
-		l.Error("failed to get repo and knot", err)
+		l.Error("failed to get repo and knot", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
