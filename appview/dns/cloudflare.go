@@ -30,8 +30,8 @@ func NewCloudflare(c *config.Config) (*Cloudflare, error) {
 	return &Cloudflare{api: api, zone: c.Cloudflare.ZoneId}, nil
 }
 
-func (cf *Cloudflare) CreateDNSRecord(ctx context.Context, record Record) error {
-	_, err := cf.api.CreateDNSRecord(ctx, cloudflare.ZoneIdentifier(cf.zone), cloudflare.CreateDNSRecordParams{
+func (cf *Cloudflare) CreateDNSRecord(ctx context.Context, record Record) (string, error) {
+	result, err := cf.api.CreateDNSRecord(ctx, cloudflare.ZoneIdentifier(cf.zone), cloudflare.CreateDNSRecordParams{
 		Type:    record.Type,
 		Name:    record.Name,
 		Content: record.Content,
@@ -39,9 +39,9 @@ func (cf *Cloudflare) CreateDNSRecord(ctx context.Context, record Record) error 
 		Proxied: &record.Proxied,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create DNS record: %w", err)
+		return "", fmt.Errorf("failed to create DNS record: %w", err)
 	}
-	return nil
+	return result.ID, nil
 }
 
 func (cf *Cloudflare) DeleteDNSRecord(ctx context.Context, recordID string) error {

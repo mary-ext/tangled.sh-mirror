@@ -2,6 +2,7 @@ package signup
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -216,56 +217,112 @@ func (s *Signup) complete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		did, err := s.createAccountRequest(username, password, email, code)
-		if err != nil {
-			s.l.Error("failed to create account", "error", err)
-			s.pages.Notice(w, "signup-error", err.Error())
-			return
-		}
-
 		if s.cf == nil {
 			s.l.Error("cloudflare client is nil", "error", "Cloudflare integration is not enabled in configuration")
 			s.pages.Notice(w, "signup-error", "Account signup is currently disabled. DNS record creation is not available. Please contact support.")
 			return
 		}
 
-		err = s.cf.CreateDNSRecord(r.Context(), dns.Record{
-			Type:    "TXT",
-			Name:    "_atproto." + username,
-			Content: fmt.Sprintf(`"did=%s"`, did),
-			TTL:     6400,
-			Proxied: false,
-		})
+		// Execute signup transactionally with rollback capability
+		err = s.executeSignupTransaction(r.Context(), username, password, email, code, w)
 		if err != nil {
-			s.l.Error("failed to create DNS record", "error", err)
-			s.pages.Notice(w, "signup-error", "Failed to create DNS record for your handle. Please contact support.")
+			// Error already logged and notice already sent
 			return
 		}
-
-		err = db.AddEmail(s.db, models.Email{
-			Did:      did,
-			Address:  email,
-			Verified: true,
-			Primary:  true,
-		})
-		if err != nil {
-			s.l.Error("failed to add email", "error", err)
-			s.pages.Notice(w, "signup-error", "Failed to complete sign up. Try again later.")
-			return
-		}
-
-		s.pages.Notice(w, "signup-msg", fmt.Sprintf(`Account created successfully. You can now
-			<a class="underline text-black dark:text-white" href="/login">login</a>
-			with <code>%s.tngl.sh</code>.`, username))
-
-		go func() {
-			err := db.DeleteInflightSignup(s.db, email)
-			if err != nil {
-				s.l.Error("failed to delete inflight signup", "error", err)
-			}
-		}()
-		return
 	}
+}
+
+// executeSignupTransaction performs the signup process transactionally with rollback
+func (s *Signup) executeSignupTransaction(ctx context.Context, username, password, email, code string, w http.ResponseWriter) error {
+	var recordID string
+	var did string
+	var emailAdded bool
+
+	success := false
+	defer func() {
+		if !success {
+			s.l.Info("rolling back signup transaction", "username", username, "did", did)
+
+			// Rollback DNS record
+			if recordID != "" {
+				if err := s.cf.DeleteDNSRecord(ctx, recordID); err != nil {
+					s.l.Error("failed to rollback DNS record", "error", err, "recordID", recordID)
+				} else {
+					s.l.Info("successfully rolled back DNS record", "recordID", recordID)
+				}
+			}
+
+			// Rollback PDS account
+			if did != "" {
+				if err := s.deleteAccountRequest(did); err != nil {
+					s.l.Error("failed to rollback PDS account", "error", err, "did", did)
+				} else {
+					s.l.Info("successfully rolled back PDS account", "did", did)
+				}
+			}
+
+			// Rollback email from database
+			if emailAdded {
+				if err := db.DeleteEmail(s.db, did, email); err != nil {
+					s.l.Error("failed to rollback email from database", "error", err, "email", email)
+				} else {
+					s.l.Info("successfully rolled back email from database", "email", email)
+				}
+			}
+		}
+	}()
+
+	// step 1: create account in PDS
+	did, err := s.createAccountRequest(username, password, email, code)
+	if err != nil {
+		s.l.Error("failed to create account", "error", err)
+		s.pages.Notice(w, "signup-error", err.Error())
+		return err
+	}
+
+	// step 2: create DNS record with actual DID
+	recordID, err = s.cf.CreateDNSRecord(ctx, dns.Record{
+		Type:    "TXT",
+		Name:    "_atproto." + username,
+		Content: fmt.Sprintf(`"did=%s"`, did),
+		TTL:     6400,
+		Proxied: false,
+	})
+	if err != nil {
+		s.l.Error("failed to create DNS record", "error", err)
+		s.pages.Notice(w, "signup-error", "Failed to create DNS record for your handle. Please contact support.")
+		return err
+	}
+
+	// step 3: add email to database
+	err = db.AddEmail(s.db, models.Email{
+		Did:      did,
+		Address:  email,
+		Verified: true,
+		Primary:  true,
+	})
+	if err != nil {
+		s.l.Error("failed to add email", "error", err)
+		s.pages.Notice(w, "signup-error", "Failed to complete sign up. Try again later.")
+		return err
+	}
+	emailAdded = true
+
+	// if we get here, we've successfully created the account and added the email
+	success = true
+
+	s.pages.Notice(w, "signup-msg", fmt.Sprintf(`Account created successfully. You can now
+		<a class="underline text-black dark:text-white" href="/login">login</a>
+		with <code>%s.tngl.sh</code>.`, username))
+
+	// clean up inflight signup asynchronously
+	go func() {
+		if err := db.DeleteInflightSignup(s.db, email); err != nil {
+			s.l.Error("failed to delete inflight signup", "error", err)
+		}
+	}()
+
+	return nil
 }
 
 type turnstileResponse struct {

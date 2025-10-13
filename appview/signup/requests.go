@@ -102,3 +102,21 @@ func (s *Signup) createAccountRequest(username, password, email, code string) (s
 
 	return result.DID, nil
 }
+
+func (s *Signup) deleteAccountRequest(did string) error {
+	body := map[string]string{
+		"did": did,
+	}
+
+	resp, err := s.makePdsRequest("POST", "com.atproto.admin.deleteAccount", body, true)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return s.handlePdsError(resp, "delete account")
+	}
+
+	return nil
+}
