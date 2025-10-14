@@ -39,10 +39,11 @@ go build -o knot ./cmd/knot
 ```
 
 Next, move the `knot` binary to a location owned by `root` --
-`/usr/local/bin/knot` is a good choice:
+`/usr/local/bin/` is a good choice. Make sure the binary itself is also owned by `root`:
 
 ```
 sudo mv knot /usr/local/bin/knot
+sudo chown root:root /usr/local/bin/knot
 ```
 
 This is necessary because SSH `AuthorizedKeysCommand` requires [really
