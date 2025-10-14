@@ -386,12 +386,13 @@ func (s *State) Keys(w http.ResponseWriter, r *http.Request) {
 
 	pubKeys, err := db.GetPublicKeysForDid(s.db, id.DID.String())
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		s.logger.Error("failed to get public keys", "err", err)
+		http.Error(w, "failed to get public keys", http.StatusInternalServerError)
 		return
 	}
 
 	if len(pubKeys) == 0 {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 

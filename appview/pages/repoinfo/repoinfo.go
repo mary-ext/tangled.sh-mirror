@@ -1,31 +1,29 @@
 package repoinfo
 
 import (
-	"fmt"
 	"path"
 	"slices"
-	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/state/userutil"
 )
 
-func (r RepoInfo) OwnerWithAt() string {
+func (r RepoInfo) Owner() string {
 	if r.OwnerHandle != "" {
-		return fmt.Sprintf("@%s", r.OwnerHandle)
+		return r.OwnerHandle
 	} else {
 		return r.OwnerDid
 	}
 }
 
 func (r RepoInfo) FullName() string {
-	return path.Join(r.OwnerWithAt(), r.Name)
+	return path.Join(r.Owner(), r.Name)
 }
 
 func (r RepoInfo) OwnerWithoutAt() string {
-	if after, ok := strings.CutPrefix(r.OwnerWithAt(), "@"); ok {
-		return after
+	if r.OwnerHandle != "" {
+		return r.OwnerHandle
 	} else {
 		return userutil.FlattenDid(r.OwnerDid)
 	}

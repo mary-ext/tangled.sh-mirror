@@ -10,9 +10,14 @@ var (
 	didRegex    = regexp.MustCompile(`^did:[a-z]+:[a-zA-Z0-9._:%-]*[a-zA-Z0-9._-]$`)
 )
 
-func IsHandleNoAt(s string) bool {
+func IsHandle(s string) bool {
 	// ref: https://atproto.com/specs/handle
 	return handleRegex.MatchString(s)
+}
+
+// IsDid checks if the given string is a standard DID.
+func IsDid(s string) bool {
+	return didRegex.MatchString(s)
 }
 
 func UnflattenDid(s string) string {
@@ -45,11 +50,6 @@ func FlattenDid(s string) string {
 		return strings.Replace(s, ":", "-", 2)
 	}
 	return s
-}
-
-// IsDid checks if the given string is a standard DID.
-func IsDid(s string) bool {
-	return didRegex.MatchString(s)
 }
 
 var subdomainRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{2,61}[a-z0-9])?$`)

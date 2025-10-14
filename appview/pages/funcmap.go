@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/dustin/go-humanize"
 	"github.com/go-enry/go-enry/v2"
 	"tangled.org/core/appview/filetree"
@@ -63,7 +64,7 @@ func (p *Pages) funcMap() template.FuncMap {
 				return "handle.invalid"
 			}
 
-			return "@" + identity.Handle.String()
+			return identity.Handle.String()
 		},
 		"truncateAt30": func(s string) string {
 			if len(s) <= 30 {
@@ -123,8 +124,8 @@ func (p *Pages) funcMap() template.FuncMap {
 			return b
 		},
 		"didOrHandle": func(did, handle string) string {
-			if handle != "" {
-				return fmt.Sprintf("@%s", handle)
+			if handle != "" && handle != syntax.HandleInvalid.String() {
+				return handle
 			} else {
 				return did
 			}

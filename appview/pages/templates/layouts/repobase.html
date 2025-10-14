@@ -13,8 +13,8 @@
       </p>
       {{ end }}
       <div class="text-lg flex items-center justify-between">
-        <div>
-          <a href="/{{ .RepoInfo.OwnerWithAt }}">{{ .RepoInfo.OwnerWithAt }}</a>
+        <div class="flex items-center gap-2 flex-wrap">
+          {{ template "user/fragments/picHandleLink" .RepoInfo.OwnerDid }}
           <span class="select-none">/</span>
           <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
         </div>
