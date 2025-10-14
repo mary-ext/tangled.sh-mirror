@@ -180,12 +180,12 @@ func (mw Middleware) ResolveIdent() middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			didOrHandle := chi.URLParam(req, "user")
+			didOrHandle = strings.TrimPrefix(didOrHandle, "@")
+
 			if slices.Contains(excluded, didOrHandle) {
 				next.ServeHTTP(w, req)
 				return
 			}
-
-			didOrHandle = strings.TrimPrefix(didOrHandle, "@")
 
 			id, err := mw.idResolver.ResolveIdent(req.Context(), didOrHandle)
 			if err != nil {

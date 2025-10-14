@@ -42,32 +42,34 @@ func (s *State) Router() http.Handler {
 
 	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		pat := chi.URLParam(r, "*")
-		if strings.HasPrefix(pat, "did:") || strings.HasPrefix(pat, "@") {
-			userRouter.ServeHTTP(w, r)
-		} else {
-			// Check if the first path element is a valid handle without '@' or a flattened DID
-			pathParts := strings.SplitN(pat, "/", 2)
-			if len(pathParts) > 0 {
-				if userutil.IsHandleNoAt(pathParts[0]) {
-					// Redirect to the same path but with '@' prefixed to the handle
-					redirectPath := "@" + pat
-					http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
-					return
-				} else if userutil.IsFlattenedDid(pathParts[0]) {
-					// Redirect to the unflattened DID version
-					unflattenedDid := userutil.UnflattenDid(pathParts[0])
-					var redirectPath string
-					if len(pathParts) > 1 {
-						redirectPath = unflattenedDid + "/" + pathParts[1]
-					} else {
-						redirectPath = unflattenedDid
-					}
-					http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
-					return
-				}
+		pathParts := strings.SplitN(pat, "/", 2)
+
+		if len(pathParts) > 0 {
+			firstPart := pathParts[0]
+
+			// if using a DID or handle, just continue as per usual
+			if userutil.IsDid(firstPart) || userutil.IsHandle(firstPart) {
+				userRouter.ServeHTTP(w, r)
+				return
 			}
-			standardRouter.ServeHTTP(w, r)
+
+			// if using a flattened DID (like you would in go modules), unflatten
+			if userutil.IsFlattenedDid(firstPart) {
+				unflattenedDid := userutil.UnflattenDid(firstPart)
+				redirectPath := strings.Join(append([]string{unflattenedDid}, pathParts[1:]...), "/")
+				http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
+				return
+			}
+
+			// if using a handle with @, rewrite to work without @
+			if normalized := strings.TrimPrefix(firstPart, "@"); userutil.IsHandle(normalized) {
+				redirectPath := strings.Join(append([]string{normalized}, pathParts[1:]...), "/")
+				http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
+				return
+			}
 		}
+
+		standardRouter.ServeHTTP(w, r)
 	})
 
 	return router
