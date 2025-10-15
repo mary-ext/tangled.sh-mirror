@@ -3,7 +3,10 @@ package db
 import (
 	"context"
 	"log"
+	"maps"
+	"slices"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
@@ -36,34 +39,25 @@ func (n *databaseNotifier) NewStar(ctx context.Context, star *models.Star) {
 		return
 	}
 
-	// don't notify yourself
-	if repo.Did == star.StarredByDid {
-		return
-	}
+	actorDid := syntax.DID(star.StarredByDid)
+	recipients := []syntax.DID{syntax.DID(repo.Did)}
+	eventType := models.NotificationTypeRepoStarred
+	entityType := "repo"
+	entityId := star.RepoAt.String()
+	repoId := &repo.Id
+	var issueId *int64
+	var pullId *int64
 
-	// check if user wants these notifications
-	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
-	if err != nil {
-		log.Printf("NewStar: failed to get notification preferences for %s: %v", repo.Did, err)
-		return
-	}
-	if !prefs.RepoStarred {
-		return
-	}
-
-	notification := &models.Notification{
-		RecipientDid: repo.Did,
-		ActorDid:     star.StarredByDid,
-		Type:         models.NotificationTypeRepoStarred,
-		EntityType:   "repo",
-		EntityId:     string(star.RepoAt),
-		RepoId:       &repo.Id,
-	}
-	err = db.CreateNotification(n.db, notification)
-	if err != nil {
-		log.Printf("NewStar: failed to create notification: %v", err)
-		return
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {
@@ -71,40 +65,39 @@ func (n *databaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 }
 
 func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
-	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(issue.RepoAt)))
+
+	// build the recipients list
+	// - owner of the repo
+	// - collaborators in the repo
+	var recipients []syntax.DID
+	recipients = append(recipients, syntax.DID(issue.Repo.Did))
+	collaborators, err := db.GetCollaborators(n.db, db.FilterEq("repo_at", issue.Repo.RepoAt()))
 	if err != nil {
-		log.Printf("NewIssue: failed to get repos: %v", err)
+		log.Printf("failed to fetch collaborators: %v", err)
 		return
+	}
+	for _, c := range collaborators {
+		recipients = append(recipients, c.SubjectDid)
 	}
 
-	if repo.Did == issue.Did {
-		return
-	}
+	actorDid := syntax.DID(issue.Did)
+	eventType := models.NotificationTypeIssueCreated
+	entityType := "issue"
+	entityId := issue.AtUri().String()
+	repoId := &issue.Repo.Id
+	issueId := &issue.Id
+	var pullId *int64
 
-	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
-	if err != nil {
-		log.Printf("NewIssue: failed to get notification preferences for %s: %v", repo.Did, err)
-		return
-	}
-	if !prefs.IssueCreated {
-		return
-	}
-
-	notification := &models.Notification{
-		RecipientDid: repo.Did,
-		ActorDid:     issue.Did,
-		Type:         models.NotificationTypeIssueCreated,
-		EntityType:   "issue",
-		EntityId:     string(issue.AtUri()),
-		RepoId:       &repo.Id,
-		IssueId:      &issue.Id,
-	}
-
-	err = db.CreateNotification(n.db, notification)
-	if err != nil {
-		log.Printf("NewIssue: failed to create notification: %v", err)
-		return
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {
@@ -119,76 +112,63 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 	}
 	issue := issues[0]
 
-	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(issue.RepoAt)))
-	if err != nil {
-		log.Printf("NewIssueComment: failed to get repos: %v", err)
-		return
+	var recipients []syntax.DID
+	recipients = append(recipients, syntax.DID(issue.Repo.Did))
+
+	if comment.IsReply() {
+		// if this comment is a reply, then notify everybody in that thread
+		parentAtUri := *comment.ReplyTo
+		allThreads := issue.CommentList()
+
+		// find the parent thread, and add all DIDs from here to the recipient list
+		for _, t := range allThreads {
+			if t.Self.AtUri().String() == parentAtUri {
+				recipients = append(recipients, t.Participants()...)
+			}
+		}
+	} else {
+		// not a reply, notify just the issue author
+		recipients = append(recipients, syntax.DID(issue.Did))
 	}
 
-	recipients := make(map[string]bool)
+	actorDid := syntax.DID(comment.Did)
+	eventType := models.NotificationTypeIssueCommented
+	entityType := "issue"
+	entityId := issue.AtUri().String()
+	repoId := &issue.Repo.Id
+	issueId := &issue.Id
+	var pullId *int64
 
-	// notify issue author (if not the commenter)
-	if issue.Did != comment.Did {
-		prefs, err := db.GetNotificationPreference(n.db, issue.Did)
-		if err == nil && prefs.IssueCommented {
-			recipients[issue.Did] = true
-		} else if err != nil {
-			log.Printf("NewIssueComment: failed to get preferences for issue author %s: %v", issue.Did, err)
-		}
-	}
-
-	// notify repo owner (if not the commenter and not already added)
-	if repo.Did != comment.Did && repo.Did != issue.Did {
-		prefs, err := db.GetNotificationPreference(n.db, repo.Did)
-		if err == nil && prefs.IssueCommented {
-			recipients[repo.Did] = true
-		} else if err != nil {
-			log.Printf("NewIssueComment: failed to get preferences for repo owner %s: %v", repo.Did, err)
-		}
-	}
-
-	// create notifications for all recipients
-	for recipientDid := range recipients {
-		notification := &models.Notification{
-			RecipientDid: recipientDid,
-			ActorDid:     comment.Did,
-			Type:         models.NotificationTypeIssueCommented,
-			EntityType:   "issue",
-			EntityId:     string(issue.AtUri()),
-			RepoId:       &repo.Id,
-			IssueId:      &issue.Id,
-		}
-
-		err = db.CreateNotification(n.db, notification)
-		if err != nil {
-			log.Printf("NewIssueComment: failed to create notification for %s: %v", recipientDid, err)
-		}
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
-	prefs, err := db.GetNotificationPreference(n.db, follow.SubjectDid)
-	if err != nil {
-		log.Printf("NewFollow: failed to get notification preferences for %s: %v", follow.SubjectDid, err)
-		return
-	}
-	if !prefs.Followed {
-		return
-	}
+	actorDid := syntax.DID(follow.UserDid)
+	recipients := []syntax.DID{syntax.DID(follow.SubjectDid)}
+	eventType := models.NotificationTypeFollowed
+	entityType := "follow"
+	entityId := follow.UserDid
+	var repoId, issueId, pullId *int64
 
-	notification := &models.Notification{
-		RecipientDid: follow.SubjectDid,
-		ActorDid:     follow.UserDid,
-		Type:         models.NotificationTypeFollowed,
-		EntityType:   "follow",
-		EntityId:     follow.UserDid,
-	}
-
-	err = db.CreateNotification(n.db, notification)
-	if err != nil {
-		log.Printf("NewFollow: failed to create notification: %v", err)
-		return
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {
@@ -202,49 +182,50 @@ func (n *databaseNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 		return
 	}
 
-	if repo.Did == pull.OwnerDid {
-		return
-	}
-
-	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
+	// build the recipients list
+	// - owner of the repo
+	// - collaborators in the repo
+	var recipients []syntax.DID
+	recipients = append(recipients, syntax.DID(repo.Did))
+	collaborators, err := db.GetCollaborators(n.db, db.FilterEq("repo_at", repo.RepoAt()))
 	if err != nil {
-		log.Printf("NewPull: failed to get notification preferences for %s: %v", repo.Did, err)
+		log.Printf("failed to fetch collaborators: %v", err)
 		return
 	}
-	if !prefs.PullCreated {
-		return
+	for _, c := range collaborators {
+		recipients = append(recipients, c.SubjectDid)
 	}
 
-	notification := &models.Notification{
-		RecipientDid: repo.Did,
-		ActorDid:     pull.OwnerDid,
-		Type:         models.NotificationTypePullCreated,
-		EntityType:   "pull",
-		EntityId:     string(pull.RepoAt),
-		RepoId:       &repo.Id,
-		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
-	}
+	actorDid := syntax.DID(pull.OwnerDid)
+	eventType := models.NotificationTypePullCreated
+	entityType := "pull"
+	entityId := pull.PullAt().String()
+	repoId := &repo.Id
+	var issueId *int64
+	p := int64(pull.ID)
+	pullId := &p
 
-	err = db.CreateNotification(n.db, notification)
-	if err != nil {
-		log.Printf("NewPull: failed to create notification: %v", err)
-		return
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.PullComment) {
-	pulls, err := db.GetPulls(n.db,
-		db.FilterEq("repo_at", comment.RepoAt),
-		db.FilterEq("pull_id", comment.PullId))
+	pull, err := db.GetPull(n.db,
+		syntax.ATURI(comment.RepoAt),
+		comment.PullId,
+	)
 	if err != nil {
 		log.Printf("NewPullComment: failed to get pulls: %v", err)
 		return
 	}
-	if len(pulls) == 0 {
-		log.Printf("NewPullComment: no pull found for %s PR %d", comment.RepoAt, comment.PullId)
-		return
-	}
-	pull := pulls[0]
 
 	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", comment.RepoAt))
 	if err != nil {
@@ -252,44 +233,34 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.P
 		return
 	}
 
-	recipients := make(map[string]bool)
-
-	// notify pull request author (if not the commenter)
-	if pull.OwnerDid != comment.OwnerDid {
-		prefs, err := db.GetNotificationPreference(n.db, pull.OwnerDid)
-		if err == nil && prefs.PullCommented {
-			recipients[pull.OwnerDid] = true
-		} else if err != nil {
-			log.Printf("NewPullComment: failed to get preferences for pull author %s: %v", pull.OwnerDid, err)
-		}
+	// build up the recipients list:
+	// - repo owner
+	// - all pull participants
+	var recipients []syntax.DID
+	recipients = append(recipients, syntax.DID(repo.Did))
+	for _, p := range pull.Participants() {
+		recipients = append(recipients, syntax.DID(p))
 	}
 
-	// notify repo owner (if not the commenter and not already added)
-	if repo.Did != comment.OwnerDid && repo.Did != pull.OwnerDid {
-		prefs, err := db.GetNotificationPreference(n.db, repo.Did)
-		if err == nil && prefs.PullCommented {
-			recipients[repo.Did] = true
-		} else if err != nil {
-			log.Printf("NewPullComment: failed to get preferences for repo owner %s: %v", repo.Did, err)
-		}
-	}
+	actorDid := syntax.DID(comment.OwnerDid)
+	eventType := models.NotificationTypePullCommented
+	entityType := "pull"
+	entityId := pull.PullAt().String()
+	repoId := &repo.Id
+	var issueId *int64
+	p := int64(pull.ID)
+	pullId := &p
 
-	for recipientDid := range recipients {
-		notification := &models.Notification{
-			RecipientDid: recipientDid,
-			ActorDid:     comment.OwnerDid,
-			Type:         models.NotificationTypePullCommented,
-			EntityType:   "pull",
-			EntityId:     comment.RepoAt,
-			RepoId:       &repo.Id,
-			PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
-		}
-
-		err = db.CreateNotification(n.db, notification)
-		if err != nil {
-			log.Printf("NewPullComment: failed to create notification for %s: %v", recipientDid, err)
-		}
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {
@@ -309,43 +280,42 @@ func (n *databaseNotifier) NewString(ctx context.Context, string *models.String)
 }
 
 func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
-	// Get repo details
-	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(issue.RepoAt)))
+	// build up the recipients list:
+	// - repo owner
+	// - repo collaborators
+	// - all issue participants
+	var recipients []syntax.DID
+	recipients = append(recipients, syntax.DID(issue.Repo.Did))
+	collaborators, err := db.GetCollaborators(n.db, db.FilterEq("repo_at", issue.Repo.RepoAt()))
 	if err != nil {
-		log.Printf("NewIssueClosed: failed to get repos: %v", err)
+		log.Printf("failed to fetch collaborators: %v", err)
 		return
+	}
+	for _, c := range collaborators {
+		recipients = append(recipients, c.SubjectDid)
+	}
+	for _, p := range issue.Participants() {
+		recipients = append(recipients, syntax.DID(p))
 	}
 
-	// Don't notify yourself
-	if repo.Did == issue.Did {
-		return
-	}
+	actorDid := syntax.DID(issue.Repo.Did)
+	eventType := models.NotificationTypeIssueClosed
+	entityType := "pull"
+	entityId := issue.AtUri().String()
+	repoId := &issue.Repo.Id
+	issueId := &issue.Id
+	var pullId *int64
 
-	// Check if user wants these notifications
-	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
-	if err != nil {
-		log.Printf("NewIssueClosed: failed to get notification preferences for %s: %v", repo.Did, err)
-		return
-	}
-	if !prefs.IssueClosed {
-		return
-	}
-
-	notification := &models.Notification{
-		RecipientDid: repo.Did,
-		ActorDid:     issue.Did,
-		Type:         models.NotificationTypeIssueClosed,
-		EntityType:   "issue",
-		EntityId:     string(issue.AtUri()),
-		RepoId:       &repo.Id,
-		IssueId:      &issue.Id,
-	}
-
-	err = db.CreateNotification(n.db, notification)
-	if err != nil {
-		log.Printf("NewIssueClosed: failed to create notification: %v", err)
-		return
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
@@ -356,74 +326,156 @@ func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull)
 		return
 	}
 
-	// Don't notify yourself
-	if repo.Did == pull.OwnerDid {
-		return
-	}
-
-	// Check if user wants these notifications
-	prefs, err := db.GetNotificationPreference(n.db, pull.OwnerDid)
+	// build up the recipients list:
+	// - repo owner
+	// - all pull participants
+	var recipients []syntax.DID
+	recipients = append(recipients, syntax.DID(repo.Did))
+	collaborators, err := db.GetCollaborators(n.db, db.FilterEq("repo_at", repo.RepoAt()))
 	if err != nil {
-		log.Printf("NewPullMerged: failed to get notification preferences for %s: %v", pull.OwnerDid, err)
+		log.Printf("failed to fetch collaborators: %v", err)
 		return
 	}
-	if !prefs.PullMerged {
-		return
+	for _, c := range collaborators {
+		recipients = append(recipients, c.SubjectDid)
+	}
+	for _, p := range pull.Participants() {
+		recipients = append(recipients, syntax.DID(p))
 	}
 
-	notification := &models.Notification{
-		RecipientDid: pull.OwnerDid,
-		ActorDid:     repo.Did,
-		Type:         models.NotificationTypePullMerged,
-		EntityType:   "pull",
-		EntityId:     string(pull.RepoAt),
-		RepoId:       &repo.Id,
-		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
-	}
+	actorDid := syntax.DID(repo.Did)
+	eventType := models.NotificationTypePullMerged
+	entityType := "pull"
+	entityId := pull.PullAt().String()
+	repoId := &repo.Id
+	var issueId *int64
+	p := int64(pull.ID)
+	pullId := &p
 
-	err = db.CreateNotification(n.db, notification)
-	if err != nil {
-		log.Printf("NewPullMerged: failed to create notification: %v", err)
-		return
-	}
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
 }
 
 func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
 	// Get repo details
 	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
-		log.Printf("NewPullClosed: failed to get repos: %v", err)
+		log.Printf("NewPullMerged: failed to get repos: %v", err)
 		return
 	}
 
-	// Don't notify yourself
-	if repo.Did == pull.OwnerDid {
-		return
-	}
-
-	// Check if user wants these notifications - reuse pull_merged preference for now
-	prefs, err := db.GetNotificationPreference(n.db, pull.OwnerDid)
+	// build up the recipients list:
+	// - repo owner
+	// - all pull participants
+	var recipients []syntax.DID
+	recipients = append(recipients, syntax.DID(repo.Did))
+	collaborators, err := db.GetCollaborators(n.db, db.FilterEq("repo_at", repo.RepoAt()))
 	if err != nil {
-		log.Printf("NewPullClosed: failed to get notification preferences for %s: %v", pull.OwnerDid, err)
+		log.Printf("failed to fetch collaborators: %v", err)
 		return
 	}
-	if !prefs.PullMerged {
-		return
+	for _, c := range collaborators {
+		recipients = append(recipients, c.SubjectDid)
+	}
+	for _, p := range pull.Participants() {
+		recipients = append(recipients, syntax.DID(p))
 	}
 
-	notification := &models.Notification{
-		RecipientDid: pull.OwnerDid,
-		ActorDid:     repo.Did,
-		Type:         models.NotificationTypePullClosed,
-		EntityType:   "pull",
-		EntityId:     string(pull.RepoAt),
-		RepoId:       &repo.Id,
-		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
+	actorDid := syntax.DID(repo.Did)
+	eventType := models.NotificationTypePullClosed
+	entityType := "pull"
+	entityId := pull.PullAt().String()
+	repoId := &repo.Id
+	var issueId *int64
+	p := int64(pull.ID)
+	pullId := &p
+
+	n.notifyEvent(
+		actorDid,
+		recipients,
+		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
+}
+
+func (n *databaseNotifier) notifyEvent(
+	actorDid syntax.DID,
+	recipients []syntax.DID,
+	eventType models.NotificationType,
+	entityType string,
+	entityId string,
+	repoId *int64,
+	issueId *int64,
+	pullId *int64,
+) {
+	recipientSet := make(map[syntax.DID]struct{})
+	for _, did := range recipients {
+		// everybody except actor themselves
+		if did != actorDid {
+			recipientSet[did] = struct{}{}
+		}
 	}
 
-	err = db.CreateNotification(n.db, notification)
+	prefMap, err := db.GetNotificationPreferences(
+		n.db,
+		db.FilterIn("user_did", slices.Collect(maps.Keys(recipientSet))),
+	)
 	if err != nil {
-		log.Printf("NewPullClosed: failed to create notification: %v", err)
+		// failed to get prefs for users
+		return
+	}
+
+	// create a transaction for bulk notification storage
+	tx, err := n.db.Begin()
+	if err != nil {
+		// failed to start tx
+		return
+	}
+	defer tx.Rollback()
+
+	// filter based on preferences
+	for recipientDid := range recipientSet {
+		prefs, ok := prefMap[recipientDid]
+		if !ok {
+			prefs = models.DefaultNotificationPreferences(recipientDid)
+		}
+
+		// skip users who don’t want this type
+		if !prefs.ShouldNotify(eventType) {
+			continue
+		}
+
+		// create notification
+		notif := &models.Notification{
+			RecipientDid: recipientDid.String(),
+			ActorDid:     actorDid.String(),
+			Type:         eventType,
+			EntityType:   entityType,
+			EntityId:     entityId,
+			RepoId:       repoId,
+			IssueId:      issueId,
+			PullId:       pullId,
+		}
+
+		if err := db.CreateNotification(tx, notif); err != nil {
+			log.Printf("notifyEvent: failed to create notification for %s: %v", recipientDid, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		// failed to commit
 		return
 	}
 }

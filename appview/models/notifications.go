@@ -82,6 +82,32 @@ type NotificationPreferences struct {
 	IssueClosed        bool
 	EmailNotifications bool
 }
+
+func (prefs *NotificationPreferences) ShouldNotify(t NotificationType) bool {
+	switch t {
+	case NotificationTypeRepoStarred:
+		return prefs.RepoStarred
+	case NotificationTypeIssueCreated:
+		return prefs.IssueCreated
+	case NotificationTypeIssueCommented:
+		return prefs.IssueCommented
+	case NotificationTypeIssueClosed:
+		return prefs.IssueClosed
+	case NotificationTypePullCreated:
+		return prefs.PullCreated
+	case NotificationTypePullCommented:
+		return prefs.PullCommented
+	case NotificationTypePullMerged:
+		return prefs.PullMerged
+	case NotificationTypePullClosed:
+		return prefs.PullMerged // same pref for now
+	case NotificationTypeFollowed:
+		return prefs.Followed
+	default:
+		return false
+	}
+}
+
 func DefaultNotificationPreferences(user syntax.DID) *NotificationPreferences {
 	return &NotificationPreferences{
 		UserDid:            user,
