@@ -76,7 +76,7 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = n.db.MarkAllNotificationsRead(r.Context(), user.Did)
+	err = db.MarkAllNotificationsRead(n.db, user.Did)
 	if err != nil {
 		l.Error("failed to mark notifications as read", "err", err)
 	}
@@ -128,7 +128,7 @@ func (n *Notifications) markRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = n.db.MarkNotificationRead(r.Context(), notificationID, userDid)
+	err = db.MarkNotificationRead(n.db, notificationID, userDid)
 	if err != nil {
 		http.Error(w, "Failed to mark notification as read", http.StatusInternalServerError)
 		return
@@ -140,7 +140,7 @@ func (n *Notifications) markRead(w http.ResponseWriter, r *http.Request) {
 func (n *Notifications) markAllRead(w http.ResponseWriter, r *http.Request) {
 	userDid := n.oauth.GetDid(r)
 
-	err := n.db.MarkAllNotificationsRead(r.Context(), userDid)
+	err := db.MarkAllNotificationsRead(n.db, userDid)
 	if err != nil {
 		http.Error(w, "Failed to mark all notifications as read", http.StatusInternalServerError)
 		return
@@ -159,7 +159,7 @@ func (n *Notifications) deleteNotification(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = n.db.DeleteNotification(r.Context(), notificationID, userDid)
+	err = db.DeleteNotification(n.db, notificationID, userDid)
 	if err != nil {
 		http.Error(w, "Failed to delete notification", http.StatusInternalServerError)
 		return

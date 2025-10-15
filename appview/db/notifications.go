@@ -8,17 +8,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pagination"
 )
 
-func (d *DB) CreateNotification(ctx context.Context, notification *models.Notification) error {
+func CreateNotification(e Execer, notification *models.Notification) error {
 	query := `
 		INSERT INTO notifications (recipient_did, actor_did, type, entity_type, entity_id, read, repo_id, issue_id, pull_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	result, err := d.DB.ExecContext(ctx, query,
+	result, err := e.Exec(query,
 		notification.RecipientDid,
 		notification.ActorDid,
 		string(notification.Type),
@@ -274,7 +275,7 @@ func CountNotifications(e Execer, filters ...filter) (int64, error) {
 	return count, nil
 }
 
-func (d *DB) MarkNotificationRead(ctx context.Context, notificationID int64, userDID string) error {
+func MarkNotificationRead(e Execer, notificationID int64, userDID string) error {
 	idFilter := FilterEq("id", notificationID)
 	recipientFilter := FilterEq("recipient_did", userDID)
 
@@ -286,7 +287,7 @@ func (d *DB) MarkNotificationRead(ctx context.Context, notificationID int64, use
 
 	args := append(idFilter.Arg(), recipientFilter.Arg()...)
 
-	result, err := d.DB.ExecContext(ctx, query, args...)
+	result, err := e.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to mark notification as read: %w", err)
 	}
@@ -303,7 +304,7 @@ func (d *DB) MarkNotificationRead(ctx context.Context, notificationID int64, use
 	return nil
 }
 
-func (d *DB) MarkAllNotificationsRead(ctx context.Context, userDID string) error {
+func MarkAllNotificationsRead(e Execer, userDID string) error {
 	recipientFilter := FilterEq("recipient_did", userDID)
 	readFilter := FilterEq("read", 0)
 
@@ -315,7 +316,7 @@ func (d *DB) MarkAllNotificationsRead(ctx context.Context, userDID string) error
 
 	args := append(recipientFilter.Arg(), readFilter.Arg()...)
 
-	_, err := d.DB.ExecContext(ctx, query, args...)
+	_, err := e.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to mark all notifications as read: %w", err)
 	}
@@ -323,7 +324,7 @@ func (d *DB) MarkAllNotificationsRead(ctx context.Context, userDID string) error
 	return nil
 }
 
-func (d *DB) DeleteNotification(ctx context.Context, notificationID int64, userDID string) error {
+func DeleteNotification(e Execer, notificationID int64, userDID string) error {
 	idFilter := FilterEq("id", notificationID)
 	recipientFilter := FilterEq("recipient_did", userDID)
 
@@ -334,7 +335,7 @@ func (d *DB) DeleteNotification(ctx context.Context, notificationID int64, userD
 
 	args := append(idFilter.Arg(), recipientFilter.Arg()...)
 
-	result, err := d.DB.ExecContext(ctx, query, args...)
+	result, err := e.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to delete notification: %w", err)
 	}
@@ -351,50 +352,85 @@ func (d *DB) DeleteNotification(ctx context.Context, notificationID int64, userD
 	return nil
 }
 
-func (d *DB) GetNotificationPreferences(ctx context.Context, userDID string) (*models.NotificationPreferences, error) {
-	userFilter := FilterEq("user_did", userDID)
-
-	query := fmt.Sprintf(`
-		SELECT id, user_did, repo_starred, issue_created, issue_commented, pull_created,
-		       pull_commented, followed, pull_merged, issue_closed, email_notifications
-		FROM notification_preferences
-		WHERE %s
-	`, userFilter.Condition())
-
-	var prefs models.NotificationPreferences
-	err := d.DB.QueryRowContext(ctx, query, userFilter.Arg()...).Scan(
-		&prefs.ID,
-		&prefs.UserDid,
-		&prefs.RepoStarred,
-		&prefs.IssueCreated,
-		&prefs.IssueCommented,
-		&prefs.PullCreated,
-		&prefs.PullCommented,
-		&prefs.Followed,
-		&prefs.PullMerged,
-		&prefs.IssueClosed,
-		&prefs.EmailNotifications,
-	)
-
+func GetNotificationPreference(e Execer, userDid string) (*models.NotificationPreferences, error) {
+	prefs, err := GetNotificationPreferences(e, FilterEq("user_did", userDid))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return &models.NotificationPreferences{
-				UserDid:            userDID,
-				RepoStarred:        true,
-				IssueCreated:       true,
-				IssueCommented:     true,
-				PullCreated:        true,
-				PullCommented:      true,
-				Followed:           true,
-				PullMerged:         true,
-				IssueClosed:        true,
-				EmailNotifications: false,
-			}, nil
-		}
-		return nil, fmt.Errorf("failed to get notification preferences: %w", err)
+		return nil, err
 	}
 
-	return &prefs, nil
+	p, ok := prefs[syntax.DID(userDid)]
+	if !ok {
+		return models.DefaultNotificationPreferences(syntax.DID(userDid)), nil
+	}
+
+	return p, nil
+}
+
+func GetNotificationPreferences(e Execer, filters ...filter) (map[syntax.DID]*models.NotificationPreferences, error) {
+	prefsMap := make(map[syntax.DID]*models.NotificationPreferences)
+
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	query := fmt.Sprintf(`
+		select
+			id,
+			user_did,
+			repo_starred,
+			issue_created,
+			issue_commented,
+			pull_created,
+			pull_commented,
+			followed,
+			pull_merged,
+			issue_closed,
+			email_notifications
+		from
+			notification_preferences
+		%s
+	`, whereClause)
+
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var prefs models.NotificationPreferences
+		if err := rows.Scan(
+			&prefs.ID,
+			&prefs.UserDid,
+			&prefs.RepoStarred,
+			&prefs.IssueCreated,
+			&prefs.IssueCommented,
+			&prefs.PullCreated,
+			&prefs.PullCommented,
+			&prefs.Followed,
+			&prefs.PullMerged,
+			&prefs.IssueClosed,
+			&prefs.EmailNotifications,
+		); err != nil {
+			return nil, err
+		}
+
+		prefsMap[prefs.UserDid] = &prefs
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return prefsMap, nil
 }
 
 func (d *DB) UpdateNotificationPreferences(ctx context.Context, prefs *models.NotificationPreferences) error {

@@ -42,7 +42,7 @@ func (n *databaseNotifier) NewStar(ctx context.Context, star *models.Star) {
 	}
 
 	// check if user wants these notifications
-	prefs, err := n.db.GetNotificationPreferences(ctx, repo.Did)
+	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
 	if err != nil {
 		log.Printf("NewStar: failed to get notification preferences for %s: %v", repo.Did, err)
 		return
@@ -59,7 +59,7 @@ func (n *databaseNotifier) NewStar(ctx context.Context, star *models.Star) {
 		EntityId:     string(star.RepoAt),
 		RepoId:       &repo.Id,
 	}
-	err = n.db.CreateNotification(ctx, notification)
+	err = db.CreateNotification(n.db, notification)
 	if err != nil {
 		log.Printf("NewStar: failed to create notification: %v", err)
 		return
@@ -81,7 +81,7 @@ func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 		return
 	}
 
-	prefs, err := n.db.GetNotificationPreferences(ctx, repo.Did)
+	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
 	if err != nil {
 		log.Printf("NewIssue: failed to get notification preferences for %s: %v", repo.Did, err)
 		return
@@ -100,7 +100,7 @@ func (n *databaseNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
 		IssueId:      &issue.Id,
 	}
 
-	err = n.db.CreateNotification(ctx, notification)
+	err = db.CreateNotification(n.db, notification)
 	if err != nil {
 		log.Printf("NewIssue: failed to create notification: %v", err)
 		return
@@ -129,7 +129,7 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 
 	// notify issue author (if not the commenter)
 	if issue.Did != comment.Did {
-		prefs, err := n.db.GetNotificationPreferences(ctx, issue.Did)
+		prefs, err := db.GetNotificationPreference(n.db, issue.Did)
 		if err == nil && prefs.IssueCommented {
 			recipients[issue.Did] = true
 		} else if err != nil {
@@ -139,7 +139,7 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 
 	// notify repo owner (if not the commenter and not already added)
 	if repo.Did != comment.Did && repo.Did != issue.Did {
-		prefs, err := n.db.GetNotificationPreferences(ctx, repo.Did)
+		prefs, err := db.GetNotificationPreference(n.db, repo.Did)
 		if err == nil && prefs.IssueCommented {
 			recipients[repo.Did] = true
 		} else if err != nil {
@@ -159,7 +159,7 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 			IssueId:      &issue.Id,
 		}
 
-		err = n.db.CreateNotification(ctx, notification)
+		err = db.CreateNotification(n.db, notification)
 		if err != nil {
 			log.Printf("NewIssueComment: failed to create notification for %s: %v", recipientDid, err)
 		}
@@ -167,7 +167,7 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 }
 
 func (n *databaseNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
-	prefs, err := n.db.GetNotificationPreferences(ctx, follow.SubjectDid)
+	prefs, err := db.GetNotificationPreference(n.db, follow.SubjectDid)
 	if err != nil {
 		log.Printf("NewFollow: failed to get notification preferences for %s: %v", follow.SubjectDid, err)
 		return
@@ -184,7 +184,7 @@ func (n *databaseNotifier) NewFollow(ctx context.Context, follow *models.Follow)
 		EntityId:     follow.UserDid,
 	}
 
-	err = n.db.CreateNotification(ctx, notification)
+	err = db.CreateNotification(n.db, notification)
 	if err != nil {
 		log.Printf("NewFollow: failed to create notification: %v", err)
 		return
@@ -206,7 +206,7 @@ func (n *databaseNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 		return
 	}
 
-	prefs, err := n.db.GetNotificationPreferences(ctx, repo.Did)
+	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
 	if err != nil {
 		log.Printf("NewPull: failed to get notification preferences for %s: %v", repo.Did, err)
 		return
@@ -225,7 +225,7 @@ func (n *databaseNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 	}
 
-	err = n.db.CreateNotification(ctx, notification)
+	err = db.CreateNotification(n.db, notification)
 	if err != nil {
 		log.Printf("NewPull: failed to create notification: %v", err)
 		return
@@ -256,7 +256,7 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.P
 
 	// notify pull request author (if not the commenter)
 	if pull.OwnerDid != comment.OwnerDid {
-		prefs, err := n.db.GetNotificationPreferences(ctx, pull.OwnerDid)
+		prefs, err := db.GetNotificationPreference(n.db, pull.OwnerDid)
 		if err == nil && prefs.PullCommented {
 			recipients[pull.OwnerDid] = true
 		} else if err != nil {
@@ -266,7 +266,7 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.P
 
 	// notify repo owner (if not the commenter and not already added)
 	if repo.Did != comment.OwnerDid && repo.Did != pull.OwnerDid {
-		prefs, err := n.db.GetNotificationPreferences(ctx, repo.Did)
+		prefs, err := db.GetNotificationPreference(n.db, repo.Did)
 		if err == nil && prefs.PullCommented {
 			recipients[repo.Did] = true
 		} else if err != nil {
@@ -285,7 +285,7 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.P
 			PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 		}
 
-		err = n.db.CreateNotification(ctx, notification)
+		err = db.CreateNotification(n.db, notification)
 		if err != nil {
 			log.Printf("NewPullComment: failed to create notification for %s: %v", recipientDid, err)
 		}
@@ -322,7 +322,7 @@ func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Iss
 	}
 
 	// Check if user wants these notifications
-	prefs, err := n.db.GetNotificationPreferences(ctx, repo.Did)
+	prefs, err := db.GetNotificationPreference(n.db, repo.Did)
 	if err != nil {
 		log.Printf("NewIssueClosed: failed to get notification preferences for %s: %v", repo.Did, err)
 		return
@@ -341,7 +341,7 @@ func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Iss
 		IssueId:      &issue.Id,
 	}
 
-	err = n.db.CreateNotification(ctx, notification)
+	err = db.CreateNotification(n.db, notification)
 	if err != nil {
 		log.Printf("NewIssueClosed: failed to create notification: %v", err)
 		return
@@ -362,7 +362,7 @@ func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull)
 	}
 
 	// Check if user wants these notifications
-	prefs, err := n.db.GetNotificationPreferences(ctx, pull.OwnerDid)
+	prefs, err := db.GetNotificationPreference(n.db, pull.OwnerDid)
 	if err != nil {
 		log.Printf("NewPullMerged: failed to get notification preferences for %s: %v", pull.OwnerDid, err)
 		return
@@ -381,7 +381,7 @@ func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull)
 		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 	}
 
-	err = n.db.CreateNotification(ctx, notification)
+	err = db.CreateNotification(n.db, notification)
 	if err != nil {
 		log.Printf("NewPullMerged: failed to create notification: %v", err)
 		return
@@ -402,7 +402,7 @@ func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *models.Pull)
 	}
 
 	// Check if user wants these notifications - reuse pull_merged preference for now
-	prefs, err := n.db.GetNotificationPreferences(ctx, pull.OwnerDid)
+	prefs, err := db.GetNotificationPreference(n.db, pull.OwnerDid)
 	if err != nil {
 		log.Printf("NewPullClosed: failed to get notification preferences for %s: %v", pull.OwnerDid, err)
 		return
@@ -421,7 +421,7 @@ func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *models.Pull)
 		PullId:       func() *int64 { id := int64(pull.ID); return &id }(),
 	}
 
-	err = n.db.CreateNotification(ctx, notification)
+	err = db.CreateNotification(n.db, notification)
 	if err != nil {
 		log.Printf("NewPullClosed: failed to create notification: %v", err)
 		return

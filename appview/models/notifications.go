@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
 type NotificationType string
@@ -69,7 +71,7 @@ type NotificationWithEntity struct {
 
 type NotificationPreferences struct {
 	ID                 int64
-	UserDid            string
+	UserDid            syntax.DID
 	RepoStarred        bool
 	IssueCreated       bool
 	IssueCommented     bool
@@ -79,4 +81,18 @@ type NotificationPreferences struct {
 	PullMerged         bool
 	IssueClosed        bool
 	EmailNotifications bool
+}
+func DefaultNotificationPreferences(user syntax.DID) *NotificationPreferences {
+	return &NotificationPreferences{
+		UserDid:            user,
+		RepoStarred:        true,
+		IssueCreated:       true,
+		IssueCommented:     true,
+		PullCreated:        true,
+		PullCommented:      true,
+		Followed:           true,
+		PullMerged:         true,
+		IssueClosed:        true,
+		EmailNotifications: false,
+	}
 }
