@@ -22,6 +22,7 @@ import (
 	"tangled.org/core/tid"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
@@ -91,7 +92,7 @@ func (s *Settings) notificationsSettings(w http.ResponseWriter, r *http.Request)
 	user := s.OAuth.GetUser(r)
 	did := s.OAuth.GetDid(r)
 
-	prefs, err := s.Db.GetNotificationPreferences(r.Context(), did)
+	prefs, err := db.GetNotificationPreference(s.Db, did)
 	if err != nil {
 		log.Printf("failed to get notification preferences: %s", err)
 		s.Pages.Notice(w, "settings-notifications-error", "Unable to load notification preferences.")
@@ -110,7 +111,7 @@ func (s *Settings) updateNotificationPreferences(w http.ResponseWriter, r *http.
 	did := s.OAuth.GetDid(r)
 
 	prefs := &models.NotificationPreferences{
-		UserDid:            did,
+		UserDid:            syntax.DID(did),
 		RepoStarred:        r.FormValue("repo_starred") == "on",
 		IssueCreated:       r.FormValue("issue_created") == "on",
 		IssueCommented:     r.FormValue("issue_commented") == "on",

@@ -67,7 +67,6 @@ func GetArtifact(e Execer, filters ...filter) ([]models.Artifact, error) {
 	)
 
 	rows, err := e.Query(query, args...)
-
 	if err != nil {
 		return nil, err
 	}
