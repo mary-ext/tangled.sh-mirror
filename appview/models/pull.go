@@ -88,7 +88,7 @@ func (p Pull) AsRecord() tangled.RepoPull {
 		source.Branch = p.PullSource.Branch
 		source.Sha = p.LatestSha()
 		if p.PullSource.RepoAt != nil {
-			s := p.PullSource.Repo.RepoAt().String()
+			s := p.PullSource.RepoAt.String()
 			source.Repo = &s
 		}
 	}
