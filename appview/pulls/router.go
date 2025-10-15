@@ -23,6 +23,7 @@ func (s *Pulls) Router(mw *middleware.Middleware) http.Handler {
 	r.Route("/{pull}", func(r chi.Router) {
 		r.Use(mw.ResolvePull())
 		r.Get("/", s.RepoSinglePull)
+		r.Get("/opengraph", s.PullOpenGraphSummary)
 
 		r.Route("/round/{round}", func(r chi.Router) {
 			r.Get("/", s.RepoPullPatch)
