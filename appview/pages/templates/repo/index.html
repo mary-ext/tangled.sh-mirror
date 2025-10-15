@@ -5,6 +5,42 @@
     {{ template "repo/fragments/meta" . }}
 
     {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo) }}
+    
+    <!-- Structured Data for Repository -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      "name": "{{ .RepoInfo.Name }}",
+      "description": "{{ .RepoInfo.Description }}",
+      "codeRepository": "https://tangled.org/{{ .RepoInfo.FullName }}",
+      "programmingLanguage": {{ if .Languages }}{{ range $idx, $lang := .Languages }}{{ if eq $idx 0 }}"{{ $lang.Name }}"{{ end }}{{ end }}{{ else }}"Unknown"{{ end }},
+      "url": "https://tangled.org/{{ .RepoInfo.FullName }}",
+      "author": {
+        "@type": "Person",
+        "name": "{{ .RepoInfo.OwnerWithAt }}",
+        "url": "https://tangled.org/{{ .RepoInfo.OwnerWithAt }}"
+      }{{ if .RepoInfo.Source }},
+      "isBasedOn": {
+        "@type": "SoftwareSourceCode",
+        "name": "{{ .RepoInfo.Source.Name }}",
+        "url": "https://tangled.org/{{ didOrHandle .RepoInfo.Source.Did .RepoInfo.SourceHandle }}/{{ .RepoInfo.Source.Name }}"
+      }{{ end }}
+    }
+    </script>
+    
+    <!-- Breadcrumb Navigation -->
+    {{ template "fragments/breadcrumb" (list
+        (list "Home" "https://tangled.org")
+        (list .RepoInfo.OwnerWithAt (printf "https://tangled.org/%s" .RepoInfo.OwnerWithAt))
+        (list .RepoInfo.Name (printf "https://tangled.org/%s" .RepoInfo.FullName))
+    ) }}
+{{ end }}
+
+{{ define "canonical" }}https://tangled.org/{{ .RepoInfo.FullName }}{{ end }}
+
+{{ define "rss" }}
+    <link rel="alternate" type="application/atom+xml" title="{{ .RepoInfo.FullName }} Activity Feed" href="https://tangled.org/{{ .RepoInfo.FullName }}/feed.atom" />
 {{ end }}
 
 {{ define "repoContent" }}

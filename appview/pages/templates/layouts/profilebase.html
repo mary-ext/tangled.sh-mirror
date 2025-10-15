@@ -9,11 +9,30 @@
     <meta property="og:image" content="{{ $avatarUrl }}" />
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
-    
+
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
     <meta name="twitter:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
     <meta name="twitter:image" content="{{ $avatarUrl }}" />
+
+    <!-- structured data for user profile -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "{{ or .Card.Profile.DisplayName .Card.UserHandle .Card.UserDid }}",
+      "url": "https://tangled.org/{{ or .Card.UserHandle .Card.UserDid }}",
+      "image": "{{ $avatarUrl }}",
+      "description": "{{ .Card.Profile.Description }}"{{ if .Card.UserHandle }},
+      "identifier": "{{ .Card.UserHandle }}"{{ end }}
+    }
+    </script>
+{{ end }}
+
+{{ define "canonical" }}https://tangled.org/{{ or .Card.UserHandle .Card.UserDid }}{{ end }}
+
+{{ define "rss" }}
+    <link rel="alternate" type="application/atom+xml" title="{{ or .Card.UserHandle .Card.UserDid }} Activity Feed" href="https://tangled.org/{{ or .Card.UserHandle .Card.UserDid }}/feed.atom" />
 {{ end }}
 
 {{ define "content" }}

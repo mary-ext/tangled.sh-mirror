@@ -1,11 +1,36 @@
 {{ define "title" }}good first issues{{ end }}
 
 {{ define "extrameta" }}
+    <meta name="description" content="Discover beginner-friendly good first issues across open source projects on Tangled. Perfect for new contributors looking to get started with open source development." />
+    <meta name="keywords" content="good first issues, beginner issues, open source contribution, first time contributor, beginner friendly, open source projects" />
+
     <meta property="og:title" content="good first issues · tangled" />
-    <meta property="og:type" content="object" />
+    <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tangled.org/goodfirstissues" />
-    <meta property="og:description" content="Find good first issues to contribute to open source projects" />
+    <meta property="og:description" content="Find beginner-friendly issues across all repositories to get started with open source contributions on Tangled." />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="good first issues · tangled" />
+    <meta name="twitter:description" content="Find beginner-friendly issues to get started with open source contributions." />
+
+    <!-- structured data for good first issues page -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "Good First Issues",
+      "description": "A curated collection of beginner-friendly issues across open source projects",
+      "url": "https://tangled.org/goodfirstissues",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Tangled",
+        "url": "https://tangled.org"
+      }
+    }
+    </script>
 {{ end }}
+
+{{ define "canonical" }}https://tangled.org/goodfirstissues{{ end }}
 
 {{ define "content" }}
 <div class="grid grid-cols-10">

@@ -1,11 +1,57 @@
 {{ define "title" }}tangled &middot; tightly-knit social coding{{ end }}
 
 {{ define "extrameta" }}
-    <meta property="og:title" content="timeline · tangled" />
-    <meta property="og:type" content="object" />
+    {{ $desc := "Collaborate on code with decentralized git hosting, modern contribution and review workflows, and lightweight CI/CD pipelines." }}
+    {{ $title = "tangled · tightly-knit social coding" }}
+
+    <meta name="description" content="{{ $desc }}" />
+    <meta property="og:title" content="{{ $title }}" />
+    <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tangled.org" />
-    <meta property="og:description" content="tightly-knit social coding" />
+    <meta property="og:description" content="Decentralized git hosting with improved pull requests and lightweight CI/CD. Host repositories on your own infrastructure." />
+    <meta property="og:image" content="https://assets.tangled.network/tangled_og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ $title }}" />
+    <meta name="twitter:description" content="{{ $desc }}" />
+    <meta name="twitter:image" content="https://assets.tangled.network/tangled_og.png" />
+
+    <!-- Enhanced Structured Data for Homepage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Tangled",
+      "alternateName": "Tangled",
+      "url": "https://tangled.org",
+      "description": "{{ $desc }}",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://tangled.org/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Tangled",
+      "applicationCategory": "DeveloperTool",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "operatingSystem": "Web",
+      "description": "{{ $desc }}"
+    }
+    </script>
 {{ end }}
+
+{{ define "canonical" }}https://tangled.org{{ end }}
 
 
 {{ define "content" }}

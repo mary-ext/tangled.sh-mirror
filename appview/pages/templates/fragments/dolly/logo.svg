@@ -1,8 +1,6 @@
-{{ define "fragments/dolly/logo" }}
 <svg
    version="1.1"
    id="svg1"
-   class="{{.}}"
    width="25"
    height="25"
    viewBox="0 0 25 25"
@@ -44,4 +42,3 @@
        id="path4" />
   </g>
 </svg>
-{{ end }}

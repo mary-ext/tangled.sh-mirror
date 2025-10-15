@@ -205,8 +205,61 @@ func (s *State) RobotsTxt(w http.ResponseWriter, r *http.Request) {
 
 	robotsTxt := `User-agent: *
 Allow: /
+Disallow: /settings
+Disallow: /notifications
+Disallow: /login
+Disallow: /logout
+Disallow: /signup
+Disallow: /oauth
+Disallow: */settings$
+Disallow: */settings/*
+
+Crawl-delay: 1
+
+Sitemap: https://tangled.org/sitemap.xml
 `
 	w.Write([]byte(robotsTxt))
+}
+
+func (s *State) Sitemap(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+
+	// basic sitemap with static pages
+	sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://tangled.org</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://tangled.org/timeline</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://tangled.org/goodfirstissues</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tangled.org/terms</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://tangled.org/privacy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://tangled.org/brand</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>`
+	w.Write([]byte(sitemap))
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest

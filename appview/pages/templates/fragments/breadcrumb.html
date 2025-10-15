@@ -1,0 +1,22 @@
+{{ define "fragments/breadcrumb" }}
+    {{ $items := . }}
+    {{ if gt (len $items) 0 }}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {{ range $idx, $item := $items }}
+        {{ if gt $idx 0 }},{{ end }}
+        {
+          "@type": "ListItem",
+          "position": {{ add $idx 1 }},
+          "name": "{{ index $item 0 }}",
+          "item": "{{ index $item 1 }}"
+        }
+        {{ end }}
+      ]
+    }
+    </script>
+    {{ end }}
+{{ end }}

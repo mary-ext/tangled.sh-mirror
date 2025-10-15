@@ -4,8 +4,13 @@
         <head>
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-            <meta name="description" content="Social coding, but for real this time!"/>
+            <meta name="description" content="tightly-knit social coding"/>
+            <meta name="keywords" content="git hosting, social coding, version control, pull requests, CI/CD, code collaboration, open source, decentralized"/>
             <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
+            <meta name="author" content="Tangled"/>
+
+            <!-- Canonical URL -->
+            <link rel="canonical" href="{{ block "canonical" . }}https://tangled.org{{ .Request.URL.Path }}{{ end }}" />
 
             <script defer src="/static/htmx.min.js"></script>
             <script defer src="/static/htmx-ext-ws.min.js"></script>
@@ -14,6 +19,9 @@
             <link rel="preconnect" href="https://avatar.tangled.sh" />
             <link rel="preconnect" href="https://camo.tangled.sh" />
 
+            <!-- RSS Feed Discovery -->
+            {{ block "rss" . }}{{ end }}
+
             <!-- pwa manifest -->
             <link rel="manifest" href="/pwa-manifest.json" />
 
@@ -21,7 +29,23 @@
             <link rel="preload" href="/static/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
 
             <link rel="stylesheet" href="/static/tw.css?{{ cssContentHash }}" type="text/css" />
-            <title>{{ block "title" . }}{{ end }} · tangled</title>
+            <title>{{ block "title" . }}{{ end }}</title>
+
+            <!-- Structured Data -->
+            {{ block "structuredData" . }}
+            <script type="application/ld+json">
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Tangled",
+              "url": "https://tangled.org",
+              "logo": "https://tangled.org/favicon.svg",
+              "description": "tightly-knit social coding",
+              "sameAs": []
+            }
+            </script>
+            {{ end }}
+
             {{ block "extrameta" . }}{{ end }}
         </head>
         <body class="min-h-screen flex flex-col gap-4 bg-slate-100 dark:bg-gray-900 dark:text-white transition-colors duration-200">
