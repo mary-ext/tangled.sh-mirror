@@ -23,6 +23,7 @@ import (
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/appview/reporesolver"
+	"tangled.org/core/appview/validator"
 	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/idresolver"
 	"tangled.org/core/patchutil"
@@ -47,6 +48,7 @@ type Pulls struct {
 	notifier     notify.Notifier
 	enforcer     *rbac.Enforcer
 	logger       *slog.Logger
+	validator    *validator.Validator
 }
 
 func New(
@@ -58,6 +60,7 @@ func New(
 	config *config.Config,
 	notifier notify.Notifier,
 	enforcer *rbac.Enforcer,
+	validator *validator.Validator,
 	logger *slog.Logger,
 ) *Pulls {
 	return &Pulls{
@@ -70,6 +73,7 @@ func New(
 		notifier:     notifier,
 		enforcer:     enforcer,
 		logger:       logger,
+		validator:    validator,
 	}
 }
 
@@ -965,7 +969,8 @@ func (s *Pulls) handleBranchBasedPull(
 	patch := comparison.FormatPatchRaw
 	combined := comparison.CombinedPatchRaw
 
-	if !patchutil.IsPatchValid(patch) {
+	if err := s.validator.ValidatePatch(&patch); err != nil {
+		s.logger.Error("failed to validate patch", "err", err)
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
@@ -982,7 +987,8 @@ func (s *Pulls) handleBranchBasedPull(
 }
 
 func (s *Pulls) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, title, body, targetBranch, patch string, isStacked bool) {
-	if !patchutil.IsPatchValid(patch) {
+	if err := s.validator.ValidatePatch(&patch); err != nil {
+		s.logger.Error("patch validation failed", "err", err)
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
@@ -1073,7 +1079,8 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 	patch := comparison.FormatPatchRaw
 	combined := comparison.CombinedPatchRaw
 
-	if !patchutil.IsPatchValid(patch) {
+	if err := s.validator.ValidatePatch(&patch); err != nil {
+		s.logger.Error("failed to validate patch", "err", err)
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
@@ -1337,7 +1344,8 @@ func (s *Pulls) ValidatePatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if patch == "" || !patchutil.IsPatchValid(patch) {
+	if err := s.validator.ValidatePatch(&patch); err != nil {
+		s.logger.Error("faield to validate patch", "err", err)
 		s.pages.Notice(w, "patch-error", "Invalid patch format. Please provide a valid git diff or format-patch.")
 		return
 	}
@@ -1754,23 +1762,6 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	s.resubmitPullHelper(w, r, f, user, pull, patch, combined, sourceRev)
 }
 
-// validate a resubmission against a pull request
-func validateResubmittedPatch(pull *models.Pull, patch string) error {
-	if patch == "" {
-		return fmt.Errorf("Patch is empty.")
-	}
-
-	if patch == pull.LatestPatch() {
-		return fmt.Errorf("Patch is identical to previous submission.")
-	}
-
-	if !patchutil.IsPatchValid(patch) {
-		return fmt.Errorf("Invalid patch format. Please provide a valid diff.")
-	}
-
-	return nil
-}
-
 func (s *Pulls) resubmitPullHelper(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -1787,8 +1778,13 @@ func (s *Pulls) resubmitPullHelper(
 		return
 	}
 
-	if err := validateResubmittedPatch(pull, patch); err != nil {
+	if err := s.validator.ValidatePatch(&patch); err != nil {
 		s.pages.Notice(w, "resubmit-error", err.Error())
+		return
+	}
+
+	if patch == pull.LatestPatch() {
+		s.pages.Notice(w, "resubmit-error", "Patch is identical to previous submission.")
 		return
 	}
 

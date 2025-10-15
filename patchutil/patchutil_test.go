@@ -1,6 +1,7 @@
 package patchutil
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -9,17 +10,17 @@ func TestIsPatchValid(t *testing.T) {
 	tests := []struct {
 		name     string
 		patch    string
-		expected bool
+		expected error
 	}{
 		{
 			name:     `empty patch`,
 			patch:    ``,
-			expected: false,
+			expected: EmptyPatchError,
 		},
 		{
 			name:     `single line patch`,
 			patch:    `single line`,
-			expected: false,
+			expected: EmptyPatchError,
 		},
 		{
 			name: `valid diff patch`,
@@ -31,7 +32,7 @@ index abc..def 100644
 -old line
 +new line
 	context`,
-			expected: true,
+			expected: nil,
 		},
 		{
 			name: `valid patch starting with ---`,
@@ -41,7 +42,7 @@ index abc..def 100644
 -old line
 +new line
 	context`,
-			expected: true,
+			expected: nil,
 		},
 		{
 			name: `valid patch starting with Index`,
@@ -53,7 +54,7 @@ index abc..def 100644
 -old line
 +new line
 	context`,
-			expected: true,
+			expected: nil,
 		},
 		{
 			name: `valid patch starting with +++`,
@@ -63,7 +64,7 @@ index abc..def 100644
 -old line
 +new line
 	context`,
-			expected: true,
+			expected: nil,
 		},
 		{
 			name: `valid patch starting with @@`,
@@ -72,7 +73,7 @@ index abc..def 100644
 +new line
 	context
 `,
-			expected: true,
+			expected: nil,
 		},
 		{
 			name: `valid format patch`,
@@ -90,14 +91,14 @@ index 123456..789012 100644
 +new content
 --
 2.48.1`,
-			expected: true,
+			expected: nil,
 		},
 		{
 			name: `invalid format patch`,
 			patch: `From 1234567890123456789012345678901234567890 Mon Sep 17 00:00:00 2001
 From: Author <author@example.com>
 This is not a valid patch format`,
-			expected: false,
+			expected: FormatPatchError,
 		},
 		{
 			name: `not a patch at all`,
@@ -105,14 +106,14 @@ This is not a valid patch format`,
 just some
 random text
 that isn't a patch`,
-			expected: false,
+			expected: GenericPatchError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := IsPatchValid(tt.patch)
-			if result != tt.expected {
+			if !errors.Is(result, tt.expected) {
 				t.Errorf("IsPatchValid() = %v, want %v", result, tt.expected)
 			}
 		})

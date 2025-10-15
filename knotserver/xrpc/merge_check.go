@@ -81,6 +81,8 @@ func (x *Xrpc) MergeCheck(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	l.Debug("merge check response", "isConflicted", response.Is_conflicted, "err", response.Error, "conflicts", response.Conflicts)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)

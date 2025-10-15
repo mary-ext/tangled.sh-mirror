@@ -277,6 +277,7 @@ func (s *State) PullsRouter(mw *middleware.Middleware) http.Handler {
 		s.config,
 		s.notifier,
 		s.enforcer,
+		s.validator,
 		log.SubLogger(s.logger, "pulls"),
 	)
 	return pulls.Router(mw)

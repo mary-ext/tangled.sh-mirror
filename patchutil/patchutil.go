@@ -1,6 +1,7 @@
 package patchutil
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -42,14 +43,20 @@ func ExtractPatches(formatPatch string) ([]types.FormatPatch, error) {
 // IsPatchValid checks if the given patch string is valid.
 // It performs very basic sniffing for either git-diff or git-format-patch
 // header lines. For format patches, it attempts to extract and validate each one.
-func IsPatchValid(patch string) bool {
+var (
+	EmptyPatchError   error = errors.New("patch is empty")
+	GenericPatchError error = errors.New("patch is invalid")
+	FormatPatchError  error = errors.New("patch is not a valid format-patch")
+)
+
+func IsPatchValid(patch string) error {
 	if len(patch) == 0 {
-		return false
+		return EmptyPatchError
 	}
 
 	lines := strings.Split(patch, "\n")
 	if len(lines) < 2 {
-		return false
+		return EmptyPatchError
 	}
 
 	firstLine := strings.TrimSpace(lines[0])
@@ -60,7 +67,7 @@ func IsPatchValid(patch string) bool {
 		strings.HasPrefix(firstLine, "Index: ") ||
 		strings.HasPrefix(firstLine, "+++ ") ||
 		strings.HasPrefix(firstLine, "@@ ") {
-		return true
+		return nil
 	}
 
 	// check if it's format-patch
@@ -70,12 +77,16 @@ func IsPatchValid(patch string) bool {
 		// it's safe to say it's broken.
 		patches, err := ExtractPatches(patch)
 		if err != nil {
-			return false
+			return fmt.Errorf("%w: %w", FormatPatchError, err)
 		}
-		return len(patches) > 0
+		if len(patches) == 0 {
+			return EmptyPatchError
+		}
+
+		return nil
 	}
 
-	return false
+	return GenericPatchError
 }
 
 func IsFormatPatch(patch string) bool {
