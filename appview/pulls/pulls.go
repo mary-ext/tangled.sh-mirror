@@ -1695,32 +1695,6 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// extract patch by performing compare
-	forkScheme := "http"
-	if !s.config.Core.Dev {
-		forkScheme = "https"
-	}
-	forkHost := fmt.Sprintf("%s://%s", forkScheme, forkRepo.Knot)
-	forkRepoId := fmt.Sprintf("%s/%s", forkRepo.Did, forkRepo.Name)
-	forkXrpcBytes, err := tangled.RepoCompare(r.Context(), &indigoxrpc.Client{Host: forkHost}, forkRepoId, pull.TargetBranch, pull.PullSource.Branch)
-	if err != nil {
-		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
-			log.Println("failed to call XRPC repo.compare for fork", xrpcerr)
-			s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-			return
-		}
-		log.Printf("failed to compare branches: %s", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-
-	var forkComparison types.RepoFormatPatchResponse
-	if err := json.Unmarshal(forkXrpcBytes, &forkComparison); err != nil {
-		log.Println("failed to decode XRPC compare response for fork", err)
-		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
-		return
-	}
-
 	// update the hidden tracking branch to latest
 	client, err := s.oauth.ServiceClient(
 		r,
@@ -1749,6 +1723,33 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	if !resp.Success {
 		log.Println("Failed to update tracking ref.", "err", resp.Error)
 		s.pages.Notice(w, "resubmit-error", "Failed to update tracking ref.")
+		return
+	}
+
+	hiddenRef := fmt.Sprintf("hidden/%s/%s", pull.PullSource.Branch, pull.TargetBranch)
+	// extract patch by performing compare
+	forkScheme := "http"
+	if !s.config.Core.Dev {
+		forkScheme = "https"
+	}
+	forkHost := fmt.Sprintf("%s://%s", forkScheme, forkRepo.Knot)
+	forkRepoId := fmt.Sprintf("%s/%s", forkRepo.Did, forkRepo.Name)
+	forkXrpcBytes, err := tangled.RepoCompare(r.Context(), &indigoxrpc.Client{Host: forkHost}, forkRepoId, hiddenRef, pull.PullSource.Branch)
+	if err != nil {
+		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
+			log.Println("failed to call XRPC repo.compare for fork", xrpcerr)
+			s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+			return
+		}
+		log.Printf("failed to compare branches: %s", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
+		return
+	}
+
+	var forkComparison types.RepoFormatPatchResponse
+	if err := json.Unmarshal(forkXrpcBytes, &forkComparison); err != nil {
+		log.Println("failed to decode XRPC compare response for fork", err)
+		s.pages.Notice(w, "resubmit-error", "Failed to create pull request. Try again later.")
 		return
 	}
 
