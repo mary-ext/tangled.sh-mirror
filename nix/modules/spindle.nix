@@ -33,7 +33,7 @@ in
 
           hostname = mkOption {
             type = types.str;
-            example = "spindle.tangled.sh";
+            example = "my.spindle.com";
             description = "Hostname for the server (required)";
           };
 
@@ -92,7 +92,7 @@ in
         pipelines = {
           nixery = mkOption {
             type = types.str;
-            default = "nixery.tangled.sh";
+            default = "nixery.tangled.sh"; # note: this is *not* on tangled.org yet
             description = "Nixery instance to use";
           };
 

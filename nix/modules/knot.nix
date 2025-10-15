@@ -22,7 +22,7 @@ in
 
         appviewEndpoint = mkOption {
           type = types.str;
-          default = "https://tangled.sh";
+          default = "https://tangled.org";
           description = "Appview endpoint";
         };
 
@@ -107,7 +107,7 @@ in
 
           hostname = mkOption {
             type = types.str;
-            example = "knot.tangled.sh";
+            example = "my.knot.com";
             description = "Hostname for the server (required)";
           };
 
