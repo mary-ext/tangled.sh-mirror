@@ -247,26 +247,6 @@ func GetIssues(e Execer, filters ...filter) ([]models.Issue, error) {
 	return GetIssuesPaginated(e, pagination.FirstPage(), filters...)
 }
 
-func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*models.Issue, error) {
-	query := `select id, owner_did, rkey, created, title, body, open from issues where repo_at = ? and issue_id = ?`
-	row := e.QueryRow(query, repoAt, issueId)
-
-	var issue models.Issue
-	var createdAt string
-	err := row.Scan(&issue.Id, &issue.Did, &issue.Rkey, &createdAt, &issue.Title, &issue.Body, &issue.Open)
-	if err != nil {
-		return nil, err
-	}
-
-	createdTime, err := time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		return nil, err
-	}
-	issue.Created = createdTime
-
-	return &issue, nil
-}
-
 func AddIssueComment(e Execer, c models.IssueComment) (int64, error) {
 	result, err := e.Exec(
 		`insert into issue_comments (

@@ -849,6 +849,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			Body:    r.FormValue("body"),
 			Did:     user.Did,
 			Created: time.Now(),
+			Repo:    &f.Repo,
 		}
 
 		if err := rp.validator.ValidateIssue(issue); err != nil {

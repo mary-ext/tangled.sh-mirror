@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"tangled.org/core/appview/models"
 )
@@ -58,4 +59,56 @@ func CollaboratingIn(e Execer, collaborator string) ([]models.Repo, error) {
 	}
 
 	return GetRepos(e, 0, FilterIn("at_uri", repoAts))
+}
+
+func GetCollaborators(e Execer, filters ...filter) ([]models.Collaborator, error) {
+	var collaborators []models.Collaborator
+	var conditions []string
+	var args []any
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+	query := fmt.Sprintf(`select
+			id,
+			did,
+			rkey,
+			subject_did,
+			repo_at,
+			created
+		from collaborators %s`,
+		whereClause,
+	)
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var collaborator models.Collaborator
+		var createdAt string
+		if err := rows.Scan(
+			&collaborator.Id,
+			&collaborator.Did,
+			&collaborator.Rkey,
+			&collaborator.SubjectDid,
+			&collaborator.RepoAt,
+			&createdAt,
+		); err != nil {
+			return nil, err
+		}
+		collaborator.Created, err = time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			collaborator.Created = time.Now()
+		}
+		collaborators = append(collaborators, collaborator)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return collaborators, nil
 }

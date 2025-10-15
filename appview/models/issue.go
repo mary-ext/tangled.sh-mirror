@@ -54,6 +54,26 @@ type CommentListItem struct {
 	Replies []*IssueComment
 }
 
+func (it *CommentListItem) Participants() []syntax.DID {
+	participantSet := make(map[syntax.DID]struct{})
+	participants := []syntax.DID{}
+
+	addParticipant := func(did syntax.DID) {
+		if _, exists := participantSet[did]; !exists {
+			participantSet[did] = struct{}{}
+			participants = append(participants, did)
+		}
+	}
+
+	addParticipant(syntax.DID(it.Self.Did))
+
+	for _, c := range it.Replies {
+		addParticipant(syntax.DID(c.Did))
+	}
+
+	return participants
+}
+
 func (i *Issue) CommentList() []CommentListItem {
 	// Create a map to quickly find comments by their aturi
 	toplevel := make(map[string]*CommentListItem)
@@ -167,6 +187,10 @@ func (i *IssueComment) AsRecord() tangled.RepoIssueComment {
 
 func (i *IssueComment) IsTopLevel() bool {
 	return i.ReplyTo == nil
+}
+
+func (i *IssueComment) IsReply() bool {
+	return i.ReplyTo != nil
 }
 
 func IssueCommentFromRecord(did, rkey string, record tangled.RepoIssueComment) (*IssueComment, error) {
