@@ -17,6 +17,7 @@ import (
 	"github.com/urfave/cli/v3"
 	"tangled.org/core/idresolver"
 	"tangled.org/core/log"
+	"tangled.org/core/knotserver/config"
 )
 
 func Command() *cli.Command {
@@ -56,6 +57,11 @@ func Command() *cli.Command {
 
 func Run(ctx context.Context, cmd *cli.Command) error {
 	l := log.FromContext(ctx)
+
+	c, err := config.Load(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
 
 	incomingUser := cmd.String("user")
 	gitDir := cmd.String("git-dir")
@@ -122,7 +128,7 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	didOrHandle := components[0]
-	identity := resolveIdentity(ctx, l, didOrHandle)
+	identity := resolveIdentity(ctx, c, l, didOrHandle)
 	did := identity.DID.String()
 	repoName := components[1]
 	qualifiedRepoName, _ := securejoin.SecureJoin(did, repoName)
@@ -195,8 +201,8 @@ func Run(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func resolveIdentity(ctx context.Context, l *slog.Logger, didOrHandle string) *identity.Identity {
-	resolver := idresolver.DefaultResolver()
+func resolveIdentity(ctx context.Context, c *config.Config, l *slog.Logger, didOrHandle string) *identity.Identity {
+	resolver := idresolver.DefaultResolver(c.Server.PlcUrl)
 	ident, err := resolver.ResolveIdent(ctx, didOrHandle)
 	if err != nil {
 		l.Error("Error resolving handle", "error", err, "handle", didOrHandle)

@@ -9,7 +9,6 @@ import (
 
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/eventconsumer"
-	"tangled.org/core/idresolver"
 	"tangled.org/core/rbac"
 	"tangled.org/core/spindle/db"
 
@@ -142,7 +141,6 @@ func (s *Spindle) ingestMember(_ context.Context, e *models.Event) error {
 func (s *Spindle) ingestRepo(ctx context.Context, e *models.Event) error {
 	var err error
 	did := e.Did
-	resolver := idresolver.DefaultResolver()
 
 	l := s.l.With("component", "ingester", "record", tangled.RepoNSID)
 
@@ -190,7 +188,7 @@ func (s *Spindle) ingestRepo(ctx context.Context, e *models.Event) error {
 		}
 
 		// add collaborators to rbac
-		owner, err := resolver.ResolveIdent(ctx, did)
+		owner, err := s.res.ResolveIdent(ctx, did)
 		if err != nil || owner.Handle.IsInvalidHandle() {
 			return err
 		}
@@ -225,9 +223,7 @@ func (s *Spindle) ingestCollaborator(ctx context.Context, e *models.Event) error
 			return err
 		}
 
-		resolver := idresolver.DefaultResolver()
-
-		subjectId, err := resolver.ResolveIdent(ctx, record.Subject)
+		subjectId, err := s.res.ResolveIdent(ctx, record.Subject)
 		if err != nil || subjectId.Handle.IsInvalidHandle() {
 			return err
 		}
@@ -240,7 +236,7 @@ func (s *Spindle) ingestCollaborator(ctx context.Context, e *models.Event) error
 
 		// TODO: get rid of this entirely
 		// resolve this aturi to extract the repo record
-		owner, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
+		owner, err := s.res.ResolveIdent(ctx, repoAt.Authority().String())
 		if err != nil || owner.Handle.IsInvalidHandle() {
 			return fmt.Errorf("failed to resolve handle: %w", err)
 		}

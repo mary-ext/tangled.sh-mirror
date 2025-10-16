@@ -28,6 +28,10 @@ type OAuthConfig struct {
 	Jwks string `env:"JWKS"`
 }
 
+type PlcConfig struct {
+	PLCURL string `env:"URL, default=https://plc.directory"`
+}
+
 type JetstreamConfig struct {
 	Endpoint string `env:"ENDPOINT, default=wss://jetstream1.us-east.bsky.network/subscribe"`
 }
@@ -103,6 +107,7 @@ type Config struct {
 	Avatar        AvatarConfig    `env:",prefix=TANGLED_AVATAR_"`
 	OAuth         OAuthConfig     `env:",prefix=TANGLED_OAUTH_"`
 	Redis         RedisConfig     `env:",prefix=TANGLED_REDIS_"`
+	Plc           PlcConfig       `env:",prefix=TANGLED_PLC_"`
 	Pds           PdsConfig       `env:",prefix=TANGLED_PDS_"`
 	Cloudflare    Cloudflare      `env:",prefix=TANGLED_CLOUDFLARE_"`
 }
