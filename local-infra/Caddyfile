@@ -1,0 +1,54 @@
+{
+	storage file_system /data/
+	debug
+	pki {
+		ca localtangled {
+			name "LocalTangledCA"
+		}
+	}
+    auto_https disable_redirects
+}
+
+plc.tngl.boltless.dev {
+	tls {
+		issuer internal {
+			ca localtangled
+		}
+	}
+	reverse_proxy http://plc:8080
+}
+
+*.pds.tngl.boltless.dev, pds.tngl.boltless.dev {
+	tls {
+		issuer internal {
+			ca localtangled
+		}
+	}
+	reverse_proxy http://pds:3000
+}
+
+jetstream.tngl.boltless.dev {
+	tls {
+		issuer internal {
+			ca localtangled
+		}
+	}
+	reverse_proxy http://jetstream:6008
+}
+
+http://knot.tngl.boltless.dev {
+	reverse_proxy http://host.docker.internal:6000
+}
+
+https://knot.tngl.boltless.dev {
+	tls {
+		issuer internal {
+			ca localtangled
+		}
+	}
+	reverse_proxy http://host.docker.internal:6000
+}
+
+http://spindle.tngl.boltless.dev {
+	reverse_proxy http://host.docker.internal:6555
+}

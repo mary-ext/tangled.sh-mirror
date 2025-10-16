@@ -1,0 +1,75 @@
+name: tangled-local-infra
+services:
+  caddy:
+    container_name: caddy
+    image: caddy:2
+    depends_on:
+      - pds
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./cert/localtangled:/data/pki/authorities/localtangled
+      - caddy_data:/data
+      - caddy_config:/config
+
+  plc:
+    image: ghcr.io/bluesky-social/did-method-plc:plc-f2ab7516bac5bc0f3f86842fa94e996bd1b3815b
+    # did-method-plc only provides linux/amd64
+    platform: linux/amd64
+    container_name: plc
+    restart: unless-stopped
+    depends_on:
+      - plc_db
+    environment:
+      DEBUG_MODE: 1
+      LOG_ENABLED: "true"
+      LOG_LEVEL: "debug"
+      LOG_DESTINATION: 1
+      DB_CREDS_JSON: &DB_CREDS_JSON '{"username":"pg","password":"password","host":"plc_db","port":5432}'
+      DB_MIGRATE_CREDS_JSON: *DB_CREDS_JSON
+      PLC_VERSION: 0.0.1
+      PORT: 8080
+
+  plc_db:
+    image: postgres:14.4-alpine
+    container_name: plc_db
+    environment:
+      - POSTGRES_USER=pg
+      - POSTGRES_PASSWORD=password
+      - PGPORT=5432
+    volumes:
+      - plc:/var/lib/postgresql/data
+
+  pds:
+    container_name: pds
+    image: ghcr.io/bluesky-social/pds:0.4
+    restart: unless-stopped
+    volumes:
+      - pds:/pds
+    env_file:
+      - ./pds.env
+
+  jetstream:
+    container_name: jetstream
+    image: ghcr.io/bluesky-social/jetstream:sha-0ab10bd
+    restart: unless-stopped
+    volumes:
+      - jetstream:/data
+    environment:
+      - JETSTREAM_DATA_DIR=/data
+        # livness check interval to restart when no events are received (default: 15sec)
+      - JETSTREAM_LIVENESS_TTL=300s
+      - JETSTREAM_WS_URL=ws://pds:3000/xrpc/com.atproto.sync.subscribeRepos
+
+volumes:
+  caddy_config:
+  caddy_data:
+  plc:
+  pds:
+  jetstream:
