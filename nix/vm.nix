@@ -79,6 +79,11 @@ in
         };
         # This is fine because any and all ports that are forwarded to host are explicitly marked above, we don't need a separate guest firewall
         networking.firewall.enable = false;
+        services.dnsmasq.enable = true;
+        services.dnsmasq.settings.address = "/tngl.boltless.dev/10.0.2.2";
+        security.pki.certificates = [
+          (builtins.readFile ../local-infra/cert/localtangled/root.crt)
+        ];
         time.timeZone = "Europe/London";
         services.getty.autologinUser = "root";
         environment.systemPackages = with pkgs; [curl vim git sqlite litecli];
