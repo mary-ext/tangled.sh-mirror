@@ -192,7 +192,11 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 		var tagResp types.RepoTagsResponse
 		if err := json.Unmarshal(tagBytes, &tagResp); err == nil {
 			for _, tag := range tagResp.Tags {
-				tagMap[tag.Hash] = append(tagMap[tag.Hash], tag.Name)
+				hash := tag.Hash
+				if tag.Tag != nil {
+					hash = tag.Tag.Target.String()
+				}
+				tagMap[hash] = append(tagMap[hash], tag.Name)
 			}
 		}
 	}
