@@ -71,6 +71,10 @@ func PlainOpen(path string) (*GitRepo, error) {
 	return &g, nil
 }
 
+func (g *GitRepo) Hash() plumbing.Hash {
+	return g.h
+}
+
 // re-open a repository and update references
 func (g *GitRepo) Refresh() error {
 	refreshed, err := PlainOpen(g.path)
