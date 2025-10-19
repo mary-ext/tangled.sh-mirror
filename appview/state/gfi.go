@@ -1,13 +1,11 @@
 package state
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"sort"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
@@ -20,7 +18,7 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 
 	page := pagination.FromContext(r.Context())
 
-	goodFirstIssueLabel := fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "good-first-issue")
+	goodFirstIssueLabel := s.config.Label.GoodFirstIssue
 
 	gfiLabelDef, err := db.GetLabelDefinition(s.db, db.FilterEq("at_uri", goodFirstIssueLabel))
 	if err != nil {

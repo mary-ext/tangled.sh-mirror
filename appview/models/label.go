@@ -14,7 +14,6 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/xrpc"
 	"tangled.org/core/api/tangled"
-	"tangled.org/core/consts"
 	"tangled.org/core/idresolver"
 )
 
@@ -461,52 +460,35 @@ func ReduceLabelOps(ops []LabelOp) []LabelOp {
 	return result
 }
 
-var (
-	LabelWontfix        = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "wontfix")
-	LabelDuplicate      = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "duplicate")
-	LabelAssignee       = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "assignee")
-	LabelGoodFirstIssue = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "good-first-issue")
-	LabelDocumentation  = fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "documentation")
-)
-
-func DefaultLabelDefs() []string {
-	return []string{
-		LabelWontfix,
-		LabelDuplicate,
-		LabelAssignee,
-		LabelGoodFirstIssue,
-		LabelDocumentation,
-	}
-}
-
-func FetchDefaultDefs(r *idresolver.Resolver) ([]LabelDefinition, error) {
-	resolved, err := r.ResolveIdent(context.Background(), consts.TangledDid)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve tangled.sh DID %s: %v", consts.TangledDid, err)
-	}
-	pdsEndpoint := resolved.PDSEndpoint()
-	if pdsEndpoint == "" {
-		return nil, fmt.Errorf("no PDS endpoint found for tangled.sh DID %s", consts.TangledDid)
-	}
-	client := &xrpc.Client{
-		Host: pdsEndpoint,
-	}
-
+func FetchLabelDefs(r *idresolver.Resolver, aturis []string) ([]LabelDefinition, error) {
 	var labelDefs []LabelDefinition
+	ctx := context.Background()
 
-	for _, dl := range DefaultLabelDefs() {
-		atUri := syntax.ATURI(dl)
-		parsedUri, err := syntax.ParseATURI(string(atUri))
+	for _, dl := range aturis {
+		atUri, err := syntax.ParseATURI(dl)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse AT-URI %s: %v", atUri, err)
+			return nil, fmt.Errorf("failed to parse AT-URI %s: %v", dl, err)
 		}
+		if atUri.Collection() != tangled.LabelDefinitionNSID {
+			return nil, fmt.Errorf("expected AT-URI pointing %s collection: %s", tangled.LabelDefinitionNSID, atUri)
+		}
+
+		owner, err := r.ResolveIdent(ctx, atUri.Authority().String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve default label owner DID %s: %v", atUri.Authority(), err)
+		}
+
+		xrpcc := xrpc.Client{
+			Host: owner.PDSEndpoint(),
+		}
+
 		record, err := atproto.RepoGetRecord(
-			context.Background(),
-			client,
+			ctx,
+			&xrpcc,
 			"",
-			parsedUri.Collection().String(),
-			parsedUri.Authority().String(),
-			parsedUri.RecordKey().String(),
+			atUri.Collection().String(),
+			atUri.Authority().String(),
+			atUri.RecordKey().String(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get record for %s: %v", atUri, err)
@@ -526,8 +508,8 @@ func FetchDefaultDefs(r *idresolver.Resolver) ([]LabelDefinition, error) {
 			}
 
 			labelDef, err := LabelDefinitionFromRecord(
-				parsedUri.Authority().String(),
-				parsedUri.RecordKey().String(),
+				atUri.Authority().String(),
+				atUri.RecordKey().String(),
 				labelRecord,
 			)
 			if err != nil {

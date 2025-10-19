@@ -129,7 +129,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to create jetstream client: %w", err)
 	}
 
-	if err := BackfillDefaultDefs(d, res); err != nil {
+	if err := BackfillDefaultDefs(d, res, config.Label.DefaultLabelDefs); err != nil {
 		return nil, fmt.Errorf("failed to backfill default label defs: %w", err)
 	}
 
@@ -294,7 +294,7 @@ func (s *State) Timeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gfiLabel, err := db.GetLabelDefinition(s.db, db.FilterEq("at_uri", models.LabelGoodFirstIssue))
+	gfiLabel, err := db.GetLabelDefinition(s.db, db.FilterEq("at_uri", s.config.Label.GoodFirstIssue))
 	if err != nil {
 		// non-fatal
 	}
@@ -517,7 +517,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 			Rkey:        rkey,
 			Description: description,
 			Created:     time.Now(),
-			Labels:      models.DefaultLabelDefs(),
+			Labels:      s.config.Label.DefaultLabelDefs,
 		}
 		record := repo.AsRecord()
 
@@ -659,8 +659,7 @@ func rollbackRecord(ctx context.Context, aturi string, client *atpclient.APIClie
 	return err
 }
 
-func BackfillDefaultDefs(e db.Execer, r *idresolver.Resolver) error {
-	defaults := models.DefaultLabelDefs()
+func BackfillDefaultDefs(e db.Execer, r *idresolver.Resolver, defaults []string) error {
 	defaultLabels, err := db.GetLabelDefinitions(e, db.FilterIn("at_uri", defaults))
 	if err != nil {
 		return err
@@ -670,7 +669,7 @@ func BackfillDefaultDefs(e db.Execer, r *idresolver.Resolver) error {
 		return nil
 	}
 
-	labelDefs, err := models.FetchDefaultDefs(r)
+	labelDefs, err := models.FetchLabelDefs(r, defaults)
 	if err != nil {
 		return err
 	}

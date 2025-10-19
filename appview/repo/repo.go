@@ -1968,7 +1968,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defaultLabels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", models.DefaultLabelDefs()))
+	defaultLabels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", rp.config.Label.DefaultLabelDefs))
 	if err != nil {
 		l.Error("failed to fetch labels", "err", err)
 		rp.pages.Error503(w)
@@ -2247,7 +2247,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			Source:      sourceAt,
 			Description: f.Repo.Description,
 			Created:     time.Now(),
-			Labels:      models.DefaultLabelDefs(),
+			Labels:      rp.config.Label.DefaultLabelDefs,
 		}
 		record := repo.AsRecord()
 
