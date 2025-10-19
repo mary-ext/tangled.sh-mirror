@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
 	"time"
 
+	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/go-chi/chi/v5"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
@@ -58,15 +60,24 @@ func (o *OAuth) jwks(w http.ResponseWriter, r *http.Request) {
 
 func (o *OAuth) callback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	l := o.Logger.With("query", r.URL.Query())
 
 	sessData, err := o.ClientApp.ProcessCallback(ctx, r.URL.Query())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		var callbackErr *oauth.AuthRequestCallbackError
+		if errors.As(err, &callbackErr) {
+			l.Debug("callback error", "err", callbackErr)
+			http.Redirect(w, r, fmt.Sprintf("/login?error=%s", callbackErr.ErrorCode), http.StatusFound)
+			return
+		}
+		l.Error("failed to process callback", "err", err)
+		http.Redirect(w, r, "/login?error=oauth", http.StatusFound)
 		return
 	}
 
 	if err := o.SaveSession(w, r, sessData); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		l.Error("failed to save session", "data", sessData, "err", err)
+		http.Redirect(w, r, "/login?error=session", http.StatusFound)
 		return
 	}
 

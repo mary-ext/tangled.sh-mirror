@@ -13,7 +13,7 @@
             <title>login &middot; tangled</title>
         </head>
         <body class="flex items-center justify-center min-h-screen">
-            <main class="max-w-md px-6 -mt-4">
+            <main class="max-w-md px-7 mt-4">
                 <h1 class="flex place-content-center text-3xl font-semibold italic dark:text-white" >
                   {{ template "fragments/logotype" }}
                 </h1>
@@ -21,7 +21,7 @@
                     tightly-knit social coding.
                 </h2>
                 <form
-                    class="mt-4 max-w-sm mx-auto"
+                    class="mt-4"
                     hx-post="/login"
                     hx-swap="none"
                     hx-disabled-elt="#login-button"
@@ -56,6 +56,24 @@
                         <span>login</span>
                     </button>
                 </form>
+                {{ if .ErrorCode }}
+                <div class="flex gap-2 my-2 bg-red-50 dark:bg-red-900 border border-red-500 rounded drop-shadow-sm px-3 py-2 text-red-500 dark:text-red-300">
+                    <span class="py-1">{{ i "circle-alert" "w-4 h-4" }}</span>
+                    <div>
+                        <h5 class="font-medium">Login error</h5>
+                        <p class="text-sm">
+                        {{ if eq .ErrorCode "access_denied" }}
+                        You have not authorized the app.
+                        {{ else if eq .ErrorCode "session" }}
+                        Server failed to create user session.
+                        {{ else }}
+                        Internal Server error.
+                        {{ end }}
+                        Please try again.
+                        </p>
+                    </div>
+                </div>
+                {{ end }}
                 <p class="text-sm text-gray-500">
                   Don't have an account? <a href="/signup" class="underline">Create an account</a> on Tangled now!
                 </p>
