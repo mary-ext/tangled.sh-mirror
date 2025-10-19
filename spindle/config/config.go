@@ -13,7 +13,6 @@ type Server struct {
 	DBPath            string  `env:"DB_PATH, default=spindle.db"`
 	Hostname          string  `env:"HOSTNAME, required"`
 	JetstreamEndpoint string  `env:"JETSTREAM_ENDPOINT, default=wss://jetstream1.us-west.bsky.network/subscribe"`
-	PlcUrl            string  `env:"PLC_URL, default=plc.directory"`
 	Dev               bool    `env:"DEV, default=false"`
 	Owner             string  `env:"OWNER, required"`
 	Secrets           Secrets `env:",prefix=SECRETS_"`

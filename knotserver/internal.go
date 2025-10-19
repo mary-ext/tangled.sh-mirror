@@ -145,7 +145,7 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 
 func (h *InternalHandle) replyCompare(line git.PostReceiveLine, repoOwner string, gitRelativeDir string, repoName string, ctx context.Context) ([]string, error) {
 	l := h.l.With("handler", "replyCompare")
-	userIdent, err := idresolver.DefaultResolver(h.c.Server.PlcUrl).ResolveIdent(ctx, repoOwner)
+	userIdent, err := idresolver.DefaultResolver().ResolveIdent(ctx, repoOwner)
 	user := repoOwner
 	if err != nil {
 		l.Error("Failed to fetch user identity", "err", err)

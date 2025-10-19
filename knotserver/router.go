@@ -36,7 +36,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 		l:        log.FromContext(ctx),
 		jc:       jc,
 		n:        n,
-		resolver: idresolver.DefaultResolver(c.Server.PlcUrl),
+		resolver: idresolver.DefaultResolver(),
 	}
 
 	err := e.AddKnot(rbac.ThisServer)
