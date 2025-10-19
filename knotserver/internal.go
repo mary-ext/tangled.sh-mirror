@@ -353,7 +353,7 @@ func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer
 	r := chi.NewRouter()
 	l := log.FromContext(ctx)
 	l = log.SubLogger(l, "internal")
-	res := idresolver.DefaultResolver()
+	res := idresolver.DefaultResolver(c.Server.PlcUrl)
 
 	h := InternalHandle{
 		db,

@@ -78,10 +78,10 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		return nil, fmt.Errorf("failed to create enforcer: %w", err)
 	}
 
-	res, err := idresolver.RedisResolver(config.Redis.ToURL())
+	res, err := idresolver.RedisResolver(config.Redis.ToURL(), config.Plc.PLCURL)
 	if err != nil {
 		logger.Error("failed to create redis resolver", "err", err)
-		res = idresolver.DefaultResolver()
+		res = idresolver.DefaultResolver(config.Plc.PLCURL)
 	}
 
 	posthog, err := posthog.NewWithConfig(config.Posthog.ApiKey, posthog.Config{Endpoint: config.Posthog.Endpoint})
