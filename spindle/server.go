@@ -123,7 +123,7 @@ func Run(ctx context.Context) error {
 		jc.AddDid(d)
 	}
 
-	resolver := idresolver.DefaultResolver()
+	resolver := idresolver.DefaultResolver(cfg.Server.PlcUrl)
 
 	spindle := Spindle{
 		jc:    jc,

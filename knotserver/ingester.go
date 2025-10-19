@@ -16,7 +16,6 @@ import (
 	"github.com/bluesky-social/jetstream/pkg/models"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"tangled.org/core/api/tangled"
-	"tangled.org/core/idresolver"
 	"tangled.org/core/knotserver/db"
 	"tangled.org/core/knotserver/git"
 	"tangled.org/core/log"
@@ -120,8 +119,7 @@ func (h *Knot) processPull(ctx context.Context, event *models.Event) error {
 	}
 
 	// resolve this aturi to extract the repo record
-	resolver := idresolver.DefaultResolver()
-	ident, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
+	ident, err := h.resolver.ResolveIdent(ctx, repoAt.Authority().String())
 	if err != nil || ident.Handle.IsInvalidHandle() {
 		return fmt.Errorf("failed to resolve handle: %w", err)
 	}
@@ -233,16 +231,14 @@ func (h *Knot) processCollaborator(ctx context.Context, event *models.Event) err
 		return err
 	}
 
-	resolver := idresolver.DefaultResolver()
-
-	subjectId, err := resolver.ResolveIdent(ctx, record.Subject)
+	subjectId, err := h.resolver.ResolveIdent(ctx, record.Subject)
 	if err != nil || subjectId.Handle.IsInvalidHandle() {
 		return err
 	}
 
 	// TODO: fix this for good, we need to fetch the record here unfortunately
 	// resolve this aturi to extract the repo record
-	owner, err := resolver.ResolveIdent(ctx, repoAt.Authority().String())
+	owner, err := h.resolver.ResolveIdent(ctx, repoAt.Authority().String())
 	if err != nil || owner.Handle.IsInvalidHandle() {
 		return fmt.Errorf("failed to resolve handle: %w", err)
 	}

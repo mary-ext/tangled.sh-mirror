@@ -19,6 +19,7 @@ type Server struct {
 	InternalListenAddr string `env:"INTERNAL_LISTEN_ADDR, default=127.0.0.1:5444"`
 	DBPath             string `env:"DB_PATH, default=knotserver.db"`
 	Hostname           string `env:"HOSTNAME, required"`
+	PlcUrl             string `env:"PLC_URL, default=plc.directory"`
 	JetstreamEndpoint  string `env:"JETSTREAM_ENDPOINT, default=wss://jetstream1.us-west.bsky.network/subscribe"`
 	Owner              string `env:"OWNER, required"`
 	LogDids            bool   `env:"LOG_DIDS, default=true"`
