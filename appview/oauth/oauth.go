@@ -58,8 +58,16 @@ func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enf
 
 	sessStore := sessions.NewCookieStore([]byte(config.Core.CookieSecret))
 
+	clientApp := oauth.NewClientApp(&oauthConfig, authStore)
+	// use same plc directory from idresolver
+	clientApp.Dir = res.Directory()
+	// allow non-public transports in dev mode
+	if config.Core.Dev {
+		clientApp.Resolver.Client.Transport = http.DefaultTransport
+	}
+
 	return &OAuth{
-		ClientApp:  oauth.NewClientApp(&oauthConfig, authStore),
+		ClientApp:  clientApp,
 		Config:     config,
 		SessStore:  sessStore,
 		JwksUri:    jwksUri,
