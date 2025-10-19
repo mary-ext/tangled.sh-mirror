@@ -220,7 +220,8 @@ func (p *Pages) Favicon(w io.Writer) error {
 }
 
 type LoginParams struct {
-	ReturnUrl string
+	ReturnUrl  string
+	ErrorCode  string
 }
 
 func (p *Pages) Login(w io.Writer, params LoginParams) error {

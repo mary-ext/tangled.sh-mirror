@@ -14,8 +14,10 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		returnURL := r.URL.Query().Get("return_url")
+		errorCode := r.URL.Query().Get("error")
 		s.pages.Login(w, pages.LoginParams{
 			ReturnUrl: returnURL,
+			ErrorCode: errorCode,
 		})
 	case http.MethodPost:
 		handle := r.FormValue("handle")
