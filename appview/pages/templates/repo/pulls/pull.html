@@ -3,10 +3,7 @@
 {{ end }}
 
 {{ define "extrameta" }}
-    {{ $title := printf "%s &middot; pull #%d &middot; %s" .Pull.Title .Pull.PullId .RepoInfo.FullName }}
-    {{ $url := printf "https://tangled.org/%s/pulls/%d" .RepoInfo.FullName .Pull.PullId }}
-
-    {{ template "repo/fragments/og" (dict "RepoInfo" .RepoInfo "Title" $title "Url" $url) }}
+  {{ template "repo/pulls/fragments/og" (dict "RepoInfo" .RepoInfo "Pull" .Pull) }}
 {{ end }}
 
 {{ define "repoContentLayout" }}

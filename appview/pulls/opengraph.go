@@ -214,34 +214,22 @@ func (s *Pulls) drawPullSummaryCard(pull *models.Pull, repo *models.Repo, commen
 	}
 
 	filesTextWidth := len(filesText) * 20
-	currentX += filesTextWidth + 40
+	currentX += filesTextWidth
 
 	// Draw additions (green +)
 	greenColor := color.RGBA{34, 139, 34, 255}
-	err = statusStatsArea.DrawSVGIcon("static/icons/plus.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, greenColor)
-	if err != nil {
-		log.Printf("failed to draw plus icon: %v", err)
-	}
-
-	currentX += iconSize + 15
-	additionsText := fmt.Sprintf("%d", diffStats.Insertions)
+	additionsText := fmt.Sprintf("+%d", diffStats.Insertions)
 	err = statusStatsArea.DrawTextAt(additionsText, currentX, statsY+iconBaselineOffset, greenColor, textSize, ogcard.Middle, ogcard.Left)
 	if err != nil {
 		log.Printf("failed to draw additions text: %v", err)
 	}
 
 	additionsTextWidth := len(additionsText) * 20
-	currentX += additionsTextWidth + 15
+	currentX += additionsTextWidth + 30
 
 	// Draw deletions (red -) right next to additions
 	redColor := color.RGBA{220, 20, 60, 255}
-	err = statusStatsArea.DrawSVGIcon("static/icons/minus.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, redColor)
-	if err != nil {
-		log.Printf("failed to draw minus icon: %v", err)
-	}
-
-	currentX += iconSize + 15
-	deletionsText := fmt.Sprintf("%d", diffStats.Deletions)
+	deletionsText := fmt.Sprintf("-%d", diffStats.Deletions)
 	err = statusStatsArea.DrawTextAt(deletionsText, currentX, statsY+iconBaselineOffset, redColor, textSize, ogcard.Middle, ogcard.Left)
 	if err != nil {
 		log.Printf("failed to draw deletions text: %v", err)

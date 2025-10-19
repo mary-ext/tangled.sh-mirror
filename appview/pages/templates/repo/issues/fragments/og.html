@@ -1,4 +1,4 @@
-{{ define "issues/fragments/og" }}
+{{ define "repo/issues/fragments/og" }}
     {{ $title := printf "%s #%d" .Issue.Title .Issue.IssueId }}
     {{ $description := or .Issue.Body .RepoInfo.Description }}
     {{ $url := printf "https://tangled.org/%s/issues/%d" .RepoInfo.FullName .Issue.IssueId }}
