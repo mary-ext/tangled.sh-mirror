@@ -46,6 +46,7 @@ func (s *State) Login(w http.ResponseWriter, r *http.Request) {
 
 		redirectURL, err := s.oauth.ClientApp.StartAuthFlow(r.Context(), handle)
 		if err != nil {
+			l.Error("failed to start auth", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

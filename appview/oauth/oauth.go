@@ -74,6 +74,10 @@ func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enf
 
 	clientApp := oauth.NewClientApp(&oauthConfig, authStore)
 	clientApp.Dir = res.Directory()
+	// allow non-public transports in dev mode
+	if config.Core.Dev {
+		clientApp.Resolver.Client.Transport = http.DefaultTransport
+	}
 
 	clientName := config.Core.AppviewName
 
