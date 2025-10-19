@@ -78,6 +78,11 @@ type Cloudflare struct {
 	TurnstileSecretKey string `env:"TURNSTILE_SECRET_KEY"`
 }
 
+type LabelConfig struct {
+	DefaultLabelDefs []string `env:"DEFAULTS"` // delimiter=,
+	GoodFirstIssue   string   `env:"GFI, default=at://did:plc:wshs7t2adsemcrrd4snkeqli/sh.tangled.label.definition/good-first-issue"`
+}
+
 func (cfg RedisConfig) ToURL() string {
 	u := &url.URL{
 		Scheme: "redis",
@@ -105,6 +110,7 @@ type Config struct {
 	Redis         RedisConfig     `env:",prefix=TANGLED_REDIS_"`
 	Pds           PdsConfig       `env:",prefix=TANGLED_PDS_"`
 	Cloudflare    Cloudflare      `env:",prefix=TANGLED_CLOUDFLARE_"`
+	Label         LabelConfig     `env:",prefix=TANGLED_LABEL_"`
 }
 
 func LoadConfig(ctx context.Context) (*Config, error) {
@@ -112,6 +118,11 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 	err := envconfig.Process(ctx, &cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	fmt.Println("default labels:")
+	for _, l := range cfg.Label.DefaultLabelDefs {
+		fmt.Println(l)
 	}
 
 	return &cfg, nil
