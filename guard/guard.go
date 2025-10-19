@@ -16,8 +16,8 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/urfave/cli/v3"
 	"tangled.org/core/idresolver"
-	"tangled.org/core/log"
 	"tangled.org/core/knotserver/config"
+	"tangled.org/core/log"
 )
 
 func Command() *cli.Command {
