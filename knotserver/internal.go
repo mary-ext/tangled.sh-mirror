@@ -68,6 +68,66 @@ func (h *InternalHandle) InternalKeys(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, data)
 }
 
+// response in text/plain format
+// the body will be qualified repository path on success/push-denied
+// or an error message when process failed
+func (h *InternalHandle) Guard(w http.ResponseWriter, r *http.Request) {
+	l := h.l.With("handler", "PostReceiveHook")
+
+	var (
+		incomingUser = r.URL.Query().Get("user")
+		repo         = r.URL.Query().Get("repo")
+		gitCommand   = r.URL.Query().Get("gitCmd")
+	)
+
+	if incomingUser == "" || repo == "" || gitCommand == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		l.Error("invalid request", "incomingUser", incomingUser, "repo", repo, "gitCommand", gitCommand)
+		fmt.Fprintln(w, "invalid internal request")
+		return
+	}
+
+	// did:foo/repo-name or
+	// handle/repo-name or
+	// any of the above with a leading slash (/)
+	components := strings.Split(strings.TrimPrefix(strings.Trim(repo, "'"), "/"), "/")
+	l.Info("command components", "components", components)
+
+	if len(components) != 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		l.Error("invalid repo format", "components", components)
+		fmt.Fprintln(w, "invalid repo format, needs <user>/<repo> or /<user>/<repo>")
+		return
+	}
+	repoOwner := components[0]
+	repoName := components[1]
+
+	resolver := idresolver.DefaultResolver(h.c.Server.PlcUrl)
+
+	repoOwnerIdent, err := resolver.ResolveIdent(r.Context(), repoOwner)
+	if err != nil || repoOwnerIdent.Handle.IsInvalidHandle() {
+		l.Error("Error resolving handle", "handle", repoOwner, "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "error resolving handle: invalid handle\n")
+		return
+	}
+	repoOwnerDid := repoOwnerIdent.DID.String()
+
+	qualifiedRepo, _ := securejoin.SecureJoin(repoOwnerDid, repoName)
+
+	if gitCommand == "git-receive-pack" {
+		ok, err := h.e.IsPushAllowed(incomingUser, rbac.ThisServer, qualifiedRepo)
+		if err != nil || !ok {
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, repo)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, qualifiedRepo)
+}
+
 type PushOptions struct {
 	skipCi    bool
 	verboseCi bool
@@ -366,6 +426,7 @@ func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer
 
 	r.Get("/push-allowed", h.PushAllowed)
 	r.Get("/keys", h.InternalKeys)
+	r.Get("/guard", h.Guard)
 	r.Post("/hooks/post-receive", h.PostReceiveHook)
 	r.Mount("/debug", middleware.Profiler())
 
