@@ -111,6 +111,18 @@ in
             description = "Hostname for the server (required)";
           };
 
+          plcUrl = mkOption {
+            type = types.str;
+            default = "https://plc.directory";
+            description = "atproto PLC directory";
+          };
+
+          jetstreamEndpoint = mkOption {
+            type = types.str;
+            default = "wss://jetstream1.us-west.bsky.network/subscribe";
+            description = "Jetstream endpoint to subscribe to";
+          };
+
           dev = mkOption {
             type = types.bool;
             default = false;
@@ -199,6 +211,8 @@ in
             "KNOT_SERVER_LISTEN_ADDR=${cfg.server.listenAddr}"
             "KNOT_SERVER_DB_PATH=${cfg.server.dbPath}"
             "KNOT_SERVER_HOSTNAME=${cfg.server.hostname}"
+            "KNOT_SERVER_PLC_URL=${cfg.server.plcUrl}"
+            "KNOT_SERVER_JETSTREAM_ENDPOINT=${cfg.server.jetstreamEndpoint}"
             "KNOT_SERVER_OWNER=${cfg.server.owner}"
           ];
           ExecStart = "${cfg.package}/bin/knot server";

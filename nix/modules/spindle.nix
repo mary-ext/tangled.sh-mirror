@@ -37,6 +37,12 @@ in
             description = "Hostname for the server (required)";
           };
 
+          plcUrl = mkOption {
+            type = types.str;
+            default = "https://plc.directory";
+            description = "atproto PLC directory";
+          };
+
           jetstreamEndpoint = mkOption {
             type = types.str;
             default = "wss://jetstream1.us-west.bsky.network/subscribe";
@@ -119,7 +125,8 @@ in
             "SPINDLE_SERVER_LISTEN_ADDR=${cfg.server.listenAddr}"
             "SPINDLE_SERVER_DB_PATH=${cfg.server.dbPath}"
             "SPINDLE_SERVER_HOSTNAME=${cfg.server.hostname}"
-            "SPINDLE_SERVER_JETSTREAM=${cfg.server.jetstreamEndpoint}"
+            "SPINDLE_SERVER_PLC_URL=${cfg.server.plcUrl}"
+            "SPINDLE_SERVER_JETSTREAM_ENDPOINT=${cfg.server.jetstreamEndpoint}"
             "SPINDLE_SERVER_DEV=${lib.boolToString cfg.server.dev}"
             "SPINDLE_SERVER_OWNER=${cfg.server.owner}"
             "SPINDLE_SERVER_MAX_JOB_COUNT=${toString cfg.server.maxJobCount}"
