@@ -157,6 +157,19 @@ in
         '';
       };
 
+      # TODO: abstract this to share same env table with systemd.services.knot
+      environment.variables = {
+        "KNOT_REPO_SCAN_PATH" = cfg.repo.scanPath;
+        "KNOT_REPO_MAIN_BRANCH" = cfg.repo.mainBranch;
+        "APPVIEW_ENDPOINT" = cfg.appviewEndpoint;
+        "KNOT_SERVER_INTERNAL_LISTEN_ADDR" = cfg.server.internalListenAddr;
+        "KNOT_SERVER_LISTEN_ADDR" = cfg.server.listenAddr;
+        "KNOT_SERVER_DB_PATH" = cfg.server.dbPath;
+        "KNOT_SERVER_HOSTNAME" = cfg.server.hostname;
+        "KNOT_SERVER_PLC_URL" = cfg.server.plcUrl;
+        "KNOT_SERVER_JETSTREAM_ENDPOINT" = cfg.server.jetstreamEndpoint;
+        "KNOT_SERVER_OWNER" = cfg.server.owner;
+      };
       environment.etc."ssh/keyfetch_wrapper" = {
         mode = "0555";
         text = ''
