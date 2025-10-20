@@ -10,6 +10,15 @@
     if var == ""
     then throw "\$${name} must be defined, see docs/hacking.md for more details"
     else var;
+  envVarOr = name: default: let
+    var = builtins.getEnv name;
+  in
+    if var != ""
+    then var
+    else default;
+
+  plcUrl = envVarOr "TANGLED_VM_PLC_URL" "https://plc.directory";
+  jetstream = envVarOr "TANGLED_VM_JETSTREAM_ENDPOINT" "wss://jetstream1.us-west.bsky.network/subscribe";
 in
   nixpkgs.lib.nixosSystem {
     inherit system;
@@ -78,7 +87,9 @@ in
           motd = "Welcome to the development knot!\n";
           server = {
             owner = envVar "TANGLED_VM_KNOT_OWNER";
-            hostname = "localhost:6000";
+            hostname = envVarOr "TANGLED_VM_KNOT_HOST" "localhost:6000";
+            plcUrl = plcUrl;
+            jetstreamEndpoint = jetstream;
             listenAddr = "0.0.0.0:6000";
           };
         };
@@ -86,7 +97,9 @@ in
           enable = true;
           server = {
             owner = envVar "TANGLED_VM_SPINDLE_OWNER";
-            hostname = "localhost:6555";
+            hostname = envVarOr "TANGLED_VM_SPINDLE_OWNER" "localhost:6555";
+            plcUrl = plcUrl;
+            jetstreamEndpoint = jetstream;
             listenAddr = "0.0.0.0:6555";
             dev = true;
             queueSize = 100;
