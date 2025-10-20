@@ -22,6 +22,13 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 
 	goodFirstIssueLabel := fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "good-first-issue")
 
+	gfiLabelDef, err := db.GetLabelDefinition(s.db, db.FilterEq("at_uri", goodFirstIssueLabel))
+	if err != nil {
+		log.Println("failed to get gfi label def", err)
+		s.pages.Error500(w)
+		return
+	}
+
 	repoLabels, err := db.GetRepoLabels(s.db, db.FilterEq("label_at", goodFirstIssueLabel))
 	if err != nil {
 		log.Println("failed to get repo labels", err)
@@ -35,6 +42,7 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 			RepoGroups:   []*models.RepoGroup{},
 			LabelDefs:    make(map[string]*models.LabelDefinition),
 			Page:         page,
+			GfiLabel:     gfiLabelDef,
 		})
 		return
 	}
@@ -143,6 +151,6 @@ func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 		RepoGroups:   paginatedGroups,
 		LabelDefs:    labelDefsMap,
 		Page:         page,
-		GfiLabel:     labelDefsMap[goodFirstIssueLabel],
+		GfiLabel:     gfiLabelDef,
 	})
 }
