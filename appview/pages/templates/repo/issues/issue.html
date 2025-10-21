@@ -84,7 +84,7 @@
 
 {{ define "editIssue" }}
   <a
-    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group cursor-pointer"
     hx-get="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/edit"
     hx-swap="innerHTML"
     hx-target="#issue-{{.Issue.IssueId}}">
@@ -94,7 +94,7 @@
 
 {{ define "deleteIssue" }}
   <a
-    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group"
+    class="text-gray-500 dark:text-gray-400 flex gap-1 items-center group cursor-pointer"
     hx-delete="/{{ .RepoInfo.FullName }}/issues/{{ .Issue.IssueId }}/"
     hx-confirm="Are you sure you want to delete your issue?"
     hx-swap="none">
