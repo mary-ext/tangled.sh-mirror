@@ -2,6 +2,8 @@ package notify
 
 import (
 	"context"
+	"reflect"
+	"sync"
 
 	"tangled.org/core/appview/models"
 )
@@ -16,94 +18,84 @@ func NewMergedNotifier(notifiers ...Notifier) Notifier {
 
 var _ Notifier = &mergedNotifier{}
 
-func (m *mergedNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
-	for _, notifier := range m.notifiers {
-		notifier.NewRepo(ctx, repo)
+// fanout calls the same method on all notifiers concurrently
+func (m *mergedNotifier) fanout(method string, args ...any) {
+	var wg sync.WaitGroup
+	for _, n := range m.notifiers {
+		wg.Add(1)
+		go func(notifier Notifier) {
+			defer wg.Done()
+			v := reflect.ValueOf(notifier).MethodByName(method)
+			in := make([]reflect.Value, len(args))
+			for i, arg := range args {
+				in[i] = reflect.ValueOf(arg)
+			}
+			v.Call(in)
+		}(n)
 	}
+	wg.Wait()
+}
+
+func (m *mergedNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
+	m.fanout("NewRepo", ctx, repo)
 }
 
 func (m *mergedNotifier) NewStar(ctx context.Context, star *models.Star) {
-	for _, notifier := range m.notifiers {
-		notifier.NewStar(ctx, star)
-	}
+	m.fanout("NewStar", ctx, star)
 }
+
 func (m *mergedNotifier) DeleteStar(ctx context.Context, star *models.Star) {
-	for _, notifier := range m.notifiers {
-		notifier.DeleteStar(ctx, star)
-	}
+	m.fanout("DeleteStar", ctx, star)
 }
 
 func (m *mergedNotifier) NewIssue(ctx context.Context, issue *models.Issue) {
-	for _, notifier := range m.notifiers {
-		notifier.NewIssue(ctx, issue)
-	}
+	m.fanout("NewIssue", ctx, issue)
 }
+
 func (m *mergedNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {
-	for _, notifier := range m.notifiers {
-		notifier.NewIssueComment(ctx, comment)
-	}
+	m.fanout("NewIssueComment", ctx, comment)
 }
 
 func (m *mergedNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
-	for _, notifier := range m.notifiers {
-		notifier.NewIssueClosed(ctx, issue)
-	}
+	m.fanout("NewIssueClosed", ctx, issue)
 }
 
 func (m *mergedNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
-	for _, notifier := range m.notifiers {
-		notifier.NewFollow(ctx, follow)
-	}
+	m.fanout("NewFollow", ctx, follow)
 }
+
 func (m *mergedNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {
-	for _, notifier := range m.notifiers {
-		notifier.DeleteFollow(ctx, follow)
-	}
+	m.fanout("DeleteFollow", ctx, follow)
 }
 
 func (m *mergedNotifier) NewPull(ctx context.Context, pull *models.Pull) {
-	for _, notifier := range m.notifiers {
-		notifier.NewPull(ctx, pull)
-	}
+	m.fanout("NewPull", ctx, pull)
 }
+
 func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.PullComment) {
-	for _, notifier := range m.notifiers {
-		notifier.NewPullComment(ctx, comment)
-	}
+	m.fanout("NewPullComment", ctx, comment)
 }
 
 func (m *mergedNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
-	for _, notifier := range m.notifiers {
-		notifier.NewPullMerged(ctx, pull)
-	}
+	m.fanout("NewPullMerged", ctx, pull)
 }
 
 func (m *mergedNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
-	for _, notifier := range m.notifiers {
-		notifier.NewPullClosed(ctx, pull)
-	}
+	m.fanout("NewPullClosed", ctx, pull)
 }
 
 func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {
-	for _, notifier := range m.notifiers {
-		notifier.UpdateProfile(ctx, profile)
-	}
+	m.fanout("UpdateProfile", ctx, profile)
 }
 
-func (m *mergedNotifier) NewString(ctx context.Context, string *models.String) {
-	for _, notifier := range m.notifiers {
-		notifier.NewString(ctx, string)
-	}
+func (m *mergedNotifier) NewString(ctx context.Context, s *models.String) {
+	m.fanout("NewString", ctx, s)
 }
 
-func (m *mergedNotifier) EditString(ctx context.Context, string *models.String) {
-	for _, notifier := range m.notifiers {
-		notifier.EditString(ctx, string)
-	}
+func (m *mergedNotifier) EditString(ctx context.Context, s *models.String) {
+	m.fanout("EditString", ctx, s)
 }
 
 func (m *mergedNotifier) DeleteString(ctx context.Context, did, rkey string) {
-	for _, notifier := range m.notifiers {
-		notifier.DeleteString(ctx, did, rkey)
-	}
+	m.fanout("DeleteString", ctx, did, rkey)
 }
