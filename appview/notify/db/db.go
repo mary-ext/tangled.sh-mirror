@@ -151,6 +151,10 @@ func (n *databaseNotifier) NewIssueComment(ctx context.Context, comment *models.
 	)
 }
 
+func (n *databaseNotifier) DeleteIssue(ctx context.Context, issue *models.Issue) {
+	// no-op for now
+}
+
 func (n *databaseNotifier) NewFollow(ctx context.Context, follow *models.Follow) {
 	actorDid := syntax.DID(follow.UserDid)
 	recipients := []syntax.DID{syntax.DID(follow.SubjectDid)}

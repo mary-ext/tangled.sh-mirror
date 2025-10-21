@@ -216,6 +216,10 @@ func (ix *Indexer) Index(ctx context.Context, issues ...models.Issue) error {
 	return batch.Flush()
 }
 
+func (ix *Indexer) Delete(ctx context.Context, issueId int64) error {
+	return ix.indexer.Delete(base36.Encode(issueId))
+}
+
 // Search searches for issues
 func (ix *Indexer) Search(ctx context.Context, opts models.IssueSearchOptions) (*SearchResult, error) {
 	var queries []query.Query

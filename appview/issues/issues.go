@@ -263,6 +263,8 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rp.notifier.DeleteIssue(r.Context(), issue)
+
 	// return to all issues page
 	rp.pages.HxRedirect(w, "/"+f.RepoInfo(user).FullName()+"/issues")
 }
