@@ -20,6 +20,17 @@
     </div>
 
     <div class="flex flex-col gap-1">
+      <label class="m-0 p-0" for="pronouns">pronouns</label>
+      <div class="flex items-center gap-2 w-full">
+        {{ $pronouns := "" }}
+        {{ if and .Profile .Profile.Pronouns }}
+          {{ $pronouns = .Profile.Pronouns }}
+        {{ end }}
+        <input type="text" class="py-1 px-1 w-full" name="pronouns" value="{{ $pronouns }}">
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-1">
       <label class="m-0 p-0" for="location">location</label>
       <div class="flex items-center gap-2 w-full">
         {{ $location := "" }}

@@ -291,6 +291,11 @@ func (i *Ingester) ingestProfile(e *jmodels.Event) error {
 
 		includeBluesky := record.Bluesky
 
+		pronouns := ""
+		if record.Pronouns != nil {
+			pronouns = *record.Pronouns
+		}
+
 		location := ""
 		if record.Location != nil {
 			location = *record.Location
@@ -325,6 +330,7 @@ func (i *Ingester) ingestProfile(e *jmodels.Event) error {
 			Links:          links,
 			Stats:          stats,
 			PinnedRepos:    pinned,
+			Pronouns:       pronouns,
 		}
 
 		ddb, ok := i.Db.Execer.(*db.DB)

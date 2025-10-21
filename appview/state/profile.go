@@ -538,6 +538,7 @@ func (s *State) UpdateProfileBio(w http.ResponseWriter, r *http.Request) {
 	profile.Description = r.FormValue("description")
 	profile.IncludeBluesky = r.FormValue("includeBluesky") == "on"
 	profile.Location = r.FormValue("location")
+	profile.Pronouns = r.FormValue("pronouns")
 
 	var links [5]string
 	for i := range 5 {
@@ -652,6 +653,7 @@ func (s *State) updateProfile(profile *models.Profile, w http.ResponseWriter, r 
 				Location:           &profile.Location,
 				PinnedRepositories: pinnedRepoStrings,
 				Stats:              vanityStats[:],
+				Pronouns:           &profile.Pronouns,
 			}},
 		SwapRecord: cid,
 	})

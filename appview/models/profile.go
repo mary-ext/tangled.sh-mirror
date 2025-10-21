@@ -19,6 +19,7 @@ type Profile struct {
 	Links          [5]string
 	Stats          [2]VanityStat
 	PinnedRepos    [6]syntax.ATURI
+	Pronouns       string
 }
 
 func (p Profile) IsLinksEmpty() bool {

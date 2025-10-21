@@ -12,6 +12,11 @@
           class="text-lg font-bold dark:text-white overflow-hidden text-ellipsis whitespace-nowrap">
             {{ $userIdent }}
           </p>
+          {{ with .Profile }}
+            {{ if .Pronouns }}
+              <p class="text-gray-500 dark:text-gray-400">{{ .Pronouns }}</p>
+            {{ end }}
+          {{ end }}
           <a href="/{{ $userIdent }}/feed.atom">{{ i "rss" "size-4" }}</a>
         </div>
 

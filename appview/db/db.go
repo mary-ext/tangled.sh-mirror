@@ -1106,6 +1106,13 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 		return err
 	})
 
+	runMigration(conn, logger, "add-pronouns-profile", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table profile add column pronouns text;
+		`)
+		return err
+	})
+
 	return &DB{
 		db,
 		logger,

@@ -129,13 +129,15 @@ func UpsertProfile(tx *sql.Tx, profile *models.Profile) error {
 			did,
 			description,
 			include_bluesky,
-			location
+			location,
+			pronouns
 		)
-		values (?, ?, ?, ?)`,
+		values (?, ?, ?, ?, ?)`,
 		profile.Did,
 		profile.Description,
 		includeBskyValue,
 		profile.Location,
+		profile.Pronouns,
 	)
 
 	if err != nil {
@@ -216,7 +218,8 @@ func GetProfiles(e Execer, filters ...filter) (map[string]*models.Profile, error
 			did,
 			description,
 			include_bluesky,
-			location
+			location,
+			pronouns
 		from
 			profile
 		%s`,
@@ -231,14 +234,19 @@ func GetProfiles(e Execer, filters ...filter) (map[string]*models.Profile, error
 	for rows.Next() {
 		var profile models.Profile
 		var includeBluesky int
+		var pronouns sql.Null[string]
 
-		err = rows.Scan(&profile.ID, &profile.Did, &profile.Description, &includeBluesky, &profile.Location)
+		err = rows.Scan(&profile.ID, &profile.Did, &profile.Description, &includeBluesky, &profile.Location, &pronouns)
 		if err != nil {
 			return nil, err
 		}
 
 		if includeBluesky != 0 {
 			profile.IncludeBluesky = true
+		}
+
+		if pronouns.Valid {
+			profile.Pronouns = pronouns.V
 		}
 
 		profileMap[profile.Did] = &profile
@@ -302,13 +310,16 @@ func GetProfiles(e Execer, filters ...filter) (map[string]*models.Profile, error
 
 func GetProfile(e Execer, did string) (*models.Profile, error) {
 	var profile models.Profile
+	var pronouns sql.Null[string]
+
 	profile.Did = did
 
 	includeBluesky := 0
+
 	err := e.QueryRow(
-		`select description, include_bluesky, location from profile where did = ?`,
+		`select description, include_bluesky, location, pronouns from profile where did = ?`,
 		did,
-	).Scan(&profile.Description, &includeBluesky, &profile.Location)
+	).Scan(&profile.Description, &includeBluesky, &profile.Location, &pronouns)
 	if err == sql.ErrNoRows {
 		profile := models.Profile{}
 		profile.Did = did
@@ -321,6 +332,10 @@ func GetProfile(e Execer, did string) (*models.Profile, error) {
 
 	if includeBluesky != 0 {
 		profile.IncludeBluesky = true
+	}
+
+	if pronouns.Valid {
+		profile.Pronouns = pronouns.V
 	}
 
 	rows, err := e.Query(`select link from profile_links where did = ?`, did)
@@ -412,6 +427,11 @@ func ValidateProfile(e Execer, profile *models.Profile) error {
 	// ensure description is not too long
 	if len(profile.Location) > 40 {
 		return fmt.Errorf("Entered location is too long.")
+	}
+
+	// ensure pronouns are not too long
+	if len(profile.Pronouns) > 40 {
+		return fmt.Errorf("Entered pronouns are too long.")
 	}
 
 	// ensure links are in order
