@@ -305,6 +305,8 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 			rp.pages.Notice(w, "issue-action", "Failed to close issue. Try again later.")
 			return
 		}
+		// change the issue state (this will pass down to the notifiers)
+		issue.Open = false
 
 		// notify about the issue closure
 		rp.notifier.NewIssueClosed(r.Context(), issue)
@@ -353,6 +355,12 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 			rp.pages.Notice(w, "issue-action", "Failed to reopen issue. Try again later.")
 			return
 		}
+		// change the issue state (this will pass down to the notifiers)
+		issue.Open = true
+
+		// // notify about the issue reopen
+		// rp.notifier.NewIssueReopen(r.Context(), issue)
+
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
 	} else {

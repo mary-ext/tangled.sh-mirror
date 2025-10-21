@@ -19,6 +19,15 @@ func (ix *Indexer) NewIssue(ctx context.Context, issue *models.Issue) {
 	}
 }
 
+func (ix *Indexer) NewIssueClosed(ctx context.Context, issue *models.Issue) {
+	l := log.FromContext(ctx).With("notifier", "indexer.NewIssueClosed", "issue", issue)
+	l.Debug("updating an issue")
+	err := ix.Issues.Index(ctx, *issue)
+	if err != nil {
+		l.Error("failed to index an issue", "err", err)
+	}
+}
+
 func (ix *Indexer) DeleteIssue(ctx context.Context, issue *models.Issue) {
 	l := log.FromContext(ctx).With("notifier", "indexer.DeleteIssue", "issue", issue)
 	l.Debug("deleting an issue")
