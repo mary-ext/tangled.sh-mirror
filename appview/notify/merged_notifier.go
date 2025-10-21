@@ -2,33 +2,38 @@ package notify
 
 import (
 	"context"
+	"log/slog"
 	"reflect"
 	"sync"
 
 	"tangled.org/core/appview/models"
+	"tangled.org/core/log"
 )
 
 type mergedNotifier struct {
 	notifiers []Notifier
+	logger    *slog.Logger
 }
 
-func NewMergedNotifier(notifiers ...Notifier) Notifier {
-	return &mergedNotifier{notifiers}
+func NewMergedNotifier(notifiers []Notifier, logger *slog.Logger) Notifier {
+	return &mergedNotifier{notifiers, logger}
 }
 
 var _ Notifier = &mergedNotifier{}
 
 // fanout calls the same method on all notifiers concurrently
-func (m *mergedNotifier) fanout(method string, args ...any) {
+func (m *mergedNotifier) fanout(method string, ctx context.Context, args ...any) {
+	ctx = log.IntoContext(ctx, m.logger.With("method", method))
 	var wg sync.WaitGroup
 	for _, n := range m.notifiers {
 		wg.Add(1)
 		go func(notifier Notifier) {
 			defer wg.Done()
 			v := reflect.ValueOf(notifier).MethodByName(method)
-			in := make([]reflect.Value, len(args))
+			in := make([]reflect.Value, len(args)+1)
+			in[0] = reflect.ValueOf(ctx)
 			for i, arg := range args {
-				in[i] = reflect.ValueOf(arg)
+				in[i+1] = reflect.ValueOf(arg)
 			}
 			v.Call(in)
 		}(n)
