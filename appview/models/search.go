@@ -10,6 +10,14 @@ type IssueSearchOptions struct {
 	Page pagination.Page
 }
 
+type PullSearchOptions struct {
+	Keyword string
+	RepoAt  string
+	State   PullState
+
+	Page pagination.Page
+}
+
 // func (so *SearchOptions) ToFilters() []filter {
 // 	var filters []filter
 // 	if so.IsOpen != nil {

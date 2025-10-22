@@ -2170,6 +2170,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 			s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
 			return
 		}
+		p.State = models.PullMerged
 	}
 
 	err = tx.Commit()
@@ -2243,6 +2244,7 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 			s.pages.Notice(w, "pull-close", "Failed to close pull.")
 			return
 		}
+		p.State = models.PullClosed
 	}
 
 	// Commit the transaction
@@ -2315,6 +2317,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 			s.pages.Notice(w, "pull-close", "Failed to close pull.")
 			return
 		}
+		p.State = models.PullOpen
 	}
 
 	// Commit the transaction
