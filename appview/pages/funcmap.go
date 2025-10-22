@@ -297,8 +297,9 @@ func (p *Pages) funcMap() template.FuncMap {
 		},
 
 		"normalizeForHtmlId": func(s string) string {
-			// TODO: extend this to handle other cases?
-			return strings.ReplaceAll(s, ":", "_")
+			normalized := strings.ReplaceAll(s, ":", "_")
+			normalized = strings.ReplaceAll(normalized, ".", "_")
+			return normalized
 		},
 		"sshFingerprint": func(pubKey string) string {
 			fp, err := crypto.SSHFingerprint(pubKey)

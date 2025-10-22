@@ -26,6 +26,7 @@ func (s *State) Follow(w http.ResponseWriter, r *http.Request) {
 	subjectIdent, err := s.idResolver.ResolveIdent(r.Context(), subject)
 	if err != nil {
 		log.Println("failed to follow, invalid did")
+		return
 	}
 
 	if currentUser.Did == subjectIdent.DID.String() {
