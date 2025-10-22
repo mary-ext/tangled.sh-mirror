@@ -18,7 +18,8 @@ type Indexer struct {
 
 func New(logger *slog.Logger) *Indexer {
 	return &Indexer{
-		issues_indexer.NewIndexer("indexes.bleve"),
+		issues_indexer.NewIndexer("indexes/issues.bleve"),
+		pulls_indexer.NewIndexer("indexes/pulls.bleve"),
 		logger,
 		notify.BaseNotifier{},
 	}
