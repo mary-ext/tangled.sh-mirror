@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"tangled.org/core/idresolver"
@@ -79,6 +80,7 @@ func (h *Knot) Router() http.Handler {
 	})
 
 	r.Route("/{did}", func(r chi.Router) {
+		r.Use(h.resolveDidRedirect)
 		r.Route("/{name}", func(r chi.Router) {
 			// routes for git operations
 			r.Get("/info/refs", h.InfoRefs)
@@ -113,6 +115,29 @@ func (h *Knot) XrpcRouter() http.Handler {
 	}
 
 	return xrpc.Router()
+}
+
+func (h *Knot) resolveDidRedirect(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		didOrHandle := chi.URLParam(r, "did")
+		if strings.HasPrefix(didOrHandle, "did:") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		trimmed := strings.TrimPrefix(didOrHandle, "@")
+		id, err := h.resolver.ResolveIdent(r.Context(), trimmed)
+		if err != nil {
+			// invalid did or handle
+			h.l.Error("failed to resolve did/handle", "handle", trimmed, "err", err)
+			http.Error(w, fmt.Sprintf("failed to resolve did/handle: %s", trimmed), http.StatusInternalServerError)
+			return
+		}
+
+		suffix := strings.TrimPrefix(r.URL.Path, "/"+didOrHandle)
+		newPath := fmt.Sprintf("/%s/%s?%s", id.DID.String(), suffix, r.URL.RawQuery)
+		http.Redirect(w, r, newPath, http.StatusTemporaryRedirect)
+	})
 }
 
 func (h *Knot) configureOwner() error {
