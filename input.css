@@ -96,7 +96,7 @@
             @apply border border-gray-400 block rounded bg-gray-50 focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
         }
         textarea {
-            @apply border border-gray-400 block rounded bg-gray-50 focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400;
+            @apply border border-gray-400 block rounded bg-gray-50 focus:ring-black p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-gray-400 font-mono;
         }
         details summary::-webkit-details-marker {
             display: none;
