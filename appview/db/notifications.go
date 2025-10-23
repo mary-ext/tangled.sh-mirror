@@ -60,16 +60,19 @@ func GetNotificationsPaginated(e Execer, page pagination.Page, filters ...filter
 			whereClause += " AND " + condition
 		}
 	}
+	pageClause := ""
+	if page.Limit > 0 {
+		pageClause = " limit ? offset ? "
+		args = append(args, page.Limit, page.Offset)
+	}
 
 	query := fmt.Sprintf(`
 		select id, recipient_did, actor_did, type, entity_type, entity_id, read, created, repo_id, issue_id, pull_id
 		from notifications
 		%s
 		order by created desc
-		limit ? offset ?
-	`, whereClause)
-
-	args = append(args, page.Limit, page.Offset)
+		%s
+	`, whereClause, pageClause)
 
 	rows, err := e.QueryContext(context.Background(), query, args...)
 	if err != nil {
