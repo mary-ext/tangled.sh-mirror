@@ -22,95 +22,93 @@
   {{ $isLastRound := eq $roundNumber $lastIdx }}
   {{ $isSameRepoBranch := .Pull.IsBranchBased }}
   {{ $isUpToDate := .ResubmitCheck.No }}
-  <div class="relative w-fit">
-    <div id="actions-{{$roundNumber}}" class="flex flex-wrap gap-2">
-        <button 
-          hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ $roundNumber }}/comment"
-          hx-target="#actions-{{$roundNumber}}"
-          hx-swap="outerHtml"
-          class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group">
-            {{ i "message-square-plus" "w-4 h-4" }}
-            <span>comment</span>
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-        </button>
-        {{ if .BranchDeleteStatus }}
-          <button 
-            hx-delete="/{{ .BranchDeleteStatus.Repo.Did }}/{{ .BranchDeleteStatus.Repo.Name }}/branches"
-            hx-vals='{"branch": "{{ .BranchDeleteStatus.Branch }}" }'
-            hx-swap="none"
-            class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-              {{ i "git-branch" "w-4 h-4" }}
-              <span>delete branch</span>
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </button>
-        {{ end }}
-        {{ if and $isPushAllowed $isOpen $isLastRound }}
-          {{ $disabled := "" }}
-          {{ if $isConflicted }}
-            {{ $disabled = "disabled" }}
+  <div id="actions-{{$roundNumber}}" class="flex flex-wrap gap-2 relative">
+    <button 
+      hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/round/{{ $roundNumber }}/comment"
+      hx-target="#actions-{{$roundNumber}}"
+      hx-swap="outerHtml"
+      class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group">
+        {{ i "message-square-plus" "w-4 h-4" }}
+        <span>comment</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </button>
+    {{ if .BranchDeleteStatus }}
+      <button 
+        hx-delete="/{{ .BranchDeleteStatus.Repo.Did }}/{{ .BranchDeleteStatus.Repo.Name }}/branches"
+        hx-vals='{"branch": "{{ .BranchDeleteStatus.Branch }}" }'
+        hx-swap="none"
+        class="btn p-2 flex items-center gap-2 no-underline hover:no-underline group text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+          {{ i "git-branch" "w-4 h-4" }}
+          <span>delete branch</span>
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
+    {{ end }}
+    {{ if and $isPushAllowed $isOpen $isLastRound }}
+      {{ $disabled := "" }}
+      {{ if $isConflicted }}
+        {{ $disabled = "disabled" }}
+      {{ end }}
+      <button 
+        hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
+        hx-swap="none"
+        hx-confirm="Are you sure you want to merge pull #{{ .Pull.PullId }} into the `{{ .Pull.TargetBranch }}` branch?"
+        class="btn p-2 flex items-center gap-2 group" {{ $disabled }}>
+        {{ i "git-merge" "w-4 h-4" }}
+        <span>merge{{if $stackCount}} {{$stackCount}}{{end}}</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
+    {{ end }}
+
+    {{ if and $isPullAuthor $isOpen $isLastRound }}
+      {{ $disabled := "" }}
+      {{ if $isUpToDate }}
+        {{ $disabled = "disabled" }}
+      {{ end }}
+      <button id="resubmitBtn"
+          {{ if not .Pull.IsPatchBased }}
+            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
+          {{ else }}
+            hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
+            hx-target="#actions-{{$roundNumber}}"
+            hx-swap="outerHtml"
           {{ end }}
-          <button 
-            hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/merge"
-            hx-swap="none"
-            hx-confirm="Are you sure you want to merge pull #{{ .Pull.PullId }} into the `{{ .Pull.TargetBranch }}` branch?"
-            class="btn p-2 flex items-center gap-2 group" {{ $disabled }}>
-            {{ i "git-merge" "w-4 h-4" }}
-            <span>merge{{if $stackCount}} {{$stackCount}}{{end}}</span>
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </button>
-        {{ end }}
 
-        {{ if and $isPullAuthor $isOpen $isLastRound }}
-          {{ $disabled := "" }}
-          {{ if $isUpToDate }}
-            {{ $disabled = "disabled" }}
+          hx-disabled-elt="#resubmitBtn"
+          class="btn p-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group" {{ $disabled }}
+
+          {{ if $disabled }}
+          title="Update this branch to resubmit this pull request"
+          {{ else }}
+          title="Resubmit this pull request"
           {{ end }}
-          <button id="resubmitBtn"
-              {{ if not .Pull.IsPatchBased }}
-                hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
-              {{ else }}
-                hx-get="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/resubmit"
-                hx-target="#actions-{{$roundNumber}}"
-                hx-swap="outerHtml"
-              {{ end }}
+          >
+          {{ i "rotate-ccw" "w-4 h-4" }}
+          <span>resubmit</span>
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+      </button>
+    {{ end }}
 
-              hx-disabled-elt="#resubmitBtn"
-              class="btn p-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group" {{ $disabled }}
+    {{ if and (or $isPullAuthor $isPushAllowed) $isOpen $isLastRound }}
+    <button 
+      hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/close"
+      hx-swap="none"
+      class="btn p-2 flex items-center gap-2 group">
+        {{ i "ban" "w-4 h-4" }}
+        <span>close</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </button>
+    {{ end }}
 
-              {{ if $disabled }}
-              title="Update this branch to resubmit this pull request"
-              {{ else }}
-              title="Resubmit this pull request"
-              {{ end }}
-              >
-              {{ i "rotate-ccw" "w-4 h-4" }}
-              <span>resubmit</span>
-              {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-          </button>
-        {{ end }}
-
-        {{ if and (or $isPullAuthor $isPushAllowed) $isOpen $isLastRound }}
-        <button 
-          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/close"
-          hx-swap="none"
-          class="btn p-2 flex items-center gap-2 group">
-            {{ i "ban" "w-4 h-4" }}
-            <span>close</span>
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-        </button>
-        {{ end }}
-
-        {{ if and (or $isPullAuthor $isPushAllowed) $isClosed $isLastRound }}
-        <button 
-          hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/reopen"
-          hx-swap="none"
-          class="btn p-2 flex items-center gap-2 group">
-            {{ i "refresh-ccw-dot" "w-4 h-4" }}
-            <span>reopen</span>
-            {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
-        </button>
-        {{ end }}
-    </div>
+    {{ if and (or $isPullAuthor $isPushAllowed) $isClosed $isLastRound }}
+    <button 
+      hx-post="/{{ .RepoInfo.FullName }}/pulls/{{ .Pull.PullId }}/reopen"
+      hx-swap="none"
+      class="btn p-2 flex items-center gap-2 group">
+        {{ i "refresh-ccw-dot" "w-4 h-4" }}
+        <span>reopen</span>
+        {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+    </button>
+    {{ end }}
   </div>
 {{ end }}
 
