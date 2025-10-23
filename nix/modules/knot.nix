@@ -32,12 +32,6 @@ in
           description = "User that hosts git repos and performs git operations";
         };
 
-        openFirewall = mkOption {
-          type = types.bool;
-          default = true;
-          description = "Open port 22 in the firewall for ssh";
-        };
-
         stateDir = mkOption {
           type = types.path;
           default = "/home/${cfg.gitUser}";
@@ -205,7 +199,5 @@ in
           Restart = "always";
         };
       };
-
-      networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [22];
     };
   }
