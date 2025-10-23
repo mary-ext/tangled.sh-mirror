@@ -40,6 +40,8 @@
     commented on an issue
   {{ else if eq .Type "issue_closed" }}
     closed an issue
+  {{ else if eq .Type "issue_reopen" }}
+    reopened an issue
   {{ else if eq .Type "pull_created" }}
     created a pull request
   {{ else if eq .Type "pull_commented" }}

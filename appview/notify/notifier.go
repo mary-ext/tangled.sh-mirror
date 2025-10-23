@@ -14,7 +14,7 @@ type Notifier interface {
 
 	NewIssue(ctx context.Context, issue *models.Issue)
 	NewIssueComment(ctx context.Context, comment *models.IssueComment)
-	NewIssueClosed(ctx context.Context, issue *models.Issue)
+	NewIssueState(ctx context.Context, issue *models.Issue)
 	DeleteIssue(ctx context.Context, issue *models.Issue)
 
 	NewFollow(ctx context.Context, follow *models.Follow)
@@ -44,7 +44,7 @@ func (m *BaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {}
 
 func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue)                 {}
 func (m *BaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {}
-func (m *BaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue)           {}
+func (m *BaseNotifier) NewIssueState(ctx context.Context, issue *models.Issue)            {}
 func (m *BaseNotifier) DeleteIssue(ctx context.Context, issue *models.Issue)              {}
 
 func (m *BaseNotifier) NewFollow(ctx context.Context, follow *models.Follow)    {}

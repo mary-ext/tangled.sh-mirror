@@ -190,10 +190,16 @@ func (n *posthogNotifier) NewIssueComment(ctx context.Context, comment *models.I
 	}
 }
 
-func (n *posthogNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
+func (n *posthogNotifier) NewIssueState(ctx context.Context, issue *models.Issue) {
+	var event string
+	if issue.Open {
+		event = "issue_reopen"
+	} else {
+		event = "issue_closed"
+	}
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: issue.Did,
-		Event:      "issue_closed",
+		Event:      event,
 		Properties: posthog.Properties{
 			"repo_at":  issue.RepoAt.String(),
 			"issue_id": issue.IssueId,

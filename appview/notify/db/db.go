@@ -283,7 +283,7 @@ func (n *databaseNotifier) NewString(ctx context.Context, string *models.String)
 	// no-op
 }
 
-func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
+func (n *databaseNotifier) NewIssueState(ctx context.Context, issue *models.Issue) {
 	// build up the recipients list:
 	// - repo owner
 	// - repo collaborators
@@ -303,12 +303,18 @@ func (n *databaseNotifier) NewIssueClosed(ctx context.Context, issue *models.Iss
 	}
 
 	actorDid := syntax.DID(issue.Repo.Did)
-	eventType := models.NotificationTypeIssueClosed
 	entityType := "pull"
 	entityId := issue.AtUri().String()
 	repoId := &issue.Repo.Id
 	issueId := &issue.Id
 	var pullId *int64
+	var eventType models.NotificationType
+
+	if issue.Open {
+		eventType = models.NotificationTypeIssueReopen
+	} else {
+		eventType = models.NotificationTypeIssueClosed
+	}
 
 	n.notifyEvent(
 		actorDid,

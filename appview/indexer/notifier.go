@@ -19,7 +19,7 @@ func (ix *Indexer) NewIssue(ctx context.Context, issue *models.Issue) {
 	}
 }
 
-func (ix *Indexer) NewIssueClosed(ctx context.Context, issue *models.Issue) {
+func (ix *Indexer) NewIssueState(ctx context.Context, issue *models.Issue) {
 	l := log.FromContext(ctx).With("notifier", "indexer", "issue", issue)
 	l.Debug("updating an issue")
 	err := ix.Issues.Index(ctx, *issue)

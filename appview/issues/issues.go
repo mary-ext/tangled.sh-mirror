@@ -309,7 +309,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		issue.Open = false
 
 		// notify about the issue closure
-		rp.notifier.NewIssueClosed(r.Context(), issue)
+		rp.notifier.NewIssueState(r.Context(), issue)
 
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return
@@ -358,8 +358,8 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		// change the issue state (this will pass down to the notifiers)
 		issue.Open = true
 
-		// // notify about the issue reopen
-		// rp.notifier.NewIssueReopen(r.Context(), issue)
+		// notify about the issue reopen
+		rp.notifier.NewIssueState(r.Context(), issue)
 
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", f.OwnerSlashRepo(), issue.IssueId))
 		return

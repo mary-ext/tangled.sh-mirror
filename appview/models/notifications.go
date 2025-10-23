@@ -17,6 +17,7 @@ const (
 	NotificationTypeFollowed       NotificationType = "followed"
 	NotificationTypePullMerged     NotificationType = "pull_merged"
 	NotificationTypeIssueClosed    NotificationType = "issue_closed"
+	NotificationTypeIssueReopen    NotificationType = "issue_reopen"
 	NotificationTypePullClosed     NotificationType = "pull_closed"
 )
 
@@ -47,6 +48,8 @@ func (n *Notification) Icon() string {
 		return "message-square"
 	case NotificationTypeIssueClosed:
 		return "ban"
+	case NotificationTypeIssueReopen:
+		return "circle-dot"
 	case NotificationTypePullCreated:
 		return "git-pull-request-create"
 	case NotificationTypePullCommented:
@@ -93,6 +96,8 @@ func (prefs *NotificationPreferences) ShouldNotify(t NotificationType) bool {
 		return prefs.IssueCommented
 	case NotificationTypeIssueClosed:
 		return prefs.IssueClosed
+	case NotificationTypeIssueReopen:
+		return prefs.IssueCreated // smae pref for now
 	case NotificationTypePullCreated:
 		return prefs.PullCreated
 	case NotificationTypePullCommented:

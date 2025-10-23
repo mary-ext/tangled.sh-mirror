@@ -61,8 +61,8 @@ func (m *mergedNotifier) NewIssueComment(ctx context.Context, comment *models.Is
 	m.fanout("NewIssueComment", ctx, comment)
 }
 
-func (m *mergedNotifier) NewIssueClosed(ctx context.Context, issue *models.Issue) {
-	m.fanout("NewIssueClosed", ctx, issue)
+func (m *mergedNotifier) NewIssueState(ctx context.Context, issue *models.Issue) {
+	m.fanout("NewIssueState", ctx, issue)
 }
 
 func (m *mergedNotifier) DeleteIssue(ctx context.Context, issue *models.Issue) {
