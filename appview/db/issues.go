@@ -101,9 +101,12 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]mo
 	pLower := FilterGte("row_num", page.Offset+1)
 	pUpper := FilterLte("row_num", page.Offset+page.Limit)
 
-	args = append(args, pLower.Arg()...)
-	args = append(args, pUpper.Arg()...)
-	pagination := " where " + pLower.Condition() + " and " + pUpper.Condition()
+	pageClause := ""
+	if page.Limit > 0 {
+		args = append(args, pLower.Arg()...)
+		args = append(args, pUpper.Arg()...)
+		pageClause = " where " + pLower.Condition() + " and " + pUpper.Condition()
+	}
 
 	query := fmt.Sprintf(
 		`
@@ -128,7 +131,7 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]mo
 		%s
 		`,
 		whereClause,
-		pagination,
+		pageClause,
 	)
 
 	rows, err := e.Query(query, args...)
@@ -244,7 +247,7 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]mo
 }
 
 func GetIssues(e Execer, filters ...filter) ([]models.Issue, error) {
-	return GetIssuesPaginated(e, pagination.FirstPage(), filters...)
+	return GetIssuesPaginated(e, pagination.Page{}, filters...)
 }
 
 func AddIssueComment(e Execer, c models.IssueComment) (int64, error) {
