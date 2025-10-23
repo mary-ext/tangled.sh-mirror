@@ -50,6 +50,8 @@
     merged a pull request
   {{ else if eq .Type "pull_closed" }}
     closed a pull request
+  {{ else if eq .Type "pull_reopen" }}
+    reopened a pull request
   {{ else if eq .Type "followed" }}
     followed you
   {{ else }}

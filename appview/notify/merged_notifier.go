@@ -93,6 +93,10 @@ func (m *mergedNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
 	m.fanout("NewPullClosed", ctx, pull)
 }
 
+func (m *mergedNotifier) NewPullReopen(ctx context.Context, pull *models.Pull) {
+	m.fanout("NewPullReopen", ctx, pull)
+}
+
 func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {
 	m.fanout("UpdateProfile", ctx, profile)
 }

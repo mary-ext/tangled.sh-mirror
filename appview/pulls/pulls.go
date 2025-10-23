@@ -2360,6 +2360,10 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, p := range pullsToReopen {
+		s.notifier.NewPullReopen(r.Context(), p)
+	}
+
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
 }
 

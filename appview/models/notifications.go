@@ -19,6 +19,7 @@ const (
 	NotificationTypeIssueClosed    NotificationType = "issue_closed"
 	NotificationTypeIssueReopen    NotificationType = "issue_reopen"
 	NotificationTypePullClosed     NotificationType = "pull_closed"
+	NotificationTypePullReopen     NotificationType = "pull_reopen"
 )
 
 type Notification struct {
@@ -58,6 +59,8 @@ func (n *Notification) Icon() string {
 		return "git-merge"
 	case NotificationTypePullClosed:
 		return "git-pull-request-closed"
+	case NotificationTypePullReopen:
+		return "git-pull-request-create"
 	case NotificationTypeFollowed:
 		return "user-plus"
 	default:
@@ -106,6 +109,8 @@ func (prefs *NotificationPreferences) ShouldNotify(t NotificationType) bool {
 		return prefs.PullMerged
 	case NotificationTypePullClosed:
 		return prefs.PullMerged // same pref for now
+	case NotificationTypePullReopen:
+		return prefs.PullCreated // same pref for now
 	case NotificationTypeFollowed:
 		return prefs.Followed
 	default:
