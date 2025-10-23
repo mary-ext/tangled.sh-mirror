@@ -2216,7 +2216,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 
 	// notify about the pull merge
 	for _, p := range pullsToMerge {
-		s.notifier.NewPullMerged(r.Context(), p)
+		s.notifier.NewPullState(r.Context(), p)
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.Name, pull.PullId))
@@ -2288,7 +2288,7 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range pullsToClose {
-		s.notifier.NewPullClosed(r.Context(), p)
+		s.notifier.NewPullState(r.Context(), p)
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
@@ -2361,7 +2361,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range pullsToReopen {
-		s.notifier.NewPullReopen(r.Context(), p)
+		s.notifier.NewPullState(r.Context(), p)
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))

@@ -85,16 +85,8 @@ func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.Pul
 	m.fanout("NewPullComment", ctx, comment)
 }
 
-func (m *mergedNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
-	m.fanout("NewPullMerged", ctx, pull)
-}
-
-func (m *mergedNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
-	m.fanout("NewPullClosed", ctx, pull)
-}
-
-func (m *mergedNotifier) NewPullReopen(ctx context.Context, pull *models.Pull) {
-	m.fanout("NewPullReopen", ctx, pull)
+func (m *mergedNotifier) NewPullState(ctx context.Context, pull *models.Pull) {
+	m.fanout("NewPullState", ctx, pull)
 }
 
 func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {

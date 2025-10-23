@@ -210,10 +210,22 @@ func (n *posthogNotifier) NewIssueState(ctx context.Context, issue *models.Issue
 	}
 }
 
-func (n *posthogNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
+func (n *posthogNotifier) NewPullState(ctx context.Context, pull *models.Pull) {
+	var event string
+	switch pull.State {
+	case models.PullClosed:
+		event = "pull_closed"
+	case models.PullOpen:
+		event = "pull_reopen"
+	case models.PullMerged:
+		event = "pull_merged"
+	default:
+		log.Println("posthog: unexpected new PR state:", pull.State)
+		return
+	}
 	err := n.client.Enqueue(posthog.Capture{
 		DistinctId: pull.OwnerDid,
-		Event:      "pull_merged",
+		Event:      event,
 		Properties: posthog.Properties{
 			"repo_at": pull.RepoAt,
 			"pull_id": pull.PullId,

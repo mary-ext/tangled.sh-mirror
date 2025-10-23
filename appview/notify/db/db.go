@@ -328,11 +328,11 @@ func (n *databaseNotifier) NewIssueState(ctx context.Context, issue *models.Issu
 	)
 }
 
-func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull) {
+func (n *databaseNotifier) NewPullState(ctx context.Context, pull *models.Pull) {
 	// Get repo details
 	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
-		log.Printf("NewPullMerged: failed to get repos: %v", err)
+		log.Printf("NewPullState: failed to get repos: %v", err)
 		return
 	}
 
@@ -354,103 +354,22 @@ func (n *databaseNotifier) NewPullMerged(ctx context.Context, pull *models.Pull)
 	}
 
 	actorDid := syntax.DID(repo.Did)
-	eventType := models.NotificationTypePullMerged
 	entityType := "pull"
 	entityId := pull.PullAt().String()
 	repoId := &repo.Id
 	var issueId *int64
-	p := int64(pull.ID)
-	pullId := &p
-
-	n.notifyEvent(
-		actorDid,
-		recipients,
-		eventType,
-		entityType,
-		entityId,
-		repoId,
-		issueId,
-		pullId,
-	)
-}
-
-func (n *databaseNotifier) NewPullClosed(ctx context.Context, pull *models.Pull) {
-	// Get repo details
-	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
-	if err != nil {
-		log.Printf("NewPullMerged: failed to get repos: %v", err)
+	var eventType models.NotificationType
+	switch pull.State {
+	case models.PullClosed:
+		eventType = models.NotificationTypePullClosed
+	case models.PullOpen:
+		eventType = models.NotificationTypePullReopen
+	case models.PullMerged:
+		eventType = models.NotificationTypePullMerged
+	default:
+		log.Println("NewPullState: unexpected new PR state:", pull.State)
 		return
 	}
-
-	// build up the recipients list:
-	// - repo owner
-	// - all pull participants
-	var recipients []syntax.DID
-	recipients = append(recipients, syntax.DID(repo.Did))
-	collaborators, err := db.GetCollaborators(n.db, db.FilterEq("repo_at", repo.RepoAt()))
-	if err != nil {
-		log.Printf("failed to fetch collaborators: %v", err)
-		return
-	}
-	for _, c := range collaborators {
-		recipients = append(recipients, c.SubjectDid)
-	}
-	for _, p := range pull.Participants() {
-		recipients = append(recipients, syntax.DID(p))
-	}
-
-	actorDid := syntax.DID(repo.Did)
-	eventType := models.NotificationTypePullClosed
-	entityType := "pull"
-	entityId := pull.PullAt().String()
-	repoId := &repo.Id
-	var issueId *int64
-	p := int64(pull.ID)
-	pullId := &p
-
-	n.notifyEvent(
-		actorDid,
-		recipients,
-		eventType,
-		entityType,
-		entityId,
-		repoId,
-		issueId,
-		pullId,
-	)
-}
-
-func (n *databaseNotifier) NewPullReopen(ctx context.Context, pull *models.Pull) {
-	// Get repo details
-	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
-	if err != nil {
-		log.Printf("NewPullMerged: failed to get repos: %v", err)
-		return
-	}
-
-	// build up the recipients list:
-	// - repo owner
-	// - all pull participants
-	var recipients []syntax.DID
-	recipients = append(recipients, syntax.DID(repo.Did))
-	collaborators, err := db.GetCollaborators(n.db, db.FilterEq("repo_at", repo.RepoAt()))
-	if err != nil {
-		log.Printf("failed to fetch collaborators: %v", err)
-		return
-	}
-	for _, c := range collaborators {
-		recipients = append(recipients, c.SubjectDid)
-	}
-	for _, p := range pull.Participants() {
-		recipients = append(recipients, syntax.DID(p))
-	}
-
-	actorDid := syntax.DID(repo.Did)
-	eventType := models.NotificationTypePullReopen
-	entityType := "pull"
-	entityId := pull.PullAt().String()
-	repoId := &repo.Id
-	var issueId *int64
 	p := int64(pull.ID)
 	pullId := &p
 
