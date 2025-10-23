@@ -49,11 +49,7 @@ func (n *Notifications) notificationsPage(w http.ResponseWriter, r *http.Request
 	l := n.logger.With("handler", "notificationsPage")
 	user := n.oauth.GetUser(r)
 
-	page, ok := r.Context().Value("page").(pagination.Page)
-	if !ok {
-		l.Error("failed to get page")
-		page = pagination.FirstPage()
-	}
+	page := pagination.FromContext(r.Context())
 
 	total, err := db.CountNotifications(
 		n.db,

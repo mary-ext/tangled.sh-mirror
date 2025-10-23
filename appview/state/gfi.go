@@ -18,10 +18,7 @@ import (
 func (s *State) GoodFirstIssues(w http.ResponseWriter, r *http.Request) {
 	user := s.oauth.GetUser(r)
 
-	page, ok := r.Context().Value("page").(pagination.Page)
-	if !ok {
-		page = pagination.FirstPage()
-	}
+	page := pagination.FromContext(r.Context())
 
 	goodFirstIssueLabel := fmt.Sprintf("at://%s/%s/%s", consts.TangledDid, tangled.LabelDefinitionNSID, "good-first-issue")
 
