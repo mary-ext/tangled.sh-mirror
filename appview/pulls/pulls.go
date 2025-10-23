@@ -17,6 +17,7 @@ import (
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
+	pulls_indexer "tangled.org/core/appview/indexer/pulls"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/appview/oauth"
@@ -49,6 +50,7 @@ type Pulls struct {
 	enforcer     *rbac.Enforcer
 	logger       *slog.Logger
 	validator    *validator.Validator
+	indexer      *pulls_indexer.Indexer
 }
 
 func New(
@@ -61,6 +63,7 @@ func New(
 	notifier notify.Notifier,
 	enforcer *rbac.Enforcer,
 	validator *validator.Validator,
+	indexer *pulls_indexer.Indexer,
 	logger *slog.Logger,
 ) *Pulls {
 	return &Pulls{
@@ -74,6 +77,7 @@ func New(
 		enforcer:     enforcer,
 		logger:       logger,
 		validator:    validator,
+		indexer:      indexer,
 	}
 }
 
@@ -544,6 +548,8 @@ func (s *Pulls) RepoPullPatchRaw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With("handler", "RepoPulls")
+
 	user := s.oauth.GetUser(r)
 	params := r.URL.Query()
 
@@ -561,10 +567,36 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	keyword := params.Get("q")
+
+	var ids []int64
+	searchOpts := models.PullSearchOptions{
+		Keyword: keyword,
+		RepoAt:  f.RepoAt().String(),
+		State:   state,
+		// Page: page,
+	}
+	l.Debug("searching with", "searchOpts", searchOpts)
+	if keyword != "" {
+		res, err := s.indexer.Search(r.Context(), searchOpts)
+		if err != nil {
+			l.Error("failed to search for pulls", "err", err)
+			return
+		}
+		ids = res.Hits
+		l.Debug("searched pulls with indexer", "count", len(ids))
+	} else {
+		ids, err = db.GetPullIDs(s.db, searchOpts)
+		if err != nil {
+			l.Error("failed to get all pull ids", "err", err)
+			return
+		}
+		l.Debug("indexed all pulls from the db", "count", len(ids))
+	}
+
 	pulls, err := db.GetPulls(
 		s.db,
-		db.FilterEq("repo_at", f.RepoAt()),
-		db.FilterEq("state", state),
+		db.FilterIn("id", ids),
 	)
 	if err != nil {
 		log.Println("failed to get pulls", err)
@@ -651,6 +683,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 		Pulls:        pulls,
 		LabelDefs:    defs,
 		FilteringBy:  state,
+		FilterQuery:  keyword,
 		Stacks:       stacks,
 		Pipelines:    m,
 	})

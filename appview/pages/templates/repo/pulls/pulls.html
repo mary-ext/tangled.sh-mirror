@@ -31,6 +31,13 @@
                 {{ i "ban" "w-4 h-4" }}
                 <span>{{ .RepoInfo.Stats.PullCount.Closed }} closed</span>
             </a>
+            <form class="flex gap-4" method="GET">
+                <input type="hidden" name="state" value="{{ .FilteringBy.String }}">
+                <input class="" type="text" name="q" value="{{ .FilterQuery }}">
+                <button class="btn" type="submit">
+                    search
+                </button>
+            </form>
         </div>
         <a
             href="/{{ .RepoInfo.FullName }}/pulls/new"

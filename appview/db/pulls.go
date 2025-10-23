@@ -281,6 +281,67 @@ func GetPulls(e Execer, filters ...filter) ([]*models.Pull, error) {
 	return GetPullsWithLimit(e, 0, filters...)
 }
 
+func GetPullIDs(e Execer, opts models.PullSearchOptions) ([]int64, error) {
+	var ids []int64
+
+	var filters []filter
+	filters = append(filters, FilterEq("state", opts.State))
+	if opts.RepoAt != "" {
+		filters = append(filters, FilterEq("repo_at", opts.RepoAt))
+	}
+
+	var conditions []string
+	var args []any
+
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+	pageClause := ""
+	if opts.Page.Limit != 0 {
+		pageClause = fmt.Sprintf(
+			" limit %d offset %d ",
+			opts.Page.Limit,
+			opts.Page.Offset,
+		)
+	}
+
+	query := fmt.Sprintf(
+		`
+		select
+			id
+		from
+			pulls
+		%s
+		%s`,
+		whereClause,
+		pageClause,
+	)
+	args = append(args, opts.Page.Limit, opts.Page.Offset)
+	rows, err := e.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int64
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
 func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*models.Pull, error) {
 	pulls, err := GetPullsWithLimit(e, 1, FilterEq("repo_at", repoAt), FilterEq("pull_id", pullId))
 	if err != nil {

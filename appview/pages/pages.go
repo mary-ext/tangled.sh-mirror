@@ -1102,6 +1102,7 @@ type RepoPullsParams struct {
 	Pulls        []*models.Pull
 	Active       string
 	FilteringBy  models.PullState
+	FilterQuery  string
 	Stacks       map[string]models.Stack
 	Pipelines    map[string]models.Pipeline
 	LabelDefs    map[string]*models.LabelDefinition
