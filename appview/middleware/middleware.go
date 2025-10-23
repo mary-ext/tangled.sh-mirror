@@ -105,7 +105,7 @@ func Paginate(next http.Handler) http.Handler {
 			}
 		}
 
-		ctx := context.WithValue(r.Context(), "page", page)
+		ctx := pagination.IntoContext(r.Context(), page)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

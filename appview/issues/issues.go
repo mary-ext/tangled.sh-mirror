@@ -770,11 +770,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		isOpen = true
 	}
 
-	page, ok := r.Context().Value("page").(pagination.Page)
-	if !ok {
-		l.Error("failed to get page")
-		page = pagination.FirstPage()
-	}
+	page := pagination.FromContext(r.Context())
 
 	user := rp.oauth.GetUser(r)
 	f, err := rp.repoResolver.Resolve(r)
