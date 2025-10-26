@@ -222,7 +222,7 @@ func (e *Engine) SetupWorkflow(ctx context.Context, wid models.WorkflowId, wf *m
 		},
 		ReadonlyRootfs: false,
 		CapDrop:        []string{"ALL"},
-		CapAdd:         []string{"CAP_DAC_OVERRIDE"},
+		CapAdd:         []string{"CAP_DAC_OVERRIDE", "CAP_CHOWN", "CAP_FOWNER", "CAP_SETUID", "CAP_SETGID"},
 		SecurityOpt:    []string{"no-new-privileges"},
 		ExtraHosts:     []string{"host.docker.internal:host-gateway"},
 	}, nil, nil, "")
