@@ -12,7 +12,6 @@ import (
 
 	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	"github.com/go-chi/chi/v5"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
@@ -41,21 +40,12 @@ func (o *OAuth) clientMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OAuth) jwks(w http.ResponseWriter, r *http.Request) {
-	jwks := o.Config.OAuth.Jwks
-	pubKey, err := pubKeyFromJwk(jwks)
-	if err != nil {
-		o.Logger.Error("error parsing public key", "err", err)
+	w.Header().Set("Content-Type", "application/json")
+	body := o.ClientApp.Config.PublicJWKS()
+	if err := json.NewEncoder(w).Encode(body); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	response := map[string]any{
-		"keys": []jwk.Key{pubKey},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
 }
 
 func (o *OAuth) callback(w http.ResponseWriter, r *http.Request) {

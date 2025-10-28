@@ -37,12 +37,22 @@ OAUTH JWKs to be setup:
 
 ```
 # oauth jwks should already be setup by the nix devshell:
-echo $TANGLED_OAUTH_JWKS
-{"crv":"P-256","d":"tELKHYH-Dko6qo4ozYcVPE1ah6LvXHFV2wpcWpi8ab4","kid":"1753352226","kty":"EC","x":"mRzYpLzAGq74kJez9UbgGfV040DxgsXpMbaVsdy8RZs","y":"azqqXzUYywMlLb2Uc5AVG18nuLXyPnXr4kI4T39eeIc"}
+echo $TANGLED_OAUTH_CLIENT_SECRET
+z42ty4RT1ovnTopY8B8ekz9NuziF2CuMkZ7rbRFpAR9jBqMc
+
+echo $TANGLED_OAUTH_CLIENT_KID
+1761667908
 
 # if not, you can set it up yourself:
-go build -o genjwks.out ./cmd/genjwks
-export TANGLED_OAUTH_JWKS="$(./genjwks.out)"
+goat key generate -t P-256
+Key Type: P-256 / secp256r1 / ES256 private key
+Secret Key (Multibase Syntax): save this securely (eg, add to password manager)
+        z42tuPDKRfM2mz2Kv953ARen2jmrPA8S9LX9tRq4RVcUMwwL
+Public Key (DID Key Syntax): share or publish this (eg, in DID document)
+        did:key:zDnaeUBxtG6Xuv3ATJE4GaWeyXM3jyamJsZw3bSPpxx4bNXDR
+
+# the secret key from above
+export TANGLED_OAUTH_CLIENT_SECRET="z42tuP..." 
 
 # run redis in at a new shell to store oauth sessions
 redis-server

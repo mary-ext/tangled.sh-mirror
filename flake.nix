@@ -78,8 +78,8 @@
           inherit (pkgs) gcc;
           inherit sqlite-lib-src;
         };
-        genjwks = self.callPackage ./nix/pkgs/genjwks.nix {};
         lexgen = self.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
+        goat = self.callPackage ./nix/pkgs/goat.nix {inherit indigo;};
         appview-static-files = self.callPackage ./nix/pkgs/appview-static-files.nix {
           inherit htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src;
         };
@@ -90,7 +90,7 @@
       });
   in {
     overlays.default = final: prev: {
-      inherit (mkPackageSet final) lexgen sqlite-lib genjwks spindle knot-unwrapped knot appview;
+      inherit (mkPackageSet final) lexgen goat sqlite-lib spindle knot-unwrapped knot appview;
     };
 
     packages = forAllSystems (system: let
@@ -99,7 +99,7 @@
       staticPackages = mkPackageSet pkgs.pkgsStatic;
       crossPackages = mkPackageSet pkgs.pkgsCross.gnu64.pkgsStatic;
     in {
-      inherit (packages) appview appview-static-files lexgen genjwks spindle knot knot-unwrapped sqlite-lib;
+      inherit (packages) appview appview-static-files lexgen goat spindle knot knot-unwrapped sqlite-lib;
 
       pkgsStatic-appview = staticPackages.appview;
       pkgsStatic-knot = staticPackages.knot;
@@ -167,7 +167,8 @@
           mkdir -p appview/pages/static
           # no preserve is needed because watch-tailwind will want to be able to overwrite
           cp -fr --no-preserve=ownership ${packages'.appview-static-files}/* appview/pages/static
-          export TANGLED_OAUTH_JWKS="$(${packages'.genjwks}/bin/genjwks)"
+          export TANGLED_OAUTH_CLIENT_KID="$(date +%s)"
+          export TANGLED_OAUTH_CLIENT_SECRET="$(${packages'.goat}/bin/goat key generate -t P-256 | grep -A1 "Secret Key" | tail -n1 | awk '{print $1}')"
         '';
         env.CGO_ENABLED = 1;
       };

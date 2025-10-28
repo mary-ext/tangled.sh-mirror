@@ -10,10 +10,10 @@ import (
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/atproto/auth/oauth"
 	atpclient "github.com/bluesky-social/indigo/atproto/client"
+	atcrypto "github.com/bluesky-social/indigo/atproto/crypto"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	xrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/gorilla/sessions"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/posthog/posthog-go"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
@@ -47,6 +47,15 @@ func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enf
 		clientId := fmt.Sprintf("%s/oauth/client-metadata.json", clientUri)
 		callbackUri := clientUri + "/oauth/callback"
 		oauthConfig = oauth.NewPublicConfig(clientId, callbackUri, []string{"atproto", "transition:generic"})
+	}
+
+	// configure client secret
+	priv, err := atcrypto.ParsePrivateMultibase(config.OAuth.ClientSecret)
+	if err != nil {
+		return nil, err
+	}
+	if err := oauthConfig.SetClientSecret(priv, config.OAuth.ClientKid); err != nil {
+		return nil, err
 	}
 
 	jwksUri := clientUri + "/oauth/jwks.json"
@@ -138,18 +147,6 @@ func (o *OAuth) DeleteSession(w http.ResponseWriter, r *http.Request) error {
 	err2 := o.SessStore.Save(r, w, userSession)
 
 	return errors.Join(err1, err2)
-}
-
-func pubKeyFromJwk(jwks string) (jwk.Key, error) {
-	k, err := jwk.ParseKey([]byte(jwks))
-	if err != nil {
-		return nil, err
-	}
-	pubKey, err := k.PublicKey()
-	if err != nil {
-		return nil, err
-	}
-	return pubKey, nil
 }
 
 type User struct {

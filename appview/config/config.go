@@ -25,7 +25,8 @@ type CoreConfig struct {
 }
 
 type OAuthConfig struct {
-	Jwks string `env:"JWKS"`
+	ClientSecret string `env:"CLIENT_SECRET"`
+	ClientKid    string `env:"CLIENT_KID"`
 }
 
 type JetstreamConfig struct {
