@@ -26,6 +26,8 @@ type OAuth struct {
 	SessStore  *sessions.CookieStore
 	Config     *config.Config
 	JwksUri    string
+	ClientName string
+	ClientUri  string
 	Posthog    posthog.Client
 	Db         *db.DB
 	Enforcer   *rbac.Enforcer
@@ -34,10 +36,8 @@ type OAuth struct {
 }
 
 func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enforcer, res *idresolver.Resolver, logger *slog.Logger) (*OAuth, error) {
-
 	var oauthConfig oauth.ClientConfig
 	var clientUri string
-
 	if config.Core.Dev {
 		clientUri = "http://127.0.0.1:3000"
 		callbackUri := clientUri + "/oauth/callback"
@@ -70,11 +70,15 @@ func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enf
 	clientApp := oauth.NewClientApp(&oauthConfig, authStore)
 	clientApp.Dir = res.Directory()
 
+	clientName := config.Core.AppviewName
+
 	return &OAuth{
 		ClientApp:  clientApp,
 		Config:     config,
 		SessStore:  sessStore,
 		JwksUri:    jwksUri,
+		ClientName: clientName,
+		ClientUri:  clientUri,
 		Posthog:    ph,
 		Db:         db,
 		Enforcer:   enforcer,

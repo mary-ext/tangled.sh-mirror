@@ -31,6 +31,8 @@ func (o *OAuth) Router() http.Handler {
 func (o *OAuth) clientMetadata(w http.ResponseWriter, r *http.Request) {
 	doc := o.ClientApp.Config.ClientMetadata()
 	doc.JWKSURI = &o.JwksUri
+	doc.ClientName = &o.ClientName
+	doc.ClientURI = &o.ClientUri
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(doc); err != nil {
