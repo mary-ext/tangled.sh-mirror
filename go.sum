@@ -512,7 +512,7 @@ github.com/whyrusleeping/cbor-gen v0.3.1 h1:82ioxmhEYut7LBVGhGq8xoRkXPLElVuh5mV6
 github.com/whyrusleeping/cbor-gen v0.3.1/go.mod h1:pM99HXyEbSQHcosHc0iW7YFmwnscr+t9Te4ibko05so=
 github.com/wyatt915/goldmark-treeblood v0.0.0-20250825231212-5dcbdb2f4b57 h1:UqtQdzLXnvdBdqn/go53qGyncw1wJ7Mq5SQdieM1/Ew=
 github.com/wyatt915/goldmark-treeblood v0.0.0-20250825231212-5dcbdb2f4b57/go.mod h1:BxSCWByWSRSuembL3cDG1IBUbkBoO/oW/6tF19aA4hs=
-github.com/wyatt915/treeblood v0.1.15 h1:3KZ3o2LpcKZAzOLqMoW9qeUzKEaKArKpbcPpTkNfQC8=
+github.com/wyatt915/treeblood v0.1.15 h1:P9gTS9IuuZttst0/8ge09Oj1QwHwq4xMHpydEHztBe4=
 github.com/wyatt915/treeblood v0.1.15/go.mod h1:i7+yhhmzdDP17/97pIsOSffw74EK/xk+qJ0029cSXUY=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
