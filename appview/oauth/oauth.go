@@ -164,15 +164,14 @@ type User struct {
 }
 
 func (o *OAuth) GetUser(r *http.Request) *User {
-	sess, err := o.SessStore.Get(r, SessionName)
-
-	if err != nil || sess.IsNew {
+	sess, err := o.ResumeSession(r)
+	if err != nil {
 		return nil
 	}
 
 	return &User{
-		Did: sess.Values[SessionDid].(string),
-		Pds: sess.Values[SessionPds].(string),
+		Did: sess.Data.AccountDID.String(),
+		Pds: sess.Data.HostURL,
 	}
 }
 
