@@ -549,11 +549,11 @@ schema = 3
     version = "v0.3.1"
     hash = "sha256-PAd8M2Z8t6rVRBII+Rg8Bz+QaJIwbW64bfyqsv31kgc="
   [mod."github.com/wyatt915/goldmark-treeblood"]
-    version = "v0.0.0-20250825231212-5dcbdb2f4b57"
-    hash = "sha256-IZEsUXTBTsNgWoD7vqRUc9aFCCHNjzk1IUmI9O+NCnM="
+    version = "v0.0.1"
+    hash = "sha256-hAVFaktO02MiiqZFffr8ZlvFEfwxw4Y84OZ2t7e5G7g="
   [mod."github.com/wyatt915/treeblood"]
-    version = "v0.1.15"
-    hash = "sha256-hb99exdkoY2Qv8WdDxhwgPXGbEYimUr6wFtPXEvcO9g="
+    version = "v0.1.16"
+    hash = "sha256-T68sa+iVx0qY7dDjXEAJvRWQEGXYIpUsf9tcWwO1tIw="
   [mod."github.com/xo/terminfo"]
     version = "v0.0.0-20220910002029-abceb7e1c41e"
     hash = "sha256-GyCDxxMQhXA3Pi/TsWXpA8cX5akEoZV7CFx4RO3rARU="
