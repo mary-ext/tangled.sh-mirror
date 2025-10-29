@@ -60,7 +60,12 @@ func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enf
 
 	jwksUri := clientUri + "/oauth/jwks.json"
 
-	authStore, err := NewRedisStore(config.Redis.ToURL())
+	authStore, err := NewRedisStore(&RedisStoreConfig{
+		RedisURL:                  config.Redis.ToURL(),
+		SessionExpiryDuration:     time.Hour * 24 * 90,
+		SessionInactivityDuration: time.Hour * 24 * 14,
+		AuthRequestExpiryDuration: time.Minute * 30,
+	})
 	if err != nil {
 		return nil, err
 	}
