@@ -77,6 +77,7 @@ func New(config *config.Config, ph posthog.Client, db *db.DB, enforcer *rbac.Enf
 
 	clientName := config.Core.AppviewName
 
+	logger.Info("oauth setup successfully", "IsConfidential", clientApp.Config.IsConfidential())
 	return &OAuth{
 		ClientApp:  clientApp,
 		Config:     config,
