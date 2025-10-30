@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/commitverify"
@@ -1361,10 +1362,21 @@ type LogBlockParams struct {
 	Name      string
 	Command   string
 	Collapsed bool
+	StartTime time.Time
 }
 
 func (p *Pages) LogBlock(w io.Writer, params LogBlockParams) error {
 	return p.executePlain("repo/pipelines/fragments/logBlock", w, params)
+}
+
+type LogBlockEndParams struct {
+	Id        int
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+func (p *Pages) LogBlockEnd(w io.Writer, params LogBlockEndParams) error {
+	return p.executePlain("repo/pipelines/fragments/logBlockEnd", w, params)
 }
 
 type LogLineParams struct {
