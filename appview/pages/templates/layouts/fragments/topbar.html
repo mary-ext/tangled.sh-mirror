@@ -15,7 +15,7 @@
                 {{ with .LoggedInUser }}
                     {{ block "newButton" . }} {{ end }}
                     {{ template "notifications/fragments/bell" }}
-                    {{ block "dropDown" . }} {{ end }}
+                    {{ block "profileDropdown" . }} {{ end }}
                 {{ else }}
                     <a href="/login">login</a>
                     <span class="text-gray-500 dark:text-gray-400">or</span>
@@ -33,7 +33,7 @@
     <summary class="btn-create py-0 cursor-pointer list-none flex items-center gap-2">
       {{ i "plus" "w-4 h-4" }} <span class="hidden md:inline">new</span>
     </summary>
-    <div class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
+    <div class="absolute flex flex-col right-0 mt-3 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
         <a href="/repo/new" class="flex items-center gap-2">
           {{ i "book-plus" "w-4 h-4" }}
           new repository
@@ -46,11 +46,9 @@
 </details>
 {{ end }}
 
-{{ define "dropDown" }}
+{{ define "profileDropdown" }}
 <details class="relative inline-block text-left nav-dropdown">
-    <summary
-        class="cursor-pointer list-none flex items-center gap-1"
-    >
+    <summary class="cursor-pointer list-none flex items-center gap-1">
         {{ $user := .Did }}
         <img
             src="{{ tinyAvatar $user }}"
@@ -59,9 +57,7 @@
         />
         <span class="hidden md:inline">{{ $user | resolve | truncateAt30 }}</span>
     </summary>
-    <div
-        class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700"
-    >
+    <div class="absolute flex flex-col right-0 mt-4 p-4 rounded w-48 bg-white dark:bg-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
         <a href="/{{ $user }}">profile</a>
         <a href="/{{ $user }}?tab=repos">repositories</a>
         <a href="/{{ $user }}?tab=strings">strings</a>
