@@ -1,9 +1,7 @@
 package repo
 
 import (
-	"context"
 	"crypto/rand"
-	"fmt"
 	"math/big"
 	"slices"
 	"sort"
@@ -90,39 +88,6 @@ func balanceIndexItems(commitCount, branchCount, tagCount, fileCount int) (commi
 	}
 
 	return
-}
-
-// emailToDidOrHandle takes an emailToDidMap from db.GetEmailToDid
-// and resolves all dids to handles and returns a new map[string]string
-func emailToDidOrHandle(r *Repo, emailToDidMap map[string]string) map[string]string {
-	if emailToDidMap == nil {
-		return nil
-	}
-
-	var dids []string
-	for _, v := range emailToDidMap {
-		dids = append(dids, v)
-	}
-	resolvedIdents := r.idResolver.ResolveIdents(context.Background(), dids)
-
-	didHandleMap := make(map[string]string)
-	for _, identity := range resolvedIdents {
-		if !identity.Handle.IsInvalidHandle() {
-			didHandleMap[identity.DID.String()] = fmt.Sprintf("@%s", identity.Handle.String())
-		} else {
-			didHandleMap[identity.DID.String()] = identity.DID.String()
-		}
-	}
-
-	// Create map of email to didOrHandle for commit display
-	emailToDidOrHandle := make(map[string]string)
-	for email, did := range emailToDidMap {
-		if didOrHandle, ok := didHandleMap[did]; ok {
-			emailToDidOrHandle[email] = didOrHandle
-		}
-	}
-
-	return emailToDidOrHandle
 }
 
 func randomString(n int) string {
