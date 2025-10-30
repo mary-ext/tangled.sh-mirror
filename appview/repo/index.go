@@ -154,11 +154,11 @@ func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
 		CommitsTrunc:      commitsTrunc,
 		TagsTrunc:         tagsTrunc,
 		// ForkInfo:           forkInfo, // TODO: reinstate this after xrpc properly lands
-		BranchesTrunc:      branchesTrunc,
-		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
-		VerifiedCommits:    vc,
-		Languages:          languageInfo,
-		Pipelines:          pipelines,
+		BranchesTrunc:   branchesTrunc,
+		EmailToDid:      emailToDidMap,
+		VerifiedCommits: vc,
+		Languages:       languageInfo,
+		Pipelines:       pipelines,
 	})
 }
 

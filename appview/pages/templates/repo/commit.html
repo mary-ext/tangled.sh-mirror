@@ -24,25 +24,25 @@
     </div>
   </div>
 
-  <div class="flex items-center space-x-2">
-      <p class="text-sm text-gray-500 dark:text-gray-300">
-          {{ $didOrHandle := index $.EmailToDidOrHandle $commit.Author.Email }}
+  <div class="flex flex-wrap items-center space-x-2">
+      <p class="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-300">
+          {{ $did := index $.EmailToDid $commit.Author.Email }}
 
-          {{ if $didOrHandle }}
-            <a href="/{{ $didOrHandle }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ $didOrHandle }}</a>
+          {{ if $did }}
+            {{ template "user/fragments/picHandleLink" $did }}
           {{ else }}
             <a href="mailto:{{ $commit.Author.Email }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ $commit.Author.Name }}</a>
           {{ end }}
+
           <span class="px-1 select-none before:content-['\00B7']"></span>
           {{ template "repo/fragments/time" $commit.Author.When }}
           <span class="px-1 select-none before:content-['\00B7']"></span>
-      </p>
 
-      <p class="flex items-center text-sm text-gray-500 dark:text-gray-300">
           <a href="/{{ $repo }}/commit/{{ $commit.This }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.This 0 8 }}</a>
+
           {{ if $commit.Parent }}
-          {{ i "arrow-left" "w-3 h-3 mx-1" }}
-          <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.Parent 0 8 }}</a>
+            {{ i "arrow-left" "w-3 h-3 mx-1" }}
+            <a href="/{{ $repo }}/commit/{{ $commit.Parent }}" class="no-underline hover:underline text-gray-500 dark:text-gray-300">{{ slice $commit.Parent 0 8 }}</a>
           {{ end }}
       </p>
 
@@ -58,8 +58,8 @@
               <div class="mb-1">This commit was signed with the committer's <span class="text-green-600 font-semibold">known signature</span>.</div>
               <div class="flex items-center gap-2 my-2">
                   {{ i "user" "w-4 h-4" }}
-                  {{ $committerDidOrHandle := index $.EmailToDidOrHandle $commit.Committer.Email }}
-                  <a href="/{{ $committerDidOrHandle }}">{{ template "user/fragments/picHandleLink" $committerDidOrHandle }}</a>
+                  {{ $committerDid := index $.EmailToDid $commit.Committer.Email }}
+                  {{ template "user/fragments/picHandleLink" $committerDid }}
               </div>
               <div class="my-1 pt-2 text-xs border-t border-gray-200 dark:border-gray-700">
                   <div class="text-gray-600 dark:text-gray-300">SSH Key Fingerprint:</div>

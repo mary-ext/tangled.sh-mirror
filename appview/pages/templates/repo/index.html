@@ -222,20 +222,10 @@
           class="mx-1 before:content-['·'] before:select-none"
           ></span>
         <span>
-          {{ $didOrHandle := index $.EmailToDidOrHandle .Author.Email }}
-          <a
-            href="{{ if $didOrHandle }}
-            /{{ $didOrHandle }}
-            {{ else }}
-            mailto:{{ .Author.Email }}
-            {{ end }}"
+          {{ $did := index $.EmailToDid .Author.Email }}
+          <a href="{{ if $did }}/{{ resolve $did }}{{ else }}mailto:{{ .Author.Email }}{{ end }}"
             class="text-gray-500 dark:text-gray-400 no-underline hover:underline"
-            >{{ if $didOrHandle }}
-            {{ template "user/fragments/picHandleLink" $didOrHandle }}
-            {{ else }}
-            {{ .Author.Name }}
-            {{ end }}</a
-          >
+            >{{ if $did }}{{ template "user/fragments/picHandleLink" $did }}{{ else }}{{ .Author.Name }}{{ end }}</a>
         </span>
         <div class="inline-block px-1 select-none after:content-['·']"></div>
         {{ template "repo/fragments/time" .Committer.When }}

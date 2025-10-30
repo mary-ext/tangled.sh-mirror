@@ -242,13 +242,13 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rp.pages.RepoLog(w, pages.RepoLogParams{
-		LoggedInUser:       user,
-		TagMap:             tagMap,
-		RepoInfo:           repoInfo,
-		RepoLogResponse:    xrpcResp,
-		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
-		VerifiedCommits:    vc,
-		Pipelines:          pipelines,
+		LoggedInUser:    user,
+		TagMap:          tagMap,
+		RepoInfo:        repoInfo,
+		RepoLogResponse: xrpcResp,
+		EmailToDid:      emailToDidMap,
+		VerifiedCommits: vc,
+		Pipelines:       pipelines,
 	})
 }
 
@@ -422,7 +422,7 @@ func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:       user,
 		RepoInfo:           f.RepoInfo(user),
 		RepoCommitResponse: result,
-		EmailToDidOrHandle: emailToDidOrHandle(rp, emailToDidMap),
+		EmailToDid:         emailToDidMap,
 		VerifiedCommit:     vc,
 		Pipeline:           pipeline,
 		DiffOpts:           diffOpts,

@@ -660,13 +660,13 @@ type RepoIndexParams struct {
 	TagsTrunc     []*types.TagReference
 	BranchesTrunc []types.Branch
 	// ForkInfo           *types.ForkInfo
-	HTMLReadme         template.HTML
-	Raw                bool
-	EmailToDidOrHandle map[string]string
-	VerifiedCommits    commitverify.VerifiedCommits
-	Languages          []types.RepoLanguageDetails
-	Pipelines          map[string]models.Pipeline
-	NeedsKnotUpgrade   bool
+	HTMLReadme       template.HTML
+	Raw              bool
+	EmailToDid       map[string]string
+	VerifiedCommits  commitverify.VerifiedCommits
+	Languages        []types.RepoLanguageDetails
+	Pipelines        map[string]models.Pipeline
+	NeedsKnotUpgrade bool
 	types.RepoIndexResponse
 }
 
@@ -701,14 +701,15 @@ func (p *Pages) RepoIndexPage(w io.Writer, params RepoIndexParams) error {
 }
 
 type RepoLogParams struct {
-	LoggedInUser *oauth.User
-	RepoInfo     repoinfo.RepoInfo
-	TagMap       map[string][]string
+	LoggedInUser    *oauth.User
+	RepoInfo        repoinfo.RepoInfo
+	TagMap          map[string][]string
+	Active          string
+	EmailToDid      map[string]string
+	VerifiedCommits commitverify.VerifiedCommits
+	Pipelines       map[string]models.Pipeline
+
 	types.RepoLogResponse
-	Active             string
-	EmailToDidOrHandle map[string]string
-	VerifiedCommits    commitverify.VerifiedCommits
-	Pipelines          map[string]models.Pipeline
 }
 
 func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
@@ -717,12 +718,12 @@ func (p *Pages) RepoLog(w io.Writer, params RepoLogParams) error {
 }
 
 type RepoCommitParams struct {
-	LoggedInUser       *oauth.User
-	RepoInfo           repoinfo.RepoInfo
-	Active             string
-	EmailToDidOrHandle map[string]string
-	Pipeline           *models.Pipeline
-	DiffOpts           types.DiffOpts
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Active       string
+	EmailToDid   map[string]string
+	Pipeline     *models.Pipeline
+	DiffOpts     types.DiffOpts
 
 	// singular because it's always going to be just one
 	VerifiedCommit commitverify.VerifiedCommits
