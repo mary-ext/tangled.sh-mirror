@@ -37,29 +37,32 @@ func (l *WorkflowLogger) Close() error {
 	return l.file.Close()
 }
 
-func (l *WorkflowLogger) DataWriter(stream string) io.Writer {
+func (l *WorkflowLogger) DataWriter(idx int, stream string) io.Writer {
 	return &dataWriter{
 		logger: l,
+		idx:    idx,
 		stream: stream,
 	}
 }
 
-func (l *WorkflowLogger) ControlWriter(idx int, step Step) io.Writer {
+func (l *WorkflowLogger) ControlWriter(idx int, step Step, stepStatus StepStatus) io.Writer {
 	return &controlWriter{
-		logger: l,
-		idx:    idx,
-		step:   step,
+		logger:     l,
+		idx:        idx,
+		step:       step,
+		stepStatus: stepStatus,
 	}
 }
 
 type dataWriter struct {
 	logger *WorkflowLogger
+	idx    int
 	stream string
 }
 
 func (w *dataWriter) Write(p []byte) (int, error) {
 	line := strings.TrimRight(string(p), "\r\n")
-	entry := NewDataLogLine(line, w.stream)
+	entry := NewDataLogLine(w.idx, line, w.stream)
 	if err := w.logger.encoder.Encode(entry); err != nil {
 		return 0, err
 	}
@@ -67,13 +70,14 @@ func (w *dataWriter) Write(p []byte) (int, error) {
 }
 
 type controlWriter struct {
-	logger *WorkflowLogger
-	idx    int
-	step   Step
+	logger     *WorkflowLogger
+	idx        int
+	step       Step
+	stepStatus StepStatus
 }
 
 func (w *controlWriter) Write(_ []byte) (int, error) {
-	entry := NewControlLogLine(w.idx, w.step)
+	entry := NewControlLogLine(w.idx, w.step, w.stepStatus)
 	if err := w.logger.encoder.Encode(entry); err != nil {
 		return 0, err
 	}
