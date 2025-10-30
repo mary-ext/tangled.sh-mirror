@@ -381,8 +381,8 @@ func (e *Engine) tailStep(ctx context.Context, wfLogger *models.WorkflowLogger, 
 	defer logs.Close()
 
 	_, err = stdcopy.StdCopy(
-		wfLogger.DataWriter("stdout"),
-		wfLogger.DataWriter("stderr"),
+		wfLogger.DataWriter(stepIdx, "stdout"),
+		wfLogger.DataWriter(stepIdx, "stderr"),
 		logs.Reader,
 	)
 	if err != nil && err != io.EOF && !errors.Is(err, context.DeadlineExceeded) {

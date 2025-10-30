@@ -79,12 +79,22 @@ func StartWorkflows(l *slog.Logger, vault secrets.Manager, cfg *config.Config, d
 				defer cancel()
 
 				for stepIdx, step := range w.Steps {
+					// log start of step
 					if wfLogger != nil {
-						ctl := wfLogger.ControlWriter(stepIdx, step)
-						ctl.Write([]byte(step.Name()))
+						wfLogger.
+							ControlWriter(stepIdx, step, models.StepStatusStart).
+							Write([]byte{0})
 					}
 
 					err = eng.RunStep(ctx, wid, &w, stepIdx, allSecrets, wfLogger)
+
+					// log end of step
+					if wfLogger != nil {
+						wfLogger.
+							ControlWriter(stepIdx, step, models.StepStatusEnd).
+							Write([]byte{0})
+					}
+
 					if err != nil {
 						if errors.Is(err, ErrTimedOut) {
 							dbErr := db.StatusTimeout(wid, n)
@@ -115,6 +125,6 @@ func StartWorkflows(l *slog.Logger, vault secrets.Manager, cfg *config.Config, d
 	if err := eg.Wait(); err != nil {
 		l.Error("failed to run one or more workflows", "err", err)
 	} else {
-		l.Error("successfully ran full pipeline")
+		l.Info("successfully ran full pipeline")
 	}
 }

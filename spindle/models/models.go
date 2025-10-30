@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"time"
 
 	"tangled.org/core/api/tangled"
 
@@ -76,36 +77,50 @@ type LogKind string
 var (
 	// step log data
 	LogKindData LogKind = "data"
-	// indicates start/end of a step
+	// indicates status of a step
 	LogKindControl LogKind = "control"
 )
 
+// step status indicator in control log lines
+type StepStatus string
+
+var (
+	StepStatusStart StepStatus = "start"
+	StepStatusEnd   StepStatus = "end"
+)
+
 type LogLine struct {
-	Kind    LogKind `json:"kind"`
-	Content string  `json:"content"`
+	Kind    LogKind   `json:"kind"`
+	Content string    `json:"content"`
+	Time    time.Time `json:"time"`
+	StepId  int       `json:"step_id"`
 
 	// fields if kind is "data"
 	Stream string `json:"stream,omitempty"`
 
 	// fields if kind is "control"
-	StepId      int      `json:"step_id,omitempty"`
-	StepKind    StepKind `json:"step_kind,omitempty"`
-	StepCommand string   `json:"step_command,omitempty"`
+	StepStatus  StepStatus `json:"step_status,omitempty"`
+	StepKind    StepKind   `json:"step_kind,omitempty"`
+	StepCommand string     `json:"step_command,omitempty"`
 }
 
-func NewDataLogLine(content, stream string) LogLine {
+func NewDataLogLine(idx int, content, stream string) LogLine {
 	return LogLine{
 		Kind:    LogKindData,
+		Time:    time.Now(),
 		Content: content,
+		StepId:  idx,
 		Stream:  stream,
 	}
 }
 
-func NewControlLogLine(idx int, step Step) LogLine {
+func NewControlLogLine(idx int, step Step, status StepStatus) LogLine {
 	return LogLine{
 		Kind:        LogKindControl,
+		Time:        time.Now(),
 		Content:     step.Name(),
 		StepId:      idx,
+		StepStatus:  status,
 		StepKind:    step.Kind(),
 		StepCommand: step.Command(),
 	}
