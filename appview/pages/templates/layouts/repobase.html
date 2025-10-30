@@ -17,6 +17,9 @@
           {{ template "user/fragments/picHandleLink" .RepoInfo.OwnerDid }}
           <span class="select-none">/</span>
           <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
+          {{ range $topic := .RepoInfo.Topics }}
+            <span class="font-normal normal-case text-sm rounded py-1 px-2 bg-white dark:bg-gray-800">{{ $topic }}</span>
+          {{ end }}
         </div>
 
         <div class="flex items-center gap-2 z-auto">
@@ -38,7 +41,14 @@
           </a>
         </div>
       </div>
-      {{ template "repo/fragments/repoDescription" . }}
+      <span id="repo-description" class="flex flex-wrap items-center gap-2 text-sm" hx-target="this" hx-swap="outerHTML">
+        {{ if .RepoInfo.Description }}
+          {{ .RepoInfo.Description | description }}
+        {{ else }}
+          <span class="italic">this repo has no description</span>
+        {{ end }}
+        <a href="{{ .RepoInfo.Website }}" class="underline text-blue-800 dark:text-blue-300">{{ .RepoInfo.Website | trimUriScheme }}</a>
+      </span>
     </section>
 
     <section class="w-full flex flex-col" >

@@ -6,6 +6,7 @@
       {{ template "repo/settings/fragments/sidebar" . }}
     </div>
     <div class="col-span-1 md:col-span-3 flex flex-col gap-6 p-2">
+      {{ template "baseSettings" . }}
       {{ template "branchSettings" . }}
       {{ template "defaultLabelSettings" . }}
       {{ template "customLabelSettings" . }}
@@ -13,6 +14,52 @@
       <div id="operation-error" class="text-red-500 dark:text-red-400"></div>
     </div>
   </section>
+{{ end }}
+
+{{ define "baseSettings" }}
+  <form hx-put="/{{ $.RepoInfo.FullName }}/settings/base" hx-swap="none">
+    <fieldset
+      class=""
+      {{ if not .RepoInfo.Roles.IsOwner }}disabled{{ end }}
+    >
+      <h2 class="text-sm pb-2 uppercase font-bold">Description</h2>
+      <textarea
+        rows="3"
+        class="w-full mb-2"
+        id="base-form-description"
+        name="description"
+        >{{ .RepoInfo.Description }}</textarea>
+      <h2 class="text-sm pb-2 uppercase font-bold">Website URL</h2>
+      <input
+        type="text"
+        class="w-full mb-2"
+        id="base-form-website"
+        name="website"
+        value="{{ .RepoInfo.Website }}"
+      >
+      <h2 class="text-sm pb-2 uppercase font-bold">Topics</h2>
+      <p class="text-gray-500 dark:text-gray-400">
+        List of topics separated by spaces.
+      </p>
+      <textarea
+        rows="2"
+        class="w-full my-2"
+        id="base-form-topics"
+        name="topics"
+      >{{ range $topic := .RepoInfo.Topics }}{{ $topic }} {{ end }}</textarea>
+      <div id="repo-base-settings-error" class="text-red-500 dark:text-red-400"></div>
+      <div class="flex justify-end pt-2">
+        <button
+          type="submit"
+          class="btn-create flex items-center gap-2 group"
+        >
+          {{ i "save" "w-4 h-4" }}
+          save
+          {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
+        </button>
+      </div>
+    <fieldset>
+  </form>
 {{ end }}
 
 {{ define "branchSettings" }}

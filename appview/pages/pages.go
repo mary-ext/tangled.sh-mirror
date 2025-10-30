@@ -640,18 +640,6 @@ func (p *Pages) RepoStarFragment(w io.Writer, params RepoStarFragmentParams) err
 	return p.executePlain("repo/fragments/repoStar", w, params)
 }
 
-type RepoDescriptionParams struct {
-	RepoInfo repoinfo.RepoInfo
-}
-
-func (p *Pages) EditRepoDescriptionFragment(w io.Writer, params RepoDescriptionParams) error {
-	return p.executePlain("repo/fragments/editRepoDescription", w, params)
-}
-
-func (p *Pages) RepoDescriptionFragment(w io.Writer, params RepoDescriptionParams) error {
-	return p.executePlain("repo/fragments/repoDescription", w, params)
-}
-
 type RepoIndexParams struct {
 	LoggedInUser  *oauth.User
 	RepoInfo      repoinfo.RepoInfo

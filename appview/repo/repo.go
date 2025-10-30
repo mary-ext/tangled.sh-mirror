@@ -252,105 +252,6 @@ func (rp *Repo) RepoLog(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (rp *Repo) RepoDescriptionEdit(w http.ResponseWriter, r *http.Request) {
-	l := rp.logger.With("handler", "RepoDescriptionEdit")
-
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	user := rp.oauth.GetUser(r)
-	rp.pages.EditRepoDescriptionFragment(w, pages.RepoDescriptionParams{
-		RepoInfo: f.RepoInfo(user),
-	})
-}
-
-func (rp *Repo) RepoDescription(w http.ResponseWriter, r *http.Request) {
-	l := rp.logger.With("handler", "RepoDescription")
-
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	repoAt := f.RepoAt()
-	rkey := repoAt.RecordKey().String()
-	if rkey == "" {
-		l.Error("invalid aturi for repo", "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	user := rp.oauth.GetUser(r)
-
-	switch r.Method {
-	case http.MethodGet:
-		rp.pages.RepoDescriptionFragment(w, pages.RepoDescriptionParams{
-			RepoInfo: f.RepoInfo(user),
-		})
-		return
-	case http.MethodPut:
-		newDescription := r.FormValue("description")
-		client, err := rp.oauth.AuthorizedClient(r)
-		if err != nil {
-			l.Error("failed to get client")
-			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
-			return
-		}
-
-		// optimistic update
-		err = db.UpdateDescription(rp.db, string(repoAt), newDescription)
-		if err != nil {
-			l.Error("failed to perform update-description query", "err", err)
-			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
-			return
-		}
-
-		newRepo := f.Repo
-		newRepo.Description = newDescription
-		record := newRepo.AsRecord()
-
-		// this is a bit of a pain because the golang atproto impl does not allow nil SwapRecord field
-		//
-		// SwapRecord is optional and should happen automagically, but given that it does not, we have to perform two requests
-		ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
-		if err != nil {
-			// failed to get record
-			rp.pages.Notice(w, "repo-notice", "Failed to update description, no record found on PDS.")
-			return
-		}
-		_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
-			Collection: tangled.RepoNSID,
-			Repo:       newRepo.Did,
-			Rkey:       newRepo.Rkey,
-			SwapRecord: ex.Cid,
-			Record: &lexutil.LexiconTypeDecoder{
-				Val: &record,
-			},
-		})
-
-		if err != nil {
-			l.Error("failed to perferom update-description query", "err", err)
-			// failed to get record
-			rp.pages.Notice(w, "repo-notice", "Failed to update description, unable to save to PDS.")
-			return
-		}
-
-		newRepoInfo := f.RepoInfo(user)
-		newRepoInfo.Description = newDescription
-
-		rp.pages.RepoDescriptionFragment(w, pages.RepoDescriptionParams{
-			RepoInfo: newRepoInfo,
-		})
-		return
-	}
-}
-
 func (rp *Repo) RepoCommit(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "RepoCommit")
 
@@ -1783,6 +1684,99 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rp.pages.HxRedirect(w, fmt.Sprintf("/%s", f.OwnerDid()))
+}
+
+func (rp *Repo) EditBaseSettings(w http.ResponseWriter, r *http.Request) {
+	l := rp.logger.With("handler", "EditBaseSettings")
+
+	noticeId := "repo-base-settings-error"
+
+	f, err := rp.repoResolver.Resolve(r)
+	if err != nil {
+		l.Error("failed to get repo and knot", "err", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	client, err := rp.oauth.AuthorizedClient(r)
+	if err != nil {
+		l.Error("failed to get client")
+		rp.pages.Notice(w, noticeId, "Failed to update repository information, try again later.")
+		return
+	}
+
+	var (
+		description = r.FormValue("description")
+		website     = r.FormValue("website")
+		topicStr    = r.FormValue("topics")
+	)
+
+	err = rp.validator.ValidateURI(website)
+	if err != nil {
+		l.Error("invalid uri", "err", err)
+		rp.pages.Notice(w, noticeId, err.Error())
+		return
+	}
+
+	topics, err := rp.validator.ValidateRepoTopicStr(topicStr)
+	if err != nil {
+		l.Error("invalid topics", "err", err)
+		rp.pages.Notice(w, noticeId, err.Error())
+		return
+	}
+	l.Debug("got", "topicsStr", topicStr, "topics", topics)
+
+	newRepo := f.Repo
+	newRepo.Description = description
+	newRepo.Website = website
+	newRepo.Topics = topics
+	record := newRepo.AsRecord()
+
+	tx, err := rp.db.BeginTx(r.Context(), nil)
+	if err != nil {
+		l.Error("failed to begin transaction", "err", err)
+		rp.pages.Notice(w, noticeId, "Failed to save repository information.")
+		return
+	}
+	defer tx.Rollback()
+
+	err = db.PutRepo(tx, newRepo)
+	if err != nil {
+		l.Error("failed to update repository", "err", err)
+		rp.pages.Notice(w, noticeId, "Failed to save repository information.")
+		return
+	}
+
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, newRepo.Did, newRepo.Rkey)
+	if err != nil {
+		// failed to get record
+		l.Error("failed to get repo record", "err", err)
+		rp.pages.Notice(w, noticeId, "Failed to save repository information, no record found on PDS.")
+		return
+	}
+	_, err = comatproto.RepoPutRecord(r.Context(), client, &comatproto.RepoPutRecord_Input{
+		Collection: tangled.RepoNSID,
+		Repo:       newRepo.Did,
+		Rkey:       newRepo.Rkey,
+		SwapRecord: ex.Cid,
+		Record: &lexutil.LexiconTypeDecoder{
+			Val: &record,
+		},
+	})
+
+	if err != nil {
+		l.Error("failed to perferom update-repo query", "err", err)
+		// failed to get record
+		rp.pages.Notice(w, noticeId, "Failed to save repository information, unable to save to PDS.")
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		l.Error("failed to commit", "err", err)
+	}
+
+	rp.pages.HxRefresh(w)
 }
 
 func (rp *Repo) SetDefaultBranch(w http.ResponseWriter, r *http.Request) {

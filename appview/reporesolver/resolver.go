@@ -188,6 +188,8 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		Rkey:        f.Repo.Rkey,
 		RepoAt:      repoAt,
 		Description: f.Description,
+		Website:     f.Website,
+		Topics:      f.Topics,
 		IsStarred:   isStarred,
 		Knot:        knot,
 		Spindle:     f.Spindle,

@@ -1113,6 +1113,14 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 		return err
 	})
 
+	runMigration(conn, logger, "add-meta-column-repos", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table repos add column website text;
+			alter table repos add column topics text;
+		`)
+		return err
+	})
+
 	return &DB{
 		db,
 		logger,

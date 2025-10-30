@@ -74,14 +74,9 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	// settings routes, needs auth
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(rp.oauth))
-		// repo description can only be edited by owner
-		r.With(mw.RepoPermissionMiddleware("repo:owner")).Route("/description", func(r chi.Router) {
-			r.Put("/", rp.RepoDescription)
-			r.Get("/", rp.RepoDescription)
-			r.Get("/edit", rp.RepoDescriptionEdit)
-		})
 		r.With(mw.RepoPermissionMiddleware("repo:settings")).Route("/settings", func(r chi.Router) {
 			r.Get("/", rp.RepoSettings)
+			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/base", rp.EditBaseSettings)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Post("/spindle", rp.EditSpindle)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/label", rp.AddLabelDef)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Delete("/label", rp.DeleteLabelDef)

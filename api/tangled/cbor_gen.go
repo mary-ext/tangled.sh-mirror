@@ -5806,7 +5806,7 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 8
+	fieldCount := 10
 
 	if t.Description == nil {
 		fieldCount--
@@ -5821,6 +5821,14 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 	}
 
 	if t.Spindle == nil {
+		fieldCount--
+	}
+
+	if t.Topics == nil {
+		fieldCount--
+	}
+
+	if t.Website == nil {
 		fieldCount--
 	}
 
@@ -5961,6 +5969,42 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 		}
 	}
 
+	// t.Topics ([]string) (slice)
+	if t.Topics != nil {
+
+		if len("topics") > 1000000 {
+			return xerrors.Errorf("Value in field \"topics\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("topics"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("topics")); err != nil {
+			return err
+		}
+
+		if len(t.Topics) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Topics was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Topics))); err != nil {
+			return err
+		}
+		for _, v := range t.Topics {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+
 	// t.Spindle (string) (string)
 	if t.Spindle != nil {
 
@@ -5988,6 +6032,38 @@ func (t *Repo) MarshalCBOR(w io.Writer) error {
 				return err
 			}
 			if _, err := cw.WriteString(string(*t.Spindle)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// t.Website (string) (string)
+	if t.Website != nil {
+
+		if len("website") > 1000000 {
+			return xerrors.Errorf("Value in field \"website\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("website"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("website")); err != nil {
+			return err
+		}
+
+		if t.Website == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if len(*t.Website) > 1000000 {
+				return xerrors.Errorf("Value in field t.Website was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Website))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(*t.Website)); err != nil {
 				return err
 			}
 		}
@@ -6185,6 +6261,46 @@ func (t *Repo) UnmarshalCBOR(r io.Reader) (err error) {
 					t.Source = (*string)(&sval)
 				}
 			}
+			// t.Topics ([]string) (slice)
+		case "topics":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Topics: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Topics = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Topics[i] = string(sval)
+					}
+
+				}
+			}
 			// t.Spindle (string) (string)
 		case "spindle":
 
@@ -6204,6 +6320,27 @@ func (t *Repo) UnmarshalCBOR(r io.Reader) (err error) {
 					}
 
 					t.Spindle = (*string)(&sval)
+				}
+			}
+			// t.Website (string) (string)
+		case "website":
+
+			{
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+
+					sval, err := cbg.ReadStringWithMax(cr, 1000000)
+					if err != nil {
+						return err
+					}
+
+					t.Website = (*string)(&sval)
 				}
 			}
 			// t.CreatedAt (string) (string)

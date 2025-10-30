@@ -134,7 +134,7 @@ func GetNotificationsWithEntities(e Execer, page pagination.Page, filters ...fil
 		select
 			n.id, n.recipient_did, n.actor_did, n.type, n.entity_type, n.entity_id,
 			n.read, n.created, n.repo_id, n.issue_id, n.pull_id,
-			r.id as r_id, r.did as r_did, r.name as r_name, r.description as r_description,
+			r.id as r_id, r.did as r_did, r.name as r_name, r.description as r_description, r.website as r_website, r.topics as r_topics,
 			i.id as i_id, i.did as i_did, i.issue_id as i_issue_id, i.title as i_title, i.open as i_open,
 			p.id as p_id, p.owner_did as p_owner_did, p.pull_id as p_pull_id, p.title as p_title, p.state as p_state
 		from notifications n
@@ -163,7 +163,7 @@ func GetNotificationsWithEntities(e Execer, page pagination.Page, filters ...fil
 		var issue models.Issue
 		var pull models.Pull
 		var rId, iId, pId sql.NullInt64
-		var rDid, rName, rDescription sql.NullString
+		var rDid, rName, rDescription, rWebsite, rTopicStr sql.NullString
 		var iDid sql.NullString
 		var iIssueId sql.NullInt64
 		var iTitle sql.NullString
@@ -176,7 +176,7 @@ func GetNotificationsWithEntities(e Execer, page pagination.Page, filters ...fil
 		err := rows.Scan(
 			&n.ID, &n.RecipientDid, &n.ActorDid, &typeStr, &n.EntityType, &n.EntityId,
 			&n.Read, &createdStr, &n.RepoId, &n.IssueId, &n.PullId,
-			&rId, &rDid, &rName, &rDescription,
+			&rId, &rDid, &rName, &rDescription, &rWebsite, &rTopicStr,
 			&iId, &iDid, &iIssueId, &iTitle, &iOpen,
 			&pId, &pOwnerDid, &pPullId, &pTitle, &pState,
 		)
@@ -203,6 +203,12 @@ func GetNotificationsWithEntities(e Execer, page pagination.Page, filters ...fil
 			}
 			if rDescription.Valid {
 				repo.Description = rDescription.String
+			}
+			if rWebsite.Valid {
+				repo.Website = rWebsite.String
+			}
+			if rTopicStr.Valid {
+				repo.Topics = strings.Fields(rTopicStr.String)
 			}
 			nwe.Repo = &repo
 		}

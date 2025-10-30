@@ -54,6 +54,8 @@ type RepoInfo struct {
 	OwnerDid     string
 	OwnerHandle  string
 	Description  string
+	Website      string
+	Topics       []string
 	Knot         string
 	Spindle      string
 	RepoAt       syntax.ATURI

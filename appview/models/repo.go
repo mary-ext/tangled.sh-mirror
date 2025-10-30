@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
@@ -17,6 +18,8 @@ type Repo struct {
 	Rkey        string
 	Created     time.Time
 	Description string
+	Website     string
+	Topics      []string
 	Spindle     string
 	Labels      []string
 
@@ -28,7 +31,7 @@ type Repo struct {
 }
 
 func (r *Repo) AsRecord() tangled.Repo {
-	var source, spindle, description *string
+	var source, spindle, description, website *string
 
 	if r.Source != "" {
 		source = &r.Source
@@ -42,10 +45,16 @@ func (r *Repo) AsRecord() tangled.Repo {
 		description = &r.Description
 	}
 
+	if r.Website != "" {
+		website = &r.Website
+	}
+
 	return tangled.Repo{
 		Knot:        r.Knot,
 		Name:        r.Name,
 		Description: description,
+		Website:     website,
+		Topics:      r.Topics,
 		CreatedAt:   r.Created.Format(time.RFC3339),
 		Source:      source,
 		Spindle:     spindle,
@@ -60,6 +69,10 @@ func (r Repo) RepoAt() syntax.ATURI {
 func (r Repo) DidSlashRepo() string {
 	p, _ := securejoin.SecureJoin(r.Did, r.Name)
 	return p
+}
+
+func (r Repo) TopicStr() string {
+	return strings.Join(r.Topics, " ")
 }
 
 type RepoStats struct {

@@ -246,6 +246,11 @@ func (p *Pages) funcMap() template.FuncMap {
 			sanitized := p.rctx.SanitizeDescription(htmlString)
 			return template.HTML(sanitized)
 		},
+		"trimUriScheme": func(text string) string {
+			text = strings.TrimPrefix(text, "https://")
+			text = strings.TrimPrefix(text, "http://")
+			return text
+		},
 		"isNil": func(t any) bool {
 			// returns false for other "zero" values
 			return t == nil

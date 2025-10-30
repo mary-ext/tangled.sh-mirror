@@ -30,4 +30,8 @@ type Repo struct {
 	Source *string `json:"source,omitempty" cborgen:"source,omitempty"`
 	// spindle: CI runner to send jobs to and receive results from
 	Spindle *string `json:"spindle,omitempty" cborgen:"spindle,omitempty"`
+	// topics: Topics related to the repo
+	Topics []string `json:"topics,omitempty" cborgen:"topics,omitempty"`
+	// website: Any URI related to the repo
+	Website *string `json:"website,omitempty" cborgen:"website,omitempty"`
 }
