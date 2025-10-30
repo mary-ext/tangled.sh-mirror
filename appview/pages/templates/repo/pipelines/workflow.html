@@ -58,6 +58,11 @@
        hx-ext="ws"
        ws-connect="/{{ $.RepoInfo.FullName }}/pipelines/{{ .Pipeline.Id }}/workflow/{{ .Workflow }}/logs">
     <div id="lines" class="flex flex-col gap-2">
+      <div class="text-base text-gray-500 flex items-center justify-center italic p-12 only:flex hidden border border-gray-200 dark:border-gray-700 rounded">
+        <span class="flex items-center gap-2">
+          {{ i "triangle-alert" "size-4" }} No logs for this workflow
+        </span>
+      </div>
     </div>
   </div>
 {{ end }}

@@ -38,7 +38,6 @@ func (l *WorkflowLogger) Close() error {
 }
 
 func (l *WorkflowLogger) DataWriter(stream string) io.Writer {
-	// TODO: emit stream
 	return &dataWriter{
 		logger: l,
 		stream: stream,
