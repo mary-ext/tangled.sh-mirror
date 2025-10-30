@@ -1,0 +1,9 @@
+{{ define "repo/pipelines/fragments/logBlockEnd" }}
+  <span
+    class="ml-auto text-sm text-gray-500 tabular-nums"
+    data-timer="{{ .Id }}"
+    data-start="{{ .StartTime.Unix }}"
+    data-end="{{ .EndTime.Unix }}"
+    hx-swap-oob="outerHTML:[data-timer='{{ .Id }}']"></span>
+{{ end }}
+

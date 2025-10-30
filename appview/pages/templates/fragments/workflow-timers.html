@@ -1,0 +1,36 @@
+{{ define "fragments/workflow-timers" }}
+  <script>
+    function formatElapsed(seconds) {
+      if (seconds < 1) return '0s';
+      if (seconds < 60) return `${seconds}s`;
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      if (seconds < 3600) return `${minutes}m ${secs}s`;
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${mins}m`;
+    }
+
+    function updateTimers() {
+      const now = Math.floor(Date.now() / 1000);
+
+      document.querySelectorAll('[data-timer]').forEach(el => {
+        const startTime = parseInt(el.dataset.start);
+        const endTime = el.dataset.end ? parseInt(el.dataset.end) : null;
+
+        if (endTime) {
+          // Step is complete, show final time
+          const elapsed = endTime - startTime;
+          el.textContent = formatElapsed(elapsed);
+        } else {
+          // Step is running, update live
+          const elapsed = now - startTime;
+          el.textContent = formatElapsed(elapsed);
+        }
+      });
+    }
+
+    setInterval(updateTimers, 1000);
+    updateTimers();
+  </script>
+{{ end }}
