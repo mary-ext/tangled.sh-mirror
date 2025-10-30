@@ -91,8 +91,8 @@ func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 			r.Mount("/", s.RepoRouter(mw))
 			r.Mount("/issues", s.IssuesRouter(mw))
 			r.Mount("/pulls", s.PullsRouter(mw))
-			r.Mount("/pipelines", s.PipelinesRouter(mw))
-			r.Mount("/labels", s.LabelsRouter(mw))
+			r.Mount("/pipelines", s.PipelinesRouter())
+			r.Mount("/labels", s.LabelsRouter())
 
 			// These routes get proxied to the knot
 			r.Get("/info/refs", s.InfoRefs)
@@ -302,7 +302,7 @@ func (s *State) RepoRouter(mw *middleware.Middleware) http.Handler {
 	return repo.Router(mw)
 }
 
-func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
+func (s *State) PipelinesRouter() http.Handler {
 	pipes := pipelines.New(
 		s.oauth,
 		s.repoResolver,
@@ -314,10 +314,10 @@ func (s *State) PipelinesRouter(mw *middleware.Middleware) http.Handler {
 		s.enforcer,
 		log.SubLogger(s.logger, "pipelines"),
 	)
-	return pipes.Router(mw)
+	return pipes.Router()
 }
 
-func (s *State) LabelsRouter(mw *middleware.Middleware) http.Handler {
+func (s *State) LabelsRouter() http.Handler {
 	ls := labels.New(
 		s.oauth,
 		s.pages,
@@ -326,7 +326,7 @@ func (s *State) LabelsRouter(mw *middleware.Middleware) http.Handler {
 		s.enforcer,
 		log.SubLogger(s.logger, "labels"),
 	)
-	return ls.Router(mw)
+	return ls.Router()
 }
 
 func (s *State) NotificationsRouter(mw *middleware.Middleware) http.Handler {

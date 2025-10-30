@@ -53,7 +53,7 @@ func New(
 	}
 }
 
-func (l *Labels) Router(mw *middleware.Middleware) http.Handler {
+func (l *Labels) Router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.AuthMiddleware(l.oauth))
