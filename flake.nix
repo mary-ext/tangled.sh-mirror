@@ -208,6 +208,10 @@
         type = "app";
         program = ''${air-watcher "knot" "server"}/bin/run'';
       };
+      watch-spindle = {
+        type = "app";
+        program = ''${air-watcher "spindle" ""}/bin/run'';
+      };
       watch-tailwind = {
         type = "app";
         program = ''${tailwind-watcher}/bin/run'';
