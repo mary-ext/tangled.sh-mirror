@@ -236,7 +236,7 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 	// start a goroutine to read from spindle
 	go readLogs(spindleConn, evChan)
 
-	stepIdx := 0
+	stepStartTimes := make(map[int]time.Time)
 	var fragment bytes.Buffer
 	for {
 		select {
@@ -268,22 +268,34 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 
 			switch logLine.Kind {
 			case spindlemodel.LogKindControl:
-				// control messages create a new step block
-				stepIdx++
-				collapsed := false
-				if logLine.StepKind == spindlemodel.StepKindSystem {
-					collapsed = true
+				switch logLine.StepStatus {
+				case spindlemodel.StepStatusStart:
+					stepStartTimes[logLine.StepId] = logLine.Time
+					collapsed := false
+					if logLine.StepKind == spindlemodel.StepKindSystem {
+						collapsed = true
+					}
+					err = p.pages.LogBlock(&fragment, pages.LogBlockParams{
+						Id:        logLine.StepId,
+						Name:      logLine.Content,
+						Command:   logLine.StepCommand,
+						Collapsed: collapsed,
+						StartTime: logLine.Time,
+					})
+				case spindlemodel.StepStatusEnd:
+					startTime := stepStartTimes[logLine.StepId]
+					endTime := logLine.Time
+					err = p.pages.LogBlockEnd(&fragment, pages.LogBlockEndParams{
+						Id:        logLine.StepId,
+						StartTime: startTime,
+						EndTime:   endTime,
+					})
 				}
-				err = p.pages.LogBlock(&fragment, pages.LogBlockParams{
-					Id:        stepIdx,
-					Name:      logLine.Content,
-					Command:   logLine.StepCommand,
-					Collapsed: collapsed,
-				})
+
 			case spindlemodel.LogKindData:
 				// data messages simply insert new log lines into current step
 				err = p.pages.LogLine(&fragment, pages.LogLineParams{
-					Id:      stepIdx,
+					Id:      logLine.StepId,
 					Content: logLine.Content,
 				})
 			}
