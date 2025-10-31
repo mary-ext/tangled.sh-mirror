@@ -20,6 +20,7 @@ const (
 	NotificationTypeIssueReopen    NotificationType = "issue_reopen"
 	NotificationTypePullClosed     NotificationType = "pull_closed"
 	NotificationTypePullReopen     NotificationType = "pull_reopen"
+	NotificationTypeUserMentioned  NotificationType = "user_mentioned"
 )
 
 type Notification struct {
@@ -63,6 +64,8 @@ func (n *Notification) Icon() string {
 		return "git-pull-request-create"
 	case NotificationTypeFollowed:
 		return "user-plus"
+	case NotificationTypeUserMentioned:
+		return "at-sign"
 	default:
 		return ""
 	}
@@ -113,6 +116,8 @@ func (prefs *NotificationPreferences) ShouldNotify(t NotificationType) bool {
 		return prefs.PullCreated // same pref for now
 	case NotificationTypeFollowed:
 		return prefs.Followed
+	case NotificationTypeUserMentioned:
+		return true // always notify on mention
 	default:
 		return false
 	}

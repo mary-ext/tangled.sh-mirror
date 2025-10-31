@@ -54,6 +54,8 @@
     reopened a pull request
   {{ else if eq .Type "followed" }}
     followed you
+  {{ else if eq .Type "user_mentioned" }}
+    mentioned you
   {{ else }}
   {{ end }}
 {{ end }}
