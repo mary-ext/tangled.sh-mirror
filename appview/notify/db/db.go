@@ -239,7 +239,7 @@ func (n *databaseNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 	)
 }
 
-func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.PullComment) {
+func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.PullComment, mentions []syntax.DID) {
 	pull, err := db.GetPull(n.db,
 		syntax.ATURI(comment.RepoAt),
 		comment.PullId,
@@ -277,6 +277,16 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.P
 		actorDid,
 		recipients,
 		eventType,
+		entityType,
+		entityId,
+		repoId,
+		issueId,
+		pullId,
+	)
+	n.notifyEvent(
+		actorDid,
+		mentions,
+		models.NotificationTypeUserMentioned,
 		entityType,
 		entityId,
 		repoId,
