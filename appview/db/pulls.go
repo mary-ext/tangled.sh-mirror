@@ -347,7 +347,7 @@ func GetPull(e Execer, repoAt syntax.ATURI, pullId int) (*models.Pull, error) {
 	if err != nil {
 		return nil, err
 	}
-	if pulls == nil {
+	if len(pulls) == 0 {
 		return nil, sql.ErrNoRows
 	}
 
