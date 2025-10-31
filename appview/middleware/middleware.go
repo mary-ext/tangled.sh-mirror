@@ -244,14 +244,15 @@ func (mw Middleware) ResolvePull() middlewareFunc {
 			prId := chi.URLParam(r, "pull")
 			prIdInt, err := strconv.Atoi(prId)
 			if err != nil {
-				http.Error(w, "bad pr id", http.StatusBadRequest)
 				log.Println("failed to parse pr id", err)
+				mw.pages.Error404(w)
 				return
 			}
 
 			pr, err := db.GetPull(mw.db, f.RepoAt(), prIdInt)
 			if err != nil {
 				log.Println("failed to get pull and comments", err)
+				mw.pages.Error404(w)
 				return
 			}
 
@@ -292,26 +293,18 @@ func (mw Middleware) ResolveIssue(next http.Handler) http.Handler {
 		issueId, err := strconv.Atoi(issueIdStr)
 		if err != nil {
 			log.Println("failed to fully resolve issue ID", err)
-			mw.pages.ErrorKnot404(w)
+			mw.pages.Error404(w)
 			return
 		}
 
-		issues, err := db.GetIssues(
-			mw.db,
-			db.FilterEq("repo_at", f.RepoAt()),
-			db.FilterEq("issue_id", issueId),
-		)
+		issue, err := db.GetIssue(mw.db, f.RepoAt(), issueId)
 		if err != nil {
 			log.Println("failed to get issues", "err", err)
+			mw.pages.Error404(w)
 			return
 		}
-		if len(issues) != 1 {
-			log.Println("got incorrect number of issues", "len(issuse)", len(issues))
-			return
-		}
-		issue := issues[0]
 
-		ctx := context.WithValue(r.Context(), "issue", &issue)
+		ctx := context.WithValue(r.Context(), "issue", issue)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

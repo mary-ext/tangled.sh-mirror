@@ -246,6 +246,23 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]mo
 	return issues, nil
 }
 
+func GetIssue(e Execer, repoAt syntax.ATURI, issueId int) (*models.Issue, error) {
+	issues, err := GetIssuesPaginated(
+		e,
+		pagination.Page{},
+		FilterEq("repo_at", repoAt),
+		FilterEq("issue_id", issueId),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(issues) != 1 {
+		return nil, sql.ErrNoRows
+	}
+
+	return &issues[0], nil
+}
+
 func GetIssues(e Execer, filters ...filter) ([]models.Issue, error) {
 	return GetIssuesPaginated(e, pagination.Page{}, filters...)
 }
