@@ -691,6 +691,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
+	l := s.logger.With("handler", "PullComment")
 	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
@@ -788,7 +789,16 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.notifier.NewPullComment(r.Context(), comment)
+		rawMentions := markup.FindUserMentions(comment.Body)
+		idents := s.idResolver.ResolveIdents(r.Context(), rawMentions)
+		l.Debug("parsed mentions", "raw", rawMentions, "idents", idents)
+		var mentions []syntax.DID
+		for _, ident := range idents {
+			if ident != nil && !ident.Handle.IsInvalidHandle() {
+				mentions = append(mentions, ident.DID)
+			}
+		}
+		s.notifier.NewPullComment(r.Context(), comment, mentions)
 
 		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", f.OwnerSlashRepo(), pull.PullId, commentId))
 		return

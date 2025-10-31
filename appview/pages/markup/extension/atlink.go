@@ -16,7 +16,7 @@ import (
 
 // An AtNode struct represents an AtNode
 type AtNode struct {
-	handle string
+	Handle string
 	ast.BaseInline
 }
 
@@ -59,7 +59,7 @@ func (s *atParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) 
 	block.Advance(m[1])
 	node := &AtNode{}
 	node.AppendChild(node, ast.NewTextSegment(atSegment))
-	node.handle = string(atSegment.Value(block.Source())[1:])
+	node.Handle = string(atSegment.Value(block.Source())[1:])
 	return node
 }
 
@@ -88,7 +88,7 @@ func (r *atHtmlRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) 
 func (r *atHtmlRenderer) renderAt(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		w.WriteString(`<a href="/@`)
-		w.WriteString(n.(*AtNode).handle)
+		w.WriteString(n.(*AtNode).Handle)
 		w.WriteString(`" class="mention">`)
 	} else {
 		w.WriteString("</a>")

@@ -82,8 +82,8 @@ func (m *mergedNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 	m.fanout("NewPull", ctx, pull)
 }
 
-func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.PullComment) {
-	m.fanout("NewPullComment", ctx, comment)
+func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.PullComment, mentions []syntax.DID) {
+	m.fanout("NewPullComment", ctx, comment, mentions)
 }
 
 func (m *mergedNotifier) NewPullState(ctx context.Context, actor syntax.DID, pull *models.Pull) {
