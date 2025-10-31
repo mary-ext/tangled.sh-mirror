@@ -71,6 +71,7 @@ func Setup(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, j
 func (h *Knot) Router() http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(h.CORS)
 	r.Use(h.RequestLogger)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
