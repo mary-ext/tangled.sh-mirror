@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/log"
 )
@@ -61,8 +62,8 @@ func (m *mergedNotifier) NewIssueComment(ctx context.Context, comment *models.Is
 	m.fanout("NewIssueComment", ctx, comment)
 }
 
-func (m *mergedNotifier) NewIssueState(ctx context.Context, issue *models.Issue) {
-	m.fanout("NewIssueState", ctx, issue)
+func (m *mergedNotifier) NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue) {
+	m.fanout("NewIssueState", ctx, actor, issue)
 }
 
 func (m *mergedNotifier) DeleteIssue(ctx context.Context, issue *models.Issue) {
@@ -85,8 +86,8 @@ func (m *mergedNotifier) NewPullComment(ctx context.Context, comment *models.Pul
 	m.fanout("NewPullComment", ctx, comment)
 }
 
-func (m *mergedNotifier) NewPullState(ctx context.Context, pull *models.Pull) {
-	m.fanout("NewPullState", ctx, pull)
+func (m *mergedNotifier) NewPullState(ctx context.Context, actor syntax.DID, pull *models.Pull) {
+	m.fanout("NewPullState", ctx, actor, pull)
 }
 
 func (m *mergedNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {

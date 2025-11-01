@@ -283,7 +283,7 @@ func (n *databaseNotifier) NewString(ctx context.Context, string *models.String)
 	// no-op
 }
 
-func (n *databaseNotifier) NewIssueState(ctx context.Context, issue *models.Issue) {
+func (n *databaseNotifier) NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue) {
 	// build up the recipients list:
 	// - repo owner
 	// - repo collaborators
@@ -302,7 +302,6 @@ func (n *databaseNotifier) NewIssueState(ctx context.Context, issue *models.Issu
 		recipients = append(recipients, syntax.DID(p))
 	}
 
-	actorDid := syntax.DID(issue.Repo.Did)
 	entityType := "pull"
 	entityId := issue.AtUri().String()
 	repoId := &issue.Repo.Id
@@ -317,7 +316,7 @@ func (n *databaseNotifier) NewIssueState(ctx context.Context, issue *models.Issu
 	}
 
 	n.notifyEvent(
-		actorDid,
+		actor,
 		recipients,
 		eventType,
 		entityType,
@@ -328,7 +327,7 @@ func (n *databaseNotifier) NewIssueState(ctx context.Context, issue *models.Issu
 	)
 }
 
-func (n *databaseNotifier) NewPullState(ctx context.Context, pull *models.Pull) {
+func (n *databaseNotifier) NewPullState(ctx context.Context, actor syntax.DID, pull *models.Pull) {
 	// Get repo details
 	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(pull.RepoAt)))
 	if err != nil {
@@ -353,7 +352,6 @@ func (n *databaseNotifier) NewPullState(ctx context.Context, pull *models.Pull) 
 		recipients = append(recipients, syntax.DID(p))
 	}
 
-	actorDid := syntax.DID(repo.Did)
 	entityType := "pull"
 	entityId := pull.PullAt().String()
 	repoId := &repo.Id
@@ -374,7 +372,7 @@ func (n *databaseNotifier) NewPullState(ctx context.Context, pull *models.Pull) 
 	pullId := &p
 
 	n.notifyEvent(
-		actorDid,
+		actor,
 		recipients,
 		eventType,
 		entityType,

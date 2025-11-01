@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/posthog/posthog-go"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
@@ -190,7 +191,7 @@ func (n *posthogNotifier) NewIssueComment(ctx context.Context, comment *models.I
 	}
 }
 
-func (n *posthogNotifier) NewIssueState(ctx context.Context, issue *models.Issue) {
+func (n *posthogNotifier) NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue) {
 	var event string
 	if issue.Open {
 		event = "issue_reopen"
@@ -202,6 +203,7 @@ func (n *posthogNotifier) NewIssueState(ctx context.Context, issue *models.Issue
 		Event:      event,
 		Properties: posthog.Properties{
 			"repo_at":  issue.RepoAt.String(),
+			"actor":    actor,
 			"issue_id": issue.IssueId,
 		},
 	})
@@ -210,7 +212,7 @@ func (n *posthogNotifier) NewIssueState(ctx context.Context, issue *models.Issue
 	}
 }
 
-func (n *posthogNotifier) NewPullState(ctx context.Context, pull *models.Pull) {
+func (n *posthogNotifier) NewPullState(ctx context.Context, actor syntax.DID, pull *models.Pull) {
 	var event string
 	switch pull.State {
 	case models.PullClosed:
@@ -229,6 +231,7 @@ func (n *posthogNotifier) NewPullState(ctx context.Context, pull *models.Pull) {
 		Properties: posthog.Properties{
 			"repo_at": pull.RepoAt,
 			"pull_id": pull.PullId,
+			"actor":   actor,
 		},
 	})
 	if err != nil {

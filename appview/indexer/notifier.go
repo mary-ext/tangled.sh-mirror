@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
 	"tangled.org/core/log"
@@ -19,7 +20,7 @@ func (ix *Indexer) NewIssue(ctx context.Context, issue *models.Issue) {
 	}
 }
 
-func (ix *Indexer) NewIssueState(ctx context.Context, issue *models.Issue) {
+func (ix *Indexer) NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue) {
 	l := log.FromContext(ctx).With("notifier", "indexer", "issue", issue)
 	l.Debug("updating an issue")
 	err := ix.Issues.Index(ctx, *issue)
@@ -46,7 +47,7 @@ func (ix *Indexer) NewPull(ctx context.Context, pull *models.Pull) {
 	}
 }
 
-func (ix *Indexer) NewPullState(ctx context.Context, pull *models.Pull) {
+func (ix *Indexer) NewPullState(ctx context.Context, actor syntax.DID, pull *models.Pull) {
 	l := log.FromContext(ctx).With("notifier", "indexer", "pull", pull)
 	l.Debug("updating a pr")
 	err := ix.Pulls.Index(ctx, pull)

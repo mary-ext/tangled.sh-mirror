@@ -33,6 +33,7 @@ import (
 	"tangled.org/core/types"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	lexutil "github.com/bluesky-social/indigo/lex/util"
 	indigoxrpc "github.com/bluesky-social/indigo/xrpc"
 	"github.com/go-chi/chi/v5"
@@ -2106,6 +2107,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 }
 
 func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
+	user := s.oauth.GetUser(r)
 	f, err := s.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to resolve repo:", err)
@@ -2216,7 +2218,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 
 	// notify about the pull merge
 	for _, p := range pullsToMerge {
-		s.notifier.NewPullState(r.Context(), p)
+		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.Name, pull.PullId))
@@ -2288,7 +2290,7 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range pullsToClose {
-		s.notifier.NewPullState(r.Context(), p)
+		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
@@ -2361,7 +2363,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range pullsToReopen {
-		s.notifier.NewPullState(r.Context(), p)
+		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))

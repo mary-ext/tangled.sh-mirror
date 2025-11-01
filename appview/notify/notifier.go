@@ -3,6 +3,7 @@ package notify
 import (
 	"context"
 
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"tangled.org/core/appview/models"
 )
 
@@ -14,7 +15,7 @@ type Notifier interface {
 
 	NewIssue(ctx context.Context, issue *models.Issue)
 	NewIssueComment(ctx context.Context, comment *models.IssueComment)
-	NewIssueState(ctx context.Context, issue *models.Issue)
+	NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue)
 	DeleteIssue(ctx context.Context, issue *models.Issue)
 
 	NewFollow(ctx context.Context, follow *models.Follow)
@@ -22,7 +23,7 @@ type Notifier interface {
 
 	NewPull(ctx context.Context, pull *models.Pull)
 	NewPullComment(ctx context.Context, comment *models.PullComment)
-	NewPullState(ctx context.Context, pull *models.Pull)
+	NewPullState(ctx context.Context, actor syntax.DID, pull *models.Pull)
 
 	UpdateProfile(ctx context.Context, profile *models.Profile)
 
@@ -41,17 +42,17 @@ func (m *BaseNotifier) NewRepo(ctx context.Context, repo *models.Repo) {}
 func (m *BaseNotifier) NewStar(ctx context.Context, star *models.Star)    {}
 func (m *BaseNotifier) DeleteStar(ctx context.Context, star *models.Star) {}
 
-func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue)                 {}
-func (m *BaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment) {}
-func (m *BaseNotifier) NewIssueState(ctx context.Context, issue *models.Issue)            {}
-func (m *BaseNotifier) DeleteIssue(ctx context.Context, issue *models.Issue)              {}
+func (m *BaseNotifier) NewIssue(ctx context.Context, issue *models.Issue)                        {}
+func (m *BaseNotifier) NewIssueComment(ctx context.Context, comment *models.IssueComment)        {}
+func (m *BaseNotifier) NewIssueState(ctx context.Context, actor syntax.DID, issue *models.Issue) {}
+func (m *BaseNotifier) DeleteIssue(ctx context.Context, issue *models.Issue)                     {}
 
 func (m *BaseNotifier) NewFollow(ctx context.Context, follow *models.Follow)    {}
 func (m *BaseNotifier) DeleteFollow(ctx context.Context, follow *models.Follow) {}
 
-func (m *BaseNotifier) NewPull(ctx context.Context, pull *models.Pull)                 {}
-func (m *BaseNotifier) NewPullComment(ctx context.Context, models *models.PullComment) {}
-func (m *BaseNotifier) NewPullState(ctx context.Context, pull *models.Pull)            {}
+func (m *BaseNotifier) NewPull(ctx context.Context, pull *models.Pull)                        {}
+func (m *BaseNotifier) NewPullComment(ctx context.Context, models *models.PullComment)        {}
+func (m *BaseNotifier) NewPullState(ctx context.Context, actor syntax.DID, pull *models.Pull) {}
 
 func (m *BaseNotifier) UpdateProfile(ctx context.Context, profile *models.Profile) {}
 
