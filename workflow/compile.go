@@ -113,7 +113,15 @@ func (compiler *Compiler) Compile(p Pipeline) tangled.Pipeline {
 func (compiler *Compiler) compileWorkflow(w Workflow) *tangled.Pipeline_Workflow {
 	cw := &tangled.Pipeline_Workflow{}
 
-	if !w.Match(compiler.Trigger) {
+	matched, err := w.Match(compiler.Trigger)
+	if err != nil {
+		compiler.Diagnostics.AddError(
+			w.Name,
+			fmt.Errorf("failed to execute workflow: %w", err),
+		)
+		return nil
+	}
+	if !matched {
 		compiler.Diagnostics.AddWarning(
 			w.Name,
 			WorkflowSkipped,

@@ -108,9 +108,12 @@ schema = 3
   [mod."github.com/bluesky-social/jetstream"]
     version = "v0.0.0-20241210005130-ea96859b93d1"
     hash = "sha256-AiapbrkjXboIKc5QNiWH0KyNs0zKnn6UlGwWFlkUfm0="
+  [mod."github.com/bmatcuk/doublestar"]
+    version = "v1.3.4"
+    hash = "sha256-QcHL9WGVAH3vIs4FZH+w1DJxdCHnXkkzODtOfhKR0X0="
   [mod."github.com/bmatcuk/doublestar/v4"]
-    version = "v4.7.1"
-    hash = "sha256-idO38nWZtmxvE0CgdziepwFM+Xc70Isr6NiKEZjHOjA="
+    version = "v4.9.1"
+    hash = "sha256-0iyHjyTAsfhgYSsE+NKxSNGBuM3Id615VWeQhssTShE="
   [mod."github.com/carlmjohnson/versioninfo"]
     version = "v0.22.5"
     hash = "sha256-tf7yKVFTUPmGKBLK43bjyIRQUboCYduh3I5HXE5+LPw="

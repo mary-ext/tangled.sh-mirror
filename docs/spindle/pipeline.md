@@ -19,7 +19,8 @@ The first thing to add to a workflow is the trigger, which defines when a workfl
   - `push`: The workflow should run every time a commit is pushed to the repository.
   - `pull_request`: The workflow should run every time a pull request is made or updated.
   - `manual`: The workflow can be triggered manually.
-- `branch`: This is a **required** field that defines which branches the workflow should run for. If used with the `push` event, commits to the branch(es) listed here will trigger the workflow. If used with the `pull_request` event, updates to pull requests targeting the branch(es) listed here will trigger the workflow. This field has no effect with the `manual` event.
+- `branch`: Defines which branches the workflow should run for. If used with the `push` event, commits to the branch(es) listed here will trigger the workflow. If used with the `pull_request` event, updates to pull requests targeting the branch(es) listed here will trigger the workflow. This field has no effect with the `manual` event. Supports glob patterns using `*` and `**` (e.g., `main`, `develop`, `release-*`). Either `branch` or `tag` (or both) must be specified for `push` events.
+- `tag`: Defines which tags the workflow should run for. Only used with the `push` event - when tags matching the pattern(s) listed here are pushed, the workflow will trigger. This field has no effect with `pull_request` or `manual` events. Supports glob patterns using `*` and `**` (e.g., `v*`, `v1.*`, `release-**`). Either `branch` or `tag` (or both) must be specified for `push` events.
 
 For example, if you'd like to define a workflow that runs when commits are pushed to the `main` and `develop` branches, or when pull requests that target the `main` branch are updated, or manually, you can do so with:
 
@@ -29,6 +30,23 @@ when:
     branch: ["main", "develop"]
   - event: ["pull_request"]
     branch: ["main"]
+```
+
+You can also trigger workflows on tag pushes. For instance, to run a deployment workflow when tags matching `v*` are pushed:
+
+```yaml
+when:
+  - event: ["push"]
+    tag: ["v*"]
+```
+
+You can even combine branch and tag patterns in a single constraint (the workflow triggers if either matches):
+
+```yaml
+when:
+  - event: ["push"]
+    branch: ["main", "release-*"]
+    tag: ["v*", "stable"]
 ```
 
 ## Engine

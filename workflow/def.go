@@ -8,6 +8,7 @@ import (
 
 	"tangled.org/core/api/tangled"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/go-git/go-git/v5/plumbing"
 	"gopkg.in/yaml.v3"
 )
@@ -33,7 +34,8 @@ type (
 
 	Constraint struct {
 		Event  StringList `yaml:"event"`
-		Branch StringList `yaml:"branch"` // this is optional, and only applied on "push" events
+		Branch StringList `yaml:"branch"` // required for pull_request; for push, either branch or tag must be specified
+		Tag    StringList `yaml:"tag"`    // optional; only applies to push events
 	}
 
 	CloneOpts struct {
@@ -59,6 +61,23 @@ func (t TriggerKind) String() string {
 	return strings.ReplaceAll(string(t), "_", " ")
 }
 
+// matchesPattern checks if a name matches any of the given patterns.
+// Patterns can be exact matches or glob patterns using * and **.
+// * matches any sequence of non-separator characters
+// ** matches any sequence of characters including separators
+func matchesPattern(name string, patterns []string) (bool, error) {
+	for _, pattern := range patterns {
+		matched, err := doublestar.Match(pattern, name)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func FromFile(name string, contents []byte) (Workflow, error) {
 	var wf Workflow
 
@@ -74,33 +93,37 @@ func FromFile(name string, contents []byte) (Workflow, error) {
 }
 
 // if any of the constraints on a workflow is true, return true
-func (w *Workflow) Match(trigger tangled.Pipeline_TriggerMetadata) bool {
+func (w *Workflow) Match(trigger tangled.Pipeline_TriggerMetadata) (bool, error) {
 	// manual triggers always run the workflow
 	if trigger.Manual != nil {
-		return true
+		return true, nil
 	}
 
 	// if not manual, run through the constraint list and see if any one matches
 	for _, c := range w.When {
-		if c.Match(trigger) {
-			return true
+		matched, err := c.Match(trigger)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
 		}
 	}
 
 	// no constraints, always run this workflow
 	if len(w.When) == 0 {
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
 }
 
-func (c *Constraint) Match(trigger tangled.Pipeline_TriggerMetadata) bool {
+func (c *Constraint) Match(trigger tangled.Pipeline_TriggerMetadata) (bool, error) {
 	match := true
 
 	// manual triggers always pass this constraint
 	if trigger.Manual != nil {
-		return true
+		return true, nil
 	}
 
 	// apply event constraints
@@ -108,27 +131,46 @@ func (c *Constraint) Match(trigger tangled.Pipeline_TriggerMetadata) bool {
 
 	// apply branch constraints for PRs
 	if trigger.PullRequest != nil {
-		match = match && c.MatchBranch(trigger.PullRequest.TargetBranch)
+		matched, err := c.MatchBranch(trigger.PullRequest.TargetBranch)
+		if err != nil {
+			return false, err
+		}
+		match = match && matched
 	}
 
 	// apply ref constraints for pushes
 	if trigger.Push != nil {
-		match = match && c.MatchRef(trigger.Push.Ref)
+		matched, err := c.MatchRef(trigger.Push.Ref)
+		if err != nil {
+			return false, err
+		}
+		match = match && matched
 	}
 
-	return match
+	return match, nil
 }
 
-func (c *Constraint) MatchBranch(branch string) bool {
-	return slices.Contains(c.Branch, branch)
-}
-
-func (c *Constraint) MatchRef(ref string) bool {
+func (c *Constraint) MatchRef(ref string) (bool, error) {
 	refName := plumbing.ReferenceName(ref)
+	shortName := refName.Short()
+
 	if refName.IsBranch() {
-		return slices.Contains(c.Branch, refName.Short())
+		return c.MatchBranch(shortName)
 	}
-	return false
+
+	if refName.IsTag() {
+		return c.MatchTag(shortName)
+	}
+
+	return false, nil
+}
+
+func (c *Constraint) MatchBranch(branch string) (bool, error) {
+	return matchesPattern(branch, c.Branch)
+}
+
+func (c *Constraint) MatchTag(tag string) (bool, error) {
+	return matchesPattern(tag, c.Tag)
 }
 
 func (c *Constraint) MatchEvent(event string) bool {
