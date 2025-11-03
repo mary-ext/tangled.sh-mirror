@@ -120,6 +120,7 @@ func (s *Settings) updateNotificationPreferences(w http.ResponseWriter, r *http.
 		PullCommented:      r.FormValue("pull_commented") == "on",
 		PullMerged:         r.FormValue("pull_merged") == "on",
 		Followed:           r.FormValue("followed") == "on",
+		UserMentioned:      r.FormValue("user_mentioned") == "on",
 		EmailNotifications: r.FormValue("email_notifications") == "on",
 	}
 

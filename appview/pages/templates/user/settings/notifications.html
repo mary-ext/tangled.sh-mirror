@@ -144,6 +144,20 @@
       <div class="flex items-center justify-between p-2">
         <div class="flex items-center gap-2">
           <div class="flex flex-col gap-1">
+            <span class="font-bold">Mentions</span>
+            <div class="flex text-sm items-center gap-1 text-gray-500 dark:text-gray-400">
+              <span>When someone mentions you.</span>
+            </div>
+          </div>
+        </div>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="mentioned" {{if .Preferences.UserMentioned}}checked{{end}}>
+        </label>
+      </div>
+
+      <div class="flex items-center justify-between p-2">
+        <div class="flex items-center gap-2">
+          <div class="flex flex-col gap-1">
             <span class="font-bold">Email notifications</span>
             <div class="flex text-sm items-center gap-1 text-gray-500 dark:text-gray-400">
               <span>Receive notifications via email in addition to in-app notifications.</span>

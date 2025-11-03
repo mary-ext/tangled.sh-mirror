@@ -87,6 +87,7 @@ type NotificationPreferences struct {
 	PullCreated        bool
 	PullCommented      bool
 	Followed           bool
+	UserMentioned      bool
 	PullMerged         bool
 	IssueClosed        bool
 	EmailNotifications bool
@@ -117,7 +118,7 @@ func (prefs *NotificationPreferences) ShouldNotify(t NotificationType) bool {
 	case NotificationTypeFollowed:
 		return prefs.Followed
 	case NotificationTypeUserMentioned:
-		return true // always notify on mention
+		return prefs.UserMentioned
 	default:
 		return false
 	}
@@ -132,6 +133,7 @@ func DefaultNotificationPreferences(user syntax.DID) *NotificationPreferences {
 		PullCreated:        true,
 		PullCommented:      true,
 		Followed:           true,
+		UserMentioned:      true,
 		PullMerged:         true,
 		IssueClosed:        true,
 		EmailNotifications: false,
