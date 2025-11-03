@@ -1121,6 +1121,13 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 		return err
 	})
 
+	runMigration(conn, logger, "add-usermentioned-preference", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			alter table notification_preferences add column user_mentioned integer not null default 1;
+		`)
+		return err
+	})
+
 	return &DB{
 		db,
 		logger,

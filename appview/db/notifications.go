@@ -400,6 +400,7 @@ func GetNotificationPreferences(e Execer, filters ...filter) (map[syntax.DID]*mo
 			pull_created,
 			pull_commented,
 			followed,
+			user_mentioned,
 			pull_merged,
 			issue_closed,
 			email_notifications
@@ -425,6 +426,7 @@ func GetNotificationPreferences(e Execer, filters ...filter) (map[syntax.DID]*mo
 			&prefs.PullCreated,
 			&prefs.PullCommented,
 			&prefs.Followed,
+			&prefs.UserMentioned,
 			&prefs.PullMerged,
 			&prefs.IssueClosed,
 			&prefs.EmailNotifications,
@@ -446,8 +448,9 @@ func (d *DB) UpdateNotificationPreferences(ctx context.Context, prefs *models.No
 	query := `
 		INSERT OR REPLACE INTO notification_preferences
 		(user_did, repo_starred, issue_created, issue_commented, pull_created,
-		 pull_commented, followed, pull_merged, issue_closed, email_notifications)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 pull_commented, followed, user_mentioned, pull_merged, issue_closed,
+		 email_notifications)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := d.DB.ExecContext(ctx, query,
@@ -458,6 +461,7 @@ func (d *DB) UpdateNotificationPreferences(ctx context.Context, prefs *models.No
 		prefs.PullCreated,
 		prefs.PullCommented,
 		prefs.Followed,
+		prefs.UserMentioned,
 		prefs.PullMerged,
 		prefs.IssueClosed,
 		prefs.EmailNotifications,
