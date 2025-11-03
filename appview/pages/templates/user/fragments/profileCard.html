@@ -17,7 +17,6 @@
               <p class="text-gray-500 dark:text-gray-400">{{ .Pronouns }}</p>
             {{ end }}
           {{ end }}
-          <a href="/{{ $userIdent }}/feed.atom">{{ i "rss" "size-4" }}</a>
         </div>
 
         <div class="md:hidden">
@@ -72,11 +71,13 @@
             {{ end }}
           </div>
           {{ end }}
-          {{ if ne .FollowStatus.String "IsSelf" }}
-            {{ template "user/fragments/follow" . }}
-          {{ else }}
+
+          <div class="flex mt-2 items-center gap-2">
+            {{ if ne .FollowStatus.String "IsSelf" }}
+              {{ template "user/fragments/follow" . }}
+            {{ else }}
             <button id="editBtn"
-              class="btn mt-2 w-full flex items-center gap-2 group"
+              class="btn w-full flex items-center gap-2 group"
               hx-target="#profile-bio"
               hx-get="/profile/edit-bio"
               hx-swap="innerHTML">
@@ -84,7 +85,14 @@
               edit
               {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
             </button>
-          {{ end }}
+            {{ end }}
+
+            <a class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
+              href="/{{ $userIdent }}/feed.atom">
+              {{ i "rss" "size-4" }}
+            </a>
+          </div>
+
         </div>
         <div id="update-profile" class="text-red-400 dark:text-red-500"></div>
       </div>
