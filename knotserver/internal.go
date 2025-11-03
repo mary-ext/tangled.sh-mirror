@@ -27,11 +27,12 @@ import (
 )
 
 type InternalHandle struct {
-	db *db.DB
-	c  *config.Config
-	e  *rbac.Enforcer
-	l  *slog.Logger
-	n  *notifier.Notifier
+	db  *db.DB
+	c   *config.Config
+	e   *rbac.Enforcer
+	l   *slog.Logger
+	n   *notifier.Notifier
+	res *idresolver.Resolver
 }
 
 func (h *InternalHandle) PushAllowed(w http.ResponseWriter, r *http.Request) {
@@ -121,16 +122,10 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 			// non-fatal
 		}
 
-		if (line.NewSha.String() != line.OldSha.String()) && line.OldSha.IsZero() {
-			msg, err := h.replyCompare(line, repoDid, gitRelativeDir, repoName, r.Context())
-			if err != nil {
-				l.Error("failed to reply with compare link", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
-				// non-fatal
-			} else {
-				for msgLine := range msg {
-					resp.Messages = append(resp.Messages, msg[msgLine])
-				}
-			}
+		err = h.emitCompareLink(&resp.Messages, line, repoDid, repoName)
+		if err != nil {
+			l.Error("failed to reply with compare link", "err", err, "line", line, "did", gitUserDid, "repo", gitRelativeDir)
+			// non-fatal
 		}
 
 		err = h.triggerPipeline(&resp.Messages, line, gitUserDid, repoDid, repoName, pushOptions)
@@ -141,38 +136,6 @@ func (h *InternalHandle) PostReceiveHook(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeJSON(w, resp)
-}
-
-func (h *InternalHandle) replyCompare(line git.PostReceiveLine, repoOwner string, gitRelativeDir string, repoName string, ctx context.Context) ([]string, error) {
-	l := h.l.With("handler", "replyCompare")
-	userIdent, err := idresolver.DefaultResolver().ResolveIdent(ctx, repoOwner)
-	user := repoOwner
-	if err != nil {
-		l.Error("Failed to fetch user identity", "err", err)
-		// non-fatal
-	} else {
-		user = userIdent.Handle.String()
-	}
-	gr, err := git.PlainOpen(gitRelativeDir)
-	if err != nil {
-		l.Error("Failed to open git repository", "err", err)
-		return []string{}, err
-	}
-	defaultBranch, err := gr.FindMainBranch()
-	if err != nil {
-		l.Error("Failed to fetch default branch", "err", err)
-		return []string{}, err
-	}
-	if line.Ref == plumbing.NewBranchReferenceName(defaultBranch).String() {
-		return []string{}, nil
-	}
-	ZWS := "\u200B"
-	var msg []string
-	msg = append(msg, ZWS)
-	msg = append(msg, fmt.Sprintf("Create a PR pointing to %s", defaultBranch))
-	msg = append(msg, fmt.Sprintf("\t%s/%s/%s/compare/%s...%s", h.c.AppViewEndpoint, user, repoName, defaultBranch, strings.TrimPrefix(line.Ref, "refs/heads/")))
-	msg = append(msg, ZWS)
-	return msg, nil
 }
 
 func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, repoDid, repoName string) error {
@@ -220,7 +183,14 @@ func (h *InternalHandle) insertRefUpdate(line git.PostReceiveLine, gitUserDid, r
 	return errors.Join(errs, h.db.InsertEvent(event, h.n))
 }
 
-func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostReceiveLine, gitUserDid, repoDid, repoName string, pushOptions PushOptions) error {
+func (h *InternalHandle) triggerPipeline(
+	clientMsgs *[]string,
+	line git.PostReceiveLine,
+	gitUserDid string,
+	repoDid string,
+	repoName string,
+	pushOptions PushOptions,
+) error {
 	if pushOptions.skipCi {
 		return nil
 	}
@@ -315,10 +285,75 @@ func (h *InternalHandle) triggerPipeline(clientMsgs *[]string, line git.PostRece
 	return h.db.InsertEvent(event, h.n)
 }
 
+func (h *InternalHandle) emitCompareLink(
+	clientMsgs *[]string,
+	line git.PostReceiveLine,
+	repoDid string,
+	repoName string,
+) error {
+	// this is a second push to a branch, don't reply with the link again
+	if !line.OldSha.IsZero() {
+		return nil
+	}
+
+	// the ref was not updated to a new hash, don't reply with the link
+	//
+	// NOTE: do we need this?
+	if line.NewSha.String() == line.OldSha.String() {
+		return nil
+	}
+
+	pushedRef := plumbing.ReferenceName(line.Ref)
+
+	userIdent, err := h.res.ResolveIdent(context.Background(), repoDid)
+	user := repoDid
+	if err == nil {
+		user = userIdent.Handle.String()
+	}
+
+	didSlashRepo, err := securejoin.SecureJoin(repoDid, repoName)
+	if err != nil {
+		return err
+	}
+
+	repoPath, err := securejoin.SecureJoin(h.c.Repo.ScanPath, didSlashRepo)
+	if err != nil {
+		return err
+	}
+
+	gr, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return err
+	}
+
+	defaultBranch, err := gr.FindMainBranch()
+	if err != nil {
+		return err
+	}
+
+	// pushing to default branch
+	if pushedRef == plumbing.NewBranchReferenceName(defaultBranch) {
+		return nil
+	}
+
+	// pushing a tag, don't prompt the user the open a PR
+	if pushedRef.IsTag() {
+		return nil
+	}
+
+	ZWS := "\u200B"
+	*clientMsgs = append(*clientMsgs, ZWS)
+	*clientMsgs = append(*clientMsgs, fmt.Sprintf("Create a PR pointing to %s", defaultBranch))
+	*clientMsgs = append(*clientMsgs, fmt.Sprintf("\t%s/%s/%s/compare/%s...%s", h.c.AppViewEndpoint, user, repoName, defaultBranch, strings.TrimPrefix(line.Ref, "refs/heads/")))
+	*clientMsgs = append(*clientMsgs, ZWS)
+	return nil
+}
+
 func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer, n *notifier.Notifier) http.Handler {
 	r := chi.NewRouter()
 	l := log.FromContext(ctx)
 	l = log.SubLogger(l, "internal")
+	res := idresolver.DefaultResolver()
 
 	h := InternalHandle{
 		db,
@@ -326,6 +361,7 @@ func Internal(ctx context.Context, c *config.Config, db *db.DB, e *rbac.Enforcer
 		e,
 		l,
 		n,
+		res,
 	}
 
 	r.Get("/push-allowed", h.PushAllowed)
