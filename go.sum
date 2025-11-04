@@ -70,8 +70,6 @@ github.com/bluesky-social/indigo v0.0.0-20251003000214-3259b215110e h1:IutKPwmbU
 github.com/bluesky-social/indigo v0.0.0-20251003000214-3259b215110e/go.mod h1:n6QE1NDPFoi7PRbMUZmc2y7FibCqiVU4ePpsvhHUBR8=
 github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1 h1:CFvRtYNSnWRAi/98M3O466t9dYuwtesNbu6FVPymRrA=
 github.com/bluesky-social/jetstream v0.0.0-20241210005130-ea96859b93d1/go.mod h1:WiYEeyJSdUwqoaZ71KJSpTblemUCpwJfh5oVXplK6T4=
-github.com/bmatcuk/doublestar v1.3.4 h1:gPypJ5xD31uhX6Tf54sDPUOBXTqKH4c9aPY66CyQrS0=
-github.com/bmatcuk/doublestar v1.3.4/go.mod h1:wiQtGV+rzVYxB7WIlirSN++5HPtPlXEo9MEoZQC/PmE=
 github.com/bmatcuk/doublestar/v4 v4.6.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/bmatcuk/doublestar/v4 v4.7.1 h1:fdDeAqgT47acgwd9bd9HxJRDmc9UAmPpc+2m0CXv75Q=
 github.com/bmatcuk/doublestar/v4 v4.7.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=

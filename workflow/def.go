@@ -8,7 +8,7 @@ import (
 
 	"tangled.org/core/api/tangled"
 
-	"github.com/bmatcuk/doublestar"
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/go-git/go-git/v5/plumbing"
 	"gopkg.in/yaml.v3"
 )
