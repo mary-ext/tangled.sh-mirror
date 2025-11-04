@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -146,6 +147,12 @@ func (s *Spindles) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	instance := r.FormValue("instance")
+	// Strip protocol, trailing slashes, and whitespace
+	// Rkey cannot contain slashes
+	instance = strings.TrimSpace(instance)
+	instance = strings.TrimPrefix(instance, "https://")
+	instance = strings.TrimPrefix(instance, "http://")
+	instance = strings.TrimSuffix(instance, "/")
 	if instance == "" {
 		s.Pages.Notice(w, noticeId, "Incomplete form.")
 		return
@@ -484,6 +491,7 @@ func (s *Spindles) addMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	member := r.FormValue("member")
+	member = strings.TrimPrefix(member, "@")
 	if member == "" {
 		l.Error("empty member")
 		s.Pages.Notice(w, noticeId, "Failed to add member, empty form.")
@@ -613,6 +621,7 @@ func (s *Spindles) removeMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	member := r.FormValue("member")
+	member = strings.TrimPrefix(member, "@")
 	if member == "" {
 		l.Error("empty member")
 		s.Pages.Notice(w, noticeId, "Failed to remove member, empty form.")

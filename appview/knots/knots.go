@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -145,6 +146,12 @@ func (k *Knots) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	domain := r.FormValue("domain")
+	// Strip protocol, trailing slashes, and whitespace
+	// Rkey cannot contain slashes
+	domain = strings.TrimSpace(domain)
+	domain = strings.TrimPrefix(domain, "https://")
+	domain = strings.TrimPrefix(domain, "http://")
+	domain = strings.TrimSuffix(domain, "/")
 	if domain == "" {
 		k.Pages.Notice(w, noticeId, "Incomplete form.")
 		return
@@ -526,6 +533,7 @@ func (k *Knots) addMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	member := r.FormValue("member")
+	member = strings.TrimPrefix(member, "@")
 	if member == "" {
 		l.Error("empty member")
 		k.Pages.Notice(w, noticeId, "Failed to add member, empty form.")
@@ -626,6 +634,7 @@ func (k *Knots) removeMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	member := r.FormValue("member")
+	member = strings.TrimPrefix(member, "@")
 	if member == "" {
 		l.Error("empty member")
 		k.Pages.Notice(w, noticeId, "Failed to remove member, empty form.")
