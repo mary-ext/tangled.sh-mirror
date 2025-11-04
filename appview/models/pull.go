@@ -167,7 +167,7 @@ func (p *Pull) LatestSha() string {
 	return p.LatestSubmission().SourceRev
 }
 
-func (p *Pull) PullAt() syntax.ATURI {
+func (p *Pull) AtUri() syntax.ATURI {
 	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", p.OwnerDid, tangled.RepoPullNSID, p.Rkey))
 }
 

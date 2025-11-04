@@ -18,7 +18,7 @@
       {{ template "repo/fragments/labelPanel"
         (dict "RepoInfo" $.RepoInfo
               "Defs" $.LabelDefs
-              "Subject" $.Pull.PullAt
+              "Subject" $.Pull.AtUri
               "State" $.Pull.Labels) }}
       {{ template "repo/fragments/participants" $.Pull.Participants }}
     </div>

@@ -92,7 +92,7 @@ func NewPull(tx *sql.Tx, pull *models.Pull) error {
 	_, err = tx.Exec(`
 		insert into pull_submissions (pull_at, round_number, patch, combined, source_rev)
 		values (?, ?, ?, ?, ?)
-	`, pull.PullAt(), 0, pull.Submissions[0].Patch, pull.Submissions[0].Combined, pull.Submissions[0].SourceRev)
+	`, pull.AtUri(), 0, pull.Submissions[0].Patch, pull.Submissions[0].Combined, pull.Submissions[0].SourceRev)
 	return err
 }
 
@@ -101,7 +101,7 @@ func GetPullAt(e Execer, repoAt syntax.ATURI, pullId int) (syntax.ATURI, error) 
 	if err != nil {
 		return "", err
 	}
-	return pull.PullAt(), err
+	return pull.AtUri(), err
 }
 
 func NextPullId(e Execer, repoAt syntax.ATURI) (int, error) {
@@ -214,12 +214,12 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 			pull.ParentChangeId = parentChangeId.String
 		}
 
-		pulls[pull.PullAt()] = &pull
+		pulls[pull.AtUri()] = &pull
 	}
 
 	var pullAts []syntax.ATURI
 	for _, p := range pulls {
-		pullAts = append(pullAts, p.PullAt())
+		pullAts = append(pullAts, p.AtUri())
 	}
 	submissionsMap, err := GetPullSubmissions(e, FilterIn("pull_at", pullAts))
 	if err != nil {

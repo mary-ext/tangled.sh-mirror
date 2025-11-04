@@ -203,7 +203,7 @@ func (n *databaseNotifier) NewPull(ctx context.Context, pull *models.Pull) {
 	actorDid := syntax.DID(pull.OwnerDid)
 	eventType := models.NotificationTypePullCreated
 	entityType := "pull"
-	entityId := pull.PullAt().String()
+	entityId := pull.AtUri().String()
 	repoId := &repo.Id
 	var issueId *int64
 	p := int64(pull.ID)
@@ -249,7 +249,7 @@ func (n *databaseNotifier) NewPullComment(ctx context.Context, comment *models.P
 	actorDid := syntax.DID(comment.OwnerDid)
 	eventType := models.NotificationTypePullCommented
 	entityType := "pull"
-	entityId := pull.PullAt().String()
+	entityId := pull.AtUri().String()
 	repoId := &repo.Id
 	var issueId *int64
 	p := int64(pull.ID)
@@ -353,7 +353,7 @@ func (n *databaseNotifier) NewPullState(ctx context.Context, actor syntax.DID, p
 	}
 
 	entityType := "pull"
-	entityId := pull.PullAt().String()
+	entityId := pull.AtUri().String()
 	repoId := &repo.Id
 	var issueId *int64
 	var eventType models.NotificationType

@@ -192,7 +192,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		m[p.Sha] = p
 	}
 
-	reactionMap, err := db.GetReactionMap(s.db, 20, pull.PullAt())
+	reactionMap, err := db.GetReactionMap(s.db, 20, pull.AtUri())
 	if err != nil {
 		log.Println("failed to get pull reactions")
 		s.pages.Notice(w, "pulls", "Failed to load pull. Try again later.")
@@ -200,7 +200,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 
 	userReactions := map[models.ReactionKind]bool{}
 	if user != nil {
-		userReactions = db.GetReactionStatusMap(s.db, user.Did, pull.PullAt())
+		userReactions = db.GetReactionStatusMap(s.db, user.Did, pull.AtUri())
 	}
 
 	labelDefs, err := db.GetLabelDefinitions(
@@ -752,7 +752,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			Rkey:       tid.TID(),
 			Record: &lexutil.LexiconTypeDecoder{
 				Val: &tangled.RepoPullComment{
-					Pull:      pull.PullAt().String(),
+					Pull:      pull.AtUri().String(),
 					Body:      body,
 					CreatedAt: createdAt,
 				},
@@ -1839,7 +1839,7 @@ func (s *Pulls) resubmitPullHelper(
 	}
 	defer tx.Rollback()
 
-	pullAt := pull.PullAt()
+	pullAt := pull.AtUri()
 	newRoundNumber := len(pull.Submissions)
 	newPatch := patch
 	newSourceRev := sourceRev
@@ -2036,7 +2036,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 		}
 
 		// resubmit the new pull
-		pullAt := op.PullAt()
+		pullAt := op.AtUri()
 		newRoundNumber := len(op.Submissions)
 		newPatch := np.LatestPatch()
 		combinedPatch := np.LatestSubmission().Combined

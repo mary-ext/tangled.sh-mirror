@@ -75,7 +75,7 @@
                     "Kind"      $kind
                     "Count"     $reactionData.Count
                     "IsReacted" (index $.UserReacted $kind)
-                    "ThreadAt"  $.Pull.PullAt
+                    "ThreadAt"  $.Pull.AtUri
                     "Users"     $reactionData.Users)
             }}
         {{ end }}
