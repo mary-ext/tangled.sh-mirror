@@ -21,6 +21,7 @@
               "Subject" $.Pull.AtUri
               "State" $.Pull.Labels) }}
       {{ template "repo/fragments/participants" $.Pull.Participants }}
+      {{ template "repo/fragments/externalLinkPanel" $.Pull.AtUri }}
     </div>
   </div>
 {{ end }}
