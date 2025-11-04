@@ -2369,7 +2369,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		aturi = ""
 
 		rp.notifier.NewRepo(r.Context(), repo)
-		rp.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Did, forkName))
+		rp.pages.HxLocation(w, fmt.Sprintf("/%s/%s", user.Did, forkName))
 	}
 }
 

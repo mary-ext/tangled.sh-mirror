@@ -633,7 +633,7 @@ func (s *State) NewRepo(w http.ResponseWriter, r *http.Request) {
 		aturi = ""
 
 		s.notifier.NewRepo(r.Context(), repo)
-		s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s", user.Did, repoName))
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/%s", user.Did, repoName))
 	}
 }
 
