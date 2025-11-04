@@ -21,6 +21,7 @@ import (
 	phnotify "tangled.org/core/appview/notify/posthog"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
+	"tangled.org/core/appview/refresolver"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/validator"
 	xrpcclient "tangled.org/core/appview/xrpcclient"
@@ -49,6 +50,7 @@ type State struct {
 	enforcer      *rbac.Enforcer
 	pages         *pages.Pages
 	idResolver    *idresolver.Resolver
+	refResolver   *refresolver.Resolver
 	posthog       posthog.Client
 	jc            *jetstream.JetstreamClient
 	config        *config.Config
@@ -97,6 +99,8 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	validator := validator.New(d, res, enforcer)
 
 	repoResolver := reporesolver.New(config, enforcer, res, d)
+
+	refResolver := refresolver.New(config, res, d, log.SubLogger(logger, "refResolver"))
 
 	wrapper := db.DbWrapper{Execer: d}
 	jc, err := jetstream.NewJetstreamClient(
@@ -178,6 +182,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 		enforcer,
 		pages,
 		res,
+		refResolver,
 		posthog,
 		jc,
 		config,
