@@ -1,0 +1,48 @@
+{{ define "repo/fragments/externalLinkPanel" }}
+  <div id="at-uri-panel" class="px-2 md:px-0">
+    <div class="flex justify-between items-center gap-2">
+      <span class="text-sm py-1 font-bold text-gray-500 dark:text-gray-400 capitalize">AT URI</span>
+      <div class="flex items-center gap-2">
+        <button
+          onclick="copyToClipboard(this)"
+          class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          title="Copy to clipboard">
+          {{ i "copy" "w-4 h-4" }}
+        </button>
+        <a
+          href="https://pdsls.dev/{{.}}"
+          class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          title="View in PDSls">
+          {{ i "arrow-up-right" "w-4 h-4" }}
+        </a>
+      </div>
+    </div>
+    <span
+      class="font-mono text-sm select-all cursor-pointer block max-w-full overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+      onclick="window.getSelection().selectAllChildren(this)"
+      title="{{.}}"
+      data-aturi="{{ . | string | safeUrl }}"
+      >{{.}}</span>
+
+
+  </div>
+
+  <script>
+    function copyToClipboard(button) {
+      const container = document.getElementById("at-uri-panel");
+      const urlSpan = container?.querySelector('[data-aturi]');
+      const text = urlSpan?.getAttribute('data-aturi');
+      console.log("copying to clipboard", text)
+      if (!text) return;
+
+      navigator.clipboard.writeText(text).then(() => {
+        const originalContent = button.innerHTML;
+        button.innerHTML = `{{ i "check" "w-4 h-4" }}`;
+        setTimeout(() => {
+          button.innerHTML = originalContent;
+        }, 2000);
+      });
+    }
+  </script>
+{{ end }}
+

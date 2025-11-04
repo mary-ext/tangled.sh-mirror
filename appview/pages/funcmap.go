@@ -75,6 +75,9 @@ func (p *Pages) funcMap() template.FuncMap {
 		"splitOn": func(s, sep string) []string {
 			return strings.Split(s, sep)
 		},
+		"string": func(v any) string {
+			return fmt.Sprint(v)
+		},
 		"int64": func(a int) int64 {
 			return int64(a)
 		},
@@ -288,7 +291,9 @@ func (p *Pages) funcMap() template.FuncMap {
 			u, _ := url.PathUnescape(s)
 			return u
 		},
-
+		"safeUrl": func(s string) template.URL {
+			return template.URL(s)
+		},
 		"tinyAvatar": func(handle string) string {
 			return p.AvatarUrl(handle, "tiny")
 		},
