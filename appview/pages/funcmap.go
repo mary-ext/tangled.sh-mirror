@@ -38,6 +38,12 @@ func (p *Pages) funcMap() template.FuncMap {
 		"contains": func(s string, target string) bool {
 			return strings.Contains(s, target)
 		},
+		"stripPort": func(hostname string) string {
+			if strings.Contains(hostname, ":") {
+				return strings.Split(hostname, ":")[0]
+			}
+			return hostname
+		},
 		"mapContains": func(m any, key any) bool {
 			mapValue := reflect.ValueOf(m)
 			if mapValue.Kind() != reflect.Map {
