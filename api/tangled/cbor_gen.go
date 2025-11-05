@@ -26,7 +26,7 @@ func (t *ActorProfile) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 7
+	fieldCount := 8
 
 	if t.Description == nil {
 		fieldCount--
@@ -41,6 +41,10 @@ func (t *ActorProfile) MarshalCBOR(w io.Writer) error {
 	}
 
 	if t.PinnedRepositories == nil {
+		fieldCount--
+	}
+
+	if t.Pronouns == nil {
 		fieldCount--
 	}
 
@@ -186,6 +190,38 @@ func (t *ActorProfile) MarshalCBOR(w io.Writer) error {
 				return err
 			}
 			if _, err := cw.WriteString(string(*t.Location)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// t.Pronouns (string) (string)
+	if t.Pronouns != nil {
+
+		if len("pronouns") > 1000000 {
+			return xerrors.Errorf("Value in field \"pronouns\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("pronouns"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("pronouns")); err != nil {
+			return err
+		}
+
+		if t.Pronouns == nil {
+			if _, err := cw.Write(cbg.CborNull); err != nil {
+				return err
+			}
+		} else {
+			if len(*t.Pronouns) > 1000000 {
+				return xerrors.Errorf("Value in field t.Pronouns was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(*t.Pronouns))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(*t.Pronouns)); err != nil {
 				return err
 			}
 		}
@@ -430,6 +466,27 @@ func (t *ActorProfile) UnmarshalCBOR(r io.Reader) (err error) {
 					}
 
 					t.Location = (*string)(&sval)
+				}
+			}
+			// t.Pronouns (string) (string)
+		case "pronouns":
+
+			{
+				b, err := cr.ReadByte()
+				if err != nil {
+					return err
+				}
+				if b != cbg.CborNull[0] {
+					if err := cr.UnreadByte(); err != nil {
+						return err
+					}
+
+					sval, err := cbg.ReadStringWithMax(cr, 1000000)
+					if err != nil {
+						return err
+					}
+
+					t.Pronouns = (*string)(&sval)
 				}
 			}
 			// t.Description (string) (string)

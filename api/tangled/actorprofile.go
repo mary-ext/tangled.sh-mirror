@@ -27,6 +27,7 @@ type ActorProfile struct {
 	Location *string `json:"location,omitempty" cborgen:"location,omitempty"`
 	// pinnedRepositories: Any ATURI, it is up to appviews to validate these fields.
 	PinnedRepositories []string `json:"pinnedRepositories,omitempty" cborgen:"pinnedRepositories,omitempty"`
-	Stats              []string `json:"stats,omitempty" cborgen:"stats,omitempty"`
-	Pronouns           *string  `json:"pronouns,omitempty" cborgen:"pronouns,omitempty"`
+	// pronouns: Preferred gender pronouns.
+	Pronouns *string  `json:"pronouns,omitempty" cborgen:"pronouns,omitempty"`
+	Stats    []string `json:"stats,omitempty" cborgen:"stats,omitempty"`
 }
