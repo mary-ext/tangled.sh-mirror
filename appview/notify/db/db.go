@@ -13,6 +13,10 @@ import (
 	"tangled.org/core/idresolver"
 )
 
+const (
+	maxMentions = 5
+)
+
 type databaseNotifier struct {
 	db  *db.DB
 	res *idresolver.Resolver
@@ -421,6 +425,9 @@ func (n *databaseNotifier) notifyEvent(
 	issueId *int64,
 	pullId *int64,
 ) {
+	if eventType == models.NotificationTypeUserMentioned && len(recipients) > maxMentions {
+		recipients = recipients[:maxMentions]
+	}
 	recipientSet := make(map[syntax.DID]struct{})
 	for _, did := range recipients {
 		// everybody except actor themselves
