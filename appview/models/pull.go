@@ -148,8 +148,34 @@ type PullComment struct {
 	Body string
 
 	// meta
+	Mentions   []syntax.DID
+	References []syntax.ATURI
+
+	// meta
 	Created time.Time
 }
+
+func (p *PullComment) AtUri() syntax.ATURI {
+	return syntax.ATURI(p.CommentAt)
+}
+
+// func (p *PullComment) AsRecord() tangled.RepoPullComment {
+// 	mentions := make([]string, len(p.Mentions))
+// 	for i, did := range p.Mentions {
+// 		mentions[i] = string(did)
+// 	}
+// 	references := make([]string, len(p.References))
+// 	for i, uri := range p.References {
+// 		references[i] = string(uri)
+// 	}
+// 	return tangled.RepoPullComment{
+// 		Pull:       p.PullAt,
+// 		Body:       p.Body,
+// 		Mentions:   mentions,
+// 		References: references,
+// 		CreatedAt:  p.Created.Format(time.RFC3339),
+// 	}
+// }
 
 func (p *Pull) LastRoundNumber() int {
 	return len(p.Submissions) - 1

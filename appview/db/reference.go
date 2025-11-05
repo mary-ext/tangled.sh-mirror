@@ -10,9 +10,9 @@ import (
 	"tangled.org/core/appview/models"
 )
 
-// FindReferences resolves refLinks to Issue/PR/IssueComment/PullComment ATURIs.
+// ValidateReferenceLinks resolves refLinks to Issue/PR/IssueComment/PullComment ATURIs.
 // It will ignore missing refLinks.
-func FindReferences(e Execer, refLinks []models.ReferenceLink) ([]syntax.ATURI, error) {
+func ValidateReferenceLinks(e Execer, refLinks []models.ReferenceLink) ([]syntax.ATURI, error) {
 	var (
 		issueRefs []models.ReferenceLink
 		pullRefs  []models.ReferenceLink
@@ -27,11 +27,11 @@ func FindReferences(e Execer, refLinks []models.ReferenceLink) ([]syntax.ATURI, 
 	}
 	issueUris, err := findIssueReferences(e, issueRefs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find issue references: %w", err)
 	}
 	pullUris, err := findPullReferences(e, pullRefs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find pull references: %w", err)
 	}
 
 	return append(issueUris, pullUris...), nil
@@ -101,6 +101,10 @@ func findIssueReferences(e Execer, refLinks []models.ReferenceLink) ([]syntax.AT
 		}
 		uris = append(uris, uri)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
 	return uris, nil
 }
 
@@ -120,7 +124,7 @@ func findPullReferences(e Execer, refLinks []models.ReferenceLink) ([]syntax.ATU
 		)
 		select
 			p.owner_did, p.rkey,
-			c.owner_did, c.rkey
+			c.comment_at
 		from input inp
 		join repos r
 			on r.did = inp.owner_did
@@ -146,18 +150,14 @@ func findPullReferences(e Execer, refLinks []models.ReferenceLink) ([]syntax.ATU
 	for rows.Next() {
 		// Scan rows
 		var pullOwner, pullRkey string
-		var commentOwner, commentRkey sql.NullString
+		var commentUri sql.NullString
 		var uri syntax.ATURI
-		if err := rows.Scan(&pullOwner, &pullRkey, &commentOwner, &commentRkey); err != nil {
+		if err := rows.Scan(&pullOwner, &pullRkey, &commentUri); err != nil {
 			return nil, err
 		}
-		if commentOwner.Valid && commentRkey.Valid {
-			uri = syntax.ATURI(fmt.Sprintf(
-				"at://%s/%s/%s",
-				commentOwner.String,
-				tangled.RepoPullCommentNSID,
-				commentRkey.String,
-			))
+		if commentUri.Valid {
+			// no-op
+			uri = syntax.ATURI(commentUri.String)
 		} else {
 			uri = syntax.ATURI(fmt.Sprintf(
 				"at://%s/%s/%s",
@@ -169,4 +169,82 @@ func findPullReferences(e Execer, refLinks []models.ReferenceLink) ([]syntax.ATU
 		uris = append(uris, uri)
 	}
 	return uris, nil
+}
+
+func putReferences(tx *sql.Tx, fromAt syntax.ATURI, references []syntax.ATURI) error {
+	err := deleteReferences(tx, fromAt)
+	if err != nil {
+		return fmt.Errorf("delete old reference_links: %w", err)
+	}
+	if len(references) == 0 {
+		return nil
+	}
+
+	values := make([]string, 0, len(references))
+	args := make([]any, 0, len(references)*2)
+	for _, ref := range references {
+		values = append(values, "(?, ?)")
+		args = append(args, fromAt, ref)
+	}
+	_, err = tx.Exec(
+		fmt.Sprintf(
+			`insert into reference_links (from_at, to_at)
+			values %s`,
+			strings.Join(values, ","),
+		),
+		args...,
+	)
+	if err != nil {
+		return fmt.Errorf("insert new reference_links: %w", err)
+	}
+	return nil
+}
+
+func deleteReferences(tx *sql.Tx, fromAt syntax.ATURI) error {
+	_, err := tx.Exec(`delete from reference_links where from_at = ?`, fromAt)
+	return err
+}
+
+func GetReferencesAll(e Execer, filters ...filter) (map[syntax.ATURI][]syntax.ATURI, error) {
+	var (
+		conditions []string
+		args       []any
+	)
+	for _, filter := range filters {
+		conditions = append(conditions, filter.Condition())
+		args = append(args, filter.Arg()...)
+	}
+
+	whereClause := ""
+	if conditions != nil {
+		whereClause = " where " + strings.Join(conditions, " and ")
+	}
+
+	rows, err := e.Query(
+		fmt.Sprintf(
+			`select from_at, to_at from reference_links %s`,
+			whereClause,
+		),
+		args...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query reference_links: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[syntax.ATURI][]syntax.ATURI)
+
+	for rows.Next() {
+		var from, to syntax.ATURI
+		if err := rows.Scan(&from, &to); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+
+		result[from] = append(result[from], to)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
+	return result, nil
 }

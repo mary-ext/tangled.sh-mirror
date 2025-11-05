@@ -6938,9 +6938,17 @@ func (t *RepoIssue) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 5
+	fieldCount := 7
 
 	if t.Body == nil {
+		fieldCount--
+	}
+
+	if t.Mentions == nil {
+		fieldCount--
+	}
+
+	if t.References == nil {
 		fieldCount--
 	}
 
@@ -7045,6 +7053,42 @@ func (t *RepoIssue) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
+	// t.Mentions ([]string) (slice)
+	if t.Mentions != nil {
+
+		if len("mentions") > 1000000 {
+			return xerrors.Errorf("Value in field \"mentions\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("mentions"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("mentions")); err != nil {
+			return err
+		}
+
+		if len(t.Mentions) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Mentions was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Mentions))); err != nil {
+			return err
+		}
+		for _, v := range t.Mentions {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+
 	// t.CreatedAt (string) (string)
 	if len("createdAt") > 1000000 {
 		return xerrors.Errorf("Value in field \"createdAt\" was too long")
@@ -7066,6 +7110,42 @@ func (t *RepoIssue) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string(t.CreatedAt)); err != nil {
 		return err
+	}
+
+	// t.References ([]string) (slice)
+	if t.References != nil {
+
+		if len("references") > 1000000 {
+			return xerrors.Errorf("Value in field \"references\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("references"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("references")); err != nil {
+			return err
+		}
+
+		if len(t.References) > 8192 {
+			return xerrors.Errorf("Slice value in field t.References was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.References))); err != nil {
+			return err
+		}
+		for _, v := range t.References {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
 	}
 	return nil
 }
@@ -7095,7 +7175,7 @@ func (t *RepoIssue) UnmarshalCBOR(r io.Reader) (err error) {
 
 	n := extra
 
-	nameBuf := make([]byte, 9)
+	nameBuf := make([]byte, 10)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -7165,6 +7245,46 @@ func (t *RepoIssue) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.Title = string(sval)
 			}
+			// t.Mentions ([]string) (slice)
+		case "mentions":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Mentions: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Mentions = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Mentions[i] = string(sval)
+					}
+
+				}
+			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":
 
@@ -7175,6 +7295,46 @@ func (t *RepoIssue) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.CreatedAt = string(sval)
+			}
+			// t.References ([]string) (slice)
+		case "references":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.References: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.References = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.References[i] = string(sval)
+					}
+
+				}
 			}
 
 		default:
@@ -7194,7 +7354,15 @@ func (t *RepoIssueComment) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 5
+	fieldCount := 7
+
+	if t.Mentions == nil {
+		fieldCount--
+	}
+
+	if t.References == nil {
+		fieldCount--
+	}
 
 	if t.ReplyTo == nil {
 		fieldCount--
@@ -7301,6 +7469,42 @@ func (t *RepoIssueComment) MarshalCBOR(w io.Writer) error {
 		}
 	}
 
+	// t.Mentions ([]string) (slice)
+	if t.Mentions != nil {
+
+		if len("mentions") > 1000000 {
+			return xerrors.Errorf("Value in field \"mentions\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("mentions"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("mentions")); err != nil {
+			return err
+		}
+
+		if len(t.Mentions) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Mentions was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Mentions))); err != nil {
+			return err
+		}
+		for _, v := range t.Mentions {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+
 	// t.CreatedAt (string) (string)
 	if len("createdAt") > 1000000 {
 		return xerrors.Errorf("Value in field \"createdAt\" was too long")
@@ -7322,6 +7526,42 @@ func (t *RepoIssueComment) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string(t.CreatedAt)); err != nil {
 		return err
+	}
+
+	// t.References ([]string) (slice)
+	if t.References != nil {
+
+		if len("references") > 1000000 {
+			return xerrors.Errorf("Value in field \"references\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("references"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("references")); err != nil {
+			return err
+		}
+
+		if len(t.References) > 8192 {
+			return xerrors.Errorf("Slice value in field t.References was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.References))); err != nil {
+			return err
+		}
+		for _, v := range t.References {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
 	}
 	return nil
 }
@@ -7351,7 +7591,7 @@ func (t *RepoIssueComment) UnmarshalCBOR(r io.Reader) (err error) {
 
 	n := extra
 
-	nameBuf := make([]byte, 9)
+	nameBuf := make([]byte, 10)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -7421,6 +7661,46 @@ func (t *RepoIssueComment) UnmarshalCBOR(r io.Reader) (err error) {
 					t.ReplyTo = (*string)(&sval)
 				}
 			}
+			// t.Mentions ([]string) (slice)
+		case "mentions":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Mentions: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Mentions = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Mentions[i] = string(sval)
+					}
+
+				}
+			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":
 
@@ -7431,6 +7711,46 @@ func (t *RepoIssueComment) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.CreatedAt = string(sval)
+			}
+			// t.References ([]string) (slice)
+		case "references":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.References: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.References = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.References[i] = string(sval)
+					}
+
+				}
 			}
 
 		default:
@@ -7614,9 +7934,17 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
-	fieldCount := 7
+	fieldCount := 9
 
 	if t.Body == nil {
+		fieldCount--
+	}
+
+	if t.Mentions == nil {
+		fieldCount--
+	}
+
+	if t.References == nil {
 		fieldCount--
 	}
 
@@ -7760,6 +8088,42 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
+	// t.Mentions ([]string) (slice)
+	if t.Mentions != nil {
+
+		if len("mentions") > 1000000 {
+			return xerrors.Errorf("Value in field \"mentions\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("mentions"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("mentions")); err != nil {
+			return err
+		}
+
+		if len(t.Mentions) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Mentions was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Mentions))); err != nil {
+			return err
+		}
+		for _, v := range t.Mentions {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+
 	// t.CreatedAt (string) (string)
 	if len("createdAt") > 1000000 {
 		return xerrors.Errorf("Value in field \"createdAt\" was too long")
@@ -7781,6 +8145,42 @@ func (t *RepoPull) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string(t.CreatedAt)); err != nil {
 		return err
+	}
+
+	// t.References ([]string) (slice)
+	if t.References != nil {
+
+		if len("references") > 1000000 {
+			return xerrors.Errorf("Value in field \"references\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("references"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("references")); err != nil {
+			return err
+		}
+
+		if len(t.References) > 8192 {
+			return xerrors.Errorf("Slice value in field t.References was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.References))); err != nil {
+			return err
+		}
+		for _, v := range t.References {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
 	}
 	return nil
 }
@@ -7810,7 +8210,7 @@ func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
 
 	n := extra
 
-	nameBuf := make([]byte, 9)
+	nameBuf := make([]byte, 10)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -7920,6 +8320,46 @@ func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 			}
+			// t.Mentions ([]string) (slice)
+		case "mentions":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Mentions: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Mentions = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Mentions[i] = string(sval)
+					}
+
+				}
+			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":
 
@@ -7930,6 +8370,46 @@ func (t *RepoPull) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.CreatedAt = string(sval)
+			}
+			// t.References ([]string) (slice)
+		case "references":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.References: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.References = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.References[i] = string(sval)
+					}
+
+				}
 			}
 
 		default:
@@ -7949,8 +8429,17 @@ func (t *RepoPullComment) MarshalCBOR(w io.Writer) error {
 	}
 
 	cw := cbg.NewCborWriter(w)
+	fieldCount := 6
 
-	if _, err := cw.Write([]byte{164}); err != nil {
+	if t.Mentions == nil {
+		fieldCount--
+	}
+
+	if t.References == nil {
+		fieldCount--
+	}
+
+	if _, err := cw.Write(cbg.CborEncodeMajorType(cbg.MajMap, uint64(fieldCount))); err != nil {
 		return err
 	}
 
@@ -8019,6 +8508,42 @@ func (t *RepoPullComment) MarshalCBOR(w io.Writer) error {
 		return err
 	}
 
+	// t.Mentions ([]string) (slice)
+	if t.Mentions != nil {
+
+		if len("mentions") > 1000000 {
+			return xerrors.Errorf("Value in field \"mentions\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("mentions"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("mentions")); err != nil {
+			return err
+		}
+
+		if len(t.Mentions) > 8192 {
+			return xerrors.Errorf("Slice value in field t.Mentions was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.Mentions))); err != nil {
+			return err
+		}
+		for _, v := range t.Mentions {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
+	}
+
 	// t.CreatedAt (string) (string)
 	if len("createdAt") > 1000000 {
 		return xerrors.Errorf("Value in field \"createdAt\" was too long")
@@ -8040,6 +8565,42 @@ func (t *RepoPullComment) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := cw.WriteString(string(t.CreatedAt)); err != nil {
 		return err
+	}
+
+	// t.References ([]string) (slice)
+	if t.References != nil {
+
+		if len("references") > 1000000 {
+			return xerrors.Errorf("Value in field \"references\" was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("references"))); err != nil {
+			return err
+		}
+		if _, err := cw.WriteString(string("references")); err != nil {
+			return err
+		}
+
+		if len(t.References) > 8192 {
+			return xerrors.Errorf("Slice value in field t.References was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.References))); err != nil {
+			return err
+		}
+		for _, v := range t.References {
+			if len(v) > 1000000 {
+				return xerrors.Errorf("Value in field v was too long")
+			}
+
+			if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+				return err
+			}
+			if _, err := cw.WriteString(string(v)); err != nil {
+				return err
+			}
+
+		}
 	}
 	return nil
 }
@@ -8069,7 +8630,7 @@ func (t *RepoPullComment) UnmarshalCBOR(r io.Reader) (err error) {
 
 	n := extra
 
-	nameBuf := make([]byte, 9)
+	nameBuf := make([]byte, 10)
 	for i := uint64(0); i < n; i++ {
 		nameLen, ok, err := cbg.ReadFullStringIntoBuf(cr, nameBuf, 1000000)
 		if err != nil {
@@ -8118,6 +8679,46 @@ func (t *RepoPullComment) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.LexiconTypeID = string(sval)
 			}
+			// t.Mentions ([]string) (slice)
+		case "mentions":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.Mentions: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.Mentions = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.Mentions[i] = string(sval)
+					}
+
+				}
+			}
 			// t.CreatedAt (string) (string)
 		case "createdAt":
 
@@ -8128,6 +8729,46 @@ func (t *RepoPullComment) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.CreatedAt = string(sval)
+			}
+			// t.References ([]string) (slice)
+		case "references":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > 8192 {
+				return fmt.Errorf("t.References: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.References = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+				{
+					var maj byte
+					var extra uint64
+					var err error
+					_ = maj
+					_ = extra
+					_ = err
+
+					{
+						sval, err := cbg.ReadStringWithMax(cr, 1000000)
+						if err != nil {
+							return err
+						}
+
+						t.References[i] = string(sval)
+					}
+
+				}
 			}
 
 		default:

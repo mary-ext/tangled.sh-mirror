@@ -733,7 +733,7 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		mentions, _ := s.refResolver.Resolve(r.Context(), body)
+		mentions, references := s.refResolver.Resolve(r.Context(), body)
 
 		// Start a transaction
 		tx, err := s.db.BeginTx(r.Context(), nil)
@@ -777,6 +777,8 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 			Body:         body,
 			CommentAt:    atResp.Uri,
 			SubmissionId: pull.Submissions[roundNumber].ID,
+			Mentions:     mentions,
+			References:   references,
 		}
 
 		// Create the pull comment in the database with the commentAt field

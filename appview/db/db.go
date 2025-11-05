@@ -561,6 +561,13 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 			email_notifications integer not null default 0
 		);
 
+		create table if not exists reference_links (
+			id integer primary key autoincrement,
+			from_at text not null,
+			to_at text not null,
+			unique (from_at, to_at)
+		);
+
 		create table if not exists migrations (
 			id integer primary key autoincrement,
 			name text unique
@@ -571,6 +578,8 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 		create index if not exists idx_notifications_recipient_read on notifications(recipient_did, read);
 		create index if not exists idx_stars_created on stars(created);
 		create index if not exists idx_stars_repo_at_created on stars(repo_at, created);
+		create index if not exists idx_references_from_at on reference_links(from_at);
+		create index if not exists idx_references_to_at on reference_links(to_at);
 	`)
 	if err != nil {
 		return nil, err
