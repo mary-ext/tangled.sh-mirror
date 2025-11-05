@@ -241,6 +241,14 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	l = l.With("did", issue.Did, "rkey", issue.Rkey)
 
+	tx, err := rp.db.Begin()
+	if err != nil {
+		l.Error("failed to start transaction", "err", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to create comment, try again later.")
+		return
+	}
+	defer tx.Rollback()
+
 	// delete from PDS
 	client, err := rp.oauth.AuthorizedClient(r)
 	if err != nil {
@@ -261,11 +269,12 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// delete from db
-	if err := db.DeleteIssues(rp.db, db.FilterEq("id", issue.Id)); err != nil {
+	if err := db.DeleteIssues(tx, issue.Did, issue.Rkey); err != nil {
 		l.Error("failed to delete issue", "err", err)
 		rp.pages.Notice(w, noticeId, "Failed to delete issue.")
 		return
 	}
+	tx.Commit()
 
 	rp.notifier.DeleteIssue(r.Context(), issue)
 
@@ -402,15 +411,17 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		replyTo = &replyToUri
 	}
 
-	mentions, _ := rp.refResolver.Resolve(r.Context(), body)
+	mentions, references := rp.refResolver.Resolve(r.Context(), body)
 
 	comment := models.IssueComment{
-		Did:     user.Did,
-		Rkey:    tid.TID(),
-		IssueAt: issue.AtUri().String(),
-		ReplyTo: replyTo,
-		Body:    body,
-		Created: time.Now(),
+		Did:        user.Did,
+		Rkey:       tid.TID(),
+		IssueAt:    issue.AtUri().String(),
+		ReplyTo:    replyTo,
+		Body:       body,
+		Created:    time.Now(),
+		Mentions:   mentions,
+		References: references,
 	}
 	if err = rp.validator.ValidateIssueComment(&comment); err != nil {
 		l.Error("failed to validate comment", "err", err)
@@ -447,10 +458,24 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	commentId, err := db.AddIssueComment(rp.db, comment)
+	tx, err := rp.db.Begin()
+	if err != nil {
+		l.Error("failed to start transaction", "err", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to create comment, try again later.")
+		return
+	}
+	defer tx.Rollback()
+
+	commentId, err := db.AddIssueComment(tx, comment)
 	if err != nil {
 		l.Error("failed to create comment", "err", err)
 		rp.pages.Notice(w, "issue-comment", "Failed to create comment.")
+		return
+	}
+	err = tx.Commit()
+	if err != nil {
+		l.Error("failed to commit transaction", "err", err)
+		rp.pages.Notice(w, "issue-comment", "Failed to create comment, try again later.")
 		return
 	}
 
@@ -569,12 +594,21 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		newComment.Edited = &now
 		record := newComment.AsRecord()
 
-		_, err = db.AddIssueComment(rp.db, newComment)
+		tx, err := rp.db.Begin()
+		if err != nil {
+			l.Error("failed to start transaction", "err", err)
+			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
+			return
+		}
+		defer tx.Rollback()
+
+		_, err = db.AddIssueComment(tx, newComment)
 		if err != nil {
 			l.Error("failed to perferom update-description query", "err", err)
 			rp.pages.Notice(w, "repo-notice", "Failed to update description, try again later.")
 			return
 		}
+		tx.Commit()
 
 		// rkey is optional, it was introduced later
 		if newComment.Rkey != "" {
@@ -881,17 +915,19 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 		})
 	case http.MethodPost:
 		body := r.FormValue("body")
-		mentions, _ := rp.refResolver.Resolve(r.Context(), body)
+		mentions, references := rp.refResolver.Resolve(r.Context(), body)
 
 		issue := &models.Issue{
-			RepoAt:  f.RepoAt(),
-			Rkey:    tid.TID(),
-			Title:   r.FormValue("title"),
-			Body:    body,
-			Open:    true,
-			Did:     user.Did,
-			Created: time.Now(),
-			Repo:    &f.Repo,
+			RepoAt:     f.RepoAt(),
+			Rkey:       tid.TID(),
+			Title:      r.FormValue("title"),
+			Body:       body,
+			Open:       true,
+			Did:        user.Did,
+			Created:    time.Now(),
+			Mentions:   mentions,
+			References: references,
+			Repo:       &f.Repo,
 		}
 
 		if err := rp.validator.ValidateIssue(issue); err != nil {

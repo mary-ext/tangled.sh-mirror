@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pagination"
 )
@@ -69,7 +70,15 @@ func createNewIssue(tx *sql.Tx, issue *models.Issue) error {
 		returning rowid, issue_id
 	`, issue.RepoAt, issue.Did, issue.Rkey, newIssueId, issue.Title, issue.Body)
 
-	return row.Scan(&issue.Id, &issue.IssueId)
+	err = row.Scan(&issue.Id, &issue.IssueId)
+	if err != nil {
+		return fmt.Errorf("scan row: %w", err)
+	}
+
+	if err := putReferences(tx, issue.AtUri(), issue.References); err != nil {
+		return fmt.Errorf("put reference_links: %w", err)
+	}
+	return nil
 }
 
 func updateIssue(tx *sql.Tx, issue *models.Issue) error {
@@ -79,7 +88,14 @@ func updateIssue(tx *sql.Tx, issue *models.Issue) error {
 		set title = ?, body = ?, edited = ?
 		where did = ? and rkey = ?
 	`, issue.Title, issue.Body, time.Now().Format(time.RFC3339), issue.Did, issue.Rkey)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if err := putReferences(tx, issue.AtUri(), issue.References); err != nil {
+		return fmt.Errorf("put reference_links: %w", err)
+	}
+	return nil
 }
 
 func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]models.Issue, error) {
@@ -234,6 +250,17 @@ func GetIssuesPaginated(e Execer, page pagination.Page, filters ...filter) ([]mo
 		}
 	}
 
+	// collect references for each issue
+	allReferencs, err := GetReferencesAll(e, FilterIn("from_at", issueAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query reference_links: %w", err)
+	}
+	for issueAt, references := range allReferencs {
+		if issue, ok := issueMap[issueAt.String()]; ok {
+			issue.References = references
+		}
+	}
+
 	var issues []models.Issue
 	for _, i := range issueMap {
 		issues = append(issues, *i)
@@ -323,8 +350,8 @@ func GetIssueIDs(e Execer, opts models.IssueSearchOptions) ([]int64, error) {
 	return ids, nil
 }
 
-func AddIssueComment(e Execer, c models.IssueComment) (int64, error) {
-	result, err := e.Exec(
+func AddIssueComment(tx *sql.Tx, c models.IssueComment) (int64, error) {
+	result, err := tx.Exec(
 		`insert into issue_comments (
 			did,
 			rkey,
@@ -363,6 +390,10 @@ func AddIssueComment(e Execer, c models.IssueComment) (int64, error) {
 		return 0, err
 	}
 
+	if err := putReferences(tx, c.AtUri(), c.References); err != nil {
+		return 0, fmt.Errorf("put reference_links: %w", err)
+	}
+
 	return id, nil
 }
 
@@ -386,7 +417,7 @@ func DeleteIssueComments(e Execer, filters ...filter) error {
 }
 
 func GetIssueComments(e Execer, filters ...filter) ([]models.IssueComment, error) {
-	var comments []models.IssueComment
+	commentMap := make(map[string]*models.IssueComment)
 
 	var conditions []string
 	var args []any
@@ -465,32 +496,56 @@ func GetIssueComments(e Execer, filters ...filter) ([]models.IssueComment, error
 			comment.ReplyTo = &replyTo.V
 		}
 
-		comments = append(comments, comment)
+		atUri := comment.AtUri().String()
+		commentMap[atUri] = &comment
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
+	// collect references for each comments
+	commentAts := slices.Collect(maps.Keys(commentMap))
+	allReferencs, err := GetReferencesAll(e, FilterIn("from_at", commentAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query reference_links: %w", err)
+	}
+	for commentAt, references := range allReferencs {
+		if comment, ok := commentMap[commentAt.String()]; ok {
+			comment.References = references
+		}
+	}
+
+	var comments []models.IssueComment
+	for _, c := range commentMap {
+		comments = append(comments, *c)
+	}
+
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].Created.After(comments[j].Created)
+	})
+
 	return comments, nil
 }
 
-func DeleteIssues(e Execer, filters ...filter) error {
-	var conditions []string
-	var args []any
-	for _, filter := range filters {
-		conditions = append(conditions, filter.Condition())
-		args = append(args, filter.Arg()...)
+func DeleteIssues(tx *sql.Tx, did, rkey string) error {
+	_, err := tx.Exec(
+		`delete from issues
+		where did = ? and rkey = ?`,
+		did,
+		rkey,
+	)
+	if err != nil {
+		return fmt.Errorf("delete issue: %w", err)
 	}
 
-	whereClause := ""
-	if conditions != nil {
-		whereClause = " where " + strings.Join(conditions, " and ")
+	uri := syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", did, tangled.RepoIssueNSID, rkey))
+	err = deleteReferences(tx, uri)
+	if err != nil {
+		return fmt.Errorf("delete reference_links: %w", err)
 	}
 
-	query := fmt.Sprintf(`delete from issues %s`, whereClause)
-	_, err := e.Exec(query, args...)
-	return err
+	return nil
 }
 
 func CloseIssues(e Execer, filters ...filter) error {

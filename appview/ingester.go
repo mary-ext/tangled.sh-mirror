@@ -841,13 +841,24 @@ func (i *Ingester) ingestIssue(ctx context.Context, e *jmodels.Event) error {
 		return nil
 
 	case jmodels.CommitOperationDelete:
+		tx, err := ddb.BeginTx(ctx, nil)
+		if err != nil {
+			l.Error("failed to begin transaction", "err", err)
+			return err
+		}
+		defer tx.Rollback()
+
 		if err := db.DeleteIssues(
-			ddb,
-			db.FilterEq("did", did),
-			db.FilterEq("rkey", rkey),
+			tx,
+			did,
+			rkey,
 		); err != nil {
 			l.Error("failed to delete", "err", err)
 			return fmt.Errorf("failed to delete issue record: %w", err)
+		}
+		if err := tx.Commit(); err != nil {
+			l.Error("failed to commit txn", "err", err)
+			return err
 		}
 
 		return nil
@@ -888,12 +899,18 @@ func (i *Ingester) ingestIssueComment(e *jmodels.Event) error {
 			return fmt.Errorf("failed to validate comment: %w", err)
 		}
 
-		_, err = db.AddIssueComment(ddb, *comment)
+		tx, err := ddb.Begin()
+		if err != nil {
+			return fmt.Errorf("failed to start transaction: %w", err)
+		}
+		defer tx.Rollback()
+
+		_, err = db.AddIssueComment(tx, *comment)
 		if err != nil {
 			return fmt.Errorf("failed to create issue comment: %w", err)
 		}
 
-		return nil
+		return tx.Commit()
 
 	case jmodels.CommitOperationDelete:
 		if err := db.DeleteIssueComments(

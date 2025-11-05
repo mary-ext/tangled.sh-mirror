@@ -17,9 +17,11 @@ func init() {
 } //
 // RECORDTYPE: RepoIssueComment
 type RepoIssueComment struct {
-	LexiconTypeID string  `json:"$type,const=sh.tangled.repo.issue.comment" cborgen:"$type,const=sh.tangled.repo.issue.comment"`
-	Body          string  `json:"body" cborgen:"body"`
-	CreatedAt     string  `json:"createdAt" cborgen:"createdAt"`
-	Issue         string  `json:"issue" cborgen:"issue"`
-	ReplyTo       *string `json:"replyTo,omitempty" cborgen:"replyTo,omitempty"`
+	LexiconTypeID string   `json:"$type,const=sh.tangled.repo.issue.comment" cborgen:"$type,const=sh.tangled.repo.issue.comment"`
+	Body          string   `json:"body" cborgen:"body"`
+	CreatedAt     string   `json:"createdAt" cborgen:"createdAt"`
+	Issue         string   `json:"issue" cborgen:"issue"`
+	Mentions      []string `json:"mentions,omitempty" cborgen:"mentions,omitempty"`
+	References    []string `json:"references,omitempty" cborgen:"references,omitempty"`
+	ReplyTo       *string  `json:"replyTo,omitempty" cborgen:"replyTo,omitempty"`
 }

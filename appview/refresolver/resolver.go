@@ -34,7 +34,7 @@ func New(
 }
 
 func (r *Resolver) Resolve(ctx context.Context, source string) ([]syntax.DID, []syntax.ATURI) {
-	l := r.logger.With("method", "find_references")
+	l := r.logger.With("method", "Resolve")
 	rawMentions, rawRefs := markup.FindReferences(r.config.Core.AppviewHost, source)
 	l.Debug("found possible references", "mentions", rawMentions, "refs", rawRefs)
 	idents := r.idResolver.ResolveIdents(ctx, rawMentions)
@@ -55,7 +55,7 @@ func (r *Resolver) Resolve(ctx context.Context, source string) ([]syntax.DID, []
 		rawRef.Handle = string(ident.DID)
 		resolvedRefs = append(resolvedRefs, rawRef)
 	}
-	aturiRefs, err := db.FindReferences(r.execer, resolvedRefs)
+	aturiRefs, err := db.ValidateReferenceLinks(r.execer, resolvedRefs)
 	if err != nil {
 		l.Error("failed running query", "err", err)
 	}

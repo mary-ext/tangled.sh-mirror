@@ -10,17 +10,19 @@ import (
 )
 
 type Issue struct {
-	Id      int64
-	Did     string
-	Rkey    string
-	RepoAt  syntax.ATURI
-	IssueId int
-	Created time.Time
-	Edited  *time.Time
-	Deleted *time.Time
-	Title   string
-	Body    string
-	Open    bool
+	Id         int64
+	Did        string
+	Rkey       string
+	RepoAt     syntax.ATURI
+	IssueId    int
+	Created    time.Time
+	Edited     *time.Time
+	Deleted    *time.Time
+	Title      string
+	Body       string
+	Open       bool
+	Mentions   []syntax.DID
+	References []syntax.ATURI
 
 	// optionally, populate this when querying for reverse mappings
 	// like comment counts, parent repo etc.
@@ -34,11 +36,21 @@ func (i *Issue) AtUri() syntax.ATURI {
 }
 
 func (i *Issue) AsRecord() tangled.RepoIssue {
+	mentions := make([]string, len(i.Mentions))
+	for i, did := range i.Mentions {
+		mentions[i] = string(did)
+	}
+	references := make([]string, len(i.References))
+	for i, uri := range i.References {
+		references[i] = string(uri)
+	}
 	return tangled.RepoIssue{
-		Repo:      i.RepoAt.String(),
-		Title:     i.Title,
-		Body:      &i.Body,
-		CreatedAt: i.Created.Format(time.RFC3339),
+		Repo:       i.RepoAt.String(),
+		Title:      i.Title,
+		Body:       &i.Body,
+		Mentions:   mentions,
+		References: references,
+		CreatedAt:  i.Created.Format(time.RFC3339),
 	}
 }
 
@@ -161,15 +173,17 @@ func IssueFromRecord(did, rkey string, record tangled.RepoIssue) Issue {
 }
 
 type IssueComment struct {
-	Id      int64
-	Did     string
-	Rkey    string
-	IssueAt string
-	ReplyTo *string
-	Body    string
-	Created time.Time
-	Edited  *time.Time
-	Deleted *time.Time
+	Id         int64
+	Did        string
+	Rkey       string
+	IssueAt    string
+	ReplyTo    *string
+	Body       string
+	Created    time.Time
+	Edited     *time.Time
+	Deleted    *time.Time
+	Mentions   []syntax.DID
+	References []syntax.ATURI
 }
 
 func (i *IssueComment) AtUri() syntax.ATURI {
@@ -177,11 +191,21 @@ func (i *IssueComment) AtUri() syntax.ATURI {
 }
 
 func (i *IssueComment) AsRecord() tangled.RepoIssueComment {
+	mentions := make([]string, len(i.Mentions))
+	for i, did := range i.Mentions {
+		mentions[i] = string(did)
+	}
+	references := make([]string, len(i.References))
+	for i, uri := range i.References {
+		references[i] = string(uri)
+	}
 	return tangled.RepoIssueComment{
-		Body:      i.Body,
-		Issue:     i.IssueAt,
-		CreatedAt: i.Created.Format(time.RFC3339),
-		ReplyTo:   i.ReplyTo,
+		Body:       i.Body,
+		Issue:      i.IssueAt,
+		CreatedAt:  i.Created.Format(time.RFC3339),
+		ReplyTo:    i.ReplyTo,
+		Mentions:   mentions,
+		References: references,
 	}
 }
 
@@ -205,13 +229,25 @@ func IssueCommentFromRecord(did, rkey string, record tangled.RepoIssueComment) (
 		return nil, err
 	}
 
+	i := record
+	mentions := make([]syntax.DID, len(record.Mentions))
+	for i, did := range record.Mentions {
+		mentions[i] = syntax.DID(did)
+	}
+	references := make([]syntax.ATURI, len(record.References))
+	for i, uri := range i.References {
+		references[i] = syntax.ATURI(uri)
+	}
+
 	comment := IssueComment{
-		Did:     ownerDid,
-		Rkey:    rkey,
-		Body:    record.Body,
-		IssueAt: record.Issue,
-		ReplyTo: record.ReplyTo,
-		Created: created,
+		Did:        ownerDid,
+		Rkey:       rkey,
+		Body:       record.Body,
+		IssueAt:    record.Issue,
+		ReplyTo:    record.ReplyTo,
+		Created:    created,
+		Mentions:   mentions,
+		References: references,
 	}
 
 	return &comment, nil

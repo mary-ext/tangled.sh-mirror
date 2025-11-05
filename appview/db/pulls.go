@@ -432,7 +432,7 @@ func GetPullSubmissions(e Execer, filters ...filter) (map[syntax.ATURI][]*models
 	submissionIds := slices.Collect(maps.Keys(submissionMap))
 	comments, err := GetPullComments(e, FilterIn("submission_id", submissionIds))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get pull comments: %w", err)
 	}
 	for _, comment := range comments {
 		if submission, ok := submissionMap[comment.SubmissionId]; ok {
@@ -492,7 +492,7 @@ func GetPullComments(e Execer, filters ...filter) ([]models.PullComment, error) 
 	}
 	defer rows.Close()
 
-	var comments []models.PullComment
+	commentMap := make(map[string]*models.PullComment)
 	for rows.Next() {
 		var comment models.PullComment
 		var createdAt string
@@ -514,12 +514,34 @@ func GetPullComments(e Execer, filters ...filter) ([]models.PullComment, error) 
 			comment.Created = t
 		}
 
-		comments = append(comments, comment)
+		atUri := comment.AtUri().String()
+		commentMap[atUri] = &comment
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+
+	// collect references for each comments
+	commentAts := slices.Collect(maps.Keys(commentMap))
+	allReferencs, err := GetReferencesAll(e, FilterIn("from_at", commentAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query reference_links: %w", err)
+	}
+	for commentAt, references := range allReferencs {
+		if comment, ok := commentMap[commentAt.String()]; ok {
+			comment.References = references
+		}
+	}
+
+	var comments []models.PullComment
+	for _, c := range commentMap {
+		comments = append(comments, *c)
+	}
+
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].Created.Before(comments[j].Created)
+	})
 
 	return comments, nil
 }
@@ -600,9 +622,9 @@ func GetPullsByOwnerDid(e Execer, did, timeframe string) ([]models.Pull, error) 
 	return pulls, nil
 }
 
-func NewPullComment(e Execer, comment *models.PullComment) (int64, error) {
+func NewPullComment(tx *sql.Tx, comment *models.PullComment) (int64, error) {
 	query := `insert into pull_comments (owner_did, repo_at, submission_id, comment_at, pull_id, body) values (?, ?, ?, ?, ?, ?)`
-	res, err := e.Exec(
+	res, err := tx.Exec(
 		query,
 		comment.OwnerDid,
 		comment.RepoAt,
@@ -618,6 +640,10 @@ func NewPullComment(e Execer, comment *models.PullComment) (int64, error) {
 	i, err := res.LastInsertId()
 	if err != nil {
 		return 0, err
+	}
+
+	if err := putReferences(tx, comment.AtUri(), comment.References); err != nil {
+		return 0, fmt.Errorf("put reference_links: %w", err)
 	}
 
 	return i, nil
