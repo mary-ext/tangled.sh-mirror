@@ -146,15 +146,15 @@ func (s *Pulls) drawPullSummaryCard(pull *models.Pull, repo *models.Repo, commen
 	var statusColor color.RGBA
 
 	if pull.State.IsOpen() {
-		statusIcon = "static/icons/git-pull-request.svg"
+		statusIcon = "git-pull-request"
 		statusText = "open"
 		statusColor = color.RGBA{34, 139, 34, 255} // green
 	} else if pull.State.IsMerged() {
-		statusIcon = "static/icons/git-merge.svg"
+		statusIcon = "git-merge"
 		statusText = "merged"
 		statusColor = color.RGBA{138, 43, 226, 255} // purple
 	} else {
-		statusIcon = "static/icons/git-pull-request-closed.svg"
+		statusIcon = "git-pull-request-closed"
 		statusText = "closed"
 		statusColor = color.RGBA{128, 128, 128, 255} // gray
 	}
@@ -162,7 +162,7 @@ func (s *Pulls) drawPullSummaryCard(pull *models.Pull, repo *models.Repo, commen
 	statusIconSize := 36
 
 	// Draw icon with status color
-	err = statusStatsArea.DrawSVGIcon(statusIcon, statsX, statsY+iconBaselineOffset-statusIconSize/2+5, statusIconSize, statusColor)
+	err = statusStatsArea.DrawLucideIcon(statusIcon, statsX, statsY+iconBaselineOffset-statusIconSize/2+5, statusIconSize, statusColor)
 	if err != nil {
 		log.Printf("failed to draw status icon: %v", err)
 	}
@@ -179,7 +179,7 @@ func (s *Pulls) drawPullSummaryCard(pull *models.Pull, repo *models.Repo, commen
 	currentX := statsX + statusIconSize + 12 + statusTextWidth + 40
 
 	// Draw comment count
-	err = statusStatsArea.DrawSVGIcon("static/icons/message-square.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
+	err = statusStatsArea.DrawLucideIcon("message-square", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw comment icon: %v", err)
 	}
@@ -198,7 +198,7 @@ func (s *Pulls) drawPullSummaryCard(pull *models.Pull, repo *models.Repo, commen
 	currentX += commentTextWidth + 40
 
 	// Draw files changed
-	err = statusStatsArea.DrawSVGIcon("static/icons/file-diff.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
+	err = statusStatsArea.DrawLucideIcon("static/icons/file-diff", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw file diff icon: %v", err)
 	}
@@ -241,7 +241,7 @@ func (s *Pulls) drawPullSummaryCard(pull *models.Pull, repo *models.Repo, commen
 	dollyX := dollyBounds.Min.X + (dollyBounds.Dx() / 2) - (dollySize / 2)
 	dollyY := statsY + iconBaselineOffset - dollySize/2 + 25
 	dollyColor := color.RGBA{180, 180, 180, 255} // light gray
-	err = dollyArea.DrawSVGIcon("templates/fragments/dolly/silhouette.svg", dollyX, dollyY, dollySize, dollyColor)
+	err = dollyArea.DrawDollySilhouette(dollyX, dollyY, dollySize, dollyColor)
 	if err != nil {
 		log.Printf("dolly silhouette not available (this is ok): %v", err)
 	}

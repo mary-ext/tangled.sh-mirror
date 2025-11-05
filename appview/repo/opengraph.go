@@ -158,7 +158,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 	// Draw star icon, count, and label
 	// Align icon baseline with text baseline
 	iconBaselineOffset := int(textSize) / 2
-	err = statsArea.DrawSVGIcon("static/icons/star.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
+	err = statsArea.DrawLucideIcon("star", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw star icon: %v", err)
 	}
@@ -185,7 +185,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 
 	// Draw issues icon, count, and label
 	issueStartX := currentX
-	err = statsArea.DrawSVGIcon("static/icons/circle-dot.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
+	err = statsArea.DrawLucideIcon("circle-dot", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw circle-dot icon: %v", err)
 	}
@@ -210,7 +210,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 
 	// Draw pull request icon, count, and label
 	prStartX := currentX
-	err = statsArea.DrawSVGIcon("static/icons/git-pull-request.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
+	err = statsArea.DrawLucideIcon("git-pull-request", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw git-pull-request icon: %v", err)
 	}
@@ -236,7 +236,7 @@ func (rp *Repo) drawRepoSummaryCard(repo *models.Repo, languageStats []types.Rep
 	dollyX := dollyBounds.Min.X + (dollyBounds.Dx() / 2) - (dollySize / 2)
 	dollyY := statsY + iconBaselineOffset - dollySize/2 + 25
 	dollyColor := color.RGBA{180, 180, 180, 255} // light gray
-	err = dollyArea.DrawSVGIcon("templates/fragments/dolly/silhouette.svg", dollyX, dollyY, dollySize, dollyColor)
+	err = dollyArea.DrawDollySilhouette(dollyX, dollyY, dollySize, dollyColor)
 	if err != nil {
 		log.Printf("dolly silhouette not available (this is ok): %v", err)
 	}

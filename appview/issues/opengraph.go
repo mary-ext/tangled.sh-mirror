@@ -143,11 +143,11 @@ func (rp *Issues) drawIssueSummaryCard(issue *models.Issue, repo *models.Repo, c
 	var statusBgColor color.RGBA
 
 	if issue.Open {
-		statusIcon = "static/icons/circle-dot.svg"
+		statusIcon = "circle-dot"
 		statusText = "open"
 		statusBgColor = color.RGBA{34, 139, 34, 255} // green
 	} else {
-		statusIcon = "static/icons/circle-dot.svg"
+		statusIcon = "ban"
 		statusText = "closed"
 		statusBgColor = color.RGBA{52, 58, 64, 255} // dark gray
 	}
@@ -155,7 +155,7 @@ func (rp *Issues) drawIssueSummaryCard(issue *models.Issue, repo *models.Repo, c
 	badgeIconSize := 36
 
 	// Draw icon with status color (no background)
-	err = statusCommentsArea.DrawSVGIcon(statusIcon, statsX, statsY+iconBaselineOffset-badgeIconSize/2+5, badgeIconSize, statusBgColor)
+	err = statusCommentsArea.DrawLucideIcon(statusIcon, statsX, statsY+iconBaselineOffset-badgeIconSize/2+5, badgeIconSize, statusBgColor)
 	if err != nil {
 		log.Printf("failed to draw status icon: %v", err)
 	}
@@ -172,7 +172,7 @@ func (rp *Issues) drawIssueSummaryCard(issue *models.Issue, repo *models.Repo, c
 	currentX := statsX + badgeIconSize + 12 + statusTextWidth + 50
 
 	// Draw comment count
-	err = statusCommentsArea.DrawSVGIcon("static/icons/message-square.svg", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
+	err = statusCommentsArea.DrawLucideIcon("message-square", currentX, statsY+iconBaselineOffset-iconSize/2+5, iconSize, iconColor)
 	if err != nil {
 		log.Printf("failed to draw comment icon: %v", err)
 	}
@@ -193,7 +193,7 @@ func (rp *Issues) drawIssueSummaryCard(issue *models.Issue, repo *models.Repo, c
 	dollyX := dollyBounds.Min.X + (dollyBounds.Dx() / 2) - (dollySize / 2)
 	dollyY := statsY + iconBaselineOffset - dollySize/2 + 25
 	dollyColor := color.RGBA{180, 180, 180, 255} // light gray
-	err = dollyArea.DrawSVGIcon("templates/fragments/dolly/silhouette.svg", dollyX, dollyY, dollySize, dollyColor)
+	err = dollyArea.DrawDollySilhouette(dollyX, dollyY, dollySize, dollyColor)
 	if err != nil {
 		log.Printf("dolly silhouette not available (this is ok): %v", err)
 	}

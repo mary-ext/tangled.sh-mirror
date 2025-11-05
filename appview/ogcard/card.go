@@ -7,6 +7,7 @@ package ogcard
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"image"
 	"image/color"
 	"io"
@@ -279,13 +280,7 @@ func (c *Card) DrawBoldText(text string, x, y int, textColor color.Color, sizePt
 	return width, nil
 }
 
-// DrawSVGIcon draws an SVG icon from the embedded files at the specified position
-func (c *Card) DrawSVGIcon(svgPath string, x, y, size int, iconColor color.Color) error {
-	svgData, err := pages.Files.ReadFile(svgPath)
-	if err != nil {
-		return fmt.Errorf("failed to read SVG file %s: %w", svgPath, err)
-	}
-
+func BuildSVGIconFromData(svgData []byte, iconColor color.Color) (*oksvg.SvgIcon, error) {
 	// Convert color to hex string for SVG
 	rgba, isRGBA := iconColor.(color.RGBA)
 	if !isRGBA {
@@ -304,9 +299,65 @@ func (c *Card) DrawSVGIcon(svgPath string, x, y, size int, iconColor color.Color
 	// Parse SVG
 	icon, err := oksvg.ReadIconStream(strings.NewReader(svgString))
 	if err != nil {
-		return fmt.Errorf("failed to parse SVG %s: %w", svgPath, err)
+		return nil, fmt.Errorf("failed to parse SVG: %w", err)
 	}
 
+	return icon, nil
+}
+
+func BuildSVGIconFromPath(svgPath string, iconColor color.Color) (*oksvg.SvgIcon, error) {
+	svgData, err := pages.Files.ReadFile(svgPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read SVG file %s: %w", svgPath, err)
+	}
+
+	icon, err := BuildSVGIconFromData(svgData, iconColor)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build SVG icon %s: %w", svgPath, err)
+	}
+
+	return icon, nil
+}
+
+func BuildLucideIcon(name string, iconColor color.Color) (*oksvg.SvgIcon, error) {
+	return BuildSVGIconFromPath(fmt.Sprintf("static/icons/%s.svg", name), iconColor)
+}
+
+func (c *Card) DrawLucideIcon(name string, x, y, size int, iconColor color.Color) error {
+	icon, err := BuildSVGIconFromPath(fmt.Sprintf("static/icons/%s.svg", name), iconColor)
+	if err != nil {
+		return err
+	}
+
+	c.DrawSVGIcon(icon, x, y, size)
+
+	return nil
+}
+
+func (c *Card) DrawDollySilhouette(x, y, size int, iconColor color.Color) error {
+	tpl, err := template.New("dolly").
+		ParseFS(pages.Files, "templates/fragments/dolly/silhouette.html")
+	if err != nil {
+		return fmt.Errorf("failed to read dolly silhouette template: %w", err)
+	}
+
+	var svgData bytes.Buffer
+	if err = tpl.ExecuteTemplate(&svgData, "fragments/dolly/silhouette", nil); err != nil {
+		return fmt.Errorf("failed to execute dolly silhouette template: %w", err)
+	}
+
+	icon, err := BuildSVGIconFromData(svgData.Bytes(), iconColor)
+	if err != nil {
+		return err
+	}
+
+	c.DrawSVGIcon(icon, x, y, size)
+
+	return nil
+}
+
+// DrawSVGIcon draws an SVG icon from the embedded files at the specified position
+func (c *Card) DrawSVGIcon(icon *oksvg.SvgIcon, x, y, size int) {
 	// Set the icon size
 	w, h := float64(size), float64(size)
 	icon.SetTarget(0, 0, w, h)
@@ -334,8 +385,6 @@ func (c *Card) DrawSVGIcon(svgPath string, x, y, size int, iconColor color.Color
 	}
 
 	draw.Draw(c.Img, destRect, iconImg, image.Point{}, draw.Over)
-
-	return nil
 }
 
 // DrawImage fills the card with an image, scaled to maintain the original aspect ratio and centered with respect to the non-filled dimension
