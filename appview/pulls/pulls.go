@@ -154,6 +154,13 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	backlinks, err := db.GetBacklinks(s.db, pull.AtUri())
+	if err != nil {
+		log.Println("failed to get pull backlinks", err)
+		s.pages.Notice(w, "pull-error", "Failed to get pull. Try again later.")
+		return
+	}
+
 	// can be nil  if this pull is not stacked
 	stack, _ := r.Context().Value("stack").(models.Stack)
 	abandonedPulls, _ := r.Context().Value("abandonedPulls").([]*models.Pull)
@@ -229,6 +236,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 		Pull:               pull,
 		Stack:              stack,
 		AbandonedPulls:     abandonedPulls,
+		Backlinks:          backlinks,
 		BranchDeleteStatus: branchDeleteStatus,
 		MergeCheck:         mergeCheckResponse,
 		ResubmitCheck:      resubmitResult,

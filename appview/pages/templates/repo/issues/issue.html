@@ -20,6 +20,9 @@
               "Subject" $.Issue.AtUri
               "State" $.Issue.Labels) }}
       {{ template "repo/fragments/participants" $.Issue.Participants }}
+      {{ template "repo/fragments/backlinks"
+        (dict "RepoInfo" $.RepoInfo
+              "Backlinks" $.Backlinks) }}
       {{ template "repo/fragments/externalLinkPanel" $.Issue.AtUri }}
     </div>
   </div>

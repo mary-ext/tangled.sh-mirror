@@ -100,6 +100,13 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		userReactions = db.GetReactionStatusMap(rp.db, user.Did, issue.AtUri())
 	}
 
+	backlinks, err := db.GetBacklinks(rp.db, issue.AtUri())
+	if err != nil {
+		l.Error("failed to fetch backlinks", "err", err)
+		rp.pages.Error503(w)
+		return
+	}
+
 	labelDefs, err := db.GetLabelDefinitions(
 		rp.db,
 		db.FilterIn("at_uri", f.Repo.Labels),
@@ -121,6 +128,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:             f.RepoInfo(user),
 		Issue:                issue,
 		CommentList:          issue.CommentList(),
+		Backlinks:            backlinks,
 		OrderedReactionKinds: models.OrderedReactionKinds,
 		Reactions:            reactionMap,
 		UserReacted:          userReactions,
