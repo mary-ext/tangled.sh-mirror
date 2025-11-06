@@ -66,6 +66,8 @@ type Pull struct {
 	TargetBranch string
 	State        PullState
 	Submissions  []*PullSubmission
+	Mentions     []syntax.DID
+	References   []syntax.ATURI
 
 	// stacking
 	StackId        string // nullable string
@@ -92,11 +94,21 @@ func (p Pull) AsRecord() tangled.RepoPull {
 			source.Repo = &s
 		}
 	}
+	mentions := make([]string, len(p.Mentions))
+	for i, did := range p.Mentions {
+		mentions[i] = string(did)
+	}
+	references := make([]string, len(p.References))
+	for i, uri := range p.References {
+		references[i] = string(uri)
+	}
 
 	record := tangled.RepoPull{
-		Title:     p.Title,
-		Body:      &p.Body,
-		CreatedAt: p.Created.Format(time.RFC3339),
+		Title:      p.Title,
+		Body:       &p.Body,
+		Mentions:   mentions,
+		References: references,
+		CreatedAt:  p.Created.Format(time.RFC3339),
 		Target: &tangled.RepoPull_Target{
 			Repo:   p.RepoAt.String(),
 			Branch: p.TargetBranch,

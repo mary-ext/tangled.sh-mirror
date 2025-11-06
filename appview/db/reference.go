@@ -248,3 +248,215 @@ func GetReferencesAll(e Execer, filters ...filter) (map[syntax.ATURI][]syntax.AT
 
 	return result, nil
 }
+
+func GetBacklinks(e Execer, target syntax.ATURI) ([]models.RichReferenceLink, error) {
+	rows, err := e.Query(
+		`select from_at from reference_links
+		where to_at = ?`,
+		target,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query backlinks: %w", err)
+	}
+	defer rows.Close()
+
+	var (
+		backlinks    []models.RichReferenceLink
+		backlinksMap = make(map[string][]syntax.ATURI)
+	)
+	for rows.Next() {
+		var from syntax.ATURI
+		if err := rows.Scan(&from); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		nsid := from.Collection().String()
+		backlinksMap[nsid] = append(backlinksMap[nsid], from)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
+	var ls []models.RichReferenceLink
+	ls, err = getIssueBacklinks(e, backlinksMap[tangled.RepoIssueNSID])
+	if err != nil {
+		return nil, fmt.Errorf("get issue backlinks: %w", err)
+	}
+	backlinks = append(backlinks, ls...)
+	ls, err = getIssueCommentBacklinks(e, backlinksMap[tangled.RepoIssueCommentNSID])
+	if err != nil {
+		return nil, fmt.Errorf("get issue_comment backlinks: %w", err)
+	}
+	backlinks = append(backlinks, ls...)
+	ls, err = getPullBacklinks(e, backlinksMap[tangled.RepoPullNSID])
+	if err != nil {
+		return nil, fmt.Errorf("get pull backlinks: %w", err)
+	}
+	backlinks = append(backlinks, ls...)
+	ls, err = getPullCommentBacklinks(e, backlinksMap[tangled.RepoPullCommentNSID])
+	if err != nil {
+		return nil, fmt.Errorf("get pull_comment backlinks: %w", err)
+	}
+	backlinks = append(backlinks, ls...)
+
+	return backlinks, nil
+}
+
+func getIssueBacklinks(e Execer, aturis []syntax.ATURI) ([]models.RichReferenceLink, error) {
+	if len(aturis) == 0 {
+		return nil, nil
+	}
+	vals := make([]string, len(aturis))
+	args := make([]any, 0, len(aturis)*2)
+	for i, aturi := range aturis {
+		vals[i] = "(?, ?)"
+		did := aturi.Authority().String()
+		rkey := aturi.RecordKey().String()
+		args = append(args, did, rkey)
+	}
+	rows, err := e.Query(
+		fmt.Sprintf(
+			`select r.did, r.name, i.issue_id, i.title, i.open
+			from issues i
+			join repos r
+				on r.at_uri = i.repo_at
+			where (i.did, i.rkey) in (%s)`,
+			strings.Join(vals, ","),
+		),
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var refLinks []models.RichReferenceLink
+	for rows.Next() {
+		var l models.RichReferenceLink
+		l.Kind = models.RefKindIssue
+		if err := rows.Scan(&l.Handle, &l.Repo, &l.SubjectId, &l.Title, &l.State); err != nil {
+			return nil, err
+		}
+		refLinks = append(refLinks, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+	return refLinks, nil
+}
+
+func getIssueCommentBacklinks(e Execer, aturis []syntax.ATURI) ([]models.RichReferenceLink, error) {
+	if len(aturis) == 0 {
+		return nil, nil
+	}
+	filter := FilterIn("c.at_uri", aturis)
+	rows, err := e.Query(
+		fmt.Sprintf(
+			`select r.did, r.name, i.issue_id, c.id, i.title, i.open
+			from issue_comments c
+			join issues i
+				on i.at_uri = c.issue_at
+			join repos r
+				on r.at_uri = i.repo_at
+			where %s`,
+			filter.Condition(),
+		),
+		filter.Arg()...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var refLinks []models.RichReferenceLink
+	for rows.Next() {
+		var l models.RichReferenceLink
+		l.Kind = models.RefKindIssue
+		l.CommentId = new(int)
+		if err := rows.Scan(&l.Handle, &l.Repo, &l.SubjectId, l.CommentId, &l.Title, &l.State); err != nil {
+			return nil, err
+		}
+		refLinks = append(refLinks, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+	return refLinks, nil
+}
+
+func getPullBacklinks(e Execer, aturis []syntax.ATURI) ([]models.RichReferenceLink, error) {
+	if len(aturis) == 0 {
+		return nil, nil
+	}
+	vals := make([]string, len(aturis))
+	args := make([]any, 0, len(aturis)*2)
+	for i, aturi := range aturis {
+		vals[i] = "(?, ?)"
+		did := aturi.Authority().String()
+		rkey := aturi.RecordKey().String()
+		args = append(args, did, rkey)
+	}
+	rows, err := e.Query(
+		fmt.Sprintf(
+			`select r.did, r.name, p.pull_id, p.title, p.state
+			from pulls p
+			join repos r
+				on r.at_uri = p.repo_at
+			where (p.owner_did, p.rkey) in (%s)`,
+			strings.Join(vals, ","),
+		),
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var refLinks []models.RichReferenceLink
+	for rows.Next() {
+		var l models.RichReferenceLink
+		l.Kind = models.RefKindPull
+		if err := rows.Scan(&l.Handle, &l.Repo, &l.SubjectId, &l.Title, &l.State); err != nil {
+			return nil, err
+		}
+		refLinks = append(refLinks, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+	return refLinks, nil
+}
+
+func getPullCommentBacklinks(e Execer, aturis []syntax.ATURI) ([]models.RichReferenceLink, error) {
+	if len(aturis) == 0 {
+		return nil, nil
+	}
+	filter := FilterIn("c.comment_at", aturis)
+	rows, err := e.Query(
+		fmt.Sprintf(
+			`select r.did, r.name, p.pull_id, c.id, p.title, p.state
+			from repos r
+			join pulls p
+				on r.at_uri = p.repo_at
+			join pull_comments c
+				on r.at_uri = c.repo_at and p.pull_id = c.pull_id
+			where %s`,
+			filter.Condition(),
+		),
+		filter.Arg()...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var refLinks []models.RichReferenceLink
+	for rows.Next() {
+		var l models.RichReferenceLink
+		l.Kind = models.RefKindPull
+		l.CommentId = new(int)
+		if err := rows.Scan(&l.Handle, &l.Repo, &l.SubjectId, l.CommentId, &l.Title, &l.State); err != nil {
+			return nil, err
+		}
+		refLinks = append(refLinks, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+	return refLinks, nil
+}

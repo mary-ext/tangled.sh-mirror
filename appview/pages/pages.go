@@ -975,6 +975,7 @@ type RepoSingleIssueParams struct {
 	Active       string
 	Issue        *models.Issue
 	CommentList  []models.CommentListItem
+	Backlinks    []models.RichReferenceLink
 	LabelDefs    map[string]*models.LabelDefinition
 
 	OrderedReactionKinds []models.ReactionKind
@@ -1128,6 +1129,7 @@ type RepoSinglePullParams struct {
 	Pull               *models.Pull
 	Stack              models.Stack
 	AbandonedPulls     []*models.Pull
+	Backlinks          []models.RichReferenceLink
 	BranchDeleteStatus *models.BranchDeleteStatus
 	MergeCheck         types.MergeCheckResponse
 	ResubmitCheck      ResubmitResult

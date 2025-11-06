@@ -1,0 +1,49 @@
+{{ define "repo/fragments/backlinks" }}
+  {{ if .Backlinks }}
+  <div id="at-uri-panel" class="px-2 md:px-0">
+    <div>
+      <span class="text-sm py-1 font-bold text-gray-500 dark:text-gray-400">Referenced by</span>
+    </div>
+    <ul>
+      {{ range .Backlinks }}
+      <li>
+        {{ $repoOwner := resolve .Handle }}
+        {{ $repoName := .Repo }}
+        {{ $repoUrl := printf "%s/%s" $repoOwner $repoName }}
+        <div class="flex flex-col">
+          <div class="flex gap-2 items-center">
+            {{ if .State.IsClosed }}
+              <span class="text-gray-500 dark:text-gray-400">
+                {{ i "ban" "w-4 h-4" }}
+              </span>
+            {{ else if eq .Kind.String "issues" }}
+              <span class="text-green-600 dark:text-green-500">
+                {{ i "circle-dot" "w-4 h-4" }}
+              </span>
+            {{ else if .State.IsOpen }}
+              <span class="text-green-600 dark:text-green-500">
+                {{ i "git-pull-request" "w-4 h-4" }}
+              </span>
+            {{ else if .State.IsMerged }}
+              <span class="text-purple-600 dark:text-purple-500">
+                {{ i "git-merge" "w-4 h-4" }}
+              </span>
+            {{ else }}
+              <span class="text-gray-600 dark:text-gray-300">
+                {{ i "git-pull-request-closed" "w-4 h-4" }}
+              </span>
+            {{ end }}
+            <a href="{{ . }}"><span class="text-gray-500 dark:text-gray-400">#{{ .SubjectId }}</span> {{ .Title }}</a>
+          </div>
+          {{ if not (eq $.RepoInfo.FullName $repoUrl) }}
+          <div>
+            <span>on <a href="/{{ $repoUrl }}">{{ $repoUrl }}</a></span>
+          </div>
+          {{ end }}
+        </div>
+      </li>
+      {{ end }}
+    </ul>
+  </div>
+  {{ end }}
+{{ end }}

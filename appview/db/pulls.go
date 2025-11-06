@@ -93,7 +93,15 @@ func NewPull(tx *sql.Tx, pull *models.Pull) error {
 		insert into pull_submissions (pull_at, round_number, patch, combined, source_rev)
 		values (?, ?, ?, ?, ?)
 	`, pull.AtUri(), 0, pull.Submissions[0].Patch, pull.Submissions[0].Combined, pull.Submissions[0].SourceRev)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if err := putReferences(tx, pull.AtUri(), pull.References); err != nil {
+		return fmt.Errorf("put reference_links: %w", err)
+	}
+
+	return nil
 }
 
 func GetPullAt(e Execer, repoAt syntax.ATURI, pullId int) (syntax.ATURI, error) {
@@ -263,6 +271,16 @@ func GetPullsWithLimit(e Execer, limit int, filters ...filter) ([]*models.Pull, 
 			if sourceRepo, ok := sourceRepoMap[*p.PullSource.RepoAt]; ok {
 				p.PullSource.Repo = sourceRepo
 			}
+		}
+	}
+
+	allReferences, err := GetReferencesAll(e, FilterIn("from_at", pullAts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query reference_links: %w", err)
+	}
+	for pullAt, references := range allReferences {
+		if pull, ok := pulls[pullAt]; ok {
+			pull.References = references
 		}
 	}
 
