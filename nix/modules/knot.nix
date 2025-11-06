@@ -4,11 +4,11 @@
   lib,
   ...
 }: let
-  cfg = config.services.tangled-knot;
+  cfg = config.services.tangled.knot;
 in
   with lib; {
     options = {
-      services.tangled-knot = {
+      services.tangled.knot = {
         enable = mkOption {
           type = types.bool;
           default = false;

@@ -73,7 +73,7 @@ in
         time.timeZone = "Europe/London";
         services.getty.autologinUser = "root";
         environment.systemPackages = with pkgs; [curl vim git sqlite litecli];
-        services.tangled-knot = {
+        services.tangled.knot = {
           enable = true;
           motd = "Welcome to the development knot!\n";
           server = {
@@ -82,7 +82,7 @@ in
             listenAddr = "0.0.0.0:6000";
           };
         };
-        services.tangled-spindle = {
+        services.tangled.spindle = {
           enable = true;
           server = {
             owner = envVar "TANGLED_VM_SPINDLE_OWNER";
@@ -99,8 +99,8 @@ in
         users = {
           # So we don't have to deal with permission clashing between
           # blank disk VMs and existing state
-          users.${config.services.tangled-knot.gitUser}.uid = 666;
-          groups.${config.services.tangled-knot.gitUser}.gid = 666;
+          users.${config.services.tangled.knot.gitUser}.uid = 666;
+          groups.${config.services.tangled.knot.gitUser}.gid = 666;
 
           # TODO: separate spindle user
         };
@@ -120,8 +120,8 @@ in
             serviceConfig.PermissionsStartOnly = true;
           };
         in {
-          knot = mkDataSyncScripts "/mnt/knot-data" config.services.tangled-knot.stateDir;
-          spindle = mkDataSyncScripts "/mnt/spindle-data" (builtins.dirOf config.services.tangled-spindle.server.dbPath);
+          knot = mkDataSyncScripts "/mnt/knot-data" config.services.tangled.knot.stateDir;
+          spindle = mkDataSyncScripts "/mnt/spindle-data" (builtins.dirOf config.services.tangled.spindle.server.dbPath);
         };
       })
     ];

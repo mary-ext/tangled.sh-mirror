@@ -3,11 +3,11 @@
   lib,
   ...
 }: let
-  cfg = config.services.tangled-appview;
+  cfg = config.services.tangled.appview;
 in
   with lib; {
     options = {
-      services.tangled-appview = {
+      services.tangled.appview = {
         enable = mkOption {
           type = types.bool;
           default = false;
@@ -25,7 +25,7 @@ in
         environmentFile = mkOption {
           type = with types; nullOr path;
           default = null;
-          example = "/etc/tangled-appview.env";
+          example = "/etc-/appview.env";
           description = ''
             Additional environment file as defined in {manpage}`systemd.exec(5)`.
 
@@ -39,7 +39,7 @@ in
     };
 
     config = mkIf cfg.enable {
-      systemd.services.tangled-appview = {
+      systemd.services.tangled.appview = {
         description = "tangled appview service";
         wantedBy = ["multi-user.target"];
 

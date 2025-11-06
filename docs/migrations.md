@@ -49,7 +49,7 @@ If you use the nix module, simply bump the flake to the
 latest revision, and change your config block like so:
 
 ```diff
- services.tangled-knot = {
+ services.tangled.knot = {
    enable = true;
    server = {
 -    secretFile = /path/to/secret;

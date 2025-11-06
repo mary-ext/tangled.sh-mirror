@@ -52,7 +52,7 @@ Public Key (DID Key Syntax): share or publish this (eg, in DID document)
         did:key:zDnaeUBxtG6Xuv3ATJE4GaWeyXM3jyamJsZw3bSPpxx4bNXDR
 
 # the secret key from above
-export TANGLED_OAUTH_CLIENT_SECRET="z42tuP..." 
+export TANGLED_OAUTH_CLIENT_SECRET="z42tuP..."
 
 # run redis in at a new shell to store oauth sessions
 redis-server
@@ -168,5 +168,5 @@ litecli /var/lib/spindle/spindle.db
 
 If for any reason you wish to disable either one of the
 services in the VM, modify [nix/vm.nix](/nix/vm.nix) and set
-`services.tangled-spindle.enable` (or
-`services.tangled-knot.enable`) to `false`.
+`services.tangled.spindle.enable` (or
+`services.tangled.knot.enable`) to `false`.

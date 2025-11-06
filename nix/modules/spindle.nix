@@ -3,11 +3,11 @@
   lib,
   ...
 }: let
-  cfg = config.services.tangled-spindle;
+  cfg = config.services.tangled.spindle;
 in
   with lib; {
     options = {
-      services.tangled-spindle = {
+      services.tangled.spindle = {
         enable = mkOption {
           type = types.bool;
           default = false;
