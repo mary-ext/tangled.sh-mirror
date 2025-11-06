@@ -9,19 +9,19 @@ import (
 
 func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", rp.RepoIndex)
-	r.Get("/opengraph", rp.RepoOpenGraphSummary)
-	r.Get("/feed.atom", rp.RepoAtomFeed)
-	r.Get("/commits/{ref}", rp.RepoLog)
+	r.Get("/", rp.Index)
+	r.Get("/opengraph", rp.Opengraph)
+	r.Get("/feed.atom", rp.AtomFeed)
+	r.Get("/commits/{ref}", rp.Log)
 	r.Route("/tree/{ref}", func(r chi.Router) {
-		r.Get("/", rp.RepoIndex)
-		r.Get("/*", rp.RepoTree)
+		r.Get("/", rp.Index)
+		r.Get("/*", rp.Tree)
 	})
-	r.Get("/commit/{ref}", rp.RepoCommit)
-	r.Get("/branches", rp.RepoBranches)
+	r.Get("/commit/{ref}", rp.Commit)
+	r.Get("/branches", rp.Branches)
 	r.Delete("/branches", rp.DeleteBranch)
 	r.Route("/tags", func(r chi.Router) {
-		r.Get("/", rp.RepoTags)
+		r.Get("/", rp.Tags)
 		r.Route("/{tag}", func(r chi.Router) {
 			r.Get("/download/{file}", rp.DownloadArtifact)
 
@@ -37,7 +37,7 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 			})
 		})
 	})
-	r.Get("/blob/{ref}/*", rp.RepoBlob)
+	r.Get("/blob/{ref}/*", rp.Blob)
 	r.Get("/raw/{ref}/*", rp.RepoBlobRaw)
 
 	// intentionally doesn't use /* as this isn't
@@ -54,15 +54,15 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	})
 
 	r.Route("/compare", func(r chi.Router) {
-		r.Get("/", rp.RepoCompareNew) // start an new comparison
+		r.Get("/", rp.CompareNew) // start an new comparison
 
 		// we have to wildcard here since we want to support GitHub's compare syntax
 		//   /compare/{ref1}...{ref2}
 		// for example:
 		//   /compare/master...some/feature
 		//   /compare/master...example.com:another/feature <- this is a fork
-		r.Get("/{base}/{head}", rp.RepoCompare)
-		r.Get("/*", rp.RepoCompare)
+		r.Get("/{base}/{head}", rp.Compare)
+		r.Get("/*", rp.Compare)
 	})
 
 	// label panel in issues/pulls/discussions/tasks
@@ -75,7 +75,7 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(rp.oauth))
 		r.With(mw.RepoPermissionMiddleware("repo:settings")).Route("/settings", func(r chi.Router) {
-			r.Get("/", rp.RepoSettings)
+			r.Get("/", rp.Settings)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/base", rp.EditBaseSettings)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Post("/spindle", rp.EditSpindle)
 			r.With(mw.RepoPermissionMiddleware("repo:owner")).Put("/label", rp.AddLabelDef)

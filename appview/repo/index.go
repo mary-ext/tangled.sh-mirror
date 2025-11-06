@@ -30,7 +30,7 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
-func (rp *Repo) RepoIndex(w http.ResponseWriter, r *http.Request) {
+func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "RepoIndex")
 
 	ref := chi.URLParam(r, "ref")

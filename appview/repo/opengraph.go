@@ -327,7 +327,7 @@ func drawLanguagesCard(card *ogcard.Card, languageStats []types.RepoLanguageDeta
 	return nil
 }
 
-func (rp *Repo) RepoOpenGraphSummary(w http.ResponseWriter, r *http.Request) {
+func (rp *Repo) Opengraph(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to get repo and knot", err)

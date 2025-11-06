@@ -146,7 +146,7 @@ func (rp *Repo) buildPullDescription(handle syntax.Handle, state string, pull *m
 	return fmt.Sprintf("%s in %s", base, repoName)
 }
 
-func (rp *Repo) RepoAtomFeed(w http.ResponseWriter, r *http.Request) {
+func (rp *Repo) AtomFeed(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		log.Println("failed to fully resolve repo:", err)
