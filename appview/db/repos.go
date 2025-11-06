@@ -405,7 +405,7 @@ func PutRepo(tx *sql.Tx, repo models.Repo) error {
 func AddRepo(tx *sql.Tx, repo *models.Repo) error {
 	_, err := tx.Exec(
 		`insert into repos
-		(did, name, knot, rkey, at_uri, description, website, topics source)
+		(did, name, knot, rkey, at_uri, description, website, topics, source)
 		values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		repo.Did, repo.Name, repo.Knot, repo.Rkey, repo.RepoAt().String(), repo.Description, repo.Website, repo.TopicStr(), repo.Source,
 	)

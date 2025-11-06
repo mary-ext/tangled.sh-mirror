@@ -1,34 +1,51 @@
 {{ define "title" }}{{ .RepoInfo.FullName }}{{ end }}
 
 {{ define "content" }}
-    <section id="repo-header" class="mb-4 py-2 px-6 dark:text-white">
+    <section id="repo-header" class="mb-4 p-2 dark:text-white">
       {{ if .RepoInfo.Source }}
-      <p class="text-sm">
-      <div class="flex items-center">
-          {{ i "git-fork" "w-3 h-3 mr-1 shrink-0" }}
-          forked from
-          {{ $sourceOwner := didOrHandle .RepoInfo.Source.Did .RepoInfo.SourceHandle  }}
-          <a class="ml-1 underline" href="/{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}">{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}</a>
-      </div>
-      </p>
+        <div class="flex items-center">
+            {{ i "git-fork" "w-3 h-3 mr-1 shrink-0" }}
+            forked from
+            {{ $sourceOwner := didOrHandle .RepoInfo.Source.Did .RepoInfo.SourceHandle  }}
+            <a class="ml-1 underline" href="/{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}">{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}</a>
+        </div>
       {{ end }}
-      <div class="text-lg flex items-center justify-between">
-        <div class="flex items-center gap-2 flex-wrap">
-          {{ template "user/fragments/picHandleLink" .RepoInfo.OwnerDid }}
-          <span class="select-none">/</span>
-          <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
-          {{ range $topic := .RepoInfo.Topics }}
-            <span class="font-normal normal-case text-sm rounded py-1 px-2 bg-white dark:bg-gray-800">{{ $topic }}</span>
-          {{ end }}
+      <div class="text-lg flex flex-col sm:flex-row items-start gap-4 justify-between">
+        <!-- left items -->
+        <div class="flex flex-col gap-2">
+          <!-- repo owner / repo name -->
+          <div class="flex items-center gap-2 flex-wrap">
+            {{ template "user/fragments/picHandleLink" .RepoInfo.OwnerDid }}
+            <span class="select-none">/</span>
+            <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
+          </div>
+
+          <span class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-gray-300">
+            {{ if .RepoInfo.Description }}
+              {{ .RepoInfo.Description | description }}
+            {{ else }}
+              <span class="italic">this repo has no description</span>
+            {{ end }}
+
+            {{ with .RepoInfo.Website }}
+              <span class="flex items-center gap-1">
+                <span class="flex-shrink-0">{{ i "globe" "size-4" }}</span>
+                <a href="{{ . }}">{{ . | trimUriScheme }}</a>
+              </span>
+            {{ end }}
+
+            {{ if .RepoInfo.Topics }}
+              <div class="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+                {{ range .RepoInfo.Topics }}
+                  <span class="bg-gray-200 dark:bg-gray-700 rounded py-1/2 px-1 text-sm">{{ . }}</span>
+                {{ end }}
+              </div>
+            {{ end }}
+
+          </span>
         </div>
 
-        <div class="flex items-center gap-2 z-auto">
-          <a
-            class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
-            href="/{{ .RepoInfo.FullName }}/feed.atom"
-          >
-            {{ i "rss" "size-4" }}
-          </a>
+        <div class="w-full sm:w-fit grid grid-cols-3 gap-2 z-auto">
           {{ template "repo/fragments/repoStar" .RepoInfo }}
           <a
             class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
@@ -39,16 +56,14 @@
             fork
             {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </a>
+          <a
+            class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
+            href="/{{ .RepoInfo.FullName }}/feed.atom">
+            {{ i "rss" "size-4" }}
+            <span class="md:hidden">atom</span>
+          </a>
         </div>
       </div>
-      <span id="repo-description" class="flex flex-wrap items-center gap-2 text-sm" hx-target="this" hx-swap="outerHTML">
-        {{ if .RepoInfo.Description }}
-          {{ .RepoInfo.Description | description }}
-        {{ else }}
-          <span class="italic">this repo has no description</span>
-        {{ end }}
-        <a href="{{ .RepoInfo.Website }}" class="underline text-blue-800 dark:text-blue-300">{{ .RepoInfo.Website | trimUriScheme }}</a>
-      </span>
     </section>
 
     <section class="w-full flex flex-col" >
