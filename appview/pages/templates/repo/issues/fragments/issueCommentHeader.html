@@ -19,9 +19,9 @@
 {{ end }}
 
 {{ define "timestamp" }}
-  <a href="#{{ .Comment.Id }}"
+  <a href="#comment-{{ .Comment.Id }}"
      class="text-gray-500 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-400 hover:underline no-underline"
-     id="{{ .Comment.Id }}">
+     id="comment-{{ .Comment.Id }}">
     {{ if .Comment.Deleted }}
       {{ template "repo/fragments/shortTimeAgo" .Comment.Deleted }}
     {{ else if .Comment.Edited }}
