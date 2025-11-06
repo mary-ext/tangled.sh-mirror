@@ -22,11 +22,6 @@ in
           default = 3000;
           description = "Port to run the appview on";
         };
-        cookie_secret = mkOption {
-          type = types.str;
-          default = "00000000000000000000000000000000";
-          description = "Cookie secret";
-        };
         environmentFile = mkOption {
           type = with types; nullOr path;
           default = null;
@@ -57,7 +52,6 @@ in
 
         environment = {
           TANGLED_DB_PATH = "appview.db";
-          TANGLED_COOKIE_SECRET = cfg.cookie_secret;
         };
       };
     };
