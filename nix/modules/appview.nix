@@ -39,7 +39,7 @@ in
     };
 
     config = mkIf cfg.enable {
-      systemd.services.tangled.appview = {
+      systemd.services.appview = {
         description = "tangled appview service";
         wantedBy = ["multi-user.target"];
 
