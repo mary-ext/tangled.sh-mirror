@@ -39,9 +39,16 @@ in
     };
 
     config = mkIf cfg.enable {
+      services.redis.servers.appview = {
+        enable = true;
+        port = 6379;
+      };
+
       systemd.services.appview = {
         description = "tangled appview service";
         wantedBy = ["multi-user.target"];
+        after = ["redis-appview.service"];
+        requires = ["redis-appview.service"];
 
         serviceConfig = {
           ListenStream = "0.0.0.0:${toString cfg.port}";
