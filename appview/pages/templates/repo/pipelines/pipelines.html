@@ -12,9 +12,27 @@
   {{ range .Pipelines }}
     {{ block "pipeline" (list $ .) }} {{ end }}
   {{ else }}
-    <p class="text-center pt-5 text-gray-400 dark:text-gray-500">
-      No pipelines run for this repository.
-    </p>
+    <div class="py-6 w-fit flex flex-col gap-4 mx-auto">
+      <p>
+        No pipelines have been run for this repository yet. To get started:
+      </p>
+      {{ $bullet := "mx-2 text-xs bg-gray-200 dark:bg-gray-600 rounded-full size-5 flex items-center justify-center font-mono inline-flex align-middle" }}
+      <p>
+        <span class="{{ $bullet }}">1</span>First, choose a spindle in your
+        <a href="/{{ .RepoInfo.FullName }}/settings?tab=pipelines" class="underline">project settings</a>.
+      </p>
+      <p>
+        <span class="{{ $bullet }}">2</span>For self-hosting a spindle you can learn more
+        <a href="https://tangled.org/@tangled.org/core/blob/master/docs/spindle/hosting.md" class="underline">here</a>.
+      </p>
+      <p>
+        <span class="{{ $bullet }}">3</span>Configure your first
+        <a href="https://tangled.org/@tangled.org/core/blob/master/docs/spindle/pipeline.md" class="underline">Spindle workflow</a>.
+      </p>
+      <p>
+        <span class="{{ $bullet }}">4</span>Push!
+      </p>
+    </div>
   {{ end }}
   </div>
 </div>
