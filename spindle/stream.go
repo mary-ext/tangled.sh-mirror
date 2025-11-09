@@ -213,6 +213,11 @@ func (s *Spindle) streamLogsFromDisk(ctx context.Context, conn *websocket.Conn, 
 			if err := conn.WriteMessage(websocket.TextMessage, []byte(line.Text)); err != nil {
 				return fmt.Errorf("failed to write to websocket: %w", err)
 			}
+		case <-time.After(30 * time.Second):
+			// send a keep-alive
+			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
+				return fmt.Errorf("failed to write control: %w", err)
+			}
 		}
 	}
 }
