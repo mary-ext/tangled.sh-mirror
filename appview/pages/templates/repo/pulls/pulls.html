@@ -140,7 +140,7 @@
                         {{ i "chevrons-down-up" "w-4 h-4" }} hide {{ len $otherPulls }} pull{{$s}} in this stack
                       </div>
                     </summary>
-                    {{ block "pullList" (list $otherPulls $) }} {{ end }}
+                    {{ block "stackedPullList" (list $otherPulls $) }} {{ end }}
                   </details>
                 {{ end }}
               {{ end }}
@@ -149,7 +149,7 @@
     </div>
 {{ end }}
 
-{{ define "pullList" }}
+{{ define "stackedPullList" }}
   {{ $list := index . 0 }}
   {{ $root := index . 1 }}
   <div class="grid grid-cols-1 rounded-b border-b border-t border-gray-200 dark:border-gray-900 divide-y divide-gray-200 dark:divide-gray-900">
