@@ -8,39 +8,45 @@
 {{ end }}
 
 {{ define "repoContent" }}
-<div class="flex justify-between items-center gap-4">
-  <div class="flex gap-4">
-    <a
-        href="?state=open"
-        class="flex items-center gap-2 {{ if .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-        >
-        {{ i "circle-dot" "w-4 h-4" }}
-        <span>{{ .RepoInfo.Stats.IssueCount.Open }} open</span>
-    </a>
-    <a
-        href="?state=closed"
-        class="flex items-center gap-2 {{ if not .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-        >
-        {{ i "ban" "w-4 h-4" }}
-        <span>{{ .RepoInfo.Stats.IssueCount.Closed }} closed</span>
-    </a>
-    <form class="flex gap-4" method="GET">
+    <div class="flex justify-between items-stretch gap-4">
+      <form class="flex flex-1 relative" method="GET">
         <input type="hidden" name="state" value="{{ if .FilteringByOpen }}open{{ else }}closed{{ end }}">
-        <input class="" type="text" name="q" value="{{ .FilterQuery }}">
-        <button class="btn" type="submit">
-            search
-        </button>
-    </form>
-  </div>
-  <a
-      href="/{{ .RepoInfo.FullName }}/issues/new"
-      class="btn-create text-sm flex items-center justify-center gap-2 no-underline hover:no-underline hover:text-white"
-      >
-      {{ i "circle-plus" "w-4 h-4" }}
-      <span>new</span>
-  </a>
-</div>
-<div class="error" id="issues"></div>
+        <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+          {{ i "search" "w-4 h-4" }}
+        </div>
+        <input class="flex-1 p-1 pl-10 pr-10 peer" type="text" name="q" value="{{ .FilterQuery }}" placeholder=" ">
+        <a 
+          href="?state={{ if .FilteringByOpen }}open{{ else }}closed{{ end }}"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hidden peer-[:not(:placeholder-shown)]:block"
+          >
+          {{ i "x" "w-4 h-4" }}
+        </a>
+      </form>
+      <a
+          href="/{{ .RepoInfo.FullName }}/issues/new"
+          class="btn-create text-sm flex items-center justify-center gap-2 no-underline hover:no-underline hover:text-white"
+          >
+          {{ i "circle-plus" "w-4 h-4" }}
+          <span>new</span>
+      </a>
+    </div>
+    <div class="mt-2 ml-2 flex gap-4 text-xs">
+      <a
+          href="?state=open"
+          class="flex items-center gap-2 {{ if .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
+          >
+          {{ i "circle-dot" "w-4 h-4" }}
+          <span>{{ .RepoInfo.Stats.IssueCount.Open }} open</span>
+      </a>
+      <a
+          href="?state=closed"
+          class="flex items-center gap-2 {{ if not .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
+          >
+          {{ i "ban" "w-4 h-4" }}
+          <span>{{ .RepoInfo.Stats.IssueCount.Closed }} closed</span>
+      </a>
+    </div>
+    <div class="error" id="issues"></div>
 {{ end }}
 
 {{ define "repoAfter" }}
