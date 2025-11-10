@@ -19,19 +19,13 @@
       {{ $bullet := "mx-2 text-xs bg-gray-200 dark:bg-gray-600 rounded-full size-5 flex items-center justify-center font-mono inline-flex align-middle" }}
       <p>
         <span class="{{ $bullet }}">1</span>First, choose a spindle in your
-        <a href="/{{ .RepoInfo.FullName }}/settings?tab=pipelines" class="underline">project settings</a>.
+        <a href="/{{ .RepoInfo.FullName }}/settings?tab=pipelines" class="underline">repository settings</a>.
       </p>
       <p>
-        <span class="{{ $bullet }}">2</span>For self-hosting a spindle you can learn more
-        <a href="https://tangled.org/@tangled.org/core/blob/master/docs/spindle/hosting.md" class="underline">here</a>.
+        <span class="{{ $bullet }}">2</span>Configure your CI/CD
+        <a href="https://tangled.org/@tangled.org/core/blob/master/docs/spindle/pipeline.md" class="underline">pipeline</a>.
       </p>
-      <p>
-        <span class="{{ $bullet }}">3</span>Configure your first
-        <a href="https://tangled.org/@tangled.org/core/blob/master/docs/spindle/pipeline.md" class="underline">Spindle workflow</a>.
-      </p>
-      <p>
-        <span class="{{ $bullet }}">4</span>Push!
-      </p>
+      <p><span class="{{ $bullet }}">3</span>Trigger a workflow with a push or a pull-request!</p>
     </div>
   {{ end }}
   </div>
