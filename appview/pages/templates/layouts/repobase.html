@@ -2,14 +2,6 @@
 
 {{ define "content" }}
     <section id="repo-header" class="mb-4 p-2 dark:text-white">
-      {{ if .RepoInfo.Source }}
-        <div class="flex items-center">
-            {{ i "git-fork" "w-3 h-3 mr-1 shrink-0" }}
-            forked from
-            {{ $sourceOwner := didOrHandle .RepoInfo.Source.Did .RepoInfo.SourceHandle  }}
-            <a class="ml-1 underline" href="/{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}">{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}</a>
-        </div>
-      {{ end }}
       <div class="text-lg flex flex-col sm:flex-row items-start gap-4 justify-between">
         <!-- left items -->
         <div class="flex flex-col gap-2">
@@ -19,6 +11,17 @@
             <span class="select-none">/</span>
             <a href="/{{ .RepoInfo.FullName }}" class="font-bold">{{ .RepoInfo.Name }}</a>
           </div>
+
+          {{ if .RepoInfo.Source }}
+            {{ $sourceOwner := resolve .RepoInfo.Source.Did }}
+            <div class="flex items-center gap-1 text-sm flex-wrap">
+              {{ i "git-fork" "w-3 h-3 shrink-0" }}
+              <span>forked from</span>
+              <a class="underline" href="/{{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}">
+                {{ $sourceOwner }}/{{ .RepoInfo.Source.Name }}
+              </a>
+            </div>
+          {{ end }}
 
           <span class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-gray-300">
             {{ if .RepoInfo.Description }}
