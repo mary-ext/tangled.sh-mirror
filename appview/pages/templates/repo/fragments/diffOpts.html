@@ -5,8 +5,26 @@
     {{ if .Split }}
       {{ $active = "split" }}
     {{ end }}
-    {{ $values := list "unified" "split" }}
-    {{ template "fragments/tabSelector" (dict "Name" "diff" "Values" $values "Active" $active) }}
+
+    {{ $unified := 
+       (dict
+         "Key" "unified"
+         "Value" "unified"
+         "Icon" "square-split-vertical"
+         "Meta" "") }}
+    {{ $split := 
+       (dict
+         "Key" "split"
+         "Value" "split"
+         "Icon" "square-split-horizontal"
+         "Meta" "") }}
+    {{ $values := list $unified $split }}
+
+    {{ template "fragments/tabSelector" 
+       (dict
+         "Name" "diff"
+         "Values" $values
+         "Active" $active) }}
   </section>
 {{ end }}
 

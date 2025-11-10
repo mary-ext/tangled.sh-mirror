@@ -6,10 +6,18 @@
     {{ $activeTab := "bg-white dark:bg-gray-700 shadow-sm" }}
     {{ $inactiveTab := "bg-gray-100 dark:bg-gray-800 shadow-inner" }}
     {{ range $index, $value := $all }}
-      {{ $isActive := eq $value $active }}
-      <a href="?{{ $name }}={{ $value }}"
-         class="py-2 text-sm w-full block hover:no-underline text-center {{ if $isActive }} {{$activeTab }} {{ else }} {{ $inactiveTab }} {{ end }}">
-       {{ $value }}
+      {{ $isActive := eq $value.Key $active }}
+      <a href="?{{ $name }}={{ $value.Key }}"
+         class="p-2 whitespace-nowrap flex justify-center items-center gap-2 text-sm w-full block hover:no-underline text-center {{ if $isActive }} {{$activeTab }} {{ else }} {{ $inactiveTab }} {{ end }}">
+       {{ if $value.Icon }}
+         {{ i $value.Icon "size-4" }}
+       {{ end }}
+
+       {{ with $value.Meta }}
+         {{ . }}
+       {{ end }}
+
+       {{ $value.Value }}
       </a>
     {{ end }}
   </div>

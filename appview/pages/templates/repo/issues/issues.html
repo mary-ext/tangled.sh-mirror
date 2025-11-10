@@ -8,6 +8,26 @@
 {{ end }}
 
 {{ define "repoContent" }}
+  {{ $active := "closed" }}
+  {{ if .FilteringByOpen }}
+    {{ $active = "open" }}
+  {{ end }}
+
+  {{ $open := 
+     (dict
+       "Key" "open"
+       "Value" "open"
+       "Icon" "circle-dot"
+       "Meta" (string .RepoInfo.Stats.IssueCount.Open)) }}
+  {{ $closed := 
+     (dict
+       "Key" "closed"
+       "Value" "closed"
+       "Icon" "ban"
+       "Meta" (string .RepoInfo.Stats.IssueCount.Closed)) }}
+  {{ $values := list $open $closed }}
+
+  <div class="flex flex-col gap-2">
     <div class="flex justify-between items-stretch gap-4">
       <form class="flex flex-1 relative" method="GET">
         <input type="hidden" name="state" value="{{ if .FilteringByOpen }}open{{ else }}closed{{ end }}">
@@ -22,31 +42,22 @@
           {{ i "x" "w-4 h-4" }}
         </a>
       </form>
+      <div class="hidden sm:block">
+        {{ template "fragments/tabSelector" (dict "Name" "state" "Values" $values "Active" $active) }}
+      </div>
       <a
-          href="/{{ .RepoInfo.FullName }}/issues/new"
-          class="btn-create text-sm flex items-center justify-center gap-2 no-underline hover:no-underline hover:text-white"
-          >
-          {{ i "circle-plus" "w-4 h-4" }}
-          <span>new</span>
+        href="/{{ .RepoInfo.FullName }}/issues/new"
+        class="btn-create text-sm flex items-center justify-center gap-2 no-underline hover:no-underline hover:text-white"
+        >
+        {{ i "circle-plus" "w-4 h-4" }}
+        <span>new</span>
       </a>
     </div>
-    <div class="mt-2 ml-2 flex gap-4 text-xs">
-      <a
-          href="?state=open"
-          class="flex items-center gap-2 {{ if .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-          >
-          {{ i "circle-dot" "w-4 h-4" }}
-          <span>{{ .RepoInfo.Stats.IssueCount.Open }} open</span>
-      </a>
-      <a
-          href="?state=closed"
-          class="flex items-center gap-2 {{ if not .FilteringByOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-          >
-          {{ i "ban" "w-4 h-4" }}
-          <span>{{ .RepoInfo.Stats.IssueCount.Closed }} closed</span>
-      </a>
+    <div class="sm:hidden">
+      {{ template "fragments/tabSelector" (dict "Name" "state" "Values" $values "Active" $active) }}
     </div>
-    <div class="error" id="issues"></div>
+  </div>
+  <div class="error" id="issues"></div>
 {{ end }}
 
 {{ define "repoAfter" }}

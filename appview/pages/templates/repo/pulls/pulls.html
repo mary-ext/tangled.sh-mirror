@@ -8,7 +8,33 @@
 {{ end }}
 
 {{ define "repoContent" }}
-    <div class="flex justify-between items-stretch gap-4">
+  {{ $active := "closed" }}
+  {{ if .FilteringBy.IsOpen  }}
+    {{ $active = "open" }}
+  {{ else if .FilteringBy.IsMerged  }}
+    {{ $active = "merged" }}
+  {{ end }}
+  {{ $open := 
+     (dict
+       "Key" "open"
+       "Value" "open"
+       "Icon" "git-pull-request"
+       "Meta" (string .RepoInfo.Stats.PullCount.Open)) }}
+  {{ $merged := 
+     (dict
+       "Key" "merged"
+       "Value" "merged"
+       "Icon" "git-merge"
+       "Meta" (string .RepoInfo.Stats.PullCount.Merged)) }}
+  {{ $closed := 
+     (dict
+       "Key" "closed"
+       "Value" "closed"
+       "Icon" "ban"
+       "Meta" (string .RepoInfo.Stats.IssueCount.Closed)) }}
+  {{ $values := list $open $merged $closed }}
+  <div class="flex flex-col gap-2">
+    <div class="flex justify-between items-stretch gap-2">
       <form class="flex flex-1 relative" method="GET">
         <input type="hidden" name="state" value="{{ .FilteringBy.String }}">
         <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -22,38 +48,21 @@
           {{ i "x" "w-4 h-4" }}
         </a>
       </form>
-      <a
-          href="/{{ .RepoInfo.FullName }}/pulls/new"
+      <div class="hidden sm:block">
+        {{ template "fragments/tabSelector" (dict "Name" "state" "Values" $values "Active" $active) }}
+      </div>
+      <a href="/{{ .RepoInfo.FullName }}/pulls/new"
           class="btn-create text-sm flex items-center gap-2 no-underline hover:no-underline hover:text-white"
       >
-          {{ i "git-pull-request-create" "w-4 h-4" }}
-          <span>new</span>
+        {{ i "git-pull-request-create" "w-4 h-4" }}
+        <span>new</span>
       </a>
     </div>
-    <div class="mt-2 ml-2 flex gap-4 text-xs">
-        <a
-            href="?state=open"
-            class="flex items-center gap-2 {{ if .FilteringBy.IsOpen }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-        >
-            {{ i "git-pull-request" "w-4 h-4" }}
-            <span>{{ .RepoInfo.Stats.PullCount.Open }} open</span>
-        </a>
-        <a
-            href="?state=merged"
-            class="flex items-center gap-2 {{ if .FilteringBy.IsMerged }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-        >
-            {{ i "git-merge" "w-4 h-4" }}
-            <span>{{ .RepoInfo.Stats.PullCount.Merged }} merged</span>
-        </a>
-        <a
-            href="?state=closed"
-            class="flex items-center gap-2 {{ if .FilteringBy.IsClosed }}font-bold {{ else }}text-gray-500 dark:text-gray-400{{ end }}"
-        >
-            {{ i "ban" "w-4 h-4" }}
-            <span>{{ .RepoInfo.Stats.PullCount.Closed }} closed</span>
-        </a>
+    <div class="sm:hidden">
+      {{ template "fragments/tabSelector" (dict "Name" "state" "Values" $values "Active" $active) }}
     </div>
-    <div class="error" id="pulls"></div>
+  </div>
+  <div class="error" id="pulls"></div>
 {{ end }}
 
 {{ define "repoAfter" }}
