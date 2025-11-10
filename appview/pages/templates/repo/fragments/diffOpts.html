@@ -6,23 +6,7 @@
       {{ $active = "split" }}
     {{ end }}
     {{ $values := list "unified" "split" }}
-    {{ block "tabSelector" (dict "Name" "diff" "Values" $values "Active" $active) }} {{ end }}
+    {{ template "fragments/tabSelector" (dict "Name" "diff" "Values" $values "Active" $active) }}
   </section>
 {{ end }}
 
-{{ define "tabSelector" }}
-  {{ $name := .Name }}
-  {{ $all := .Values }}
-  {{ $active := .Active }}
-  <div class="flex justify-between divide-x divide-gray-200 dark:divide-gray-700 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
-    {{ $activeTab := "bg-white dark:bg-gray-700 shadow-sm" }}
-    {{ $inactiveTab := "bg-gray-100 dark:bg-gray-800 shadow-inner" }}
-    {{ range $index, $value := $all }}
-      {{ $isActive := eq $value $active }}
-      <a href="?{{ $name }}={{ $value }}"
-         class="py-2 text-sm w-full block hover:no-underline text-center {{ if $isActive }} {{$activeTab }} {{ else }} {{ $inactiveTab }} {{ end }}">
-       {{ $value }}
-      </a>
-    {{ end }}
-  </div>
-{{ end }}
