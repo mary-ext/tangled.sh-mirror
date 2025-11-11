@@ -51,10 +51,45 @@ in
             description = "Path where repositories are scanned from";
           };
 
+          readme = mkOption {
+            type = types.listOf types.str;
+            default = [
+              "README.md"
+              "readme.md"
+              "README"
+              "readme"
+              "README.markdown"
+              "readme.markdown"
+              "README.txt"
+              "readme.txt"
+              "README.rst"
+              "readme.rst"
+              "README.org"
+              "readme.org"
+              "README.asciidoc"
+              "readme.asciidoc"
+            ];
+            description = "List of README filenames to look for (in priority order)";
+          };
+
           mainBranch = mkOption {
             type = types.str;
             default = "main";
             description = "Default branch name for repositories";
+          };
+        };
+
+        git = {
+          userName = mkOption {
+            type = types.str;
+            default = "Tangled";
+            description = "Git user name used as committer";
+          };
+
+          userEmail = mkOption {
+            type = types.str;
+            default = "noreply@tangled.org";
+            description = "Git user email used as committer";
           };
         };
 
@@ -121,6 +156,12 @@ in
             type = types.str;
             default = "wss://jetstream1.us-west.bsky.network/subscribe";
             description = "Jetstream endpoint to subscribe to";
+          };
+
+          logDids = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable logging of DIDs";
           };
 
           dev = mkOption {
@@ -190,8 +231,8 @@ in
           mkdir -p "${cfg.stateDir}/.config/git"
           cat > "${cfg.stateDir}/.config/git/config" << EOF
           [user]
-              name = Git User
-              email = git@example.com
+              name = ${cfg.git.userName}
+              email = ${cfg.git.userEmail}
           [receive]
               advertisePushOptions = true
           [uploadpack]
@@ -207,7 +248,10 @@ in
           WorkingDirectory = cfg.stateDir;
           Environment = [
             "KNOT_REPO_SCAN_PATH=${cfg.repo.scanPath}"
+            "KNOT_REPO_README=${concatStringsSep "," cfg.repo.readme}"
             "KNOT_REPO_MAIN_BRANCH=${cfg.repo.mainBranch}"
+            "KNOT_GIT_USER_NAME=${cfg.git.userName}"
+            "KNOT_GIT_USER_EMAIL=${cfg.git.userEmail}"
             "APPVIEW_ENDPOINT=${cfg.appviewEndpoint}"
             "KNOT_SERVER_INTERNAL_LISTEN_ADDR=${cfg.server.internalListenAddr}"
             "KNOT_SERVER_LISTEN_ADDR=${cfg.server.listenAddr}"
@@ -216,6 +260,16 @@ in
             "KNOT_SERVER_PLC_URL=${cfg.server.plcUrl}"
             "KNOT_SERVER_JETSTREAM_ENDPOINT=${cfg.server.jetstreamEndpoint}"
             "KNOT_SERVER_OWNER=${cfg.server.owner}"
+            "KNOT_SERVER_LOG_DIDS=${
+              if cfg.server.logDids
+              then "true"
+              else "false"
+            }"
+            "KNOT_SERVER_DEV=${
+              if cfg.server.dev
+              then "true"
+              else "false"
+            }"
           ];
           ExecStart = "${cfg.package}/bin/knot server";
           Restart = "always";
