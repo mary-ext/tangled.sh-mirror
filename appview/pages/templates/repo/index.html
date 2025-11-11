@@ -35,7 +35,7 @@
 {{ end }}
 
 {{ define "repoLanguages" }}
-    <details class="group -m-6 mb-4">
+    <details class="group -my-4 -m-6 mb-4">
       <summary class="flex gap-[1px] h-4 scale-y-50 hover:scale-y-100 origin-top group-open:scale-y-100 transition-all hover:cursor-pointer overflow-hidden rounded-t">
         {{ range $value := .Languages }}
         <div
@@ -129,11 +129,18 @@
           {{ $icon := "folder" }}
           {{ $iconStyle := "size-4 fill-current" }}
 
+          {{ if .IsSubmodule }}
+            {{ $link = printf "/%s/%s/%s/%s" $.RepoInfo.FullName "blob" (urlquery $.Ref) .Name }}
+            {{ $icon = "folder-input" }}
+            {{ $iconStyle = "size-4" }}
+          {{ end }}
+
           {{ if .IsFile }}
             {{ $link = printf "/%s/%s/%s/%s" $.RepoInfo.FullName "blob" (urlquery $.Ref) .Name }}
             {{ $icon = "file" }}
             {{ $iconStyle = "size-4" }}
           {{ end }}
+
           <a href="{{ $link }}" class="{{ $linkstyle }}">
             <div class="flex items-center gap-2">
               {{ i $icon $iconStyle "flex-shrink-0" }}

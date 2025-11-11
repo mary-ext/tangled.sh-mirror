@@ -59,10 +59,18 @@
           {{ $icon := "folder" }}
           {{ $iconStyle := "size-4 fill-current" }}
 
+          {{ if .IsSubmodule }}
+            {{ $link = printf "/%s/%s/%s/%s/%s" $.RepoInfo.FullName "blob" (urlquery $.Ref) $.TreePath .Name }}
+            {{ $icon = "folder-input" }}
+            {{ $iconStyle = "size-4" }}
+          {{ end }}
+
           {{ if .IsFile }}
+            {{ $link = printf "/%s/%s/%s/%s/%s" $.RepoInfo.FullName "blob" (urlquery $.Ref) $.TreePath .Name }}
             {{ $icon = "file" }}
             {{ $iconStyle = "size-4" }}
           {{ end }}
+
           <a href="{{ $link }}" class="{{ $linkstyle }}">
             <div class="flex items-center gap-2">
               {{ i $icon $iconStyle "flex-shrink-0" }}
