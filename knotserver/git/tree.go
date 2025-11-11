@@ -7,6 +7,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"tangled.org/core/types"
 )
@@ -53,9 +54,7 @@ func (g *GitRepo) makeNiceTree(ctx context.Context, subtree *object.Tree, parent
 	}
 
 	for _, e := range subtree.Entries {
-		mode, _ := e.Mode.ToOSFileMode()
 		sz, _ := subtree.Size(e.Name)
-
 		fpath := path.Join(parent, e.Name)
 
 		var lastCommit *types.LastCommitInfo
@@ -69,8 +68,7 @@ func (g *GitRepo) makeNiceTree(ctx context.Context, subtree *object.Tree, parent
 
 		nts = append(nts, types.NiceTree{
 			Name:       e.Name,
-			Mode:       mode.String(),
-			IsFile:     e.Mode.IsFile(),
+			Mode:       e.Mode.String(),
 			Size:       sz,
 			LastCommit: lastCommit,
 		})
@@ -126,21 +124,14 @@ func (g *GitRepo) walkHelper(
 		default:
 		}
 
-		mode, err := e.Mode.ToOSFileMode()
-		if err != nil {
-			// TODO: log this
-			continue
-		}
-
 		if e.Mode.IsFile() {
-			err = cb(e, currentTree, root)
-			if errors.Is(err, TerminateWalk) {
+			if err := cb(e, currentTree, root); errors.Is(err, TerminateWalk) {
 				return err
 			}
 		}
 
 		// e is a directory
-		if mode.IsDir() {
+		if e.Mode == filemode.Dir {
 			subtree, err := currentTree.Tree(e.Name)
 			if err != nil {
 				return fmt.Errorf("sub tree %s: %w", e.Name, err)

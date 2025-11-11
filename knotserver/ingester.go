@@ -161,7 +161,7 @@ func (h *Knot) processPull(ctx context.Context, event *models.Event) error {
 
 	var pipeline workflow.RawPipeline
 	for _, e := range workflowDir {
-		if !e.IsFile {
+		if !e.IsFile() {
 			continue
 		}
 

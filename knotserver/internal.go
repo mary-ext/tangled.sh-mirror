@@ -277,7 +277,7 @@ func (h *InternalHandle) triggerPipeline(
 
 	var pipeline workflow.RawPipeline
 	for _, e := range workflowDir {
-		if !e.IsFile {
+		if !e.IsFile() {
 			continue
 		}
 

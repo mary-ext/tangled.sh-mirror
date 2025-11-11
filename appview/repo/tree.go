@@ -50,11 +50,9 @@ func (rp *Repo) Tree(w http.ResponseWriter, r *http.Request) {
 	files := make([]types.NiceTree, len(xrpcResp.Files))
 	for i, xrpcFile := range xrpcResp.Files {
 		file := types.NiceTree{
-			Name:      xrpcFile.Name,
-			Mode:      xrpcFile.Mode,
-			Size:      int64(xrpcFile.Size),
-			IsFile:    xrpcFile.Is_file,
-			IsSubtree: xrpcFile.Is_subtree,
+			Name: xrpcFile.Name,
+			Mode: xrpcFile.Mode,
+			Size: int64(xrpcFile.Size),
 		}
 		// Convert last commit info if present
 		if xrpcFile.Last_commit != nil {
@@ -97,6 +95,7 @@ func (rp *Repo) Tree(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sortFiles(result.Files)
+
 	rp.pages.RepoTree(w, pages.RepoTreeParams{
 		LoggedInUser:     user,
 		BreadCrumbs:      breadcrumbs,

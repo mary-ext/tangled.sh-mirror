@@ -351,12 +351,11 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 	if treeResp != nil && treeResp.Files != nil {
 		for _, file := range treeResp.Files {
 			niceFile := types.NiceTree{
-				IsFile:    file.Is_file,
-				IsSubtree: file.Is_subtree,
-				Name:      file.Name,
-				Mode:      file.Mode,
-				Size:      file.Size,
+				Name: file.Name,
+				Mode: file.Mode,
+				Size: file.Size,
 			}
+
 			if file.Last_commit != nil {
 				when, _ := time.Parse(time.RFC3339, file.Last_commit.When)
 				niceFile.LastCommit = &types.LastCommitInfo{

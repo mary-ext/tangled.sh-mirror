@@ -67,11 +67,9 @@ func (x *Xrpc) RepoTree(w http.ResponseWriter, r *http.Request) {
 	treeEntries := make([]*tangled.RepoTree_TreeEntry, len(files))
 	for i, file := range files {
 		entry := &tangled.RepoTree_TreeEntry{
-			Name:       file.Name,
-			Mode:       file.Mode,
-			Size:       file.Size,
-			Is_file:    file.IsFile,
-			Is_subtree: file.IsSubtree,
+			Name: file.Name,
+			Mode: file.Mode,
+			Size: file.Size,
 		}
 
 		if file.LastCommit != nil {

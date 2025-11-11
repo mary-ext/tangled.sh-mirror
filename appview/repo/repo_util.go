@@ -17,8 +17,8 @@ import (
 
 func sortFiles(files []types.NiceTree) {
 	sort.Slice(files, func(i, j int) bool {
-		iIsFile := files[i].IsFile
-		jIsFile := files[j].IsFile
+		iIsFile := files[i].IsFile()
+		jIsFile := files[j].IsFile()
 		if iIsFile != jIsFile {
 			return !iIsFile
 		}
