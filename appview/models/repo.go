@@ -104,3 +104,50 @@ type RepoGroup struct {
 	Repo   *Repo
 	Issues []Issue
 }
+
+type BlobContentType int
+
+const (
+	BlobContentTypeCode BlobContentType = iota
+	BlobContentTypeMarkup
+	BlobContentTypeImage
+	BlobContentTypeSvg
+	BlobContentTypeVideo
+	BlobContentTypeSubmodule
+)
+
+func (ty BlobContentType) IsCode() bool      { return ty == BlobContentTypeCode }
+func (ty BlobContentType) IsMarkup() bool    { return ty == BlobContentTypeMarkup }
+func (ty BlobContentType) IsImage() bool     { return ty == BlobContentTypeImage }
+func (ty BlobContentType) IsSvg() bool       { return ty == BlobContentTypeSvg }
+func (ty BlobContentType) IsVideo() bool     { return ty == BlobContentTypeVideo }
+func (ty BlobContentType) IsSubmodule() bool { return ty == BlobContentTypeSubmodule }
+
+type BlobView struct {
+	HasTextView     bool // can show as code/text
+	HasRenderedView bool // can show rendered (markup/image/video/submodule)
+	HasRawView      bool // can download raw (everything except submodule)
+
+	// current display mode
+	ShowingRendered bool // currently in rendered mode
+	ShowingText     bool // currently in text/code mode
+
+	// content type flags
+	ContentType BlobContentType
+
+	// Content data
+	Contents   string
+	ContentSrc string // URL for media files
+	Lines      int
+	SizeHint   uint64
+}
+
+// if both views are available, then show a toggle between them
+func (b BlobView) ShowToggle() bool {
+	return b.HasTextView && b.HasRenderedView
+}
+
+func (b BlobView) IsUnsupported() bool {
+	// no view available, only raw
+	return !(b.HasRenderedView || b.HasTextView)
+}
