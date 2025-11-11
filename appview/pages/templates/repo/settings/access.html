@@ -66,7 +66,10 @@
   <div
     id="add-collaborator-modal"
     popover
-    class="bg-white w-full md:w-96 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700 drop-shadow dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50">
+    class="
+      bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+      dark:text-white backdrop:bg-gray-400/50 dark:backdrop:bg-gray-800/50 
+      w-full md:w-96 p-4 rounded drop-shadow overflow-visible">
     {{ template "addCollaboratorModal" . }}
   </div>
 {{ end }}
@@ -82,15 +85,19 @@
     ADD COLLABORATOR
   </label>
   <p class="text-sm text-gray-500 dark:text-gray-400">Collaborators can push to this repository.</p>
-  <input
-    autocapitalize="none"
-    autocorrect="off"
-    type="text"
-    id="add-collaborator"
-    name="collaborator"
-    required
-    placeholder="foo.bsky.social"
-  />
+  <actor-typeahead>
+    <input
+      autocapitalize="none"
+      autocorrect="off"
+      autocomplete="off"
+      type="text"
+      id="add-collaborator"
+      name="collaborator"
+      required
+      placeholder="user.tngl.sh"
+      class="w-full"
+    />
+  </actor-typeahead>
   <div class="flex gap-2 pt-2">
     <button
       type="button"
