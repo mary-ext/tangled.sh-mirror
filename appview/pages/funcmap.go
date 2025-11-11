@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -17,6 +18,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alecthomas/chroma/v2"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/dustin/go-humanize"
 	"github.com/go-enry/go-enry/v2"
@@ -245,6 +250,42 @@ func (p *Pages) funcMap() template.FuncMap {
 			htmlString := p.rctx.RenderMarkdown(text)
 			sanitized := p.rctx.SanitizeDescription(htmlString)
 			return template.HTML(sanitized)
+		},
+		"readme": func(text string) template.HTML {
+			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
+			htmlString := p.rctx.RenderMarkdown(text)
+			sanitized := p.rctx.SanitizeDefault(htmlString)
+			return template.HTML(sanitized)
+		},
+		"code": func(content, path string) string {
+			var style *chroma.Style = styles.Get("catpuccin-latte")
+			formatter := chromahtml.New(
+				chromahtml.InlineCode(false),
+				chromahtml.WithLineNumbers(true),
+				chromahtml.WithLinkableLineNumbers(true, "L"),
+				chromahtml.Standalone(false),
+				chromahtml.WithClasses(true),
+			)
+
+			lexer := lexers.Get(filepath.Base(path))
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
+
+			iterator, err := lexer.Tokenise(nil, content)
+			if err != nil {
+				p.logger.Error("chroma tokenize", "err", "err")
+				return ""
+			}
+
+			var code bytes.Buffer
+			err = formatter.Format(&code, style, iterator)
+			if err != nil {
+				p.logger.Error("chroma format", "err", "err")
+				return ""
+			}
+
+			return code.String()
 		},
 		"trimUriScheme": func(text string) string {
 			text = strings.TrimPrefix(text, "https://")
