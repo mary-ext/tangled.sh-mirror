@@ -33,6 +33,10 @@
       url = "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip";
       flake = false;
     };
+    actor-typeahead-src = {
+      url = "git+https://tangled.org/@jakelazaroff.com/actor-typeahead";
+      flake = false;
+    };
     ibm-plex-mono-src = {
       url = "https://github.com/IBM/plex/releases/download/%40ibm%2Fplex-mono%401.1.0/ibm-plex-mono.zip";
       flake = false;
@@ -54,6 +58,7 @@
     inter-fonts-src,
     sqlite-lib-src,
     ibm-plex-mono-src,
+    actor-typeahead-src,
     ...
   }: let
     supportedSystems = ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"];
@@ -81,7 +86,7 @@
         lexgen = self.callPackage ./nix/pkgs/lexgen.nix {inherit indigo;};
         goat = self.callPackage ./nix/pkgs/goat.nix {inherit indigo;};
         appview-static-files = self.callPackage ./nix/pkgs/appview-static-files.nix {
-          inherit htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src;
+          inherit htmx-src htmx-ws-src lucide-src inter-fonts-src ibm-plex-mono-src actor-typeahead-src;
         };
         appview = self.callPackage ./nix/pkgs/appview.nix {};
         spindle = self.callPackage ./nix/pkgs/spindle.nix {};

@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "actor-typeahead-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1762835797,
+        "narHash": "sha256-heizoWUKDdar6ymfZTnj3ytcEv/L4d4fzSmtr0HlXsQ=",
+        "ref": "refs/heads/main",
+        "rev": "677fe7f743050a4e7f09d4a6f87bbf1325a06f6b",
+        "revCount": 6,
+        "type": "git",
+        "url": "https://tangled.org/@jakelazaroff.com/actor-typeahead"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://tangled.org/@jakelazaroff.com/actor-typeahead"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -150,6 +166,7 @@
     },
     "root": {
       "inputs": {
+        "actor-typeahead-src": "actor-typeahead-src",
         "flake-compat": "flake-compat",
         "gomod2nix": "gomod2nix",
         "htmx-src": "htmx-src",

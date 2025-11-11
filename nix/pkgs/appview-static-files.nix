@@ -5,6 +5,7 @@
   lucide-src,
   inter-fonts-src,
   ibm-plex-mono-src,
+  actor-typeahead-src,
   sqlite-lib,
   tailwindcss,
   src,
@@ -24,6 +25,7 @@ runCommandLocal "appview-static-files" {
   cp -f ${inter-fonts-src}/web/InterDisplay*.woff2 fonts/
   cp -f ${inter-fonts-src}/InterVariable*.ttf fonts/
   cp -f ${ibm-plex-mono-src}/fonts/complete/woff2/IBMPlexMono*.woff2 fonts/
+  cp -f ${actor-typeahead-src}/actor-typeahead.js .
   # tailwindcss -c $src/tailwind.config.js -i $src/input.css -o tw.css won't work
   # for whatever reason (produces broken css), so we are doing this instead
   cd ${src} && ${tailwindcss}/bin/tailwindcss -i input.css -o $out/tw.css

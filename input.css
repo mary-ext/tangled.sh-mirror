@@ -245,6 +245,7 @@
         details[data-callout] > summary::-webkit-details-marker {
             display: none;
         }
+
     }
     @layer utilities {
         .error {
@@ -927,4 +928,37 @@
     .chroma .gl {
         text-decoration: underline;
     }
+}
+
+actor-typeahead {
+  --color-background: #ffffff;
+  --color-border: #d1d5db;
+  --color-shadow: #000000;
+  --color-hover: #f9fafb;
+  --color-avatar-fallback: #e5e7eb;
+  --radius: 0.0;
+  --padding-menu: 0.0rem;
+  z-index: 1000;
+}
+
+actor-typeahead::part(handle) {
+  color: #111827;
+}
+
+actor-typeahead::part(menu) {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  actor-typeahead {
+    --color-background: #1f2937;
+    --color-border: #4b5563;
+    --color-shadow: #000000;
+    --color-hover: #374151;
+    --color-avatar-fallback: #4b5563;
+  }
+
+  actor-typeahead::part(handle) {
+    color: #f9fafb;
+  }
 }
