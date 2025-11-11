@@ -3,6 +3,7 @@ package git
 import (
 	"archive/tar"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -12,13 +13,17 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 var (
-	ErrBinaryFile    = fmt.Errorf("binary file")
-	ErrNotBinaryFile = fmt.Errorf("not binary file")
+	ErrBinaryFile        = errors.New("binary file")
+	ErrNotBinaryFile     = errors.New("not binary file")
+	ErrMissingGitModules = errors.New("no .gitmodules file found")
+	ErrInvalidGitModules = errors.New("invalid .gitmodules file")
+	ErrNotSubmodule      = errors.New("path is not a submodule")
 )
 
 type GitRepo struct {
@@ -188,6 +193,59 @@ func (g *GitRepo) RawContent(path string) ([]byte, error) {
 	defer reader.Close()
 
 	return io.ReadAll(reader)
+}
+
+// read and parse .gitmodules
+func (g *GitRepo) Submodules() (*config.Modules, error) {
+	c, err := g.r.CommitObject(g.h)
+	if err != nil {
+		return nil, fmt.Errorf("commit object: %w", err)
+	}
+
+	tree, err := c.Tree()
+	if err != nil {
+		return nil, fmt.Errorf("tree: %w", err)
+	}
+
+	// read .gitmodules file
+	modulesEntry, err := tree.FindEntry(".gitmodules")
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrMissingGitModules, err)
+	}
+
+	modulesFile, err := tree.TreeEntryFile(modulesEntry)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to read file: %w", ErrInvalidGitModules, err)
+	}
+
+	content, err := modulesFile.Contents()
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to read contents: %w", ErrInvalidGitModules, err)
+	}
+
+	// parse .gitmodules
+	modules := config.NewModules()
+	if err = modules.Unmarshal([]byte(content)); err != nil {
+		return nil, fmt.Errorf("%w: failed to parse: %w", ErrInvalidGitModules, err)
+	}
+
+	return modules, nil
+}
+
+func (g *GitRepo) Submodule(path string) (*config.Submodule, error) {
+	modules, err := g.Submodules()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, submodule := range modules.Submodules {
+		if submodule.Path == path {
+			return submodule, nil
+		}
+	}
+
+	// path is not a submodule
+	return nil, ErrNotSubmodule
 }
 
 func (g *GitRepo) Branch(name string) (*plumbing.Reference, error) {
