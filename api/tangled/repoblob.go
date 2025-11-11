@@ -30,7 +30,7 @@ type RepoBlob_LastCommit struct {
 // RepoBlob_Output is the output of a sh.tangled.repo.blob call.
 type RepoBlob_Output struct {
 	// content: File content (base64 encoded for binary files)
-	Content string `json:"content" cborgen:"content"`
+	Content *string `json:"content,omitempty" cborgen:"content,omitempty"`
 	// encoding: Content encoding
 	Encoding *string `json:"encoding,omitempty" cborgen:"encoding,omitempty"`
 	// isBinary: Whether the file is binary
@@ -44,6 +44,8 @@ type RepoBlob_Output struct {
 	Ref string `json:"ref" cborgen:"ref"`
 	// size: File size in bytes
 	Size *int64 `json:"size,omitempty" cborgen:"size,omitempty"`
+	// submodule: Submodule information if path is a submodule
+	Submodule *RepoBlob_Submodule `json:"submodule,omitempty" cborgen:"submodule,omitempty"`
 }
 
 // RepoBlob_Signature is a "signature" in the sh.tangled.repo.blob schema.
@@ -54,6 +56,16 @@ type RepoBlob_Signature struct {
 	Name string `json:"name" cborgen:"name"`
 	// when: Author timestamp
 	When string `json:"when" cborgen:"when"`
+}
+
+// RepoBlob_Submodule is a "submodule" in the sh.tangled.repo.blob schema.
+type RepoBlob_Submodule struct {
+	// branch: Branch to track in the submodule
+	Branch *string `json:"branch,omitempty" cborgen:"branch,omitempty"`
+	// name: Submodule name
+	Name string `json:"name" cborgen:"name"`
+	// url: Submodule repository URL
+	Url string `json:"url" cborgen:"url"`
 }
 
 // RepoBlob calls the XRPC method "sh.tangled.repo.blob".

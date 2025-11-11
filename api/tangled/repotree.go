@@ -47,10 +47,6 @@ type RepoTree_Readme struct {
 
 // RepoTree_TreeEntry is a "treeEntry" in the sh.tangled.repo.tree schema.
 type RepoTree_TreeEntry struct {
-	// is_file: Whether this entry is a file
-	Is_file bool `json:"is_file" cborgen:"is_file"`
-	// is_subtree: Whether this entry is a directory/subtree
-	Is_subtree  bool                 `json:"is_subtree" cborgen:"is_subtree"`
 	Last_commit *RepoTree_LastCommit `json:"last_commit,omitempty" cborgen:"last_commit,omitempty"`
 	// mode: File mode
 	Mode string `json:"mode" cborgen:"mode"`
