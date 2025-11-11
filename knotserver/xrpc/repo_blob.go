@@ -42,6 +42,24 @@ func (x *Xrpc) RepoBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// first check if this path is a submodule
+	submodule, err := gr.Submodule(treePath)
+	if err != nil {
+		// this is okay, continue and try to treat it as a regular file
+	} else {
+		response := tangled.RepoBlob_Output{
+			Ref:  ref,
+			Path: treePath,
+			Submodule: &tangled.RepoBlob_Submodule{
+				Name:   submodule.Name,
+				Url:    submodule.URL,
+				Branch: &submodule.Branch,
+			},
+		}
+		writeJson(w, response)
+		return
+	}
+
 	contents, err := gr.RawContent(treePath)
 	if err != nil {
 		x.Logger.Error("file content", "error", err.Error(), "treePath", treePath)
@@ -101,6 +119,7 @@ func (x *Xrpc) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	var encoding string
 
 	isBinary := !isTextual(mimeType)
+	size := int64(len(contents))
 
 	if isBinary {
 		content = base64.StdEncoding.EncodeToString(contents)
@@ -113,9 +132,9 @@ func (x *Xrpc) RepoBlob(w http.ResponseWriter, r *http.Request) {
 	response := tangled.RepoBlob_Output{
 		Ref:      ref,
 		Path:     treePath,
-		Content:  content,
+		Content:  &content,
 		Encoding: &encoding,
-		Size:     &[]int64{int64(len(contents))}[0],
+		Size:     &size,
 		IsBinary: &isBinary,
 	}
 
