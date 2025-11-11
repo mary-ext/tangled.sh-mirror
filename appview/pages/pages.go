@@ -744,9 +744,9 @@ type RepoTreeStats struct {
 func (r RepoTreeParams) TreeStats() RepoTreeStats {
 	numFolders, numFiles := 0, 0
 	for _, f := range r.Files {
-		if !f.IsFile {
+		if !f.IsFile() {
 			numFolders += 1
-		} else if f.IsFile {
+		} else if f.IsFile() {
 			numFiles += 1
 		}
 	}
@@ -817,65 +817,20 @@ func (p *Pages) RepoArtifactFragment(w io.Writer, params RepoArtifactParams) err
 }
 
 type RepoBlobParams struct {
-	LoggedInUser     *oauth.User
-	RepoInfo         repoinfo.RepoInfo
-	Active           string
-	Unsupported      bool
-	IsImage          bool
-	IsVideo          bool
-	ContentSrc       string
-	BreadCrumbs      [][]string
-	ShowRendered     bool
-	RenderToggle     bool
-	RenderedContents template.HTML
+	LoggedInUser *oauth.User
+	RepoInfo     repoinfo.RepoInfo
+	Active       string
+	BreadCrumbs  [][]string
+	BlobView     models.BlobView
 	*tangled.RepoBlob_Output
-	// Computed fields for template compatibility
-	Contents string
-	Lines    int
-	SizeHint uint64
-	IsBinary bool
 }
 
 func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
-	var style *chroma.Style = styles.Get("catpuccin-latte")
-
-	if params.ShowRendered {
-		switch markup.GetFormat(params.Path) {
-		case markup.FormatMarkdown:
-			p.rctx.RepoInfo = params.RepoInfo
-			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
-			htmlString := p.rctx.RenderMarkdown(params.Contents)
-			sanitized := p.rctx.SanitizeDefault(htmlString)
-			params.RenderedContents = template.HTML(sanitized)
-		}
+	switch params.BlobView.ContentType {
+	case models.BlobContentTypeMarkup:
+		p.rctx.RepoInfo = params.RepoInfo
 	}
 
-	c := params.Contents
-	formatter := chromahtml.New(
-		chromahtml.InlineCode(false),
-		chromahtml.WithLineNumbers(true),
-		chromahtml.WithLinkableLineNumbers(true, "L"),
-		chromahtml.Standalone(false),
-		chromahtml.WithClasses(true),
-	)
-
-	lexer := lexers.Get(filepath.Base(params.Path))
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-
-	iterator, err := lexer.Tokenise(nil, c)
-	if err != nil {
-		return fmt.Errorf("chroma tokenize: %w", err)
-	}
-
-	var code bytes.Buffer
-	err = formatter.Format(&code, style, iterator)
-	if err != nil {
-		return fmt.Errorf("chroma format: %w", err)
-	}
-
-	params.Contents = code.String()
 	params.Active = "overview"
 	return p.executeRepo("repo/blob", w, params)
 }

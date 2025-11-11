@@ -11,10 +11,6 @@
 {{ end }}
 
 {{ define "repoContent" }}
-    {{ $lines := split .Contents }}
-    {{ $tot_lines := len $lines }}
-    {{ $tot_chars := len (printf "%d" $tot_lines) }}
-    {{ $code_number_style := "text-gray-400 dark:text-gray-500 left-0 bg-white dark:bg-gray-800 text-right mr-6 select-none inline-block w-12" }}
     {{ $linkstyle := "no-underline hover:underline" }}
     <div class="pb-2 mb-3 text-base border-b border-gray-200 dark:border-gray-700">
         <div class="flex flex-col md:flex-row md:justify-between gap-2">
@@ -36,47 +32,74 @@
             </div>
             <div id="file-info" class="text-gray-500 dark:text-gray-400 text-xs md:text-sm flex flex-wrap items-center gap-1 md:gap-0">
                 <span>at <a href="/{{ .RepoInfo.FullName }}/tree/{{ .Ref }}">{{ .Ref }}</a></span>
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <span>{{ .Lines }} lines</span>
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <span>{{ byteFmt .SizeHint }}</span>
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <a href="/{{ .RepoInfo.FullName }}/raw/{{ .Ref }}/{{ .Path }}">view raw</a>
-                {{ if .RenderToggle }}
-                <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
-                <a
-                href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .ShowRendered }}"
-                hx-boost="true"
-                >view {{ if .ShowRendered }}code{{ else }}rendered{{ end }}</a>
+
+                {{ if .BlobView.ShowingText }}
+                  <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                  <span>{{ .Lines }} lines</span>
+                {{ end }}
+
+                {{ if .BlobView.SizeHint }}
+                  <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                  <span>{{ byteFmt .BlobView.SizeHint }}</span>
+                {{ end }}
+
+                {{ if .BlobView.HasRawView }}
+                  <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                  <a href="/{{ .RepoInfo.FullName }}/raw/{{ .Ref }}/{{ .Path }}">view raw</a>
+                {{ end }}
+
+                {{ if .BlobView.ShowToggle }}
+                  <span class="select-none px-1 md:px-2 [&:before]:content-['·']"></span>
+                  <a href="/{{ .RepoInfo.FullName }}/blob/{{ .Ref }}/{{ .Path }}?code={{ .BlobView.ShowingRendered }}" hx-boost="true">
+                    view {{ if .BlobView.ShowingRendered }}code{{ else }}rendered{{ end }}
+                  </a>
                 {{ end }}
             </div>
         </div>
     </div>
-    {{ if and .IsBinary .Unsupported }}
-        <p class="text-center text-gray-400 dark:text-gray-500">
-            Previews are not supported for this file type.
-        </p>
-    {{ else if .IsBinary }}
-        <div class="text-center">
-            {{ if .IsImage }}
-                <img src="{{ .ContentSrc }}"
-                     alt="{{ .Path }}"
-                     class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded" />
-            {{ else if .IsVideo }}
-                <video controls class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded">
-                    <source src="{{ .ContentSrc }}">
-                    Your browser does not support the video tag.
-                </video>
-            {{ end }}
-        </div>
-    {{ else }}
-    <div class="overflow-auto relative">
-        {{ if .ShowRendered }}
-        <div id="blob-contents" class="prose dark:prose-invert">{{ .RenderedContents }}</div>
+    {{ if .BlobView.IsUnsupported }}
+      <p class="text-center text-gray-400 dark:text-gray-500">
+          Previews are not supported for this file type.
+      </p>
+    {{ else if .BlobView.ContentType.IsSubmodule }}
+      <p class="text-center text-gray-400 dark:text-gray-500">
+        This directory is a git submodule of <a href="{{ .BlobView.ContentSrc }}">{{ .BlobView.ContentSrc }}</a>.
+      </p>
+    {{ else if .BlobView.ContentType.IsImage }}
+      <div class="text-center">
+        <img src="{{ .BlobView.ContentSrc }}"
+             alt="{{ .Path }}"
+             class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded" />
+      </div>
+    {{ else if .BlobView.ContentType.IsVideo }}
+      <div class="text-center">
+        <video controls class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded">
+            <source src="{{ .BlobView.ContentSrc }}">
+            Your browser does not support the video tag.
+        </video>
+      </div>
+    {{ else if .BlobView.ContentType.IsSvg }}
+      <div class="overflow-auto relative">
+        {{ if .BlobView.ShowingRendered }}
+          <div class="text-center">
+            <img src="{{ .BlobView.ContentSrc }}"
+                 alt="{{ .Path }}"
+                 class="max-w-full h-auto mx-auto border border-gray-200 dark:border-gray-700 rounded" />
+          </div>
         {{ else }}
-        <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ $.Contents | escapeHtml }}</div>
+          <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ code .BlobView.Contents .Path | escapeHtml }}</div>
         {{ end }}
-    </div>
+      </div>
+    {{ else if .BlobView.ContentType.IsMarkup }}
+      <div class="overflow-auto relative">
+        {{ if .BlobView.ShowingRendered }}
+          <div id="blob-contents" class="prose dark:prose-invert">{{ .BlobView.Contents | readme }}</div>
+        {{ else }}
+          <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ code .BlobView.Contents .Path | escapeHtml }}</div>
+        {{ end }}
+      </div>
+    {{ else if .BlobView.ContentType.IsCode }}
+      <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ code .BlobView.Contents .Path | escapeHtml }}</div>
     {{ end }}
     {{ template "fragments/multiline-select" }}
 {{ end }}
