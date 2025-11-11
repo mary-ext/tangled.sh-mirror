@@ -109,7 +109,7 @@ func (e *Engine) InitWorkflow(twf tangled.Pipeline_Workflow, tpl tangled.Pipelin
 	setup := &setupSteps{}
 
 	setup.addStep(nixConfStep())
-	setup.addStep(cloneStep(twf, *tpl.TriggerMetadata, e.cfg.Server.Dev))
+	setup.addStep(models.BuildCloneStep(twf, *tpl.TriggerMetadata, e.cfg.Server.Dev))
 	// this step could be empty
 	if s := dependencyStep(dwf.Dependencies); s != nil {
 		setup.addStep(*s)
