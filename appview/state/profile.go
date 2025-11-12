@@ -96,7 +96,6 @@ func (s *State) profile(r *http.Request) (*pages.ProfileCard, error) {
 
 	return &pages.ProfileCard{
 		UserDid:      did,
-		UserHandle:   ident.Handle.String(),
 		Profile:      profile,
 		FollowStatus: followStatus,
 		Stats: pages.ProfileStats{
@@ -119,7 +118,7 @@ func (s *State) profileOverview(w http.ResponseWriter, r *http.Request) {
 		s.pages.Error500(w)
 		return
 	}
-	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+	l = l.With("profileDid", profile.UserDid)
 
 	repos, err := db.GetRepos(
 		s.db,
@@ -180,7 +179,7 @@ func (s *State) reposPage(w http.ResponseWriter, r *http.Request) {
 		s.pages.Error500(w)
 		return
 	}
-	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+	l = l.With("profileDid", profile.UserDid)
 
 	repos, err := db.GetRepos(
 		s.db,
@@ -209,7 +208,7 @@ func (s *State) starredPage(w http.ResponseWriter, r *http.Request) {
 		s.pages.Error500(w)
 		return
 	}
-	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+	l = l.With("profileDid", profile.UserDid)
 
 	stars, err := db.GetStars(s.db, 0, db.FilterEq("starred_by_did", profile.UserDid))
 	if err != nil {
@@ -240,7 +239,7 @@ func (s *State) stringsPage(w http.ResponseWriter, r *http.Request) {
 		s.pages.Error500(w)
 		return
 	}
-	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+	l = l.With("profileDid", profile.UserDid)
 
 	strings, err := db.GetStrings(s.db, 0, db.FilterEq("did", profile.UserDid))
 	if err != nil {
@@ -272,7 +271,7 @@ func (s *State) followPage(
 	if err != nil {
 		return nil, err
 	}
-	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
+	l = l.With("profileDid", profile.UserDid)
 
 	loggedInUser := s.oauth.GetUser(r)
 	params := FollowsPageParams{

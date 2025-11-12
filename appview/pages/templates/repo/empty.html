@@ -35,7 +35,7 @@
 
           <p><span class="{{$bullet}}">1</span>First, generate a new <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key" class="underline">SSH key pair</a>.</p>
           <p><span class="{{$bullet}}">2</span>Then add the public key to your account from the <a href="/settings" class="underline">settings</a> page.</p>
-          <p><span class="{{$bullet}}">3</span>Configure your remote to <code>git@{{ $knot | stripPort }}:{{ .RepoInfo.OwnerHandle }}/{{ .RepoInfo.Name }}</code></p>
+          <p><span class="{{$bullet}}">3</span>Configure your remote to <code>git@{{ $knot | stripPort }}:{{ resolve .RepoInfo.OwnerDid }}/{{ .RepoInfo.Name }}</code></p>
           <p><span class="{{$bullet}}">4</span>Push!</p>
         </div>
       </div>

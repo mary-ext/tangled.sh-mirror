@@ -1,4 +1,4 @@
-{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }}{{ end }}
+{{ define "title" }}{{ resolve .Card.UserDid }}{{ end }}
 
 {{ define "profileContent" }}
   <div id="all-repos" class="md:col-span-4 order-2 md:order-2">
@@ -224,7 +224,7 @@
 {{ define "ownRepos" }}
   <div>
     <div class="text-sm font-bold px-2 pb-4 dark:text-white flex items-center gap-2">
-      <a href="/@{{ or $.Card.UserHandle $.Card.UserDid }}?tab=repos"
+      <a href="/{{ resolve $.Card.UserDid }}?tab=repos"
         class="flex text-black dark:text-white items-center gap-2 no-underline hover:no-underline group">
         <span>PINNED REPOS</span>
       </a>

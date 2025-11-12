@@ -113,23 +113,9 @@ func (f *ResolvedRepo) Collaborators(ctx context.Context) ([]pages.Collaborator,
 
 		c := pages.Collaborator{
 			Did:    did,
-			Handle: "",
 			Role:   role,
 		}
 		collaborators = append(collaborators, c)
-	}
-
-	// populate all collborators with handles
-	identsToResolve := make([]string, len(collaborators))
-	for i, collab := range collaborators {
-		identsToResolve[i] = collab.Did
-	}
-
-	resolvedIdents := f.rr.idResolver.ResolveIdents(ctx, identsToResolve)
-	for i, resolved := range resolvedIdents {
-		if resolved != nil {
-			collaborators[i].Handle = resolved.Handle.String()
-		}
 	}
 
 	return collaborators, nil
