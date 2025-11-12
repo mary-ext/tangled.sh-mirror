@@ -29,16 +29,17 @@
       {{ template "addCollaboratorButton" . }}
     {{ end }}
     {{ range .Collaborators }}
+      {{ $handle := resolve .Did }}
       <div class="border border-gray-200 dark:border-gray-700 rounded p-4">
         <div class="flex items-center gap-3">
           <img
-            src="{{ fullAvatar .Handle }}"
-            alt="{{ .Handle }}"
+            src="{{ fullAvatar $handle }}"
+            alt="{{ $handle }}"
             class="rounded-full h-10 w-10 border border-gray-300 dark:border-gray-600 flex-shrink-0"/>
 
           <div class="flex-1 min-w-0">
-            <a href="/{{ .Handle }}" class="block truncate">
-              {{ didOrHandle .Did .Handle }}
+            <a href="/{{ $handle }}" class="block truncate">
+              {{ $handle }}
             </a>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ .Role }}</p>
           </div>

@@ -1,10 +1,11 @@
-{{ define "title" }}strings by {{ or .Card.UserHandle .Card.UserDid  }}{{ end }}
+{{ define "title" }}strings by {{ resolve .Card.UserDid  }}{{ end }}
 
 {{ define "extrameta" }}
-    <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid  }}" />
+    {{ $handle := resolve .Card.UserDid }}
+    <meta property="og:title" content="{{ $handle }}" />
     <meta property="og:type" content="profile" />
-    <meta property="og:url" content="https://tangled.org/{{ or .Card.UserHandle .Card.UserDid  }}" />
-    <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+    <meta property="og:url" content="https://tangled.org/{{ $handle }}" />
+    <meta property="og:description" content="{{ or .Card.Profile.Description $handle }}" />
 {{ end }}
 
 
@@ -35,7 +36,7 @@
   {{ $s := index . 1 }}
   <div class="py-4 px-6 drop-shadow-sm rounded bg-white dark:bg-gray-800">
     <div class="font-medium dark:text-white flex gap-2 items-center">
-        <a href="/strings/{{ or $root.Card.UserHandle $root.Card.UserDid  }}/{{ $s.Rkey }}">{{ $s.Filename }}</a>
+        <a href="/strings/{{ resolve $root.Card.UserDid }}/{{ $s.Rkey }}">{{ $s.Filename }}</a>
     </div>
     {{ with $s.Description }}
       <div class="text-gray-600 dark:text-gray-300 text-sm">

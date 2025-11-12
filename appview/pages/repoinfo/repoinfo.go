@@ -9,7 +9,7 @@ import (
 	"tangled.org/core/appview/state/userutil"
 )
 
-func (r RepoInfo) Owner() string {
+func (r RepoInfo) owner() string {
 	if r.OwnerHandle != "" {
 		return r.OwnerHandle
 	} else {
@@ -18,7 +18,7 @@ func (r RepoInfo) Owner() string {
 }
 
 func (r RepoInfo) FullName() string {
-	return path.Join(r.Owner(), r.Name)
+	return path.Join(r.owner(), r.Name)
 }
 
 func (r RepoInfo) OwnerWithoutAt() string {

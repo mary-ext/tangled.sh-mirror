@@ -1,18 +1,19 @@
-{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }}{{ end }}
+{{ define "title" }}{{ resolve .Card.UserDid }}{{ end }}
 
 {{ define "extrameta" }}
-    {{ $avatarUrl := fullAvatar .Card.UserHandle }}
-    <meta property="og:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
+    {{ $handle := resolve .Card.UserDid }}
+    {{ $avatarUrl := fullAvatar $handle }}
+    <meta property="og:title" content="{{ $handle }}" />
     <meta property="og:type" content="profile" />
-    <meta property="og:url" content="https://tangled.org/{{ or .Card.UserHandle .Card.UserDid }}?tab={{ .Active }}" />
-    <meta property="og:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+    <meta property="og:url" content="https://tangled.org/{{ $handle }}?tab={{ .Active }}" />
+    <meta property="og:description" content="{{ or .Card.Profile.Description $handle }}" />
     <meta property="og:image" content="{{ $avatarUrl }}" />
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
     
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="{{ or .Card.UserHandle .Card.UserDid }}" />
-    <meta name="twitter:description" content="{{ or .Card.Profile.Description .Card.UserHandle .Card.UserDid }}" />
+    <meta name="twitter:title" content="{{ $handle }}" />
+    <meta name="twitter:description" content="{{ or .Card.Profile.Description $handle }}" />
     <meta name="twitter:image" content="{{ $avatarUrl }}" />
 {{ end }}
 

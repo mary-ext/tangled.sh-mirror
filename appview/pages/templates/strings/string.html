@@ -1,7 +1,7 @@
-{{ define "title" }}{{ .String.Filename }} · by {{ didOrHandle .Owner.DID.String .Owner.Handle.String }}{{ end }}
+{{ define "title" }}{{ .String.Filename }} · by {{ resolve .Owner.DID.String }}{{ end }}
 
 {{ define "extrameta" }}
-  {{ $ownerId := didOrHandle .Owner.DID.String .Owner.Handle.String }}
+  {{ $ownerId := resolve .Owner.DID.String }}
   <meta property="og:title" content="{{ .String.Filename }} · by {{ $ownerId }}" />
   <meta property="og:type" content="object" />
   <meta property="og:url" content="https://tangled.org/strings/{{ $ownerId }}/{{ .String.Rkey }}" />
@@ -9,7 +9,7 @@
 {{ end }}
 
 {{ define "content" }}
-{{ $ownerId := didOrHandle .Owner.DID.String .Owner.Handle.String }}
+{{ $ownerId := resolve .Owner.DID.String }}
   <section id="string-header" class="mb-4 py-2 px-6 dark:text-white">
     <div class="text-lg flex items-center justify-between">
       <div>

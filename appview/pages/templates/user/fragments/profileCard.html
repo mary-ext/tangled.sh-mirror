@@ -1,5 +1,5 @@
 {{ define "user/fragments/profileCard" }}
-  {{ $userIdent := didOrHandle .UserDid .UserHandle }}
+  {{ $userIdent := resolve .UserDid }}
     <div class="grid grid-cols-3 md:grid-cols-1 gap-1 items-center">
       <div id="avatar" class="col-span-1 flex justify-center items-center">
         <div class="w-3/4 aspect-square relative">

@@ -1,4 +1,4 @@
-{{ define "title" }}{{ or .Card.UserHandle .Card.UserDid }} · strings {{ end }}
+{{ define "title" }}{{ resolve .Card.UserDid }} · strings {{ end }}
 
 {{ define "profileContent" }}
   <div id="all-strings" class="md:col-span-8 order-2 md:order-2">
@@ -23,7 +23,7 @@
   {{ $s := index . 1 }}
   <div class="py-4 px-6 rounded bg-white dark:bg-gray-800">
     <div class="font-medium dark:text-white flex gap-2 items-center">
-        <a href="/strings/{{ or $root.Card.UserHandle $root.Card.UserDid  }}/{{ $s.Rkey }}">{{ $s.Filename }}</a>
+        <a href="/strings/{{ resolve $root.Card.UserDid  }}/{{ $s.Rkey }}">{{ $s.Filename }}</a>
     </div>
     {{ with $s.Description }}
       <div class="text-gray-600 dark:text-gray-300 text-sm">

@@ -22,10 +22,10 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
-	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/dustin/go-humanize"
 	"github.com/go-enry/go-enry/v2"
 	"tangled.org/core/appview/filetree"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/crypto"
 )
@@ -70,6 +70,17 @@ func (p *Pages) funcMap() template.FuncMap {
 			}
 
 			return identity.Handle.String()
+		},
+		"ownerSlashRepo": func(repo *models.Repo) string {
+			ownerId, err := p.resolver.ResolveIdent(context.Background(), repo.Did)
+			if err != nil {
+				return repo.DidSlashRepo()
+			}
+			handle := ownerId.Handle
+			if handle != "" && !handle.IsInvalidHandle() {
+				return string(handle) + "/" + repo.Name
+			}
+			return repo.DidSlashRepo()
 		},
 		"truncateAt30": func(s string) string {
 			if len(s) <= 30 {
@@ -130,13 +141,6 @@ func (p *Pages) funcMap() template.FuncMap {
 			}
 
 			return b
-		},
-		"didOrHandle": func(did, handle string) string {
-			if handle != "" && handle != syntax.HandleInvalid.String() {
-				return handle
-			} else {
-				return did
-			}
 		},
 		"assoc": func(values ...string) ([][]string, error) {
 			if len(values)%2 != 0 {
@@ -369,8 +373,24 @@ func (p *Pages) funcMap() template.FuncMap {
 	}
 }
 
+func (p *Pages) resolveDid(did string) string {
+	identity, err := p.resolver.ResolveIdent(context.Background(), did)
+
+	if err != nil {
+		return did
+	}
+
+	if identity.Handle.IsInvalidHandle() {
+		return "handle.invalid"
+	}
+
+	return identity.Handle.String()
+}
+
 func (p *Pages) AvatarUrl(handle, size string) string {
 	handle = strings.TrimPrefix(handle, "@")
+
+	handle = p.resolveDid(handle)
 
 	secret := p.avatar.SharedSecret
 	h := hmac.New(sha256.New, []byte(secret))

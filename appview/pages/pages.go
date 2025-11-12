@@ -482,7 +482,6 @@ func (p *Pages) ForkRepo(w io.Writer, params ForkRepoParams) error {
 
 type ProfileCard struct {
 	UserDid      string
-	UserHandle   string
 	FollowStatus models.FollowStatus
 	Punchcard    *models.Punchcard
 	Profile      *models.Profile
@@ -831,9 +830,8 @@ func (p *Pages) RepoBlob(w io.Writer, params RepoBlobParams) error {
 }
 
 type Collaborator struct {
-	Did    string
-	Handle string
-	Role   string
+	Did  string
+	Role string
 }
 
 type RepoSettingsParams struct {
