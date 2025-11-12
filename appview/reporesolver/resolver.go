@@ -147,14 +147,6 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		}
 	}
 
-	var sourceHandle *identity.Identity
-	if sourceRepo != nil {
-		sourceHandle, err = f.rr.idResolver.ResolveIdent(context.Background(), sourceRepo.Did)
-		if err != nil {
-			log.Println("failed to resolve source repo", err)
-		}
-	}
-
 	knot := f.Knot
 
 	repoInfo := repoinfo.RepoInfo{
@@ -162,7 +154,6 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		OwnerHandle: f.OwnerId.Handle.String(),
 		Name:        f.Name,
 		Rkey:        f.Rkey,
-		RepoAt:      repoAt,
 		Description: f.Description,
 		Website:     f.Website,
 		Topics:      f.Topics,
@@ -181,7 +172,6 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 
 	if sourceRepo != nil {
 		repoInfo.Source = sourceRepo
-		repoInfo.SourceHandle = sourceHandle.Handle.String()
 	}
 
 	return repoInfo

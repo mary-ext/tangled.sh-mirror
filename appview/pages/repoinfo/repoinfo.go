@@ -1,10 +1,12 @@
 package repoinfo
 
 import (
+	"fmt"
 	"path"
 	"slices"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/state/userutil"
 )
@@ -48,25 +50,26 @@ func (r RepoInfo) GetTabs() [][]string {
 	return tabs
 }
 
+func (r RepoInfo) RepoAt() syntax.ATURI {
+	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", r.OwnerDid, tangled.RepoNSID, r.Rkey))
+}
+
 type RepoInfo struct {
-	Name         string
-	Rkey         string
-	OwnerDid     string
-	OwnerHandle  string
-	Description  string
-	Website      string
-	Topics       []string
-	Knot         string
-	Spindle      string
-	RepoAt       syntax.ATURI
-	IsStarred    bool
-	Stats        models.RepoStats
-	Roles        RolesInRepo
-	Source       *models.Repo
-	SourceHandle string
-	Ref          string
-	DisableFork  bool
-	CurrentDir   string
+	Name        string
+	Rkey        string
+	OwnerDid    string
+	OwnerHandle string
+	Description string
+	Website     string
+	Topics      []string
+	Knot        string
+	Spindle     string
+	IsStarred   bool
+	Stats       models.RepoStats
+	Roles       RolesInRepo
+	Source      *models.Repo
+	Ref         string
+	CurrentDir  string
 }
 
 // each tab on a repo could have some metadata:
