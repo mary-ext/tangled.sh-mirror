@@ -7,6 +7,7 @@ import (
 
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/state"
+	"tangled.org/core/appview/web"
 	tlog "tangled.org/core/log"
 )
 
@@ -35,7 +36,7 @@ func main() {
 
 	logger.Info("starting server", "address", c.Core.ListenAddr)
 
-	if err := http.ListenAndServe(c.Core.ListenAddr, state.Router()); err != nil {
+	if err := http.ListenAndServe(c.Core.ListenAddr, web.RouterFromState(state)); err != nil {
 		logger.Error("failed to start appview", "err", err)
 	}
 }

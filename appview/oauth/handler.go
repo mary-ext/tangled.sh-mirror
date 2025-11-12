@@ -24,7 +24,7 @@ func (o *OAuth) Router() http.Handler {
 
 	r.Get("/oauth/client-metadata.json", o.clientMetadata)
 	r.Get("/oauth/jwks.json", o.jwks)
-	r.Get("/oauth/callback", o.callback)
+	r.Get("/oauth/callback", o.Callback)
 	return r
 }
 
@@ -50,7 +50,7 @@ func (o *OAuth) jwks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (o *OAuth) callback(w http.ResponseWriter, r *http.Request) {
+func (o *OAuth) Callback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	l := o.Logger.With("query", r.URL.Query())
 
