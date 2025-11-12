@@ -59,6 +59,25 @@ func (s *State) ReceivePack(w http.ResponseWriter, r *http.Request) {
 	s.proxyRequest(w, r, targetURL)
 }
 
+func (s *State) DownloadArchive(w http.ResponseWriter, r *http.Request) {
+	ref := chi.URLParam(r, "ref")
+
+	user, ok := r.Context().Value("resolvedId").(identity.Identity)
+	if !ok {
+		http.Error(w, "failed to resolve user", http.StatusInternalServerError)
+		return
+	}
+	repo := r.Context().Value("repo").(*models.Repo)
+
+	scheme := "https"
+	if s.config.Core.Dev {
+		scheme = "http"
+	}
+
+	targetURL := fmt.Sprintf("%s://%s/%s/%s/archive/%s", scheme, repo.Knot, user.DID, repo.Name, ref)
+	s.proxyRequest(w, r, targetURL)
+}
+
 func (s *State) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
 	client := &http.Client{}
 

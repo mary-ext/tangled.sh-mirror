@@ -100,7 +100,9 @@ func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 			r.Get("/info/refs", s.InfoRefs)
 			r.Post("/git-upload-pack", s.UploadPack)
 			r.Post("/git-receive-pack", s.ReceivePack)
-
+			// intentionally doesn't use /* as this isn't
+			// a file path
+			r.Get("/archive/{ref}", s.DownloadArchive)
 		})
 	})
 

@@ -84,6 +84,8 @@ func (h *Knot) Router() http.Handler {
 			r.Get("/info/refs", h.InfoRefs)
 			r.Post("/git-upload-pack", h.UploadPack)
 			r.Post("/git-receive-pack", h.ReceivePack)
+			// convenience routes
+			r.Get("/archive/{ref}", h.Archive)
 		})
 	})
 
