@@ -411,6 +411,17 @@ func GetRepoSource(e Execer, repoAt syntax.ATURI) (string, error) {
 	return nullableSource.String, nil
 }
 
+func GetRepoSourceRepo(e Execer, repoAt syntax.ATURI) (*models.Repo, error) {
+	source, err := GetRepoSource(e, repoAt)
+	if source == "" || errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return GetRepoByAtUri(e, source)
+}
+
 func GetForksByDid(e Execer, did string) ([]models.Repo, error) {
 	var repos []models.Repo
 

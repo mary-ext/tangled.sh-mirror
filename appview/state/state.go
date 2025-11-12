@@ -96,7 +96,7 @@ func Make(ctx context.Context, config *config.Config) (*State, error) {
 	}
 	validator := validator.New(d, res, enforcer)
 
-	repoResolver := reporesolver.New(config, enforcer, res, d)
+	repoResolver := reporesolver.New(config, enforcer, d)
 
 	wrapper := db.DbWrapper{Execer: d}
 	jc, err := jetstream.NewJetstreamClient(

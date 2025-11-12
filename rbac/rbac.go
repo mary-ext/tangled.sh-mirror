@@ -285,6 +285,14 @@ func (e *Enforcer) IsRepoDeleteAllowed(user, domain, repo string) (bool, error) 
 	return e.E.Enforce(user, domain, repo, "repo:delete")
 }
 
+func (e *Enforcer) IsRepoOwner(user, domain, repo string) (bool, error) {
+	return e.E.Enforce(user, domain, repo, "repo:owner")
+}
+
+func (e *Enforcer) IsRepoCollaborator(user, domain, repo string) (bool, error) {
+	return e.E.Enforce(user, domain, repo, "repo:collaborator")
+}
+
 func (e *Enforcer) IsPushAllowed(user, domain, repo string) (bool, error) {
 	return e.E.Enforce(user, domain, repo, "repo:push")
 }

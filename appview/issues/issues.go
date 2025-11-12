@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"slices"
 	"time"
 
 	comatproto "github.com/bluesky-social/indigo/api/atproto"
@@ -286,17 +285,13 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collaborators, err := f.Collaborators(r.Context())
-	if err != nil {
-		l.Error("failed to fetch repo collaborators", "err", err)
-	}
-	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
-		return user.Did == collab.Did
-	})
+	roles := f.RolesInRepo(user)
+	isRepoOwner := roles.IsOwner()
+	isCollaborator := roles.IsCollaborator()
 	isIssueOwner := user.Did == issue.Did
 
 	// TODO: make this more granular
-	if isIssueOwner || isCollaborator {
+	if isIssueOwner || isRepoOwner || isCollaborator {
 		err = db.CloseIssues(
 			rp.db,
 			db.FilterEq("id", issue.Id),
@@ -338,16 +333,12 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collaborators, err := f.Collaborators(r.Context())
-	if err != nil {
-		l.Error("failed to fetch repo collaborators", "err", err)
-	}
-	isCollaborator := slices.ContainsFunc(collaborators, func(collab pages.Collaborator) bool {
-		return user.Did == collab.Did
-	})
+	roles := f.RolesInRepo(user)
+	isRepoOwner := roles.IsOwner()
+	isCollaborator := roles.IsCollaborator()
 	isIssueOwner := user.Did == issue.Did
 
-	if isCollaborator || isIssueOwner {
+	if isCollaborator || isRepoOwner || isIssueOwner {
 		err := db.ReopenIssues(
 			rp.db,
 			db.FilterEq("id", issue.Id),

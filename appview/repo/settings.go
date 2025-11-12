@@ -10,6 +10,7 @@ import (
 
 	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
+	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	xrpcclient "tangled.org/core/appview/xrpcclient"
@@ -271,7 +272,34 @@ func (rp *Repo) accessSettings(w http.ResponseWriter, r *http.Request) {
 	f, err := rp.repoResolver.Resolve(r)
 	user := rp.oauth.GetUser(r)
 
-	repoCollaborators, err := f.Collaborators(r.Context())
+	collaborators, err := func(repo *models.Repo) ([]pages.Collaborator, error) {
+		repoCollaborators, err := rp.enforcer.E.GetImplicitUsersForResourceByDomain(repo.DidSlashRepo(), repo.Knot)
+		if err != nil {
+			return nil, err
+		}
+		var collaborators []pages.Collaborator
+		for _, item := range repoCollaborators {
+			// currently only two roles: owner and member
+			var role string
+			switch item[3] {
+			case "repo:owner":
+				role = "owner"
+			case "repo:collaborator":
+				role = "collaborator"
+			default:
+				continue
+			}
+
+			did := item[0]
+
+			c := pages.Collaborator{
+				Did:  did,
+				Role: role,
+			}
+			collaborators = append(collaborators, c)
+		}
+		return collaborators, nil
+	}(&f.Repo)
 	if err != nil {
 		l.Error("failed to get collaborators", "err", err)
 	}
@@ -281,7 +309,7 @@ func (rp *Repo) accessSettings(w http.ResponseWriter, r *http.Request) {
 		RepoInfo:      f.RepoInfo(user),
 		Tabs:          settingsTabs,
 		Tab:           "access",
-		Collaborators: repoCollaborators,
+		Collaborators: collaborators,
 	})
 }
 

@@ -1,9 +1,6 @@
 package reporesolver
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,9 +14,7 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/oauth"
-	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/repoinfo"
-	"tangled.org/core/idresolver"
 	"tangled.org/core/rbac"
 )
 
@@ -33,14 +28,13 @@ type ResolvedRepo struct {
 }
 
 type RepoResolver struct {
-	config     *config.Config
-	enforcer   *rbac.Enforcer
-	idResolver *idresolver.Resolver
-	execer     db.Execer
+	config   *config.Config
+	enforcer *rbac.Enforcer
+	execer   db.Execer
 }
 
-func New(config *config.Config, enforcer *rbac.Enforcer, resolver *idresolver.Resolver, execer db.Execer) *RepoResolver {
-	return &RepoResolver{config: config, enforcer: enforcer, idResolver: resolver, execer: execer}
+func New(config *config.Config, enforcer *rbac.Enforcer, execer db.Execer) *RepoResolver {
+	return &RepoResolver{config: config, enforcer: enforcer, execer: execer}
 }
 
 // NOTE: this... should not even be here. the entire package will be removed in future refactor
@@ -80,37 +74,6 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 	}, nil
 }
 
-func (f *ResolvedRepo) Collaborators(ctx context.Context) ([]pages.Collaborator, error) {
-	repoCollaborators, err := f.rr.enforcer.E.GetImplicitUsersForResourceByDomain(f.DidSlashRepo(), f.Knot)
-	if err != nil {
-		return nil, err
-	}
-
-	var collaborators []pages.Collaborator
-	for _, item := range repoCollaborators {
-		// currently only two roles: owner and member
-		var role string
-		switch item[3] {
-		case "repo:owner":
-			role = "owner"
-		case "repo:collaborator":
-			role = "collaborator"
-		default:
-			continue
-		}
-
-		did := item[0]
-
-		c := pages.Collaborator{
-			Did:    did,
-			Role:   role,
-		}
-		collaborators = append(collaborators, c)
-	}
-
-	return collaborators, nil
-}
-
 // this function is a bit weird since it now returns RepoInfo from an entirely different
 // package. we should refactor this or get rid of RepoInfo entirely.
 func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
@@ -120,36 +83,34 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		isStarred = db.GetStarStatus(f.rr.execer, user.Did, repoAt)
 	}
 
-	starCount, err := db.GetStarCount(f.rr.execer, repoAt)
-	if err != nil {
-		log.Println("failed to get star count for ", repoAt)
-	}
-	issueCount, err := db.GetIssueCount(f.rr.execer, repoAt)
-	if err != nil {
-		log.Println("failed to get issue count for ", repoAt)
-	}
-	pullCount, err := db.GetPullCount(f.rr.execer, repoAt)
-	if err != nil {
-		log.Println("failed to get issue count for ", repoAt)
-	}
-	source, err := db.GetRepoSource(f.rr.execer, repoAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		source = ""
-	} else if err != nil {
-		log.Println("failed to get repo source for ", repoAt, err)
-	}
-
-	var sourceRepo *models.Repo
-	if source != "" {
-		sourceRepo, err = db.GetRepoByAtUri(f.rr.execer, source)
+	stats := f.RepoStats
+	if stats == nil {
+		starCount, err := db.GetStarCount(f.rr.execer, repoAt)
 		if err != nil {
-			log.Println("failed to get repo by at uri", err)
+			log.Println("failed to get star count for ", repoAt)
+		}
+		issueCount, err := db.GetIssueCount(f.rr.execer, repoAt)
+		if err != nil {
+			log.Println("failed to get issue count for ", repoAt)
+		}
+		pullCount, err := db.GetPullCount(f.rr.execer, repoAt)
+		if err != nil {
+			log.Println("failed to get pull count for ", repoAt)
+		}
+		stats = &models.RepoStats{
+			StarCount:  starCount,
+			IssueCount: issueCount,
+			PullCount:  pullCount,
 		}
 	}
 
-	knot := f.Knot
+	sourceRepo, err := db.GetRepoSourceRepo(f.rr.execer, repoAt)
+	if err != nil {
+		log.Println("failed to get repo by at uri", err)
+	}
 
 	repoInfo := repoinfo.RepoInfo{
+		// this is basically a models.Repo
 		OwnerDid:    f.OwnerId.DID.String(),
 		OwnerHandle: f.OwnerId.Handle.String(),
 		Name:        f.Name,
@@ -157,21 +118,19 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		Description: f.Description,
 		Website:     f.Website,
 		Topics:      f.Topics,
-		IsStarred:   isStarred,
-		Knot:        knot,
+		Knot:        f.Knot,
 		Spindle:     f.Spindle,
-		Roles:       f.RolesInRepo(user),
-		Stats: models.RepoStats{
-			StarCount:  starCount,
-			IssueCount: issueCount,
-			PullCount:  pullCount,
-		},
+		Stats:       *stats,
+
+		// fork repo upstream
+		Source: sourceRepo,
+
 		CurrentDir: f.CurrentDir,
 		Ref:        f.Ref,
-	}
 
-	if sourceRepo != nil {
-		repoInfo.Source = sourceRepo
+		// info related to the session
+		IsStarred: isStarred,
+		Roles:     f.RolesInRepo(user),
 	}
 
 	return repoInfo
