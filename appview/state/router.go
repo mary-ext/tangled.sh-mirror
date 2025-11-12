@@ -18,6 +18,7 @@ import (
 	"tangled.org/core/appview/spindles"
 	"tangled.org/core/appview/state/userutil"
 	avstrings "tangled.org/core/appview/strings"
+	"tangled.org/core/appview/web"
 	"tangled.org/core/log"
 )
 
@@ -39,6 +40,17 @@ func (s *State) Router() http.Handler {
 
 	userRouter := s.UserRouter(&middleware)
 	standardRouter := s.StandardRouter(&middleware)
+
+	_ = web.UserRouter(
+		s.logger,
+		s.config,
+		s.db,
+		s.idResolver,
+		s.refResolver,
+		s.notifier,
+		s.oauth,
+		s.pages,
+	)
 
 	router.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		pat := chi.URLParam(r, "*")
