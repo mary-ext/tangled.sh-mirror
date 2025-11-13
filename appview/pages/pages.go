@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -29,10 +28,6 @@ import (
 	"tangled.org/core/patchutil"
 	"tangled.org/core/types"
 
-	"github.com/alecthomas/chroma/v2"
-	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
-	"github.com/alecthomas/chroma/v2/lexers"
-	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -1387,44 +1382,6 @@ type SingleStringParams struct {
 }
 
 func (p *Pages) SingleString(w io.Writer, params SingleStringParams) error {
-	var style *chroma.Style = styles.Get("catpuccin-latte")
-
-	if params.ShowRendered {
-		switch markup.GetFormat(params.String.Filename) {
-		case markup.FormatMarkdown:
-			p.rctx.RendererType = markup.RendererTypeRepoMarkdown
-			htmlString := p.rctx.RenderMarkdown(params.String.Contents)
-			sanitized := p.rctx.SanitizeDefault(htmlString)
-			params.RenderedContents = template.HTML(sanitized)
-		}
-	}
-
-	c := params.String.Contents
-	formatter := chromahtml.New(
-		chromahtml.InlineCode(false),
-		chromahtml.WithLineNumbers(true),
-		chromahtml.WithLinkableLineNumbers(true, "L"),
-		chromahtml.Standalone(false),
-		chromahtml.WithClasses(true),
-	)
-
-	lexer := lexers.Get(filepath.Base(params.String.Filename))
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-
-	iterator, err := lexer.Tokenise(nil, c)
-	if err != nil {
-		return fmt.Errorf("chroma tokenize: %w", err)
-	}
-
-	var code bytes.Buffer
-	err = formatter.Format(&code, style, iterator)
-	if err != nil {
-		return fmt.Errorf("chroma format: %w", err)
-	}
-
-	params.String.Contents = code.String()
 	return p.execute("strings/string", w, params)
 }
 

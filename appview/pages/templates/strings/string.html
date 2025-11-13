@@ -75,9 +75,9 @@
     </div>
     <div class="overflow-x-auto overflow-y-hidden relative">
       {{ if .ShowRendered }}
-      <div id="blob-contents" class="prose dark:prose-invert">{{ .RenderedContents }}</div>
+        <div id="blob-contents" class="prose dark:prose-invert">{{ .String.Contents | readme }}</div>
       {{ else }}
-      <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ .String.Contents | escapeHtml }}</div>
+        <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ code .String.Contents .String.Filename | escapeHtml }}</div>
       {{ end }}
     </div>
     {{ template "fragments/multiline-select" }}
