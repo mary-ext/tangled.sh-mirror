@@ -374,7 +374,7 @@ func (rp *Repo) EditBaseSettings(w http.ResponseWriter, r *http.Request) {
 	)
 
 	err = rp.validator.ValidateURI(website)
-	if err != nil {
+	if website != "" && err != nil {
 		l.Error("invalid uri", "err", err)
 		rp.pages.Notice(w, noticeId, err.Error())
 		return

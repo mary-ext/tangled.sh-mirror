@@ -97,7 +97,7 @@ in
           enable = true;
           server = {
             owner = envVar "TANGLED_VM_SPINDLE_OWNER";
-            hostname = envVarOr "TANGLED_VM_SPINDLE_OWNER" "localhost:6555";
+            hostname = envVarOr "TANGLED_VM_SPINDLE_HOST" "localhost:6555";
             plcUrl = plcUrl;
             jetstreamEndpoint = jetstream;
             listenAddr = "0.0.0.0:6555";
