@@ -57,14 +57,22 @@ func (s *State) Router() http.Handler {
 			if userutil.IsFlattenedDid(firstPart) {
 				unflattenedDid := userutil.UnflattenDid(firstPart)
 				redirectPath := strings.Join(append([]string{unflattenedDid}, pathParts[1:]...), "/")
-				http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
+
+				redirectURL := *r.URL
+				redirectURL.Path = "/" + redirectPath
+
+				http.Redirect(w, r, redirectURL.String(), http.StatusFound)
 				return
 			}
 
 			// if using a handle with @, rewrite to work without @
 			if normalized := strings.TrimPrefix(firstPart, "@"); userutil.IsHandle(normalized) {
 				redirectPath := strings.Join(append([]string{normalized}, pathParts[1:]...), "/")
-				http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
+
+				redirectURL := *r.URL
+				redirectURL.Path = "/" + redirectPath
+
+				http.Redirect(w, r, redirectURL.String(), http.StatusFound)
 				return
 			}
 
