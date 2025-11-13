@@ -67,6 +67,7 @@ func (s *State) Router() http.Handler {
 				http.Redirect(w, r, "/"+redirectPath, http.StatusFound)
 				return
 			}
+
 		}
 
 		standardRouter.ServeHTTP(w, r)
@@ -81,12 +82,6 @@ func (s *State) UserRouter(mw *middleware.Middleware) http.Handler {
 	r.With(mw.ResolveIdent()).Route("/{user}", func(r chi.Router) {
 		r.Get("/", s.Profile)
 		r.Get("/feed.atom", s.AtomFeedPage)
-
-		// redirect /@handle/repo.git -> /@handle/repo
-		r.Get("/{repo}.git", func(w http.ResponseWriter, r *http.Request) {
-			nonDotGitPath := strings.TrimSuffix(r.URL.Path, ".git")
-			http.Redirect(w, r, nonDotGitPath, http.StatusMovedPermanently)
-		})
 
 		r.With(mw.ResolveRepo()).Route("/{repo}", func(r chi.Router) {
 			r.Use(mw.GoImport())

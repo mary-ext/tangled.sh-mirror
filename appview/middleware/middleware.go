@@ -206,6 +206,8 @@ func (mw Middleware) ResolveRepo() middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			repoName := chi.URLParam(req, "repo")
+			repoName = strings.TrimSuffix(repoName, ".git")
+
 			id, ok := req.Context().Value("resolvedId").(identity.Identity)
 			if !ok {
 				log.Println("malformed middleware")
