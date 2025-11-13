@@ -194,6 +194,8 @@ in
               email = git@example.com
           [receive]
               advertisePushOptions = true
+          [uploadpack]
+              allowFilter = true
           EOF
           ${setMotd}
           chown -R ${cfg.gitUser}:${cfg.gitUser} "${cfg.stateDir}"
