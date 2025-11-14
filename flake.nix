@@ -184,12 +184,9 @@
       air-watcher = name: arg:
         pkgs.writeShellScriptBin "run"
         ''
-          ${pkgs.air}/bin/air -c /dev/null \
-          -build.cmd "${pkgs.go}/bin/go build -o ./out/${name}.out ./cmd/${name}/main.go" \
-          -build.bin "./out/${name}.out" \
-          -build.args_bin "${arg}" \
-          -build.stop_on_error "true" \
-          -build.include_ext "go"
+          export PATH=${pkgs.go}/bin:$PATH
+          ${pkgs.air}/bin/air -c ./.air/${name}.toml \
+            -build.args_bin "${arg}"
         '';
       tailwind-watcher =
         pkgs.writeShellScriptBin "run"

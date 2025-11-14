@@ -1,7 +1,0 @@
-[build]
-cmd = 'go build -ldflags "-X tangled.org/core/knotserver.version=$(git describe --tags --long)" -o .bin/knot ./cmd/knot/'
-bin = ".bin/knot server"
-root = "."
-
-exclude_regex = [""]
-include_ext = ["go", "templ"]

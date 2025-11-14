@@ -2,8 +2,8 @@ root = "."
 tmp_dir = "out"
 
 [build]
-cmd = "go build -o out/appview.out cmd/appview/main.go"
-bin = "out/appview.out"
+cmd = "go build -o out/spindle.out cmd/spindle/main.go"
+bin = "out/spindle.out"
 
 include_ext = ["go"]
 exclude_dir = ["avatar", "camo", "indexes", "nix", "tmp"]
