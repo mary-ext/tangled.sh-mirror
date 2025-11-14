@@ -10,36 +10,8 @@ import (
 	"time"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
-	securejoin "github.com/cyphar/filepath-securejoin"
-	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/models"
 )
-
-type Repo struct {
-	Id          int64
-	Did         string
-	Name        string
-	Knot        string
-	Rkey        string
-	Created     time.Time
-	Description string
-	Spindle     string
-
-	// optionally, populate this when querying for reverse mappings
-	RepoStats *models.RepoStats
-
-	// optional
-	Source string
-}
-
-func (r Repo) RepoAt() syntax.ATURI {
-	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", r.Did, tangled.RepoNSID, r.Rkey))
-}
-
-func (r Repo) DidSlashRepo() string {
-	p, _ := securejoin.SecureJoin(r.Did, r.Name)
-	return p
-}
 
 func GetRepos(e Execer, limit int, filters ...filter) ([]models.Repo, error) {
 	repoMap := make(map[syntax.ATURI]*models.Repo)
