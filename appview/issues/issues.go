@@ -806,7 +806,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 
 	keyword := params.Get("q")
 
-	var ids []int64
+	var issues []models.Issue
 	searchOpts := models.IssueSearchOptions{
 		Keyword: keyword,
 		RepoAt:  f.RepoAt().String(),
@@ -819,25 +819,34 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 			l.Error("failed to search for issues", "err", err)
 			return
 		}
-		ids = res.Hits
-		l.Debug("searched issues with indexer", "count", len(ids))
-	} else {
-		ids, err = db.GetIssueIDs(rp.db, searchOpts)
+		l.Debug("searched issues with indexer", "count", len(res.Hits))
+
+		issues, err = db.GetIssues(
+			rp.db,
+			db.FilterIn("id", res.Hits),
+		)
 		if err != nil {
-			l.Error("failed to search for issues", "err", err)
+			l.Error("failed to get issues", "err", err)
+			rp.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
 			return
 		}
-		l.Debug("indexed all issues from the db", "count", len(ids))
-	}
 
-	issues, err := db.GetIssues(
-		rp.db,
-		db.FilterIn("id", ids),
-	)
-	if err != nil {
-		l.Error("failed to get issues", "err", err)
-		rp.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
-		return
+	} else {
+		openInt := 0
+		if isOpen {
+			openInt = 1
+		}
+		issues, err = db.GetIssuesPaginated(
+			rp.db,
+			page,
+			db.FilterEq("repo_at", f.RepoAt()),
+			db.FilterEq("open", openInt),
+		)
+		if err != nil {
+			l.Error("failed to get issues", "err", err)
+			rp.pages.Notice(w, "issues", "Failed to load issues. Try again later.")
+			return
+		}
 	}
 
 	labelDefs, err := db.GetLabelDefinitions(
