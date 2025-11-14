@@ -800,7 +800,8 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 		}
 		s.notifier.NewPullComment(r.Context(), comment, mentions)
 
-		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", f.OwnerSlashRepo(), pull.PullId, commentId))
+		ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", ownerSlashRepo, pull.PullId, commentId))
 		return
 	}
 }
@@ -1271,7 +1272,8 @@ func (s *Pulls) createPullRequest(
 
 	s.notifier.NewPull(r.Context(), pull)
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
+	ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pullId))
 }
 
 func (s *Pulls) createStackedPullRequest(
@@ -1372,7 +1374,8 @@ func (s *Pulls) createStackedPullRequest(
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls", f.OwnerSlashRepo()))
+	ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls", ownerSlashRepo))
 }
 
 func (s *Pulls) ValidatePatch(w http.ResponseWriter, r *http.Request) {
@@ -1920,7 +1923,8 @@ func (s *Pulls) resubmitPullHelper(
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) resubmitStackedPullHelper(
@@ -2113,7 +2117,8 @@ func (s *Pulls) resubmitStackedPullHelper(
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
@@ -2231,7 +2236,8 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.Name, pull.PullId))
+	ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
@@ -2303,7 +2309,8 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
@@ -2376,7 +2383,8 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := s.repoResolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patch string, pullSource *models.PullSource, stackId string) (models.Stack, error) {

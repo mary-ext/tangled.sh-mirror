@@ -44,6 +44,18 @@ func New(config *config.Config, enforcer *rbac.Enforcer, resolver *idresolver.Re
 	return &RepoResolver{config: config, enforcer: enforcer, idResolver: resolver, execer: execer}
 }
 
+// NOTE: this... should not even be here. the entire package will be removed in future refactor
+func (rr *RepoResolver) GetBaseRepoPath(r *http.Request, repo *models.Repo) string {
+	var (
+		user = chi.URLParam(r, "user")
+		name = chi.URLParam(r, "repo")
+	)
+	if user == "" || name == "" {
+		return repo.DidSlashRepo()
+	}
+	return path.Join(user, name)
+}
+
 func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 	repo, ok := r.Context().Value("repo").(*models.Repo)
 	if !ok {

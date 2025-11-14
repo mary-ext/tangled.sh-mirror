@@ -62,9 +62,11 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ownerSlashRepo := rp.repoResolver.GetBaseRepoPath(r, &f.Repo)
+
 	// Use XRPC response directly instead of converting to internal types
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), url.PathEscape(ref))})
+	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", ownerSlashRepo, url.PathEscape(ref))})
 	if filePath != "" {
 		for idx, elem := range strings.Split(filePath, "/") {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], url.PathEscape(elem))})

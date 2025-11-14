@@ -21,7 +21,7 @@ func (r RepoInfo) FullName() string {
 	return path.Join(r.owner(), r.Name)
 }
 
-func (r RepoInfo) OwnerWithoutAt() string {
+func (r RepoInfo) ownerWithoutAt() string {
 	if r.OwnerHandle != "" {
 		return r.OwnerHandle
 	} else {
@@ -30,7 +30,7 @@ func (r RepoInfo) OwnerWithoutAt() string {
 }
 
 func (r RepoInfo) FullNameWithoutAt() string {
-	return path.Join(r.OwnerWithoutAt(), r.Name)
+	return path.Join(r.ownerWithoutAt(), r.Name)
 }
 
 func (r RepoInfo) GetTabs() [][]string {

@@ -79,16 +79,17 @@ func (rp *Repo) Tree(w http.ResponseWriter, r *http.Request) {
 		result.ReadmeFileName = xrpcResp.Readme.Filename
 		result.Readme = xrpcResp.Readme.Contents
 	}
+	ownerSlashRepo := rp.repoResolver.GetBaseRepoPath(r, &f.Repo)
 	// redirects tree paths trying to access a blob; in this case the result.Files is unpopulated,
 	// so we can safely redirect to the "parent" (which is the same file).
 	if len(result.Files) == 0 && result.Parent == treePath {
-		redirectTo := fmt.Sprintf("/%s/blob/%s/%s", f.OwnerSlashRepo(), url.PathEscape(ref), result.Parent)
+		redirectTo := fmt.Sprintf("/%s/blob/%s/%s", ownerSlashRepo, url.PathEscape(ref), result.Parent)
 		http.Redirect(w, r, redirectTo, http.StatusFound)
 		return
 	}
 	user := rp.oauth.GetUser(r)
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), url.PathEscape(ref))})
+	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", ownerSlashRepo, url.PathEscape(ref))})
 	if treePath != "" {
 		for idx, elem := range strings.Split(treePath, "/") {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], url.PathEscape(elem))})
