@@ -54,7 +54,7 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 	xrpcc := &indigoxrpc.Client{
 		Host: host,
 	}
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Repo.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Repo.Name)
 	resp, err := tangled.RepoBlob(r.Context(), xrpcc, filePath, false, ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.blob", "err", xrpcerr)
@@ -62,9 +62,11 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+
 	// Use XRPC response directly instead of converting to internal types
 	var breadcrumbs [][]string
-	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", f.OwnerSlashRepo(), url.PathEscape(ref))})
+	breadcrumbs = append(breadcrumbs, []string{f.Name, fmt.Sprintf("/%s/tree/%s", ownerSlashRepo, url.PathEscape(ref))})
 	if filePath != "" {
 		for idx, elem := range strings.Split(filePath, "/") {
 			breadcrumbs = append(breadcrumbs, []string{elem, fmt.Sprintf("%s/%s", breadcrumbs[idx][1], url.PathEscape(elem))})
@@ -105,7 +107,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		scheme = "https"
 	}
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Repo.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Repo.Name)
 	baseURL := &url.URL{
 		Scheme: scheme,
 		Host:   f.Knot,
@@ -256,7 +258,7 @@ func generateBlobURL(config *config.Config, f *reporesolver.ResolvedRepo, ref, f
 		scheme = "https"
 	}
 
-	repoName := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repoName := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	baseURL := &url.URL{
 		Scheme: scheme,
 		Host:   f.Knot,

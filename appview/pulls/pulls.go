@@ -267,7 +267,7 @@ func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *
 		r.Context(),
 		&xrpcc,
 		&tangled.RepoMergeCheck_Input{
-			Did:    f.OwnerDid(),
+			Did:    f.Did,
 			Name:   f.Name,
 			Branch: pull.TargetBranch,
 			Patch:  patch,
@@ -381,7 +381,7 @@ func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pul
 	} else {
 		// pulls within the same repo
 		knot = f.Knot
-		ownerDid = f.OwnerDid()
+		ownerDid = f.Did
 		repoName = f.Name
 	}
 
@@ -800,7 +800,8 @@ func (s *Pulls) PullComment(w http.ResponseWriter, r *http.Request) {
 		}
 		s.notifier.NewPullComment(r.Context(), comment, mentions)
 
-		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", f.OwnerSlashRepo(), pull.PullId, commentId))
+		ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+		s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d#comment-%d", ownerSlashRepo, pull.PullId, commentId))
 		return
 	}
 }
@@ -824,7 +825,7 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 			Host: host,
 		}
 
-		repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+		repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 		xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 		if err != nil {
 			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
@@ -989,7 +990,7 @@ func (s *Pulls) handleBranchBasedPull(
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, targetBranch, sourceBranch)
 	if err != nil {
 		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
@@ -1271,7 +1272,8 @@ func (s *Pulls) createPullRequest(
 
 	s.notifier.NewPull(r.Context(), pull)
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pullId))
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pullId))
 }
 
 func (s *Pulls) createStackedPullRequest(
@@ -1372,7 +1374,8 @@ func (s *Pulls) createStackedPullRequest(
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls", f.OwnerSlashRepo()))
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls", ownerSlashRepo))
 }
 
 func (s *Pulls) ValidatePatch(w http.ResponseWriter, r *http.Request) {
@@ -1431,7 +1434,7 @@ func (s *Pulls) CompareBranchesFragment(w http.ResponseWriter, r *http.Request) 
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if err != nil {
 		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
@@ -1552,7 +1555,7 @@ func (s *Pulls) CompareForksBranchesFragment(w http.ResponseWriter, r *http.Requ
 		Host: targetHost,
 	}
 
-	targetRepo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	targetRepo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	targetXrpcBytes, err := tangled.RepoBranches(r.Context(), targetXrpcc, "", 0, targetRepo)
 	if err != nil {
 		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
@@ -1683,7 +1686,7 @@ func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, pull.TargetBranch, pull.PullSource.Branch)
 	if err != nil {
 		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
@@ -1920,7 +1923,8 @@ func (s *Pulls) resubmitPullHelper(
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) resubmitStackedPullHelper(
@@ -2113,7 +2117,8 @@ func (s *Pulls) resubmitStackedPullHelper(
 		return
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
@@ -2166,7 +2171,7 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 
 	authorName := ident.Handle.String()
 	mergeInput := &tangled.RepoMerge_Input{
-		Did:           f.OwnerDid(),
+		Did:           f.Did,
 		Name:          f.Name,
 		Branch:        pull.TargetBranch,
 		Patch:         patch,
@@ -2231,7 +2236,8 @@ func (s *Pulls) MergePull(w http.ResponseWriter, r *http.Request) {
 		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/@%s/%s/pulls/%d", f.OwnerHandle(), f.Name, pull.PullId))
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
@@ -2303,7 +2309,8 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
@@ -2376,7 +2383,8 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 		s.notifier.NewPullState(r.Context(), syntax.DID(user.Did), p)
 	}
 
-	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", f.OwnerSlashRepo(), pull.PullId))
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patch string, pullSource *models.PullSource, stackId string) (models.Stack, error) {

@@ -164,7 +164,7 @@ func (mw Middleware) RepoPermissionMiddleware(requiredPerm string) middlewareFun
 			ok, err := mw.enforcer.E.Enforce(actor.Did, f.Knot, f.DidSlashRepo(), requiredPerm)
 			if err != nil || !ok {
 				// we need a logged in user
-				log.Printf("%s does not have perms of a %s in repo %s", actor.Did, requiredPerm, f.OwnerSlashRepo())
+				log.Printf("%s does not have perms of a %s in repo %s", actor.Did, requiredPerm, f.DidSlashRepo())
 				http.Error(w, "Forbiden", http.StatusUnauthorized)
 				return
 			}
@@ -327,7 +327,7 @@ func (mw Middleware) GoImport() middlewareFunc {
 				return
 			}
 
-			fullName := f.OwnerHandle() + "/" + f.Name
+			fullName := reporesolver.GetBaseRepoPath(r, &f.Repo)
 
 			if r.Header.Get("User-Agent") == "Go-http-client/1.1" {
 				if r.URL.Query().Get("go-get") == "1" {

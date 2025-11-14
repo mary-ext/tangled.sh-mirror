@@ -36,7 +36,7 @@ func (rp *Repo) CompareNew(w http.ResponseWriter, r *http.Request) {
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.branches", "err", xrpcerr)
@@ -147,7 +147,7 @@ func (rp *Repo) Compare(w http.ResponseWriter, r *http.Request) {
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 
 	branchBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {

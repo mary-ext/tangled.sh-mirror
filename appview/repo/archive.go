@@ -31,8 +31,8 @@ func (rp *Repo) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 	xrpcc := &indigoxrpc.Client{
 		Host: host,
 	}
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
-	archiveBytes, err := tangled.RepoArchive(r.Context(), xrpcc, "tar.gz", "", ref, repo)
+	didSlashRepo := f.DidSlashRepo()
+	archiveBytes, err := tangled.RepoArchive(r.Context(), xrpcc, "tar.gz", "", ref, didSlashRepo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.archive", "err", xrpcerr)
 		rp.pages.Error503(w)

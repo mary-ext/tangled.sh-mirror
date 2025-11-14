@@ -57,7 +57,7 @@ func (rp *Repo) Log(w http.ResponseWriter, r *http.Request) {
 		cursor = strconv.Itoa(offset)
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoLog(r.Context(), xrpcc, cursor, limit, "", ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.log", "err", xrpcerr)
@@ -174,7 +174,7 @@ func (rp *Repo) Commit(w http.ResponseWriter, r *http.Request) {
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoDiff(r.Context(), xrpcc, ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.diff", "err", xrpcerr)

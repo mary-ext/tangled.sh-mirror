@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/atproto/identity"
-	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/go-chi/chi/v5"
 	"tangled.org/core/appview/config"
 	"tangled.org/core/appview/db"
@@ -44,6 +43,18 @@ func New(config *config.Config, enforcer *rbac.Enforcer, resolver *idresolver.Re
 	return &RepoResolver{config: config, enforcer: enforcer, idResolver: resolver, execer: execer}
 }
 
+// NOTE: this... should not even be here. the entire package will be removed in future refactor
+func GetBaseRepoPath(r *http.Request, repo *models.Repo) string {
+	var (
+		user = chi.URLParam(r, "user")
+		name = chi.URLParam(r, "repo")
+	)
+	if user == "" || name == "" {
+		return repo.DidSlashRepo()
+	}
+	return path.Join(user, name)
+}
+
 func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 	repo, ok := r.Context().Value("repo").(*models.Repo)
 	if !ok {
@@ -67,27 +78,6 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 
 		rr: rr,
 	}, nil
-}
-
-func (f *ResolvedRepo) OwnerDid() string {
-	return f.OwnerId.DID.String()
-}
-
-func (f *ResolvedRepo) OwnerHandle() string {
-	return f.OwnerId.Handle.String()
-}
-
-func (f *ResolvedRepo) OwnerSlashRepo() string {
-	handle := f.OwnerId.Handle
-
-	var p string
-	if handle != "" && !handle.IsInvalidHandle() {
-		p, _ = securejoin.SecureJoin(fmt.Sprintf("@%s", handle), f.Name)
-	} else {
-		p, _ = securejoin.SecureJoin(f.OwnerDid(), f.Name)
-	}
-
-	return p
 }
 
 func (f *ResolvedRepo) Collaborators(ctx context.Context) ([]pages.Collaborator, error) {
@@ -168,10 +158,10 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 	knot := f.Knot
 
 	repoInfo := repoinfo.RepoInfo{
-		OwnerDid:    f.OwnerDid(),
-		OwnerHandle: f.OwnerHandle(),
+		OwnerDid:    f.OwnerId.DID.String(),
+		OwnerHandle: f.OwnerId.Handle.String(),
 		Name:        f.Name,
-		Rkey:        f.Repo.Rkey,
+		Rkey:        f.Rkey,
 		RepoAt:      repoAt,
 		Description: f.Description,
 		Website:     f.Website,

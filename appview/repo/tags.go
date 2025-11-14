@@ -31,7 +31,7 @@ func (rp *Repo) Tags(w http.ResponseWriter, r *http.Request) {
 	xrpcc := &indigoxrpc.Client{
 		Host: host,
 	}
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoTags(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.tags", "err", xrpcerr)

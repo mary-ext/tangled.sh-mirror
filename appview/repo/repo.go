@@ -864,7 +864,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		client,
 		&tangled.RepoDelete_Input{
-			Did:  f.OwnerDid(),
+			Did:  f.Did,
 			Name: f.Name,
 			Rkey: f.Rkey,
 		},
@@ -902,14 +902,14 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	l.Info("removed collaborators")
 
 	// remove repo RBAC
-	err = rp.enforcer.RemoveRepo(f.OwnerDid(), f.Knot, f.DidSlashRepo())
+	err = rp.enforcer.RemoveRepo(f.Did, f.Knot, f.DidSlashRepo())
 	if err != nil {
 		rp.pages.Notice(w, noticeId, "Failed to update RBAC rules")
 		return
 	}
 
 	// remove repo from db
-	err = db.RemoveRepo(tx, f.OwnerDid(), f.Name)
+	err = db.RemoveRepo(tx, f.Did, f.Name)
 	if err != nil {
 		rp.pages.Notice(w, noticeId, "Failed to update appview")
 		return
@@ -930,7 +930,7 @@ func (rp *Repo) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rp.pages.HxRedirect(w, fmt.Sprintf("/%s", f.OwnerDid()))
+	rp.pages.HxRedirect(w, fmt.Sprintf("/%s", f.Did))
 }
 
 func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
@@ -1058,7 +1058,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			uri = "http"
 		}
 
-		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.OwnerDid(), f.Repo.Name)
+		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.Did, f.Repo.Name)
 		l = l.With("cloneUrl", forkSourceUrl)
 
 		sourceAt := f.RepoAt().String()

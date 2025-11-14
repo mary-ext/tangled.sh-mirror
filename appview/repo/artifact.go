@@ -174,7 +174,14 @@ func (rp *Repo) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 
 	artifact := artifacts[0]
 
-	ownerPds := f.OwnerId.PDSEndpoint()
+	ownerId, err := rp.idResolver.ResolveIdent(r.Context(), f.Did)
+	if err != nil {
+		log.Println("failed to resolve repo owner did", f.Did, err)
+		http.Error(w, "repository owner not found", http.StatusNotFound)
+		return
+	}
+
+	ownerPds := ownerId.PDSEndpoint()
 	url, _ := url.Parse(fmt.Sprintf("%s/xrpc/com.atproto.sync.getBlob", ownerPds))
 	q := url.Query()
 	q.Set("cid", artifact.BlobCid.String())
@@ -305,7 +312,7 @@ func (rp *Repo) resolveTag(ctx context.Context, f *reporesolver.ResolvedRepo, ta
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoTags(ctx, xrpcc, "", 0, repo)
 	if err != nil {
 		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {

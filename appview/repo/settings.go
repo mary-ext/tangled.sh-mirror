@@ -194,7 +194,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	xrpcBytes, err := tangled.RepoBranches(r.Context(), xrpcc, "", 0, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.branches", "err", xrpcerr)
@@ -292,7 +292,7 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 
 	// all spindles that the repo owner is a member of
-	spindles, err := rp.enforcer.GetSpindlesForUser(f.OwnerDid())
+	spindles, err := rp.enforcer.GetSpindlesForUser(f.Did)
 	if err != nil {
 		l.Error("failed to fetch spindles", "err", err)
 		return

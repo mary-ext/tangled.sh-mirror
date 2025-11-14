@@ -179,7 +179,7 @@ func (rp *Repo) getLanguageInfo(
 
 	if err != nil || langs == nil {
 		// non-fatal, fetch langs from ks via XRPC
-		repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+		repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 		ls, err := tangled.RepoLanguages(ctx, xrpcc, currentRef, repo)
 		if err != nil {
 			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
@@ -256,7 +256,7 @@ func (rp *Repo) getLanguageInfo(
 
 // buildIndexResponse creates a RepoIndexResponse by combining multiple xrpc calls in parallel
 func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client, f *reporesolver.ResolvedRepo, ref string) (*types.RepoIndexResponse, error) {
-	repo := fmt.Sprintf("%s/%s", f.OwnerDid(), f.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 
 	// first get branches to determine the ref if not specified
 	branchesBytes, err := tangled.RepoBranches(ctx, xrpcc, "", 0, repo)

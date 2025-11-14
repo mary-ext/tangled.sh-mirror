@@ -11,16 +11,16 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pagination"
-	"tangled.org/core/appview/reporesolver"
 
+	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/gorilla/feeds"
 )
 
-func (rp *Repo) getRepoFeed(ctx context.Context, f *reporesolver.ResolvedRepo) (*feeds.Feed, error) {
+func (rp *Repo) getRepoFeed(ctx context.Context, repo *models.Repo, ownerSlashRepo string) (*feeds.Feed, error) {
 	const feedLimitPerType = 100
 
-	pulls, err := db.GetPullsWithLimit(rp.db, feedLimitPerType, db.FilterEq("repo_at", f.RepoAt()))
+	pulls, err := db.GetPullsWithLimit(rp.db, feedLimitPerType, db.FilterEq("repo_at", repo.RepoAt()))
 	if err != nil {
 		return nil, err
 	}
@@ -28,21 +28,21 @@ func (rp *Repo) getRepoFeed(ctx context.Context, f *reporesolver.ResolvedRepo) (
 	issues, err := db.GetIssuesPaginated(
 		rp.db,
 		pagination.Page{Limit: feedLimitPerType},
-		db.FilterEq("repo_at", f.RepoAt()),
+		db.FilterEq("repo_at", repo.RepoAt()),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	feed := &feeds.Feed{
-		Title:   fmt.Sprintf("activity feed for %s", f.OwnerSlashRepo()),
-		Link:    &feeds.Link{Href: fmt.Sprintf("%s/%s", rp.config.Core.AppviewHost, f.OwnerSlashRepo()), Type: "text/html", Rel: "alternate"},
+		Title:   fmt.Sprintf("activity feed for @%s", ownerSlashRepo),
+		Link:    &feeds.Link{Href: fmt.Sprintf("%s/%s", rp.config.Core.AppviewHost, ownerSlashRepo), Type: "text/html", Rel: "alternate"},
 		Items:   make([]*feeds.Item, 0),
 		Updated: time.UnixMilli(0),
 	}
 
 	for _, pull := range pulls {
-		items, err := rp.createPullItems(ctx, pull, f)
+		items, err := rp.createPullItems(ctx, pull, repo, ownerSlashRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -50,7 +50,7 @@ func (rp *Repo) getRepoFeed(ctx context.Context, f *reporesolver.ResolvedRepo) (
 	}
 
 	for _, issue := range issues {
-		item, err := rp.createIssueItem(ctx, issue, f)
+		item, err := rp.createIssueItem(ctx, issue, repo, ownerSlashRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,7 @@ func (rp *Repo) getRepoFeed(ctx context.Context, f *reporesolver.ResolvedRepo) (
 	return feed, nil
 }
 
-func (rp *Repo) createPullItems(ctx context.Context, pull *models.Pull, f *reporesolver.ResolvedRepo) ([]*feeds.Item, error) {
+func (rp *Repo) createPullItems(ctx context.Context, pull *models.Pull, repo *models.Repo, ownerSlashRepo string) ([]*feeds.Item, error) {
 	owner, err := rp.idResolver.ResolveIdent(ctx, pull.OwnerDid)
 	if err != nil {
 		return nil, err
@@ -80,12 +80,12 @@ func (rp *Repo) createPullItems(ctx context.Context, pull *models.Pull, f *repor
 	var items []*feeds.Item
 
 	state := rp.getPullState(pull)
-	description := rp.buildPullDescription(owner.Handle, state, pull, f.OwnerSlashRepo())
+	description := rp.buildPullDescription(owner.Handle, state, pull, ownerSlashRepo)
 
 	mainItem := &feeds.Item{
 		Title:       fmt.Sprintf("[PR #%d] %s", pull.PullId, pull.Title),
 		Description: description,
-		Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/pulls/%d", rp.config.Core.AppviewHost, f.OwnerSlashRepo(), pull.PullId)},
+		Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/pulls/%d", rp.config.Core.AppviewHost, ownerSlashRepo, pull.PullId)},
 		Created:     pull.Created,
 		Author:      &feeds.Author{Name: fmt.Sprintf("@%s", owner.Handle)},
 	}
@@ -98,8 +98,8 @@ func (rp *Repo) createPullItems(ctx context.Context, pull *models.Pull, f *repor
 
 		roundItem := &feeds.Item{
 			Title:       fmt.Sprintf("[PR #%d] %s (round #%d)", pull.PullId, pull.Title, round.RoundNumber),
-			Description: fmt.Sprintf("@%s submitted changes (at round #%d) on PR #%d in %s", owner.Handle, round.RoundNumber, pull.PullId, f.OwnerSlashRepo()),
-			Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/pulls/%d/round/%d/", rp.config.Core.AppviewHost, f.OwnerSlashRepo(), pull.PullId, round.RoundNumber)},
+			Description: fmt.Sprintf("@%s submitted changes (at round #%d) on PR #%d in @%s", owner.Handle, round.RoundNumber, pull.PullId, ownerSlashRepo),
+			Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/pulls/%d/round/%d/", rp.config.Core.AppviewHost, ownerSlashRepo, pull.PullId, round.RoundNumber)},
 			Created:     round.Created,
 			Author:      &feeds.Author{Name: fmt.Sprintf("@%s", owner.Handle)},
 		}
@@ -109,7 +109,7 @@ func (rp *Repo) createPullItems(ctx context.Context, pull *models.Pull, f *repor
 	return items, nil
 }
 
-func (rp *Repo) createIssueItem(ctx context.Context, issue models.Issue, f *reporesolver.ResolvedRepo) (*feeds.Item, error) {
+func (rp *Repo) createIssueItem(ctx context.Context, issue models.Issue, repo *models.Repo, ownerSlashRepo string) (*feeds.Item, error) {
 	owner, err := rp.idResolver.ResolveIdent(ctx, issue.Did)
 	if err != nil {
 		return nil, err
@@ -122,8 +122,8 @@ func (rp *Repo) createIssueItem(ctx context.Context, issue models.Issue, f *repo
 
 	return &feeds.Item{
 		Title:       fmt.Sprintf("[Issue #%d] %s", issue.IssueId, issue.Title),
-		Description: fmt.Sprintf("@%s %s issue #%d in %s", owner.Handle, state, issue.IssueId, f.OwnerSlashRepo()),
-		Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/issues/%d", rp.config.Core.AppviewHost, f.OwnerSlashRepo(), issue.IssueId)},
+		Description: fmt.Sprintf("@%s %s issue #%d in @%s", owner.Handle, state, issue.IssueId, ownerSlashRepo),
+		Link:        &feeds.Link{Href: fmt.Sprintf("%s/%s/issues/%d", rp.config.Core.AppviewHost, ownerSlashRepo, issue.IssueId)},
 		Created:     issue.Created,
 		Author:      &feeds.Author{Name: fmt.Sprintf("@%s", owner.Handle)},
 	}, nil
@@ -152,8 +152,14 @@ func (rp *Repo) AtomFeed(w http.ResponseWriter, r *http.Request) {
 		log.Println("failed to fully resolve repo:", err)
 		return
 	}
+	repoOwnerId, ok := r.Context().Value("resolvedId").(identity.Identity)
+	if !ok || repoOwnerId.Handle.IsInvalidHandle() {
+		log.Println("failed to get resolved repo owner id")
+		return
+	}
+	ownerSlashRepo := repoOwnerId.Handle.String() + "/" + f.Name
 
-	feed, err := rp.getRepoFeed(r.Context(), f)
+	feed, err := rp.getRepoFeed(r.Context(), &f.Repo, ownerSlashRepo)
 	if err != nil {
 		log.Println("failed to get repo feed:", err)
 		rp.pages.Error500(w)
