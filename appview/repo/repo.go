@@ -78,8 +78,6 @@ func New(
 	}
 }
 
-// isTextualMimeType returns true if the MIME type represents textual content
-
 // modify the spindle configured for this repo
 func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
