@@ -226,8 +226,6 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "DeleteIssue")
 	noticeId := "issue-actions-error"
 
-	user := rp.oauth.GetUser(r)
-
 	f, err := rp.repoResolver.Resolve(r)
 	if err != nil {
 		l.Error("failed to get repo and knot", "err", err)
@@ -271,7 +269,8 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 	rp.notifier.DeleteIssue(r.Context(), issue)
 
 	// return to all issues page
-	rp.pages.HxRedirect(w, "/"+f.RepoInfo(user).FullName()+"/issues")
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	rp.pages.HxRedirect(w, "/"+ownerSlashRepo+"/issues")
 }
 
 func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {

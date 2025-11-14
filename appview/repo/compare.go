@@ -88,11 +88,9 @@ func (rp *Repo) CompareNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoinfo := f.RepoInfo(user)
-
 	rp.pages.RepoCompareNew(w, pages.RepoCompareNewParams{
 		LoggedInUser: user,
-		RepoInfo:     repoinfo,
+		RepoInfo:     f.RepoInfo(user),
 		Branches:     branches,
 		Tags:         tags.Tags,
 		Base:         base,
@@ -198,11 +196,9 @@ func (rp *Repo) Compare(w http.ResponseWriter, r *http.Request) {
 		diff = patchutil.AsNiceDiff(formatPatch.FormatPatchRaw, base)
 	}
 
-	repoinfo := f.RepoInfo(user)
-
 	rp.pages.RepoCompare(w, pages.RepoCompareParams{
 		LoggedInUser: user,
-		RepoInfo:     repoinfo,
+		RepoInfo:     f.RepoInfo(user),
 		Branches:     branches.Branches,
 		Tags:         tags.Tags,
 		Base:         base,

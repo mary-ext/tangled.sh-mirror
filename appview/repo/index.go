@@ -52,7 +52,6 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := rp.oauth.GetUser(r)
-	repoInfo := f.RepoInfo(user)
 
 	// Build index response from multiple XRPC calls
 	result, err := rp.buildIndexResponse(r.Context(), xrpcc, f, ref)
@@ -62,7 +61,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 			rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 				LoggedInUser:     user,
 				NeedsKnotUpgrade: true,
-				RepoInfo:         repoInfo,
+				RepoInfo:         f.RepoInfo(user),
 			})
 			return
 		}
@@ -140,7 +139,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	for _, c := range commitsTrunc {
 		shas = append(shas, c.Hash.String())
 	}
-	pipelines, err := getPipelineStatuses(rp.db, repoInfo, shas)
+	pipelines, err := getPipelineStatuses(rp.db, &f.Repo, shas)
 	if err != nil {
 		l.Error("failed to fetch pipeline statuses", "err", err)
 		// non-fatal
@@ -148,7 +147,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:      user,
-		RepoInfo:          repoInfo,
+		RepoInfo:          f.RepoInfo(user),
 		TagMap:            tagMap,
 		RepoIndexResponse: *result,
 		CommitsTrunc:      commitsTrunc,

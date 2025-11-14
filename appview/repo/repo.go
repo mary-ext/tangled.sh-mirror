@@ -959,8 +959,7 @@ func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		repoInfo := f.RepoInfo(user)
-		if repoInfo.Source == nil {
+		if f.Source == "" {
 			rp.pages.Notice(w, "repo", "This repository is not a fork.")
 			return
 		}
@@ -971,7 +970,7 @@ func (rp *Repo) SyncRepoFork(w http.ResponseWriter, r *http.Request) {
 			&tangled.RepoForkSync_Input{
 				Did:    user.Did,
 				Name:   f.Name,
-				Source: repoInfo.Source.RepoAt().String(),
+				Source: f.Source,
 				Branch: ref,
 			},
 		)

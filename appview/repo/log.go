@@ -121,13 +121,11 @@ func (rp *Repo) Log(w http.ResponseWriter, r *http.Request) {
 		l.Error("failed to GetVerifiedObjectCommits", "err", err)
 	}
 
-	repoInfo := f.RepoInfo(user)
-
 	var shas []string
 	for _, c := range xrpcResp.Commits {
 		shas = append(shas, c.Hash.String())
 	}
-	pipelines, err := getPipelineStatuses(rp.db, repoInfo, shas)
+	pipelines, err := getPipelineStatuses(rp.db, &f.Repo, shas)
 	if err != nil {
 		l.Error("failed to getPipelineStatuses", "err", err)
 		// non-fatal
@@ -136,7 +134,7 @@ func (rp *Repo) Log(w http.ResponseWriter, r *http.Request) {
 	rp.pages.RepoLog(w, pages.RepoLogParams{
 		LoggedInUser:    user,
 		TagMap:          tagMap,
-		RepoInfo:        repoInfo,
+		RepoInfo:        f.RepoInfo(user),
 		RepoLogResponse: xrpcResp,
 		EmailToDid:      emailToDidMap,
 		VerifiedCommits: vc,
@@ -200,8 +198,7 @@ func (rp *Repo) Commit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := rp.oauth.GetUser(r)
-	repoInfo := f.RepoInfo(user)
-	pipelines, err := getPipelineStatuses(rp.db, repoInfo, []string{result.Diff.Commit.This})
+	pipelines, err := getPipelineStatuses(rp.db, &f.Repo, []string{result.Diff.Commit.This})
 	if err != nil {
 		l.Error("failed to getPipelineStatuses", "err", err)
 		// non-fatal
