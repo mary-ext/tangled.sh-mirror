@@ -24,16 +24,19 @@ import (
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/markup"
+	"tangled.org/core/appview/pages/repoinfo"
 	"tangled.org/core/appview/pagination"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/validator"
 	"tangled.org/core/idresolver"
+	"tangled.org/core/rbac"
 	"tangled.org/core/tid"
 )
 
 type Issues struct {
 	oauth        *oauth.OAuth
 	repoResolver *reporesolver.RepoResolver
+	enforcer     *rbac.Enforcer
 	pages        *pages.Pages
 	idResolver   *idresolver.Resolver
 	db           *db.DB
@@ -47,6 +50,7 @@ type Issues struct {
 func New(
 	oauth *oauth.OAuth,
 	repoResolver *reporesolver.RepoResolver,
+	enforcer *rbac.Enforcer,
 	pages *pages.Pages,
 	idResolver *idresolver.Resolver,
 	db *db.DB,
@@ -59,6 +63,7 @@ func New(
 	return &Issues{
 		oauth:        oauth,
 		repoResolver: repoResolver,
+		enforcer:     enforcer,
 		pages:        pages,
 		idResolver:   idResolver,
 		db:           db,
@@ -285,7 +290,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := f.RolesInRepo(user)
+	roles := repoinfo.RolesInRepo{Roles: rp.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())}
 	isRepoOwner := roles.IsOwner()
 	isCollaborator := roles.IsCollaborator()
 	isIssueOwner := user.Did == issue.Did
@@ -333,7 +338,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := f.RolesInRepo(user)
+	roles := repoinfo.RolesInRepo{Roles: rp.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())}
 	isRepoOwner := roles.IsOwner()
 	isCollaborator := roles.IsCollaborator()
 	isIssueOwner := user.Did == issue.Did

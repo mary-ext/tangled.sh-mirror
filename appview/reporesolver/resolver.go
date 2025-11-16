@@ -79,8 +79,10 @@ func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 	repoAt := f.RepoAt()
 	isStarred := false
+	roles := repoinfo.RolesInRepo{}
 	if user != nil {
 		isStarred = db.GetStarStatus(f.rr.execer, user.Did, repoAt)
+		roles.Roles = f.rr.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())
 	}
 
 	stats := f.RepoStats
@@ -130,19 +132,10 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 
 		// info related to the session
 		IsStarred: isStarred,
-		Roles:     f.RolesInRepo(user),
+		Roles:     roles,
 	}
 
 	return repoInfo
-}
-
-func (f *ResolvedRepo) RolesInRepo(u *oauth.User) repoinfo.RolesInRepo {
-	if u != nil {
-		r := f.rr.enforcer.GetPermissionsInRepo(u.Did, f.Knot, f.DidSlashRepo())
-		return repoinfo.RolesInRepo{Roles: r}
-	} else {
-		return repoinfo.RolesInRepo{}
-	}
 }
 
 // extractPathAfterRef gets the actual repository path

@@ -23,6 +23,7 @@ import (
 	"tangled.org/core/appview/oauth"
 	"tangled.org/core/appview/pages"
 	"tangled.org/core/appview/pages/markup"
+	"tangled.org/core/appview/pages/repoinfo"
 	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/validator"
 	"tangled.org/core/appview/xrpcclient"
@@ -875,7 +876,7 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Determine PR type based on input parameters
-		roles := f.RolesInRepo(user)
+		roles := repoinfo.RolesInRepo{Roles: s.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())}
 		isPushAllowed := roles.IsPushAllowed()
 		isBranchBased := isPushAllowed && sourceBranch != "" && fromFork == ""
 		isForkBased := fromFork != "" && sourceBranch != ""
@@ -1672,7 +1673,7 @@ func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := f.RolesInRepo(user)
+	roles := repoinfo.RolesInRepo{Roles: s.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())}
 	if !roles.IsPushAllowed() {
 		log.Println("unauthorized user")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -2259,7 +2260,7 @@ func (s *Pulls) ClosePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// auth filter: only owner or collaborators can close
-	roles := f.RolesInRepo(user)
+	roles := repoinfo.RolesInRepo{Roles: s.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())}
 	isOwner := roles.IsOwner()
 	isCollaborator := roles.IsCollaborator()
 	isPullAuthor := user.Did == pull.OwnerDid
@@ -2333,7 +2334,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// auth filter: only owner or collaborators can close
-	roles := f.RolesInRepo(user)
+	roles := repoinfo.RolesInRepo{Roles: s.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())}
 	isOwner := roles.IsOwner()
 	isCollaborator := roles.IsCollaborator()
 	isPullAuthor := user.Did == pull.OwnerDid
