@@ -22,7 +22,6 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
-	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/types"
 
@@ -54,7 +53,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 
 	// Build index response from multiple XRPC calls
-	result, err := rp.buildIndexResponse(r.Context(), xrpcc, f, ref)
+	result, err := rp.buildIndexResponse(r.Context(), xrpcc, &f.Repo, ref)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		if errors.Is(xrpcerr, xrpcclient.ErrXrpcUnsupported) {
 			l.Error("failed to call XRPC repo.index", "err", err)
@@ -129,7 +128,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: a bit dirty
-	languageInfo, err := rp.getLanguageInfo(r.Context(), l, f, xrpcc, result.Ref, ref == "")
+	languageInfo, err := rp.getLanguageInfo(r.Context(), l, &f.Repo, xrpcc, result.Ref, ref == "")
 	if err != nil {
 		l.Warn("failed to compute language percentages", "err", err)
 		// non-fatal
@@ -164,7 +163,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 func (rp *Repo) getLanguageInfo(
 	ctx context.Context,
 	l *slog.Logger,
-	f *reporesolver.ResolvedRepo,
+	repo *models.Repo,
 	xrpcc *indigoxrpc.Client,
 	currentRef string,
 	isDefaultRef bool,
@@ -172,14 +171,14 @@ func (rp *Repo) getLanguageInfo(
 	// first attempt to fetch from db
 	langs, err := db.GetRepoLanguages(
 		rp.db,
-		db.FilterEq("repo_at", f.RepoAt()),
+		db.FilterEq("repo_at", repo.RepoAt()),
 		db.FilterEq("ref", currentRef),
 	)
 
 	if err != nil || langs == nil {
 		// non-fatal, fetch langs from ks via XRPC
-		repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
-		ls, err := tangled.RepoLanguages(ctx, xrpcc, currentRef, repo)
+		didSlashRepo := fmt.Sprintf("%s/%s", repo.Did, repo.Name)
+		ls, err := tangled.RepoLanguages(ctx, xrpcc, currentRef, didSlashRepo)
 		if err != nil {
 			if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 				l.Error("failed to call XRPC repo.languages", "err", xrpcerr)
@@ -194,7 +193,7 @@ func (rp *Repo) getLanguageInfo(
 
 		for _, lang := range ls.Languages {
 			langs = append(langs, models.RepoLanguage{
-				RepoAt:       f.RepoAt(),
+				RepoAt:       repo.RepoAt(),
 				Ref:          currentRef,
 				IsDefaultRef: isDefaultRef,
 				Language:     lang.Name,
@@ -209,7 +208,7 @@ func (rp *Repo) getLanguageInfo(
 		defer tx.Rollback()
 
 		// update appview's cache
-		err = db.UpdateRepoLanguages(tx, f.RepoAt(), currentRef, langs)
+		err = db.UpdateRepoLanguages(tx, repo.RepoAt(), currentRef, langs)
 		if err != nil {
 			// non-fatal
 			l.Error("failed to cache lang results", "err", err)
@@ -254,11 +253,11 @@ func (rp *Repo) getLanguageInfo(
 }
 
 // buildIndexResponse creates a RepoIndexResponse by combining multiple xrpc calls in parallel
-func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client, f *reporesolver.ResolvedRepo, ref string) (*types.RepoIndexResponse, error) {
-	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
+func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client, repo *models.Repo, ref string) (*types.RepoIndexResponse, error) {
+	didSlashRepo := fmt.Sprintf("%s/%s", repo.Did, repo.Name)
 
 	// first get branches to determine the ref if not specified
-	branchesBytes, err := tangled.RepoBranches(ctx, xrpcc, "", 0, repo)
+	branchesBytes, err := tangled.RepoBranches(ctx, xrpcc, "", 0, didSlashRepo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call repoBranches: %w", err)
 	}
@@ -302,7 +301,7 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		tagsBytes, err := tangled.RepoTags(ctx, xrpcc, "", 0, repo)
+		tagsBytes, err := tangled.RepoTags(ctx, xrpcc, "", 0, didSlashRepo)
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to call repoTags: %w", err))
 			return
@@ -317,7 +316,7 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		resp, err := tangled.RepoTree(ctx, xrpcc, "", ref, repo)
+		resp, err := tangled.RepoTree(ctx, xrpcc, "", ref, didSlashRepo)
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to call repoTree: %w", err))
 			return
@@ -329,7 +328,7 @@ func (rp *Repo) buildIndexResponse(ctx context.Context, xrpcc *indigoxrpc.Client
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		logBytes, err := tangled.RepoLog(ctx, xrpcc, "", 50, "", ref, repo)
+		logBytes, err := tangled.RepoLog(ctx, xrpcc, "", 50, "", ref, didSlashRepo)
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to call repoLog: %w", err))
 			return

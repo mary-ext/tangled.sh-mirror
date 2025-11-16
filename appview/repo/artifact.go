@@ -14,7 +14,6 @@ import (
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/pages"
-	"tangled.org/core/appview/reporesolver"
 	"tangled.org/core/appview/xrpcclient"
 	"tangled.org/core/tid"
 	"tangled.org/core/types"
@@ -39,7 +38,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tag, err := rp.resolveTag(r.Context(), f, tagParam)
+	tag, err := rp.resolveTag(r.Context(), &f.Repo, tagParam)
 	if err != nil {
 		log.Println("failed to resolve tag", err)
 		rp.pages.Notice(w, "upload", "failed to upload artifact, error in tag resolution")
@@ -147,7 +146,7 @@ func (rp *Repo) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 	tagParam := chi.URLParam(r, "tag")
 	filename := chi.URLParam(r, "file")
 
-	tag, err := rp.resolveTag(r.Context(), f, tagParam)
+	tag, err := rp.resolveTag(r.Context(), &f.Repo, tagParam)
 	if err != nil {
 		log.Println("failed to resolve tag", err)
 		rp.pages.Notice(w, "upload", "failed to upload artifact, error in tag resolution")
@@ -297,7 +296,7 @@ func (rp *Repo) DeleteArtifact(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte{})
 }
 
-func (rp *Repo) resolveTag(ctx context.Context, f *reporesolver.ResolvedRepo, tagParam string) (*types.TagReference, error) {
+func (rp *Repo) resolveTag(ctx context.Context, f *models.Repo, tagParam string) (*types.TagReference, error) {
 	tagParam, err := url.QueryUnescape(tagParam)
 	if err != nil {
 		return nil, err

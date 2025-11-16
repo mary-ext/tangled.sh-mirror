@@ -115,11 +115,11 @@ func (s *Pulls) PullActions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
-		branchDeleteStatus := s.branchDeleteStatus(r, f, pull)
+		mergeCheckResponse := s.mergeCheck(r, &f.Repo, pull, stack)
+		branchDeleteStatus := s.branchDeleteStatus(r, &f.Repo, pull)
 		resubmitResult := pages.Unknown
 		if user.Did == pull.OwnerDid {
-			resubmitResult = s.resubmitCheck(r, f, pull, stack)
+			resubmitResult = s.resubmitCheck(r, &f.Repo, pull, stack)
 		}
 
 		s.pages.PullActionsFragment(w, pages.PullActionsParams{
@@ -155,11 +155,11 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	stack, _ := r.Context().Value("stack").(models.Stack)
 	abandonedPulls, _ := r.Context().Value("abandonedPulls").([]*models.Pull)
 
-	mergeCheckResponse := s.mergeCheck(r, f, pull, stack)
-	branchDeleteStatus := s.branchDeleteStatus(r, f, pull)
+	mergeCheckResponse := s.mergeCheck(r, &f.Repo, pull, stack)
+	branchDeleteStatus := s.branchDeleteStatus(r, &f.Repo, pull)
 	resubmitResult := pages.Unknown
 	if user != nil && user.Did == pull.OwnerDid {
-		resubmitResult = s.resubmitCheck(r, f, pull, stack)
+		resubmitResult = s.resubmitCheck(r, &f.Repo, pull, stack)
 	}
 
 	m := make(map[string]models.Pipeline)
@@ -237,7 +237,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *models.Pull, stack models.Stack) types.MergeCheckResponse {
+func (s *Pulls) mergeCheck(r *http.Request, f *models.Repo, pull *models.Pull, stack models.Stack) types.MergeCheckResponse {
 	if pull.State == models.PullMerged {
 		return types.MergeCheckResponse{}
 	}
@@ -304,7 +304,7 @@ func (s *Pulls) mergeCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *
 	return result
 }
 
-func (s *Pulls) branchDeleteStatus(r *http.Request, f *reporesolver.ResolvedRepo, pull *models.Pull) *models.BranchDeleteStatus {
+func (s *Pulls) branchDeleteStatus(r *http.Request, repo *models.Repo, pull *models.Pull) *models.BranchDeleteStatus {
 	if pull.State != models.PullMerged {
 		return nil
 	}
@@ -315,12 +315,10 @@ func (s *Pulls) branchDeleteStatus(r *http.Request, f *reporesolver.ResolvedRepo
 	}
 
 	var branch string
-	var repo *models.Repo
 	// check if the branch exists
 	// NOTE: appview could cache branches/tags etc. for every repo by listening for gitRefUpdates
 	if pull.IsBranchBased() {
 		branch = pull.PullSource.Branch
-		repo = &f.Repo
 	} else if pull.IsForkBased() {
 		branch = pull.PullSource.Branch
 		repo = pull.PullSource.Repo
@@ -359,7 +357,7 @@ func (s *Pulls) branchDeleteStatus(r *http.Request, f *reporesolver.ResolvedRepo
 	}
 }
 
-func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pull *models.Pull, stack models.Stack) pages.ResubmitResult {
+func (s *Pulls) resubmitCheck(r *http.Request, repo *models.Repo, pull *models.Pull, stack models.Stack) pages.ResubmitResult {
 	if pull.State == models.PullMerged || pull.State == models.PullDeleted || pull.PullSource == nil {
 		return pages.Unknown
 	}
@@ -379,9 +377,9 @@ func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pul
 		repoName = sourceRepo.Name
 	} else {
 		// pulls within the same repo
-		knot = f.Knot
-		ownerDid = f.Did
-		repoName = f.Name
+		knot = repo.Knot
+		ownerDid = repo.Did
+		repoName = repo.Name
 	}
 
 	scheme := "http"
@@ -393,8 +391,8 @@ func (s *Pulls) resubmitCheck(r *http.Request, f *reporesolver.ResolvedRepo, pul
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", ownerDid, repoName)
-	branchResp, err := tangled.RepoBranch(r.Context(), xrpcc, pull.PullSource.Branch, repo)
+	didSlashName := fmt.Sprintf("%s/%s", ownerDid, repoName)
+	branchResp, err := tangled.RepoBranch(r.Context(), xrpcc, pull.PullSource.Branch, didSlashName)
 	if err != nil {
 		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 			log.Println("failed to call XRPC repo.branches", xrpcerr)
@@ -951,19 +949,19 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 				s.pages.Notice(w, "pull", "This knot doesn't support branch-based pull requests. Try another way?")
 				return
 			}
-			s.handleBranchBasedPull(w, r, f, user, title, body, targetBranch, sourceBranch, isStacked)
+			s.handleBranchBasedPull(w, r, &f.Repo, user, title, body, targetBranch, sourceBranch, isStacked)
 		} else if isForkBased {
 			if !caps.PullRequests.ForkSubmissions {
 				s.pages.Notice(w, "pull", "This knot doesn't support fork-based pull requests. Try another way?")
 				return
 			}
-			s.handleForkBasedPull(w, r, f, user, fromFork, title, body, targetBranch, sourceBranch, isStacked)
+			s.handleForkBasedPull(w, r, &f.Repo, user, fromFork, title, body, targetBranch, sourceBranch, isStacked)
 		} else if isPatchBased {
 			if !caps.PullRequests.PatchSubmissions {
 				s.pages.Notice(w, "pull", "This knot doesn't support patch-based pull requests. Send your patch over email.")
 				return
 			}
-			s.handlePatchBasedPull(w, r, f, user, title, body, targetBranch, patch, isStacked)
+			s.handlePatchBasedPull(w, r, &f.Repo, user, title, body, targetBranch, patch, isStacked)
 		}
 		return
 	}
@@ -972,7 +970,7 @@ func (s *Pulls) NewPull(w http.ResponseWriter, r *http.Request) {
 func (s *Pulls) handleBranchBasedPull(
 	w http.ResponseWriter,
 	r *http.Request,
-	f *reporesolver.ResolvedRepo,
+	repo *models.Repo,
 	user *oauth.User,
 	title,
 	body,
@@ -984,13 +982,13 @@ func (s *Pulls) handleBranchBasedPull(
 	if !s.config.Core.Dev {
 		scheme = "https"
 	}
-	host := fmt.Sprintf("%s://%s", scheme, f.Knot)
+	host := fmt.Sprintf("%s://%s", scheme, repo.Knot)
 	xrpcc := &indigoxrpc.Client{
 		Host: host,
 	}
 
-	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
-	xrpcBytes, err := tangled.RepoCompare(r.Context(), xrpcc, repo, targetBranch, sourceBranch)
+	didSlashRepo := fmt.Sprintf("%s/%s", repo.Did, repo.Name)
+	xrpcBytes, err := tangled.RepoCompare(r.Context(), xrpcc, didSlashRepo, targetBranch, sourceBranch)
 	if err != nil {
 		if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 			log.Println("failed to call XRPC repo.compare", xrpcerr)
@@ -1027,20 +1025,20 @@ func (s *Pulls) handleBranchBasedPull(
 		Sha:    comparison.Rev2,
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, combined, sourceRev, pullSource, recordPullSource, isStacked)
+	s.createPullRequest(w, r, repo, user, title, body, targetBranch, patch, combined, sourceRev, pullSource, recordPullSource, isStacked)
 }
 
-func (s *Pulls) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, title, body, targetBranch, patch string, isStacked bool) {
+func (s *Pulls) handlePatchBasedPull(w http.ResponseWriter, r *http.Request, repo *models.Repo, user *oauth.User, title, body, targetBranch, patch string, isStacked bool) {
 	if err := s.validator.ValidatePatch(&patch); err != nil {
 		s.logger.Error("patch validation failed", "err", err)
 		s.pages.Notice(w, "pull", "Invalid patch format. Please provide a valid diff.")
 		return
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, "", "", nil, nil, isStacked)
+	s.createPullRequest(w, r, repo, user, title, body, targetBranch, patch, "", "", nil, nil, isStacked)
 }
 
-func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *reporesolver.ResolvedRepo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string, isStacked bool) {
+func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, repo *models.Repo, user *oauth.User, forkRepo string, title, body, targetBranch, sourceBranch string, isStacked bool) {
 	repoString := strings.SplitN(forkRepo, "/", 2)
 	forkOwnerDid := repoString[0]
 	repoName := repoString[1]
@@ -1142,13 +1140,13 @@ func (s *Pulls) handleForkBasedPull(w http.ResponseWriter, r *http.Request, f *r
 		Sha:    sourceRev,
 	}
 
-	s.createPullRequest(w, r, f, user, title, body, targetBranch, patch, combined, sourceRev, pullSource, recordPullSource, isStacked)
+	s.createPullRequest(w, r, repo, user, title, body, targetBranch, patch, combined, sourceRev, pullSource, recordPullSource, isStacked)
 }
 
 func (s *Pulls) createPullRequest(
 	w http.ResponseWriter,
 	r *http.Request,
-	f *reporesolver.ResolvedRepo,
+	repo *models.Repo,
 	user *oauth.User,
 	title, body, targetBranch string,
 	patch string,
@@ -1163,7 +1161,7 @@ func (s *Pulls) createPullRequest(
 		s.createStackedPullRequest(
 			w,
 			r,
-			f,
+			repo,
 			user,
 			targetBranch,
 			patch,
@@ -1220,7 +1218,7 @@ func (s *Pulls) createPullRequest(
 		Body:         body,
 		TargetBranch: targetBranch,
 		OwnerDid:     user.Did,
-		RepoAt:       f.RepoAt(),
+		RepoAt:       repo.RepoAt(),
 		Rkey:         rkey,
 		Submissions: []*models.PullSubmission{
 			&initialSubmission,
@@ -1233,7 +1231,7 @@ func (s *Pulls) createPullRequest(
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
 		return
 	}
-	pullId, err := db.NextPullId(tx, f.RepoAt())
+	pullId, err := db.NextPullId(tx, repo.RepoAt())
 	if err != nil {
 		log.Println("failed to get pull id", err)
 		s.pages.Notice(w, "pull", "Failed to create pull request. Try again later.")
@@ -1248,7 +1246,7 @@ func (s *Pulls) createPullRequest(
 			Val: &tangled.RepoPull{
 				Title: title,
 				Target: &tangled.RepoPull_Target{
-					Repo:   string(f.RepoAt()),
+					Repo:   string(repo.RepoAt()),
 					Branch: targetBranch,
 				},
 				Patch:     patch,
@@ -1271,14 +1269,14 @@ func (s *Pulls) createPullRequest(
 
 	s.notifier.NewPull(r.Context(), pull)
 
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, repo)
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pullId))
 }
 
 func (s *Pulls) createStackedPullRequest(
 	w http.ResponseWriter,
 	r *http.Request,
-	f *reporesolver.ResolvedRepo,
+	repo *models.Repo,
 	user *oauth.User,
 	targetBranch string,
 	patch string,
@@ -1310,7 +1308,7 @@ func (s *Pulls) createStackedPullRequest(
 
 	// build a stack out of this patch
 	stackId := uuid.New()
-	stack, err := newStack(f, user, targetBranch, patch, pullSource, stackId.String())
+	stack, err := newStack(repo, user, targetBranch, patch, pullSource, stackId.String())
 	if err != nil {
 		log.Println("failed to create stack", err)
 		s.pages.Notice(w, "pull", fmt.Sprintf("Failed to create stack: %v", err))
@@ -1373,7 +1371,7 @@ func (s *Pulls) createStackedPullRequest(
 		return
 	}
 
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, repo)
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls", ownerSlashRepo))
 }
 
@@ -1645,7 +1643,7 @@ func (s *Pulls) resubmitPatch(w http.ResponseWriter, r *http.Request) {
 
 	patch := r.FormValue("patch")
 
-	s.resubmitPullHelper(w, r, f, user, pull, patch, "", "")
+	s.resubmitPullHelper(w, r, &f.Repo, user, pull, patch, "", "")
 }
 
 func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
@@ -1710,7 +1708,7 @@ func (s *Pulls) resubmitBranch(w http.ResponseWriter, r *http.Request) {
 	patch := comparison.FormatPatchRaw
 	combined := comparison.CombinedPatchRaw
 
-	s.resubmitPullHelper(w, r, f, user, pull, patch, combined, sourceRev)
+	s.resubmitPullHelper(w, r, &f.Repo, user, pull, patch, combined, sourceRev)
 }
 
 func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
@@ -1807,13 +1805,13 @@ func (s *Pulls) resubmitFork(w http.ResponseWriter, r *http.Request) {
 	patch := comparison.FormatPatchRaw
 	combined := comparison.CombinedPatchRaw
 
-	s.resubmitPullHelper(w, r, f, user, pull, patch, combined, sourceRev)
+	s.resubmitPullHelper(w, r, &f.Repo, user, pull, patch, combined, sourceRev)
 }
 
 func (s *Pulls) resubmitPullHelper(
 	w http.ResponseWriter,
 	r *http.Request,
-	f *reporesolver.ResolvedRepo,
+	repo *models.Repo,
 	user *oauth.User,
 	pull *models.Pull,
 	patch string,
@@ -1822,7 +1820,7 @@ func (s *Pulls) resubmitPullHelper(
 ) {
 	if pull.IsStacked() {
 		log.Println("resubmitting stacked PR")
-		s.resubmitStackedPullHelper(w, r, f, user, pull, patch, pull.StackId)
+		s.resubmitStackedPullHelper(w, r, repo, user, pull, patch, pull.StackId)
 		return
 	}
 
@@ -1902,7 +1900,7 @@ func (s *Pulls) resubmitPullHelper(
 			Val: &tangled.RepoPull{
 				Title: pull.Title,
 				Target: &tangled.RepoPull_Target{
-					Repo:   string(f.RepoAt()),
+					Repo:   string(repo.RepoAt()),
 					Branch: pull.TargetBranch,
 				},
 				Patch:     patch, // new patch
@@ -1923,14 +1921,14 @@ func (s *Pulls) resubmitPullHelper(
 		return
 	}
 
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, repo)
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
 func (s *Pulls) resubmitStackedPullHelper(
 	w http.ResponseWriter,
 	r *http.Request,
-	f *reporesolver.ResolvedRepo,
+	repo *models.Repo,
 	user *oauth.User,
 	pull *models.Pull,
 	patch string,
@@ -1939,7 +1937,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 	targetBranch := pull.TargetBranch
 
 	origStack, _ := r.Context().Value("stack").(models.Stack)
-	newStack, err := newStack(f, user, targetBranch, patch, pull.PullSource, stackId)
+	newStack, err := newStack(repo, user, targetBranch, patch, pull.PullSource, stackId)
 	if err != nil {
 		log.Println("failed to create resubmitted stack", err)
 		s.pages.Notice(w, "pull-merge-error", "Failed to merge pull request. Try again later.")
@@ -2117,7 +2115,7 @@ func (s *Pulls) resubmitStackedPullHelper(
 		return
 	}
 
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, repo)
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
@@ -2387,7 +2385,7 @@ func (s *Pulls) ReopenPull(w http.ResponseWriter, r *http.Request) {
 	s.pages.HxLocation(w, fmt.Sprintf("/%s/pulls/%d", ownerSlashRepo, pull.PullId))
 }
 
-func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patch string, pullSource *models.PullSource, stackId string) (models.Stack, error) {
+func newStack(repo *models.Repo, user *oauth.User, targetBranch, patch string, pullSource *models.PullSource, stackId string) (models.Stack, error) {
 	formatPatches, err := patchutil.ExtractPatches(patch)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to extract patches: %v", err)
@@ -2422,7 +2420,7 @@ func newStack(f *reporesolver.ResolvedRepo, user *oauth.User, targetBranch, patc
 			Body:         body,
 			TargetBranch: targetBranch,
 			OwnerDid:     user.Did,
-			RepoAt:       f.RepoAt(),
+			RepoAt:       repo.RepoAt(),
 			Rkey:         rkey,
 			Submissions: []*models.PullSubmission{
 				&initialSubmission,

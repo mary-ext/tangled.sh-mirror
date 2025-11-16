@@ -74,7 +74,7 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the blob view
-	blobView := NewBlobView(resp, rp.config, f, ref, filePath, r.URL.Query())
+	blobView := NewBlobView(resp, rp.config, &f.Repo, ref, filePath, r.URL.Query())
 
 	user := rp.oauth.GetUser(r)
 
@@ -178,7 +178,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewBlobView creates a BlobView from the XRPC response
-func NewBlobView(resp *tangled.RepoBlob_Output, config *config.Config, f *reporesolver.ResolvedRepo, ref, filePath string, queryParams url.Values) models.BlobView {
+func NewBlobView(resp *tangled.RepoBlob_Output, config *config.Config, repo *models.Repo, ref, filePath string, queryParams url.Values) models.BlobView {
 	view := models.BlobView{
 		Contents: "",
 		Lines:    0,
@@ -200,7 +200,7 @@ func NewBlobView(resp *tangled.RepoBlob_Output, config *config.Config, f *repore
 
 	// Determine if binary
 	if resp.IsBinary != nil && *resp.IsBinary {
-		view.ContentSrc = generateBlobURL(config, f, ref, filePath)
+		view.ContentSrc = generateBlobURL(config, repo, ref, filePath)
 		ext := strings.ToLower(filepath.Ext(resp.Path))
 
 		switch ext {
@@ -252,16 +252,16 @@ func NewBlobView(resp *tangled.RepoBlob_Output, config *config.Config, f *repore
 	return view
 }
 
-func generateBlobURL(config *config.Config, f *reporesolver.ResolvedRepo, ref, filePath string) string {
+func generateBlobURL(config *config.Config, repo *models.Repo, ref, filePath string) string {
 	scheme := "http"
 	if !config.Core.Dev {
 		scheme = "https"
 	}
 
-	repoName := fmt.Sprintf("%s/%s", f.Did, f.Name)
+	repoName := fmt.Sprintf("%s/%s", repo.Did, repo.Name)
 	baseURL := &url.URL{
 		Scheme: scheme,
-		Host:   f.Knot,
+		Host:   repo.Knot,
 		Path:   "/xrpc/sh.tangled.repo.blob",
 	}
 	query := baseURL.Query()
