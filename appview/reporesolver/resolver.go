@@ -20,11 +20,6 @@ import (
 
 type ResolvedRepo struct {
 	models.Repo
-	OwnerId    identity.Identity
-	CurrentDir string
-	Ref        string
-
-	rr *RepoResolver
 }
 
 type RepoResolver struct {
@@ -49,53 +44,53 @@ func GetBaseRepoPath(r *http.Request, repo *models.Repo) string {
 	return path.Join(user, name)
 }
 
+// TODO: move this out of `RepoResolver` struct
 func (rr *RepoResolver) Resolve(r *http.Request) (*ResolvedRepo, error) {
 	repo, ok := r.Context().Value("repo").(*models.Repo)
 	if !ok {
 		log.Println("malformed middleware: `repo` not exist in context")
 		return nil, fmt.Errorf("malformed middleware")
 	}
-	id, ok := r.Context().Value("resolvedId").(identity.Identity)
-	if !ok {
-		log.Println("malformed middleware")
-		return nil, fmt.Errorf("malformed middleware")
-	}
-
-	currentDir := path.Dir(extractPathAfterRef(r.URL.EscapedPath()))
-	ref := chi.URLParam(r, "ref")
 
 	return &ResolvedRepo{
-		Repo:       *repo,
-		OwnerId:    id,
-		CurrentDir: currentDir,
-		Ref:        ref,
-
-		rr: rr,
+		Repo: *repo,
 	}, nil
 }
 
-// this function is a bit weird since it now returns RepoInfo from an entirely different
-// package. we should refactor this or get rid of RepoInfo entirely.
-func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
-	repoAt := f.RepoAt()
+// 1. [x] replace `RepoInfo` to `reporesolver.GetRepoInfo(r *http.Request, repo, user)`
+// 2. [x] remove `rr`, `CurrentDir`, `Ref` fields from `ResolvedRepo`
+// 3. [ ] remove `ResolvedRepo`
+// 4. [ ] replace reporesolver to reposervice
+func (rr *RepoResolver) GetRepoInfo(r *http.Request, user *oauth.User) repoinfo.RepoInfo {
+	ownerId, ook := r.Context().Value("resolvedId").(identity.Identity)
+	repo, rok := r.Context().Value("repo").(*models.Repo)
+	if !ook || !rok {
+		log.Println("malformed request, failed to get repo from context")
+	}
+
+	// get dir/ref
+	currentDir := path.Dir(extractPathAfterRef(r.URL.EscapedPath()))
+	ref := chi.URLParam(r, "ref")
+
+	repoAt := repo.RepoAt()
 	isStarred := false
 	roles := repoinfo.RolesInRepo{}
 	if user != nil {
-		isStarred = db.GetStarStatus(f.rr.execer, user.Did, repoAt)
-		roles.Roles = f.rr.enforcer.GetPermissionsInRepo(user.Did, f.Knot, f.DidSlashRepo())
+		isStarred = db.GetStarStatus(rr.execer, user.Did, repoAt)
+		roles.Roles = rr.enforcer.GetPermissionsInRepo(user.Did, repo.Knot, repo.DidSlashRepo())
 	}
 
-	stats := f.RepoStats
+	stats := repo.RepoStats
 	if stats == nil {
-		starCount, err := db.GetStarCount(f.rr.execer, repoAt)
+		starCount, err := db.GetStarCount(rr.execer, repoAt)
 		if err != nil {
 			log.Println("failed to get star count for ", repoAt)
 		}
-		issueCount, err := db.GetIssueCount(f.rr.execer, repoAt)
+		issueCount, err := db.GetIssueCount(rr.execer, repoAt)
 		if err != nil {
 			log.Println("failed to get issue count for ", repoAt)
 		}
-		pullCount, err := db.GetPullCount(f.rr.execer, repoAt)
+		pullCount, err := db.GetPullCount(rr.execer, repoAt)
 		if err != nil {
 			log.Println("failed to get pull count for ", repoAt)
 		}
@@ -106,29 +101,34 @@ func (f *ResolvedRepo) RepoInfo(user *oauth.User) repoinfo.RepoInfo {
 		}
 	}
 
-	sourceRepo, err := db.GetRepoSourceRepo(f.rr.execer, repoAt)
-	if err != nil {
-		log.Println("failed to get repo by at uri", err)
+	var sourceRepo *models.Repo
+	var err error
+	if repo.Source != "" {
+		sourceRepo, err = db.GetRepoByAtUri(rr.execer, repo.Source)
+		if err != nil {
+			log.Println("failed to get repo by at uri", err)
+		}
 	}
 
 	repoInfo := repoinfo.RepoInfo{
 		// this is basically a models.Repo
-		OwnerDid:    f.OwnerId.DID.String(),
-		OwnerHandle: f.OwnerId.Handle.String(),
-		Name:        f.Name,
-		Rkey:        f.Rkey,
-		Description: f.Description,
-		Website:     f.Website,
-		Topics:      f.Topics,
-		Knot:        f.Knot,
-		Spindle:     f.Spindle,
+		OwnerDid:    ownerId.DID.String(),
+		OwnerHandle: ownerId.Handle.String(),
+		Name:        repo.Name,
+		Rkey:        repo.Rkey,
+		Description: repo.Description,
+		Website:     repo.Website,
+		Topics:      repo.Topics,
+		Knot:        repo.Knot,
+		Spindle:     repo.Spindle,
 		Stats:       *stats,
 
 		// fork repo upstream
 		Source: sourceRepo,
 
-		CurrentDir: f.CurrentDir,
-		Ref:        f.Ref,
+		// page context
+		CurrentDir: currentDir,
+		Ref:        ref,
 
 		// info related to the session
 		IsStarred: isStarred,

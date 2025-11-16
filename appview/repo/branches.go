@@ -46,7 +46,7 @@ func (rp *Repo) Branches(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	rp.pages.RepoBranches(w, pages.RepoBranchesParams{
 		LoggedInUser:         user,
-		RepoInfo:             f.RepoInfo(user),
+		RepoInfo:             rp.repoResolver.GetRepoInfo(r, user),
 		RepoBranchesResponse: result,
 	})
 }

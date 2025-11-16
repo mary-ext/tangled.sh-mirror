@@ -80,7 +80,7 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoBlob(w, pages.RepoBlobParams{
 		LoggedInUser:    user,
-		RepoInfo:        f.RepoInfo(user),
+		RepoInfo:        rp.repoResolver.GetRepoInfo(r, user),
 		BreadCrumbs:     breadcrumbs,
 		BlobView:        blobView,
 		RepoBlob_Output: resp,

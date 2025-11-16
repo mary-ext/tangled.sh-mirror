@@ -119,7 +119,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoSingleIssue(w, pages.RepoSingleIssueParams{
 		LoggedInUser:         user,
-		RepoInfo:             f.RepoInfo(user),
+		RepoInfo:             rp.repoResolver.GetRepoInfo(r, user),
 		Issue:                issue,
 		CommentList:          issue.CommentList(),
 		OrderedReactionKinds: models.OrderedReactionKinds,
@@ -132,11 +132,6 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "EditIssue")
 	user := rp.oauth.GetUser(r)
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		return
-	}
 
 	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
@@ -149,7 +144,7 @@ func (rp *Issues) EditIssue(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		rp.pages.EditIssueFragment(w, pages.EditIssueParams{
 			LoggedInUser: user,
-			RepoInfo:     f.RepoInfo(user),
+			RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 			Issue:        issue,
 		})
 	case http.MethodPost:
@@ -470,11 +465,6 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 func (rp *Issues) IssueComment(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "IssueComment")
 	user := rp.oauth.GetUser(r)
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		return
-	}
 
 	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
@@ -502,7 +492,7 @@ func (rp *Issues) IssueComment(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.IssueCommentBodyFragment(w, pages.IssueCommentBodyParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
+		RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		Issue:        issue,
 		Comment:      &comment,
 	})
@@ -511,11 +501,6 @@ func (rp *Issues) IssueComment(w http.ResponseWriter, r *http.Request) {
 func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "EditIssueComment")
 	user := rp.oauth.GetUser(r)
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		return
-	}
 
 	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
@@ -551,7 +536,7 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		rp.pages.EditIssueCommentFragment(w, pages.EditIssueCommentParams{
 			LoggedInUser: user,
-			RepoInfo:     f.RepoInfo(user),
+			RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 			Issue:        issue,
 			Comment:      &comment,
 		})
@@ -605,7 +590,7 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 		// return new comment body with htmx
 		rp.pages.IssueCommentBodyFragment(w, pages.IssueCommentBodyParams{
 			LoggedInUser: user,
-			RepoInfo:     f.RepoInfo(user),
+			RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 			Issue:        issue,
 			Comment:      &newComment,
 		})
@@ -615,11 +600,6 @@ func (rp *Issues) EditIssueComment(w http.ResponseWriter, r *http.Request) {
 func (rp *Issues) ReplyIssueCommentPlaceholder(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "ReplyIssueCommentPlaceholder")
 	user := rp.oauth.GetUser(r)
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		return
-	}
 
 	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
@@ -647,7 +627,7 @@ func (rp *Issues) ReplyIssueCommentPlaceholder(w http.ResponseWriter, r *http.Re
 
 	rp.pages.ReplyIssueCommentPlaceholderFragment(w, pages.ReplyIssueCommentPlaceholderParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
+		RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		Issue:        issue,
 		Comment:      &comment,
 	})
@@ -656,11 +636,6 @@ func (rp *Issues) ReplyIssueCommentPlaceholder(w http.ResponseWriter, r *http.Re
 func (rp *Issues) ReplyIssueComment(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "ReplyIssueComment")
 	user := rp.oauth.GetUser(r)
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		return
-	}
 
 	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
@@ -688,7 +663,7 @@ func (rp *Issues) ReplyIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.ReplyIssueCommentFragment(w, pages.ReplyIssueCommentParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
+		RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		Issue:        issue,
 		Comment:      &comment,
 	})
@@ -697,11 +672,6 @@ func (rp *Issues) ReplyIssueComment(w http.ResponseWriter, r *http.Request) {
 func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	l := rp.logger.With("handler", "DeleteIssueComment")
 	user := rp.oauth.GetUser(r)
-	f, err := rp.repoResolver.Resolve(r)
-	if err != nil {
-		l.Error("failed to get repo and knot", "err", err)
-		return
-	}
 
 	issue, ok := r.Context().Value("issue").(*models.Issue)
 	if !ok {
@@ -772,7 +742,7 @@ func (rp *Issues) DeleteIssueComment(w http.ResponseWriter, r *http.Request) {
 	// htmx fragment of comment after deletion
 	rp.pages.IssueCommentBodyFragment(w, pages.IssueCommentBodyParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
+		RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		Issue:        issue,
 		Comment:      &comment,
 	})
@@ -856,7 +826,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoIssues(w, pages.RepoIssuesParams{
 		LoggedInUser:    rp.oauth.GetUser(r),
-		RepoInfo:        f.RepoInfo(user),
+		RepoInfo:        rp.repoResolver.GetRepoInfo(r, user),
 		Issues:          issues,
 		LabelDefs:       defs,
 		FilteringByOpen: isOpen,
@@ -879,7 +849,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		rp.pages.RepoNewIssue(w, pages.RepoNewIssueParams{
 			LoggedInUser: user,
-			RepoInfo:     f.RepoInfo(user),
+			RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		})
 	case http.MethodPost:
 		issue := &models.Issue{

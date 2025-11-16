@@ -102,7 +102,7 @@ func (rp *Repo) Tree(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:     user,
 		BreadCrumbs:      breadcrumbs,
 		TreePath:         treePath,
-		RepoInfo:         f.RepoInfo(user),
+		RepoInfo:         rp.repoResolver.GetRepoInfo(r, user),
 		RepoTreeResponse: result,
 	})
 }

@@ -130,7 +130,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoArtifactFragment(w, pages.RepoArtifactParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
+		RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		Artifact:     artifact,
 	})
 }

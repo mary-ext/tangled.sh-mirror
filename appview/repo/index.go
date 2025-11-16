@@ -60,7 +60,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 			rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 				LoggedInUser:     user,
 				NeedsKnotUpgrade: true,
-				RepoInfo:         f.RepoInfo(user),
+				RepoInfo:         rp.repoResolver.GetRepoInfo(r, user),
 			})
 			return
 		}
@@ -146,7 +146,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoIndexPage(w, pages.RepoIndexParams{
 		LoggedInUser:      user,
-		RepoInfo:          f.RepoInfo(user),
+		RepoInfo:          rp.repoResolver.GetRepoInfo(r, user),
 		TagMap:            tagMap,
 		RepoIndexResponse: *result,
 		CommitsTrunc:      commitsTrunc,

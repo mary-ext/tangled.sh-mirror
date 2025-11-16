@@ -71,7 +71,7 @@ func (rp *Repo) Tags(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	rp.pages.RepoTags(w, pages.RepoTagsParams{
 		LoggedInUser:      user,
-		RepoInfo:          f.RepoInfo(user),
+		RepoInfo:          rp.repoResolver.GetRepoInfo(r, user),
 		RepoTagsResponse:  result,
 		ArtifactMap:       artifactMap,
 		DanglingArtifacts: danglingArtifacts,

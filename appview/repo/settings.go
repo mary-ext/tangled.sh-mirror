@@ -255,7 +255,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoGeneralSettings(w, pages.RepoGeneralSettingsParams{
 		LoggedInUser:       user,
-		RepoInfo:           f.RepoInfo(user),
+		RepoInfo:           rp.repoResolver.GetRepoInfo(r, user),
 		Branches:           result.Branches,
 		Labels:             labels,
 		DefaultLabels:      defaultLabels,
@@ -306,7 +306,7 @@ func (rp *Repo) accessSettings(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoAccessSettings(w, pages.RepoAccessSettingsParams{
 		LoggedInUser:  user,
-		RepoInfo:      f.RepoInfo(user),
+		RepoInfo:      rp.repoResolver.GetRepoInfo(r, user),
 		Tabs:          settingsTabs,
 		Tab:           "access",
 		Collaborators: collaborators,
@@ -367,7 +367,7 @@ func (rp *Repo) pipelineSettings(w http.ResponseWriter, r *http.Request) {
 
 	rp.pages.RepoPipelineSettings(w, pages.RepoPipelineSettingsParams{
 		LoggedInUser:   user,
-		RepoInfo:       f.RepoInfo(user),
+		RepoInfo:       rp.repoResolver.GetRepoInfo(r, user),
 		Tabs:           settingsTabs,
 		Tab:            "pipelines",
 		Spindles:       spindles,

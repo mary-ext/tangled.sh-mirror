@@ -635,7 +635,7 @@ func (rp *Repo) LabelPanel(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	rp.pages.LabelPanel(w, pages.LabelPanelParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
+		RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		Defs:         defs,
 		Subject:      subject.String(),
 		State:        state,
@@ -683,7 +683,7 @@ func (rp *Repo) EditLabelPanel(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 	rp.pages.EditLabelPanel(w, pages.EditLabelPanelParams{
 		LoggedInUser: user,
-		RepoInfo:     f.RepoInfo(user),
+		RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		Defs:         defs,
 		Subject:      subject.String(),
 		State:        state,
@@ -1006,7 +1006,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		rp.pages.ForkRepo(w, pages.ForkRepoParams{
 			LoggedInUser: user,
 			Knots:        knots,
-			RepoInfo:     f.RepoInfo(user),
+			RepoInfo:     rp.repoResolver.GetRepoInfo(r, user),
 		})
 
 	case http.MethodPost:
