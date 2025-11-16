@@ -1247,14 +1247,13 @@ func (p *Pages) RepoCompareAllowPullFragment(w io.Writer, params RepoCompareAllo
 	return p.executePlain("repo/fragments/compareAllowPull", w, params)
 }
 
-type RepoCompareDiffParams struct {
-	LoggedInUser *oauth.User
-	RepoInfo     repoinfo.RepoInfo
-	Diff         types.NiceDiff
+type RepoCompareDiffFragmentParams struct {
+	Diff     types.NiceDiff
+	DiffOpts types.DiffOpts
 }
 
-func (p *Pages) RepoCompareDiff(w io.Writer, params RepoCompareDiffParams) error {
-	return p.executePlain("repo/fragments/diff", w, []any{params.RepoInfo.FullName, &params.Diff})
+func (p *Pages) RepoCompareDiffFragment(w io.Writer, params RepoCompareDiffFragmentParams) error {
+	return p.executePlain("repo/fragments/diff", w, []any{&params.Diff, &params.DiffOpts})
 }
 
 type LabelPanelParams struct {

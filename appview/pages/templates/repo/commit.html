@@ -111,7 +111,7 @@
 {{ end }}
 
 {{ define "contentAfter" }}
-  {{ template "repo/fragments/diff" (list .RepoInfo.FullName .Diff .DiffOpts) }}
+  {{ template "repo/fragments/diff" (list .Diff .DiffOpts) }}
 {{end}}
 
 {{ define "contentAfterLeft" }}
