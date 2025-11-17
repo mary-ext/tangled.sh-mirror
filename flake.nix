@@ -288,7 +288,7 @@
     }: {
       imports = [./nix/modules/appview.nix];
 
-      services.tangled.appview.package = lib.mkDefault self.packages.${pkgs.system}.appview;
+      services.tangled.appview.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.appview;
     };
     nixosModules.knot = {
       lib,
@@ -297,7 +297,7 @@
     }: {
       imports = [./nix/modules/knot.nix];
 
-      services.tangled.knot.package = lib.mkDefault self.packages.${pkgs.system}.knot;
+      services.tangled.knot.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.knot;
     };
     nixosModules.spindle = {
       lib,
@@ -306,7 +306,7 @@
     }: {
       imports = [./nix/modules/spindle.nix];
 
-      services.tangled.spindle.package = lib.mkDefault self.packages.${pkgs.system}.spindle;
+      services.tangled.spindle.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.spindle;
     };
   };
 }
