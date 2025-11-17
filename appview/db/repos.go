@@ -208,10 +208,10 @@ func GetRepos(e Execer, limit int, filters ...filter) ([]models.Repo, error) {
 
 	starCountQuery := fmt.Sprintf(
 		`select
-			repo_at, count(1)
+			subject_at, count(1)
 		from stars
-		where repo_at in (%s)
-		group by repo_at`,
+		where subject_at in (%s)
+		group by subject_at`,
 		inClause,
 	)
 	rows, err = e.Query(starCountQuery, args...)

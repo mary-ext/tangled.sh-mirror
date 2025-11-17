@@ -57,9 +57,9 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 		log.Println("created atproto record: ", resp.Uri)
 
 		star := &models.Star{
-			StarredByDid: currentUser.Did,
-			RepoAt:       subjectUri,
-			Rkey:         rkey,
+			Did:    currentUser.Did,
+			RepoAt: subjectUri,
+			Rkey:   rkey,
 		}
 
 		err = db.AddStar(s.db, star)

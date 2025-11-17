@@ -59,9 +59,9 @@
 {{ define "timeline/fragments/starEvent" }}
   {{ $root := index . 0 }}
   {{ $event := index . 1 }}
-  {{ $star := $event.Star }}
+  {{ $star := $event.RepoStar }}
   {{ with $star }}
-    {{ $starrerHandle :=  resolve .StarredByDid }}
+    {{ $starrerHandle := resolve .Did }}
     {{ $repoOwnerHandle :=  resolve .Repo.Did }}
     <div class="pl-6 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-2 text-sm">
         {{ template "user/fragments/picHandleLink" $starrerHandle }}

@@ -1128,6 +1128,45 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 		return err
 	})
 
+	// remove the foreign key constraints from stars.
+	runMigration(conn, logger, "generalize-stars-subject", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			create table stars_new (
+				id integer primary key autoincrement,
+				did text not null,
+				rkey text not null,
+
+				subject_at text not null,
+
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+				unique(did, rkey),
+				unique(did, subject_at)
+			);
+
+			insert into stars_new (
+				id,
+				did,
+				rkey,
+				subject_at,
+				created
+			)
+			select
+				id,
+				starred_by_did,
+				rkey,
+				repo_at,
+				created
+			from stars;
+
+			drop table stars;
+			alter table stars_new rename to stars;
+
+			create index if not exists idx_stars_created on stars(created);
+			create index if not exists idx_stars_subject_at_created on stars(subject_at, created);
+		`)
+		return err
+	})
+
 	return &DB{
 		db,
 		logger,

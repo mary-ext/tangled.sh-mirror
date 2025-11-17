@@ -5,7 +5,7 @@ import "time"
 type TimelineEvent struct {
 	*Repo
 	*Follow
-	*Star
+	*RepoStar
 
 	EventAt time.Time
 

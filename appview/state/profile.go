@@ -66,7 +66,7 @@ func (s *State) profile(r *http.Request) (*pages.ProfileCard, error) {
 		return nil, fmt.Errorf("failed to get string count: %w", err)
 	}
 
-	starredCount, err := db.CountStars(s.db, db.FilterEq("starred_by_did", did))
+	starredCount, err := db.CountStars(s.db, db.FilterEq("did", did))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get starred repo count: %w", err)
 	}
@@ -211,7 +211,7 @@ func (s *State) starredPage(w http.ResponseWriter, r *http.Request) {
 	}
 	l = l.With("profileDid", profile.UserDid, "profileHandle", profile.UserHandle)
 
-	stars, err := db.GetStars(s.db, 0, db.FilterEq("starred_by_did", profile.UserDid))
+	stars, err := db.GetRepoStars(s.db, 0, db.FilterEq("did", profile.UserDid))
 	if err != nil {
 		l.Error("failed to get stars", "err", err)
 		s.pages.Error500(w)
@@ -219,9 +219,7 @@ func (s *State) starredPage(w http.ResponseWriter, r *http.Request) {
 	}
 	var repos []models.Repo
 	for _, s := range stars {
-		if s.Repo != nil {
-			repos = append(repos, *s.Repo)
-		}
+		repos = append(repos, *s.Repo)
 	}
 
 	err = s.pages.ProfileStarred(w, pages.ProfileStarredParams{

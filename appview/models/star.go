@@ -7,11 +7,20 @@ import (
 )
 
 type Star struct {
-	StarredByDid string
-	RepoAt       syntax.ATURI
-	Created      time.Time
-	Rkey         string
+	Did     string
+	RepoAt  syntax.ATURI
+	Created time.Time
+	Rkey    string
+}
 
-	// optionally, populate this when querying for reverse mappings
+// RepoStar is used for reverse mapping to repos
+type RepoStar struct {
+	Star
 	Repo *Repo
+}
+
+// StringStar is used for reverse mapping to strings
+type StringStar struct {
+	Star
+	String *String
 }
