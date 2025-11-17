@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/json"
+
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -67,6 +69,25 @@ type Branch struct {
 	Reference `json:"reference"`
 	Commit    *object.Commit `json:"commit,omitempty"`
 	IsDefault bool           `json:"is_default,omitempty"`
+}
+
+func (b *Branch) UnmarshalJSON(data []byte) error {
+	aux := &struct {
+		Reference          `json:"reference"`
+		Commit             *object.Commit `json:"commit,omitempty"`
+		IsDefault          bool           `json:"is_default,omitempty"`
+		MispelledIsDefault bool           `json:"is_deafult,omitempty"` // mispelled name
+	}{}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	b.Reference = aux.Reference
+	b.Commit = aux.Commit
+	b.IsDefault = aux.IsDefault || aux.MispelledIsDefault // whichever was set
+
+	return nil
 }
 
 type RepoTagsResponse struct {
