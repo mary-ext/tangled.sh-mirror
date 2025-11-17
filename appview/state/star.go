@@ -75,12 +75,10 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 
 		s.notifier.NewStar(r.Context(), star)
 
-		s.pages.RepoStarFragment(w, pages.RepoStarFragmentParams{
+		s.pages.StarBtnFragment(w, pages.StarBtnFragmentParams{
 			IsStarred: true,
-			RepoAt:    subjectUri,
-			Stats: models.RepoStats{
-				StarCount: starCount,
-			},
+			SubjectAt: subjectUri,
+			StarCount: starCount,
 		})
 
 		return
@@ -117,12 +115,10 @@ func (s *State) Star(w http.ResponseWriter, r *http.Request) {
 
 		s.notifier.DeleteStar(r.Context(), star)
 
-		s.pages.RepoStarFragment(w, pages.RepoStarFragmentParams{
+		s.pages.StarBtnFragment(w, pages.StarBtnFragmentParams{
 			IsStarred: false,
-			RepoAt:    subjectUri,
-			Stats: models.RepoStats{
-				StarCount: starCount,
-			},
+			SubjectAt: subjectUri,
+			StarCount: starCount,
 		})
 
 		return

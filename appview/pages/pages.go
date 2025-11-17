@@ -625,14 +625,14 @@ func (p *Pages) EditPinsFragment(w io.Writer, params EditPinsParams) error {
 	return p.executePlain("user/fragments/editPins", w, params)
 }
 
-type RepoStarFragmentParams struct {
+type StarBtnFragmentParams struct {
 	IsStarred bool
-	RepoAt    syntax.ATURI
-	Stats     models.RepoStats
+	SubjectAt syntax.ATURI
+	StarCount int
 }
 
-func (p *Pages) RepoStarFragment(w io.Writer, params RepoStarFragmentParams) error {
-	return p.executePlain("repo/fragments/repoStar", w, params)
+func (p *Pages) StarBtnFragment(w io.Writer, params StarBtnFragmentParams) error {
+	return p.executePlain("fragments/starBtn", w, params)
 }
 
 type RepoIndexParams struct {
@@ -1376,8 +1376,10 @@ type SingleStringParams struct {
 	ShowRendered     bool
 	RenderToggle     bool
 	RenderedContents template.HTML
-	String           models.String
+	String           *models.String
 	Stats            models.StringStats
+	IsStarred        bool
+	StarCount        int
 	Owner            identity.Identity
 }
 

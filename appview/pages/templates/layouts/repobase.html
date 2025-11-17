@@ -49,7 +49,10 @@
         </div>
 
         <div class="w-full sm:w-fit grid grid-cols-3 gap-2 z-auto">
-          {{ template "repo/fragments/repoStar" .RepoInfo }}
+          {{ template "fragments/starBtn"
+            (dict "SubjectAt" .RepoInfo.RepoAt
+                  "IsStarred" .RepoInfo.IsStarred
+                  "StarCount" .RepoInfo.Stats.StarCount) }}
           <a
             class="btn text-sm no-underline hover:no-underline flex items-center gap-2 group"
             hx-boost="true"

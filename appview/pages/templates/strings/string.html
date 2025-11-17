@@ -37,6 +37,10 @@
             <span class="hidden md:inline">delete</span>
             {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </button>
+          {{ template "fragments/starBtn"
+            (dict "SubjectAt" .String.AtUri
+                  "IsStarred" .IsStarred
+                  "StarCount" .StarCount) }}
         </div>
       {{ end }}
     </div>

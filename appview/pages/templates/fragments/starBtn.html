@@ -1,11 +1,11 @@
-{{ define "repo/fragments/repoStar" }}
+{{ define "fragments/starBtn" }}
     <button
         id="starBtn"
         class="btn disabled:opacity-50 disabled:cursor-not-allowed flex gap-2 items-center group"
         {{ if .IsStarred }}
-            hx-delete="/star?subject={{ .RepoAt }}&countHint={{ .Stats.StarCount }}"
+            hx-delete="/star?subject={{ .SubjectAt }}&countHint={{ .StarCount }}"
         {{ else }}
-            hx-post="/star?subject={{ .RepoAt }}&countHint={{ .Stats.StarCount }}"
+            hx-post="/star?subject={{ .SubjectAt }}&countHint={{ .StarCount }}"
         {{ end }}
 
         hx-trigger="click"
@@ -19,7 +19,7 @@
             {{ i "star" "w-4 h-4" }}
         {{ end }}
         <span class="text-sm">
-            {{ .Stats.StarCount }}
+            {{ .StarCount }}
         </span>
         {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
     </button>
