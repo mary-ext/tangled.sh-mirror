@@ -121,9 +121,9 @@ func (i *Ingester) ingestStar(e *jmodels.Event) error {
 			return err
 		}
 		err = db.AddStar(i.Db, &models.Star{
-			StarredByDid: did,
-			RepoAt:       subjectUri,
-			Rkey:         e.Commit.RKey,
+			Did:    did,
+			RepoAt: subjectUri,
+			Rkey:   e.Commit.RKey,
 		})
 	case jmodels.CommitOperationDelete:
 		err = db.DeleteStarByRkey(i.Db, did, e.Commit.RKey)

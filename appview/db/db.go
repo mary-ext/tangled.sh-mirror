@@ -569,8 +569,6 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 		-- indexes for better performance
 		create index if not exists idx_notifications_recipient_created on notifications(recipient_did, created desc);
 		create index if not exists idx_notifications_recipient_read on notifications(recipient_did, read);
-		create index if not exists idx_stars_created on stars(created);
-		create index if not exists idx_stars_repo_at_created on stars(repo_at, created);
 	`)
 	if err != nil {
 		return nil, err
@@ -1124,6 +1122,45 @@ func Make(ctx context.Context, dbPath string) (*DB, error) {
 	runMigration(conn, logger, "add-usermentioned-preference", func(tx *sql.Tx) error {
 		_, err := tx.Exec(`
 			alter table notification_preferences add column user_mentioned integer not null default 1;
+		`)
+		return err
+	})
+
+	// remove the foreign key constraints from stars.
+	runMigration(conn, logger, "generalize-stars-subject", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			create table stars_new (
+				id integer primary key autoincrement,
+				did text not null,
+				rkey text not null,
+
+				subject_at text not null,
+
+				created text not null default (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+				unique(did, rkey),
+				unique(did, subject_at)
+			);
+
+			insert into stars_new (
+				id,
+				did,
+				rkey,
+				subject_at,
+				created
+			)
+			select
+				id,
+				starred_by_did,
+				rkey,
+				repo_at,
+				created
+			from stars;
+
+			drop table stars;
+			alter table stars_new rename to stars;
+
+			create index if not exists idx_stars_created on stars(created);
+			create index if not exists idx_stars_subject_at_created on stars(subject_at, created);
 		`)
 		return err
 	})

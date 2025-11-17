@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/bluesky-social/indigo/atproto/syntax"
+	"tangled.org/core/api/tangled"
 	"tangled.org/core/appview/db"
 	"tangled.org/core/appview/models"
 	"tangled.org/core/appview/notify"
@@ -36,6 +37,10 @@ func (n *databaseNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 }
 
 func (n *databaseNotifier) NewStar(ctx context.Context, star *models.Star) {
+	if star.RepoAt.Collection().String() != tangled.RepoNSID {
+		// skip string stars for now
+		return
+	}
 	var err error
 	repo, err := db.GetRepo(n.db, db.FilterEq("at_uri", string(star.RepoAt)))
 	if err != nil {
@@ -43,7 +48,7 @@ func (n *databaseNotifier) NewStar(ctx context.Context, star *models.Star) {
 		return
 	}
 
-	actorDid := syntax.DID(star.StarredByDid)
+	actorDid := syntax.DID(star.Did)
 	recipients := []syntax.DID{syntax.DID(repo.Did)}
 	eventType := models.NotificationTypeRepoStarred
 	entityType := "repo"

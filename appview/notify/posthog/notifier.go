@@ -37,7 +37,7 @@ func (n *posthogNotifier) NewRepo(ctx context.Context, repo *models.Repo) {
 
 func (n *posthogNotifier) NewStar(ctx context.Context, star *models.Star) {
 	err := n.client.Enqueue(posthog.Capture{
-		DistinctId: star.StarredByDid,
+		DistinctId: star.Did,
 		Event:      "star",
 		Properties: posthog.Properties{"repo_at": star.RepoAt.String()},
 	})
@@ -48,7 +48,7 @@ func (n *posthogNotifier) NewStar(ctx context.Context, star *models.Star) {
 
 func (n *posthogNotifier) DeleteStar(ctx context.Context, star *models.Star) {
 	err := n.client.Enqueue(posthog.Capture{
-		DistinctId: star.StarredByDid,
+		DistinctId: star.Did,
 		Event:      "unstar",
 		Properties: posthog.Properties{"repo_at": star.RepoAt.String()},
 	})

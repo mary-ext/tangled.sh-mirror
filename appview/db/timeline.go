@@ -146,23 +146,13 @@ func getTimelineRepos(e Execer, limit int, loggedInUserDid string, userIsFollowi
 func getTimelineStars(e Execer, limit int, loggedInUserDid string, userIsFollowing []string) ([]models.TimelineEvent, error) {
 	filters := make([]filter, 0)
 	if userIsFollowing != nil {
-		filters = append(filters, FilterIn("starred_by_did", userIsFollowing))
+		filters = append(filters, FilterIn("did", userIsFollowing))
 	}
 
-	stars, err := GetStars(e, limit, filters...)
+	stars, err := GetRepoStars(e, limit, filters...)
 	if err != nil {
 		return nil, err
 	}
-
-	// filter star records without a repo
-	n := 0
-	for _, s := range stars {
-		if s.Repo != nil {
-			stars[n] = s
-			n++
-		}
-	}
-	stars = stars[:n]
 
 	var repos []models.Repo
 	for _, s := range stars {
@@ -179,7 +169,7 @@ func getTimelineStars(e Execer, limit int, loggedInUserDid string, userIsFollowi
 		isStarred, starCount := getRepoStarInfo(s.Repo, starStatuses)
 
 		events = append(events, models.TimelineEvent{
-			Star:      &s,
+			RepoStar:  &s,
 			EventAt:   s.Created,
 			IsStarred: isStarred,
 			StarCount: starCount,
