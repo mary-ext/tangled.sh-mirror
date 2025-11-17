@@ -125,7 +125,7 @@ func (rp *Repo) Log(w http.ResponseWriter, r *http.Request) {
 	for _, c := range xrpcResp.Commits {
 		shas = append(shas, c.Hash.String())
 	}
-	pipelines, err := getPipelineStatuses(rp.db, &f.Repo, shas)
+	pipelines, err := getPipelineStatuses(rp.db, f, shas)
 	if err != nil {
 		l.Error("failed to getPipelineStatuses", "err", err)
 		// non-fatal
@@ -198,7 +198,7 @@ func (rp *Repo) Commit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := rp.oauth.GetUser(r)
-	pipelines, err := getPipelineStatuses(rp.db, &f.Repo, []string{result.Diff.Commit.This})
+	pipelines, err := getPipelineStatuses(rp.db, f, []string{result.Diff.Commit.This})
 	if err != nil {
 		l.Error("failed to getPipelineStatuses", "err", err)
 		// non-fatal

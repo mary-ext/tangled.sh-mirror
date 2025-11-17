@@ -54,7 +54,7 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 	xrpcc := &indigoxrpc.Client{
 		Host: host,
 	}
-	repo := fmt.Sprintf("%s/%s", f.Did, f.Repo.Name)
+	repo := fmt.Sprintf("%s/%s", f.Did, f.Name)
 	resp, err := tangled.RepoBlob(r.Context(), xrpcc, filePath, false, ref, repo)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		l.Error("failed to call XRPC repo.blob", "err", xrpcerr)
@@ -62,7 +62,7 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, f)
 
 	// Use XRPC response directly instead of converting to internal types
 	var breadcrumbs [][]string
@@ -74,7 +74,7 @@ func (rp *Repo) Blob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the blob view
-	blobView := NewBlobView(resp, rp.config, &f.Repo, ref, filePath, r.URL.Query())
+	blobView := NewBlobView(resp, rp.config, f, ref, filePath, r.URL.Query())
 
 	user := rp.oauth.GetUser(r)
 
@@ -107,7 +107,7 @@ func (rp *Repo) RepoBlobRaw(w http.ResponseWriter, r *http.Request) {
 	if !rp.config.Core.Dev {
 		scheme = "https"
 	}
-	repo := fmt.Sprintf("%s/%s", f.Did, f.Repo.Name)
+	repo := f.DidSlashRepo()
 	baseURL := &url.URL{
 		Scheme: scheme,
 		Host:   f.Knot,

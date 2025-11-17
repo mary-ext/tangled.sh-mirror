@@ -118,7 +118,7 @@ func (rp *Repo) EditSpindle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	newRepo := f.Repo
+	newRepo := *f
 	newRepo.Spindle = newSpindle
 	record := newRepo.AsRecord()
 
@@ -257,7 +257,7 @@ func (rp *Repo) AddLabelDef(w http.ResponseWriter, r *http.Request) {
 	l.Info("wrote label record to PDS")
 
 	// update the repo to subscribe to this label
-	newRepo := f.Repo
+	newRepo := *f
 	newRepo.Labels = append(newRepo.Labels, aturi)
 	repoRecord := newRepo.AsRecord()
 
@@ -369,7 +369,7 @@ func (rp *Repo) DeleteLabelDef(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update repo record to remove the label reference
-	newRepo := f.Repo
+	newRepo := *f
 	var updated []string
 	removedAt := label.AtUri().String()
 	for _, l := range newRepo.Labels {
@@ -462,7 +462,7 @@ func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newRepo := f.Repo
+	newRepo := *f
 	newRepo.Labels = append(newRepo.Labels, labelAts...)
 
 	// dedup
@@ -477,7 +477,7 @@ func (rp *Repo) SubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, f.Did, f.Rkey)
 	if err != nil {
 		fail("Failed to update labels, no record found on PDS.", err)
 		return
@@ -549,7 +549,7 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update repo record to remove the label reference
-	newRepo := f.Repo
+	newRepo := *f
 	var updated []string
 	for _, l := range newRepo.Labels {
 		if !slices.Contains(labelAts, l) {
@@ -565,7 +565,7 @@ func (rp *Repo) UnsubscribeLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, f.Repo.Did, f.Repo.Rkey)
+	ex, err := comatproto.RepoGetRecord(r.Context(), client, "", tangled.RepoNSID, f.Did, f.Rkey)
 	if err != nil {
 		fail("Failed to update labels, no record found on PDS.", err)
 		return
@@ -612,7 +612,7 @@ func (rp *Repo) LabelPanel(w http.ResponseWriter, r *http.Request) {
 
 	labelDefs, err := db.GetLabelDefinitions(
 		rp.db,
-		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterIn("at_uri", f.Labels),
 		db.FilterContains("scope", subject.Collection().String()),
 	)
 	if err != nil {
@@ -660,7 +660,7 @@ func (rp *Repo) EditLabelPanel(w http.ResponseWriter, r *http.Request) {
 
 	labelDefs, err := db.GetLabelDefinitions(
 		rp.db,
-		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterIn("at_uri", f.Labels),
 		db.FilterContains("scope", subject.Collection().String()),
 	)
 	if err != nil {
@@ -1057,7 +1057,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			uri = "http"
 		}
 
-		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.Did, f.Repo.Name)
+		forkSourceUrl := fmt.Sprintf("%s://%s/%s/%s", uri, f.Knot, f.Did, f.Name)
 		l = l.With("cloneUrl", forkSourceUrl)
 
 		sourceAt := f.RepoAt().String()
@@ -1070,7 +1070,7 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 			Knot:        targetKnot,
 			Rkey:        rkey,
 			Source:      sourceAt,
-			Description: f.Repo.Description,
+			Description: f.Description,
 			Created:     time.Now(),
 			Labels:      rp.config.Label.DefaultLabelDefs,
 		}

@@ -38,7 +38,7 @@ func (rp *Repo) AttachArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tag, err := rp.resolveTag(r.Context(), &f.Repo, tagParam)
+	tag, err := rp.resolveTag(r.Context(), f, tagParam)
 	if err != nil {
 		log.Println("failed to resolve tag", err)
 		rp.pages.Notice(w, "upload", "failed to upload artifact, error in tag resolution")
@@ -146,7 +146,7 @@ func (rp *Repo) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
 	tagParam := chi.URLParam(r, "tag")
 	filename := chi.URLParam(r, "file")
 
-	tag, err := rp.resolveTag(r.Context(), &f.Repo, tagParam)
+	tag, err := rp.resolveTag(r.Context(), f, tagParam)
 	if err != nil {
 		log.Println("failed to resolve tag", err)
 		rp.pages.Notice(w, "upload", "failed to upload artifact, error in tag resolution")

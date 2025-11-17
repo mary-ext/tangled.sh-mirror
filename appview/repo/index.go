@@ -53,7 +53,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	user := rp.oauth.GetUser(r)
 
 	// Build index response from multiple XRPC calls
-	result, err := rp.buildIndexResponse(r.Context(), xrpcc, &f.Repo, ref)
+	result, err := rp.buildIndexResponse(r.Context(), xrpcc, f, ref)
 	if xrpcerr := xrpcclient.HandleXrpcErr(err); xrpcerr != nil {
 		if errors.Is(xrpcerr, xrpcclient.ErrXrpcUnsupported) {
 			l.Error("failed to call XRPC repo.index", "err", err)
@@ -128,7 +128,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: a bit dirty
-	languageInfo, err := rp.getLanguageInfo(r.Context(), l, &f.Repo, xrpcc, result.Ref, ref == "")
+	languageInfo, err := rp.getLanguageInfo(r.Context(), l, f, xrpcc, result.Ref, ref == "")
 	if err != nil {
 		l.Warn("failed to compute language percentages", "err", err)
 		// non-fatal
@@ -138,7 +138,7 @@ func (rp *Repo) Index(w http.ResponseWriter, r *http.Request) {
 	for _, c := range commitsTrunc {
 		shas = append(shas, c.Hash.String())
 	}
-	pipelines, err := getPipelineStatuses(rp.db, &f.Repo, shas)
+	pipelines, err := getPipelineStatuses(rp.db, f, shas)
 	if err != nil {
 		l.Error("failed to fetch pipeline statuses", "err", err)
 		// non-fatal

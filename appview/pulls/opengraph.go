@@ -293,7 +293,7 @@ func (s *Pulls) PullOpenGraphSummary(w http.ResponseWriter, r *http.Request) {
 		filesChanged = niceDiff.Stat.FilesChanged
 	}
 
-	card, err := s.drawPullSummaryCard(pull, &f.Repo, commentCount, diffStats, filesChanged)
+	card, err := s.drawPullSummaryCard(pull, f, commentCount, diffStats, filesChanged)
 	if err != nil {
 		log.Println("failed to draw pull summary card", err)
 		http.Error(w, "failed to draw pull summary card", http.StatusInternalServerError)

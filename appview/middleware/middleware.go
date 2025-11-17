@@ -327,7 +327,7 @@ func (mw Middleware) GoImport() middlewareFunc {
 				return
 			}
 
-			fullName := reporesolver.GetBaseRepoPath(r, &f.Repo)
+			fullName := reporesolver.GetBaseRepoPath(r, f)
 
 			if r.Header.Get("User-Agent") == "Go-http-client/1.1" {
 				if r.URL.Query().Get("go-get") == "1" {

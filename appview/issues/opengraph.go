@@ -232,14 +232,14 @@ func (rp *Issues) IssueOpenGraphSummary(w http.ResponseWriter, r *http.Request) 
 
 	// Get owner handle for avatar
 	var ownerHandle string
-	owner, err := rp.idResolver.ResolveIdent(r.Context(), f.Repo.Did)
+	owner, err := rp.idResolver.ResolveIdent(r.Context(), f.Did)
 	if err != nil {
-		ownerHandle = f.Repo.Did
+		ownerHandle = f.Did
 	} else {
 		ownerHandle = "@" + owner.Handle.String()
 	}
 
-	card, err := rp.drawIssueSummaryCard(issue, &f.Repo, commentCount, ownerHandle)
+	card, err := rp.drawIssueSummaryCard(issue, f, commentCount, ownerHandle)
 	if err != nil {
 		log.Println("failed to draw issue summary card", err)
 		http.Error(w, "failed to draw issue summary card", http.StatusInternalServerError)

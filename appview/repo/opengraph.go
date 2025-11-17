@@ -374,7 +374,7 @@ func (rp *Repo) Opengraph(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	card, err := rp.drawRepoSummaryCard(&f.Repo, languageStats)
+	card, err := rp.drawRepoSummaryCard(f, languageStats)
 	if err != nil {
 		log.Println("failed to draw repo summary card", err)
 		http.Error(w, "failed to draw repo summary card", http.StatusInternalServerError)

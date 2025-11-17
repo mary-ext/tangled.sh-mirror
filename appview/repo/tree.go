@@ -80,7 +80,7 @@ func (rp *Repo) Tree(w http.ResponseWriter, r *http.Request) {
 		result.ReadmeFileName = xrpcResp.Readme.Filename
 		result.Readme = xrpcResp.Readme.Contents
 	}
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, f)
 	// redirects tree paths trying to access a blob; in this case the result.Files is unpopulated,
 	// so we can safely redirect to the "parent" (which is the same file).
 	if len(result.Files) == 0 && result.Parent == treePath {

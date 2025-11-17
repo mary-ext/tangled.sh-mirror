@@ -159,7 +159,7 @@ func (rp *Repo) AtomFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	ownerSlashRepo := repoOwnerId.Handle.String() + "/" + f.Name
 
-	feed, err := rp.getRepoFeed(r.Context(), &f.Repo, ownerSlashRepo)
+	feed, err := rp.getRepoFeed(r.Context(), f, ownerSlashRepo)
 	if err != nil {
 		log.Println("failed to get repo feed:", err)
 		rp.pages.Error500(w)

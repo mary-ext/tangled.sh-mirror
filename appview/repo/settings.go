@@ -217,7 +217,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	labels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", f.Repo.Labels))
+	labels, err := db.GetLabelDefinitions(rp.db, db.FilterIn("at_uri", f.Labels))
 	if err != nil {
 		l.Error("failed to fetch labels", "err", err)
 		rp.pages.Error503(w)
@@ -238,7 +238,7 @@ func (rp *Repo) generalSettings(w http.ResponseWriter, r *http.Request) {
 	labels = labels[:n]
 
 	subscribedLabels := make(map[string]struct{})
-	for _, l := range f.Repo.Labels {
+	for _, l := range f.Labels {
 		subscribedLabels[l] = struct{}{}
 	}
 
@@ -299,7 +299,7 @@ func (rp *Repo) accessSettings(w http.ResponseWriter, r *http.Request) {
 			collaborators = append(collaborators, c)
 		}
 		return collaborators, nil
-	}(&f.Repo)
+	}(f)
 	if err != nil {
 		l.Error("failed to get collaborators", "err", err)
 	}
@@ -416,7 +416,7 @@ func (rp *Repo) EditBaseSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	l.Debug("got", "topicsStr", topicStr, "topics", topics)
 
-	newRepo := f.Repo
+	newRepo := *f
 	newRepo.Description = description
 	newRepo.Website = website
 	newRepo.Topics = topics

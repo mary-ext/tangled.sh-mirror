@@ -103,7 +103,7 @@ func (rp *Issues) RepoSingleIssue(w http.ResponseWriter, r *http.Request) {
 
 	labelDefs, err := db.GetLabelDefinitions(
 		rp.db,
-		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterIn("at_uri", f.Labels),
 		db.FilterContains("scope", tangled.RepoIssueNSID),
 	)
 	if err != nil {
@@ -264,7 +264,7 @@ func (rp *Issues) DeleteIssue(w http.ResponseWriter, r *http.Request) {
 	rp.notifier.DeleteIssue(r.Context(), issue)
 
 	// return to all issues page
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, f)
 	rp.pages.HxRedirect(w, "/"+ownerSlashRepo+"/issues")
 }
 
@@ -306,7 +306,7 @@ func (rp *Issues) CloseIssue(w http.ResponseWriter, r *http.Request) {
 		// notify about the issue closure
 		rp.notifier.NewIssueState(r.Context(), syntax.DID(user.Did), issue)
 
-		ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+		ownerSlashRepo := reporesolver.GetBaseRepoPath(r, f)
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", ownerSlashRepo, issue.IssueId))
 		return
 	} else {
@@ -353,7 +353,7 @@ func (rp *Issues) ReopenIssue(w http.ResponseWriter, r *http.Request) {
 		// notify about the issue reopen
 		rp.notifier.NewIssueState(r.Context(), syntax.DID(user.Did), issue)
 
-		ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+		ownerSlashRepo := reporesolver.GetBaseRepoPath(r, f)
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", ownerSlashRepo, issue.IssueId))
 		return
 	} else {
@@ -458,7 +458,7 @@ func (rp *Issues) NewIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 	rp.notifier.NewIssueComment(r.Context(), &comment, mentions)
 
-	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+	ownerSlashRepo := reporesolver.GetBaseRepoPath(r, f)
 	rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d#comment-%d", ownerSlashRepo, issue.IssueId, commentId))
 }
 
@@ -810,7 +810,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 
 	labelDefs, err := db.GetLabelDefinitions(
 		rp.db,
-		db.FilterIn("at_uri", f.Repo.Labels),
+		db.FilterIn("at_uri", f.Labels),
 		db.FilterContains("scope", tangled.RepoIssueNSID),
 	)
 	if err != nil {
@@ -860,7 +860,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 			Open:    true,
 			Did:     user.Did,
 			Created: time.Now(),
-			Repo:    &f.Repo,
+			Repo:    f,
 		}
 
 		if err := rp.validator.ValidateIssue(issue); err != nil {
@@ -939,7 +939,7 @@ func (rp *Issues) NewIssue(w http.ResponseWriter, r *http.Request) {
 		}
 		rp.notifier.NewIssue(r.Context(), issue, mentions)
 
-		ownerSlashRepo := reporesolver.GetBaseRepoPath(r, &f.Repo)
+		ownerSlashRepo := reporesolver.GetBaseRepoPath(r, f)
 		rp.pages.HxLocation(w, fmt.Sprintf("/%s/issues/%d", ownerSlashRepo, issue.IssueId))
 		return
 	}
