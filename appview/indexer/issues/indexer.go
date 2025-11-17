@@ -56,7 +56,9 @@ func (ix *Indexer) Init(ctx context.Context, e db.Execer) {
 			log.Fatalln("failed to populate issue indexer", err)
 		}
 	}
-	l.Info("Initialized the issue indexer")
+
+	count, _ := ix.indexer.DocCount()
+	l.Info("Initialized the issue indexer", "docCount", count)
 }
 
 func generateIssueIndexMapping() (mapping.IndexMapping, error) {

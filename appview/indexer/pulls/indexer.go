@@ -55,7 +55,9 @@ func (ix *Indexer) Init(ctx context.Context, e db.Execer) {
 			log.Fatalln("failed to populate pull indexer", err)
 		}
 	}
-	l.Info("Initialized the pull indexer")
+
+	count, _ := ix.indexer.DocCount()
+	l.Info("Initialized the pull indexer", "docCount", count)
 }
 
 func generatePullIndexMapping() (mapping.IndexMapping, error) {
