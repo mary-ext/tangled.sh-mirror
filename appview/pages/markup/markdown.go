@@ -78,8 +78,10 @@ func NewMarkdown() goldmark.Markdown {
 }
 
 func (rctx *RenderContext) RenderMarkdown(source string) string {
-	md := NewMarkdown()
+	return rctx.RenderMarkdownWith(source, NewMarkdown())
+}
 
+func (rctx *RenderContext) RenderMarkdownWith(source string, md goldmark.Markdown) string {
 	if rctx != nil {
 		var transformers []util.PrioritizedValue
 

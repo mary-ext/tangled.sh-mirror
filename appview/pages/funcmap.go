@@ -25,6 +25,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/dustin/go-humanize"
 	"github.com/go-enry/go-enry/v2"
+	"github.com/yuin/goldmark"
 	"tangled.org/core/appview/filetree"
 	"tangled.org/core/appview/pages/markup"
 	"tangled.org/core/crypto"
@@ -247,7 +248,7 @@ func (p *Pages) funcMap() template.FuncMap {
 		},
 		"description": func(text string) template.HTML {
 			p.rctx.RendererType = markup.RendererTypeDefault
-			htmlString := p.rctx.RenderMarkdown(text)
+			htmlString := p.rctx.RenderMarkdownWith(text, goldmark.New())
 			sanitized := p.rctx.SanitizeDescription(htmlString)
 			return template.HTML(sanitized)
 		},
