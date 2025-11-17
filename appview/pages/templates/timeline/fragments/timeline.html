@@ -52,7 +52,7 @@
       <span class="text-gray-700 dark:text-gray-400 text-xs">{{ template "repo/fragments/time" $repo.Created }}</span>
     </div>
   {{ with $repo }}
-    {{ template "user/fragments/repoCard" (list $root . true true (dict "IsStarred" $event.IsStarred "RepoAt" .RepoAt "Stats" (dict "StarCount" $event.StarCount))) }}
+    {{ template "user/fragments/repoCard" (list $root . true true (dict "IsStarred" $event.IsStarred "SubjectAt" .RepoAt "StarCount" $event.StarCount)) }}
   {{ end }}
 {{ end }}
 
@@ -72,7 +72,7 @@
         <span class="text-gray-700 dark:text-gray-400 text-xs">{{ template "repo/fragments/time" .Created }}</span>
     </div>
     {{ with .Repo }}
-      {{ template "user/fragments/repoCard" (list $root . true true (dict "IsStarred" $event.IsStarred "RepoAt" .RepoAt "Stats" (dict "StarCount" $event.StarCount))) }}
+      {{ template "user/fragments/repoCard" (list $root . true true (dict "IsStarred" $event.IsStarred "SubjectAt" .RepoAt "StarCount" $event.StarCount)) }}
     {{ end }}
   {{ end }}
 {{ end }}

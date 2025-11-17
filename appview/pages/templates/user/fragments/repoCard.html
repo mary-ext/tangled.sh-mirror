@@ -1,4 +1,5 @@
 {{ define "user/fragments/repoCard" }}
+  {{/* root, repo, fullName [,starButton [,starData]] */}}
   {{ $root := index . 0 }}
   {{ $repo := index . 1 }}
   {{ $fullName := index . 2 }}
@@ -29,7 +30,7 @@
         </div>
         {{ if and $starButton $root.LoggedInUser }}
         <div class="shrink-0">
-          {{ template "repo/fragments/repoStar" $starData }}
+          {{ template "fragments/starBtn" $starData }}
         </div>
         {{ end }}
       </div>

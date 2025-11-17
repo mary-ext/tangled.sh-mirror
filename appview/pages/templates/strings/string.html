@@ -17,8 +17,8 @@
         <span class="select-none">/</span>
         <a href="/strings/{{ $ownerId }}/{{ .String.Rkey }}" class="font-bold">{{ .String.Filename }}</a>
       </div>
-      {{ if and .LoggedInUser (eq .LoggedInUser.Did .String.Did) }}
-        <div class="flex gap-2 text-base">
+      <div class="flex gap-2 text-base">
+        {{ if and .LoggedInUser (eq .LoggedInUser.Did .String.Did) }}
           <a class="btn flex items-center gap-2 no-underline hover:no-underline p-2 group"
              hx-boost="true"
              href="/strings/{{ .String.Did }}/{{ .String.Rkey }}/edit">
@@ -37,8 +37,12 @@
             <span class="hidden md:inline">delete</span>
             {{ i "loader-circle" "w-4 h-4 animate-spin hidden group-[.htmx-request]:inline" }}
           </button>
-        </div>
-      {{ end }}
+        {{ end }}
+        {{ template "fragments/starBtn"
+          (dict "SubjectAt" .String.AtUri
+                "IsStarred" .IsStarred
+                "StarCount" .StarCount) }}
+      </div>
     </div>
     <span>
       {{ with .String.Description }}

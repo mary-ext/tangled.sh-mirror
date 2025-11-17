@@ -22,7 +22,7 @@ type String struct {
 	Edited      *time.Time
 }
 
-func (s *String) StringAt() syntax.ATURI {
+func (s *String) AtUri() syntax.ATURI {
 	return syntax.ATURI(fmt.Sprintf("at://%s/%s/%s", s.Did, tangled.StringNSID, s.Rkey))
 }
 
