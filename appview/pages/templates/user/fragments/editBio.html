@@ -26,7 +26,14 @@
         {{ if and .Profile .Profile.Pronouns }}
           {{ $pronouns = .Profile.Pronouns }}
         {{ end }}
-        <input type="text" class="py-1 px-1 w-full" name="pronouns" value="{{ $pronouns }}">
+        <input
+          type="text"
+          class="py-1 px-1 w-full"
+          name="pronouns"
+          placeholder="they/them"
+          pattern="[a-zA-Z]{1,6}[\/\s\-][a-zA-Z]{1,6}"
+          value="{{ $pronouns }}"
+        >
       </div>
     </div>
 
