@@ -99,7 +99,9 @@
         {{ end }}
       </div>
     {{ else if .BlobView.ContentType.IsCode }}
-      <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ code .BlobView.Contents .Path | escapeHtml }}</div>
+      <div class="overflow-auto relative">
+        <div id="blob-contents" class="whitespace-pre peer-target:bg-yellow-200 dark:peer-target:bg-yellow-900">{{ code .BlobView.Contents .Path | escapeHtml }}</div>
+      </div>
     {{ end }}
     {{ template "fragments/multiline-select" }}
 {{ end }}

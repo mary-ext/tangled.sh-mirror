@@ -4,7 +4,7 @@ tmp_dir = "out"
 [build]
 cmd = 'go build -ldflags "-X tangled.org/core/knotserver.version=$(git describe --tags --long)" -o out/knot.out cmd/knot/main.go'
 bin = "out/knot.out"
-args_bin = "server"
+args_bin = ["server"]
 
 include_ext = ["go"]
 exclude_dir = ["avatar", "camo", "indexes", "nix", "tmp"]
