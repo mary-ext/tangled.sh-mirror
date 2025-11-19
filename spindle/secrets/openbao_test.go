@@ -152,7 +152,9 @@ func TestNewOpenBaoManager(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-			manager, err := NewOpenBaoManager(tt.proxyAddr, logger, tt.opts...)
+			// Use shorter timeout for tests to avoid long waits
+			opts := append(tt.opts, WithConnectionTimeout(1*time.Second))
+			manager, err := NewOpenBaoManager(tt.proxyAddr, logger, opts...)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -596,7 +598,8 @@ func TestOpenBaoManager_ProxyConfiguration(t *testing.T) {
 
 			// All these will fail because no real proxy is running
 			// but we can test that the configuration is properly accepted
-			manager, err := NewOpenBaoManager(tt.proxyAddr, logger)
+			// Use shorter timeout for tests to avoid long waits
+			manager, err := NewOpenBaoManager(tt.proxyAddr, logger, WithConnectionTimeout(1*time.Second))
 			assert.Error(t, err) // Expected because no real proxy
 			assert.Nil(t, manager)
 			assert.Contains(t, err.Error(), "failed to connect to bao proxy")

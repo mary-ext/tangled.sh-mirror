@@ -13,9 +13,10 @@ import (
 )
 
 type OpenBaoManager struct {
-	client    *vault.Client
-	mountPath string
-	logger    *slog.Logger
+	client            *vault.Client
+	mountPath         string
+	logger            *slog.Logger
+	connectionTimeout time.Duration
 }
 
 type OpenBaoManagerOpt func(*OpenBaoManager)
@@ -23,6 +24,12 @@ type OpenBaoManagerOpt func(*OpenBaoManager)
 func WithMountPath(mountPath string) OpenBaoManagerOpt {
 	return func(v *OpenBaoManager) {
 		v.mountPath = mountPath
+	}
+}
+
+func WithConnectionTimeout(timeout time.Duration) OpenBaoManagerOpt {
+	return func(v *OpenBaoManager) {
+		v.connectionTimeout = timeout
 	}
 }
 
@@ -43,9 +50,10 @@ func NewOpenBaoManager(proxyAddress string, logger *slog.Logger, opts ...OpenBao
 	}
 
 	manager := &OpenBaoManager{
-		client:    client,
-		mountPath: "spindle", // default KV v2 mount path
-		logger:    logger,
+		client:            client,
+		mountPath:         "spindle", // default KV v2 mount path
+		logger:            logger,
+		connectionTimeout: 10 * time.Second, // default connection timeout
 	}
 
 	for _, opt := range opts {
@@ -62,7 +70,7 @@ func NewOpenBaoManager(proxyAddress string, logger *slog.Logger, opts ...OpenBao
 
 // testConnection verifies that we can connect to the proxy
 func (v *OpenBaoManager) testConnection() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), v.connectionTimeout)
 	defer cancel()
 
 	// try token self-lookup as a quick way to verify proxy works
