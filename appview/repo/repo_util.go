@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"crypto/rand"
-	"math/big"
 	"slices"
 	"sort"
 	"strings"
@@ -90,18 +88,6 @@ func balanceIndexItems(commitCount, branchCount, tagCount, fileCount int) (commi
 	return
 }
 
-func randomString(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	result := make([]byte, n)
-
-	for i := 0; i < n; i++ {
-		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
-		result[i] = letters[n.Int64()]
-	}
-
-	return string(result)
-}
-
 // grab pipelines from DB and munge that into a hashmap with commit sha as key
 //
 // golang is so blessed that it requires 35 lines of imperative code for this
@@ -118,6 +104,7 @@ func getPipelineStatuses(
 
 	ps, err := db.GetPipelineStatuses(
 		d,
+		len(shas),
 		db.FilterEq("repo_owner", repoInfo.OwnerDid),
 		db.FilterEq("repo_name", repoInfo.Name),
 		db.FilterEq("knot", repoInfo.Knot),

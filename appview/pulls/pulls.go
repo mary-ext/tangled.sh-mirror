@@ -178,6 +178,7 @@ func (s *Pulls) RepoSinglePull(w http.ResponseWriter, r *http.Request) {
 
 	ps, err := db.GetPipelineStatuses(
 		s.db,
+		len(shas),
 		db.FilterEq("repo_owner", repoInfo.OwnerDid),
 		db.FilterEq("repo_name", repoInfo.Name),
 		db.FilterEq("knot", repoInfo.Knot),
@@ -648,6 +649,7 @@ func (s *Pulls) RepoPulls(w http.ResponseWriter, r *http.Request) {
 	repoInfo := f.RepoInfo(user)
 	ps, err := db.GetPipelineStatuses(
 		s.db,
+		len(shas),
 		db.FilterEq("repo_owner", repoInfo.OwnerDid),
 		db.FilterEq("repo_name", repoInfo.Name),
 		db.FilterEq("knot", repoInfo.Knot),

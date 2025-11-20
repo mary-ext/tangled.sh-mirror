@@ -168,7 +168,7 @@ func AddPipelineStatus(e Execer, status models.PipelineStatus) error {
 
 // this is a mega query, but the most useful one:
 // get N pipelines, for each one get the latest status of its N workflows
-func GetPipelineStatuses(e Execer, filters ...filter) ([]models.Pipeline, error) {
+func GetPipelineStatuses(e Execer, limit int, filters ...filter) ([]models.Pipeline, error) {
 	var conditions []string
 	var args []any
 	for _, filter := range filters {
@@ -205,7 +205,9 @@ func GetPipelineStatuses(e Execer, filters ...filter) ([]models.Pipeline, error)
 		join
 			triggers t ON p.trigger_id = t.id
 		%s
-	`, whereClause)
+		order by p.created desc
+		limit %d
+	`, whereClause, limit)
 
 	rows, err := e.Query(query, args...)
 	if err != nil {

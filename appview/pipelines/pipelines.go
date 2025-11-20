@@ -82,6 +82,7 @@ func (p *Pipelines) Index(w http.ResponseWriter, r *http.Request) {
 
 	ps, err := db.GetPipelineStatuses(
 		p.db,
+		30,
 		db.FilterEq("repo_owner", repoInfo.OwnerDid),
 		db.FilterEq("repo_name", repoInfo.Name),
 		db.FilterEq("knot", repoInfo.Knot),
@@ -124,6 +125,7 @@ func (p *Pipelines) Workflow(w http.ResponseWriter, r *http.Request) {
 
 	ps, err := db.GetPipelineStatuses(
 		p.db,
+		1,
 		db.FilterEq("repo_owner", repoInfo.OwnerDid),
 		db.FilterEq("repo_name", repoInfo.Name),
 		db.FilterEq("knot", repoInfo.Knot),
@@ -193,6 +195,7 @@ func (p *Pipelines) Logs(w http.ResponseWriter, r *http.Request) {
 
 	ps, err := db.GetPipelineStatuses(
 		p.db,
+		1,
 		db.FilterEq("repo_owner", repoInfo.OwnerDid),
 		db.FilterEq("repo_name", repoInfo.Name),
 		db.FilterEq("knot", repoInfo.Knot),
