@@ -17,7 +17,7 @@
 {{ end }}
 
 {{ define "mainLayout" }}
-  <div class="px-1 col-span-full flex flex-col gap-4">
+  <div class="px-1 flex-grow col-span-full flex flex-col gap-4">
     {{ block "contentLayout" . }}
       {{ block "content" . }}{{ end }}
     {{ end }}

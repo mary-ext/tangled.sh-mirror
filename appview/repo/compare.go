@@ -116,17 +116,21 @@ func (rp *Repo) Compare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if user is navigating to one of
-	//   /compare/{base}/{head}
 	//   /compare/{base}...{head}
-	base := chi.URLParam(r, "base")
-	head := chi.URLParam(r, "head")
-	if base == "" && head == "" {
-		rest := chi.URLParam(r, "*") // master...feature/xyz
-		parts := strings.SplitN(rest, "...", 2)
-		if len(parts) == 2 {
-			base = parts[0]
-			head = parts[1]
-		}
+	//   /compare/{base}/{head}
+	var base, head string
+	rest := chi.URLParam(r, "*")
+
+	var parts []string
+	if strings.Contains(rest, "...") {
+		parts = strings.SplitN(rest, "...", 2)
+	} else if strings.Contains(rest, "/") {
+		parts = strings.SplitN(rest, "/", 2)
+	}
+
+	if len(parts) == 2 {
+		base = parts[0]
+		head = parts[1]
 	}
 
 	base, _ = url.PathUnescape(base)

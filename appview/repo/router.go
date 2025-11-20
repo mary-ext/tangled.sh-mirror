@@ -61,7 +61,6 @@ func (rp *Repo) Router(mw *middleware.Middleware) http.Handler {
 		// for example:
 		//   /compare/master...some/feature
 		//   /compare/master...example.com:another/feature <- this is a fork
-		r.Get("/{base}/{head}", rp.Compare)
 		r.Get("/*", rp.Compare)
 	})
 
