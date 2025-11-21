@@ -2,6 +2,7 @@
     <button
         id="starBtn"
         class="btn disabled:opacity-50 disabled:cursor-not-allowed flex gap-2 items-center group"
+        data-star-subject-at="{{ .SubjectAt }}"
         {{ if .IsStarred }}
             hx-delete="/star?subject={{ .SubjectAt }}&countHint={{ .StarCount }}"
         {{ else }}
@@ -11,6 +12,7 @@
         hx-trigger="click"
         hx-target="this"
         hx-swap="outerHTML"
+        hx-swap-oob='outerHTML:#starBtn[data-star-subject-at="{{ .SubjectAt }}"]'
         hx-disabled-elt="#starBtn"
     >
         {{ if .IsStarred }}
