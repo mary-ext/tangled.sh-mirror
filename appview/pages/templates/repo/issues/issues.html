@@ -30,16 +30,27 @@
   <div class="grid gap-2 grid-cols-[auto_1fr_auto] grid-row-2">
     <form class="flex relative col-span-3 sm:col-span-1 sm:col-start-2" method="GET">
       <input type="hidden" name="state" value="{{ if .FilteringByOpen }}open{{ else }}closed{{ end }}">
-      <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-        {{ i "search" "w-4 h-4" }}
+      <div class="flex-1 flex relative">
+        <input
+          class="flex-1 py-1 pl-2 pr-10 mr-[-1px] rounded-r-none focus:border-0 focus:outline-none focus:ring focus:ring-blue-400 ring-inset peer"
+          type="text"
+          name="q"
+          value="{{ .FilterQuery }}"
+          placeholder=" "
+        >
+        <a
+          href="?state={{ if .FilteringByOpen }}open{{ else }}closed{{ end }}"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hidden peer-[:not(:placeholder-shown)]:block"
+        >
+          {{ i "x" "w-4 h-4" }}
+        </a>
       </div>
-      <input class="flex-1 p-1 pl-10 pr-10 peer" type="text" name="q" value="{{ .FilterQuery }}" placeholder=" ">
-      <a
-        href="?state={{ if .FilteringByOpen }}open{{ else }}closed{{ end }}"
-        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hidden peer-[:not(:placeholder-shown)]:block"
+      <button
+        type="submit"
+        class="p-2 text-gray-400 border rounded-r border-gray-400 dark:border-gray-600"
       >
-        {{ i "x" "w-4 h-4" }}
-      </a>
+        {{ i "search" "w-4 h-4" }}
+      </button>
     </form>
     <div class="sm:row-start-1">
       {{ template "fragments/tabSelector" (dict "Name" "state" "Values" $values "Active" $active) }}
