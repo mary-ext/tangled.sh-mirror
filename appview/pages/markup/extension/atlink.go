@@ -89,7 +89,7 @@ func (r *atHtmlRenderer) renderAt(w util.BufWriter, source []byte, n ast.Node, e
 	if entering {
 		w.WriteString(`<a href="/@`)
 		w.WriteString(n.(*AtNode).Handle)
-		w.WriteString(`" class="mention">`)
+		w.WriteString(`" class="mention font-bold">`)
 	} else {
 		w.WriteString("</a>")
 	}
