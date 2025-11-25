@@ -25,6 +25,7 @@
                 value="{{ . }}"
                 class="mr-2"
                 id="domain-{{ . }}"
+                {{if eq (len $.Knots) 1}}checked{{end}}                
                 />
             <label for="domain-{{ . }}" class="dark:text-white">{{ . }}</label>
           </div>

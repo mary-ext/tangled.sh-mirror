@@ -155,6 +155,7 @@
             class="mr-2"
             id="domain-{{ . }}"
             required
+            {{if eq (len $.Knots) 1}}checked{{end}}
           />
           <label for="domain-{{ . }}" class="dark:text-white lowercase">{{ . }}</label>
         </div>
