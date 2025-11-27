@@ -100,6 +100,15 @@ func (p *Pages) funcMap() template.FuncMap {
 		"sub": func(a, b int) int {
 			return a - b
 		},
+		"mul": func (a, b int) int {
+			return a * b
+		},
+		"div": func (a, b int) int {
+			return a / b
+		},
+		"mod": func(a, b int) int {
+			return a % b
+		},
 		"f64": func(a int) float64 {
 			return float64(a)
 		},

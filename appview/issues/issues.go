@@ -804,6 +804,13 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	totalIssues := 0
+	if isOpen {
+		totalIssues = f.RepoStats.IssueCount.Open
+	} else {
+		totalIssues = f.RepoStats.IssueCount.Closed
+	}
+
 	keyword := params.Get("q")
 
 	var issues []models.Issue
@@ -820,6 +827,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		l.Debug("searched issues with indexer", "count", len(res.Hits))
+		totalIssues = int(res.Total)
 
 		issues, err = db.GetIssues(
 			rp.db,
@@ -869,6 +877,7 @@ func (rp *Issues) RepoIssues(w http.ResponseWriter, r *http.Request) {
 		LoggedInUser:    rp.oauth.GetUser(r),
 		RepoInfo:        f.RepoInfo(user),
 		Issues:          issues,
+		IssueCount:      totalIssues,
 		LabelDefs:       defs,
 		FilteringByOpen: isOpen,
 		FilterQuery:     keyword,

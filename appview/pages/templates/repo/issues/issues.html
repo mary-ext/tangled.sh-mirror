@@ -70,40 +70,109 @@
   <div class="mt-2">
     {{ template "repo/issues/fragments/issueListing" (dict "Issues" .Issues "RepoPrefix" .RepoInfo.FullName "LabelDefs" .LabelDefs) }}
   </div>
-  {{ block "pagination" . }} {{ end }}
+  {{if gt .IssueCount .Page.Limit }} 
+    {{ block "pagination" . }} {{ end }} 
+  {{ end }}
 {{ end }}
 
 {{ define "pagination" }}
-<div class="flex justify-end mt-4 gap-2">
-    {{ $currentState := "closed" }}
-    {{ if .FilteringByOpen }}
-      {{ $currentState = "open" }}
-    {{ end }}
+<div class="flex justify-center items-center mt-4 gap-2">
+  {{ $currentState := "closed" }}
+  {{ if .FilteringByOpen }}
+    {{ $currentState = "open" }}
+  {{ end }}
 
+  {{ $prev := .Page.Previous.Offset }}
+  {{ $next := .Page.Next.Offset }}
+  {{ $lastPage := sub .IssueCount (mod .IssueCount .Page.Limit) }}
+
+  <a
+    class="
+      btn flex items-center gap-2 no-underline hover:no-underline 
+      dark:text-white dark:hover:bg-gray-700
+      {{ if le .Page.Offset 0 }}
+        cursor-not-allowed opacity-50
+      {{ end }}
+    "
     {{ if gt .Page.Offset 0 }}
-       {{ $prev := .Page.Previous }}
-        <a
-            class="btn flex items-center gap-2 no-underline hover:no-underline dark:text-white dark:hover:bg-gray-700"
-            hx-boost="true"
-            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $prev.Offset }}&limit={{ $prev.Limit }}"
-        >
-            {{ i "chevron-left" "w-4 h-4" }}
-            previous
-        </a>
-    {{ else }}
-        <div></div>
+      hx-boost="true"
+      href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $prev }}&limit={{ .Page.Limit }}"
     {{ end }}
+  >
+    {{ i "chevron-left" "w-4 h-4" }}
+    previous
+  </a>
 
+  <!-- dont show first page if current page is first page -->
+  {{ if gt .Page.Offset 0 }}
+    <a
+      hx-boost="true"
+      href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset=0&limit={{ .Page.Limit }}"
+    >
+      1
+    </a>
+  {{ end }}
+
+  <!-- if previous page is not first or second page (prev > limit) -->
+  {{ if gt $prev .Page.Limit }}
+    <span>...</span>
+  {{ end }}
+
+  <!-- if previous page is not the first page -->
+  {{ if gt $prev 0 }}
+    <a
+      hx-boost="true"
+      href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $prev }}&limit={{ .Page.Limit }}"
+    >
+      {{ add (div $prev .Page.Limit) 1 }}
+    </a>
+  {{ end }}
+
+  <!-- current page. this is always visible -->
+  <span class="font-bold">
+    {{ add (div .Page.Offset .Page.Limit) 1 }}
+  </span>
+
+  <!-- if next page is not last page -->
+  {{ if lt $next $lastPage }}
+    <a
+      hx-boost="true"
+      href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $next }}&limit={{ .Page.Limit }}"
+    >
+      {{ add (div $next .Page.Limit) 1 }}
+    </a>
+  {{ end }}
+
+  <!-- if next page is not second last or last page (next < issues - 2 * limit) -->
+  {{ if lt ($next) (sub .IssueCount (mul (2) .Page.Limit)) }}
+    <span>...</span>
+  {{ end }}
+
+  <!-- if its not the last page -->
+  {{ if lt .Page.Offset $lastPage }} 
+    <a
+      hx-boost="true"
+      href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $lastPage }}&limit={{ .Page.Limit }}"
+    >
+      {{ add (div $lastPage .Page.Limit) 1 }}
+    </a>
+  {{ end }}
+
+  <a
+    class="
+      btn flex items-center gap-2 no-underline hover:no-underline 
+      dark:text-white dark:hover:bg-gray-700
+      {{ if ne (len .Issues) .Page.Limit }}
+          cursor-not-allowed opacity-50
+      {{ end }}
+    "
     {{ if eq (len .Issues) .Page.Limit }}
-       {{ $next := .Page.Next }}
-        <a
-            class="btn flex items-center gap-2 no-underline hover:no-underline dark:text-white dark:hover:bg-gray-700"
-            hx-boost="true"
-            href = "/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $next.Offset }}&limit={{ $next.Limit }}"
-        >
-            next
-            {{ i "chevron-right" "w-4 h-4" }}
-        </a>
+      hx-boost="true"
+      href="/{{ $.RepoInfo.FullName }}/issues?state={{ $currentState }}&q={{ .FilterQuery }}&offset={{ $next }}&limit={{ .Page.Limit }}"
     {{ end }}
+  >
+    next
+    {{ i "chevron-right" "w-4 h-4" }}
+  </a>
 </div>
 {{ end }}
