@@ -202,9 +202,16 @@ type ServiceClientOpts struct {
 	exp     int64
 	lxm     string
 	dev     bool
+	timeout time.Duration
 }
 
 type ServiceClientOpt func(*ServiceClientOpts)
+
+func DefaultServiceClientOpts() ServiceClientOpts {
+	return ServiceClientOpts{
+		timeout: time.Second * 5,
+	}
+}
 
 func WithService(service string) ServiceClientOpt {
 	return func(s *ServiceClientOpts) {
@@ -233,6 +240,12 @@ func WithDev(dev bool) ServiceClientOpt {
 	}
 }
 
+func WithTimeout(timeout time.Duration) ServiceClientOpt {
+	return func(s *ServiceClientOpts) {
+		s.timeout = timeout
+	}
+}
+
 func (s *ServiceClientOpts) Audience() string {
 	return fmt.Sprintf("did:web:%s", s.service)
 }
@@ -247,7 +260,7 @@ func (s *ServiceClientOpts) Host() string {
 }
 
 func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*xrpc.Client, error) {
-	opts := ServiceClientOpts{}
+	opts := DefaultServiceClientOpts()
 	for _, o := range os {
 		o(&opts)
 	}
@@ -274,7 +287,7 @@ func (o *OAuth) ServiceClient(r *http.Request, os ...ServiceClientOpt) (*xrpc.Cl
 		},
 		Host: opts.Host(),
 		Client: &http.Client{
-			Timeout: time.Second * 5,
+			Timeout: opts.timeout,
 		},
 	}, nil
 }
