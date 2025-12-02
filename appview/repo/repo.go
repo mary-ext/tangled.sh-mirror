@@ -1130,11 +1130,13 @@ func (rp *Repo) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rollback()
 
+		// TODO: this could coordinate better with the knot to recieve a clone status
 		client, err := rp.oauth.ServiceClient(
 			r,
 			oauth.WithService(targetKnot),
 			oauth.WithLxm(tangled.RepoCreateNSID),
 			oauth.WithDev(rp.config.Core.Dev),
+			oauth.WithTimeout(time.Second*20), // big repos take time to clone
 		)
 		if err != nil {
 			l.Error("could not create service client", "err", err)
