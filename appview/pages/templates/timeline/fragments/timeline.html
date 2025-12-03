@@ -14,7 +14,7 @@
                 <div class="flex flex-col divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-sm">
                   {{ if .Repo }}
                     {{ template "timeline/fragments/repoEvent" (list $ .) }}
-                  {{ else if .Star }}
+                  {{ else if .RepoStar }}
                     {{ template "timeline/fragments/starEvent" (list $ .) }}
                   {{ else if .Follow }}
                     {{ template "timeline/fragments/followEvent" (list $ .) }}
